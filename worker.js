@@ -49,6 +49,14 @@ async function upload(req, env) {
     at: Date.now(),
   };
   gate.followN = gate.follow ? Object.keys(gate.follow).length : -1;
+  // BAN・ブロックの一覧が今回読めなかったら、前に届いた一覧を使い続ける（読めない間に BAN した人が入らないように）
+  if (!gate.ban || !gate.block) {
+    const prev = await env.DB.get("gate", "json");
+    if (prev) {
+      if (!gate.ban && prev.ban) { gate.ban = prev.ban; gate.banAt = prev.banAt || prev.at; }
+      if (!gate.block && prev.block) { gate.block = prev.block; gate.blockAt = prev.blockAt || prev.at; }
+    }
+  }
   await env.DB.put("data", JSON.stringify(body.data));
   await env.DB.put("gate", JSON.stringify(gate));
   // 最近ラウンジに入れなかった人の記録も返す（配信者のパネルに出す）
@@ -124,13 +132,10 @@ async function enter(req, env) {
   const id = me.id;
   const owner = id && id === gate.owner, mod = !!(gate.mods && gate.mods[id]);
   if (!owner) {
-    const g = !gate.ban ? "G03" : !gate.block ? "G04" : "";
-    if (g) {
-      const why2 = g === "G03" ? (LIST_ERR.ban[gate.banErr] || "") : (LIST_ERR.block[gate.blockErr] || "");
-      await logDeny(env, g, who, { why2 }); return { res: deny(g, { ...me, listAt: gate.at, detail: why2 }) };
-    }
-    if (gate.ban[id]) { await logDeny(env, "D01", who); return { res: deny("D01", me) }; }
-    if (gate.block[id]) { await logDeny(env, "D02", who); return { res: deny("D02", me) }; }
+    // BAN・ブロックの一覧がまだ一度も届いていないときは、その確認を飛ばす（配信者が「一時的に入れる」を選んだ。
+    // 配信者がオーバーレイでログインし直して一覧が届けば、自動でまた確かめる）
+    if (gate.ban && gate.ban[id]) { await logDeny(env, "D01", who); return { res: deny("D01", me) }; }
+    if (gate.block && gate.block[id]) { await logDeny(env, "D02", who); return { res: deny("D02", me) }; }
     if (!mod && !(gate.follow && gate.follow[id])) {
       const live = await followsLive(who, tok, gate.owner);
       if (live !== "yes") {
