@@ -332,7 +332,7 @@ footer { position: relative; z-index: 2; text-align: center; color: var(--soft);
   <section class="view" id="v-lobby" aria-labelledby="lobby-title">
     <div class="lobby-head">
       <h1 id="lobby-title"></h1>
-      <p>配信でコメントした人が、ここにアバターになって浮かんでいます。</p>
+      <p>いまログインしている人が、ここにアバターになって浮かんでいます。</p>
     </div>
     <div class="plaza" id="plaza">
       <div class="rings">
@@ -348,7 +348,7 @@ footer { position: relative; z-index: 2; text-align: center; color: var(--soft);
         <div>
           <svg viewBox="0 0 36 36" aria-hidden="true"><circle cx="18" cy="18" r="15" fill="none" stroke="#2EA8FF" stroke-width="3"/><circle cx="18" cy="18" r="8.5" fill="none" stroke="#FF5A64" stroke-width="3"/><circle cx="18" cy="18" r="3" fill="#FFC21A"/></svg>
           <b class="num" id="num">0</b>
-          <div class="count" id="count">ラウンジにいる人</div>
+          <div class="count" id="count">いまラウンジにいる人</div>
         </div>
       </div>
     </div>
@@ -359,7 +359,7 @@ footer { position: relative; z-index: 2; text-align: center; color: var(--soft);
       <button class="jelly sky" type="submit">会いに行く</button>
     </form>
     <p class="lobby-hint">アバターを押すと、その人のページへ。広場の床を押すと波紋が広がります。</p>
-    <div class="leaders" id="leaders" aria-label="レベルの高い人"></div>
+    <div class="leaders" id="leaders" aria-label="いまラウンジにいる人"></div>
   </section>
 
   <!-- プロフィール -->
@@ -482,13 +482,24 @@ footer { position: relative; z-index: 2; text-align: center; color: var(--soft);
 
   // ---- ロビーの広場：アバターが楕円の軌道をまわる ----
   var plaza = $("plaza"), avs = [], tiltX = 0, tiltY = 0, tx = 0, ty = 0;
+  // いまラウンジを開いている人（ログイン中）だけを広場に出す。記録がまだない人は Lv.1 の仮の姿で
+  var here = [];
+  function present() {
+    var seen = {};
+    return here.map(function (h) {
+      var v = findViewer(h.n) || (h.l && findViewer(h.l));
+      if (!v) v = { name: h.n, L: 1, X: 0, eq: {}, ghost: true };
+      if (seen[v.name]) return null; seen[v.name] = 1; return v;
+    }).filter(Boolean).sort(function (a, b) { return b.X - a.X; });
+  }
   function buildPlaza() {
-    var vs = data.viewers.slice().sort(function (a, b) { return b.X - a.X; }).slice(0, 42);
+    avs.forEach(function (o) { o.el.remove(); }); avs = [];
+    var vs = present().slice(0, 42);
     var rings = [[.48, .30, 1], [.39, .27, -1], [.31, .245, 1]]; // 横半径・縦半径（広場の幅に対する割合）・向き
     vs.forEach(function (v, i) {
       var ring = rings[i % 3], k = Math.floor(i / 3), n = Math.ceil(vs.length / 3);
       var sk = itemOf("skin", v.eq.skin) || {}, b = document.createElement("button");
-      b.type = "button"; b.className = "av" + (i < 3 ? " top" : "");
+      b.type = "button"; b.className = "av" + (i < 3 && !v.ghost ? " top" : "");
       b.style.setProperty("--pa", sk.pa || ACC[hash(v.name) % 5]); b.style.setProperty("--pc", sk.pc || "#fff");
       b.innerHTML = iconInner(v) + '<span class="tag">' + esc(v.name) + '<b>Lv.' + v.L + '</b></span>';
       b.setAttribute("aria-label", v.name + " さん Lv." + v.L);
@@ -496,9 +507,13 @@ footer { position: relative; z-index: 2; text-align: center; color: var(--soft);
       plaza.appendChild(b);
       avs.push({ el: b, rx: ring[0], ry: ring[1], dir: ring[2], a: (k / n) * Math.PI * 2 + (i % 3) * .7, sp: .00006 + (i % 3) * .00002, z: Math.max(40, 70 - i * .8) });
     });
-    countTo($("num"), data.viewers.length);
+    var top = vs.filter(function (x) { return !x.owner; }).slice(0, 12);
+    $("leaders").innerHTML = top.map(function (v) { var sk = itemOf("skin", v.eq.skin) || {}; return '<button type="button" class="chip" data-n="' + esc(v.name) + '" style="--pa:' + esc(sk.pa || ACC[hash(v.name) % 5]) + '"><i></i>' + esc(v.name) + '<b>Lv.' + v.L + '</b></button>'; }).join("");
+    $("leaders").querySelectorAll(".chip").forEach(function (b) { b.addEventListener("click", function (e) { openProfile(b.dataset.n, e); }); });
+    var num = $("num"), was = +num.dataset.n || 0; num.dataset.n = here.length;
+    if (was !== here.length) countTo(num, here.length, was);
   }
-  function countTo(el, to) { var t0 = performance.now(); (function step(t) { var p = RM ? 1 : Math.min(1, (t - t0) / 1400); el.textContent = fmt(Math.round(to * (1 - Math.pow(1 - p, 4)))); if (p < 1) requestAnimationFrame(step); })(t0); }
+  function countTo(el, to, from) { from = from || 0; var t0 = performance.now(); (function step(t) { var p = RM ? 1 : Math.min(1, (t - t0) / 1400); el.textContent = fmt(Math.round(from + (to - from) * (1 - Math.pow(1 - p, 4)))); if (p < 1) requestAnimationFrame(step); })(t0); }
   // 広場の床を押すと、色つきの波紋
   plaza.addEventListener("pointerdown", function (e) {
     if (e.target.closest(".av")) return;
@@ -558,7 +573,7 @@ footer { position: relative; z-index: 2; text-align: center; color: var(--soft);
   function render(v, name) {
     var box = $("v-me");
     cur = v || null;
-    if (!v) { box.innerHTML = '<button class="jelly light back" type="button" data-back>ロビーへ戻る</button><div class="panel empty" style="margin-top:20px">「' + esc(name) + '」さんは、まだラウンジにいません。<br>配信でコメントすると、次の更新でここに来ます。</div>'; wireBack(); return; }
+    if (!v) { box.innerHTML = '<button class="jelly light back" type="button" data-back>ロビーへ戻る</button><div class="panel empty" style="margin-top:20px">「' + esc(name) + '」さんの記録は、まだありません。<br>配信でコメントすると、次の更新でここに出ます。</div>'; wireBack(); return; }
     var sk = itemOf("skin", v.eq.skin) || data.kinds.skin[0] || {}, font = v.eq.font ? (itemOf("font", v.eq.font) || {}) : {};
     var fam = font.family || ((v.hid || {})[v.eq.font] || {}).family || "";
     var p = Math.max(.02, Math.min(1, (v.X - v.from) / Math.max(1, v.to - v.from))), C = 2 * Math.PI * 120;
@@ -644,9 +659,6 @@ footer { position: relative; z-index: 2; text-align: center; color: var(--soft);
     var upd = $("upd").querySelector("span");
     upd.textContent = d.at ? "更新 " + new Date(d.at).toLocaleString("ja-JP", { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" }) : "更新を待っています";
     $("names").innerHTML = d.viewers.map(function (x) { return '<option value="' + esc(x.name) + '">'; }).join("");
-    var top = d.viewers.filter(function (x) { return !x.owner; }).sort(function (a, b) { return b.X - a.X; }).slice(0, 12);
-    $("leaders").innerHTML = top.map(function (v) { var sk = itemOf("skin", v.eq.skin) || {}; return '<button type="button" class="chip" data-n="' + esc(v.name) + '" style="--pa:' + esc(sk.pa || ACC[hash(v.name) % 5]) + '"><i></i>' + esc(v.name) + '<b>Lv.' + v.L + '</b></button>'; }).join("");
-    $("leaders").querySelectorAll(".chip").forEach(function (b) { b.addEventListener("click", function (e) { openProfile(b.dataset.n, e); }); });
     buildPlaza(); drawBoard(); route();
   }
   function done() { setTimeout(function () { $("boot").classList.add("off"); }, RM ? 0 : 900); }
@@ -681,7 +693,7 @@ footer { position: relative; z-index: 2; text-align: center; color: var(--soft);
     fetch("/api/data", { headers: { Authorization: "Bearer " + tok }, cache: "no-store" }).then(function (r) {
       return r.json().then(function (j) { return { s: r.status, j: j }; });
     }).then(function (x) {
-      if (x.s === 200) { $("logout").hidden = false; boot(x.j.d); done(); return; }
+      if (x.s === 200) { here = x.j.here || []; $("logout").hidden = false; boot(x.j.d); done(); stay(tok); return; }
       if (x.s === 401) { ss(TOK, null); showGate("ログインの期限が切れました。もう一度ログインしてください。"); return; }
       var e = x.j && x.j.error;
       if (e === "follow") showGate("このラウンジは deerman_247 をフォローしている人だけ入れます。フォローしてから、少し待ってもう一度ログインしてください（10 分ごとに更新）。", true);
@@ -689,6 +701,21 @@ footer { position: relative; z-index: 2; text-align: center; color: var(--soft);
       else showGate("ラウンジはまだ準備中です。配信が始まると開きます。");
     }, function () { showGate("いまはつながりません。少し待ってからもう一度開いてください。"); });
   })();
+  // ---- ラウンジにいることを 1 分ごとに知らせ、いまいる人を入れ替える（画面を隠している間は休む）----
+  function stay(tok) {
+    var busy = false, last = Date.now();
+    function ping() {
+      if (busy || document.hidden) return; busy = true; last = Date.now();
+      fetch("/api/ping", { headers: { Authorization: "Bearer " + tok }, cache: "no-store" }).then(function (r) {
+        if (r.status === 401) { ss(TOK, null); return null; }
+        return r.ok ? r.json() : null;
+      }).then(function (j) { if (j && j.here) { here = j.here; buildPlaza(); } }, function () {}).then(function () { busy = false; });
+    }
+    setInterval(ping, 60000);
+    document.addEventListener("visibilitychange", function () { if (!document.hidden && Date.now() - last > 20000) ping(); });
+    addEventListener("pagehide", function () { try { navigator.sendBeacon("/api/bye", tok); } catch (e) {} });
+    addEventListener("pageshow", function (e) { if (e.persisted) { last = 0; ping(); } }); // 戻るボタンで戻ってきたとき
+  }
   addEventListener("hashchange", function () { if (data) route(); });
 })();
 </script>

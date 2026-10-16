@@ -2,8 +2,10 @@
 // ・サイト（index.html）を GitHub から取って出す
 // ・記録はオーバーレイから受け取って KV にしまう（外からは読めない）
 // ・視聴者は Twitch でログインし、配信者をフォローしていて、BAN・ブロックされていない人だけ記録を受け取れる
+// ・いまラウンジ（このサイト）を開いている人を Durable Object（Lounge）で覚える。ページは 1 分ごとに知らせ、3 分来なければいないことにする
 const HTML_URL = "https://raw.githubusercontent.com/natsumutsu760-code/shika-profile/main/index.html";
 const MAX_UPLOAD = 20 * 1024 * 1024;
+const HERE_MS = 3 * 60 * 1000; // 最後の知らせからこの時間はラウンジにいることにする
 
 const SEC = {
   "X-Content-Type-Options": "nosniff",
@@ -48,25 +50,62 @@ async function upload(req, env) {
   return json({ ok: true, at: gate.at, follow: gate.follow ? Object.keys(gate.follow).length : -1 }, 200, UP_CORS);
 }
 
-async function readData(req, env) {
+// ログインした人を確かめて、入れるかどうかを決める。入れるなら { who }、だめなら { res }（そのまま返す応答）
+async function enter(req, env) {
   const tok = bearer(req);
-  if (!tok) return json({ error: "login" }, 401);
+  if (!tok) return { res: json({ error: "login" }, 401) };
   const gate = await env.DB.get("gate", "json");
-  if (!gate) return json({ error: "notready" }, 503);
+  if (!gate) return { res: json({ error: "notready" }, 503) };
   const v = await fetch("https://id.twitch.tv/oauth2/validate", { headers: { Authorization: "OAuth " + tok } });
-  if (!v.ok) return json({ error: "login" }, 401);
+  if (!v.ok) return { res: json({ error: "login" }, 401) };
   const who = await v.json();
-  if (gate.clientId && who.client_id !== gate.clientId) return json({ error: "login" }, 401);
+  if (gate.clientId && who.client_id !== gate.clientId) return { res: json({ error: "login" }, 401) };
   const id = String(who.user_id || "");
   const owner = id && id === gate.owner, mod = !!(gate.mods && gate.mods[id]);
   if (!owner) {
-    if (!gate.ban || !gate.block || !gate.follow) return json({ error: "notready" }, 503);
-    if (gate.ban[id] || gate.block[id]) return json({ error: "denied" }, 403);
-    if (!mod && !gate.follow[id]) return json({ error: "follow" }, 403);
+    if (!gate.ban || !gate.block || !gate.follow) return { res: json({ error: "notready" }, 503) };
+    if (gate.ban[id] || gate.block[id]) return { res: json({ error: "denied" }, 403) };
+    if (!mod && !gate.follow[id]) return { res: json({ error: "follow" }, 403) };
   }
+  return { who: { id, login: String(who.login || ""), client: String(who.client_id || ""), tok } };
+}
+
+// いまいる人の部屋（Durable Object）に「来ています」を知らせ、いまいる人の一覧をもらう。表示名は最初の 1 回だけ Twitch から取る
+function lounge(env) { return env.LOUNGE.get(env.LOUNGE.idFromName("lounge")); }
+async function here(env, who) {
+  const room = lounge(env);
+  let r = await (await room.fetch("https://lounge/beat", { method: "POST", body: JSON.stringify({ id: who.id, l: who.login }) })).json();
+  if (r.needName) {
+    let n = who.login;
+    try {
+      const u = await fetch("https://api.twitch.tv/helix/users?id=" + encodeURIComponent(who.id), { headers: { "Client-Id": who.client, Authorization: "Bearer " + who.tok } });
+      if (u.ok) { const j = await u.json(); if (j.data && j.data[0] && j.data[0].display_name) n = String(j.data[0].display_name).slice(0, 40); }
+    } catch (e) {}
+    r = await (await room.fetch("https://lounge/beat", { method: "POST", body: JSON.stringify({ id: who.id, l: who.login, n }) })).json();
+  }
+  return r.list;
+}
+
+async function readData(req, env) {
+  const e = await enter(req, env);
+  if (e.res) return e.res;
   const data = await env.DB.get("data");
   if (!data) return json({ error: "notready" }, 503);
-  return new Response('{"me":' + JSON.stringify({ id, login: who.login || "" }) + ',"d":' + data + "}", { headers: { "Content-Type": "application/json; charset=utf-8", "Cache-Control": "no-store", ...SEC } });
+  const list = await here(env, e.who);
+  return new Response('{"me":' + JSON.stringify({ id: e.who.id, login: e.who.login }) + ',"here":' + JSON.stringify(list) + ',"d":' + data + "}", { headers: { "Content-Type": "application/json; charset=utf-8", "Cache-Control": "no-store", ...SEC } });
+}
+async function ping(req, env) {
+  const e = await enter(req, env);
+  if (e.res) return e.res;
+  return json({ here: await here(env, e.who) });
+}
+// ページを閉じたとき（sendBeacon なので、トークンは本文で受け取る）
+async function bye(req, env) {
+  const tok = (await req.text()).trim().slice(0, 200);
+  if (!tok) return new Response(null, { status: 204 });
+  const v = await fetch("https://id.twitch.tv/oauth2/validate", { headers: { Authorization: "OAuth " + tok } });
+  if (v.ok) { const who = await v.json(); await lounge(env).fetch("https://lounge/bye", { method: "POST", body: JSON.stringify({ id: String(who.user_id || "") }) }); }
+  return new Response(null, { status: 204 });
 }
 
 async function config(env) {
@@ -89,9 +128,39 @@ export default {
       return json({ error: "method" }, 405, UP_CORS);
     }
     if (url.pathname === "/api/data" && req.method === "GET") return readData(req, env);
+    if (url.pathname === "/api/ping" && req.method === "GET") return ping(req, env);
+    if (url.pathname === "/api/bye" && req.method === "POST") return bye(req, env);
     if (url.pathname === "/api/config" && req.method === "GET") return config(env);
     if (url.pathname.startsWith("/api/")) return json({ error: "notfound" }, 404);
     if (req.method !== "GET" && req.method !== "HEAD") return json({ error: "method" }, 405);
     return page();
   },
 };
+
+// ---------- いまラウンジにいる人（1 つだけの部屋）----------
+export class Lounge {
+  constructor(state) {
+    this.state = state;
+    this.map = {};
+    state.blockConcurrencyWhile(async () => { this.map = (await state.storage.get("here")) || {}; });
+  }
+  async fetch(req) {
+    const url = new URL(req.url), now = Date.now();
+    for (const k of Object.keys(this.map)) if (now - this.map[k].at > HERE_MS) delete this.map[k];
+    let needName = false;
+    if (req.method === "POST") {
+      const b = await req.json().catch(() => ({}));
+      const id = /^\d{1,20}$/.test(String(b.id || "")) ? String(b.id) : "";
+      if (id && url.pathname === "/beat") {
+        const old = this.map[id] || {};
+        const n = typeof b.n === "string" && b.n ? b.n.slice(0, 40) : old.n || "";
+        this.map[id] = { n, l: String(b.l || old.l || "").slice(0, 40), at: now };
+        needName = !n;
+      }
+      if (id && url.pathname === "/bye") delete this.map[id];
+      await this.state.storage.put("here", this.map);
+    }
+    const list = Object.values(this.map).filter((x) => x.n || x.l).map((x) => ({ n: x.n || x.l, l: x.l }));
+    return new Response(JSON.stringify({ needName, list }), { headers: { "Content-Type": "application/json" } });
+  }
+}
