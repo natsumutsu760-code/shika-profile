@@ -356,7 +356,8 @@ export class Lounge {
     // OBS から：バグ報告（同じ id は 1 回だけ）。受け取ったら返事をして、OBS 側は送り直さない
     if (m.t === "bug" && typeof m.id === "string" && /^[\w-]{1,40}$/.test(m.id) && typeof m.text === "string" && m.text.trim()) {
       if (!this.bugs.some((b) => b.id === m.id)) {
-        const clean = (v, n) => String(v || "").replace(/[\u0000-\u001f\u007f]/g, " ").slice(0, n);
+        // 制御文字と、文字の向きを変える見えない文字は消す（あとで人と Claude が読むので）
+        const clean = (v, n) => String(v || "").replace(/[\u0000-\u001f\u007f-\u009f\u200b-\u200f\u202a-\u202e\u2060-\u2069\ufeff]/g, " ").slice(0, n);
         this.bugs.push({ id: m.id, name: clean(m.name, 40), text: clean(m.text, 300), ctx: clean(m.ctx, 80), at: +m.at || now, got: now, seen: 0 });
         this.bugs = this.bugs.slice(-200);
         await this.state.storage.put("bugs", this.bugs);
