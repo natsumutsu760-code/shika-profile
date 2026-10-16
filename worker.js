@@ -44,6 +44,8 @@ async function upload(req, env) {
     block: Array.isArray(g.block) ? toMap(g.block) : null,
     mods: toMap(g.mods),
     followErr: String(g.followErr || "").replace(/[^a-z]/g, "").slice(0, 12),
+    banErr: String(g.banErr || "").replace(/[^a-z]/g, "").slice(0, 12),
+    blockErr: String(g.blockErr || "").replace(/[^a-z]/g, "").slice(0, 12),
     at: Date.now(),
   };
   gate.followN = gate.follow ? Object.keys(gate.follow).length : -1;
@@ -73,6 +75,11 @@ const WHY = {
 };
 // G02 のくわしい理由（配信オーバーレイが送ってくる）
 const FOLLOW_ERR = { noscope: "配信者のログインに、フォロワーを読む許可がありません", error: "Twitch からフォロワーを読めませんでした", old: "最後に読めたのが 24 時間以上前です", loading: "オーバーレイが起動したばかりで、読んでいる途中です", notyet: "オーバーレイがまだフォロワーを読んでいません" };
+// G03・G04 のくわしい理由
+const LIST_ERR = {
+  ban: { noscope: "配信者の Twitch のログインに「BAN の一覧を読む」許可がありません。配信者がオーバーレイのパネルでログインし直すと直ります", error: "Twitch から BAN の一覧を読めませんでした" },
+  block: { noscope: "配信者の Twitch のログインに「ブロックの一覧を読む」許可がありません。配信者がオーバーレイのパネルでログインし直すと直ります", error: "Twitch からブロックの一覧を読めませんでした" },
+};
 const ERR = { A: "login", G: "notready", F: "follow", D: "denied", E: "server" };
 const STATUS = { A: 401, G: 503, F: 403, D: 403, E: 500 };
 function deny(code, info) {
@@ -118,7 +125,10 @@ async function enter(req, env) {
   const owner = id && id === gate.owner, mod = !!(gate.mods && gate.mods[id]);
   if (!owner) {
     const g = !gate.ban ? "G03" : !gate.block ? "G04" : "";
-    if (g) { await logDeny(env, g, who); return { res: deny(g, { ...me, listAt: gate.at }) }; }
+    if (g) {
+      const why2 = g === "G03" ? (LIST_ERR.ban[gate.banErr] || "") : (LIST_ERR.block[gate.blockErr] || "");
+      await logDeny(env, g, who, { why2 }); return { res: deny(g, { ...me, listAt: gate.at, detail: why2 }) };
+    }
     if (gate.ban[id]) { await logDeny(env, "D01", who); return { res: deny("D01", me) }; }
     if (gate.block[id]) { await logDeny(env, "D02", who); return { res: deny("D02", me) }; }
     if (!mod && !(gate.follow && gate.follow[id])) {
