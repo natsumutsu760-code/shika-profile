@@ -272,6 +272,11 @@ h2.sec::before { content: ""; width: 22px; height: 22px; border-radius: 50%; bor
 .screen { position: relative; aspect-ratio: 16 / 9; border-radius: 16px; overflow: hidden; background: var(--ink); box-shadow: var(--lift); }
 .screen iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
 .screen p { position: absolute; inset: 0; margin: 0; display: grid; place-items: center; color: rgba(255,255,255,.6); font-weight: 700; }
+/* 音が出せなかったとき（ページをまだ一度も押していない）：映像の上に「タップで音を出す」 */
+.unmute { position: absolute; left: 50%; bottom: 44px; z-index: 2; transform: translateX(-50%); display: inline-flex; align-items: center; gap: 8px; border: 0; border-radius: 999px; padding: 10px 16px 10px 12px;
+  background: #fff; color: var(--ink); font: 900 14px/1.2 var(--jp); white-space: nowrap; box-shadow: 0 10px 24px -8px rgba(0,0,0,.55); animation: tip .35s var(--spring); }
+.unmute svg { width: 20px; height: 20px; fill: none; stroke: var(--coral); stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; flex: none; }
+.unmute.ios { pointer-events: none; white-space: normal; text-align: center; max-width: calc(100% - 24px); }
 .say-form { display: flex; gap: 8px; }
 .say-form[hidden], .ask[hidden] { display: none; }
 .say-form input, .write input { flex: 1; min-width: 0; border: 0; border-radius: 999px; padding: 12px 16px; background: #fff; font: 700 16px/1.2 var(--jp); box-shadow: inset 0 0 0 1.5px var(--line); }
@@ -1133,14 +1138,26 @@ footer { position: relative; z-index: 2; text-align: center; color: var(--soft);
     var i = f.querySelector("input"), t = i.value.trim(); if (!t) return;
     send(f.dataset.pre + t, f.querySelector("button"), function () { i.value = ""; });
   });
+  // 映像：開いたら自動で再生し、音も出す。ブラウザは「そのページを一度も押していない」と音つきの自動再生を止めるので、
+  // そのとき（#live を直接開いた・ログインから戻った）は音なしで流して「タップで音を出す」を出す。iPhone・iPad は映像のボタンでしか音が出せない
+  var IOS = /iP(hone|ad|od)/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1), iosT = 0;
+  var SPK = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z"/><path d="M15.5 9a4 4 0 0 1 0 6M18.5 6.5a7.5 7.5 0 0 1 0 11"/></svg>';
+  function player(sound) {
+    clearTimeout(iosT);
+    $("screen").innerHTML = '<iframe title="deerman_247 の配信" src="https://player.twitch.tv/?channel=' + CH + "&parent=" + encodeURIComponent(location.hostname) + "&autoplay=true&muted=" + !sound + '" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen></iframe>'
+      + (sound ? "" : IOS ? '<span class="unmute ios" id="unmute">' + SPK + "音は映像のスピーカーのボタンで出ます</span>" : '<button type="button" class="unmute" id="unmute">' + SPK + "タップで音を出す</button>");
+    if (!sound && IOS) iosT = setTimeout(function () { var u = $("unmute"); if (u) u.remove(); }, 8000);
+  }
+  function canSound() { return !IOS && !!(navigator.userActivation && navigator.userActivation.hasBeenActive); }
+  $("screen").addEventListener("click", function (e) { if (e.target.closest("button.unmute")) player(true); });
   // 配信のページを開いている間だけ、映像とコメント欄をつなぐ
   function liveView(on) {
     if (on === liveOpen) return; liveOpen = on;
     if (on) {
-      $("screen").innerHTML = '<iframe title="deerman_247 の配信" src="https://player.twitch.tv/?channel=' + CH + "&parent=" + encodeURIComponent(location.hostname) + '&muted=true&autoplay=true" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen></iframe>';
+      player(canSound());
       hint(""); drawPanes(); showPane(lsGet("ml-live-tab") || "fire"); ircOpen(); pingNow();
       if (!canWrite()) needScope();
-    } else { $("screen").innerHTML = "<p>配信の映像</p>"; ircClose(); }
+    } else { clearTimeout(iosT); $("screen").innerHTML = "<p>配信の映像</p>"; ircClose(); }
   }
 
   function route() {
