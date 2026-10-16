@@ -443,6 +443,7 @@ footer { position: relative; z-index: 2; text-align: center; color: var(--soft);
     ["そのほか", "#22CC88", [["!けいじばん こんにちは", "ラウンジの掲示板に書く（1 分に 1 回・120 字まで）"], ["!バグ報告 ガチャのあと画面が止まった", "不具合を配信者に知らせる（30 秒に 1 回・300 字まで）"], ["!花火", "画面に花火（!ハート でハート）"], [null, "888 で拍手、草 で草が生える"], ["!discord", "Discord の招待をチャットで受け取る"]]]
   ];
   var NOTES = [
+    ["build 21", "2026-10-16", ["鹿物語 Ver.1.6.3：リーチで画面が固まる対策（固まったら液晶の動画を自動で止める・パネルでオン／オフ）", "自動更新：開いたらすぐ新しい版を確かめるように", "フォローしたら 1 分ほどでラウンジに入れるように"]],
     ["build 20", "2026-10-16", ["コスメガチャのハズレが 88% → 50% に（★4 40%・★5 10%）", "鹿物語 Ver.1.6.2：配信者がパネルから玉を補填できるように"]],
     ["build 19", "2026-10-16", ["!バグ報告 内容 で、不具合を配信者に知らせられるように"]],
     ["build 18", "2026-10-16", ["鹿物語 Ver.1.6.1：リーチのとき、脈拍の画面で止まって見えることがあったのを直しました"]],
@@ -769,7 +770,7 @@ footer { position: relative; z-index: 2; text-align: center; color: var(--soft);
       if (x.s === 200) { here = x.j.here || []; var ml = (x.j.me && x.j.me.login) || "", mh = here.filter(function (h) { return h.l && h.l === ml; })[0]; meName = (mh && mh.n) || ml; meLogin = ml; $("logout").hidden = false; boot(x.j.d); done(); stay(tok); return; }
       if (x.s === 401) { ss(TOK, null); showGate("ログインの期限が切れました。もう一度ログインしてください。"); return; }
       var e = x.j && x.j.error;
-      if (e === "follow") showGate("このラウンジは deerman_247 をフォローしている人だけ入れます。フォローしてから、少し待ってもう一度ログインしてください（10 分ごとに更新）。", true);
+      if (e === "follow") showGate("このラウンジは deerman_247 をフォローしている人だけ入れます。フォローしてから 1 分ほど待って、もう一度ログインしてください。それでも入れないときは、配信中にもう一度ためしてください。", true);
       else if (e === "denied") showGate("このラウンジには入れません。");
       else showGate("ラウンジはまだ準備中です。配信が始まると開きます。");
     }, function () { showGate("いまはつながりません。少し待ってからもう一度開いてください。"); });
