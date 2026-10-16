@@ -1,0 +1,366 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>鹿の手帳</title>
+<meta name="description" content="deerman_247 の配信で集めたレベル・持ち物・持ち玉を見られる手帳">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Dela+Gothic+One&family=M+PLUS+Rounded+1c:wght@500;800&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DotGothic16&family=Yusei+Magic&family=Mochiy+Pop+One&family=Yuji+Syuku&family=Train+One&family=Rampart+One&family=Zen+Antique&family=Kaisei+Decol:wght@700&family=Reggae+One&family=Hachi+Maru+Pop&family=Stick&family=RocknRoll+One&family=Kiwi+Maru:wght@500&family=Klee+One:wght@600&family=M+PLUS+1+Code:wght@700&family=Shippori+Mincho+B1:wght@800&family=Zen+Old+Mincho:wght@700&display=swap">
+<!-- ★4・★5 のフォント（Adobe Fonts キット qbl8idi。natsumutsu760-code.github.io で使える） -->
+<script>
+  (function (d) {
+    var config = { kitId: "qbl8idi", scriptTimeout: 3000, async: true },
+      h = d.documentElement, t = setTimeout(function () { h.className = h.className.replace(/\bwf-loading\b/g, "") + " wf-inactive"; }, config.scriptTimeout),
+      tk = d.createElement("script"), f = false, s = d.getElementsByTagName("script")[0], a;
+    h.className += " wf-loading"; tk.src = "https://use.typekit.net/" + config.kitId + ".js"; tk.async = true;
+    tk.onload = tk.onreadystatechange = function () { a = this.readyState; if (f || a && a != "complete" && a != "loaded") return; f = true; clearTimeout(t); try { Typekit.load(config); } catch (e) {} };
+    s.parentNode.insertBefore(tk, s);
+  })(document);
+</script>
+<style>
+:root {
+  --ink: #14164A;
+  --paper: #DCE9FA;
+  --white: #FFFFFF;
+  --blue: #1E6BFF;
+  --pink: #FF2E9A;
+  --yellow: #FFD60A;
+  --mint: #19E3B1;
+  --mute: #5B5F8C;
+  --r1: #9AA0B8; --r2: #2F7BFF; --r3: #9B4DFF; --r4: #FFB300; --r5: #FF2E4D;
+  --pop: "Dela Gothic One", "Hiragino Sans", "Yu Gothic", sans-serif;
+  --body: "M PLUS Rounded 1c", "Hiragino Maru Gothic ProN", "Yu Gothic", sans-serif;
+  --shadow: 5px 5px 0 var(--ink);
+}
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body { margin: 0; background: var(--paper); color: var(--ink); font: 500 16px/1.6 var(--body);
+  background-image: radial-gradient(rgba(20,22,74,.09) 1.5px, transparent 1.6px); background-size: 18px 18px; }
+a { color: var(--blue); }
+button, input { font: inherit; color: inherit; }
+:focus-visible { outline: 4px solid var(--pink); outline-offset: 2px; }
+
+.wrap { max-width: 920px; margin: 0 auto; padding: 0 16px 120px; }
+.top { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; padding: 22px 0 14px; }
+.logo { font: 400 clamp(34px, 8vw, 54px)/1 var(--pop); letter-spacing: .02em; margin: 0; color: var(--white); -webkit-text-stroke: 7px var(--ink); paint-order: stroke fill; text-shadow: 5px 5px 0 var(--pink); }
+.logo small { display: block; font: 800 14px/1.4 var(--body); color: var(--ink); -webkit-text-stroke: 0; text-shadow: none; margin-top: 10px; }
+.upd { font-size: 13px; color: var(--mute); text-align: right; }
+
+/* タブ：スマホでは下に固定 */
+.tabs { display: flex; gap: 8px; margin: 6px 0 18px; overflow-x: auto; scrollbar-width: none; }
+.tabs button { flex: 0 0 auto; font: 800 15px/1 var(--body); background: var(--white); border: 3px solid var(--ink); border-radius: 999px; padding: 10px 16px; cursor: pointer; box-shadow: 3px 3px 0 var(--ink); }
+.tabs button[aria-selected="true"] { background: var(--ink); color: var(--white); box-shadow: 3px 3px 0 var(--pink); }
+@media (max-width: 640px) {
+  .tabs { position: fixed; left: 0; right: 0; bottom: 0; z-index: 20; margin: 0; padding: 10px 12px calc(10px + env(safe-area-inset-bottom)); background: var(--white); border-top: 3px solid var(--ink); }
+  .tabs button { padding: 9px 13px; font-size: 14px; }
+}
+section[hidden] { display: none; }
+h2 { font: 400 24px/1.3 var(--pop); margin: 30px 0 12px; }
+h3 { font: 800 17px/1.4 var(--body); margin: 18px 0 8px; }
+.note { color: var(--mute); font-size: 14px; }
+.box { background: var(--white); border: 3px solid var(--ink); border-radius: 18px; box-shadow: var(--shadow); padding: 16px; }
+
+/* さがす */
+.find { display: flex; gap: 8px; }
+.find input { flex: 1; min-width: 0; font-size: 18px; padding: 12px 14px; border: 3px solid var(--ink); border-radius: 14px; background: var(--white); box-shadow: var(--shadow); }
+.find button { font: 800 16px/1 var(--body); background: var(--yellow); border: 3px solid var(--ink); border-radius: 14px; padding: 0 18px; cursor: pointer; box-shadow: var(--shadow); }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+.chips button { font: 800 14px/1 var(--body); background: var(--white); border: 2px solid var(--ink); border-radius: 999px; padding: 8px 12px; cursor: pointer; }
+.chips button b { color: var(--blue); margin-left: 4px; }
+.empty { padding: 26px 16px; text-align: center; }
+
+/* プロフィールカード（配信のカードと同じ形） */
+.pcard { position: relative; margin-top: 22px; border-radius: 26px; border: 6px solid var(--ink); box-shadow: 0 10px 0 rgba(20,22,74,.35); overflow: hidden;
+  background: radial-gradient(120% 140% at 0% 0%, var(--pc), var(--pb) 55%, #fff); color: var(--fg, var(--ink)); }
+.pcard .in { display: grid; grid-template-columns: auto 1fr; gap: 18px; align-items: center; padding: 20px; }
+.pcard .ic { width: 112px; height: 112px; border-radius: 26px; background: var(--pa); border: 5px solid var(--ink); display: grid; place-items: center; font: 400 56px/1 var(--pop); color: var(--white); box-shadow: 0 0 0 4px var(--pb); overflow: hidden; }
+.pcard .ic img { width: 100%; height: 100%; display: block; }
+.pcard .ep { font: 800 14px/1.2 var(--body); color: var(--pa); min-height: 1.2em; }
+.pcard .nm { font: 400 clamp(26px, 6vw, 40px)/1.15 var(--pop); word-break: break-all; margin: 2px 0 6px; }
+.pcard .tags { display: flex; flex-wrap: wrap; gap: 6px; }
+.tag { display: inline-block; font: 800 12px/1 var(--body); background: var(--ink); color: var(--white); border-radius: 999px; padding: 5px 10px; }
+.tag.light { background: var(--white); color: var(--ink); border: 2px solid var(--ink); }
+.pcard .lvrow { display: flex; align-items: baseline; gap: 10px; margin-top: 10px; }
+.pcard .lv { font: 400 44px/1 var(--pop); color: var(--pa); -webkit-text-stroke: 2px var(--ink); paint-order: stroke fill; }
+.pcard .lv small { font-size: 18px; }
+.pcard .bar { height: 14px; border: 3px solid var(--ink); border-radius: 999px; background: var(--white); overflow: hidden; margin-top: 6px; }
+.pcard .bar i { display: block; height: 100%; background: var(--pa); }
+.pcard .next { font: 800 13px/1 var(--body); }
+@media (max-width: 480px) { .pcard .in { grid-template-columns: 1fr; justify-items: start; } .pcard .ic { width: 88px; height: 88px; font-size: 44px; } }
+
+.share { margin-top: 12px; display: flex; gap: 8px; flex-wrap: wrap; }
+.share button { font: 800 14px/1 var(--body); background: var(--white); border: 3px solid var(--ink); border-radius: 12px; padding: 10px 14px; cursor: pointer; box-shadow: 3px 3px 0 var(--ink); }
+
+/* 数字 */
+.stats { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px; }
+.stat { background: var(--white); border: 3px solid var(--ink); border-radius: 14px; padding: 10px 12px; }
+.stat b { display: block; font: 400 26px/1.1 var(--pop); }
+.stat span { font-size: 13px; color: var(--mute); }
+.stat.balls { background: var(--yellow); }
+.stat.balls span { color: var(--ink); }
+
+/* 持ち物 */
+.kinds { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
+.kinds button { font: 800 14px/1 var(--body); background: var(--white); border: 2px solid var(--ink); border-radius: 10px; padding: 9px 12px; cursor: pointer; }
+.kinds button[aria-pressed="true"] { background: var(--blue); color: var(--white); }
+.kinds button small { opacity: .8; margin-left: 4px; }
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
+.item { position: relative; background: var(--white); border: 3px solid var(--ink); border-radius: 14px; padding: 10px; min-height: 132px; display: flex; flex-direction: column; gap: 4px; }
+.item .rar { font: 800 12px/1 var(--body); color: var(--rc); }
+.item .look { height: 54px; border-radius: 10px; display: grid; place-items: center; font-size: 30px; border: 2px solid var(--ink); overflow: hidden; }
+.item .look img { width: 50px; height: 50px; }
+.item .look.font { background: var(--paper); font-size: 30px; }
+.item .look.ep { background: var(--paper); font: 800 13px/1.3 var(--body); padding: 0 6px; text-align: center; }
+.item .nm { font: 800 15px/1.3 var(--body); }
+.item .how { font-size: 12px; color: var(--mute); line-height: 1.4; }
+.item.r4, .item.r5 { border-color: var(--rc); box-shadow: 0 0 0 2px var(--ink); }
+.item.r5 { background: linear-gradient(160deg, #fff, #FFF0F3); }
+.item.lock { background: #EEF1F8; }
+.item.lock .look { filter: grayscale(1); opacity: .45; }
+.item.lock .nm { color: var(--mute); }
+.item .use { position: absolute; top: -10px; right: -6px; font: 800 11px/1 var(--body); background: var(--pink); color: var(--white); border: 2px solid var(--ink); border-radius: 999px; padding: 4px 8px; }
+.r1 { --rc: var(--r1); } .r2 { --rc: var(--r2); } .r3 { --rc: var(--r3); } .r4 { --rc: var(--r4); } .r5 { --rc: var(--r5); }
+
+/* 表 */
+.cmds { width: 100%; border-collapse: collapse; background: var(--white); border: 3px solid var(--ink); border-radius: 14px; overflow: hidden; }
+.cmds td { padding: 10px 12px; border-bottom: 2px dashed rgba(20,22,74,.18); vertical-align: top; }
+.cmds tr:last-child td { border-bottom: 0; }
+.cmds td:first-child { white-space: nowrap; width: 1%; }
+code { font: 800 14px/1.2 var(--body); background: var(--ink); color: var(--white); border-radius: 8px; padding: 4px 8px; display: inline-block; margin: 2px 0; }
+
+/* パッチノート */
+.notes { list-style: none; padding: 0; margin: 0; display: grid; gap: 12px; }
+.notes li { background: var(--white); border: 3px solid var(--ink); border-radius: 14px; padding: 12px 14px; }
+.notes .ver { font: 400 18px/1.2 var(--pop); }
+.notes time { font-size: 13px; color: var(--mute); margin-left: 8px; }
+.notes ul { margin: 6px 0 0; padding-left: 1.2em; }
+
+/* 掲示板 */
+.posts { list-style: none; padding: 0; margin: 0; display: grid; gap: 10px; }
+.posts li { background: var(--white); border: 3px solid var(--ink); border-radius: 16px 16px 16px 4px; padding: 10px 14px; }
+.posts b { font-weight: 800; }
+.posts time { font-size: 12px; color: var(--mute); margin-left: 8px; }
+.posts p { margin: 4px 0 0; word-break: break-word; }
+
+.season { text-align: center; padding: 34px 16px; }
+.season .big { font: 400 clamp(30px, 8vw, 52px)/1.1 var(--pop); color: var(--white); -webkit-text-stroke: 6px var(--ink); paint-order: stroke fill; text-shadow: 4px 4px 0 var(--mint); }
+footer { margin-top: 40px; font-size: 13px; color: var(--mute); }
+@media (prefers-reduced-motion: no-preference) { .pcard { animation: pop .5s cubic-bezier(.16, 1, .3, 1); } }
+@keyframes pop { from { transform: translateY(16px) rotate(-1.5deg); opacity: 0; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <h1 class="logo">鹿の手帳<small>deerman_247 の配信で集めたレベル・持ち物・持ち玉</small></h1>
+    <div class="upd" id="upd"></div>
+  </header>
+
+  <nav class="tabs" role="tablist" aria-label="ページ">
+    <button role="tab" data-tab="me" aria-selected="true">プロフィール</button>
+    <button role="tab" data-tab="cmd" aria-selected="false">コマンド</button>
+    <button role="tab" data-tab="notes" aria-selected="false">パッチノート</button>
+    <button role="tab" data-tab="season" aria-selected="false">シーズン</button>
+    <button role="tab" data-tab="board" aria-selected="false">掲示板</button>
+  </nav>
+
+  <section id="tab-me" role="tabpanel">
+    <form class="find" id="find" autocomplete="off">
+      <label for="q" class="sr" hidden>Twitch の表示名</label>
+      <input id="q" list="names" placeholder="Twitch の名前を入れる" aria-label="Twitch の名前">
+      <datalist id="names"></datalist>
+      <button type="submit">見る</button>
+    </form>
+    <div class="chips" id="chips" aria-label="レベルの高い人"></div>
+    <div id="prof"></div>
+  </section>
+
+  <section id="tab-cmd" role="tabpanel" hidden>
+    <h2>コマンド</h2>
+    <p class="note">チャットに打つと動きます。フォローしている人だけ使えます。</p>
+    <h3>見た目と記録</h3>
+    <table class="cmds"><tbody>
+      <tr><td><code>!プロフ</code></td><td>配信画面に自分のカードを出す</td></tr>
+      <tr><td><code>!レベル</code></td><td>レベルと、次のレベルまでの経験値を見る</td></tr>
+      <tr><td><code>!スキン 名前</code></td><td>カードのスキンを変える（名前なしで持っている物の一覧）</td></tr>
+      <tr><td><code>!アイコン 名前</code></td><td>アイコンを変える</td></tr>
+      <tr><td><code>!二つ名 名前</code></td><td>名前の上に出る二つ名を変える</td></tr>
+      <tr><td><code>!フォント 名前</code></td><td>名前と弾幕の書体を変える</td></tr>
+      <tr><td><code>!持ち物</code></td><td>持っている物と手に入れ方を見る</td></tr>
+      <tr><td><code>!サイト</code></td><td>この手帳のアドレスを出す</td></tr>
+    </tbody></table>
+    <h3>鹿物語（パチンコ）</h3>
+    <table class="cmds"><tbody>
+      <tr><td>なんでもコメント</td><td>玉がもらえる（はじめては 10 玉、そのあとは一定時間ごとに）</td></tr>
+      <tr><td><code>!発射 5</code></td><td>持ち玉を打つ（数字なしは 1 発）。ヘソに入ると抽選</td></tr>
+      <tr><td><code>!強く</code> <code>!弱く</code></td><td>自分の玉の打ち出しの強さを変える</td></tr>
+      <tr><td><code>!押せ</code></td><td>連打チャンス・最終決戦でみんなでボタンを押す</td></tr>
+      <tr><td><code>!玉</code></td><td>自分の持ち玉を見る</td></tr>
+      <tr><td><code>!せんべい</code> <code>!数字 3</code> <code>!グー</code></td><td>ミニゲーム（早押し・数字当て・じゃんけん）に参加</td></tr>
+      <tr><td><code>!ガチャ</code></td><td>持ち玉 500 でコスメガチャを 1 回（★5 2%・★4 10%、10 回で ★4 以上・60 回で ★5 確定）</td></tr>
+    </tbody></table>
+    <h3>そのほか</h3>
+    <table class="cmds"><tbody>
+      <tr><td><code>!けいじばん 文</code></td><td>この手帳の掲示板に書く（1 分に 1 回・120 字まで）</td></tr>
+      <tr><td><code>!花火</code> <code>!ハート</code></td><td>画面に花火・ハートを出す</td></tr>
+      <tr><td>888 ／ 草</td><td>拍手・草が生える</td></tr>
+      <tr><td><code>!discord</code></td><td>Discord の招待をチャットで受け取る</td></tr>
+    </tbody></table>
+  </section>
+
+  <section id="tab-notes" role="tabpanel" hidden>
+    <h2>パッチノート</h2>
+    <ul class="notes" id="notes"></ul>
+  </section>
+
+  <section id="tab-season" role="tabpanel" hidden>
+    <h2>シーズン</h2>
+    <div class="box season">
+      <div class="big">シーズン 1</div>
+      <p>ラインナップを準備中です。決まったらここに並びます。</p>
+    </div>
+  </section>
+
+  <section id="tab-board" role="tabpanel" hidden>
+    <h2>掲示板</h2>
+    <p class="note">チャットに <code>!けいじばん 書きたいこと</code> と打つと、ここに出ます（10 分ごとに更新）。</p>
+    <ul class="posts" id="posts"></ul>
+  </section>
+
+  <footer>記録は配信中に 10 分ごとに更新されます。名前は Twitch の表示名です。</footer>
+</div>
+
+<script>
+(function () {
+  "use strict";
+  var KIND = [["skin", "スキン"], ["icon", "アイコン"], ["ep", "二つ名"], ["font", "フォント"]];
+  var NOTES = [
+    ["build 13", "2026-10-16", ["この手帳（プロフィールサイト）ができました", "!けいじばん で掲示板に書けるように", "コスメガチャは持ち玉 500 の !ガチャ で引くように", "鹿物語 Ver.1.5.4"]],
+    ["build 12", "2026-10-15", ["★4・★5 のフォント 6 種（ビット・暗号・ブロック・ふちどり・疾風・ギガ）", "★1〜★3 の新しいコスメに手に入れ方がつきました", "★4 以上を手に入れると、配信画面でお祝い"]],
+    ["build 11", "2026-10-15", ["★4 以上のアイコンがオリジナルのエンブレムに", "アイコンとカードの演出がレアリティで変わるように"]],
+    ["コスメのレアリティ", "2026-10-15", ["スキン・アイコン・二つ名・フォントに ★1 ノーマル〜★5 ミシック", "新しいコスメ 20 個"]],
+    ["Ver.1.5", "2026-10-15", ["連打は 5〜15 回に", "モードごとに出玉の振れ幅とモードの発展", "ランキングに配信者を載せない"]],
+    ["Ver.1.4", "2026-10-15", ["チャンネルポイントの !発射 は持ち玉を使う", "最終決戦を甘く"]],
+    ["Ver.1.3", "2026-10-14", ["視聴者レベルと称号", "スキン・アイコン・二つ名を手に入れて変えられるように", "フォローしている人だけ遊べるように"]],
+    ["Ver.1.2", "2026-10-14", ["ログインボーナスと、見ているだけでもらえる玉"]],
+    ["Ver.1.1", "2026-10-14", ["チャンネルポイントに対応"]],
+    ["Ver.1.0", "2026-10-14", ["鹿物語の配信が始まりました"]]
+  ];
+  var $ = function (id) { return document.getElementById(id); };
+  var data = null, cur = null, kindNow = "skin";
+
+  function esc(s) { return String(s).replace(/[&<>"']/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]; }); }
+  function stars(r) { return new Array(r + 1).join("★"); }
+  function fmt(n) { return Number(n || 0).toLocaleString("ja-JP"); }
+
+  // タブ
+  function showTab(t) {
+    document.querySelectorAll(".tabs button").forEach(function (b) { b.setAttribute("aria-selected", b.dataset.tab === t ? "true" : "false"); });
+    document.querySelectorAll("section[role=tabpanel]").forEach(function (s) { s.hidden = s.id !== "tab-" + t; });
+  }
+  document.querySelectorAll(".tabs button").forEach(function (b) { b.addEventListener("click", function () { showTab(b.dataset.tab); if (b.dataset.tab !== "me") history.replaceState(null, "", "#" + b.dataset.tab); else setHash(); }); });
+
+  // パッチノート
+  $("notes").innerHTML = NOTES.map(function (n) { return '<li><span class="ver">' + esc(n[0]) + '</span><time>' + esc(n[1]) + '</time><ul>' + n[2].map(function (x) { return "<li>" + esc(x) + "</li>"; }).join("") + "</ul></li>"; }).join("");
+
+  function itemOf(kind, id) { return (data.kinds[kind] || []).filter(function (x) { return x.id === id; })[0]; }
+  function iconHtml(id) {
+    var it = itemOf("icon", id);
+    if (it && it.img) return '<img src="' + it.img + '" alt="' + esc(it.name) + '">';
+    return esc(id);
+  }
+
+  function render(name) {
+    var v = data.viewers.filter(function (x) { return x.name === name; })[0]
+      || data.viewers.filter(function (x) { return x.name.toLowerCase() === String(name).toLowerCase(); })[0];
+    cur = v || null;
+    var box = $("prof");
+    if (!v) { box.innerHTML = '<div class="box empty" style="margin-top:20px">「' + esc(name) + '」さんの記録はまだありません。<br>配信でコメントすると、次の更新で出てきます。</div>'; return; }
+    var sk = itemOf("skin", v.eq.skin) || data.kinds.skin[0] || {}, font = v.eq.font ? (itemOf("font", v.eq.font) || {}) : {};
+    var fam = font.family || (v.hid[v.eq.font] || {}).family || "";
+    var pct = Math.max(3, Math.min(100, (v.X - v.from) / Math.max(1, v.to - v.from) * 100));
+    var ic = v.eq.icon ? iconHtml(v.eq.icon) : esc(Array.from(v.name)[0] || "?");
+    var html = '<article class="pcard" style="--pa:' + esc(sk.pa || "#19B37A") + ';--pb:' + esc(sk.pb || "#E4FFF2") + ';--pc:' + esc(sk.pc || "#8FE6C0") + ';--fg:' + esc(sk.fg || "#14164A") + (sk.bg && sk.bg.indexOf("var(") < 0 ? ';background:' + esc(sk.bg) : "") + '">'
+      + '<div class="in"><div class="ic">' + ic + '</div><div>'
+      + '<div class="ep">' + (v.eq.ep ? "「" + esc(v.eq.ep) + "」" : "") + '</div>'
+      + '<div class="nm"' + (fam ? ' style="font-family:' + esc(fam) + '"' : "") + '>' + esc(v.name) + '</div>'
+      + '<div class="tags">' + (v.title ? '<span class="tag">' + esc(v.title) + '</span>' : "") + '<span class="tag light">' + esc(sk.name || "") + 'のスキン</span>' + (v.owner ? '<span class="tag">配信者</span>' : "") + '</div>'
+      + '<div class="lvrow"><span class="lv"><small>Lv.</small>' + v.L + '</span><span class="next">次まで ' + fmt(Math.ceil(v.to - v.X)) + '</span></div>'
+      + '<div class="bar" role="progressbar" aria-valuenow="' + Math.round(pct) + '" aria-valuemin="0" aria-valuemax="100"><i style="width:' + pct + '%"></i></div>'
+      + '</div></div></article>'
+      + '<div class="share"><button type="button" id="copy">この手帳のリンクをコピー</button></div>'
+      + '<h2>数字</h2><div class="stats">'
+      + stat("balls", fmt(v.balls) + "玉", "持ち玉")
+      + stat("", fmt(v.best) + "回", "いちばん長く続けて来た回数")
+      + stat("", fmt(v.streak) + "回", "いま続けて来ている回数")
+      + stat("", fmt(v.c) + "回", "コメント")
+      + stat("", fmt(v.pa.jp) + "回", "大当たり")
+      + stat("", fmt(v.pa.rush) + "連", "RUSH の最高連チャン")
+      + stat("", fmt(v.pa.mini) + "勝", "ミニゲーム")
+      + stat("", fmt(v.pa.push) + "回", "!押せ")
+      + stat("", fmt(v.gacha) + "回", "コスメガチャ")
+      + '</div>'
+      + '<h2>通貨</h2><div class="box note">配信で使えるお金が、これから増えていきます。</div>'
+      + '<h2>持ち物</h2><div class="kinds" id="kinds"></div><div class="grid" id="grid"></div>';
+    box.innerHTML = html;
+    $("copy").addEventListener("click", function () {
+      var u = location.origin + location.pathname + "#u=" + encodeURIComponent(v.name);
+      (navigator.clipboard ? navigator.clipboard.writeText(u) : Promise.reject()).then(function () { $("copy").textContent = "コピーしました"; }, function () { prompt("このリンクをコピーしてください", u); });
+    });
+    drawKinds(); drawGrid();
+  }
+  function stat(cls, b, s) { return '<div class="stat ' + cls + '"><b>' + b + '</b><span>' + s + '</span></div>'; }
+  function drawKinds() {
+    var v = cur;
+    $("kinds").innerHTML = KIND.map(function (k) {
+      var all = data.kinds[k[0]] || [], has = v.own[k[0]].length;
+      return '<button type="button" data-k="' + k[0] + '" aria-pressed="' + (k[0] === kindNow) + '">' + k[1] + '<small>' + has + '/' + all.length + '</small></button>';
+    }).join("");
+    $("kinds").querySelectorAll("button").forEach(function (b) { b.addEventListener("click", function () { kindNow = b.dataset.k; drawKinds(); drawGrid(); }); });
+  }
+  function drawGrid() {
+    var v = cur, k = kindNow, own = v.own[k], used = v.eq[k];
+    var list = (data.kinds[k] || []).slice().sort(function (a, b) { return (own.indexOf(b.id) >= 0) - (own.indexOf(a.id) >= 0) || a.r - b.r; });
+    $("grid").innerHTML = list.map(function (x) {
+      var has = own.indexOf(x.id) >= 0, h = x.hidden && has ? v.hid[x.id] : null, name = h ? h.name : x.name, how = h ? h.how : x.how, look = "";
+      if (k === "skin") look = '<div class="look" style="background:' + esc(x.bg && x.bg.indexOf("var(") < 0 ? x.bg : "radial-gradient(120% 140% at 0% 0%," + x.pc + "," + x.pb + " 55%,#fff)") + '"></div>';
+      if (k === "icon") look = '<div class="look">' + (x.img ? '<img src="' + x.img + '" alt="">' : esc(x.id)) + '</div>';
+      if (k === "ep") look = '<div class="look ep">「' + esc(x.name) + '」</div>';
+      if (k === "font") { var fam = h ? h.family : x.family; look = '<div class="look font"' + (fam ? ' style="font-family:' + esc(fam) + '"' : "") + '>' + (fam ? "鹿あA" : "？") + '</div>'; }
+      return '<div class="item r' + x.r + (has ? "" : " lock") + '">' + (used === x.id ? '<span class="use">使用中</span>' : "")
+        + '<span class="rar">' + stars(x.r) + " " + esc(data.rar[x.r - 1] || "") + '</span>' + look
+        + '<span class="nm">' + esc(name) + '</span><span class="how">' + (has ? "持っています" : "手に入れ方：" + esc(how)) + '</span></div>';
+    }).join("");
+  }
+
+  function setHash() { if (cur) history.replaceState(null, "", "#u=" + encodeURIComponent(cur.name)); }
+  $("find").addEventListener("submit", function (e) { e.preventDefault(); var q = $("q").value.trim(); if (!q || !data) return; render(q); setHash(); });
+
+  function boot() {
+    var upd = $("upd");
+    if (data.at) upd.textContent = "更新 " + new Date(data.at).toLocaleString("ja-JP", { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" });
+    var vs = data.viewers.filter(function (x) { return !x.owner; }).sort(function (a, b) { return b.X - a.X; });
+    $("names").innerHTML = data.viewers.map(function (x) { return '<option value="' + esc(x.name) + '">'; }).join("");
+    $("chips").innerHTML = vs.slice(0, 24).map(function (x) { return '<button type="button" data-n="' + esc(x.name) + '">' + esc(x.name) + '<b>Lv.' + x.L + '</b></button>'; }).join("");
+    $("chips").querySelectorAll("button").forEach(function (b) { b.addEventListener("click", function () { $("q").value = b.dataset.n; render(b.dataset.n); setHash(); }); });
+    var posts = (data.board || []).slice().reverse();
+    $("posts").innerHTML = posts.length ? posts.map(function (p) { return '<li><b>' + esc(p.name) + '</b><time>' + new Date(p.t).toLocaleString("ja-JP", { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" }) + '</time><p>' + esc(p.text) + '</p></li>'; }).join("") : '<li>まだ書き込みはありません。</li>';
+    route();
+  }
+  function route() {
+    var h = decodeURIComponent(location.hash.slice(1));
+    if (h.indexOf("u=") === 0) { showTab("me"); $("q").value = h.slice(2); render(h.slice(2)); }
+    else if (/^(cmd|notes|season|board)$/.test(h)) showTab(h);
+    else if (!cur) $("prof").innerHTML = '<div class="box empty" style="margin-top:20px">名前を入れるか、上の名前を押すと、その人の手帳が開きます。</div>';
+  }
+  addEventListener("hashchange", function () { if (data) route(); });
+  fetch("data.json?t=" + Date.now(), { cache: "no-store" }).then(function (r) { if (!r.ok) throw 0; return r.json(); })
+    .then(function (d) { data = d; boot(); })
+    .catch(function () { $("prof").innerHTML = '<div class="box empty" style="margin-top:20px">まだ記録が届いていません。配信が始まると出てきます。</div>'; var h = location.hash.slice(1); if (/^(cmd|notes|season|board)$/.test(h)) showTab(h); });
+})();
+</script>
+</body>
+</html>
