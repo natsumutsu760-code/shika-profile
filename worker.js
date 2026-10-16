@@ -3,6 +3,8 @@
 // ・記録はオーバーレイから受け取って KV にしまう（外からは読めない）
 // ・視聴者は Twitch でログインし、配信者をフォローしていて、BAN・ブロックされていない人だけ記録を受け取れる
 // ・いまラウンジ（このサイト）を開いている人を Durable Object（Lounge）で覚える。ページは 1 分ごとに知らせ、3 分来なければいないことにする
+// ・配信ページのボタン（!発射 など）は、同じ Lounge から、OBS の配信オーバーレイ（WebSocket でつながっている）に届ける。
+//   チャットに書かないので、連投でタイムアウトされない。1 人 1 秒に 1 回まで
 const HTML_URL = "https://raw.githubusercontent.com/natsumutsu760-code/shika-profile/main/index.html";
 const MAX_UPLOAD = 20 * 1024 * 1024;
 const HERE_MS = 3 * 60 * 1000; // 最後の知らせからこの時間はラウンジにいることにする
@@ -171,7 +173,7 @@ async function here(env, who) {
     } catch (e) {}
     r = await (await room.fetch("https://lounge/beat", { method: "POST", body: JSON.stringify({ id: who.id, l: who.login, n }) })).json();
   }
-  return r.list;
+  return { list: r.list, obs: r.obs || 0 };
 }
 
 async function readData(req, env) {
@@ -179,13 +181,14 @@ async function readData(req, env) {
   if (e.res) return e.res;
   const data = await env.DB.get("data");
   if (!data) return deny("G05", { login: e.who.login, id: e.who.id });
-  const list = await here(env, e.who);
-  return new Response('{"me":' + JSON.stringify({ id: e.who.id, login: e.who.login }) + ',"here":' + JSON.stringify(list) + ',"d":' + data + "}", { headers: { "Content-Type": "application/json; charset=utf-8", "Cache-Control": "no-store", ...SEC } });
+  const h = await here(env, e.who);
+  return new Response('{"me":' + JSON.stringify({ id: e.who.id, login: e.who.login }) + ',"here":' + JSON.stringify(h.list) + ',"obs":' + (h.obs ? 1 : 0) + ',"d":' + data + "}", { headers: { "Content-Type": "application/json; charset=utf-8", "Cache-Control": "no-store", ...SEC } });
 }
 async function ping(req, env) {
   const e = await enter(req, env);
   if (e.res) return e.res;
-  return json({ here: await here(env, e.who) });
+  const h = await here(env, e.who);
+  return json({ here: h.list, obs: h.obs ? 1 : 0 });
 }
 // ページを閉じたとき（sendBeacon なので、トークンは本文で受け取る）
 async function bye(req, env) {
@@ -196,9 +199,40 @@ async function bye(req, env) {
   return new Response(null, { status: 204 });
 }
 
+// 配信ページのボタン：コマンドを OBS の配信オーバーレイへ（フォロワーの確認は enter と同じ）
+// ボタンは 1 秒に 1 回来るので、確かめた結果を 1 分だけ覚えて、そのたびに Twitch と KV にきかない
+const PASS = new Map();
+async function enterSoon(req, env) {
+  const tok = bearer(req), c = tok && PASS.get(tok), now = Date.now();
+  if (c && c.until > now) return { who: c.who };
+  const e = await enter(req, env);
+  if (e.who) { if (PASS.size > 500) PASS.clear(); PASS.set(tok, { who: e.who, until: now + 60000 }); }
+  return e;
+}
+async function remoteCmd(req, env) {
+  const e = await enterSoon(req, env);
+  if (e.res) return e.res;
+  let body;
+  try { body = await req.json(); } catch (x) { return json({ error: "json" }, 400); }
+  const text = String((body && body.text) || "").normalize("NFKC").replace(/[\u0000-\u001f\u007f]/g, " ").replace(/\s+/g, " ").trim().slice(0, 320);
+  if (!/^!\S/.test(text)) return json({ error: "cmd", code: "C03", why: "コマンドではありません" }, 400);
+  const room = lounge(env), send = async (n) => (await room.fetch("https://lounge/cmd", { method: "POST", body: JSON.stringify({ id: e.who.id, l: e.who.login, n, text }) })).json();
+  let r = await send("");
+  if (r.needName) {
+    // 表示名（チャットと同じ名前。持ち玉はこの名前で数える）を Twitch から取る
+    let n = e.who.login;
+    try {
+      const u = await fetch("https://api.twitch.tv/helix/users?id=" + encodeURIComponent(e.who.id), { headers: { "Client-Id": e.who.client, Authorization: "Bearer " + e.who.tok } });
+      if (u.ok) { const j = await u.json(); if (j.data && j.data[0] && j.data[0].display_name) n = String(j.data[0].display_name).slice(0, 40); }
+    } catch (x) {}
+    r = await send(n);
+  }
+  return json(r, r.ok ? 200 : r.code === "C01" ? 429 : 503);
+}
+
 async function config(env) {
   const gate = await env.DB.get("gate", "json");
-  return json({ clientId: gate ? gate.clientId : "", ready: !!gate });
+  return json({ clientId: gate ? gate.clientId : "", owner: gate ? gate.owner : "", ready: !!gate });
 }
 
 async function page() {
@@ -228,6 +262,12 @@ async function route(req, env) {
       return json({ denied: ((await env.DB.get("denied", "json")) || []).slice(-20) }, 200, UP_CORS);
     }
     if (url.pathname === "/api/data" && req.method === "GET") return readData(req, env);
+    if (url.pathname === "/api/cmd" && req.method === "POST") return remoteCmd(req, env);
+    // OBS の配信オーバーレイがつなぐ口（つないだあと、最初に上げる鍵を送る）
+    if (url.pathname === "/api/obs") {
+      if ((req.headers.get("Upgrade") || "").toLowerCase() !== "websocket") return json({ error: "upgrade" }, 426, UP_CORS);
+      return lounge(env).fetch(new Request("https://lounge/obs", req));
+    }
     if (url.pathname === "/api/ping" && req.method === "GET") return ping(req, env);
     if (url.pathname === "/api/bye" && req.method === "POST") return bye(req, env);
     if (url.pathname === "/api/config" && req.method === "GET") return config(env);
@@ -239,13 +279,55 @@ async function route(req, env) {
 
 // ---------- いまラウンジにいる人（1 つだけの部屋）----------
 export class Lounge {
-  constructor(state) {
+  constructor(state, env) {
     this.state = state;
+    this.env = env;
     this.map = {};
+    this.last = {};  // 1 人 1 秒に 1 回の見張り（id → 最後に受けた時刻）
+    this.names = {}; // id → 表示名（ラウンジから出たあとも覚えておく）
     state.blockConcurrencyWhile(async () => { this.map = (await state.storage.get("here")) || {}; });
+    // OBS からの "ping" には部屋を起こさずに "pong" と返す
+    try { state.setWebSocketAutoResponse(new WebSocketRequestResponsePair("ping", "pong")); } catch (e) {}
   }
+  obsSockets() { return this.state.getWebSockets().filter((ws) => { try { const a = ws.deserializeAttachment(); return !!(a && a.ok); } catch (e) { return false; } }); }
+  async webSocketMessage(ws, msg) {
+    let m; try { m = JSON.parse(typeof msg === "string" ? msg : new TextDecoder().decode(msg)); } catch (e) { return; }
+    if (m && m.auth != null) {
+      const ok = !!this.env.UPLOAD_KEY && (await sameKey(String(m.auth), this.env.UPLOAD_KEY));
+      ws.serializeAttachment({ ok, at: Date.now() });
+      ws.send(JSON.stringify({ t: "auth", ok }));
+      if (!ok) ws.close(4001, "key");
+    }
+  }
+  async webSocketClose(ws, code) { try { ws.close(code === 1005 ? 1000 : code, "bye"); } catch (e) {} }
+  async webSocketError() {}
   async fetch(req) {
     const url = new URL(req.url), now = Date.now();
+    if (url.pathname === "/obs") {
+      // つながる数の上限（同じ OBS が何度もつなぎ直しても、古いものから閉じる）
+      const all = this.state.getWebSockets();
+      if (all.length >= 6) all.slice(0, all.length - 5).forEach((w) => { try { w.close(1000, "too many"); } catch (e) {} });
+      const pair = new WebSocketPair(), client = pair[0], server = pair[1];
+      this.state.acceptWebSocket(server);
+      server.serializeAttachment({ ok: false, at: now });
+      return new Response(null, { status: 101, webSocket: client });
+    }
+    if (url.pathname === "/cmd") {
+      const b = await req.json().catch(() => ({}));
+      const id = /^\d{1,20}$/.test(String(b.id || "")) ? String(b.id) : "";
+      const res = (o) => new Response(JSON.stringify(o), { headers: { "Content-Type": "application/json" } });
+      if (!id) return res({ ok: false, code: "C03", why: "コマンドではありません" });
+      if (this.last[id] && now - this.last[id] < 1000) return res({ ok: false, code: "C01", why: "1 秒に 1 回までです" });
+      if (typeof b.n === "string" && b.n) this.names[id] = b.n.slice(0, 40);
+      const name = this.names[id] || (this.map[id] && this.map[id].n) || "";
+      if (!name) return res({ needName: true });
+      const socks = this.obsSockets();
+      if (!socks.length) return res({ ok: false, code: "C02", why: "配信オーバーレイがつながっていません（配信していないときは使えません）" });
+      this.last[id] = now;
+      const msg = JSON.stringify({ t: "cmd", n: name, l: String(b.l || "").slice(0, 40), id, text: String(b.text || "").slice(0, 320), at: now });
+      socks.forEach((ws) => { try { ws.send(msg); } catch (e) {} });
+      return res({ ok: true });
+    }
     for (const k of Object.keys(this.map)) if (now - this.map[k].at > HERE_MS) delete this.map[k];
     let needName = false;
     if (req.method === "POST") {
@@ -255,12 +337,13 @@ export class Lounge {
         const old = this.map[id] || {};
         const n = typeof b.n === "string" && b.n ? b.n.slice(0, 40) : old.n || "";
         this.map[id] = { n, l: String(b.l || old.l || "").slice(0, 40), at: now };
+        if (n) this.names[id] = n;
         needName = !n;
       }
       if (id && url.pathname === "/bye") delete this.map[id];
       await this.state.storage.put("here", this.map);
     }
     const list = Object.values(this.map).filter((x) => x.n || x.l).map((x) => ({ n: x.n || x.l, l: x.l }));
-    return new Response(JSON.stringify({ needName, list }), { headers: { "Content-Type": "application/json" } });
+    return new Response(JSON.stringify({ needName, list, obs: this.obsSockets().length }), { headers: { "Content-Type": "application/json" } });
   }
 }
