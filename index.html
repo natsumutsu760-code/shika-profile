@@ -12,15 +12,18 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Zen+Maru+Gothic:wght@500;700;900&display=swap">
 <!-- 視聴者が選んだフォント（配信と同じもの） -->
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Dela+Gothic+One&family=M+PLUS+Rounded+1c:wght@500;800&family=DotGothic16&family=Yusei+Magic&family=Mochiy+Pop+One&family=Yuji+Syuku&family=Train+One&family=Rampart+One&family=Zen+Antique&family=Kaisei+Decol:wght@700&family=Reggae+One&family=Hachi+Maru+Pop&family=Stick&family=RocknRoll+One&family=Kiwi+Maru:wght@500&family=Klee+One:wght@600&family=M+PLUS+1+Code:wght@700&family=Shippori+Mincho+B1:wght@800&family=Zen+Old+Mincho:wght@700&display=swap">
-<!-- ★4・★5 のフォント（Adobe Fonts キット qbl8idi） -->
+<!-- ★4・★5 のフォント（Adobe Fonts のキット 5 つ。配信と同じ。1 つずつ順に読む） -->
 <script>
   (function (d) {
-    var config = { kitId: "qbl8idi", scriptTimeout: 3000, async: true },
-      h = d.documentElement, t = setTimeout(function () { h.className = h.className.replace(/\bwf-loading\b/g, "") + " wf-inactive"; }, config.scriptTimeout),
-      tk = d.createElement("script"), f = false, s = d.getElementsByTagName("script")[0], a;
-    h.className += " wf-loading"; tk.src = "https://use.typekit.net/" + config.kitId + ".js"; tk.async = true;
-    tk.onload = tk.onreadystatechange = function () { a = this.readyState; if (f || a && a != "complete" && a != "loaded") return; f = true; clearTimeout(t); try { Typekit.load(config); } catch (e) {} };
-    s.parentNode.insertBefore(tk, s);
+    var h = d.documentElement; h.className += " wf-loading";
+    var stop = setTimeout(function () { h.className = h.className.replace(/\bwf-loading\b/g, "") + " wf-inactive"; }, 9000);
+    (function next(ks) {
+      if (!ks.length) { clearTimeout(stop); return; }
+      var k = ks[0], tk = d.createElement("script"), done = false, go = function () { if (done) return; done = true; next(ks.slice(1)); };
+      tk.src = "https://use.typekit.net/" + k + ".js"; tk.async = true;
+      tk.onload = function () { try { Typekit.load({ kitId: k, async: true, active: go, inactive: go }); } catch (e) { go(); } setTimeout(go, 3000); };
+      tk.onerror = go; d.head.appendChild(tk);
+    })(["ccs0dma", "lxr0ywy", "nkw4clh", "iaa5aep", "hpx0gfb"]);
   })(document);
 </script>
 <style>
@@ -225,6 +228,33 @@ h2.sec::before { content: ""; width: 22px; height: 22px; border-radius: 50%; bor
 .season .halo + .halo { width: 380px; height: 380px; margin: -190px 0 0 -190px; border-color: rgba(46,168,255,.35); animation-direction: reverse; animation-duration: 30s; }
 .season b { position: relative; display: block; font: 700 clamp(46px, 12vw, 96px)/1 var(--num); background: linear-gradient(90deg, var(--sky), var(--violet), var(--coral)); -webkit-background-clip: text; background-clip: text; color: transparent; }
 .season p { position: relative; }
+/* お店：6 時間ごとに入れ替わる 5 品。★5 は虹の縁、★4 は金の縁 */
+.shop { display: grid; gap: 16px; margin-top: 18px; }
+.shop-top { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px 20px; padding: 18px 22px; }
+.shop-top h3 { margin: 0; font: 900 22px/1.2 var(--jp); }
+.shop-top p { margin: 6px 0 0; color: var(--soft); font-size: 14px; line-height: 1.6; max-width: 36em; }
+.shop-clock { font: 700 clamp(30px, 7vw, 42px)/1 var(--num); font-variant-numeric: tabular-nums; text-align: right; }
+.shop-clock small { display: block; margin-top: 4px; font: 700 12px/1.4 var(--jp); color: var(--soft); }
+.shop-me { margin: 0; }
+.wares { display: grid; grid-template-columns: repeat(auto-fill, minmax(168px, 1fr)); gap: 14px; }
+.ware { position: relative; display: grid; justify-items: center; gap: 6px; padding: 30px 14px 14px; border-radius: 22px; background: #fff; box-shadow: var(--lift); text-align: center; }
+.ware.r4 { box-shadow: var(--lift), inset 0 0 0 2.5px var(--r4); }
+.ware.r5::before { content: ""; position: absolute; inset: 0; border-radius: 22px; padding: 3px; background: conic-gradient(from var(--a, 0deg), var(--coral), var(--sun), var(--leaf), var(--sky), var(--violet), var(--coral)); -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor; mask-composite: exclude; animation: hue 4s linear infinite; pointer-events: none; }
+.ware .no { position: absolute; left: 14px; top: 10px; font: 700 20px/1 var(--num); color: var(--soft); }
+.ware .have { position: absolute; right: 10px; top: 10px; font: 700 11px/1 var(--jp); color: #fff; background: var(--leaf); padding: 4px 8px; border-radius: 999px; }
+.ware .vis { width: 100%; height: 92px; border-radius: 16px; display: grid; place-items: center; background: #F1F5FB; overflow: hidden; font-size: 34px; }
+.ware .vis img { width: 84px; height: 84px; }
+.ware .vis.font { font-size: 34px; }
+.ware .vis.ep { font: 900 15px/1.3 var(--jp); padding: 0 8px; }
+.ware .st { font: 700 14px/1 var(--num); color: var(--r4); letter-spacing: -.02em; }
+.ware.r5 .st { color: var(--coral); }
+.ware .k { font: 700 12px/1 var(--jp); color: var(--soft); }
+.ware .nm { font: 900 16px/1.3 var(--jp); }
+.ware .pr { font: 700 22px/1 var(--num); }
+.ware .pr small { font: 700 12px var(--jp); margin-left: 2px; }
+.ware .buy { margin-top: 4px; border: 0; border-radius: 999px; padding: 9px 16px; background: var(--ink); color: #fff; font: 700 14px/1 var(--num); cursor: pointer; }
+.ware .buy.done { background: var(--leaf); }
+.ware .buy:focus-visible { outline: 3px solid var(--sky); outline-offset: 2px; }
 
 /* ---- 掲示板：ふきだしが浮かぶ ---- */
 .posts { list-style: none; margin: 0; padding: 0; columns: 2 280px; column-gap: 16px; }
@@ -381,7 +411,8 @@ footer { position: relative; z-index: 2; text-align: center; color: var(--soft);
   <!-- シーズン -->
   <section class="view" id="v-season" hidden>
     <h2 class="sec" style="--c:var(--sun)">シーズン</h2>
-    <div class="panel season"><div class="halo"></div><div class="halo"></div><b>SEASON 1</b><p>ラインナップを準備中です。決まったらここに並びます。</p></div>
+    <div class="panel season"><div class="halo"></div><div class="halo"></div><b>SEASON 1</b><p>星降る夜・電脳・鹿の森。コスメ 80 個が加わりました。</p></div>
+    <div class="shop" id="shop" aria-live="polite"></div>
   </section>
 
   <!-- 掲示板 -->
@@ -404,14 +435,15 @@ footer { position: relative; z-index: 2; text-align: center; color: var(--soft);
 <script>
 (function () {
   "use strict";
-  var KIND = [["skin", "スキン"], ["icon", "アイコン"], ["ep", "二つ名"], ["font", "フォント"]];
+  var KIND = [["skin", "スキン"], ["icon", "アイコン"], ["ep", "二つ名"], ["font", "フォント"], ["ball", "玉スキン"]];
   var ACC = ["#2EA8FF", "#FF5A64", "#FFC21A", "#22CC88", "#8E6CFF"];
   var CMDS = [
-    ["見た目と記録", "#2EA8FF", [["!プロフ", "配信画面に自分のカードを出す"], ["!レベル", "レベルと、次のレベルまでを見る"], ["!スキン 名前", "カードのスキンを変える（名前なしで一覧）"], ["!アイコン 名前", "アイコンを変える"], ["!二つ名 名前", "名前の上に出る二つ名を変える"], ["!フォント 名前", "名前と弾幕の書体を変える"], ["!持ち物", "持っている物と手に入れ方を見る"], ["!サイト", "MONO LINK:// のアドレスを出す"]]],
-    ["鹿物語（パチンコ）", "#FF5A64", [[null, "なんでもコメントすると玉がもらえる（はじめは 10 玉）"], ["!発射 5", "持ち玉を打つ（数字なしは 1 発）"], ["!強く", "打ち出しを強く（!弱く で弱く）"], ["!押せ", "連打チャンス・最終決戦でみんなで押す"], ["!玉", "自分の持ち玉を見る"], ["!せんべい", "ミニゲームに参加（!数字 3・!グー も）"], ["!ガチャ", "持ち玉 500 でコスメガチャ（★5 2%・★4 10%、10 回で ★4 以上・60 回で ★5 確定）"]]],
+    ["見た目と記録", "#2EA8FF", [["!プロフ", "配信画面に自分のカードを出す"], ["!レベル", "レベルと、次のレベルまでを見る"], ["!スキン 名前", "カードのスキンを変える（名前なしで一覧）"], ["!アイコン 名前", "アイコンを変える"], ["!二つ名 名前", "名前の上に出る二つ名を変える"], ["!フォント 名前", "名前と弾幕の書体を変える"], ["!玉スキン 名前", "鹿物語で落ちる自分の玉の見た目を変える"], ["!持ち物", "持っている物と手に入れ方を見る"], ["!サイト", "MONO LINK:// のアドレスを出す"]]],
+    ["鹿物語（パチンコ）", "#FF5A64", [[null, "なんでもコメントすると玉がもらえる（はじめは 10 玉）"], ["!発射 5", "持ち玉を打つ（数字なしは 1 発）"], ["!強く", "打ち出しを強く（!弱く で弱く）"], ["!押せ", "連打チャンス・最終決戦でみんなで押す"], ["!玉", "自分の持ち玉を見る"], ["!せんべい", "ミニゲームに参加（!数字 3・!グー も）"], ["!ガチャ", "持ち玉 500 でコスメガチャ（★5 2%・★4 10%、10 回で ★4 以上・60 回で ★5 確定）"], ["!ガチャ10", "持ち玉 5000 で 10 連（★4 以上が 1 つは出る）"], ["!お店", "いまお店に並んでいる 5 品を見る"], ["!購入 1", "お店の品物を持ち玉で買う（番号は 1〜5）"]]],
     ["そのほか", "#22CC88", [["!けいじばん こんにちは", "ラウンジの掲示板に書く（1 分に 1 回・120 字まで）"], ["!花火", "画面に花火（!ハート でハート）"], [null, "888 で拍手、草 で草が生える"], ["!discord", "Discord の招待をチャットで受け取る"]]]
   ];
   var NOTES = [
+    ["build 17", "2026-10-16", ["コスメが 80 個ふえました（スキン 25・玉スキン 10・アイコン 10・二つ名 5・フォント 30）", "!ガチャ10：持ち玉 5000 で 10 連", "お店：6 時間ごとに 5 品。!購入 番号 で持ち玉で買える", "玉スキン：鹿物語の自分の玉の見た目が変えられる（!玉スキン 名前）"]],
     ["build 13", "2026-10-16", ["MONO LINK://（このラウンジ）ができました。フォローしている人だけ入れます", "!けいじばん で掲示板に書けるように", "コスメガチャは持ち玉 500 の !ガチャ で", "鹿物語 Ver.1.5.4"]],
     ["build 12", "2026-10-15", ["★4・★5 のフォント 6 種（ビット・暗号・ブロック・ふちどり・疾風・ギガ）", "★1〜★3 の新しいコスメに手に入れ方", "★4 以上を手に入れると配信画面でお祝い"]],
     ["build 11", "2026-10-15", ["★4 以上のアイコンがオリジナルのエンブレムに", "アイコンとカードの演出がレアリティで変わる"]],
@@ -616,25 +648,63 @@ footer { position: relative; z-index: 2; text-align: center; color: var(--soft);
   function stat(cls, n, unit, label, c) { return '<div class="stat ' + cls + '" style="--c:' + c + '"><b data-n="' + (+n || 0) + '">0<small>' + unit + '</small></b><span>' + label + '</span></div>'; }
   function drawKinds() {
     var v = cur;
-    $("kinds").innerHTML = KIND.map(function (k) { return '<button type="button" data-k="' + k[0] + '" aria-pressed="' + (k[0] === kindNow) + '">' + k[1] + '<small>' + v.own[k[0]].length + '/' + (data.kinds[k[0]] || []).length + '</small></button>'; }).join("");
+    $("kinds").innerHTML = KIND.map(function (k) { return '<button type="button" data-k="' + k[0] + '" aria-pressed="' + (k[0] === kindNow) + '">' + k[1] + '<small>' + (v.own[k[0]] || []).length + '/' + (data.kinds[k[0]] || []).length + '</small></button>'; }).join("");
     $("kinds").querySelectorAll("button").forEach(function (b) { b.addEventListener("click", function () { kindNow = b.dataset.k; drawKinds(); drawGrid(); }); });
   }
   function drawGrid() {
-    var v = cur, k = kindNow, own = v.own[k], used = v.eq[k];
+    var v = cur, k = kindNow, own = v.own[k] || [], used = v.eq[k];
     var list = (data.kinds[k] || []).slice().sort(function (a, b) { return (own.indexOf(b.id) >= 0) - (own.indexOf(a.id) >= 0) || b.r - a.r; });
     $("grid").innerHTML = list.map(function (x, i) {
       var has = own.indexOf(x.id) >= 0, h = x.hidden && has ? (v.hid || {})[x.id] : null, name = h ? h.name : x.name, how = h ? h.how : x.how, look = "";
       if (k === "skin") look = '<div class="look" style="background:' + esc(cssBg(x)) + '"></div>';
       if (k === "icon") look = '<div class="look">' + (x.img ? '<img src="' + x.img + '" alt="">' : esc(x.id)) + '</div>';
       if (k === "ep") look = '<div class="look ep">「' + esc(x.name) + '」</div>';
+      if (k === "ball") look = '<div class="look">' + (x.img ? '<img src="' + x.img + '" alt="">' : "") + '</div>';
       if (k === "font") { var fam = h ? h.family : x.family; look = '<div class="look font"' + (fam ? ' style="font-family:' + esc(fam) + '"' : "") + '>' + (fam ? "鹿あA" : "？") + '</div>'; }
       return '<button type="button" class="card r' + x.r + (has ? "" : " lock") + '" style="animation:rise .5s var(--out) both;animation-delay:' + Math.min(i, 20) * .03 + 's" aria-label="' + esc(name) + '（' + (has ? "持っています" : "まだ") + '）。押すと手に入れ方">'
         + '<div class="flip"><div class="face front">' + (used === x.id ? '<span class="use">使っています</span>' : "")
         + '<span class="rar"><span>' + stars(x.r) + '</span><em>' + esc(data.rar[x.r - 1] || "") + '</em></span>' + look + '<span class="nm">' + esc(name) + '</span></div>'
-        + '<div class="face back"><small>' + (has ? "持っています" : "手に入れ方") + '</small><p>' + esc(has ? (used === x.id ? "いま使っています" : "!" + ({ skin: "スキン", icon: "アイコン", ep: "二つ名", font: "フォント" })[k] + " " + name + " で使えます") : how) + '</p></div></div></button>';
+        + '<div class="face back"><small>' + (has ? "持っています" : "手に入れ方") + '</small><p>' + esc(has ? (used === x.id ? "いま使っています" : "!" + ({ skin: "スキン", icon: "アイコン", ep: "二つ名", font: "フォント", ball: "玉スキン" })[k] + " " + name + " で使えます") : how) + '</p></div></div></button>';
     }).join("");
     $("grid").querySelectorAll(".card").forEach(function (c) { c.addEventListener("click", function () { c.classList.toggle("turn"); }); });
   }
+
+  // ---- お店（シーズンのラインナップ）：配信のオーバーレイが、いまと次の 5 品を送ってくる。時刻で切り替える ----
+  var meName = "", meLogin = "", shopSlot = null, KLAB = { skin: "スキン", icon: "アイコン", ep: "二つ名", font: "フォント", ball: "玉スキン" };
+  function shopNow() { var s = data && data.shop, now = Date.now(); return Array.isArray(s) ? s.filter(function (x) { return x && now >= x.from && now < x.until; })[0] || null : null; }
+  function two(n) { return (n < 10 ? "0" : "") + n; }
+  function wareVis(it) {
+    if (it.kind === "skin") return '<div class="vis" style="background:' + esc(it.bg || it.pa || "#F1F5FB") + '"></div>';
+    if (it.kind === "icon" || it.kind === "ball") return '<div class="vis">' + (it.img ? '<img src="' + it.img + '" alt="">' : esc(it.id)) + '</div>';
+    if (it.kind === "font") return '<div class="vis font"' + (it.family ? ' style="font-family:' + esc(it.family) + '"' : "") + '>鹿あA</div>';
+    return '<div class="vis ep">「' + esc(it.name) + '」</div>';
+  }
+  function drawShop() {
+    var n = shopNow(), box = $("shop"); shopSlot = n ? n.slot : null;
+    if (!n) { box.innerHTML = '<div class="panel empty">お店の品物は、配信のときに並びます。</div>'; return; }
+    var v = (meName && findViewer(meName)) || (meLogin && findViewer(meLogin)) || null;
+    box.innerHTML = '<div class="panel shop-top"><div><h3>いまのお店</h3><p>日本時間の 0・6・12・18 時に 5 品が入れ替わります。配信のチャットで「!購入 番号」と打つと、持ち玉で買えます。</p></div><div class="shop-clock" id="shop-clock"></div></div>'
+      + (v ? '<p class="soft shop-me">' + esc(v.name) + ' さんの持ち玉は ' + fmt(v.balls) + ' 玉です。</p>' : "")
+      + '<div class="wares">' + n.items.map(function (it, i) {
+        var has = v && ((v.own || {})[it.kind] || []).indexOf(it.id) >= 0;
+        return '<div class="ware r' + it.r + '" style="animation:rise .5s var(--out) both;animation-delay:' + i * .06 + 's"><span class="no">' + it.no + '</span>' + (has ? '<span class="have">持っています</span>' : "")
+          + wareVis(it) + '<span class="st">' + stars(it.r) + '</span><span class="k">' + KLAB[it.kind] + '</span><span class="nm">' + esc(it.name) + '</span><span class="pr">' + fmt(it.price) + '<small>玉</small></span>'
+          + '<button type="button" class="buy" data-copy="!購入 ' + it.no + '" aria-label="「!購入 ' + it.no + '」をコピー">!購入 ' + it.no + '</button></div>';
+      }).join("") + '</div>';
+    tickShop();
+  }
+  function tickShop() {
+    if (!data) return;
+    var n = shopNow(); if ((n ? n.slot : null) !== shopSlot) { drawShop(); return; }
+    var el = $("shop-clock"); if (!el || !n) return;
+    var ms = Math.max(0, n.until - Date.now());
+    el.innerHTML = two(Math.floor(ms / 3600000)) + ":" + two(Math.floor(ms / 60000) % 60) + ":" + two(Math.floor(ms / 1000) % 60) + "<small>次の入れ替えまで</small>";
+  }
+  setInterval(tickShop, 1000);
+  $("shop").addEventListener("click", function (e) {
+    var b = e.target.closest("[data-copy]"); if (!b) return;
+    var t = b.dataset.copy; (navigator.clipboard ? navigator.clipboard.writeText(t) : Promise.reject()).then(function () { b.classList.add("done"); b.textContent = "コピーしました"; setTimeout(function () { b.classList.remove("done"); b.textContent = t; }, 1400); }, function () {});
+  });
 
   // ---- 掲示板 ----
   function drawBoard() {
@@ -659,7 +729,7 @@ footer { position: relative; z-index: 2; text-align: center; color: var(--soft);
     var upd = $("upd").querySelector("span");
     upd.textContent = d.at ? "更新 " + new Date(d.at).toLocaleString("ja-JP", { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" }) : "更新を待っています";
     $("names").innerHTML = d.viewers.map(function (x) { return '<option value="' + esc(x.name) + '">'; }).join("");
-    buildPlaza(); drawBoard(); route();
+    buildPlaza(); drawBoard(); drawShop(); route();
   }
   function done() { setTimeout(function () { $("boot").classList.add("off"); }, RM ? 0 : 900); }
   requestAnimationFrame(loop);
@@ -693,7 +763,7 @@ footer { position: relative; z-index: 2; text-align: center; color: var(--soft);
     fetch("/api/data", { headers: { Authorization: "Bearer " + tok }, cache: "no-store" }).then(function (r) {
       return r.json().then(function (j) { return { s: r.status, j: j }; });
     }).then(function (x) {
-      if (x.s === 200) { here = x.j.here || []; $("logout").hidden = false; boot(x.j.d); done(); stay(tok); return; }
+      if (x.s === 200) { here = x.j.here || []; var ml = (x.j.me && x.j.me.login) || "", mh = here.filter(function (h) { return h.l && h.l === ml; })[0]; meName = (mh && mh.n) || ml; meLogin = ml; $("logout").hidden = false; boot(x.j.d); done(); stay(tok); return; }
       if (x.s === 401) { ss(TOK, null); showGate("ログインの期限が切れました。もう一度ログインしてください。"); return; }
       var e = x.j && x.j.error;
       if (e === "follow") showGate("このラウンジは deerman_247 をフォローしている人だけ入れます。フォローしてから、少し待ってもう一度ログインしてください（10 分ごとに更新）。", true);
