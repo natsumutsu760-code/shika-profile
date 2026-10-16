@@ -265,7 +265,7 @@ h2.sec::before { content: ""; width: 22px; height: 22px; border-radius: 50%; bor
 .posts .bub time { font: 600 11px/1 var(--num); color: var(--soft); margin-left: 6px; }
 .posts .bub p { margin: 4px 0 0; word-break: break-word; }
 
-/* ---- 配信：上に「打つ欄・映像・タブ」が残り、選んだタブの中身だけが下に出る。押せのドームだけが大きくて赤い ---- */
+/* ---- 配信：上に「映像・打つ欄・タブ」が残り、選んだタブの中身だけが下に出る。押せのドームだけが大きくて赤い ---- */
 .stick { position: sticky; top: 0; z-index: 20; display: grid; gap: 8px; margin: 0 calc(-1 * clamp(16px, 4vw, 40px)); padding: calc(8px + env(safe-area-inset-top)) clamp(16px, 4vw, 40px) 10px;
   background: var(--space); box-shadow: 0 14px 18px -18px rgba(27,35,64,.45); }
 .stage { display: grid; gap: 8px; }
@@ -363,7 +363,6 @@ h2.sec::before { content: ""; width: 22px; height: 22px; border-radius: 50%; bor
   .stage { grid-area: stage; position: sticky; top: 12px; }
   .ltabs { grid-area: tabs; }
   .lpanel { grid-area: pane; margin-top: 0; position: sticky; top: 70px; max-height: calc(100vh - 170px); overflow-y: auto; overscroll-behavior: contain; }
-  .hint { grid-area: stage; top: 62px; }
   .screen { border-radius: 22px; }
   .chat { height: calc(100vh - 230px); min-height: 280px; }
 }
@@ -519,15 +518,16 @@ footer { position: relative; z-index: 2; text-align: center; color: var(--soft);
   <!-- プロフィール -->
   <section class="view" id="v-me" hidden aria-live="polite"></section>
 
-  <!-- 配信：上に打つ欄・映像・タブ。選んだタブの中身だけを下に出す -->
+  <!-- 配信：上に映像・打つ欄・タブ。選んだタブの中身だけを下に出す -->
   <section class="view" id="v-live" hidden aria-labelledby="live-title">
     <h2 class="sr" id="live-title">配信</h2>
     <div class="live">
       <div class="stick" id="stick">
         <div class="stage">
+          <div class="screen" id="screen"><p>配信の映像</p></div>
           <form class="say-form" id="say-form" autocomplete="off"><label class="sr" for="say-in">コメント</label><input id="say-in" maxlength="300" placeholder="コメントする（! でコマンド）" enterkeyhint="send"><button class="jelly sky" type="submit">送る</button></form>
           <div class="ask" id="say-ask" hidden><p>コメントには Twitch の許可がいります</p><button type="button" class="jelly sky" id="say-login">許可する</button></div>
-          <div class="screen" id="screen"><p>配信の映像</p></div>
+          <p class="hint" id="say-hint" aria-live="polite"></p>
         </div>
         <div class="ltabs" id="ltabs" role="tablist" aria-label="配信のメニュー">
           <button type="button" role="tab" id="lt-chat" data-pane="chat" aria-controls="lp-chat" aria-selected="false" tabindex="-1" style="--c:var(--sky)">コメント</button>
@@ -537,7 +537,6 @@ footer { position: relative; z-index: 2; text-align: center; color: var(--soft);
           <button type="button" role="tab" id="lt-wear" data-pane="wear" aria-controls="lp-wear" aria-selected="false" tabindex="-1" style="--c:var(--leaf)">つけかえ</button>
           <button type="button" role="tab" id="lt-misc" data-pane="misc" aria-controls="lp-misc" aria-selected="false" tabindex="-1" style="--c:var(--soft)">ほか</button>
         </div>
-        <p class="hint" id="say-hint" aria-live="polite"></p>
       </div>
       <div class="panel lpanel" id="lpanel">
         <div role="tabpanel" id="lp-chat" aria-labelledby="lt-chat" hidden>
