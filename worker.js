@@ -80,6 +80,7 @@ const WHY = {
   D01: "配信者の設定で入れません",
   D02: "配信者の設定で入れません",
   E01: "門番でエラーが起きました",
+  B01: "BAN・ブロックの一覧がない間に入りました（一時的に入れる）",
 };
 // G02 のくわしい理由（配信オーバーレイが送ってくる）
 const FOLLOW_ERR = { noscope: "配信者のログインに、フォロワーを読む許可がありません", error: "Twitch からフォロワーを読めませんでした", old: "最後に読めたのが 24 時間以上前です", loading: "オーバーレイが起動したばかりで、読んでいる途中です", notyet: "オーバーレイがまだフォロワーを読んでいません" };
@@ -152,6 +153,8 @@ async function enter(req, env) {
       }
     }
   }
+  // BAN・ブロックの一覧がないまま入れた人は記録に残す（あとで配信者がパネルで確かめられるように）
+  if (!owner && !mod && (!gate.ban || !gate.block)) await logDeny(env, "B01", who);
   return { who: { id, login: me.login, client: String(who.client_id || ""), tok } };
 }
 
