@@ -989,7 +989,7 @@ footer { position: relative; z-index: 2; text-align: center; color: var(--soft);
       var on = t.dataset.pane === name; t.setAttribute("aria-selected", String(on)); t.tabIndex = on ? 0 : -1; $(t.getAttribute("aria-controls")).hidden = !on;
       if (on && focus) t.focus();
     });
-    if (name === "chat") { chat.scrollTop = chat.scrollHeight; $("newer").hidden = true; }
+    if (name === "chat") { fitChat(); chat.scrollTop = chat.scrollHeight; $("newer").hidden = true; if (chatStickY > scrollY) { scrollTo(0, chatStickY); return; } }
     // 下までスクロールしていたら、中身の頭が上の組のすぐ下に来るように戻す
     var lp = $("lpanel"), y = lp.getBoundingClientRect().top + scrollY - $("stick").offsetHeight - 10;
     if (innerWidth < 900 && scrollY > y) scrollTo(0, y);
@@ -1001,7 +1001,23 @@ footer { position: relative; z-index: 2; text-align: center; color: var(--soft);
     if (j == null) return; e.preventDefault(); showPane(ts[(j + ts.length) % ts.length].dataset.pane, true);
   });
   // 上に残る組の高さ（コメントの欄を、画面に収まる高さにする）
-  if (window.ResizeObserver) new ResizeObserver(function () { $("v-live").style.setProperty("--stick-h", $("stick").offsetHeight + "px"); }).observe($("stick"));
+  if (window.ResizeObserver) new ResizeObserver(function () { $("v-live").style.setProperty("--stick-h", $("stick").offsetHeight + "px"); fitChat(); }).observe($("stick"));
+  // スマホ：コメントの欄の下が、下のドックに隠れない高さにする（ページを動かさなくても、最新のコメントが見える）
+  function docTop(el) { var y = 0; while (el) { y += el.offsetTop; el = el.offsetParent; } return y; }
+  // 小さい画面でそれだと低すぎるときは、上の組が貼りつくところまでページを送って、そこで収まる高さにする
+  var chatStickY = -1;
+  function fitChat() {
+    if (!liveOpen || pane !== "chat") return;
+    if (innerWidth >= 900) { chat.style.height = ""; chatStickY = -1; return; }
+    var lp = $("lpanel"), cs = getComputedStyle(lp), pad = parseFloat(cs.paddingBottom) || 16, mt = parseFloat(cs.marginTop) || 0;
+    var room = document.querySelector(".dock").getBoundingClientRect().top - 10 - pad, top0 = docTop(chat), stickH = $("stick").offsetHeight;
+    var h0 = room - top0, h1 = room - (stickH + mt + top0 - docTop(lp));
+    var end = chat.scrollHeight - chat.scrollTop - chat.clientHeight < 48;
+    chatStickY = h0 >= 200 ? -1 : docTop(lp) - mt - stickH;
+    chat.style.height = Math.floor(Math.max(140, h0 >= 200 ? h0 : h1)) + "px";
+    if (end) chat.scrollTop = chat.scrollHeight;
+  }
+  addEventListener("resize", fitChat);
   function drawWear() {
     var box = $("wear"); if (!box) return;
     var v = me(), own = v ? ((v.own || {})[wearKind] || []) : [], used = v && v.eq ? v.eq[wearKind] : null;
