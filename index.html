@@ -319,8 +319,15 @@ h2.sec::before { content: ""; width: 22px; height: 22px; border-radius: 50%; bor
 .say-form input:focus, .write input:focus { outline: none; box-shadow: inset 0 0 0 2px var(--sky), 0 0 0 4px rgba(46,168,255,.2); }
 .hint { margin: 0; font-size: 13px; color: var(--soft); }
 .hint.err { color: #D2323F; font-weight: 700; }
-.ask { padding: 14px 16px; border-radius: 16px; background: #EEF5FF; }
-.ask p { margin: 0 0 10px; font-weight: 700; font-size: 14px; }
+.ask { display: flex; align-items: center; gap: 10px; padding: 6px 6px 6px 16px; border-radius: 999px; background: #EEF5FF; }
+.ask p { margin: 0; flex: 1; font-weight: 700; font-size: 13px; line-height: 1.4; }
+.ask .jelly { padding: 10px 16px; flex: none; }
+.hint:empty { display: none; }
+/* コメントを打つ欄と映像：スクロールしても上に残る */
+.stage { position: sticky; top: 0; z-index: 20; display: grid; gap: 8px; margin: 0 calc(-1 * clamp(16px, 4vw, 40px)); padding: calc(8px + env(safe-area-inset-top)) clamp(16px, 4vw, 40px) 10px;
+  background: var(--space); box-shadow: 0 14px 18px -18px rgba(27,35,64,.45); }
+.stage .hint { padding: 0 6px; }
+.stage .screen { border-radius: 16px; }
 .sheet { display: grid; gap: 18px; }
 .grp h3 { font: 900 15px/1.3 var(--jp); margin: 0 0 8px; display: flex; align-items: center; gap: 8px; }
 .grp h3 i { width: 12px; height: 12px; border-radius: 50%; border: 3.5px solid var(--c); }
@@ -345,12 +352,15 @@ h2.sec::before { content: ""; width: 22px; height: 22px; border-radius: 50%; bor
   .live { grid-template-columns: minmax(0, 1fr) 380px; align-items: start; }
   .talk { position: sticky; top: 12px; max-height: calc(100vh - 24px); grid-template-rows: auto minmax(0, 1fr); }
   .talk > [role="tabpanel"] { min-height: 0; overflow: auto; }
-  #t-chat { display: grid; gap: 10px; grid-template-rows: minmax(0, 1fr) auto auto; overflow: visible; }
+  #t-chat { display: grid; grid-template-rows: minmax(0, 1fr); overflow: visible; }
+  .stage { margin: 0; padding: 8px 0 12px; }
+  .stage .screen { border-radius: 22px; }
   #t-chat[hidden] { display: none; }
   .chat-box { min-height: 0; }
   .chat { height: 100%; min-height: 300px; }
 }
-@media (max-width: 899px) { #t-chat:not([hidden]) { display: grid; gap: 10px; } }
+/* スマホ：上に残る組が、ページの終わりまで残るように（映像の列を外す）*/
+@media (max-width: 899px) { .live { display: block; } .watch { display: contents; } .talk { margin-top: 16px; } }
 @media (max-width: 380px) { .push { width: 108px; height: 108px; } .push .cap { inset: 12px; font-size: 23px; } .deck { gap: 10px 12px; } .seg button { padding: 9px 2px; } .dock button { width: 46px; height: 46px; } }
 
 /* ---- 下のドック：まるいボタン ---- */
@@ -508,7 +518,12 @@ footer { position: relative; z-index: 2; text-align: center; color: var(--soft);
     <div class="live-head"><h2 class="sec" style="--c:var(--r5)">配信</h2><span class="onair" id="onair"><i></i><span>確かめています</span></span></div>
     <div class="live">
       <div class="watch">
-        <div class="screen" id="screen"><p>配信の映像</p></div>
+        <div class="stage" id="stage">
+          <form class="say-form" id="say-form" autocomplete="off"><label class="sr" for="say-in">コメント</label><input id="say-in" maxlength="300" placeholder="コメントする（! でコマンド）" enterkeyhint="send"><button class="jelly sky" type="submit">送る</button></form>
+          <div class="ask" id="say-ask" hidden><p>コメントには Twitch の許可がいります</p><button type="button" class="jelly sky" id="say-login">許可する</button></div>
+          <p class="hint" id="say-hint" aria-live="polite"></p>
+          <div class="screen" id="screen"><p>配信の映像</p></div>
+        </div>
         <div class="panel deck">
           <button type="button" class="push" id="push" data-cmd="!押せ" aria-label="押せ（連打チャンスで、みんなで押す）">
             <svg viewBox="0 0 132 132" aria-hidden="true"><circle class="base" cx="66" cy="66" r="62"/><circle class="wait" cx="66" cy="66" r="62" pathLength="100"/></svg>
@@ -529,9 +544,6 @@ footer { position: relative; z-index: 2; text-align: center; color: var(--soft);
         </div>
         <div id="t-chat" role="tabpanel" aria-labelledby="tab-chat">
           <div class="chat-box"><ol class="chat" id="chat" aria-label="配信のコメント"></ol><button type="button" class="newer" id="newer" hidden>新しいコメントへ</button></div>
-          <form class="say-form" id="say-form" autocomplete="off"><label class="sr" for="say-in">コメント</label><input id="say-in" maxlength="300" placeholder="コメントする" enterkeyhint="send"><button class="jelly sky" type="submit">送る</button></form>
-          <div class="ask" id="say-ask" hidden><p>コメントするには、Twitch で「チャットに書く」を許可してください。</p><button type="button" class="jelly sky" id="say-login">許可してコメントする</button></div>
-          <p class="hint" id="say-hint" aria-live="polite"></p>
         </div>
         <div id="t-cmds" role="tabpanel" aria-labelledby="tab-cmds" hidden><div class="sheet" id="sheet"></div></div>
       </div>
@@ -902,14 +914,15 @@ footer { position: relative; z-index: 2; text-align: center; color: var(--soft);
   function me() { return (meName && findViewer(meName)) || (meLogin && findViewer(meLogin)) || null; }
 
   // コマンドを送る。1 秒たっていなければ、最後に押したものを 1 つだけ取っておいて、空いたら送る
-  function send(text, btn, after, again) {
+  function send(text, btn, after, again, out) {
+    out = out || tell;
     var tok = ss(TOK); if (!tok) { showGate("ログインの期限が切れました。もう一度ログインしてください。"); return; }
     var now = Date.now();
     if (now < nextAt) {
       if (waiting && waiting.btn && waiting.btn !== btn) waiting.btn.classList.remove("queued");
-      waiting = { text: text, btn: btn, after: after, again: again }; if (btn) btn.classList.add("queued");
+      waiting = { text: text, btn: btn, after: after, again: again, out: out }; if (btn) btn.classList.add("queued");
       clearTimeout(waitT);
-      waitT = setTimeout(function () { var w = waiting; waiting = null; if (w) { if (w.btn) w.btn.classList.remove("queued"); send(w.text, w.btn, w.after, w.again); } }, nextAt - now + 20);
+      waitT = setTimeout(function () { var w = waiting; waiting = null; if (w) { if (w.btn) w.btn.classList.remove("queued"); send(w.text, w.btn, w.after, w.again, w.out); } }, nextAt - now + 20);
       return;
     }
     nextAt = now + COOL; cool(); bump(btn);
@@ -917,12 +930,12 @@ footer { position: relative; z-index: 2; text-align: center; color: var(--soft);
       .then(function (r) { return r.json().then(function (j) { return { s: r.status, j: j || {} }; }, function () { return { s: r.status, j: {} }; }); })
       .then(function (x) {
         var j = x.j;
-        if (j.ok) { setObs(1); tell(text + " を送りました", "ok"); if (after) after(); return; }
-        if (j.code === "C01" && !again) { nextAt = Date.now() + COOL; send(text, btn, after, true); return; }
+        if (j.ok) { setObs(1); out(text + " を送りました", "ok"); if (after) after(); return; }
+        if (j.code === "C01" && !again) { nextAt = Date.now() + COOL; send(text, btn, after, true, out); return; }
         if (j.code === "C02") setObs(0);
         if (x.s === 401) { ss(TOK, null); showGate("ログインの期限が切れました。もう一度ログインしてください。"); return; }
-        tell((j.code ? j.code + "　" : "") + (j.code === "C01" ? "1 秒に 1 回までです（ほかのタブでも押していませんか）" : j.why || "送れませんでした（HTTP " + x.s + "）"), "err");
-      }, function () { tell("いまはつながりません。少し待ってからもう一度押してください", "err"); });
+        out((j.code ? j.code + "　" : "") + (j.code === "C01" ? "1 秒に 1 回までです（ほかのタブでも押していませんか）" : j.why || "送れませんでした（HTTP " + x.s + "）"), "err");
+      }, function () { out("いまはつながりません。少し待ってからもう一度押してください", "err"); });
   }
   // 玉を使うもの（ガチャ・お店）は、2 回押して決める
   function sure(b) {
@@ -1028,15 +1041,16 @@ footer { position: relative; z-index: 2; text-align: center; color: var(--soft);
 
   // ---- コメント欄：書く（本人の名前で Twitch のチャットへ。! から始まるものはボタンと同じ道で鹿物語へ）----
   var DROP = { msg_duplicate: "同じコメントは 30 秒あけてください", msg_slowmode: "いまは低速モードです。少し待ってください", msg_followersonly: "フォロワー限定モードです。フォローしてからの時間が足りません", msg_followersonly_zero: "フォロワー限定モードです", msg_followersonly_followed: "フォロワー限定モードです。フォローしてからの時間が足りません", msg_subsonly: "サブスク限定モードです", msg_emoteonly: "いまはエモートだけ書けます", msg_banned: "このチャンネルではコメントできません", msg_timedout: "いまはタイムアウト中です", msg_ratelimit: "コメントが速すぎます。少し待ってください", msg_verified_email: "Twitch でメールアドレスの確かめが必要です", msg_rejected: "AutoMod に止められました", msg_rejected_mandatory: "AutoMod に止められました", msg_requires_verified_phone_number: "Twitch で電話番号の確かめが必要です", msg_channel_suspended: "チャンネルが止まっています" };
-  function hint(msg, err) { var el = $("say-hint"); el.textContent = msg || "! から始めると、チャットに出さずに鹿物語に届きます。"; el.className = "hint" + (err ? " err" : ""); }
-  function needScope() { $("say-form").hidden = true; $("say-ask").hidden = false; hint(" "); }
+  var hintT = 0;
+  function hint(msg, err) { var el = $("say-hint"); el.textContent = msg || ""; el.className = "hint" + (err ? " err" : ""); clearTimeout(hintT); if (msg) hintT = setTimeout(function () { hint(""); }, err ? 9000 : 4000); }
+  function needScope() { $("say-form").hidden = true; $("say-ask").hidden = false; hint(""); }
   function canWrite() { var sc = ss("ml-scope"); return sc == null || sc.indexOf("user:write:chat") >= 0; }
   $("say-login").addEventListener("click", function () { lsSet("ml-chat", "1"); login(); });
   $("say-form").addEventListener("submit", function (e) {
     e.preventDefault();
     var inp = $("say-in"), text = inp.value.trim(), bt = $("say-form").querySelector("button");
     if (!text) return;
-    if (/^[!！]/.test(text)) { send("!" + text.slice(1), bt, function () { inp.value = ""; }); return; }
+    if (/^[!！]/.test(text)) { send("!" + text.slice(1), bt, function () { inp.value = ""; }, false, function (m, k) { hint(m, k === "err"); }); return; }
     var tok = ss(TOK); if (!tok) return;
     bt.disabled = true;
     conf().then(function (c) {
