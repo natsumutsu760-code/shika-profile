@@ -218,16 +218,27 @@ async function remoteCmd(req, env) {
   if (!/^!\S/.test(text)) return json({ error: "cmd", code: "C03", why: "コマンドではありません" }, 400);
   const room = lounge(env), send = async (n) => (await room.fetch("https://lounge/cmd", { method: "POST", body: JSON.stringify({ id: e.who.id, l: e.who.login, n, text }) })).json();
   let r = await send("");
-  if (r.needName) {
-    // 表示名（チャットと同じ名前。持ち玉はこの名前で数える）を Twitch から取る
-    let n = e.who.login;
-    try {
-      const u = await fetch("https://api.twitch.tv/helix/users?id=" + encodeURIComponent(e.who.id), { headers: { "Client-Id": e.who.client, Authorization: "Bearer " + e.who.tok } });
-      if (u.ok) { const j = await u.json(); if (j.data && j.data[0] && j.data[0].display_name) n = String(j.data[0].display_name).slice(0, 40); }
-    } catch (x) {}
-    r = await send(n);
-  }
+  if (r.needName) r = await send(await displayName(e.who));
   return json(r, r.ok ? 200 : r.code === "C01" ? 429 : 503);
+}
+// 表示名（チャットと同じ名前。持ち玉はこの名前で数える）を Twitch から取る
+async function displayName(who) {
+  let n = who.login;
+  try {
+    const u = await fetch("https://api.twitch.tv/helix/users?id=" + encodeURIComponent(who.id), { headers: { "Client-Id": who.client, Authorization: "Bearer " + who.tok } });
+    if (u.ok) { const j = await u.json(); if (j.data && j.data[0] && j.data[0].display_name) n = String(j.data[0].display_name).slice(0, 40); }
+  } catch (x) {}
+  return n;
+}
+// 配信ページの WebSocket（いいね・システムログ・配信につながっているか）：ブラウザの WebSocket はヘッダーを付けられないので、
+// まずログインで 1 分だけ使える札をもらい、その札でつなぐ
+async function ticket(req, env) {
+  const e = await enterSoon(req, env);
+  if (e.res) return e.res;
+  const room = lounge(env), ask = async (n) => (await room.fetch("https://lounge/ticket", { method: "POST", body: JSON.stringify({ id: e.who.id, l: e.who.login, n }) })).json();
+  let r = await ask("");
+  if (r.needName) r = await ask(await displayName(e.who));
+  return json(r);
 }
 
 async function config(env) {
@@ -263,6 +274,11 @@ async function route(req, env) {
     }
     if (url.pathname === "/api/data" && req.method === "GET") return readData(req, env);
     if (url.pathname === "/api/cmd" && req.method === "POST") return remoteCmd(req, env);
+    if (url.pathname === "/api/ticket" && req.method === "POST") return ticket(req, env);
+    if (url.pathname === "/api/live") {
+      if ((req.headers.get("Upgrade") || "").toLowerCase() !== "websocket") return json({ error: "upgrade" }, 426);
+      return lounge(env).fetch(new Request("https://lounge/live" + url.search, req));
+    }
     // OBS の配信オーバーレイがつなぐ口（つないだあと、最初に上げる鍵を送る）
     if (url.pathname === "/api/obs") {
       if ((req.headers.get("Upgrade") || "").toLowerCase() !== "websocket") return json({ error: "upgrade" }, 426, UP_CORS);
@@ -285,31 +301,91 @@ export class Lounge {
     this.map = {};
     this.last = {};  // 1 人 1 秒に 1 回の見張り（id → 最後に受けた時刻）
     this.names = {}; // id → 表示名（ラウンジから出たあとも覚えておく）
-    state.blockConcurrencyWhile(async () => { this.map = (await state.storage.get("here")) || {}; });
+    this.tickets = {};  // 配信ページの WebSocket の札（1 分だけ）
+    this.lastLike = {}; // いいねの見張り（id → 最後に受けた時刻）
+    this.likes = {};    // コメントのいいねの数（コメントの id → 数。新しい 300 件）
+    state.blockConcurrencyWhile(async () => { this.map = (await state.storage.get("here")) || {}; this.likes = (await state.storage.get("likes")) || {}; });
     // OBS からの "ping" には部屋を起こさずに "pong" と返す
     try { state.setWebSocketAutoResponse(new WebSocketRequestResponsePair("ping", "pong")); } catch (e) {}
   }
-  obsSockets() { return this.state.getWebSockets().filter((ws) => { try { const a = ws.deserializeAttachment(); return !!(a && a.ok); } catch (e) { return false; } }); }
+  att(ws) { try { return ws.deserializeAttachment() || {}; } catch (e) { return {}; } }
+  // OBS の配信オーバーレイ（鍵が合ったもの）と、配信ページを開いている人
+  obsSockets(but) { return this.state.getWebSockets("obs").filter((ws) => ws !== but && this.att(ws).ok); }
+  viewers() { return this.state.getWebSockets("v"); }
+  toViewers(o) { const s = JSON.stringify(o); this.viewers().forEach((ws) => { try { ws.send(s); } catch (e) {} }); }
   async webSocketMessage(ws, msg) {
     let m; try { m = JSON.parse(typeof msg === "string" ? msg : new TextDecoder().decode(msg)); } catch (e) { return; }
-    if (m && m.auth != null) {
-      const ok = !!this.env.UPLOAD_KEY && (await sameKey(String(m.auth), this.env.UPLOAD_KEY));
-      ws.serializeAttachment({ ok, at: Date.now() });
-      ws.send(JSON.stringify({ t: "auth", ok }));
-      if (!ok) ws.close(4001, "key");
+    if (!m || typeof m !== "object") return;
+    const a = this.att(ws), now = Date.now();
+    if (a.v) { // 配信ページから
+      if (m.t === "hi") ws.send(JSON.stringify({ t: "hello", obs: this.obsSockets().length ? 1 : 0, likes: this.likes }));
+      if (m.t === "like" && typeof m.id === "string" && /^[\w-]{1,64}$/.test(m.id)) {
+        if (this.lastLike[a.v] && now - this.lastLike[a.v] < 300) return;
+        this.lastLike[a.v] = now;
+        const obs = this.obsSockets();
+        if (!obs.length) { ws.send(JSON.stringify({ t: "err", id: m.id, code: "C02", why: "配信オーバーレイがつながっていません（配信していないときは使えません）" })); return; }
+        const s = JSON.stringify({ t: "like", id: m.id, by: a.n, byId: a.v });
+        obs.forEach((o) => { try { o.send(s); } catch (e) {} });
+      }
+      return;
     }
+    if (m.auth != null) { // OBS：最初に上げる鍵
+      const ok = !!this.env.UPLOAD_KEY && (await sameKey(String(m.auth), this.env.UPLOAD_KEY));
+      ws.serializeAttachment({ ok, at: now });
+      ws.send(JSON.stringify({ t: "auth", ok }));
+      if (!ok) ws.close(4001, "key"); else this.toViewers({ t: "obs", on: 1 });
+      return;
+    }
+    if (!a.ok) return;
+    // OBS から：確かめたいいねの数・配信のコメント欄に出たシステムログ
+    if (m.t === "likes" && typeof m.id === "string" && /^[\w-]{1,64}$/.test(m.id) && m.c >= 0) {
+      delete this.likes[m.id]; this.likes[m.id] = Math.floor(+m.c) || 0;
+      const ks = Object.keys(this.likes); ks.slice(0, Math.max(0, ks.length - 300)).forEach((k) => delete this.likes[k]);
+      this.toViewers({ t: "likes", id: m.id, c: this.likes[m.id], byId: String(m.byId || "").slice(0, 20) });
+      await this.state.storage.put("likes", this.likes);
+    }
+    if (m.t === "sys" && typeof m.text === "string" && m.text.trim()) this.toViewers({ t: "sys", text: m.text.replace(/[\u0000-\u001f\u007f]/g, " ").slice(0, 300), at: now });
   }
-  async webSocketClose(ws, code) { try { ws.close(code === 1005 ? 1000 : code, "bye"); } catch (e) {} }
+  async webSocketClose(ws, code) {
+    try { ws.close(code === 1005 ? 1000 : code, "bye"); } catch (e) {}
+    if (this.att(ws).ok && !this.obsSockets(ws).length) this.toViewers({ t: "obs", on: 0 });
+  }
   async webSocketError() {}
   async fetch(req) {
     const url = new URL(req.url), now = Date.now();
     if (url.pathname === "/obs") {
       // つながる数の上限（同じ OBS が何度もつなぎ直しても、古いものから閉じる）
-      const all = this.state.getWebSockets();
+      const all = this.state.getWebSockets("obs");
       if (all.length >= 6) all.slice(0, all.length - 5).forEach((w) => { try { w.close(1000, "too many"); } catch (e) {} });
       const pair = new WebSocketPair(), client = pair[0], server = pair[1];
-      this.state.acceptWebSocket(server);
+      this.state.acceptWebSocket(server, ["obs"]);
       server.serializeAttachment({ ok: false, at: now });
+      return new Response(null, { status: 101, webSocket: client });
+    }
+    if (url.pathname === "/ticket") {
+      const b = await req.json().catch(() => ({}));
+      const id = /^\d{1,20}$/.test(String(b.id || "")) ? String(b.id) : "";
+      if (!id) return new Response(JSON.stringify({ error: "id" }), { status: 400 });
+      if (typeof b.n === "string" && b.n) this.names[id] = b.n.slice(0, 40);
+      const name = this.names[id] || (this.map[id] && this.map[id].n) || "";
+      if (!name) return new Response(JSON.stringify({ needName: true }));
+      for (const k of Object.keys(this.tickets)) if (this.tickets[k].until < now) delete this.tickets[k];
+      const tk = crypto.randomUUID();
+      this.tickets[tk] = { id, n: name, until: now + 60000 };
+      return new Response(JSON.stringify({ ticket: tk }));
+    }
+    if (url.pathname === "/live") {
+      const tk = url.searchParams.get("ticket") || "", t = this.tickets[tk];
+      delete this.tickets[tk];
+      if (!t || t.until < now) return new Response("ticket", { status: 403 });
+      // 1 人 3 つまで・全部で 500 まで（古いものから閉じる）
+      const mine = this.viewers().filter((w) => this.att(w).v === t.id);
+      mine.slice(0, Math.max(0, mine.length - 2)).forEach((w) => { try { w.close(1000, "too many"); } catch (e) {} });
+      const vs = this.viewers();
+      if (vs.length >= 500) vs.slice(0, vs.length - 499).forEach((w) => { try { w.close(1000, "too many"); } catch (e) {} });
+      const pair = new WebSocketPair(), client = pair[0], server = pair[1];
+      this.state.acceptWebSocket(server, ["v"]);
+      server.serializeAttachment({ v: t.id, n: t.n });
       return new Response(null, { status: 101, webSocket: client });
     }
     if (url.pathname === "/cmd") {

@@ -330,11 +330,21 @@ h2.sec::before { content: ""; width: 22px; height: 22px; border-radius: 50%; bor
 @keyframes pop { 40% { transform: scale(.92); } }
 .chat-box { position: relative; }
 .chat { list-style: none; margin: 0; padding: 4px 2px; height: max(220px, calc(100dvh - var(--stick-h, 340px) - 150px)); overflow-y: auto; overscroll-behavior: contain; border-radius: 16px; background: var(--space); box-shadow: inset 0 0 0 1.5px var(--line); }
-.chat li { padding: 5px 12px; font-size: 14px; line-height: 1.55; overflow-wrap: anywhere; }
+.chat li { display: flex; align-items: flex-start; gap: 4px; padding: 5px 6px 5px 12px; font-size: 14px; line-height: 1.55; overflow-wrap: anywhere; }
+.chat li .ln { flex: 1; min-width: 0; }
 .chat li b { font-weight: 900; margin-right: 7px; }
+/* いいね：押すと赤いハート。数は配信オーバーレイが確かめたもの */
+.like { flex: none; display: inline-flex; align-items: center; gap: 3px; min-width: 34px; height: 30px; margin: -3px 0 -3px 0; padding: 0 6px; border: 0; border-radius: 999px; background: none; color: #A3ABC6; font: 700 12px/1 var(--num); justify-content: center; -webkit-tap-highlight-color: transparent; }
+.like svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linejoin: round; }
+.like.has { color: #E8365A; }
+.like[aria-pressed="true"] { color: #E8365A; }
+.like[aria-pressed="true"] svg { fill: currentColor; }
+.like.pop svg { animation: heart .5s var(--spring); }
+@keyframes heart { 35% { transform: scale(1.45); } }
+.chat li.log { display: block; margin: 4px 8px; padding: 6px 10px; border-radius: 12px; background: #EAF6FF; box-shadow: inset 0 0 0 1.5px rgba(46,168,255,.45); color: #1D5F9A; font-size: 13px; font-weight: 700; }
 .chat li img { height: 24px; width: auto; vertical-align: -7px; margin: 0 1px; }
 .chat li.me { background: #fff; border-radius: 12px; margin: 2px 4px; box-shadow: inset 3px 0 0 var(--sky); }
-.chat li.sys { color: var(--soft); font-size: 12px; text-align: center; }
+.chat li.sys { display: block; color: var(--soft); font-size: 12px; text-align: center; }
 .newer { position: absolute; left: 50%; bottom: 12px; transform: translateX(-50%); border: 0; border-radius: 999px; padding: 8px 14px; background: var(--ink); color: #fff; font: 700 13px/1 var(--jp); box-shadow: var(--lift); }
 .newer[hidden] { display: none; }
 .grp + .grp { margin-top: 18px; }
@@ -359,8 +369,13 @@ h2.sec::before { content: ""; width: 22px; height: 22px; border-radius: 50%; bor
 .write { display: flex; gap: 8px; }
 .write + .write { margin-top: 8px; }
 .write .jelly { padding: 10px 16px; }
-/* スマホ：上の組（打つ欄・映像・タブ）は、ページの終わりまで上に残る */
-@media (max-width: 899px) { .live { display: block; } }
+/* スマホ：上の組（映像・打つ欄・タブ）は、ページの終わりまで上に残る。映像は上のバーを隠して、画面の端から端まで */
+@media (max-width: 899px) {
+  .live { display: block; }
+  body.live-on .top { display: none; }
+  body.live-on .stick { padding-top: env(safe-area-inset-top); }
+  .stage .screen { margin: 0 calc(-1 * clamp(16px, 4vw, 40px)); border-radius: 0; box-shadow: none; }
+}
 /* PC：左に打つ欄と映像、右にタブと中身 */
 @media (min-width: 900px) {
   .live { position: relative; display: grid; grid-template-columns: minmax(0, 1fr) 390px; grid-template-rows: auto minmax(0, 1fr); grid-template-areas: "stage tabs" "stage pane"; gap: 12px 18px; align-items: start; margin-top: 8px; }
@@ -370,6 +385,19 @@ h2.sec::before { content: ""; width: 22px; height: 22px; border-radius: 50%; bor
   .lpanel { grid-area: pane; margin-top: 0; position: sticky; top: 70px; max-height: calc(100vh - 170px); overflow-y: auto; overscroll-behavior: contain; }
   .screen { border-radius: 22px; }
   .chat { height: calc(100vh - 230px); min-height: 280px; }
+}
+/* スマホを横にしたとき：映像を画面いっぱいに（下へスクロールすると打つ欄とタブ） */
+@media (orientation: landscape) and (max-height: 500px) {
+  body.live-on .top { display: none; }
+  .live { display: block; margin-top: 0; }
+  .stick { display: grid; position: relative; margin: 0 calc(-1 * clamp(16px, 4vw, 40px)); padding: 0 clamp(16px, 4vw, 40px) 10px; box-shadow: none; }
+  .stage { position: static; }
+  .stage .screen { height: 100vh; height: 100dvh; aspect-ratio: auto; margin: 0 calc(-1 * clamp(16px, 4vw, 40px)); border-radius: 0; box-shadow: none; }
+  .lpanel { position: static; max-height: none; margin-top: 14px; }
+  .hint { top: calc(100% + 8px); }
+  /* 映像を見ている間は下のボタンを隠す（Twitch の音・全画面のボタンにかぶらないように）。下へスクロールすると出る */
+  body.live-on.vid-full .dock { transform: translate(-50%, calc(100% + 30px)); opacity: 0; pointer-events: none; }
+  .dock { transition: transform .35s var(--out), opacity .25s; }
 }
 @media (max-width: 380px) { .push { width: 108px; height: 108px; } .push .cap { inset: 12px; font-size: 23px; } .deck { gap: 10px 12px; } .seg button { padding: 9px 2px; } .ltabs button { padding: 10px 5px; font-size: 12.5px; } .dock button { width: 46px; height: 46px; } }
 
@@ -620,6 +648,7 @@ footer { position: relative; z-index: 2; text-align: center; color: var(--soft);
     ["そのほか", "#22CC88", [["!けいじばん こんにちは", "ラウンジの掲示板に書く（1 分に 1 回・120 字まで）"], ["!バグ報告 ガチャのあと画面が止まった", "不具合を配信者に知らせる（30 秒に 1 回・300 字まで）"], ["!花火", "画面に花火（!ハート でハート）"], [null, "888 で拍手、草 で草が生える"], ["!discord", "Discord の招待をチャットで受け取る"]]]
   ];
   var NOTES = [
+    ["build 30", "2026-10-17", ["配信ページのコメントに「いいね」。いいねされた人に 1 つ 5 玉（1 日 100 玉まで）。配信の画面のコメント欄にもハートが出ます", "!スキン・!プロフィール・!玉 などの返事（システムログ）が、配信ページのコメント欄にも出るように", "スマホで配信ページの映像を、画面の端から端まで大きく（横にすると画面いっぱい）", "鹿物語 Ver.1.6.7"]],
     ["build 29", "2026-10-16", ["MONO LINK に「配信」のページ。配信を見ながら、ボタンで !発射・!押せ・ガチャなどを送れます（チャットに書かないので、続けて送ってもタイムアウトされません。1 秒に 1 回まで）", "コメント欄つき。読むのも書くのもここでできます（書くときは Twitch で「チャットに書く」を許可）", "鹿物語 Ver.1.6.6"]],
     ["build 28", "2026-10-16", ["鹿物語 Ver.1.6.5：玉が盤面にたまり続けて、打った玉がなかなか出なかったのを直しました"]],
     ["build 27", "2026-10-16", ["鹿物語 Ver.1.6.4：配信者とモデレーターがチャットで BGM を止められるように（!bgm off・!bgm on・!bgm 30・!音 off）"]],
@@ -1084,15 +1113,65 @@ footer { position: relative; z-index: 2; text-align: center; color: var(--soft);
     while (chat.children.length > 150) chat.removeChild(chat.firstChild);
     if (stick) chat.scrollTop = chat.scrollHeight; else $("newer").hidden = false;
   }
+  var HEART = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20.5s-7.2-4.4-9.1-8.8C1.6 8.6 3.6 5.2 6.9 5.2c2 0 3.5 1 5.1 2.9 1.6-1.9 3.1-2.9 5.1-2.9 3.3 0 5.3 3.4 4 6.5-1.9 4.4-9.1 8.8-9.1 8.8z"/></svg>';
   function addLine(t, login, text) {
     if (/^\u0001ACTION /.test(text)) text = text.replace(/^\u0001ACTION |\u0001$/g, "");
-    var name = t["display-name"] || login, li = document.createElement("li");
-    li.dataset.id = t.id || ""; li.dataset.u = t["user-id"] || "";
-    if (meId && t["user-id"] === meId) li.className = "me";
-    li.innerHTML = '<b style="color:' + nameColor(t.color, name) + '">' + esc(name) + "</b>" + withEmotes(text, t.emotes);
+    var name = t["display-name"] || login, li = document.createElement("li"), mine = meId && t["user-id"] === meId, id = /^[\w-]{1,64}$/.test(t.id || "") ? t.id : "";
+    li.dataset.id = id; li.dataset.u = t["user-id"] || "";
+    if (mine) li.className = "me";
+    li.innerHTML = '<div class="ln"><b style="color:' + nameColor(t.color, name) + '">' + esc(name) + "</b>" + withEmotes(text, t.emotes) + "</div>"
+      + (id && !mine ? '<button type="button" class="like" data-like="' + id + '">' + HEART + "<span></span></button>" : "");
+    var b = li.querySelector(".like"); if (b) paintLike(b, id);
     put(li);
   }
   function sysLine(msg) { var li = document.createElement("li"); li.className = "sys"; li.textContent = msg; put(li); }
+  // 配信のコメント欄に出たシステムログ（!スキン の返事・!玉 の持ち玉など）
+  function logLine(msg) { var li = document.createElement("li"); li.className = "log"; li.textContent = msg; put(li); }
+
+  // ---- いいね・システムログ・配信につながっているか：門番の WebSocket（ログインで 1 分だけ使える札をもらってつなぐ）----
+  var lws = null, lwsTry = 0, lwsT = 0, likeN = {}, liked = {};
+  try { (JSON.parse(lsGet("ml-liked") || "[]") || []).forEach(function (id) { liked[id] = 1; }); } catch (e) {}
+  function saveLiked() { lsSet("ml-liked", JSON.stringify(Object.keys(liked).slice(-300))); }
+  function lwsOpen() {
+    if (!liveOpen || (lws && lws.readyState <= 1)) return;
+    var tok = ss(TOK); if (!tok) return;
+    fetch("/api/ticket", { method: "POST", headers: { Authorization: "Bearer " + tok }, cache: "no-store" }).then(function (r) { return r.ok ? r.json() : null; }).then(function (j) {
+      if (!liveOpen || (lws && lws.readyState <= 1)) return;
+      if (!j || !j.ticket) { lwsLater(); return; }
+      var ws; try { ws = lws = new WebSocket(location.origin.replace(/^http/, "ws") + "/api/live?ticket=" + encodeURIComponent(j.ticket)); } catch (e) { lwsLater(); return; }
+      ws.onopen = function () { lwsTry = 0; ws.send(JSON.stringify({ t: "hi" })); };
+      ws.onmessage = function (ev) { if (ev.data === "pong") return; var m; try { m = JSON.parse(ev.data); } catch (e) { return; } if (m) onLive(m); };
+      ws.onclose = function () { if (lws !== ws) return; lws = null; if (liveOpen) lwsLater(); };
+    }, lwsLater);
+  }
+  function lwsLater() { clearTimeout(lwsT); if (liveOpen) lwsT = setTimeout(lwsOpen, Math.min(60000, 2000 * Math.pow(2, lwsTry++))); }
+  function lwsClose() { clearTimeout(lwsT); var ws = lws; lws = null; if (ws) try { ws.close(); } catch (e) {} }
+  setInterval(function () { if (lws && lws.readyState === 1) lws.send("ping"); }, 30000);
+  function onLive(m) {
+    if (m.t === "hello") { setObs(m.obs); var L = m.likes || {}; Object.keys(L).forEach(function (k) { likeN[k] = L[k]; }); chat.querySelectorAll(".like").forEach(function (b) { paintLike(b, b.dataset.like); }); }
+    else if (m.t === "obs") setObs(m.on);
+    else if (m.t === "likes" && typeof m.id === "string") { likeN[m.id] = +m.c || 0; if (meId && m.byId === meId) { liked[m.id] = 1; saveLiked(); } drawLike(m.id); }
+    else if (m.t === "sys" && typeof m.text === "string") logLine(m.text);
+    else if (m.t === "err") {
+      if (m.id && liked[m.id]) { delete liked[m.id]; saveLiked(); drawLike(m.id); }
+      if (m.code === "C02") setObs(0);
+      hint((m.code ? m.code + "　" : "") + (m.why || "いいねできませんでした"), true);
+    }
+  }
+  function paintLike(b, id) {
+    var c = likeN[id] || 0;
+    b.setAttribute("aria-pressed", String(!!liked[id])); b.classList.toggle("has", c > 0);
+    b.lastChild.textContent = c ? String(c) : ""; b.setAttribute("aria-label", "いいね" + (c ? "（" + c + "）" : ""));
+  }
+  function drawLike(id) { var b = chat.querySelector('.like[data-like="' + id + '"]'); if (b) paintLike(b, id); }
+  chat.addEventListener("click", function (e) {
+    var b = e.target.closest(".like"); if (!b) return;
+    var id = b.dataset.like; if (liked[id]) return;
+    if (!lws || lws.readyState !== 1) { hint("いいねは、配信につながっているときにできます", true); lwsOpen(); return; }
+    lws.send(JSON.stringify({ t: "like", id: id }));
+    liked[id] = 1; saveLiked(); paintLike(b, id);
+    b.classList.remove("pop"); void b.offsetWidth; b.classList.add("pop");
+  });
   chat.addEventListener("scroll", function () { if (nearBottom()) $("newer").hidden = true; });
   $("newer").addEventListener("click", function () { chat.scrollTop = chat.scrollHeight; $("newer").hidden = true; });
 
@@ -1150,14 +1229,19 @@ footer { position: relative; z-index: 2; text-align: center; color: var(--soft);
   }
   function canSound() { return !IOS && !!(navigator.userActivation && navigator.userActivation.hasBeenActive); }
   $("screen").addEventListener("click", function (e) { if (e.target.closest("button.unmute")) player(true); });
+  // スマホを横にして映像を見ているときは、下のボタンを隠す
+  var LAND = matchMedia("(orientation: landscape) and (max-height: 500px)");
+  function vidFull() { document.body.classList.toggle("vid-full", liveOpen && LAND.matches && scrollY < innerHeight * .5); }
+  addEventListener("scroll", vidFull, { passive: true }); addEventListener("resize", vidFull);
   // 配信のページを開いている間だけ、映像とコメント欄をつなぐ
   function liveView(on) {
     if (on === liveOpen) return; liveOpen = on;
     if (on) {
       player(canSound());
-      hint(""); drawPanes(); showPane(lsGet("ml-live-tab") || "fire"); ircOpen(); pingNow();
+      document.body.classList.add("live-on"); setTimeout(vidFull, 0);
+      hint(""); drawPanes(); showPane(lsGet("ml-live-tab") || "fire"); ircOpen(); lwsOpen(); pingNow();
       if (!canWrite()) needScope();
-    } else { clearTimeout(iosT); $("screen").innerHTML = "<p>配信の映像</p>"; ircClose(); }
+    } else { document.body.classList.remove("live-on", "vid-full"); clearTimeout(iosT); $("screen").innerHTML = "<p>配信の映像</p>"; ircClose(); lwsClose(); }
   }
 
   function route() {
