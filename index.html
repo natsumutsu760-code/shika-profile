@@ -463,6 +463,7 @@ footer { position: relative; z-index: 2; text-align: center; color: var(--soft);
     ["そのほか", "#22CC88", [["!けいじばん こんにちは", "ラウンジの掲示板に書く（1 分に 1 回・120 字まで）"], ["!バグ報告 ガチャのあと画面が止まった", "不具合を配信者に知らせる（30 秒に 1 回・300 字まで）"], ["!花火", "画面に花火（!ハート でハート）"], [null, "888 で拍手、草 で草が生える"], ["!discord", "Discord の招待をチャットで受け取る"]]]
   ];
   var NOTES = [
+    ["build 24", "2026-10-16", ["フォローしているのにラウンジに入れない（G02・F01）ことがあったのを直しました。入るときに Twitch で「フォローしているチャンネルを見る」の許可をお願いします"]],
     ["build 23", "2026-10-16", ["ラウンジに入れなかったとき、エラーコード（例：F01）と理由が出るように。「コードをコピー」して !バグ報告 で知らせてください"]],
     ["build 22", "2026-10-16", ["コスメガチャのハズレがなくなりました。かわりに ★1〜3 のコスメが出ます（★1 25%・★2 17%・★3 8%）", "★1〜3 のコスメ 300 個（スキン 100・アイコン 100・二つ名 100）。テーマは季節と天気・食べ物とおやつ・動物と植物・街とレトロ", "!スキン などの一覧は、★の高い順に 12 個まで"]],
     ["build 21", "2026-10-16", ["鹿物語 Ver.1.6.3：リーチで画面が固まる対策（固まったら液晶の動画を自動で止める・パネルでオン／オフ）", "自動更新：開いたらすぐ新しい版を確かめるように", "フォローしたら 1 分ほどでラウンジに入れるように"]],
@@ -788,7 +789,7 @@ footer { position: relative; z-index: 2; text-align: center; color: var(--soft);
       if (!c.clientId) { showGate("ラウンジはまだ準備中です。配信が始まると開きます。"); return; }
       var st = Array.from(crypto.getRandomValues(new Uint8Array(16))).map(function (b) { return b.toString(16).padStart(2, "0"); }).join("");
       ss(ST, st); if (location.hash && location.hash.indexOf("access_token") < 0) ss(BACK, location.hash);
-      location.href = "https://id.twitch.tv/oauth2/authorize?response_type=token&client_id=" + encodeURIComponent(c.clientId) + "&redirect_uri=" + encodeURIComponent(location.origin + "/") + "&scope=&state=" + st;
+      location.href = "https://id.twitch.tv/oauth2/authorize?response_type=token&client_id=" + encodeURIComponent(c.clientId) + "&redirect_uri=" + encodeURIComponent(location.origin + "/") + "&scope=" + encodeURIComponent("user:read:follows") + "&state=" + st;
     }, function () { showGate("いまはつながりません。少し待ってからもう一度押してください。"); });
   }
   $("login").addEventListener("click", login);
@@ -816,7 +817,7 @@ footer { position: relative; z-index: 2; text-align: center; color: var(--soft);
     }).then(function (x) {
       if (x.s === 200 && x.j) { here = x.j.here || []; var ml = (x.j.me && x.j.me.login) || "", mh = here.filter(function (h) { return h.l && h.l === ml; })[0]; meName = (mh && mh.n) || ml; meLogin = ml; $("logout").hidden = false; boot(x.j.d); done(); stay(tok); return; }
       var e = x.j && x.j.error, err = x.j && x.j.code ? { code: x.j.code, why: x.j.why, info: x.j.info } : { code: "N02", why: "門番から思わぬ返事がありました", info: { detail: "HTTP " + x.s } };
-      if (x.s === 401) { ss(TOK, null); showGate(err.code === "A03" ? "このラウンジのログインではありません。もう一度ログインしてください。" : "ログインの期限が切れました。もう一度ログインしてください。", false, err.code === "A02" ? null : err); return; }
+      if (x.s === 401) { ss(TOK, null); showGate(err.code === "A04" ? "フォローしているかを確かめるため、もう一度ログインしてください（Twitch で「フォローしているチャンネルを見る」を許可してください）。" : err.code === "A03" ? "このラウンジのログインではありません。もう一度ログインしてください。" : "ログインの期限が切れました。もう一度ログインしてください。", false, err.code === "A02" ? null : err); return; }
       if (e === "follow") showGate("deerman_247 のフォロワーの一覧に見つかりませんでした。フォローしていないときは、フォローして 1 分ほど待ってから、もう一度ログインしてください。", true, err);
       else if (e === "denied") showGate("このラウンジには入れません。", false, err);
       else if (e === "notready") showGate("ラウンジはまだ準備中です。配信が始まると開きます。", false, err);

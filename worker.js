@@ -43,6 +43,7 @@ async function upload(req, env) {
     ban: Array.isArray(g.ban) ? toMap(g.ban) : null,
     block: Array.isArray(g.block) ? toMap(g.block) : null,
     mods: toMap(g.mods),
+    followErr: String(g.followErr || "").replace(/[^a-z]/g, "").slice(0, 12),
     at: Date.now(),
   };
   gate.followN = gate.follow ? Object.keys(gate.follow).length : -1;
@@ -59,6 +60,7 @@ const WHY = {
   A01: "ログインしていません",
   A02: "Twitch のログインの期限が切れています",
   A03: "ほかのアプリでログインしています（このラウンジのログインではありません）",
+  A04: "フォローを確かめる許可がありません（もう一度ログインしてください）",
   G01: "配信オーバーレイからまだ記録が届いていません",
   G02: "配信オーバーレイがフォロワーの一覧を読めていません",
   G03: "配信オーバーレイが BAN の一覧を読めていません",
@@ -69,6 +71,8 @@ const WHY = {
   D02: "配信者の設定で入れません",
   E01: "門番でエラーが起きました",
 };
+// G02 のくわしい理由（配信オーバーレイが送ってくる）
+const FOLLOW_ERR = { noscope: "配信者のログインに、フォロワーを読む許可がありません", error: "Twitch からフォロワーを読めませんでした", old: "最後に読めたのが 24 時間以上前です", loading: "オーバーレイが起動したばかりで、読んでいる途中です", notyet: "オーバーレイがまだフォロワーを読んでいません" };
 const ERR = { A: "login", G: "notready", F: "follow", D: "denied", E: "server" };
 const STATUS = { A: 401, G: 503, F: 403, D: 403, E: 500 };
 function deny(code, info) {
@@ -85,7 +89,21 @@ async function logDeny(env, code, who, extra) {
   } catch (e) {}
 }
 
+// その人がフォローしているかを、その人のログインで Twitch に直接きく（user:read:follows の許可がいる）。"yes" / "no" / "noscope" / "error"
+async function followsLive(who, tok, owner) {
+  const sc = Array.isArray(who.scopes) ? who.scopes : [];
+  if (!owner || sc.indexOf("user:read:follows") < 0) return "noscope";
+  try {
+    const r = await fetch("https://api.twitch.tv/helix/channels/followed?user_id=" + encodeURIComponent(String(who.user_id || "")) + "&broadcaster_id=" + encodeURIComponent(owner), { headers: { "Client-Id": String(who.client_id || ""), Authorization: "Bearer " + tok } });
+    if (r.status === 401 || r.status === 403) return "noscope";
+    if (!r.ok) return "error";
+    const j = await r.json();
+    return Array.isArray(j.data) && j.data.length ? "yes" : "no";
+  } catch (e) { return "error"; }
+}
+
 // ログインした人を確かめて、入れるかどうかを決める。入れるなら { who }、だめなら { res }（そのまま返す応答）
+// フォローは、配信オーバーレイが送った一覧になければ、その人のログインで Twitch に直接きく（一覧が古い・まだ届いていないときも入れる）
 async function enter(req, env) {
   const tok = bearer(req);
   if (!tok) return { res: deny("A01") };
@@ -99,14 +117,24 @@ async function enter(req, env) {
   const id = me.id;
   const owner = id && id === gate.owner, mod = !!(gate.mods && gate.mods[id]);
   if (!owner) {
-    const g = !gate.follow ? "G02" : !gate.ban ? "G03" : !gate.block ? "G04" : "";
+    const g = !gate.ban ? "G03" : !gate.block ? "G04" : "";
     if (g) { await logDeny(env, g, who); return { res: deny(g, { ...me, listAt: gate.at }) }; }
     if (gate.ban[id]) { await logDeny(env, "D01", who); return { res: deny("D01", me) }; }
     if (gate.block[id]) { await logDeny(env, "D02", who); return { res: deny("D02", me) }; }
-    if (!mod && !gate.follow[id]) {
-      const listN = gate.followN != null ? gate.followN : Object.keys(gate.follow).length;
-      await logDeny(env, "F01", who, { listN, listAt: gate.at });
-      return { res: deny("F01", { ...me, listAt: gate.at, listN }) };
+    if (!mod && !(gate.follow && gate.follow[id])) {
+      const live = await followsLive(who, tok, gate.owner);
+      if (live !== "yes") {
+        const listN = gate.follow ? (gate.followN != null ? gate.followN : Object.keys(gate.follow).length) : null;
+        if (live === "no") { await logDeny(env, "F01", who, { listN, listAt: gate.at, live: 1 }); return { res: deny("F01", { ...me, listAt: gate.at, listN, detail: "Twitch に直接きいても、フォローしていませんでした" }) }; }
+        if (!gate.follow) {
+          // 一覧が届いていなくて、直接もきけない：許可がなければログインし直してもらう
+          if (live === "noscope") { await logDeny(env, "A04", who); return { res: deny("A04", me) }; }
+          await logDeny(env, "G02", who, { why2: FOLLOW_ERR[gate.followErr] || "" });
+          return { res: deny("G02", { ...me, listAt: gate.at, detail: FOLLOW_ERR[gate.followErr] || "" }) };
+        }
+        await logDeny(env, "F01", who, { listN, listAt: gate.at });
+        return { res: deny("F01", { ...me, listAt: gate.at, listN }) };
+      }
     }
   }
   return { who: { id, login: me.login, client: String(who.client_id || ""), tok } };
