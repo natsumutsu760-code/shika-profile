@@ -3,8 +3,9 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>鹿ラウンジ</title>
-<meta name="description" content="deerman_247 の配信に来たみんなが浮かぶラウンジ。レベル・持ち物・持ち玉・コマンド・掲示板">
+<title>MONO LINK:// code〈〉Lounge</title>
+<meta name="description" content="deerman_247 の配信の視聴者ラウンジ。フォローしている人だけ入れます">
+<meta name="robots" content="noindex">
 <meta name="theme-color" content="#F6F8FC">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -23,7 +24,7 @@
   })(document);
 </script>
 <style>
-/* ===== 鹿ラウンジ：白い無限の空間に浮かぶ、まるい広場 ===== */
+/* ===== MONO LINK:// code〈〉Lounge：白い無限の空間に浮かぶ、まるい広場 ===== */
 :root {
   --space: #F6F8FC;     /* 空間の白 */
   --ink: #1B2340;       /* 文字 */
@@ -65,7 +66,8 @@ button { cursor: pointer; }
 .top { position: relative; z-index: 5; display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 16px clamp(16px, 4vw, 40px); }
 .brand { display: flex; align-items: center; gap: 10px; text-decoration: none; color: inherit; background: none; border: 0; padding: 0; }
 .brand svg { width: 36px; height: 36px; }
-.brand b { font: 900 22px/1 var(--jp); letter-spacing: .04em; }
+.brand b { font: 700 22px/1 var(--num); letter-spacing: .06em; }
+.logo i { font-style: normal; color: var(--sky); }
 .brand small { display: block; font: 700 11px/1.2 var(--jp); color: var(--soft); letter-spacing: .02em; }
 .upd { font: 700 12px/1.3 var(--jp); color: var(--soft); background: rgba(255,255,255,.8); border: 1.5px solid var(--line); border-radius: 999px; padding: 6px 12px; display: flex; align-items: center; gap: 6px; }
 .upd i { width: 8px; height: 8px; border-radius: 50%; background: var(--leaf); box-shadow: 0 0 0 0 rgba(34,204,136,.6); animation: ping 2s infinite; }
@@ -259,6 +261,19 @@ h2.sec::before { content: ""; width: 22px; height: 22px; border-radius: 50%; bor
 @keyframes draw { to { stroke-dashoffset: 0; } }
 .boot p { font: 900 15px/1 var(--jp); letter-spacing: .2em; margin: 16px 0 0; text-align: center; color: var(--soft); }
 
+.gate { position: fixed; inset: 0; z-index: 85; display: grid; place-items: center; padding: 24px; background: radial-gradient(120% 90% at 50% 10%, #fff, var(--space) 60%, #E6EEFA); }
+.gate[hidden] { display: none; }
+.gate-in { text-align: center; max-width: 460px; }
+.gate-rings { width: 170px; height: 170px; overflow: visible; }
+.gate-rings circle { fill: none; stroke-width: 5; stroke-linecap: round; transform-origin: 100px 100px; animation: spin 18s linear infinite; }
+.gate-rings circle:nth-child(2) { animation-duration: 9s; animation-direction: reverse; }
+.gate-rings circle:nth-child(3) { animation-duration: 26s; }
+.gate-title { font: 700 clamp(38px, 10vw, 60px)/1 var(--num); letter-spacing: .06em; margin: 18px 0 0; }
+.gate-title i, .logo i { font-style: normal; color: var(--sky); }
+.gate-sub { font: 600 18px/1 var(--num); color: var(--soft); letter-spacing: .12em; margin: 10px 0 20px; }
+.gate-msg { font-weight: 700; margin: 0 0 18px; }
+.gate-link { display: inline-block; margin-top: 14px; font-weight: 900; color: var(--violet); }
+.out { margin-left: 8px; border: 0; background: none; font: 700 12px/1 var(--jp); color: var(--soft); text-decoration: underline; }
 .trail { position: fixed; z-index: 70; width: 8px; height: 8px; border-radius: 50%; pointer-events: none; animation: fade .7s ease-out forwards; }
 @keyframes fade { to { transform: translate(var(--dx), var(--dy)) scale(0); opacity: 0; } }
 .empty { text-align: center; padding: 30px 16px; }
@@ -289,17 +304,27 @@ footer { position: relative; z-index: 2; text-align: center; color: var(--soft);
 <div class="boot" id="boot" aria-hidden="true">
   <div>
     <svg viewBox="0 0 150 150"><circle cx="75" cy="75" r="62" stroke="#2EA8FF"/><circle cx="75" cy="75" r="46" stroke="#8E6CFF"/><circle cx="75" cy="75" r="30" stroke="#FF5A64"/></svg>
-    <p>ラウンジにつないでいます</p>
+    <p>MONO LINK:// につないでいます</p>
   </div>
 </div>
 <div class="warp" id="warp" aria-hidden="true"></div>
+<div class="gate" id="gate" hidden>
+  <div class="gate-in">
+    <svg class="gate-rings" viewBox="0 0 200 200" aria-hidden="true"><circle cx="100" cy="100" r="92" stroke="#2EA8FF"/><circle cx="100" cy="100" r="70" stroke="#8E6CFF" stroke-dasharray="4 10"/><circle cx="100" cy="100" r="48" stroke="#FF5A64"/><circle cx="100" cy="100" r="10" fill="#FFC21A" stroke="none"/></svg>
+    <h1 class="gate-title">MONO LINK<i>://</i></h1>
+    <p class="gate-sub">code〈〉Lounge</p>
+    <p class="gate-msg" id="gate-msg">deerman_247 をフォローしている人のラウンジです。Twitch でログインして入ってください。</p>
+    <button class="jelly sky" type="button" id="login">Twitch でログインして入る</button>
+    <a class="gate-link" id="gate-follow" href="https://www.twitch.tv/deerman_247" target="_blank" rel="noopener" hidden>Twitch で deerman_247 をフォローする</a>
+  </div>
+</div>
 
 <header class="top">
   <button class="brand" type="button" data-go="lobby" aria-label="ロビーへ">
     <svg viewBox="0 0 36 36" aria-hidden="true"><circle cx="18" cy="18" r="15" fill="none" stroke="#2EA8FF" stroke-width="3.5"/><circle cx="18" cy="18" r="8.5" fill="none" stroke="#FF5A64" stroke-width="3.5"/><circle cx="18" cy="18" r="3" fill="#FFC21A"/></svg>
-    <span><b>鹿ラウンジ</b><small>deerman_247 の配信に来たみんな</small></span>
+    <span><b class="logo">MONO LINK<i>://</i></b><small>code〈〉Lounge</small></span>
   </button>
-  <div class="upd" id="upd"><i></i><span>読み込み中</span></div>
+  <div class="upd" id="upd"><i></i><span>読み込み中</span><button class="out" type="button" id="logout" hidden>ログアウト</button></div>
 </header>
 
 <main>
@@ -382,12 +407,12 @@ footer { position: relative; z-index: 2; text-align: center; color: var(--soft);
   var KIND = [["skin", "スキン"], ["icon", "アイコン"], ["ep", "二つ名"], ["font", "フォント"]];
   var ACC = ["#2EA8FF", "#FF5A64", "#FFC21A", "#22CC88", "#8E6CFF"];
   var CMDS = [
-    ["見た目と記録", "#2EA8FF", [["!プロフ", "配信画面に自分のカードを出す"], ["!レベル", "レベルと、次のレベルまでを見る"], ["!スキン 名前", "カードのスキンを変える（名前なしで一覧）"], ["!アイコン 名前", "アイコンを変える"], ["!二つ名 名前", "名前の上に出る二つ名を変える"], ["!フォント 名前", "名前と弾幕の書体を変える"], ["!持ち物", "持っている物と手に入れ方を見る"], ["!サイト", "このラウンジのアドレスを出す"]]],
+    ["見た目と記録", "#2EA8FF", [["!プロフ", "配信画面に自分のカードを出す"], ["!レベル", "レベルと、次のレベルまでを見る"], ["!スキン 名前", "カードのスキンを変える（名前なしで一覧）"], ["!アイコン 名前", "アイコンを変える"], ["!二つ名 名前", "名前の上に出る二つ名を変える"], ["!フォント 名前", "名前と弾幕の書体を変える"], ["!持ち物", "持っている物と手に入れ方を見る"], ["!サイト", "MONO LINK:// のアドレスを出す"]]],
     ["鹿物語（パチンコ）", "#FF5A64", [[null, "なんでもコメントすると玉がもらえる（はじめは 10 玉）"], ["!発射 5", "持ち玉を打つ（数字なしは 1 発）"], ["!強く", "打ち出しを強く（!弱く で弱く）"], ["!押せ", "連打チャンス・最終決戦でみんなで押す"], ["!玉", "自分の持ち玉を見る"], ["!せんべい", "ミニゲームに参加（!数字 3・!グー も）"], ["!ガチャ", "持ち玉 500 でコスメガチャ（★5 2%・★4 10%、10 回で ★4 以上・60 回で ★5 確定）"]]],
     ["そのほか", "#22CC88", [["!けいじばん こんにちは", "ラウンジの掲示板に書く（1 分に 1 回・120 字まで）"], ["!花火", "画面に花火（!ハート でハート）"], [null, "888 で拍手、草 で草が生える"], ["!discord", "Discord の招待をチャットで受け取る"]]]
   ];
   var NOTES = [
-    ["build 13", "2026-10-16", ["鹿ラウンジ（このサイト）ができました", "!けいじばん で掲示板に書けるように", "コスメガチャは持ち玉 500 の !ガチャ で", "鹿物語 Ver.1.5.4"]],
+    ["build 13", "2026-10-16", ["MONO LINK://（このラウンジ）ができました。フォローしている人だけ入れます", "!けいじばん で掲示板に書けるように", "コスメガチャは持ち玉 500 の !ガチャ で", "鹿物語 Ver.1.5.4"]],
     ["build 12", "2026-10-15", ["★4・★5 のフォント 6 種（ビット・暗号・ブロック・ふちどり・疾風・ギガ）", "★1〜★3 の新しいコスメに手に入れ方", "★4 以上を手に入れると配信画面でお祝い"]],
     ["build 11", "2026-10-15", ["★4 以上のアイコンがオリジナルのエンブレムに", "アイコンとカードの演出がレアリティで変わる"]],
     ["コスメのレアリティ", "2026-10-15", ["スキン・アイコン・二つ名・フォントに ★1 ノーマル〜★5 ミシック", "新しいコスメ 20 個"]],
@@ -416,7 +441,7 @@ footer { position: relative; z-index: 2; text-align: center; color: var(--soft);
   }
 
   // 見出しの文字を 1 つずつ揺らす
-  $("lobby-title").innerHTML = Array.from("ようこそ、鹿ラウンジへ").map(function (c, i) { return '<span style="--i:' + i + '">' + esc(c) + '</span>'; }).join("");
+  $("lobby-title").innerHTML = Array.from("ようこそ、ラウンジへ").map(function (c, i) { return '<span style="--i:' + i + '">' + esc(c) + '</span>'; }).join("");
 
   // ---- 場面の切り替え ----
   var warp = $("warp");
@@ -626,13 +651,44 @@ footer { position: relative; z-index: 2; text-align: center; color: var(--soft);
   }
   function done() { setTimeout(function () { $("boot").classList.add("off"); }, RM ? 0 : 900); }
   requestAnimationFrame(loop);
-  fetch("data.json?t=" + Date.now(), { cache: "no-store" }).then(function (r) { if (!r.ok) throw 0; return r.json(); })
-    .then(function (d) { boot(d); done(); })
-    .catch(function () {
-      $("upd").querySelector("span").textContent = "記録を待っています";
-      $("count").textContent = "配信が始まると、みんながここに来ます";
-      data = { viewers: [], kinds: { skin: [], icon: [], ep: [], font: [] }, board: [], rar: [] }; drawBoard(); route(); done();
-    });
+
+  // ---- 入口：Twitch でログイン → 門番（/api/data）がフォロー・BAN・ブロックを確かめて記録をくれる ----
+  var TOK = "ml-token", ST = "ml-state", BACK = "ml-back";
+  function ss(k, v) { try { if (v === undefined) return sessionStorage.getItem(k); if (v === null) sessionStorage.removeItem(k); else sessionStorage.setItem(k, v); } catch (e) { return null; } }
+  function showGate(msg, follow) {
+    $("gate-msg").textContent = msg; $("gate-follow").hidden = !follow; $("gate").hidden = false; done();
+  }
+  function login() {
+    fetch("/api/config", { cache: "no-store" }).then(function (r) { return r.json(); }).then(function (c) {
+      if (!c.clientId) { showGate("ラウンジはまだ準備中です。配信が始まると開きます。"); return; }
+      var st = Array.from(crypto.getRandomValues(new Uint8Array(16))).map(function (b) { return b.toString(16).padStart(2, "0"); }).join("");
+      ss(ST, st); if (location.hash && location.hash.indexOf("access_token") < 0) ss(BACK, location.hash);
+      location.href = "https://id.twitch.tv/oauth2/authorize?response_type=token&client_id=" + encodeURIComponent(c.clientId) + "&redirect_uri=" + encodeURIComponent(location.origin + "/") + "&scope=&state=" + st;
+    }, function () { showGate("いまはつながりません。少し待ってからもう一度押してください。"); });
+  }
+  $("login").addEventListener("click", login);
+  $("logout").addEventListener("click", function () { ss(TOK, null); location.replace(location.pathname); });
+  (function takeToken() { // Twitch から戻ってきたとき
+    if (location.hash.indexOf("access_token=") < 0) return;
+    var q = new URLSearchParams(location.hash.slice(1)), st = ss(ST);
+    if (q.get("access_token") && st && q.get("state") === st) ss(TOK, q.get("access_token"));
+    ss(ST, null);
+    history.replaceState(null, "", location.pathname + (ss(BACK) || "")); ss(BACK, null);
+  })();
+  (function enter() {
+    var tok = ss(TOK);
+    if (!tok) { showGate("deerman_247 をフォローしている人のラウンジです。Twitch でログインして入ってください。"); return; }
+    fetch("/api/data", { headers: { Authorization: "Bearer " + tok }, cache: "no-store" }).then(function (r) {
+      return r.json().then(function (j) { return { s: r.status, j: j }; });
+    }).then(function (x) {
+      if (x.s === 200) { $("logout").hidden = false; boot(x.j.d); done(); return; }
+      if (x.s === 401) { ss(TOK, null); showGate("ログインの期限が切れました。もう一度ログインしてください。"); return; }
+      var e = x.j && x.j.error;
+      if (e === "follow") showGate("このラウンジは deerman_247 をフォローしている人だけ入れます。フォローしてから、少し待ってもう一度ログインしてください（10 分ごとに更新）。", true);
+      else if (e === "denied") showGate("このラウンジには入れません。");
+      else showGate("ラウンジはまだ準備中です。配信が始まると開きます。");
+    }, function () { showGate("いまはつながりません。少し待ってからもう一度開いてください。"); });
+  })();
   addEventListener("hashchange", function () { if (data) route(); });
 })();
 </script>

@@ -1,0 +1,7 @@
+# MONO LINK:// の門番。「Deploy to Cloudflare」ボタンで置くと、KV（DB）は自動で作られます
+name = "mono-link"
+main = "worker.js"
+compatibility_date = "2026-10-01"
+
+[[kv_namespaces]]
+binding = "DB"
