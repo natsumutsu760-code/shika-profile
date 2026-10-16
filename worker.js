@@ -16,7 +16,7 @@ function json(obj, status = 200, extra = {}) {
   return new Response(JSON.stringify(obj), { status, headers: { "Content-Type": "application/json; charset=utf-8", "Cache-Control": "no-store", ...SEC, ...extra } });
 }
 // オーバーレイ（OBS の http://absolute など）から上げるので、上げる口だけ CORS を開ける。鍵がないと何もできない
-const UP_CORS = { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Methods": "POST, OPTIONS", "Access-Control-Allow-Headers": "Authorization, Content-Type", "Access-Control-Max-Age": "86400" };
+const UP_CORS = { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Methods": "GET, POST, OPTIONS", "Access-Control-Allow-Headers": "Authorization, Content-Type", "Access-Control-Max-Age": "86400" };
 
 async function sha(s) { return new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(s))); }
 async function sameKey(a, b) {
@@ -45,29 +45,71 @@ async function upload(req, env) {
     mods: toMap(g.mods),
     at: Date.now(),
   };
+  gate.followN = gate.follow ? Object.keys(gate.follow).length : -1;
   await env.DB.put("data", JSON.stringify(body.data));
   await env.DB.put("gate", JSON.stringify(gate));
-  return json({ ok: true, at: gate.at, follow: gate.follow ? Object.keys(gate.follow).length : -1 }, 200, UP_CORS);
+  // 最近ラウンジに入れなかった人の記録も返す（配信者のパネルに出す）
+  const denied = (await env.DB.get("denied", "json")) || [];
+  return json({ ok: true, at: gate.at, follow: gate.followN, denied: denied.slice(-20) }, 200, UP_CORS);
+}
+
+// 入れなかったときのコードと理由（ページにそのまま出す。配信者はパネルの「入れなかった人」でも見られる）
+//   A：ログイン　G：準備（配信オーバーレイからの記録）　F：フォロー　D：配信者の設定　E：門番のエラー
+const WHY = {
+  A01: "ログインしていません",
+  A02: "Twitch のログインの期限が切れています",
+  A03: "ほかのアプリでログインしています（このラウンジのログインではありません）",
+  G01: "配信オーバーレイからまだ記録が届いていません",
+  G02: "配信オーバーレイがフォロワーの一覧を読めていません",
+  G03: "配信オーバーレイが BAN の一覧を読めていません",
+  G04: "配信オーバーレイがブロックの一覧を読めていません",
+  G05: "配信オーバーレイからまだ記録が届いていません",
+  F01: "フォロワーの一覧に見つかりません",
+  D01: "配信者の設定で入れません",
+  D02: "配信者の設定で入れません",
+  E01: "門番でエラーが起きました",
+};
+const ERR = { A: "login", G: "notready", F: "follow", D: "denied", E: "server" };
+const STATUS = { A: 401, G: 503, F: 403, D: 403, E: 500 };
+function deny(code, info) {
+  return json({ error: ERR[code[0]], code, why: WHY[code], info: info || {} }, STATUS[code[0]]);
+}
+// 入れなかった人を KV に残す（最新 50 件。同じ人・同じコードは 10 分に 1 回まで。ログインの期限切れは残さない）
+async function logDeny(env, code, who, extra) {
+  if (code === "A01" || code === "A02") return;
+  try {
+    const list = (await env.DB.get("denied", "json")) || [], now = Date.now(), id = (who && who.user_id) ? String(who.user_id) : "";
+    if (list.some((x) => x.code === code && x.id === id && now - x.t < 600000)) return;
+    list.push({ t: now, code, why: WHY[code], id, login: who && who.login ? String(who.login).slice(0, 40) : "", ...(extra || {}) });
+    await env.DB.put("denied", JSON.stringify(list.slice(-50)));
+  } catch (e) {}
 }
 
 // ログインした人を確かめて、入れるかどうかを決める。入れるなら { who }、だめなら { res }（そのまま返す応答）
 async function enter(req, env) {
   const tok = bearer(req);
-  if (!tok) return { res: json({ error: "login" }, 401) };
+  if (!tok) return { res: deny("A01") };
   const gate = await env.DB.get("gate", "json");
-  if (!gate) return { res: json({ error: "notready" }, 503) };
   const v = await fetch("https://id.twitch.tv/oauth2/validate", { headers: { Authorization: "OAuth " + tok } });
-  if (!v.ok) return { res: json({ error: "login" }, 401) };
+  if (!v.ok) return { res: deny("A02") };
   const who = await v.json();
-  if (gate.clientId && who.client_id !== gate.clientId) return { res: json({ error: "login" }, 401) };
-  const id = String(who.user_id || "");
+  const me = { login: String(who.login || ""), id: String(who.user_id || "") };
+  if (!gate) { await logDeny(env, "G01", who); return { res: deny("G01", me) }; }
+  if (gate.clientId && who.client_id !== gate.clientId) { await logDeny(env, "A03", who); return { res: deny("A03", me) }; }
+  const id = me.id;
   const owner = id && id === gate.owner, mod = !!(gate.mods && gate.mods[id]);
   if (!owner) {
-    if (!gate.ban || !gate.block || !gate.follow) return { res: json({ error: "notready" }, 503) };
-    if (gate.ban[id] || gate.block[id]) return { res: json({ error: "denied" }, 403) };
-    if (!mod && !gate.follow[id]) return { res: json({ error: "follow" }, 403) };
+    const g = !gate.follow ? "G02" : !gate.ban ? "G03" : !gate.block ? "G04" : "";
+    if (g) { await logDeny(env, g, who); return { res: deny(g, { ...me, listAt: gate.at }) }; }
+    if (gate.ban[id]) { await logDeny(env, "D01", who); return { res: deny("D01", me) }; }
+    if (gate.block[id]) { await logDeny(env, "D02", who); return { res: deny("D02", me) }; }
+    if (!mod && !gate.follow[id]) {
+      const listN = gate.followN != null ? gate.followN : Object.keys(gate.follow).length;
+      await logDeny(env, "F01", who, { listN, listAt: gate.at });
+      return { res: deny("F01", { ...me, listAt: gate.at, listN }) };
+    }
   }
-  return { who: { id, login: String(who.login || ""), client: String(who.client_id || ""), tok } };
+  return { who: { id, login: me.login, client: String(who.client_id || ""), tok } };
 }
 
 // いまいる人の部屋（Durable Object）に「来ています」を知らせ、いまいる人の一覧をもらう。表示名は最初の 1 回だけ Twitch から取る
@@ -90,7 +132,7 @@ async function readData(req, env) {
   const e = await enter(req, env);
   if (e.res) return e.res;
   const data = await env.DB.get("data");
-  if (!data) return json({ error: "notready" }, 503);
+  if (!data) return deny("G05", { login: e.who.login, id: e.who.id });
   const list = await here(env, e.who);
   return new Response('{"me":' + JSON.stringify({ id: e.who.id, login: e.who.login }) + ',"here":' + JSON.stringify(list) + ',"d":' + data + "}", { headers: { "Content-Type": "application/json; charset=utf-8", "Cache-Control": "no-store", ...SEC } });
 }
@@ -121,11 +163,23 @@ async function page() {
 
 export default {
   async fetch(req, env) {
+    try { return await route(req, env); }
+    catch (e) { return deny("E01", { detail: String((e && e.message) || e).slice(0, 120) }); }
+  },
+};
+async function route(req, env) {
+  {
     const url = new URL(req.url);
     if (url.pathname === "/api/upload") {
       if (req.method === "OPTIONS") return new Response(null, { status: 204, headers: UP_CORS });
       if (req.method === "POST") return upload(req, env);
       return json({ error: "method" }, 405, UP_CORS);
+    }
+    // 最近ラウンジに入れなかった人（配信オーバーレイのパネル用。上げる口と同じ鍵がいる）
+    if (url.pathname === "/api/denied") {
+      if (req.method === "OPTIONS") return new Response(null, { status: 204, headers: UP_CORS });
+      if (!env.UPLOAD_KEY || !(await sameKey(bearer(req), env.UPLOAD_KEY))) return json({ error: "key" }, 401, UP_CORS);
+      return json({ denied: ((await env.DB.get("denied", "json")) || []).slice(-20) }, 200, UP_CORS);
     }
     if (url.pathname === "/api/data" && req.method === "GET") return readData(req, env);
     if (url.pathname === "/api/ping" && req.method === "GET") return ping(req, env);
@@ -134,8 +188,8 @@ export default {
     if (url.pathname.startsWith("/api/")) return json({ error: "notfound" }, 404);
     if (req.method !== "GET" && req.method !== "HEAD") return json({ error: "method" }, 405);
     return page();
-  },
-};
+  }
+}
 
 // ---------- いまラウンジにいる人（1 つだけの部屋）----------
 export class Lounge {

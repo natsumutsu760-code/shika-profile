@@ -303,6 +303,20 @@ h2.sec::before { content: ""; width: 22px; height: 22px; border-radius: 50%; bor
 .gate-sub { font: 600 18px/1 var(--num); color: var(--soft); letter-spacing: .12em; margin: 10px 0 20px; }
 .gate-msg { font-weight: 700; margin: 0 0 18px; }
 .gate-link { display: inline-block; margin-top: 14px; font-weight: 900; color: var(--violet); }
+/* 入れなかったときのコードと理由：ロゴの下の、白いカード 1 枚に */
+.gate { overflow-y: auto; }
+.gate.err { place-items: start center; }
+.gate.err .gate-rings { display: none; }
+.gate.err .gate-title { margin-top: 8px; }
+.gate-err { margin: 0 auto 18px; padding: 16px 18px 14px; max-width: 400px; text-align: left; background: #fff; border-radius: 18px; box-shadow: 0 8px 0 rgba(27,35,64,.08), 0 0 0 2px rgba(255,90,100,.35); }
+.gate-err[hidden] { display: none; }
+.gate-code { display: flex; gap: 10px; align-items: baseline; margin: 0 0 8px; font-weight: 800; line-height: 1.4; }
+.gate-code b { flex: none; font: 700 22px/1 var(--num); letter-spacing: .04em; color: #fff; background: #FF5A64; border-radius: 10px; padding: 6px 9px 5px; }
+.gate-info { display: grid; grid-template-columns: auto 1fr; gap: 3px 12px; margin: 0 0 12px; font-size: 13px; color: var(--soft); }
+.gate-info dt { font-weight: 700; } .gate-info dd { margin: 0; color: var(--ink); overflow-wrap: anywhere; }
+.gate-copy { border: 0; border-radius: 999px; padding: 8px 14px; font: 800 13px/1 var(--jp); background: var(--space); color: var(--ink); box-shadow: inset 0 0 0 2px var(--ink); }
+.gate-copy:focus-visible { outline: 3px solid var(--sky); outline-offset: 2px; }
+.gate-hint { margin: 10px 0 0; font-size: 12px; color: var(--soft); }
 .out { margin-left: 8px; border: 0; background: none; font: 700 12px/1 var(--jp); color: var(--soft); text-decoration: underline; }
 .trail { position: fixed; z-index: 70; width: 8px; height: 8px; border-radius: 50%; pointer-events: none; animation: fade .7s ease-out forwards; }
 @keyframes fade { to { transform: translate(var(--dx), var(--dy)) scale(0); opacity: 0; } }
@@ -344,6 +358,12 @@ footer { position: relative; z-index: 2; text-align: center; color: var(--soft);
     <h1 class="gate-title">MONO LINK<i>://</i></h1>
     <p class="gate-sub">code〈〉Lounge</p>
     <p class="gate-msg" id="gate-msg">deerman_247 をフォローしている人のラウンジです。Twitch でログインして入ってください。</p>
+    <div class="gate-err" id="gate-err" role="alert" hidden>
+      <p class="gate-code"><b id="gate-code"></b><span id="gate-why"></span></p>
+      <dl class="gate-info" id="gate-info"></dl>
+      <button class="gate-copy" type="button" id="gate-copy">コードをコピー</button>
+      <p class="gate-hint">フォローしているのに入れないなど、困ったときは配信のチャットに「!バグ報告」とこのコードを書くと、配信者に届きます。</p>
+    </div>
     <button class="jelly sky" type="button" id="login">Twitch でログインして入る</button>
     <a class="gate-link" id="gate-follow" href="https://www.twitch.tv/deerman_247" target="_blank" rel="noopener" hidden>Twitch で deerman_247 をフォローする</a>
   </div>
@@ -443,6 +463,7 @@ footer { position: relative; z-index: 2; text-align: center; color: var(--soft);
     ["そのほか", "#22CC88", [["!けいじばん こんにちは", "ラウンジの掲示板に書く（1 分に 1 回・120 字まで）"], ["!バグ報告 ガチャのあと画面が止まった", "不具合を配信者に知らせる（30 秒に 1 回・300 字まで）"], ["!花火", "画面に花火（!ハート でハート）"], [null, "888 で拍手、草 で草が生える"], ["!discord", "Discord の招待をチャットで受け取る"]]]
   ];
   var NOTES = [
+    ["build 23", "2026-10-16", ["ラウンジに入れなかったとき、エラーコード（例：F01）と理由が出るように。「コードをコピー」して !バグ報告 で知らせてください"]],
     ["build 22", "2026-10-16", ["コスメガチャのハズレがなくなりました。かわりに ★1〜3 のコスメが出ます（★1 25%・★2 17%・★3 8%）", "★1〜3 のコスメ 300 個（スキン 100・アイコン 100・二つ名 100）。テーマは季節と天気・食べ物とおやつ・動物と植物・街とレトロ", "!スキン などの一覧は、★の高い順に 12 個まで"]],
     ["build 21", "2026-10-16", ["鹿物語 Ver.1.6.3：リーチで画面が固まる対策（固まったら液晶の動画を自動で止める・パネルでオン／オフ）", "自動更新：開いたらすぐ新しい版を確かめるように", "フォローしたら 1 分ほどでラウンジに入れるように"]],
     ["build 20", "2026-10-16", ["コスメガチャのハズレが 88% → 50% に（★4 40%・★5 10%）", "鹿物語 Ver.1.6.2：配信者がパネルから玉を補填できるように"]],
@@ -742,9 +763,26 @@ footer { position: relative; z-index: 2; text-align: center; color: var(--soft);
   // ---- 入口：Twitch でログイン → 門番（/api/data）がフォロー・BAN・ブロックを確かめて記録をくれる ----
   var TOK = "ml-token", ST = "ml-state", BACK = "ml-back";
   function ss(k, v) { try { if (v === undefined) return sessionStorage.getItem(k); if (v === null) sessionStorage.removeItem(k); else sessionStorage.setItem(k, v); } catch (e) { return null; } }
-  function showGate(msg, follow) {
-    $("gate-msg").textContent = msg; $("gate-follow").hidden = !follow; $("gate").hidden = false; done();
+  function showGate(msg, follow, err) {
+    $("gate-msg").textContent = msg; $("gate-follow").hidden = !follow; $("gate").hidden = false;
+    var box = $("gate-err"); box.hidden = !err; $("gate").classList.toggle("err", !!err);
+    if (err) {
+      var info = err.info || {}, at = function (t) { return t ? new Date(+t).toLocaleString("ja-JP", { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" }) : ""; };
+      var rows = [["Twitch", info.login ? info.login + (info.id ? "（ID " + info.id + "）" : "") : ""], ["一覧の更新", at(info.listAt)], ["一覧の人数", info.listN != null ? info.listN + " 人" : ""], ["くわしく", info.detail || ""], ["時刻", at(Date.now())]]
+        .filter(function (r) { return r[1]; });
+      $("gate-code").textContent = err.code; $("gate-why").textContent = err.why || "";
+      $("gate-info").innerHTML = rows.map(function (r) { return "<dt>" + esc(r[0]) + "</dt><dd>" + esc(r[1]) + "</dd>"; }).join("");
+      gateErrText = "MONO LINK " + err.code + "（" + (err.why || "") + "）" + rows.map(function (r) { return " " + r[0] + "：" + r[1]; }).join("");
+      $("gate-copy").textContent = "コードをコピー";
+    }
+    done();
   }
+  var gateErrText = "";
+  $("gate-copy").addEventListener("click", function () {
+    var b = $("gate-copy"), t = gateErrText, ok = function () { b.textContent = "コピーしました"; };
+    var old = function () { var ta = document.createElement("textarea"); ta.value = t; ta.setAttribute("readonly", ""); ta.style.cssText = "position:fixed;left:-9999px"; document.body.appendChild(ta); ta.select(); try { document.execCommand("copy"); ok(); } catch (e) {} ta.remove(); };
+    if (navigator.clipboard && window.isSecureContext) navigator.clipboard.writeText(t).then(ok, old); else old();
+  });
   function login() {
     fetch("/api/config", { cache: "no-store" }).then(function (r) { return r.json(); }).then(function (c) {
       if (!c.clientId) { showGate("ラウンジはまだ準備中です。配信が始まると開きます。"); return; }
@@ -755,26 +793,35 @@ footer { position: relative; z-index: 2; text-align: center; color: var(--soft);
   }
   $("login").addEventListener("click", login);
   $("logout").addEventListener("click", function () { ss(TOK, null); location.replace(location.pathname); });
+  var loginErr = null; // ログインの途中で起きたこと（コード・理由）
   (function takeToken() { // Twitch から戻ってきたとき
-    if (location.hash.indexOf("access_token=") < 0) return;
-    var q = new URLSearchParams(location.hash.slice(1)), st = ss(ST);
-    if (q.get("access_token") && st && q.get("state") === st) ss(TOK, q.get("access_token"));
+    var h = location.hash.slice(1), qs = location.search.slice(1), q = new URLSearchParams(h.indexOf("access_token=") >= 0 || h.indexOf("error=") >= 0 ? h : qs);
+    if (!q.get("access_token") && !q.get("error")) return;
+    var st = ss(ST);
+    if (q.get("error")) {
+      var desc = String(q.get("error_description") || q.get("error")).replace(/\+/g, " ").slice(0, 120);
+      loginErr = q.get("error") === "access_denied" ? { code: "L01", why: "Twitch のログインがキャンセルされました", info: { detail: desc } } : { code: "L02", why: "Twitch のログインでエラーが起きました", info: { detail: desc } };
+    } else if (!st) loginErr = { code: "L03", why: "ログインを始めたページと、戻ってきたページが違います", info: { detail: "Twitch アプリや X などのアプリの中ではなく、Safari や Chrome でこのページを開いて、もう一度ログインしてください" } };
+    else if (q.get("state") !== st) loginErr = { code: "L04", why: "ログインの確認用の印が合いません", info: { detail: "もう一度ログインしてください。続くときは、ほかのタブでこのページを閉じてからためしてください" } };
+    else ss(TOK, q.get("access_token"));
     ss(ST, null);
     history.replaceState(null, "", location.pathname + (ss(BACK) || "")); ss(BACK, null);
   })();
   (function enter() {
     var tok = ss(TOK);
+    if (!tok && loginErr) { showGate("ログインできませんでした。", false, loginErr); return; }
     if (!tok) { showGate("deerman_247 をフォローしている人のラウンジです。Twitch でログインして入ってください。"); return; }
     fetch("/api/data", { headers: { Authorization: "Bearer " + tok }, cache: "no-store" }).then(function (r) {
-      return r.json().then(function (j) { return { s: r.status, j: j }; });
+      return r.json().then(function (j) { return { s: r.status, j: j }; }, function () { return { s: r.status, j: null }; });
     }).then(function (x) {
-      if (x.s === 200) { here = x.j.here || []; var ml = (x.j.me && x.j.me.login) || "", mh = here.filter(function (h) { return h.l && h.l === ml; })[0]; meName = (mh && mh.n) || ml; meLogin = ml; $("logout").hidden = false; boot(x.j.d); done(); stay(tok); return; }
-      if (x.s === 401) { ss(TOK, null); showGate("ログインの期限が切れました。もう一度ログインしてください。"); return; }
-      var e = x.j && x.j.error;
-      if (e === "follow") showGate("このラウンジは deerman_247 をフォローしている人だけ入れます。フォローしてから 1 分ほど待って、もう一度ログインしてください。それでも入れないときは、配信中にもう一度ためしてください。", true);
-      else if (e === "denied") showGate("このラウンジには入れません。");
-      else showGate("ラウンジはまだ準備中です。配信が始まると開きます。");
-    }, function () { showGate("いまはつながりません。少し待ってからもう一度開いてください。"); });
+      if (x.s === 200 && x.j) { here = x.j.here || []; var ml = (x.j.me && x.j.me.login) || "", mh = here.filter(function (h) { return h.l && h.l === ml; })[0]; meName = (mh && mh.n) || ml; meLogin = ml; $("logout").hidden = false; boot(x.j.d); done(); stay(tok); return; }
+      var e = x.j && x.j.error, err = x.j && x.j.code ? { code: x.j.code, why: x.j.why, info: x.j.info } : { code: "N02", why: "門番から思わぬ返事がありました", info: { detail: "HTTP " + x.s } };
+      if (x.s === 401) { ss(TOK, null); showGate(err.code === "A03" ? "このラウンジのログインではありません。もう一度ログインしてください。" : "ログインの期限が切れました。もう一度ログインしてください。", false, err.code === "A02" ? null : err); return; }
+      if (e === "follow") showGate("deerman_247 のフォロワーの一覧に見つかりませんでした。フォローしていないときは、フォローして 1 分ほど待ってから、もう一度ログインしてください。", true, err);
+      else if (e === "denied") showGate("このラウンジには入れません。", false, err);
+      else if (e === "notready") showGate("ラウンジはまだ準備中です。配信が始まると開きます。", false, err);
+      else showGate("ラウンジに入れませんでした。", false, err);
+    }, function (er) { showGate("いまはつながりません。少し待ってからもう一度開いてください。", false, { code: "N01", why: "門番につながりません", info: { detail: String((er && er.message) || er).slice(0, 80) } }); });
   })();
   // ---- ラウンジにいることを 1 分ごとに知らせ、いまいる人を入れ替える（画面を隠している間は休む）----
   function stay(tok) {
