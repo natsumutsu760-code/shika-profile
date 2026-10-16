@@ -266,6 +266,13 @@ async function route(req, env) {
       if (req.method === "POST") return upload(req, env);
       return json({ error: "method" }, 405, UP_CORS);
     }
+    // 視聴者のバグ報告（配信オーバーレイが送ってためたもの）。Claude が定期的に読みに来て、配信者に知らせる。上げる口と同じ鍵がいる
+    if (url.pathname === "/api/bugs" || url.pathname === "/api/bugs/seen") {
+      if (!env.UPLOAD_KEY || !(await sameKey(bearer(req), env.UPLOAD_KEY))) return json({ error: "key" }, 401);
+      if (url.pathname === "/api/bugs" && req.method === "GET") return lounge(env).fetch("https://lounge/bugs");
+      if (url.pathname === "/api/bugs/seen" && req.method === "POST") return lounge(env).fetch("https://lounge/bugs/seen", { method: "POST", body: await req.text() });
+      return json({ error: "method" }, 405);
+    }
     // 最近ラウンジに入れなかった人（配信オーバーレイのパネル用。上げる口と同じ鍵がいる）
     if (url.pathname === "/api/denied") {
       if (req.method === "OPTIONS") return new Response(null, { status: 204, headers: UP_CORS });
@@ -304,7 +311,8 @@ export class Lounge {
     this.tickets = {};  // 配信ページの WebSocket の札（1 分だけ）
     this.lastLike = {}; // いいねの見張り（id → 最後に受けた時刻）
     this.likes = {};    // コメントのいいねの数（コメントの id → 数。新しい 300 件）
-    state.blockConcurrencyWhile(async () => { this.map = (await state.storage.get("here")) || {}; this.likes = (await state.storage.get("likes")) || {}; });
+    this.bugs = [];     // 視聴者のバグ報告（新しい 200 件。seen は Claude が配信者に知らせた時刻）
+    state.blockConcurrencyWhile(async () => { this.map = (await state.storage.get("here")) || {}; this.likes = (await state.storage.get("likes")) || {}; this.bugs = (await state.storage.get("bugs")) || []; });
     // OBS からの "ping" には部屋を起こさずに "pong" と返す
     try { state.setWebSocketAutoResponse(new WebSocketRequestResponsePair("ping", "pong")); } catch (e) {}
   }
@@ -345,6 +353,16 @@ export class Lounge {
       await this.state.storage.put("likes", this.likes);
     }
     if (m.t === "sys" && typeof m.text === "string" && m.text.trim()) this.toViewers({ t: "sys", text: m.text.replace(/[\u0000-\u001f\u007f]/g, " ").slice(0, 300), at: now });
+    // OBS から：バグ報告（同じ id は 1 回だけ）。受け取ったら返事をして、OBS 側は送り直さない
+    if (m.t === "bug" && typeof m.id === "string" && /^[\w-]{1,40}$/.test(m.id) && typeof m.text === "string" && m.text.trim()) {
+      if (!this.bugs.some((b) => b.id === m.id)) {
+        const clean = (v, n) => String(v || "").replace(/[\u0000-\u001f\u007f]/g, " ").slice(0, n);
+        this.bugs.push({ id: m.id, name: clean(m.name, 40), text: clean(m.text, 300), ctx: clean(m.ctx, 80), at: +m.at || now, got: now, seen: 0 });
+        this.bugs = this.bugs.slice(-200);
+        await this.state.storage.put("bugs", this.bugs);
+      }
+      ws.send(JSON.stringify({ t: "bugok", id: m.id }));
+    }
   }
   async webSocketClose(ws, code) {
     try { ws.close(code === 1005 ? 1000 : code, "bye"); } catch (e) {}
@@ -361,6 +379,13 @@ export class Lounge {
       this.state.acceptWebSocket(server, ["obs"]);
       server.serializeAttachment({ ok: false, at: now });
       return new Response(null, { status: 101, webSocket: client });
+    }
+    if (url.pathname === "/bugs") return new Response(JSON.stringify({ bugs: this.bugs.slice(-100) }), { headers: { "Content-Type": "application/json; charset=utf-8" } });
+    if (url.pathname === "/bugs/seen") {
+      const b = await req.json().catch(() => ({})), ids = Array.isArray(b.ids) ? b.ids.map(String) : [];
+      let n = 0; this.bugs.forEach((x) => { if (!x.seen && (b.all || ids.indexOf(x.id) >= 0)) { x.seen = now; n++; } });
+      if (n) await this.state.storage.put("bugs", this.bugs);
+      return new Response(JSON.stringify({ ok: true, marked: n }), { headers: { "Content-Type": "application/json" } });
     }
     if (url.pathname === "/ticket") {
       const b = await req.json().catch(() => ({}));
