@@ -1088,8 +1088,8 @@ footer { position: relative; z-index: 2; text-align: center; color: var(--soft);
     if (k === "mm") { var o; try { o = JSON.parse(d.slice(bar + 1)); } catch (e) { return; } if (o) mxMeta(o); return; }
     if (k === "mb") { var q = cut(d.slice(bar + 1), 3); if (q) mxChunk(q[0], +q[1], +q[2], q[3]); }
   }
-  // 画面の変化を再生へ。時刻は、画面まるごとが届いたときにこのパソコンの時計へ合わせ、そのあとは OBS と同じ間隔で進める
-  // （まとめごとに合わせ直すと、届くのが前後したときに順番が入れかわってしまう）
+  // 画面の変化を再生へ。届いた順にすぐ入れる：時刻を「届いた時刻」（前のものより戻らない）に置きかえる。
+  // OBS の時刻のままだと、届くのが遅れたぶんずっと遅れたり、順番が入れかわったりする
   function mxFeed(src, list) {
     if (!MX.lib) { // 部品を読み込んでいるあいだはためておく（画面まるごとが来たら、それより前は捨てる）
       if (list.some(function (e) { return e && e.type === 2; })) MX.q[src] = [];
@@ -1100,7 +1100,7 @@ footer { position: relative; z-index: 2; text-align: center; color: var(--soft);
       if (e.type === 4) { MX["meta" + src] = e; return; }
       if (e.type === 2) { mxNew(src, e); return; }
       if (!MX.ready[src] || e.type !== 3) return;
-      e.timestamp += MX["off" + src];
+      e.timestamp = MX["last" + src] = Math.max(MX["last" + src], Date.now());
       var d = e.data || {};
       if (d.source === 9) { mxCanvas(src, d); return; } // キャンバスの絵は自分で描く
       if (d.source === 7) mxMediaNote(src, d.id, d.type === 1 ? false : d.type === 0 ? true : null, d.currentTime);
@@ -1110,7 +1110,7 @@ footer { position: relative; z-index: 2; text-align: center; color: var(--soft);
   // 画面まるごと：新しい再生を作り、できたら古いものと入れかえる（ちらつかないように）
   function mxNew(src, full) {
     var now = Date.now(), meta = MX["meta" + src] || { type: 4, data: { href: "", width: 1920, height: 1080 } };
-    MX["off" + src] = now - full.timestamp; full.timestamp = meta.timestamp = now;
+    MX["last" + src] = now; full.timestamp = meta.timestamp = now - 1; // まるごとはすぐ組み立てる
     MX["cv" + src] = {}; mxMediaScan(src, full.data && full.data.node);
     var host = document.createElement("div"), old = MX.rep[src], oldHost = old && old.__host;
     MX.box[src].appendChild(host);
@@ -1121,7 +1121,7 @@ footer { position: relative; z-index: 2; text-align: center; color: var(--soft);
     } catch (x) { host.remove(); return; }
     R.__host = host;
     R.on("event-cast", function (e) { mxFix(src, R, e); });
-    R.startLive(now + 1); // まるごとはすぐ組み立てる
+    R.startLive(now);
     MX.rep[src] = R; MX.ready[src] = true;
     try { R.addEvent(meta); R.addEvent(full); } catch (x) {}
     if (old) { if (oldHost) oldHost.classList.add("old"); setTimeout(function () { try { old.destroy(); } catch (x) {} if (oldHost) oldHost.remove(); }, 300); }

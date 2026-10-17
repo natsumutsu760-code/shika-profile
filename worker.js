@@ -391,7 +391,12 @@ export class Lounge {
         if (++q[0] > 60) return;
         if (m.t === "mx-snap") { this.mxTell(true); return; }
         if (m.src !== "ov" && m.src !== "pa") return;
-        const out = JSON.stringify({ t: m.t, id: String(m.id || "").slice(0, 40), url: String(m.url || "").slice(0, 600), alt: String(m.alt || "").slice(0, 300), from: a.v });
+        // 頼めるのは、画面に出ている動画・画像（blob か http(s) の URL）と、pachinko-assets の中の動画・画像の名前だけ（OBS 側でも同じように確かめる）
+        const id = String(m.id || ""), url = String(m.url || ""), alt = String(m.alt || "");
+        if (!/^[\w-]{1,40}$/.test(id)) return;
+        if (url && (url.length > 600 || !/^(blob:)?https?:\/\/[^\s"'<>\\]+$/i.test(url) || url.includes(".."))) return;
+        if (alt && (alt.length > 300 || !/^pachinko-assets\/[\w\-\/.]+\.(mp4|webm|png|jpe?g|webp|gif|svg)$/i.test(alt) || alt.includes(".."))) return;
+        const out = JSON.stringify({ t: m.t, id, url, alt, from: a.v });
         this.mxLeaders(m.src).forEach((w) => { try { w.send(out); } catch (e) {} });
         return;
       }
@@ -450,20 +455,22 @@ export class Lounge {
     if (a.ok && !this.obsSockets(ws).length) this.toViewers({ t: "obs", on: 0 });
   }
   async webSocketError() {}
+  // OBS の口（obs・mx）：鍵をまだ送っていないつなぎだけを片づける（10 秒たったもの。多すぎるときは古いものから）。
+  // 鍵の合ったつなぎは、知らない人がたくさんつないできても閉じない
+  trimPending(tag, now) {
+    const pend = this.state.getWebSockets(tag).filter((w) => !this.att(w).ok);
+    pend.forEach((w, i) => { if (now - (this.att(w).at || 0) > 10000 || i < pend.length - 5) try { w.close(1000, "too many"); } catch (e) {} });
+  }
   async fetch(req) {
     const url = new URL(req.url), now = Date.now();
+    if (url.pathname === "/obs" || url.pathname === "/mirror") this.trimPending(url.pathname === "/obs" ? "obs" : "mx", now);
     if (url.pathname === "/obs") {
-      // つながる数の上限（同じ OBS が何度もつなぎ直しても、古いものから閉じる）
-      const all = this.state.getWebSockets("obs");
-      if (all.length >= 6) all.slice(0, all.length - 5).forEach((w) => { try { w.close(1000, "too many"); } catch (e) {} });
       const pair = new WebSocketPair(), client = pair[0], server = pair[1];
       this.state.acceptWebSocket(server, ["obs"]);
       server.serializeAttachment({ ok: false, at: now });
       return new Response(null, { status: 101, webSocket: client });
     }
     if (url.pathname === "/mirror") {
-      const all = this.state.getWebSockets("mx");
-      if (all.length >= 6) all.slice(0, all.length - 5).forEach((w) => { try { w.close(1000, "too many"); } catch (e) {} });
       const pair = new WebSocketPair(), client = pair[0], server = pair[1];
       this.state.acceptWebSocket(server, ["mx"]);
       server.serializeAttachment({ mxl: 1, ok: false, at: now });
