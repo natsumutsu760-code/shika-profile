@@ -396,6 +396,10 @@ h2.sec::before { content: ""; width: 22px; height: 22px; border-radius: 50%; bor
 .mx-msg { position: absolute; left: 50%; top: 50%; z-index: 2; transform: translate(-50%, -50%); margin: 0; max-width: calc(100% - 32px); padding: 10px 16px; border-radius: 14px;
   background: rgba(27,35,64,.82); color: #fff; font: 700 14px/1.5 var(--jp); text-align: center; }
 .mx-msg[hidden] { display: none; }
+.mx-snd { position: absolute; right: 12px; bottom: 12px; z-index: 3; display: inline-flex; align-items: center; gap: 6px; border: 0; border-radius: 999px; padding: 8px 14px 8px 10px;
+  background: rgba(255,255,255,.92); color: var(--ink); font: 900 13px/1.2 var(--jp); box-shadow: var(--lift); }
+.mx-snd svg { width: 18px; height: 18px; fill: none; stroke: var(--coral); stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; flex: none; }
+.mx-snd[aria-pressed="true"] { background: var(--ink); color: #fff; }
 
 /* スマホ（縦）：配信ページは画面ぴったりの 1 枚。映像は端から端まで。コメント欄が残りの高さを全部使う */
 @media (max-width: 899px) and (min-height: 501px) {
@@ -1025,12 +1029,12 @@ footer { position: relative; z-index: 2; text-align: center; color: var(--soft);
   function studio(on) {
     if (on === studioOn) return; studioOn = on;
     document.body.classList.toggle("studio", on);
-    if (!on) mxOn = null;
+    if (!on) { mxOn = null; lsend({ t: "mx-leave" }); } // 門番に「もう見ていない」と知らせる（OBS は送るのをやめる）
     if (liveOpen) player(canSound()); // 映像の場所を、ミラーとふつうの映像で入れ替える
     if (on && lws && lws.readyState === 1) mxJoin();
   }
   function lsend(o) { if (lws && lws.readyState === 1) lws.send(JSON.stringify(o)); }
-  function mxJoin() { lsend({ t: "mx-join" }); }
+  function mxJoin() { lsend({ t: "mx-join" }); if (MX && MX.snd) lsend({ t: "mx-audio", on: 1 }); }
   // 再生の部品（rrweb の Replayer。門番が /mx-replay.js で配る）は、はじめて使うときに読み込む
   var mxLibWait = null;
   function mxLib() {
@@ -1044,8 +1048,9 @@ footer { position: relative; z-index: 2; text-align: center; color: var(--soft);
   }
   function mxMount() {
     if (MX) return;
-    $("screen").innerHTML = '<div class="mx" id="mx"><div class="mx-world"><div class="mx-pa"></div><div class="mx-ov"></div></div><div class="mx-msg" id="mx-msg"></div></div>';
+    $("screen").innerHTML = '<div class="mx" id="mx"><div class="mx-world"><div class="mx-pa"></div><div class="mx-ov"></div></div><div class="mx-msg" id="mx-msg"></div><button type="button" class="mx-snd" id="mx-snd" aria-pressed="false">' + SPK + '<span>音を出す</span></button></div>';
     var root = $("mx");
+    $("mx-snd").addEventListener("click", mxSound);
     MX = { root: root, world: root.firstChild, box: { pa: root.querySelector(".mx-pa"), ov: root.querySelector(".mx-ov") }, rep: {}, ready: {}, q: { ov: [], pa: [] },
       mc: {}, media: {}, want: {}, req: {}, done: {}, byHash: {}, seq: 0, lib: false };
     var fit = function () { if (MX) MX.world.style.transform = "scale(" + (MX.root.clientWidth / 1920) + ")"; };
@@ -1059,6 +1064,7 @@ footer { position: relative; z-index: 2; text-align: center; color: var(--soft);
   function mxUnmount() {
     if (!MX) return;
     clearInterval(MX.resync); if (MX.ro) MX.ro.disconnect();
+    if (MX.snd) { try { MX.snd.close(); } catch (e) {} lsend({ t: "mx-audio", on: 0 }); }
     ["ov", "pa"].forEach(function (src) { var R = MX.rep[src]; if (R) try { R.destroy(); } catch (e) {} });
     Object.keys(MX.byHash).forEach(function (h) { URL.revokeObjectURL(MX.byHash[h]); });
     MX = null;
@@ -1074,7 +1080,28 @@ footer { position: relative; z-index: 2; text-align: center; color: var(--soft);
       : miss.length ? "OBS の" + miss.join("と") + "を待っています" : "";
     el.hidden = !el.textContent;
   }
-  // 門番から届いたもの："mx"＋画面＋"|"＋変化・"mc"＋画面＋"|"＋id|番号|数|小分け・"mm"＋自分＋"|"＋素材の情報・"mb"＋自分＋"|"＋id|番号|数|素材の小分け
+  // 音：ボタンで聞く・やめる（押したときに AudioContext を作る。ブラウザは押す前は音を出させない）。OBS の音は絵より少し遅れる
+  function mxSound() {
+    if (!MX) return;
+    var on = !MX.snd, b = $("mx-snd");
+    if (on) { var C = window.AudioContext || window.webkitAudioContext; if (!C) return; try { MX.snd = new C(); } catch (e) { return; } MX.sndAt = {}; }
+    else { try { MX.snd.close(); } catch (e) {} MX.snd = null; }
+    b.setAttribute("aria-pressed", String(on)); b.lastChild.textContent = on ? "音を消す" : "音を出す";
+    lsend({ t: "mx-audio", on: on ? 1 : 0 });
+  }
+  // OBS の音（1ch・16bit）を、届いた順に切れ目なく並べて鳴らす。遅れすぎ・ためすぎたら並べ直す
+  function mxAudio(src, rate, b64) {
+    var ac = MX && MX.snd, bin; if (!ac || !(rate >= 8000 && rate <= 96000)) return;
+    try { bin = atob(b64); } catch (e) { return; }
+    var n = bin.length >> 1; if (!n) return;
+    var buf = ac.createBuffer(1, n, rate), ch = buf.getChannelData(0);
+    for (var i = 0; i < n; i++) { var v = bin.charCodeAt(2 * i) | (bin.charCodeAt(2 * i + 1) << 8); ch[i] = (v >= 32768 ? v - 65536 : v) / 32768; }
+    var now = ac.currentTime, t = MX.sndAt[src] || 0;
+    if (t < now + .05 || t > now + .8) t = now + .15;
+    var s = ac.createBufferSource(); s.buffer = buf; s.connect(ac.destination); s.start(t);
+    MX.sndAt[src] = t + buf.duration;
+  }
+  // 門番から届いたもの："mx"＋画面＋"|"＋変化・"mc"＋画面＋"|"＋id|番号|数|小分け・"mm"＋自分＋"|"＋素材の情報・"mb"＋自分＋"|"＋id|番号|数|素材の小分け・"ma"＋画面＋"|"＋1 秒の数|音
   function cut(s, n) { var out = []; for (var i = 0; i < n; i++) { var k = s.indexOf("|"); if (k < 0) return null; out.push(s.slice(0, k)); s = s.slice(k + 1); } out.push(s); return out; }
   function mxRaw(d) {
     if (!MX) return;
@@ -1088,6 +1115,7 @@ footer { position: relative; z-index: 2; text-align: center; color: var(--soft);
       if (c.got === n) { delete MX.mc[p[0]]; try { list = JSON.parse(c.parts.join("")); } catch (e) { return; } if (Array.isArray(list) && list.length) mxFeed(src, list); }
       return;
     }
+    if (k === "ma" && (src === "ov" || src === "pa")) { var au = cut(d.slice(5), 1); if (au) mxAudio(src, +au[0], au[1]); return; }
     var bar = d.indexOf("|"); if (bar < 0) return;
     if (k === "mm") { var o; try { o = JSON.parse(d.slice(bar + 1)); } catch (e) { return; } if (o) mxMeta(o); return; }
     if (k === "mb") { var q = cut(d.slice(bar + 1), 3); if (q) mxChunk(q[0], +q[1], +q[2], q[3]); }
@@ -1426,7 +1454,7 @@ footer { position: relative; z-index: 2; text-align: center; color: var(--soft);
       ws.onopen = function () { lwsTry = 0; ws.send(JSON.stringify({ t: "hi" })); if (studioOn) mxJoin(); };
       ws.onmessage = function (ev) {
         if (ev.data === "pong") return;
-        if (typeof ev.data === "string" && /^m[xcmb]/.test(ev.data)) { mxRaw(ev.data); return; } // ミラー（OBS の画面の変化・素材）
+        if (typeof ev.data === "string" && /^m[xcmba]/.test(ev.data)) { mxRaw(ev.data); return; } // ミラー（OBS の画面の変化・素材・音）
         var m; try { m = JSON.parse(ev.data); } catch (e) { return; } if (m) onLive(m);
       };
       ws.onclose = function () { if (lws !== ws) return; lws = null; if (liveOpen) lwsLater(); };
