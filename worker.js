@@ -268,7 +268,8 @@ async function route(req, env) {
     }
     // 視聴者のバグ報告（配信オーバーレイが送ってためたもの）。Claude が定期的に読みに来て、配信者に知らせる。上げる口と同じ鍵がいる
     if (url.pathname === "/api/bugs" || url.pathname === "/api/bugs/seen") {
-      if (!env.UPLOAD_KEY || !(await sameKey(bearer(req), env.UPLOAD_KEY))) return json({ error: "key" }, 401);
+      // 鍵が届いていないのか、届いたが違うのかだけ返す（鍵そのものは返さない）
+      if (!env.UPLOAD_KEY || !(await sameKey(bearer(req), env.UPLOAD_KEY))) return json({ error: "key", got: bearer(req) ? "wrong" : "none" }, 401);
       if (url.pathname === "/api/bugs" && req.method === "GET") return lounge(env).fetch("https://lounge/bugs");
       if (url.pathname === "/api/bugs/seen" && req.method === "POST") return lounge(env).fetch("https://lounge/bugs/seen", { method: "POST", body: await req.text() });
       return json({ error: "method" }, 405);
