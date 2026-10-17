@@ -269,7 +269,10 @@ async function route(req, env) {
     // 視聴者のバグ報告（配信オーバーレイが送ってためたもの）。Claude が定期的に読みに来て、配信者に知らせる。上げる口と同じ鍵がいる
     if (url.pathname === "/api/bugs" || url.pathname === "/api/bugs/seen") {
       // 鍵が届いていないのか、届いたが違うのかだけ返す（鍵そのものは返さない）
-      if (!env.UPLOAD_KEY || !(await sameKey(bearer(req), env.UPLOAD_KEY))) return json({ error: "key", got: bearer(req) ? "wrong" : "none" }, 401);
+      if (!env.UPLOAD_KEY || !(await sameKey(bearer(req), env.UPLOAD_KEY))) {
+        const meta = await (await lounge(env).fetch("https://lounge/bugs/meta")).json().catch(() => ({}));
+        return json({ error: "key", got: bearer(req) ? "wrong" : "none", lastOk: meta.lastOk || 0 }, 401); // lastOk：最後に鍵つきで読めた時刻（設定の確認用）
+      }
       if (url.pathname === "/api/bugs" && req.method === "GET") return lounge(env).fetch("https://lounge/bugs");
       if (url.pathname === "/api/bugs/seen" && req.method === "POST") return lounge(env).fetch("https://lounge/bugs/seen", { method: "POST", body: await req.text() });
       return json({ error: "method" }, 405);
@@ -382,7 +385,8 @@ export class Lounge {
       server.serializeAttachment({ ok: false, at: now });
       return new Response(null, { status: 101, webSocket: client });
     }
-    if (url.pathname === "/bugs") return new Response(JSON.stringify({ bugs: this.bugs.slice(-100) }), { headers: { "Content-Type": "application/json; charset=utf-8" } });
+    if (url.pathname === "/bugs/meta") return new Response(JSON.stringify({ lastOk: this.bugsReadAt || 0 }));
+    if (url.pathname === "/bugs") { this.bugsReadAt = now; return new Response(JSON.stringify({ bugs: this.bugs.slice(-100) }), { headers: { "Content-Type": "application/json; charset=utf-8" } }); }
     if (url.pathname === "/bugs/seen") {
       const b = await req.json().catch(() => ({})), ids = Array.isArray(b.ids) ? b.ids.map(String) : [];
       let n = 0; this.bugs.forEach((x) => { if (!x.seen && (b.all || ids.indexOf(x.id) >= 0)) { x.seen = now; n++; } });
