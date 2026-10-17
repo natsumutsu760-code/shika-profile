@@ -356,6 +356,15 @@ export class Lounge {
       this.toViewers({ t: "likes", id: m.id, c: this.likes[m.id], byId: String(m.byId || "").slice(0, 20) });
       await this.state.storage.put("likes", this.likes);
     }
+    // OBS から：MONO LINK にいまいる人の名前（ラウンジに 3 分以内に来た人と、配信ページを開いている人）。鹿物語の「みんなに玉」に使う
+    if (m.t === "who") {
+      for (const k of Object.keys(this.map)) if (now - this.map[k].at > HERE_MS) delete this.map[k];
+      const names = new Set();
+      Object.values(this.map).forEach((x) => { const n = x.n || x.l; if (n) names.add(String(n).slice(0, 40)); });
+      this.viewers().forEach((v) => { const n = this.att(v).n; if (n) names.add(String(n).slice(0, 40)); });
+      ws.send(JSON.stringify({ t: "who", id: String(m.id || "").slice(0, 40), names: [...names].slice(0, 500) }));
+      return;
+    }
     if (m.t === "sys" && typeof m.text === "string" && m.text.trim()) this.toViewers({ t: "sys", text: m.text.replace(/[\u0000-\u001f\u007f]/g, " ").slice(0, 300), at: now });
     // OBS から：バグ報告（同じ id は 1 回だけ）。受け取ったら返事をして、OBS 側は送り直さない
     if (m.t === "bug" && typeof m.id === "string" && /^[\w-]{1,40}$/.test(m.id) && typeof m.text === "string" && m.text.trim()) {
