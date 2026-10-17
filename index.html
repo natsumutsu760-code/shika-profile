@@ -390,15 +390,16 @@ h2.sec::before { content: ""; width: 22px; height: 22px; border-radius: 50%; bor
   .chatwrap { flex: 1 1 0; min-height: 170px; }
   .chat { height: 100%; }
 }
-/* PC：左に映像と打つ欄、右にタブ・操作パネル・コメント欄 */
+/* PC：左に映像・打つ欄・タブ・操作パネル（上から順に）、右はコメント欄だけ（左の列と同じ高さ） */
 @media (min-width: 900px) and (min-height: 501px) {
-  .live { display: grid; grid-template-columns: minmax(0, 1fr) 390px; grid-template-rows: auto auto minmax(0, 1fr); grid-template-areas: "stage tabs" "stage pane" "stage chat"; gap: 10px 18px; align-items: start; margin-top: 8px; height: calc(100vh - 130px); min-height: 560px; }
+  .live { display: grid; grid-template-columns: minmax(0, 1fr) 390px; grid-template-rows: auto auto auto; grid-template-areas: "stage chat" "tabs chat" "pane chat"; gap: 10px 18px; align-items: start; margin-top: 8px; }
   .stick { display: contents; }
   .stage { grid-area: stage; }
   .ltabs { grid-area: tabs; }
-  .lpanel { grid-area: pane; margin-top: 0; max-height: 34vh; overflow-y: auto; overscroll-behavior: contain; }
-  .chatwrap { grid-area: chat; margin-top: 0; height: 100%; min-height: 0; }
-  .chat { height: 100%; }
+  .lpanel { grid-area: pane; margin-top: 0; }
+  /* コメントが増えても左の列の高さに合わせる（中身で列を伸ばさない） */
+  .chatwrap { grid-area: chat; margin-top: 0; align-self: stretch; contain: size; min-height: 420px; display: flex; flex-direction: column; }
+  .chat { flex: 1; height: auto; min-height: 0; }
   .screen { border-radius: 22px; }
 }
 /* スマホを横にしたとき：映像を画面いっぱいに（下へスクロールすると打つ欄・タブ・コメント欄） */
