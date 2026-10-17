@@ -316,7 +316,7 @@ export class Lounge {
     this.lastLike = {}; // いいねの見張り（id → 最後に受けた時刻）
     this.likes = {};    // コメントのいいねの数（コメントの id → 数。新しい 300 件）
     this.bugs = [];     // 視聴者のバグ報告（新しい 200 件。seen は Claude が配信者に知らせた時刻）
-    state.blockConcurrencyWhile(async () => { this.map = (await state.storage.get("here")) || {}; this.likes = (await state.storage.get("likes")) || {}; this.bugs = (await state.storage.get("bugs")) || []; });
+    state.blockConcurrencyWhile(async () => { this.map = (await state.storage.get("here")) || {}; this.likes = (await state.storage.get("likes")) || {}; this.bugs = (await state.storage.get("bugs")) || []; this.bugsReadAt = (await state.storage.get("bugsReadAt")) || 0; });
     // OBS からの "ping" には部屋を起こさずに "pong" と返す
     try { state.setWebSocketAutoResponse(new WebSocketRequestResponsePair("ping", "pong")); } catch (e) {}
   }
@@ -386,7 +386,7 @@ export class Lounge {
       return new Response(null, { status: 101, webSocket: client });
     }
     if (url.pathname === "/bugs/meta") return new Response(JSON.stringify({ lastOk: this.bugsReadAt || 0 }));
-    if (url.pathname === "/bugs") { this.bugsReadAt = now; return new Response(JSON.stringify({ bugs: this.bugs.slice(-100) }), { headers: { "Content-Type": "application/json; charset=utf-8" } }); }
+    if (url.pathname === "/bugs") { this.bugsReadAt = now; await this.state.storage.put("bugsReadAt", now); return new Response(JSON.stringify({ bugs: this.bugs.slice(-100) }), { headers: { "Content-Type": "application/json; charset=utf-8" } }); }
     if (url.pathname === "/bugs/seen") {
       const b = await req.json().catch(() => ({})), ids = Array.isArray(b.ids) ? b.ids.map(String) : [];
       let n = 0; this.bugs.forEach((x) => { if (!x.seen && (b.all || ids.indexOf(x.id) >= 0)) { x.seen = now; n++; } });
