@@ -286,6 +286,14 @@ async function route(req, env) {
       if (url.pathname === "/api/bugs/seen" && req.method === "POST") return lounge(env).fetch("https://lounge/bugs/seen", { method: "POST", body: await req.text() });
       return json({ error: "method" }, 405);
     }
+    // 配信者からのお知らせ：OBS のオーバーレイで音を鳴らし、コメント欄に出す（不具合を直したときなどに Claude が送る）。上げる口と同じ鍵がいる
+    //   GET：つながっている OBS のオーバーレイの数と版（お知らせを受け取れるのは build 42 から）・POST { text }：送る
+    if (url.pathname === "/api/notice") {
+      if (!env.UPLOAD_KEY || !(await sameKey(bearer(req), env.UPLOAD_KEY))) return json({ error: "key", got: bearer(req) ? "wrong" : "none" }, 401);
+      if (req.method === "GET") return lounge(env).fetch("https://lounge/notice");
+      if (req.method === "POST") return lounge(env).fetch("https://lounge/notice", { method: "POST", body: await req.text() });
+      return json({ error: "method" }, 405);
+    }
     // 最近ラウンジに入れなかった人（配信オーバーレイのパネル用。上げる口と同じ鍵がいる）
     if (url.pathname === "/api/denied") {
       if (req.method === "OPTIONS") return new Response(null, { status: 204, headers: UP_CORS });
@@ -426,7 +434,7 @@ export class Lounge {
     }
     if (m.auth != null) { // OBS：最初に上げる鍵
       const ok = !!this.env.UPLOAD_KEY && (await sameKey(String(m.auth), this.env.UPLOAD_KEY));
-      ws.serializeAttachment({ ok, at: now });
+      ws.serializeAttachment({ ok, at: now, b: Math.max(0, Math.min(1e6, Math.floor(+m.b) || 0)) }); // b：オーバーレイの版（build 42 から送ってくる）
       ws.send(JSON.stringify({ t: "auth", ok }));
       if (!ok) ws.close(4001, "key"); else this.toViewers({ t: "obs", on: 1 });
       return;
@@ -489,6 +497,18 @@ export class Lounge {
       this.state.acceptWebSocket(server, ["mx"]);
       server.serializeAttachment({ mxl: 1, ok: false, at: now });
       return new Response(null, { status: 101, webSocket: client });
+    }
+    if (url.pathname === "/notice") {
+      const obs = this.obsSockets(), builds = obs.map((w) => this.att(w).b || 0);
+      if (req.method !== "POST") return new Response(JSON.stringify({ obs: obs.length, builds }), { headers: { "Content-Type": "application/json" } });
+      let m = {}; try { m = JSON.parse(await req.text()); } catch (e) {}
+      const text = String((m && m.text) || "").replace(/[\u0000-\u001f\u007f\u200b-\u200f\u202a-\u202e\u2066-\u2069]/g, " ").replace(/\s+/g, " ").trim().slice(0, 120);
+      if (!text) return new Response(JSON.stringify({ error: "text" }), { status: 400 });
+      if (now - (this.noticeAt || 0) < 5000) return new Response(JSON.stringify({ error: "wait" }), { status: 429 });
+      this.noticeAt = now;
+      const s = JSON.stringify({ t: "notice", id: now.toString(36), text });
+      obs.forEach((w) => { try { w.send(s); } catch (e) {} });
+      return new Response(JSON.stringify({ ok: true, obs: obs.length, builds }), { headers: { "Content-Type": "application/json" } });
     }
     if (url.pathname === "/bugs/meta") return new Response(JSON.stringify({ lastOk: this.bugsReadAt || 0 }));
     if (url.pathname === "/bugs") { this.bugsReadAt = now; await this.state.storage.put("bugsReadAt", now); return new Response(JSON.stringify({ bugs: this.bugs.slice(-100) }), { headers: { "Content-Type": "application/json; charset=utf-8" } }); }
