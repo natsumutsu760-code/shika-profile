@@ -1041,7 +1041,8 @@ footer { position: relative; z-index: 2; text-align: center; color: var(--soft);
     paDraw();
   }
   // ---- 配信者用の隠しページ（#studio-247。どこからもリンクしない）：映像を大きく、右の列の上に鹿物語のいま ----
-  // 鹿物語 → オーバーレイ → 門番 → ここ、と届くので、配信の映像（数秒おくれる）より先にわかる。ボタンはふつうの配信ページと同じ（ログインした人の名前で届く）
+  // 鹿物語 → オーバーレイ → 門番 → ここ、と届くので、配信の映像（数秒おくれる）より先にわかる。ボタンはふつうの配信ページと同じ（ログインした人の名前で届く）。
+  // 鹿物語のいまは、門番が配信者とモデレーターにだけ渡す（ほかの人には pa-no が来て、映像とボタンだけになる）
   var STUDIO = "studio-247", studioOn = false, pa = null, paGot = 0;
   var PA_MINI = { senbei: "鹿せんべい早押し", renda: "みんなで連打", kazu: "数字当て", janken: "じゃんけん" };
   function studio(on) {
@@ -1245,6 +1246,7 @@ footer { position: relative; z-index: 2; text-align: center; color: var(--soft);
     if (m.t === "hello") { setObs(m.obs); var L = m.likes || {}; Object.keys(L).forEach(function (k) { likeN[k] = L[k]; }); chat.querySelectorAll(".like").forEach(function (b) { paintLike(b, b.dataset.like); }); }
     else if (m.t === "obs") setObs(m.on);
     else if (m.t === "pa" && m.s && typeof m.s === "object") { pa = m.s; paGot = Date.now() - Math.max(0, +m.age || 0); paDraw(); }
+    else if (m.t === "pa-no") $("pa").hidden = true; // 鹿物語のいまは、配信者とモデレーターだけ
     else if (m.t === "likes" && typeof m.id === "string") { likeN[m.id] = +m.c || 0; if (meId && m.byId === meId) { liked[m.id] = 1; saveLiked(); } drawLike(m.id); }
     else if (m.t === "sys" && typeof m.text === "string") logLine(m.text);
     else if (m.t === "err") {

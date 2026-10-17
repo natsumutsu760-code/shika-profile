@@ -235,7 +235,9 @@ async function displayName(who) {
 async function ticket(req, env) {
   const e = await enterSoon(req, env);
   if (e.res) return e.res;
-  const room = lounge(env), ask = async (n) => (await room.fetch("https://lounge/ticket", { method: "POST", body: JSON.stringify({ id: e.who.id, l: e.who.login, n }) })).json();
+  // 配信者とモデレーター（staff）だけが、配信者用ページで鹿物語のいまを受け取れる
+  const gate = (await env.DB.get("gate", "json")) || {}, staff = !!e.who.id && (e.who.id === gate.owner || !!(gate.mods && gate.mods[e.who.id]));
+  const room = lounge(env), ask = async (n) => (await room.fetch("https://lounge/ticket", { method: "POST", body: JSON.stringify({ id: e.who.id, l: e.who.login, n, staff }) })).json();
   let r = await ask("");
   if (r.needName) r = await ask(await displayName(e.who));
   return json(r);
@@ -332,8 +334,13 @@ export class Lounge {
     const a = this.att(ws), now = Date.now();
     if (a.v) { // 配信ページから
       if (m.t === "hi") ws.send(JSON.stringify({ t: "hello", obs: this.obsSockets().length ? 1 : 0, likes: this.likes }));
-      // 配信者用ページ：鹿物語のようすを受け取る（印をつけ、いま覚えているものをすぐ渡す）
-      if (m.t === "pa") { if (!a.pa) ws.serializeAttachment({ ...a, pa: 1 }); if (this.pa) ws.send(JSON.stringify({ t: "pa", s: this.pa.s, age: now - this.pa.at })); }
+      // 配信者用ページ：鹿物語のようすを受け取る（配信者とモデレーターだけ。印をつけ、いま覚えているものをすぐ渡す）。
+      // 映像より数秒早く届くので、ほかの人に渡すと早押しのミニゲームで有利になってしまう
+      if (m.t === "pa") {
+        if (!a.staff) { ws.send(JSON.stringify({ t: "pa-no" })); return; }
+        if (!a.pa) ws.serializeAttachment({ ...a, pa: 1 });
+        if (this.pa) ws.send(JSON.stringify({ t: "pa", s: this.pa.s, age: now - this.pa.at }));
+      }
       if (m.t === "like" && typeof m.id === "string" && /^[\w-]{1,64}$/.test(m.id)) {
         if (this.lastLike[a.v] && now - this.lastLike[a.v] < 300) return;
         this.lastLike[a.v] = now;
@@ -373,7 +380,7 @@ export class Lounge {
       const out = JSON.stringify({ t: "pa", s: m.s, age: 0 });
       if (out.length > 8000) return;
       this.pa = { s: m.s, at: now };
-      this.viewers().forEach((v) => { if (this.att(v).pa) try { v.send(out); } catch (e) {} });
+      this.viewers().forEach((v) => { const x = this.att(v); if (x.pa && x.staff) try { v.send(out); } catch (e) {} });
       return;
     }
     if (m.t === "sys" && typeof m.text === "string" && m.text.trim()) this.toViewers({ t: "sys", text: m.text.replace(/[\u0000-\u001f\u007f]/g, " ").slice(0, 300), at: now });
@@ -422,7 +429,7 @@ export class Lounge {
       if (!name) return new Response(JSON.stringify({ needName: true }));
       for (const k of Object.keys(this.tickets)) if (this.tickets[k].until < now) delete this.tickets[k];
       const tk = crypto.randomUUID();
-      this.tickets[tk] = { id, n: name, until: now + 60000 };
+      this.tickets[tk] = { id, n: name, staff: b.staff === true, until: now + 60000 };
       return new Response(JSON.stringify({ ticket: tk }));
     }
     if (url.pathname === "/live") {
@@ -436,7 +443,7 @@ export class Lounge {
       if (vs.length >= 500) vs.slice(0, vs.length - 499).forEach((w) => { try { w.close(1000, "too many"); } catch (e) {} });
       const pair = new WebSocketPair(), client = pair[0], server = pair[1];
       this.state.acceptWebSocket(server, ["v"]);
-      server.serializeAttachment({ v: t.id, n: t.n });
+      server.serializeAttachment({ v: t.id, n: t.n, staff: t.staff ? 1 : 0 });
       return new Response(null, { status: 101, webSocket: client });
     }
     if (url.pathname === "/cmd") {
