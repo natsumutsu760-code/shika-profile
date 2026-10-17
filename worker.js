@@ -316,6 +316,7 @@ export class Lounge {
     this.lastLike = {}; // いいねの見張り（id → 最後に受けた時刻）
     this.likes = {};    // コメントのいいねの数（コメントの id → 数。新しい 300 件）
     this.bugs = [];     // 視聴者のバグ報告（新しい 200 件。seen は Claude が配信者に知らせた時刻）
+    this.pa = null;     // 鹿物語のいまのようす（配信者用ページに出す。覚えておくのは最後の 1 つだけ）
     state.blockConcurrencyWhile(async () => { this.map = (await state.storage.get("here")) || {}; this.likes = (await state.storage.get("likes")) || {}; this.bugs = (await state.storage.get("bugs")) || []; this.bugsReadAt = (await state.storage.get("bugsReadAt")) || 0; });
     // OBS からの "ping" には部屋を起こさずに "pong" と返す
     try { state.setWebSocketAutoResponse(new WebSocketRequestResponsePair("ping", "pong")); } catch (e) {}
@@ -331,6 +332,8 @@ export class Lounge {
     const a = this.att(ws), now = Date.now();
     if (a.v) { // 配信ページから
       if (m.t === "hi") ws.send(JSON.stringify({ t: "hello", obs: this.obsSockets().length ? 1 : 0, likes: this.likes }));
+      // 配信者用ページ：鹿物語のようすを受け取る（印をつけ、いま覚えているものをすぐ渡す）
+      if (m.t === "pa") { if (!a.pa) ws.serializeAttachment({ ...a, pa: 1 }); if (this.pa) ws.send(JSON.stringify({ t: "pa", s: this.pa.s, age: now - this.pa.at })); }
       if (m.t === "like" && typeof m.id === "string" && /^[\w-]{1,64}$/.test(m.id)) {
         if (this.lastLike[a.v] && now - this.lastLike[a.v] < 300) return;
         this.lastLike[a.v] = now;
@@ -363,6 +366,14 @@ export class Lounge {
       Object.values(this.map).forEach((x) => { const n = x.n || x.l; if (n) names.add(String(n).slice(0, 40)); });
       this.viewers().forEach((v) => { const n = this.att(v).n; if (n) names.add(String(n).slice(0, 40)); });
       ws.send(JSON.stringify({ t: "who", id: String(m.id || "").slice(0, 40), names: [...names].slice(0, 500) }));
+      return;
+    }
+    // OBS から：鹿物語のいまのようす。配信者用ページを開いている人にだけ渡す
+    if (m.t === "pa" && m.s && typeof m.s === "object" && !Array.isArray(m.s)) {
+      const out = JSON.stringify({ t: "pa", s: m.s, age: 0 });
+      if (out.length > 8000) return;
+      this.pa = { s: m.s, at: now };
+      this.viewers().forEach((v) => { if (this.att(v).pa) try { v.send(out); } catch (e) {} });
       return;
     }
     if (m.t === "sys" && typeof m.text === "string" && m.text.trim()) this.toViewers({ t: "sys", text: m.text.replace(/[\u0000-\u001f\u007f]/g, " ").slice(0, 300), at: now });

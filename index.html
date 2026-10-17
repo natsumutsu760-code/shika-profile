@@ -383,6 +383,43 @@ h2.sec::before { content: ""; width: 22px; height: 22px; border-radius: 50%; bor
 .chat li.sys { display: block; color: var(--soft); font-size: 12px; text-align: center; }
 .newer { position: absolute; left: 50%; bottom: 10px; transform: translateX(-50%); border: 0; border-radius: 999px; padding: 8px 14px; background: var(--ink); color: #fff; font: 700 13px/1 var(--jp); box-shadow: var(--lift); }
 .newer[hidden] { display: none; }
+/* 配信者用の隠しページ：鹿物語のいま（配信の映像より先に届く。モード・抽選中と保留・数字・持ち玉） */
+.pa { flex: none; margin-bottom: 8px; padding: 10px 12px 12px; border-radius: 16px; background: #fff; box-shadow: inset 0 0 0 1.5px var(--line); display: grid; gap: 8px; }
+.pa[hidden] { display: none; }
+.pa-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; font: 900 13px/1.2 var(--jp); }
+.pa-st { display: inline-flex; align-items: center; gap: 6px; font: 700 12px/1.2 var(--jp); color: var(--soft); }
+.pa-st i { width: 8px; height: 8px; border-radius: 50%; background: var(--soft); }
+.pa-st.on { color: var(--ink); } .pa-st.on i { background: var(--leaf); animation: ping 2s infinite; }
+.pa-st.bad i { background: var(--coral); }
+.pa-mode { margin: 0; padding: 8px 12px; border-radius: 12px; background: #EEF2F8; font: 900 17px/1.3 var(--jp); display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.pa-mode small { font: 700 12px/1.2 var(--jp); padding: 3px 8px; border-radius: 999px; background: var(--ink); color: #fff; white-space: nowrap; }
+.pa-mode[data-k="fever"] { background: var(--coral); color: #fff; }
+.pa-mode[data-k="rush"] { background: #0B1F4D; color: #2AD8D0; }
+.pa-mode[data-k="jitan"] { background: #2AD8D0; }
+.pa-mode[data-k="z-kin"] { background: linear-gradient(90deg, #E9B44C, #FFE7A3, #E9B44C); }
+.pa-mode[data-k="z-inferno"] { background: #3A0606; color: #FF7A2F; }
+.pa-mode[data-k="z-buchi"] { background: #E11D48; color: #fff; }
+.pa-mode[data-k="z-crack"] { background: #050807; color: #39FF8A; }
+.pa-mode[data-k="z-plat"] { background: #000; color: #E6EAF0; }
+.pa-q, .pa-rank { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; }
+.pa-q li { display: grid; grid-template-columns: 44px 14px minmax(0, 1fr); align-items: center; gap: 6px; font: 700 14px/1.5 var(--jp); }
+.pa-q li > span { font: 700 11px/1 var(--jp); color: var(--soft); }
+.pa-q li.now > span { color: var(--coral); font-weight: 900; }
+.pa-q b, .pa-rank b { font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pa-q li.none { display: block; color: var(--soft); font-size: 12px; }
+.pa-dot { width: 14px; height: 14px; border-radius: 50%; background: #fff; box-shadow: inset 0 0 0 2px #B8C0D6; }
+.pa-dot.blue { background: #2F7BFF; box-shadow: none; } .pa-dot.green { background: var(--leaf); box-shadow: none; }
+.pa-dot.red { background: #FF2E4D; box-shadow: none; } .pa-dot.gold { background: radial-gradient(circle at 35% 30%, #FFF3C4, #FFC21A 55%, #C98A00); box-shadow: none; }
+.pa-num { margin: 0; display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; text-align: center; }
+.pa-num div { padding: 5px 2px 4px; border-radius: 10px; background: #F4F7FC; }
+.pa-num dt { font: 700 10.5px/1.2 var(--jp); color: var(--soft); }
+.pa-num dd { margin: 0; font: 600 17px/1.2 var(--num); }
+.pa-rank li { display: grid; grid-template-columns: 18px minmax(0, 1fr) auto; gap: 6px; align-items: baseline; font: 700 13px/1.45 var(--jp); }
+.pa-rank i { font: 600 12px/1 var(--num); font-style: normal; color: var(--soft); text-align: right; }
+.pa-rank em { font: 600 13px/1 var(--num); font-style: normal; }
+.pa-rank li.none { display: block; color: var(--soft); font-size: 12px; }
+.pa h3 { margin: 0; font: 900 12px/1.2 var(--jp); color: var(--soft); }
+
 /* スマホ（縦）：配信ページは画面ぴったりの 1 枚。映像は端から端まで。コメント欄が残りの高さを全部使う */
 @media (max-width: 899px) and (min-height: 501px) {
   body.live-on { overflow: hidden; }
@@ -408,13 +445,19 @@ h2.sec::before { content: ""; width: 22px; height: 22px; border-radius: 50%; bor
   .chatwrap { grid-area: chat; margin-top: 0; align-self: stretch; contain: size; min-height: 420px; display: flex; flex-direction: column; }
   .chat { flex: 1; height: auto; min-height: 0; }
   .screen { border-radius: 22px; }
-  /* 配信を見ているあいだ：ページの横幅の上限を外し、映像を左の端から目いっぱいに。上の見出しと下の文字は隠す */
+  /* 配信を見ているあいだ：ページの横幅の上限を外し、映像を左の端から。上の見出しと下の文字は隠す。
+     映像は 16:9 のまま、打つ欄・タブ・操作パネル・下のボタンまでスクロールなしで 1 画面に収まる大きさ（--under がその下の分）。あまった横幅はコメント欄へ */
   body.live-on .top, body.live-on footer { display: none; }
   body.live-on main { max-width: none; padding: 0 12px 110px 0; }
-  body.live-on .live { grid-template-columns: minmax(0, 1fr) 340px; gap: 10px 12px; margin-top: 0; }
-  body.live-on .screen { border-radius: 0; box-shadow: none; max-height: 100vh; }
+  body.live-on .live { --under: 344px; grid-template-columns: min(calc((100vh - var(--under)) * 16 / 9), calc(100% - 352px)) minmax(340px, 1fr); gap: 10px 12px; margin-top: 0; }
+  body.live-on .screen { border-radius: 0 0 22px 0; box-shadow: none; }
   body.live-on .stage > :not(.screen), body.live-on .ltabs, body.live-on .lpanel { margin-left: 12px; }
+  body.live-on .lpanel { max-height: 176px; overflow-y: auto; overscroll-behavior: contain; }
   body.live-on .chatwrap { margin-top: 12px; }
+  /* 配信者用の隠しページ：映像を端から端まで大きく（ボタンは下へスクロール）。右の列の上に鹿物語のいま */
+  body.studio .live { grid-template-columns: minmax(0, 1fr) 340px; }
+  body.studio .screen { border-radius: 0; max-height: 100vh; }
+  body.studio .lpanel { max-height: none; overflow: visible; }
 }
 /* スマホを横にしたとき：映像を画面いっぱいに（下へスクロールすると打つ欄・タブ・コメント欄） */
 @media (orientation: landscape) and (max-height: 500px) {
@@ -618,7 +661,7 @@ footer { position: relative; z-index: 2; text-align: center; color: var(--soft);
         <div role="tabpanel" id="lp-wear" aria-labelledby="lt-wear" style="--c:var(--leaf)" hidden><div id="wear"></div></div>
         <div role="tabpanel" id="lp-misc" aria-labelledby="lt-misc" hidden></div>
       </div>
-      <div class="chatwrap"><ol class="chat" id="chat" aria-label="配信のコメント"></ol><button type="button" class="newer" id="newer" hidden>新しいコメントへ</button></div>
+      <div class="chatwrap"><section class="pa" id="pa" hidden aria-label="鹿物語のいま"><div class="pa-top"><span>鹿物語のいま</span><span class="pa-st" id="pa-st"><i></i><span>鹿物語を待っています</span></span></div><p class="pa-mode" id="pa-mode">通常</p><ol class="pa-q" id="pa-q"></ol><dl class="pa-num" id="pa-num"></dl><h3>持ち玉</h3><ol class="pa-rank" id="pa-rank"></ol></section><ol class="chat" id="chat" aria-label="配信のコメント"></ol><button type="button" class="newer" id="newer" hidden>新しいコメントへ</button></div>
     </div>
   </section>
 
@@ -671,6 +714,7 @@ footer { position: relative; z-index: 2; text-align: center; color: var(--soft);
     ["そのほか", "#22CC88", [["!けいじばん こんにちは", "ラウンジの掲示板に書く（1 分に 1 回・120 字まで）"], ["!バグ報告 ガチャのあと画面が止まった", "不具合を配信者に知らせる（30 秒に 1 回・300 字まで）"], ["!花火", "画面に花火（!ハート でハート）"], [null, "888 で拍手、草 で草が生える"], ["!discord", "Discord の招待をチャットで受け取る"]]]
   ];
   var NOTES = [
+    ["build 38", "2026-10-17", ["PC の配信ページ：映像を、発射などのボタンまでスクロールなしで見える大きさにしました（あまった横幅はコメント欄が使います）"]],
     ["build 37", "2026-10-17", ["鹿物語 Ver.1.7.3：キャッシュバックの時間を 30 秒から 3 分に。当たる前の 3 分以内にヘソに入れた直近 5 人（当てた人以外）に、1 人ずつ出玉の 50% が入ります", "鹿物語の「あそびかた」は、この配信ページのコマンドのいちばん上に移りました", "大当たりのあいだ、配信画面に当てた人のプロフィールカードがエフェクトつきで最後まで出ます", "配信画面の時計の下に、各地の今日の天気が出ます", "PC の配信ページで、映像を画面の端から端まで大きくしました"]],
     ["build 36", "2026-10-17", ["鹿物語 Ver.1.7.2：キャッシュバックを変更。当たる前の 30 秒以内にヘソに玉を入れた直近 5 人（当てた人以外）に、1 人ずつ出玉の 50% が入ります"]],
     ["build 35", "2026-10-17", ["鹿物語 Ver.1.7.1：大当たりのとき、ヘソに玉を入れた直近 5 人（当てた人以外）にキャッシュバック。出玉の半分を 5 人で山分けします"]],
@@ -730,12 +774,12 @@ footer { position: relative; z-index: 2; text-align: center; color: var(--soft);
     warp.style.setProperty("--x", x + "px"); warp.style.setProperty("--y", y + "px");
     warp.style.setProperty("--c", color || "#2EA8FF");
     var swap = function () {
-      view = v; liveView(v === "live");
+      view = v; if (v !== "live") studio(false); liveView(v === "live");
       document.querySelectorAll(".view").forEach(function (s) { s.hidden = s.id !== "v-" + v; s.classList.remove("enter"); });
       var el = $("v-" + v); void el.offsetWidth; el.classList.add("enter");
       document.querySelectorAll(".dock button").forEach(function (b) { if (b.dataset.go === v) b.setAttribute("aria-current", "page"); else b.removeAttribute("aria-current"); });
       scrollTo(0, 0);
-      if (v !== "me") history.replaceState(null, "", v === "lobby" ? location.pathname : "#" + v);
+      if (v !== "me") history.replaceState(null, "", v === "lobby" ? location.pathname : "#" + (v === "live" && studioOn ? STUDIO : v));
     };
     if (RM) { swap(); return; }
     warp.classList.remove("go"); void warp.offsetWidth; warp.classList.add("go");
@@ -994,7 +1038,38 @@ footer { position: relative; z-index: 2; text-align: center; color: var(--soft);
     var el = $("onair");
     el.className = "onair" + (obsOn ? " on" : obsOn === false ? " off" : "");
     el.lastChild.textContent = obsOn ? "ボタンが配信に届きます" : obsOn === false ? "いまは配信していないので、ボタンは届きません" : "確かめています";
+    paDraw();
   }
+  // ---- 配信者用の隠しページ（#studio-247。どこからもリンクしない）：映像を大きく、右の列の上に鹿物語のいま ----
+  // 鹿物語 → オーバーレイ → 門番 → ここ、と届くので、配信の映像（数秒おくれる）より先にわかる。ボタンはふつうの配信ページと同じ（ログインした人の名前で届く）
+  var STUDIO = "studio-247", studioOn = false, pa = null, paGot = 0;
+  var PA_MINI = { senbei: "鹿せんべい早押し", renda: "みんなで連打", kazu: "数字当て", janken: "じゃんけん" };
+  function studio(on) {
+    if (on === studioOn) return; studioOn = on;
+    document.body.classList.toggle("studio", on); $("pa").hidden = !on;
+    if (on && lws && lws.readyState === 1) lws.send(JSON.stringify({ t: "pa" }));
+    paDraw();
+  }
+  function paDraw() {
+    if (!studioOn) return;
+    var age = pa ? Date.now() - paGot : Infinity, fresh = age < 15000, st = $("pa-st");
+    st.className = "pa-st" + (obsOn !== false && pa && fresh ? " on" : pa && !fresh ? " bad" : "");
+    st.lastChild.textContent = obsOn === false ? "配信していません" : !pa ? "鹿物語を待っています" : fresh ? "遅れなし" : "止まっています（" + (age < 3600000 ? Math.round(age / 60000) + " 分前まで" : "1 時間以上前まで") + "）";
+    if (!pa) { $("pa-mode").textContent = "—"; $("pa-mode").removeAttribute("data-k"); $("pa-q").innerHTML = ""; $("pa-num").innerHTML = ""; $("pa-rank").innerHTML = ""; return; }
+    var m = $("pa-mode"), mini = PA_MINI[pa.mini] || "";
+    m.dataset.k = pa.fever ? "fever" : String(pa.cls || "").replace(/[^\w-]/g, "");
+    m.innerHTML = esc(pa.fever ? "大当たり中" : pa.mode || "通常") + (mini ? "<small>" + esc(mini) + "</small>" : "");
+    var dot = function (c) { return '<i class="pa-dot ' + (/^(white|blue|green|red|gold)$/.test(c) ? c : "") + '"></i>'; };
+    var rows = [], holds = Array.isArray(pa.holds) ? pa.holds : [];
+    if (Array.isArray(pa.now)) rows.push('<li class="now"><span>抽選中</span>' + dot(pa.now[1]) + "<b>" + esc(pa.now[0]) + "</b></li>");
+    holds.slice(0, 4).forEach(function (h, i) { if (Array.isArray(h)) rows.push("<li><span>保留" + (i + 1) + "</span>" + dot(h[1]) + "<b>" + esc(h[0]) + "</b></li>"); });
+    $("pa-q").innerHTML = rows.join("") || '<li class="none">保留はありません</li>';
+    var num = function (k, v) { return "<div><dt>" + k + "</dt><dd>" + esc(v == null ? "—" : v) + "</dd></div>"; };
+    $("pa-num").innerHTML = num("大当たり", pa.hits) + num("回転", pa.spins) + num("ハマり", pa.hamari) + num("確率", pa.odds);
+    var rank = Array.isArray(pa.rank) ? pa.rank : [];
+    $("pa-rank").innerHTML = rank.slice(0, 5).map(function (r, i) { return Array.isArray(r) ? "<li><i>" + (i + 1) + "</i><b>" + esc(r[0]) + "</b><em>" + esc(Number(r[1]) || 0) + "玉</em></li>" : ""; }).join("") || '<li class="none">まだだれも玉を持っていません</li>';
+  }
+  setInterval(function () { if (studioOn && pa) paDraw(); }, 5000);
   // 送った・止められた：上の組のすぐ下に、ふきだしで出す
   function tell(msg, kind) { hint(msg, kind === "err"); }
   function cool() { var p = $("push"); p.classList.remove("cool"); void p.offsetWidth; p.classList.add("cool"); }
@@ -1158,7 +1233,7 @@ footer { position: relative; z-index: 2; text-align: center; color: var(--soft);
       if (!liveOpen || (lws && lws.readyState <= 1)) return;
       if (!j || !j.ticket) { lwsLater(); return; }
       var ws; try { ws = lws = new WebSocket(location.origin.replace(/^http/, "ws") + "/api/live?ticket=" + encodeURIComponent(j.ticket)); } catch (e) { lwsLater(); return; }
-      ws.onopen = function () { lwsTry = 0; ws.send(JSON.stringify({ t: "hi" })); };
+      ws.onopen = function () { lwsTry = 0; ws.send(JSON.stringify({ t: "hi" })); if (studioOn) ws.send(JSON.stringify({ t: "pa" })); };
       ws.onmessage = function (ev) { if (ev.data === "pong") return; var m; try { m = JSON.parse(ev.data); } catch (e) { return; } if (m) onLive(m); };
       ws.onclose = function () { if (lws !== ws) return; lws = null; if (liveOpen) lwsLater(); };
     }, lwsLater);
@@ -1169,6 +1244,7 @@ footer { position: relative; z-index: 2; text-align: center; color: var(--soft);
   function onLive(m) {
     if (m.t === "hello") { setObs(m.obs); var L = m.likes || {}; Object.keys(L).forEach(function (k) { likeN[k] = L[k]; }); chat.querySelectorAll(".like").forEach(function (b) { paintLike(b, b.dataset.like); }); }
     else if (m.t === "obs") setObs(m.on);
+    else if (m.t === "pa" && m.s && typeof m.s === "object") { pa = m.s; paGot = Date.now() - Math.max(0, +m.age || 0); paDraw(); }
     else if (m.t === "likes" && typeof m.id === "string") { likeN[m.id] = +m.c || 0; if (meId && m.byId === meId) { liked[m.id] = 1; saveLiked(); } drawLike(m.id); }
     else if (m.t === "sys" && typeof m.text === "string") logLine(m.text);
     else if (m.t === "err") {
@@ -1266,8 +1342,9 @@ footer { position: relative; z-index: 2; text-align: center; color: var(--soft);
 
   function route() {
     var h = decodeURIComponent(location.hash.slice(1));
-    if (h.indexOf("u=") === 0 && data) { var v = findViewer(h.slice(2)); view = "me"; liveView(false); document.querySelectorAll(".view").forEach(function (s) { s.hidden = s.id !== "v-me"; }); render(v, h.slice(2)); }
-    else if (/^(live|cmd|notes|season|board)$/.test(h)) go(h);
+    if (h === STUDIO) { studio(true); if (view === "live") history.replaceState(null, "", "#" + STUDIO); else go("live"); return; }
+    if (h.indexOf("u=") === 0 && data) { var v = findViewer(h.slice(2)); view = "me"; studio(false); liveView(false); document.querySelectorAll(".view").forEach(function (s) { s.hidden = s.id !== "v-me"; }); render(v, h.slice(2)); }
+    else if (/^(live|cmd|notes|season|board)$/.test(h)) { studio(false); go(h); }
     else document.querySelector('.dock [data-go="lobby"]').setAttribute("aria-current", "page");
   }
   function boot(d) {
