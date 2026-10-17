@@ -286,6 +286,20 @@ async function route(req, env) {
       if (url.pathname === "/api/bugs/seen" && req.method === "POST") return lounge(env).fetch("https://lounge/bugs/seen", { method: "POST", body: await req.text() });
       return json({ error: "method" }, 405);
     }
+    // 自己診断：オーバーレイ・パネル・鹿物語が見つけた問題（エラーコード）。オーバーレイは WebSocket で、パネルはここへ POST で送る（オーバーレイが固まっても届くように）。
+    // Claude が tools/diag.sh で読み、配信者に知らせる。上げる口と同じ鍵がいる
+    if (url.pathname === "/api/diag" || url.pathname === "/api/diag/seen") {
+      if (req.method === "OPTIONS") return new Response(null, { status: 204, headers: UP_CORS });
+      if (!env.UPLOAD_KEY || !(await sameKey(bearer(req), env.UPLOAD_KEY))) return json({ error: "key", got: bearer(req) ? "wrong" : "none" }, 401, UP_CORS);
+      if (url.pathname === "/api/diag" && req.method === "GET") return lounge(env).fetch("https://lounge/diag");
+      if (req.method === "POST") {
+        const body = await req.text();
+        if (body.length > 30000) return json({ error: "size" }, 413, UP_CORS);
+        const r = await lounge(env).fetch(url.pathname === "/api/diag" ? "https://lounge/diag" : "https://lounge/diag/seen", { method: "POST", body });
+        return new Response(r.body, { status: r.status, headers: { "Content-Type": "application/json", ...UP_CORS } });
+      }
+      return json({ error: "method" }, 405, UP_CORS);
+    }
     // 配信者からのお知らせ：OBS のオーバーレイで音を鳴らし、コメント欄に出す（不具合を直したときなどに Claude が送る）。上げる口と同じ鍵がいる
     //   GET：つながっている OBS のオーバーレイの数と版（お知らせを受け取れるのは build 42 から）・POST { text }：送る
     if (url.pathname === "/api/notice") {
@@ -344,7 +358,7 @@ export class Lounge {
     this.likes = {};    // コメントのいいねの数（コメントの id → 数。新しい 300 件）
     this.bugs = [];     // 視聴者のバグ報告（新しい 200 件。seen は Claude が配信者に知らせた時刻）
     this.mxAsk = {};    // ミラーの素材の頼みの見張り（id → [10 秒の間の数, 始まり]）
-    state.blockConcurrencyWhile(async () => { this.map = (await state.storage.get("here")) || {}; this.likes = (await state.storage.get("likes")) || {}; this.bugs = (await state.storage.get("bugs")) || []; this.bugsReadAt = (await state.storage.get("bugsReadAt")) || 0; });
+    state.blockConcurrencyWhile(async () => { this.map = (await state.storage.get("here")) || {}; this.likes = (await state.storage.get("likes")) || {}; this.bugs = (await state.storage.get("bugs")) || []; this.bugsReadAt = (await state.storage.get("bugsReadAt")) || 0; this.diag = (await state.storage.get("diag")) || { comps: {}, at: 0 }; this.issues = (await state.storage.get("issues")) || []; });
     // OBS からの "ping" には部屋を起こさずに "pong" と返す
     try { state.setWebSocketAutoResponse(new WebSocketRequestResponsePair("ping", "pong")); } catch (e) {}
   }
@@ -357,6 +371,30 @@ export class Lounge {
   // 映像より早く届くので、配信者とモデレーターにだけ渡す（ほかの人に渡すと早押しのミニゲームで有利になってしまう）
   mxLeaders(src, but) { return this.state.getWebSockets("mx").filter((w) => { const x = this.att(w); return w !== but && x.ok && (!src || x.src === src); }); }
   mxFollowers(but) { return this.viewers().filter((w) => { const x = this.att(w); return w !== but && x.mx && x.staff; }); }
+  // 自己診断を記録する。画面ごと（ov・ovp・pa）に、いまのエラーコードと、問題が出た・消えた時刻（issues。Claude が知らせたら seen）
+  //   cnow：送ってきた PC の時計でのいま（記録の時刻 t は PC の時計なので、門番の時計とのずれを直す）
+  async diagIngest(d, via, now, cnow) {
+    if (!d || typeof d !== "object") return;
+    const skew = +cnow > 0 ? now - +cnow : 0; let changed = false;
+    const clean = (x, n) => String(x == null ? "" : x).replace(/[\u0000-\u001f\u007f\u200b-\u200f\u202a-\u202e\u2066-\u2069]/g, " ").slice(0, n);
+    const RX = { ov: /^OV\d{2}$/, ovp: /^PN\d{2}$/, pa: /^SK\d{2}$/ };
+    this.diag = this.diag || { comps: {}, at: 0 }; this.issues = this.issues || [];
+    for (const comp of ["ov", "ovp", "pa"]) {
+      const r = d[comp]; if (!r || typeof r !== "object" || !Array.isArray(r.c)) continue;
+      const t = Math.min(now, (+r.t || 0) + skew); if (now - t > 90000) continue; // 止まっている画面の古い記録は使わない（止まっていることはパネルの PN01・PN02 で分かる）
+      const codes = r.c.slice(0, 20).filter((x) => Array.isArray(x) && RX[comp].test(String(x[0]))).map((x) => ({ c: String(x[0]), m: clean(x[1], 200), e: x[2] === "e" ? "e" : "w" }));
+      this.diag.comps[comp] = { t, at: now, via, b: Math.max(0, Math.floor(+r.b) || 0), v: clean(r.v, 12), live: r.live === true ? true : r.live === false ? false : null, c: codes };
+      const open = this.issues.filter((x) => x.comp === comp && !x.end);
+      codes.forEach((k) => {
+        const o = open.find((x) => x.c === k.c);
+        if (o) { o.last = now; o.m = k.m; o.e = k.e; } else { this.issues.push({ id: now.toString(36) + Math.random().toString(36).slice(2, 6), comp, c: k.c, m: k.m, e: k.e, first: now, last: now, end: 0, seen: 0 }); changed = true; }
+      });
+      open.forEach((x) => { if (!codes.some((k) => k.c === x.c)) { x.end = now; changed = true; } });
+    }
+    // 閉じて 3 日たったものは捨て、新しい 150 件まで（保存の 1 つの値は 128 KB まで）
+    this.issues = this.issues.filter((x) => !x.end || now - x.end < 3 * 86400000).slice(-150); this.diag.at = now;
+    if (changed || now - (this.diagSavedAt || 0) > 30000) { this.diagSavedAt = now; await this.state.storage.put("diag", this.diag); await this.state.storage.put("issues", this.issues); } // 問題が開いた・閉じたときはすぐ、ほかは 30 秒に 1 回
+  }
   // 見ている人の数（n）と、音を聞いている人の数（a）を OBS に知らせる（0 なら記録・音をやめる）。snap：いまの画面をまるごと送り直してもらう
   mxTell(snap, but) {
     const f = MX_PAUSED ? [] : this.mxFollowers(but), s = JSON.stringify({ t: "mx", n: f.length, a: f.filter((w) => this.att(w).au).length, snap: snap ? 1 : 0 });
@@ -440,6 +478,8 @@ export class Lounge {
       return;
     }
     if (!a.ok) return;
+    // OBS から：自己診断（オーバーレイ・パネル・鹿物語の分をまとめて）
+    if (m.t === "diag" && m.d && typeof m.d === "object") { await this.diagIngest(m.d, "ov", now, m.now); return; }
     // OBS から：確かめたいいねの数・配信のコメント欄に出たシステムログ
     if (m.t === "likes" && typeof m.id === "string" && /^[\w-]{1,64}$/.test(m.id) && m.c >= 0) {
       delete this.likes[m.id]; this.likes[m.id] = Math.floor(+m.c) || 0;
@@ -497,6 +537,23 @@ export class Lounge {
       this.state.acceptWebSocket(server, ["mx"]);
       server.serializeAttachment({ mxl: 1, ok: false, at: now });
       return new Response(null, { status: 101, webSocket: client });
+    }
+    if (url.pathname === "/diag") {
+      if (req.method === "POST") {
+        if (now - (this.diagPostAt || 0) < 10000) return new Response(JSON.stringify({ error: "wait" }), { status: 429 });
+        this.diagPostAt = now;
+        let m = {}; try { m = JSON.parse(await req.text()); } catch (e) {}
+        await this.diagIngest(m && m.d, "panel", now, m && m.now);
+        return new Response(JSON.stringify({ ok: true }), { headers: { "Content-Type": "application/json" } });
+      }
+      const issues = (this.issues || []).filter((x) => !x.end || now - x.end < 86400000).slice(-60);
+      return new Response(JSON.stringify({ now, obs: this.obsSockets().length, comps: (this.diag || {}).comps || {}, issues }), { headers: { "Content-Type": "application/json" } });
+    }
+    if (url.pathname === "/diag/seen") {
+      const b = await req.json().catch(() => ({})), ids = Array.isArray(b.ids) ? b.ids.map(String) : [];
+      let n = 0; (this.issues || []).forEach((x) => { if (!x.seen && (b.all || ids.indexOf(x.id) >= 0)) { x.seen = now; n++; } });
+      if (n) await this.state.storage.put("issues", this.issues);
+      return new Response(JSON.stringify({ ok: true, marked: n }), { headers: { "Content-Type": "application/json" } });
     }
     if (url.pathname === "/notice") {
       const obs = this.obsSockets(), builds = obs.map((w) => this.att(w).b || 0);
