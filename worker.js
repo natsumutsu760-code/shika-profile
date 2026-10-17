@@ -319,6 +319,10 @@ async function route(req, env) {
   }
 }
 
+// ミラー（配信者用ページに OBS の画面を映す）を止めておく：OBS には「見ている人は 0 人」と伝え、記録させない。
+// 配信中にオーバーレイが止まったため（2026-10-17）。OBS 側を軽くして確かめるまで止める
+const MX_PAUSED = true;
+
 // ---------- いまラウンジにいる人（1 つだけの部屋）----------
 export class Lounge {
   constructor(state, env) {
@@ -345,8 +349,11 @@ export class Lounge {
   // 映像より早く届くので、配信者とモデレーターにだけ渡す（ほかの人に渡すと早押しのミニゲームで有利になってしまう）
   mxLeaders(src, but) { return this.state.getWebSockets("mx").filter((w) => { const x = this.att(w); return w !== but && x.ok && (!src || x.src === src); }); }
   mxFollowers(but) { return this.viewers().filter((w) => { const x = this.att(w); return w !== but && x.mx && x.staff; }); }
-  // 見ている人の数を OBS に知らせる（0 なら記録をやめる）。snap：いまの画面をまるごと送り直してもらう
-  mxTell(snap, but) { const s = JSON.stringify({ t: "mx", n: this.mxFollowers(but).length, snap: snap ? 1 : 0 }); this.mxLeaders().forEach((w) => { try { w.send(s); } catch (e) {} }); }
+  // 見ている人の数（n）と、音を聞いている人の数（a）を OBS に知らせる（0 なら記録・音をやめる）。snap：いまの画面をまるごと送り直してもらう
+  mxTell(snap, but) {
+    const f = MX_PAUSED ? [] : this.mxFollowers(but), s = JSON.stringify({ t: "mx", n: f.length, a: f.filter((w) => this.att(w).au).length, snap: snap ? 1 : 0 });
+    this.mxLeaders().forEach((w) => { try { w.send(s); } catch (e) {} });
+  }
   mxToFollowers(s, to, but) { this.mxFollowers(but).forEach((w) => { if (!to || this.att(w).v === to) try { w.send(s); } catch (e) {} }); }
   async mxFromLeader(ws, a, msg) {
     if (typeof msg !== "string") return;
@@ -358,7 +365,8 @@ export class Lounge {
       ws.send(JSON.stringify({ t: "auth", ok }));
       if (!ok) { ws.close(4001, "key"); return; }
       this.mxLeaders(src, ws).forEach((w) => { try { w.close(1000, "replaced"); } catch (e) {} }); // OBS で開き直したら古いほうを閉じる
-      ws.send(JSON.stringify({ t: "mx", n: this.mxFollowers().length, snap: 1 }));
+      const f = MX_PAUSED ? [] : this.mxFollowers();
+      ws.send(JSON.stringify({ t: "mx", n: f.length, a: f.filter((w) => this.att(w).au).length, snap: 1 }));
       this.mxToFollowers(JSON.stringify({ t: "mx-src", src, on: 1 }));
       return;
     }
@@ -366,6 +374,8 @@ export class Lounge {
     const k = msg.slice(0, 2);
     // mx：画面の変化・mc：大きいものの小分け（"mx" / "mc" ＋ 画面 ＋ "|" ＋ 中身）→ 見ている全員へ。自分の画面のものだけ
     if (k === "mx" || k === "mc") { if (msg.slice(2, 5) === a.src + "|") this.mxToFollowers(msg); return; }
+    // ma：音（"ma" ＋ 画面 ＋ "|" ＋ …）→ 音を聞いている人だけへ
+    if (k === "ma") { if (msg.slice(2, 5) === a.src + "|") this.mxFollowers().forEach((w) => { if (this.att(w).au) try { w.send(msg); } catch (e) {} }); return; }
     // mm：素材の情報・mb：素材の中身（"mm" / "mb" ＋ 頼んだ人の id ＋ "|" ＋ 中身）→ 頼んだ人だけへ
     if (k === "mm" || k === "mb") { const bar = msg.indexOf("|"), to = msg.slice(2, bar); if (bar > 2 && /^\d{1,20}$/.test(to)) this.mxToFollowers(msg, to); }
   }
@@ -385,6 +395,10 @@ export class Lounge {
         this.mxTell(true);
         return;
       }
+      // 見ている人から：配信者用ページを離れた（ふつうの配信ページに戻った）
+      if (m.t === "mx-leave" && a.mx) { ws.serializeAttachment({ ...a, mx: 0, au: 0 }); this.mxTell(false); return; }
+      // 見ている人から：音を聞く・やめる
+      if (m.t === "mx-audio" && a.mx && a.staff) { const au = m.on ? 1 : 0; if (!!a.au !== !!au) { ws.serializeAttachment({ ...a, au }); this.mxTell(false); } return; }
       // 見ている人から：素材を頼む（mx-get：情報・mx-pull：中身）・画面を送り直してもらう（mx-snap）。10 秒に 60 回まで
       if ((m.t === "mx-get" || m.t === "mx-pull" || m.t === "mx-snap") && a.mx && a.staff) {
         const q = this.mxAsk[a.v] && now - this.mxAsk[a.v][1] < 10000 ? this.mxAsk[a.v] : (this.mxAsk[a.v] = [0, now]);
