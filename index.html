@@ -691,6 +691,7 @@ footer { position: relative; z-index: 2; text-align: center; color: var(--soft);
     ["そのほか", "#22CC88", [["!けいじばん こんにちは", "ラウンジの掲示板に書く（1 分に 1 回・120 字まで）"], ["!バグ報告 ガチャのあと画面が止まった", "不具合を配信者に知らせる（30 秒に 1 回・300 字まで）"], ["!花火", "画面に花火（!ハート でハート）"], [null, "888 で拍手、草 で草が生える"], ["!discord", "Discord の招待をチャットで受け取る"]]]
   ];
   var NOTES = [
+    ["build 48", "2026-10-18", ["配信者用ページのミラー（OBS の画面をそのまま映す）を、軽くした版で戻しました。OBS が重くなったときは、配信を守るために自動で 10 分休みます"]],
     ["build 47", "2026-10-18", ["鹿物語 Ver.1.7.11：盤面の背景の動画は、ちゃんと流れることを確かめてから見せるようにしました。止まってしまう PC でも、背景がちらつかず、絵で表示されます"]],
     ["build 46", "2026-10-18", ["鹿物語 Ver.1.7.10：盤面の背景の動画がすぐ止まってしまう PC では、別の再生のしかたに切り替えるようにしました。どの方法でも止まるときは、背景の絵で表示します"]],
     ["build 45", "2026-10-18", ["鹿物語 Ver.1.7.9：盤面の背景が、ときどき止まって最初から再生し直されていたのを直しました", "チャンネルポイントの交換で玉が出なくなることがあったのを、さらに直しました（Twitch とのつなぎ直しがうまくいかなかったときに、自動でやり直します）"]],
@@ -1053,14 +1054,14 @@ footer { position: relative; z-index: 2; text-align: center; color: var(--soft);
     $("screen").innerHTML = '<div class="mx" id="mx"><div class="mx-world"><div class="mx-pa"></div><div class="mx-ov"></div></div><div class="mx-msg" id="mx-msg"></div></div>';
     var root = $("mx");
     MX = { root: root, world: root.firstChild, box: { pa: root.querySelector(".mx-pa"), ov: root.querySelector(".mx-ov") }, rep: {}, ready: {}, q: { ov: [], pa: [] },
-      mc: {}, media: {}, want: {}, req: {}, done: {}, byHash: {}, seq: 0, lib: false };
+      mc: {}, media: {}, want: {}, req: {}, done: {}, byHash: {}, seq: 0, lib: false, rest: {} };
     var fit = function () { if (MX) MX.world.style.transform = "scale(" + (MX.root.clientWidth / 1920) + ")"; };
     MX.ro = window.ResizeObserver ? new ResizeObserver(fit) : null; if (MX.ro) MX.ro.observe(root); else addEventListener("resize", fit);
     fit(); mxMsg();
     mxLib().then(function () { if (!MX) return; MX.lib = true; ["ov", "pa"].forEach(function (src) { var q = MX.q[src]; MX.q[src] = []; q.forEach(function (l) { mxFeed(src, l); }); }); },
       function () { if (MX) $("mx-msg").textContent = "再生の部品を読み込めませんでした。ページを開き直してください"; });
-    // ときどき画面をまるごと送り直してもらい、ずれを直す（古い再生はそのとき捨てる）
-    MX.resync = setInterval(function () { if (MX && mxOn) lsend({ t: "mx-snap" }); }, 240000);
+    // ときどき画面をまるごと送り直してもらい、ずれを直す（古い再生はそのとき捨てる）。OBS の負担にならないように 15 分ごと
+    MX.resync = setInterval(function () { if (MX && mxOn) lsend({ t: "mx-snap" }); }, 900000);
   }
   function mxUnmount() {
     if (!MX) return;
@@ -1072,11 +1073,13 @@ footer { position: relative; z-index: 2; text-align: center; color: var(--soft);
   function mxMsg() {
     var el = MX && $("mx-msg"); if (!el) return;
     var miss = ["pa", "ov"].filter(function (s) { return !MX.ready[s]; }).map(function (s) { return s === "pa" ? "鹿物語" : "レイアウト"; });
+    var resting = ["pa", "ov"].filter(function (s) { return MX.rest[s] > Date.now(); }).map(function (s) { return s === "pa" ? "鹿物語" : "レイアウト"; });
     var off = mxOn && ["pa", "ov"].filter(function (s) { return !mxSrcOn[s]; }).map(function (s) { return s === "pa" ? "鹿物語" : "レイアウト"; });
     // オーバーレイが配信ページにはつながっている（obsOn）のにミラーがない：OBS がまだ前の版（build 38 まで）
     el.textContent = mxOn === null ? "確かめています"
       : off && off.length ? (obsOn ? "OBS の" + off.join("と") + "が、まだ新しい版になっていません。数分たつと自動で新しくなってつながります（急ぐときは OBS でそのソースを更新）"
         : "OBS の" + off.join("と") + "がつながっていません。OBS で開いているか確かめてください")
+      : resting.length ? "OBS の" + resting.join("と") + "が重くなったので、配信を守るためにミラーを止めています（10 分たつと、また映ります）"
       : miss.length ? "OBS の" + miss.join("と") + "を待っています" : "";
     el.hidden = !el.textContent;
   }
@@ -1108,6 +1111,7 @@ footer { position: relative; z-index: 2; text-align: center; color: var(--soft);
     list.forEach(function (e) {
       if (!e || typeof e.timestamp !== "number") return;
       if (e.type === 4) { MX["meta" + src] = e; return; }
+      if (e.type === 5 && e.data && e.data.tag === "mx-rest") { MX.rest[src] = Date.now() + 1000 * Math.min(3600, +(e.data.payload || {}).sec || 600); mxMsg(); return; }
       if (e.type === 2) { mxNew(src, e); return; }
       if (!MX.ready[src] || e.type !== 3) return;
       e.timestamp = MX["last" + src] = Math.max(MX["last" + src], Date.now());
@@ -1121,7 +1125,7 @@ footer { position: relative; z-index: 2; text-align: center; color: var(--soft);
   function mxNew(src, full) {
     var now = Date.now(), meta = MX["meta" + src] || { type: 4, data: { href: "", width: 1920, height: 1080 } };
     MX["last" + src] = now; full.timestamp = meta.timestamp = now - 1; // まるごとはすぐ組み立てる
-    MX["cv" + src] = {}; mxMediaScan(src, full.data && full.data.node);
+    MX["cv" + src] = {}; MX.rest[src] = 0; mxMediaScan(src, full.data && full.data.node);
     var host = document.createElement("div"), old = MX.rep[src], oldHost = old && old.__host;
     MX.box[src].appendChild(host);
     var R;
