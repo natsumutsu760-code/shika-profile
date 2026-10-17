@@ -322,6 +322,9 @@ async function route(req, env) {
 // ミラー（配信者用ページに OBS の画面を映す）を止めておく：OBS には「見ている人は 0 人」と伝え、記録させない。
 // 配信中にオーバーレイが止まったため（2026-10-17）。OBS 側を軽くして確かめるまで止める
 const MX_PAUSED = true;
+// 記録させる OBS の版（鍵といっしょに送ってくる v）。build 39 の OBS（v なし）は、キャンバスの絵を GPU から待って読み出すので、
+// 見ている人がいても記録させない（自動で新しい版になるまで「0 人」と伝える）
+const MX_V = 2;
 
 // ---------- いまラウンジにいる人（1 つだけの部屋）----------
 export class Lounge {
@@ -347,7 +350,8 @@ export class Lounge {
   toViewers(o) { const s = JSON.stringify(o); this.viewers().forEach((ws) => { try { ws.send(s); } catch (e) {} }); }
   // ---- ミラー：OBS の 2 画面（ov：オーバーレイ・pa：鹿物語）の変化を、配信者・モデの配信者用ページ（見ている人）へ中継する ----
   // 映像より早く届くので、配信者とモデレーターにだけ渡す（ほかの人に渡すと早押しのミニゲームで有利になってしまう）
-  mxLeaders(src, but) { return this.state.getWebSockets("mx").filter((w) => { const x = this.att(w); return w !== but && x.ok && (!src || x.src === src); }); }
+  mxAll(src, but) { return this.state.getWebSockets("mx").filter((w) => { const x = this.att(w); return w !== but && x.ok && (!src || x.src === src); }); }
+  mxLeaders(src, but) { return this.mxAll(src, but).filter((w) => (this.att(w).ver || 0) >= MX_V); } // 記録させてよい版のものだけ
   mxFollowers(but) { return this.viewers().filter((w) => { const x = this.att(w); return w !== but && x.mx && x.staff; }); }
   // 見ている人の数（n）と、音を聞いている人の数（a）を OBS に知らせる（0 なら記録・音をやめる）。snap：いまの画面をまるごと送り直してもらう
   mxTell(snap, but) {
@@ -361,15 +365,17 @@ export class Lounge {
       let m; try { m = JSON.parse(msg); } catch (e) { return; }
       const src = m && (m.src === "ov" || m.src === "pa") ? m.src : "";
       const ok = !!src && m.auth != null && !!this.env.UPLOAD_KEY && (await sameKey(String(m.auth), this.env.UPLOAD_KEY));
-      ws.serializeAttachment({ mxl: 1, ok, src, at: Date.now() });
+      const ver = Math.max(0, Math.min(99, Math.floor(+m.v) || 0));
+      ws.serializeAttachment({ mxl: 1, ok, src, ver, at: Date.now() });
       ws.send(JSON.stringify({ t: "auth", ok }));
       if (!ok) { ws.close(4001, "key"); return; }
-      this.mxLeaders(src, ws).forEach((w) => { try { w.close(1000, "replaced"); } catch (e) {} }); // OBS で開き直したら古いほうを閉じる
-      const f = MX_PAUSED ? [] : this.mxFollowers();
+      this.mxAll(src, ws).forEach((w) => { try { w.close(1000, "replaced"); } catch (e) {} }); // OBS で開き直したら古いほうを閉じる
+      const f = MX_PAUSED || ver < MX_V ? [] : this.mxFollowers();
       ws.send(JSON.stringify({ t: "mx", n: f.length, a: f.filter((w) => this.att(w).au).length, snap: 1 }));
-      this.mxToFollowers(JSON.stringify({ t: "mx-src", src, on: 1 }));
+      if (ver >= MX_V) this.mxToFollowers(JSON.stringify({ t: "mx-src", src, on: 1 }));
       return;
     }
+    if ((a.ver || 0) < MX_V) return; // 古い版の OBS からは受け取らない
     if (msg.length > 1100000) return;
     const k = msg.slice(0, 2);
     // mx：画面の変化・mc：大きいものの小分け（"mx" / "mc" ＋ 画面 ＋ "|" ＋ 中身）→ 見ている全員へ。自分の画面のものだけ
