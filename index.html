@@ -1015,6 +1015,7 @@ footer { position: relative; z-index: 2; text-align: center; color: var(--soft);
     var el = $("onair");
     el.className = "onair" + (obsOn ? " on" : obsOn === false ? " off" : "");
     el.lastChild.textContent = obsOn ? "ボタンが配信に届きます" : obsOn === false ? "いまは配信していないので、ボタンは届きません" : "確かめています";
+    mxMsg();
   }
   // ---- 配信者用の隠しページ（#studio-247。どこからもリンクしない）：映像を端から端まで大きく ----
   // 配信の映像のかわりに、OBS で動いている鹿物語とレイアウトを、このページの中でそのまま動かす（ミラー）。
@@ -1043,7 +1044,7 @@ footer { position: relative; z-index: 2; text-align: center; color: var(--soft);
   }
   function mxMount() {
     if (MX) return;
-    $("screen").innerHTML = '<div class="mx" id="mx"><div class="mx-world"><div class="mx-pa"></div><div class="mx-ov"></div></div><p class="mx-msg" id="mx-msg"></p></div>';
+    $("screen").innerHTML = '<div class="mx" id="mx"><div class="mx-world"><div class="mx-pa"></div><div class="mx-ov"></div></div><div class="mx-msg" id="mx-msg"></div></div>';
     var root = $("mx");
     MX = { root: root, world: root.firstChild, box: { pa: root.querySelector(".mx-pa"), ov: root.querySelector(".mx-ov") }, rep: {}, ready: {}, q: { ov: [], pa: [] },
       mc: {}, media: {}, want: {}, req: {}, done: {}, byHash: {}, seq: 0, lib: false };
@@ -1066,7 +1067,10 @@ footer { position: relative; z-index: 2; text-align: center; color: var(--soft);
     var el = MX && $("mx-msg"); if (!el) return;
     var miss = ["pa", "ov"].filter(function (s) { return !MX.ready[s]; }).map(function (s) { return s === "pa" ? "鹿物語" : "レイアウト"; });
     var off = mxOn && ["pa", "ov"].filter(function (s) { return !mxSrcOn[s]; }).map(function (s) { return s === "pa" ? "鹿物語" : "レイアウト"; });
-    el.textContent = mxOn === null ? "確かめています" : off && off.length ? "OBS の" + off.join("と") + "がつながっていません（OBS で開いているか、操作パネルに MONO LINK の鍵が入っているか確かめてください）"
+    // オーバーレイが配信ページにはつながっている（obsOn）のにミラーがない：OBS がまだ前の版（build 38 まで）
+    el.textContent = mxOn === null ? "確かめています"
+      : off && off.length ? (obsOn ? "OBS の" + off.join("と") + "が、まだ新しい版になっていません。数分たつと自動で新しくなってつながります（急ぐときは OBS でそのソースを更新）"
+        : "OBS の" + off.join("と") + "がつながっていません。OBS で開いているか確かめてください")
       : miss.length ? "OBS の" + miss.join("と") + "を待っています" : "";
     el.hidden = !el.textContent;
   }
