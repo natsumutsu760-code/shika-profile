@@ -235,7 +235,7 @@ async function displayName(who) {
 async function ticket(req, env) {
   const e = await enterSoon(req, env);
   if (e.res) return e.res;
-  // 配信者とモデレーター（staff）だけが、配信者用ページで鹿物語のいまを受け取れる
+  // 配信者とモデレーター（staff）だけが、配信者用ページで OBS の画面（ミラー）を受け取れる
   const gate = (await env.DB.get("gate", "json")) || {}, staff = !!e.who.id && (e.who.id === gate.owner || !!(gate.mods && gate.mods[e.who.id]));
   const room = lounge(env), ask = async (n) => (await room.fetch("https://lounge/ticket", { method: "POST", body: JSON.stringify({ id: e.who.id, l: e.who.login, n, staff }) })).json();
   let r = await ask("");
@@ -246,6 +246,13 @@ async function ticket(req, env) {
 async function config(env) {
   const gate = await env.DB.get("gate", "json");
   return json({ clientId: gate ? gate.clientId : "", owner: gate ? gate.owner : "", ready: !!gate });
+}
+
+// 配信者用ページで使う rrweb の再生部分（MIT。このリポジトリに置いたもの）。JavaScript として返す
+async function replayJs() {
+  const r = await fetch(HTML_URL.replace(/index\.html$/, "mx-replay.js"), { cf: { cacheTtl: 3600, cacheEverything: true } });
+  if (!r.ok) return new Response("", { status: 502 });
+  return new Response(await r.text(), { headers: { "Content-Type": "application/javascript; charset=utf-8", "Cache-Control": "public, max-age=3600", ...SEC } });
 }
 
 async function page() {
@@ -297,10 +304,16 @@ async function route(req, env) {
       if ((req.headers.get("Upgrade") || "").toLowerCase() !== "websocket") return json({ error: "upgrade" }, 426, UP_CORS);
       return lounge(env).fetch(new Request("https://lounge/obs", req));
     }
+    // OBS の 2 画面（オーバーレイ・鹿物語）が、配信者用ページへ画面をそのまま映す（ミラー）ためにつなぐ口
+    if (url.pathname === "/api/mirror") {
+      if ((req.headers.get("Upgrade") || "").toLowerCase() !== "websocket") return json({ error: "upgrade" }, 426, UP_CORS);
+      return lounge(env).fetch(new Request("https://lounge/mirror", req));
+    }
     if (url.pathname === "/api/ping" && req.method === "GET") return ping(req, env);
     if (url.pathname === "/api/bye" && req.method === "POST") return bye(req, env);
     if (url.pathname === "/api/config" && req.method === "GET") return config(env);
     if (url.pathname.startsWith("/api/")) return json({ error: "notfound" }, 404);
+    if (url.pathname === "/mx-replay.js" && req.method === "GET") return replayJs();
     if (req.method !== "GET" && req.method !== "HEAD") return json({ error: "method" }, 405);
     return page();
   }
@@ -318,7 +331,7 @@ export class Lounge {
     this.lastLike = {}; // いいねの見張り（id → 最後に受けた時刻）
     this.likes = {};    // コメントのいいねの数（コメントの id → 数。新しい 300 件）
     this.bugs = [];     // 視聴者のバグ報告（新しい 200 件。seen は Claude が配信者に知らせた時刻）
-    this.pa = null;     // 鹿物語のいまのようす（配信者用ページに出す。覚えておくのは最後の 1 つだけ）
+    this.mxAsk = {};    // ミラーの素材の頼みの見張り（id → [10 秒の間の数, 始まり]）
     state.blockConcurrencyWhile(async () => { this.map = (await state.storage.get("here")) || {}; this.likes = (await state.storage.get("likes")) || {}; this.bugs = (await state.storage.get("bugs")) || []; this.bugsReadAt = (await state.storage.get("bugsReadAt")) || 0; });
     // OBS からの "ping" には部屋を起こさずに "pong" と返す
     try { state.setWebSocketAutoResponse(new WebSocketRequestResponsePair("ping", "pong")); } catch (e) {}
@@ -328,18 +341,59 @@ export class Lounge {
   obsSockets(but) { return this.state.getWebSockets("obs").filter((ws) => ws !== but && this.att(ws).ok); }
   viewers() { return this.state.getWebSockets("v"); }
   toViewers(o) { const s = JSON.stringify(o); this.viewers().forEach((ws) => { try { ws.send(s); } catch (e) {} }); }
+  // ---- ミラー：OBS の 2 画面（ov：オーバーレイ・pa：鹿物語）の変化を、配信者・モデの配信者用ページ（見ている人）へ中継する ----
+  // 映像より早く届くので、配信者とモデレーターにだけ渡す（ほかの人に渡すと早押しのミニゲームで有利になってしまう）
+  mxLeaders(src, but) { return this.state.getWebSockets("mx").filter((w) => { const x = this.att(w); return w !== but && x.ok && (!src || x.src === src); }); }
+  mxFollowers(but) { return this.viewers().filter((w) => { const x = this.att(w); return w !== but && x.mx && x.staff; }); }
+  // 見ている人の数を OBS に知らせる（0 なら記録をやめる）。snap：いまの画面をまるごと送り直してもらう
+  mxTell(snap, but) { const s = JSON.stringify({ t: "mx", n: this.mxFollowers(but).length, snap: snap ? 1 : 0 }); this.mxLeaders().forEach((w) => { try { w.send(s); } catch (e) {} }); }
+  mxToFollowers(s, to, but) { this.mxFollowers(but).forEach((w) => { if (!to || this.att(w).v === to) try { w.send(s); } catch (e) {} }); }
+  async mxFromLeader(ws, a, msg) {
+    if (typeof msg !== "string") return;
+    if (!a.ok) { // 最初に鍵と、どちらの画面か
+      let m; try { m = JSON.parse(msg); } catch (e) { return; }
+      const src = m && (m.src === "ov" || m.src === "pa") ? m.src : "";
+      const ok = !!src && m.auth != null && !!this.env.UPLOAD_KEY && (await sameKey(String(m.auth), this.env.UPLOAD_KEY));
+      ws.serializeAttachment({ mxl: 1, ok, src, at: Date.now() });
+      ws.send(JSON.stringify({ t: "auth", ok }));
+      if (!ok) { ws.close(4001, "key"); return; }
+      this.mxLeaders(src, ws).forEach((w) => { try { w.close(1000, "replaced"); } catch (e) {} }); // OBS で開き直したら古いほうを閉じる
+      ws.send(JSON.stringify({ t: "mx", n: this.mxFollowers().length, snap: 1 }));
+      this.mxToFollowers(JSON.stringify({ t: "mx-src", src, on: 1 }));
+      return;
+    }
+    if (msg.length > 1100000) return;
+    const k = msg.slice(0, 2);
+    // mx：画面の変化・mc：大きいものの小分け（"mx" / "mc" ＋ 画面 ＋ "|" ＋ 中身）→ 見ている全員へ。自分の画面のものだけ
+    if (k === "mx" || k === "mc") { if (msg.slice(2, 5) === a.src + "|") this.mxToFollowers(msg); return; }
+    // mm：素材の情報・mb：素材の中身（"mm" / "mb" ＋ 頼んだ人の id ＋ "|" ＋ 中身）→ 頼んだ人だけへ
+    if (k === "mm" || k === "mb") { const bar = msg.indexOf("|"), to = msg.slice(2, bar); if (bar > 2 && /^\d{1,20}$/.test(to)) this.mxToFollowers(msg, to); }
+  }
   async webSocketMessage(ws, msg) {
+    const a0 = this.att(ws);
+    if (a0.mxl) return this.mxFromLeader(ws, a0, msg);
     let m; try { m = JSON.parse(typeof msg === "string" ? msg : new TextDecoder().decode(msg)); } catch (e) { return; }
     if (!m || typeof m !== "object") return;
     const a = this.att(ws), now = Date.now();
     if (a.v) { // 配信ページから
       if (m.t === "hi") ws.send(JSON.stringify({ t: "hello", obs: this.obsSockets().length ? 1 : 0, likes: this.likes }));
-      // 配信者用ページ：鹿物語のようすを受け取る（配信者とモデレーターだけ。印をつけ、いま覚えているものをすぐ渡す）。
-      // 映像より数秒早く届くので、ほかの人に渡すと早押しのミニゲームで有利になってしまう
-      if (m.t === "pa") {
-        if (!a.staff) { ws.send(JSON.stringify({ t: "pa-no" })); return; }
-        if (!a.pa) ws.serializeAttachment({ ...a, pa: 1 });
-        if (this.pa) ws.send(JSON.stringify({ t: "pa", s: this.pa.s, age: now - this.pa.at }));
+      // 配信者用ページ：OBS の画面（ミラー）を見はじめる。配信者とモデレーターだけ。両方の画面に「いまの画面をまるごと」送ってもらう
+      if (m.t === "mx-join") {
+        if (!a.staff) { ws.send(JSON.stringify({ t: "mx-no" })); return; }
+        if (!a.mx) ws.serializeAttachment({ ...a, mx: 1 });
+        ws.send(JSON.stringify({ t: "mx-ok", ov: this.mxLeaders("ov").length ? 1 : 0, pa: this.mxLeaders("pa").length ? 1 : 0 }));
+        this.mxTell(true);
+        return;
+      }
+      // 見ている人から：素材を頼む（mx-get：情報・mx-pull：中身）・画面を送り直してもらう（mx-snap）。10 秒に 60 回まで
+      if ((m.t === "mx-get" || m.t === "mx-pull" || m.t === "mx-snap") && a.mx && a.staff) {
+        const q = this.mxAsk[a.v] && now - this.mxAsk[a.v][1] < 10000 ? this.mxAsk[a.v] : (this.mxAsk[a.v] = [0, now]);
+        if (++q[0] > 60) return;
+        if (m.t === "mx-snap") { this.mxTell(true); return; }
+        if (m.src !== "ov" && m.src !== "pa") return;
+        const out = JSON.stringify({ t: m.t, id: String(m.id || "").slice(0, 40), url: String(m.url || "").slice(0, 600), alt: String(m.alt || "").slice(0, 300), from: a.v });
+        this.mxLeaders(m.src).forEach((w) => { try { w.send(out); } catch (e) {} });
+        return;
       }
       if (m.t === "like" && typeof m.id === "string" && /^[\w-]{1,64}$/.test(m.id)) {
         if (this.lastLike[a.v] && now - this.lastLike[a.v] < 300) return;
@@ -375,14 +429,6 @@ export class Lounge {
       ws.send(JSON.stringify({ t: "who", id: String(m.id || "").slice(0, 40), names: [...names].slice(0, 500) }));
       return;
     }
-    // OBS から：鹿物語のいまのようす。配信者用ページを開いている人にだけ渡す
-    if (m.t === "pa" && m.s && typeof m.s === "object" && !Array.isArray(m.s)) {
-      const out = JSON.stringify({ t: "pa", s: m.s, age: 0 });
-      if (out.length > 8000) return;
-      this.pa = { s: m.s, at: now };
-      this.viewers().forEach((v) => { const x = this.att(v); if (x.pa && x.staff) try { v.send(out); } catch (e) {} });
-      return;
-    }
     if (m.t === "sys" && typeof m.text === "string" && m.text.trim()) this.toViewers({ t: "sys", text: m.text.replace(/[\u0000-\u001f\u007f]/g, " ").slice(0, 300), at: now });
     // OBS から：バグ報告（同じ id は 1 回だけ）。受け取ったら返事をして、OBS 側は送り直さない
     if (m.t === "bug" && typeof m.id === "string" && /^[\w-]{1,40}$/.test(m.id) && typeof m.text === "string" && m.text.trim()) {
@@ -398,7 +444,10 @@ export class Lounge {
   }
   async webSocketClose(ws, code) {
     try { ws.close(code === 1005 ? 1000 : code, "bye"); } catch (e) {}
-    if (this.att(ws).ok && !this.obsSockets(ws).length) this.toViewers({ t: "obs", on: 0 });
+    const a = this.att(ws);
+    if (a.mxl) { if (a.ok && !this.mxLeaders(a.src, ws).length) this.mxToFollowers(JSON.stringify({ t: "mx-src", src: a.src, on: 0 })); return; }
+    if (a.mx) this.mxTell(false, ws); // 見ている人が減った（0 になったら OBS は記録をやめる）
+    if (a.ok && !this.obsSockets(ws).length) this.toViewers({ t: "obs", on: 0 });
   }
   async webSocketError() {}
   async fetch(req) {
@@ -410,6 +459,14 @@ export class Lounge {
       const pair = new WebSocketPair(), client = pair[0], server = pair[1];
       this.state.acceptWebSocket(server, ["obs"]);
       server.serializeAttachment({ ok: false, at: now });
+      return new Response(null, { status: 101, webSocket: client });
+    }
+    if (url.pathname === "/mirror") {
+      const all = this.state.getWebSockets("mx");
+      if (all.length >= 6) all.slice(0, all.length - 5).forEach((w) => { try { w.close(1000, "too many"); } catch (e) {} });
+      const pair = new WebSocketPair(), client = pair[0], server = pair[1];
+      this.state.acceptWebSocket(server, ["mx"]);
+      server.serializeAttachment({ mxl: 1, ok: false, at: now });
       return new Response(null, { status: 101, webSocket: client });
     }
     if (url.pathname === "/bugs/meta") return new Response(JSON.stringify({ lastOk: this.bugsReadAt || 0 }));

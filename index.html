@@ -383,42 +383,19 @@ h2.sec::before { content: ""; width: 22px; height: 22px; border-radius: 50%; bor
 .chat li.sys { display: block; color: var(--soft); font-size: 12px; text-align: center; }
 .newer { position: absolute; left: 50%; bottom: 10px; transform: translateX(-50%); border: 0; border-radius: 999px; padding: 8px 14px; background: var(--ink); color: #fff; font: 700 13px/1 var(--jp); box-shadow: var(--lift); }
 .newer[hidden] { display: none; }
-/* 配信者用の隠しページ：鹿物語のいま（配信の映像より先に届く。モード・抽選中と保留・数字・持ち玉） */
-.pa { flex: none; margin-bottom: 8px; padding: 10px 12px 12px; border-radius: 16px; background: #fff; box-shadow: inset 0 0 0 1.5px var(--line); display: grid; gap: 8px; }
-.pa[hidden] { display: none; }
-.pa-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; font: 900 13px/1.2 var(--jp); }
-.pa-st { display: inline-flex; align-items: center; gap: 6px; font: 700 12px/1.2 var(--jp); color: var(--soft); }
-.pa-st i { width: 8px; height: 8px; border-radius: 50%; background: var(--soft); }
-.pa-st.on { color: var(--ink); } .pa-st.on i { background: var(--leaf); animation: ping 2s infinite; }
-.pa-st.bad i { background: var(--coral); }
-.pa-mode { margin: 0; padding: 8px 12px; border-radius: 12px; background: #EEF2F8; font: 900 17px/1.3 var(--jp); display: flex; align-items: center; justify-content: space-between; gap: 8px; }
-.pa-mode small { font: 700 12px/1.2 var(--jp); padding: 3px 8px; border-radius: 999px; background: var(--ink); color: #fff; white-space: nowrap; }
-.pa-mode[data-k="fever"] { background: var(--coral); color: #fff; }
-.pa-mode[data-k="rush"] { background: #0B1F4D; color: #2AD8D0; }
-.pa-mode[data-k="jitan"] { background: #2AD8D0; }
-.pa-mode[data-k="z-kin"] { background: linear-gradient(90deg, #E9B44C, #FFE7A3, #E9B44C); }
-.pa-mode[data-k="z-inferno"] { background: #3A0606; color: #FF7A2F; }
-.pa-mode[data-k="z-buchi"] { background: #E11D48; color: #fff; }
-.pa-mode[data-k="z-crack"] { background: #050807; color: #39FF8A; }
-.pa-mode[data-k="z-plat"] { background: #000; color: #E6EAF0; }
-.pa-q, .pa-rank { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; }
-.pa-q li { display: grid; grid-template-columns: 44px 14px minmax(0, 1fr); align-items: center; gap: 6px; font: 700 14px/1.5 var(--jp); }
-.pa-q li > span { font: 700 11px/1 var(--jp); color: var(--soft); }
-.pa-q li.now > span { color: var(--coral); font-weight: 900; }
-.pa-q b, .pa-rank b { font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.pa-q li.none { display: block; color: var(--soft); font-size: 12px; }
-.pa-dot { width: 14px; height: 14px; border-radius: 50%; background: #fff; box-shadow: inset 0 0 0 2px #B8C0D6; }
-.pa-dot.blue { background: #2F7BFF; box-shadow: none; } .pa-dot.green { background: var(--leaf); box-shadow: none; }
-.pa-dot.red { background: #FF2E4D; box-shadow: none; } .pa-dot.gold { background: radial-gradient(circle at 35% 30%, #FFF3C4, #FFC21A 55%, #C98A00); box-shadow: none; }
-.pa-num { margin: 0; display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; text-align: center; }
-.pa-num div { padding: 5px 2px 4px; border-radius: 10px; background: #F4F7FC; }
-.pa-num dt { font: 700 10.5px/1.2 var(--jp); color: var(--soft); }
-.pa-num dd { margin: 0; font: 600 17px/1.2 var(--num); }
-.pa-rank li { display: grid; grid-template-columns: 18px minmax(0, 1fr) auto; gap: 6px; align-items: baseline; font: 700 13px/1.45 var(--jp); }
-.pa-rank i { font: 600 12px/1 var(--num); font-style: normal; color: var(--soft); text-align: right; }
-.pa-rank em { font: 600 13px/1 var(--num); font-style: normal; }
-.pa-rank li.none { display: block; color: var(--soft); font-size: 12px; }
-.pa h3 { margin: 0; font: 900 12px/1.2 var(--jp); color: var(--soft); }
+/* 配信者用の隠しページ：配信の映像のかわりに、OBS の鹿物語とレイアウトを、このページの中でそのまま動かす（ミラー）。
+   1920×1080 の画面の左上 (24, 24) に鹿物語を 0.75 倍、その上にオーバーレイ（OBS と同じ重ね方）。枠の大きさに合わせて縮める */
+.mx { position: absolute; inset: 0; overflow: hidden; background: #000; }
+.mx-world { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; transform-origin: 0 0; }
+.mx-pa { position: absolute; left: 24px; top: 24px; width: 1920px; height: 1080px; transform: scale(.75); transform-origin: 0 0; }
+.mx-ov { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px; }
+.mx-pa > div, .mx-ov > div { position: absolute; inset: 0; }
+.mx-pa > div.old, .mx-ov > div.old { visibility: hidden; }
+.mx iframe { border: 0; display: block; background: transparent; }
+.mx .replayer-mouse, .mx .replayer-mouse-tail { display: none; }
+.mx-msg { position: absolute; left: 50%; top: 50%; z-index: 2; transform: translate(-50%, -50%); margin: 0; max-width: calc(100% - 32px); padding: 10px 16px; border-radius: 14px;
+  background: rgba(27,35,64,.82); color: #fff; font: 700 14px/1.5 var(--jp); text-align: center; }
+.mx-msg[hidden] { display: none; }
 
 /* スマホ（縦）：配信ページは画面ぴったりの 1 枚。映像は端から端まで。コメント欄が残りの高さを全部使う */
 @media (max-width: 899px) and (min-height: 501px) {
@@ -661,7 +638,7 @@ footer { position: relative; z-index: 2; text-align: center; color: var(--soft);
         <div role="tabpanel" id="lp-wear" aria-labelledby="lt-wear" style="--c:var(--leaf)" hidden><div id="wear"></div></div>
         <div role="tabpanel" id="lp-misc" aria-labelledby="lt-misc" hidden></div>
       </div>
-      <div class="chatwrap"><section class="pa" id="pa" hidden aria-label="鹿物語のいま"><div class="pa-top"><span>鹿物語のいま</span><span class="pa-st" id="pa-st"><i></i><span>鹿物語を待っています</span></span></div><p class="pa-mode" id="pa-mode">通常</p><ol class="pa-q" id="pa-q"></ol><dl class="pa-num" id="pa-num"></dl><h3>持ち玉</h3><ol class="pa-rank" id="pa-rank"></ol></section><ol class="chat" id="chat" aria-label="配信のコメント"></ol><button type="button" class="newer" id="newer" hidden>新しいコメントへ</button></div>
+      <div class="chatwrap"><ol class="chat" id="chat" aria-label="配信のコメント"></ol><button type="button" class="newer" id="newer" hidden>新しいコメントへ</button></div>
     </div>
   </section>
 
@@ -1038,39 +1015,247 @@ footer { position: relative; z-index: 2; text-align: center; color: var(--soft);
     var el = $("onair");
     el.className = "onair" + (obsOn ? " on" : obsOn === false ? " off" : "");
     el.lastChild.textContent = obsOn ? "ボタンが配信に届きます" : obsOn === false ? "いまは配信していないので、ボタンは届きません" : "確かめています";
-    paDraw();
   }
-  // ---- 配信者用の隠しページ（#studio-247。どこからもリンクしない）：映像を大きく、右の列の上に鹿物語のいま ----
-  // 鹿物語 → オーバーレイ → 門番 → ここ、と届くので、配信の映像（数秒おくれる）より先にわかる。ボタンはふつうの配信ページと同じ（ログインした人の名前で届く）。
-  // 鹿物語のいまは、門番が配信者とモデレーターにだけ渡す（ほかの人には pa-no が来て、映像とボタンだけになる）
-  var STUDIO = "studio-247", studioOn = false, pa = null, paGot = 0;
-  var PA_MINI = { senbei: "鹿せんべい早押し", renda: "みんなで連打", kazu: "数字当て", janken: "じゃんけん" };
+  // ---- 配信者用の隠しページ（#studio-247。どこからもリンクしない）：映像を端から端まで大きく ----
+  // 配信の映像のかわりに、OBS で動いている鹿物語とレイアウトを、このページの中でそのまま動かす（ミラー）。
+  // OBS の 2 画面（ov：オーバーレイ・pa：鹿物語）が rrweb で記録した画面の変化を、門番が配信者とモデレーターにだけ中継する（映像より早く届くので）。
+  // ほかの人（mx-no）には、ふつうの映像とボタン。ボタンはふつうの配信ページと同じ（ログインした人の名前で届く）
+  var STUDIO = "studio-247", studioOn = false, mxOn = null, mxSrcOn = { ov: false, pa: false }, MX = null;
   function studio(on) {
     if (on === studioOn) return; studioOn = on;
-    document.body.classList.toggle("studio", on); $("pa").hidden = !on;
-    if (on && lws && lws.readyState === 1) lws.send(JSON.stringify({ t: "pa" }));
-    paDraw();
+    document.body.classList.toggle("studio", on);
+    if (!on) mxOn = null;
+    if (liveOpen) player(canSound()); // 映像の場所を、ミラーとふつうの映像で入れ替える
+    if (on && lws && lws.readyState === 1) mxJoin();
   }
-  function paDraw() {
-    if (!studioOn) return;
-    var age = pa ? Date.now() - paGot : Infinity, fresh = age < 15000, st = $("pa-st");
-    st.className = "pa-st" + (obsOn !== false && pa && fresh ? " on" : pa && !fresh ? " bad" : "");
-    st.lastChild.textContent = obsOn === false ? "配信していません" : !pa ? "鹿物語を待っています" : fresh ? "遅れなし" : "止まっています（" + (age < 3600000 ? Math.round(age / 60000) + " 分前まで" : "1 時間以上前まで") + "）";
-    if (!pa) { $("pa-mode").textContent = "—"; $("pa-mode").removeAttribute("data-k"); $("pa-q").innerHTML = ""; $("pa-num").innerHTML = ""; $("pa-rank").innerHTML = ""; return; }
-    var m = $("pa-mode"), mini = PA_MINI[pa.mini] || "";
-    m.dataset.k = pa.fever ? "fever" : String(pa.cls || "").replace(/[^\w-]/g, "");
-    m.innerHTML = esc(pa.fever ? "大当たり中" : pa.mode || "通常") + (mini ? "<small>" + esc(mini) + "</small>" : "");
-    var dot = function (c) { return '<i class="pa-dot ' + (/^(white|blue|green|red|gold)$/.test(c) ? c : "") + '"></i>'; };
-    var rows = [], holds = Array.isArray(pa.holds) ? pa.holds : [];
-    if (Array.isArray(pa.now)) rows.push('<li class="now"><span>抽選中</span>' + dot(pa.now[1]) + "<b>" + esc(pa.now[0]) + "</b></li>");
-    holds.slice(0, 4).forEach(function (h, i) { if (Array.isArray(h)) rows.push("<li><span>保留" + (i + 1) + "</span>" + dot(h[1]) + "<b>" + esc(h[0]) + "</b></li>"); });
-    $("pa-q").innerHTML = rows.join("") || '<li class="none">保留はありません</li>';
-    var num = function (k, v) { return "<div><dt>" + k + "</dt><dd>" + esc(v == null ? "—" : v) + "</dd></div>"; };
-    $("pa-num").innerHTML = num("大当たり", pa.hits) + num("回転", pa.spins) + num("ハマり", pa.hamari) + num("確率", pa.odds);
-    var rank = Array.isArray(pa.rank) ? pa.rank : [];
-    $("pa-rank").innerHTML = rank.slice(0, 5).map(function (r, i) { return Array.isArray(r) ? "<li><i>" + (i + 1) + "</i><b>" + esc(r[0]) + "</b><em>" + esc(Number(r[1]) || 0) + "玉</em></li>" : ""; }).join("") || '<li class="none">まだだれも玉を持っていません</li>';
+  function lsend(o) { if (lws && lws.readyState === 1) lws.send(JSON.stringify(o)); }
+  function mxJoin() { lsend({ t: "mx-join" }); }
+  // 再生の部品（rrweb の Replayer。門番が /mx-replay.js で配る）は、はじめて使うときに読み込む
+  var mxLibWait = null;
+  function mxLib() {
+    if (window.rrwebReplay) return Promise.resolve();
+    return mxLibWait || (mxLibWait = new Promise(function (res, rej) {
+      var sc = document.createElement("script"); sc.src = "/mx-replay.js";
+      sc.onload = function () { if (window.rrwebReplay) res(); else { mxLibWait = null; rej(); } };
+      sc.onerror = function () { mxLibWait = null; rej(); };
+      document.head.appendChild(sc);
+    }));
   }
-  setInterval(function () { if (studioOn && pa) paDraw(); }, 5000);
+  function mxMount() {
+    if (MX) return;
+    $("screen").innerHTML = '<div class="mx" id="mx"><div class="mx-world"><div class="mx-pa"></div><div class="mx-ov"></div></div><p class="mx-msg" id="mx-msg"></p></div>';
+    var root = $("mx");
+    MX = { root: root, world: root.firstChild, box: { pa: root.querySelector(".mx-pa"), ov: root.querySelector(".mx-ov") }, rep: {}, ready: {}, q: { ov: [], pa: [] },
+      mc: {}, media: {}, want: {}, req: {}, done: {}, byHash: {}, seq: 0, lib: false };
+    var fit = function () { if (MX) MX.world.style.transform = "scale(" + (MX.root.clientWidth / 1920) + ")"; };
+    MX.ro = window.ResizeObserver ? new ResizeObserver(fit) : null; if (MX.ro) MX.ro.observe(root); else addEventListener("resize", fit);
+    fit(); mxMsg();
+    mxLib().then(function () { if (!MX) return; MX.lib = true; ["ov", "pa"].forEach(function (src) { var q = MX.q[src]; MX.q[src] = []; q.forEach(function (l) { mxFeed(src, l); }); }); },
+      function () { if (MX) $("mx-msg").textContent = "再生の部品を読み込めませんでした。ページを開き直してください"; });
+    // ときどき画面をまるごと送り直してもらい、ずれを直す（古い再生はそのとき捨てる）
+    MX.resync = setInterval(function () { if (MX && mxOn) lsend({ t: "mx-snap" }); }, 240000);
+  }
+  function mxUnmount() {
+    if (!MX) return;
+    clearInterval(MX.resync); if (MX.ro) MX.ro.disconnect();
+    ["ov", "pa"].forEach(function (src) { var R = MX.rep[src]; if (R) try { R.destroy(); } catch (e) {} });
+    Object.keys(MX.byHash).forEach(function (h) { URL.revokeObjectURL(MX.byHash[h]); });
+    MX = null;
+  }
+  function mxMsg() {
+    var el = MX && $("mx-msg"); if (!el) return;
+    var miss = ["pa", "ov"].filter(function (s) { return !MX.ready[s]; }).map(function (s) { return s === "pa" ? "鹿物語" : "レイアウト"; });
+    var off = mxOn && ["pa", "ov"].filter(function (s) { return !mxSrcOn[s]; }).map(function (s) { return s === "pa" ? "鹿物語" : "レイアウト"; });
+    el.textContent = mxOn === null ? "確かめています" : off && off.length ? "OBS の" + off.join("と") + "がつながっていません（OBS で開いているか、操作パネルに MONO LINK の鍵が入っているか確かめてください）"
+      : miss.length ? "OBS の" + miss.join("と") + "を待っています" : "";
+    el.hidden = !el.textContent;
+  }
+  // 門番から届いたもの："mx"＋画面＋"|"＋変化・"mc"＋画面＋"|"＋id|番号|数|小分け・"mm"＋自分＋"|"＋素材の情報・"mb"＋自分＋"|"＋id|番号|数|素材の小分け
+  function cut(s, n) { var out = []; for (var i = 0; i < n; i++) { var k = s.indexOf("|"); if (k < 0) return null; out.push(s.slice(0, k)); s = s.slice(k + 1); } out.push(s); return out; }
+  function mxRaw(d) {
+    if (!MX) return;
+    var k = d.slice(0, 2), src = d.slice(2, 4), list;
+    if (k === "mx" && (src === "ov" || src === "pa")) { try { list = JSON.parse(d.slice(5)); } catch (e) { return; } if (Array.isArray(list) && list.length) mxFeed(src, list); return; }
+    if (k === "mc" && (src === "ov" || src === "pa")) {
+      var p = cut(d.slice(5), 3); if (!p) return;
+      var c = MX.mc[p[0]] || (MX.mc[p[0]] = { parts: [], got: 0, at: Date.now() }), i = +p[1], n = +p[2];
+      if (c.parts[i] == null) { c.parts[i] = p[3]; c.got++; }
+      Object.keys(MX.mc).forEach(function (id) { if (Date.now() - MX.mc[id].at > 60000) delete MX.mc[id]; });
+      if (c.got === n) { delete MX.mc[p[0]]; try { list = JSON.parse(c.parts.join("")); } catch (e) { return; } if (Array.isArray(list) && list.length) mxFeed(src, list); }
+      return;
+    }
+    var bar = d.indexOf("|"); if (bar < 0) return;
+    if (k === "mm") { var o; try { o = JSON.parse(d.slice(bar + 1)); } catch (e) { return; } if (o) mxMeta(o); return; }
+    if (k === "mb") { var q = cut(d.slice(bar + 1), 3); if (q) mxChunk(q[0], +q[1], +q[2], q[3]); }
+  }
+  // 画面の変化を再生へ。時刻は、画面まるごとが届いたときにこのパソコンの時計へ合わせ、そのあとは OBS と同じ間隔で進める
+  // （まとめごとに合わせ直すと、届くのが前後したときに順番が入れかわってしまう）
+  function mxFeed(src, list) {
+    if (!MX.lib) { // 部品を読み込んでいるあいだはためておく（画面まるごとが来たら、それより前は捨てる）
+      if (list.some(function (e) { return e && e.type === 2; })) MX.q[src] = [];
+      MX.q[src].push(list); return;
+    }
+    list.forEach(function (e) {
+      if (!e || typeof e.timestamp !== "number") return;
+      if (e.type === 4) { MX["meta" + src] = e; return; }
+      if (e.type === 2) { mxNew(src, e); return; }
+      if (!MX.ready[src] || e.type !== 3) return;
+      e.timestamp += MX["off" + src];
+      var d = e.data || {};
+      if (d.source === 9) { mxCanvas(src, d); return; } // キャンバスの絵は自分で描く
+      if (d.source === 7) mxMediaNote(src, d.id, d.type === 1 ? false : d.type === 0 ? true : null, d.currentTime);
+      try { MX.rep[src].addEvent(e); } catch (x) {}
+    });
+  }
+  // 画面まるごと：新しい再生を作り、できたら古いものと入れかえる（ちらつかないように）
+  function mxNew(src, full) {
+    var now = Date.now(), meta = MX["meta" + src] || { type: 4, data: { href: "", width: 1920, height: 1080 } };
+    MX["off" + src] = now - full.timestamp; full.timestamp = meta.timestamp = now;
+    MX["cv" + src] = {}; mxMediaScan(src, full.data && full.data.node);
+    var host = document.createElement("div"), old = MX.rep[src], oldHost = old && old.__host;
+    MX.box[src].appendChild(host);
+    var R;
+    try {
+      R = new window.rrwebReplay.Replayer([], { root: host, liveMode: true, mouseTail: false, showWarning: false, showDebug: false, triggerFocus: false, UNSAFE_replayCanvas: false,
+        insertStyleRules: ["html, body { background: transparent !important; }"] });
+    } catch (x) { host.remove(); return; }
+    R.__host = host;
+    R.on("event-cast", function (e) { mxFix(src, R, e); });
+    R.startLive(now + 1); // まるごとはすぐ組み立てる
+    MX.rep[src] = R; MX.ready[src] = true;
+    try { R.addEvent(meta); R.addEvent(full); } catch (x) {}
+    if (old) { if (oldHost) oldHost.classList.add("old"); setTimeout(function () { try { old.destroy(); } catch (x) {} if (oldHost) oldHost.remove(); }, 300); }
+    mxMsg();
+  }
+  // 再生に入ったものを直す：動画・画像は OBS から素材をもらって入れる。音は出さない。弾幕は同じ動きをつける
+  function mxFix(src, R, e) {
+    var M = R.getMirror(), doc = R.iframe && R.iframe.contentDocument;
+    if (e.type === 2) { // 画面まるごとを組み立てたあと（再生の部品が動画を再生しようとして中断されたときの知らせは出さない）
+      try { R.iframe.contentWindow.addEventListener("unhandledrejection", function (ev) { ev.preventDefault(); }); } catch (x) {}
+      if (doc && doc.documentElement) doc.documentElement.classList.remove("rrweb-paused"); // 再生の部品は止めた扱いで CSS の動きを止めるので、動かす
+      var first = MX["cv" + src] || {}; Object.keys(first).forEach(function (id) { var c = R.getMirror().getNode(+id); if (c) mxPaint(c, first[id], false); });
+      mxWalk(src, R, doc && doc.documentElement); return;
+    }
+    if (e.type !== 3 || !e.data) return;
+    var d = e.data;
+    if (d.source === 0) {
+      (d.adds || []).forEach(function (a) {
+        var n = a.node && M.getNode(a.node.id); mxWalk(src, R, n);
+        if (n && n.tagName === "CANVAS" && a.node.attributes && typeof a.node.attributes.rr_dataURL === "string") mxPaint(n, a.node.attributes.rr_dataURL, false);
+      });
+      (d.attributes || []).forEach(function (a) { var n = M.getNode(a.id); if (n && n.nodeType === 1) mxEl(src, R, n); });
+    } else if (d.source === 7) { var n = M.getNode(d.id); if (n) n.muted = true; }
+  }
+  function mxWalk(src, R, root) {
+    if (!root || root.nodeType !== 1) return;
+    mxEl(src, R, root);
+    root.querySelectorAll("video,audio,img,[data-mx-anim]").forEach(function (n) { mxEl(src, R, n); });
+  }
+  function mxEl(src, R, el) {
+    var tag = el.tagName;
+    if (tag === "VIDEO" || tag === "AUDIO") el.muted = true;
+    if (tag === "VIDEO" || tag === "IMG") mxSrc(src, R, el);
+    var an = el.getAttribute("data-mx-anim");
+    if (an && el.__mxAnim !== an) {
+      el.__mxAnim = an; var p = an.split(",").map(Number);
+      if (p.length === 3 && p.every(isFinite)) try { el.animate([{ transform: "translateX(" + p[0] + "px)" }, { transform: "translateX(" + p[1] + "px)" }], { duration: p[2], easing: "linear", fill: "forwards" }); } catch (x) {}
+    }
+  }
+  function mxSrc(src, R, el) {
+    var cur = el.getAttribute("src") || "", path = el.getAttribute("data-mx") || "";
+    if (!cur && !path) return;
+    if (cur && (/^(data|https):/i.test(cur) || cur.indexOf("blob:" + location.origin + "/") === 0)) return; // そのまま読めるもの・もう入れたもの
+    var key = path || cur, url = MX.done[key];
+    el.__mxKey = key; el.__mxSrc = src;
+    if (url) { el.setAttribute("src", url); mxResume(src, R, el); return; }
+    el.removeAttribute("src");
+    mxGet(src, cur, path, key);
+  }
+  // 動画の再生のようす（再生中か・どこまで）を覚えておき、素材が届いて入れたあとに合わせる
+  function mxMediaNote(src, id, play, t) {
+    var k = src + ":" + id, m = MX.media[k] || (MX.media[k] = { play: false, t: 0, at: Date.now() });
+    if (play != null) m.play = play;
+    if (typeof t === "number" && isFinite(t)) m.t = t;
+    m.at = Date.now();
+  }
+  function mxMediaScan(src, node) {
+    if (!node) return;
+    if (node.type === 2 && /^(video|audio)$/i.test(node.tagName || "") && node.attributes) {
+      var A = node.attributes; mxMediaNote(src, node.id, A.rr_mediaState === "played", +A.rr_mediaCurrentTime || 0);
+    }
+    if (node.type === 2 && /^canvas$/i.test(node.tagName || "") && node.attributes && typeof node.attributes.rr_dataURL === "string") MX["cv" + src][node.id] = node.attributes.rr_dataURL;
+    (node.childNodes || []).forEach(function (c) { mxMediaScan(src, c); });
+  }
+  function mxResume(src, R, el) {
+    el.muted = true;
+    var m = MX.media[src + ":" + R.getMirror().getId(el)]; if (!m) return;
+    var go = function () {
+      var t = m.t + (m.play ? (Date.now() - m.at) / 1000 : 0);
+      if (el.duration && isFinite(el.duration)) t = el.loop ? t % el.duration : Math.min(t, el.duration - .05);
+      try { el.currentTime = Math.max(0, t); } catch (x) {}
+      if (m.play) { var pr = el.play(); if (pr && pr.catch) pr.catch(function () {}); }
+    };
+    if (el.readyState >= 1) go(); else el.addEventListener("loadedmetadata", go, { once: true });
+  }
+  // 素材：OBS に情報（hash）を聞き、このパソコンにあればそれを使う。なければ中身を小分けでもらい、覚えておく（Cache Storage）
+  function mxCache() { return window.caches ? caches.open("mx-assets-v1").catch(function () { return null; }) : Promise.resolve(null); }
+  function mxGet(src, url, alt, key) {
+    if (MX.want[key]) return;
+    var id = "a" + (++MX.seq) + Date.now().toString(36);
+    MX.want[key] = id; MX.req[id] = { key: key, src: src };
+    lsend({ t: "mx-get", src: src, id: id, url: url, alt: alt });
+    setTimeout(function () { if (MX && MX.req[id] && !MX.req[id].hash) { delete MX.req[id]; delete MX.want[key]; } }, 20000); // 返事がなければ、次に見かけたときに頼み直す
+  }
+  function mxMeta(o) {
+    var r = MX.req[o.id]; if (!r) return;
+    if (o.err || !o.hash) { delete MX.req[o.id]; setTimeout(function () { if (MX && MX.want[r.key] === o.id) delete MX.want[r.key]; }, 30000); return; }
+    r.hash = String(o.hash).replace(/[^\w-]/g, "").slice(0, 40); r.type = String(o.type || "").slice(0, 60);
+    if (MX.byHash[r.hash]) { mxDone(o.id, MX.byHash[r.hash]); return; }
+    var pull = function () { if (!MX || !MX.req[o.id]) return; r.parts = []; r.got = 0; lsend({ t: "mx-pull", src: r.src, id: o.id }); };
+    mxCache().then(function (c) { return c ? c.match("/mx-asset/" + r.hash) : null; }).then(function (res) { return res ? res.blob() : null; })
+      .then(function (b) { if (!MX) return; if (b && b.size) mxDone(o.id, URL.createObjectURL(b.type ? b : new Blob([b], { type: r.type }))); else pull(); }, pull);
+  }
+  function mxChunk(id, i, n, b64) {
+    var r = MX.req[id]; if (!r || !r.parts || !(n > 0) || !(i >= 0 && i < n) || r.parts[i]) return;
+    try { var bin = atob(b64), u8 = new Uint8Array(bin.length); for (var k = 0; k < bin.length; k++) u8[k] = bin.charCodeAt(k); } catch (e) { return; }
+    r.parts[i] = u8; r.got++;
+    if (r.got < n) return;
+    var blob = new Blob(r.parts, { type: r.type || "application/octet-stream" }); r.parts = null;
+    mxCache().then(function (c) { if (c) return c.put("/mx-asset/" + r.hash, new Response(blob, { headers: { "Content-Type": blob.type } })); }).catch(function () {});
+    mxDone(id, URL.createObjectURL(blob));
+  }
+  function mxDone(id, url) {
+    var r = MX.req[id]; delete MX.req[id]; if (!r) return;
+    MX.byHash[r.hash] = url; MX.done[r.key] = url; delete MX.want[r.key];
+    ["ov", "pa"].forEach(function (src) {
+      var R = MX.rep[src], doc = R && R.iframe && R.iframe.contentDocument; if (!doc) return;
+      doc.querySelectorAll("video,img").forEach(function (el) { if (el.__mxKey === r.key && el.getAttribute("src") !== url) { el.setAttribute("src", url); mxResume(src, R, el); } });
+    });
+  }
+  // キャンバス（盤面・背景）：OBS が送ってくる絵（webp）を出す。再生の中はスクリプトが止まっていてキャンバスの絵は映らないので、
+  // キャンバスの中に画像を入れる（スクリプトが止まっているとき、キャンバスの場所には中身が映る）。読み込めた絵から入れかえ、古い絵は捨てる
+  function mxCanvas(src, d) {
+    var R = MX.rep[src], el = R && R.getMirror().getNode(d.id);
+    var cmd = d.commands && d.commands[1], img = cmd && cmd.args && cmd.args[0], bl = img && img.args && img.args[0], ab = bl && bl.data && bl.data[0];
+    if (!el || el.tagName !== "CANVAS" || !ab || typeof ab.base64 !== "string") return;
+    var bin, u8;
+    try { bin = atob(ab.base64); u8 = new Uint8Array(bin.length); for (var k = 0; k < bin.length; k++) u8[k] = bin.charCodeAt(k); } catch (e) { return; }
+    mxPaint(el, URL.createObjectURL(new Blob([u8], { type: /^image\/(webp|png|jpeg)$/.test(bl.type) ? bl.type : "image/webp" })), true);
+  }
+  function mxPaint(el, url, own) {
+    var doc = el.ownerDocument, old = el.__mxImg, im = doc.createElement("img"), seq = el.__mxPaint = (el.__mxPaint || 0) + 1;
+    im.style.cssText = "display:block;width:100%;height:100%;pointer-events:none"; im.alt = ""; im.src = url; im.__own = own;
+    var put = function () {
+      if (el.__mxPaint !== seq) { if (own) URL.revokeObjectURL(url); return; }
+      if (old && old.parentNode === el) el.replaceChild(im, old); else el.appendChild(im);
+      if (old && old.__own) URL.revokeObjectURL(old.src);
+      el.__mxImg = im;
+      var w = doc.defaultView;
+      if (w && w.getComputedStyle(el).display === "inline") el.style.display = "inline-block";
+      var r = el.getBoundingClientRect(); if (!r.width || !r.height) { el.style.width = el.width + "px"; el.style.height = el.height + "px"; }
+    };
+    (im.decode ? im.decode() : Promise.resolve()).then(put, put);
+  }
   // 送った・止められた：上の組のすぐ下に、ふきだしで出す
   function tell(msg, kind) { hint(msg, kind === "err"); }
   function cool() { var p = $("push"); p.classList.remove("cool"); void p.offsetWidth; p.classList.add("cool"); }
@@ -1234,8 +1419,12 @@ footer { position: relative; z-index: 2; text-align: center; color: var(--soft);
       if (!liveOpen || (lws && lws.readyState <= 1)) return;
       if (!j || !j.ticket) { lwsLater(); return; }
       var ws; try { ws = lws = new WebSocket(location.origin.replace(/^http/, "ws") + "/api/live?ticket=" + encodeURIComponent(j.ticket)); } catch (e) { lwsLater(); return; }
-      ws.onopen = function () { lwsTry = 0; ws.send(JSON.stringify({ t: "hi" })); if (studioOn) ws.send(JSON.stringify({ t: "pa" })); };
-      ws.onmessage = function (ev) { if (ev.data === "pong") return; var m; try { m = JSON.parse(ev.data); } catch (e) { return; } if (m) onLive(m); };
+      ws.onopen = function () { lwsTry = 0; ws.send(JSON.stringify({ t: "hi" })); if (studioOn) mxJoin(); };
+      ws.onmessage = function (ev) {
+        if (ev.data === "pong") return;
+        if (typeof ev.data === "string" && /^m[xcmb]/.test(ev.data)) { mxRaw(ev.data); return; } // ミラー（OBS の画面の変化・素材）
+        var m; try { m = JSON.parse(ev.data); } catch (e) { return; } if (m) onLive(m);
+      };
       ws.onclose = function () { if (lws !== ws) return; lws = null; if (liveOpen) lwsLater(); };
     }, lwsLater);
   }
@@ -1245,8 +1434,9 @@ footer { position: relative; z-index: 2; text-align: center; color: var(--soft);
   function onLive(m) {
     if (m.t === "hello") { setObs(m.obs); var L = m.likes || {}; Object.keys(L).forEach(function (k) { likeN[k] = L[k]; }); chat.querySelectorAll(".like").forEach(function (b) { paintLike(b, b.dataset.like); }); }
     else if (m.t === "obs") setObs(m.on);
-    else if (m.t === "pa" && m.s && typeof m.s === "object") { pa = m.s; paGot = Date.now() - Math.max(0, +m.age || 0); paDraw(); }
-    else if (m.t === "pa-no") $("pa").hidden = true; // 鹿物語のいまは、配信者とモデレーターだけ
+    else if (m.t === "mx-ok") { mxOn = true; mxSrcOn.ov = !!m.ov; mxSrcOn.pa = !!m.pa; mxMsg(); }
+    else if (m.t === "mx-no") { mxOn = false; if (liveOpen) player(canSound()); } // ミラーは配信者とモデレーターだけ。ほかの人はふつうの映像
+    else if (m.t === "mx-src") { mxSrcOn[m.src === "pa" ? "pa" : "ov"] = !!m.on; mxMsg(); }
     else if (m.t === "likes" && typeof m.id === "string") { likeN[m.id] = +m.c || 0; if (meId && m.byId === meId) { liked[m.id] = 1; saveLiked(); } drawLike(m.id); }
     else if (m.t === "sys" && typeof m.text === "string") logLine(m.text);
     else if (m.t === "err") {
@@ -1320,6 +1510,8 @@ footer { position: relative; z-index: 2; text-align: center; color: var(--soft);
   var SPK = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9.5h3.5L12 5.5v13l-4.5-4H4z"/><path d="M15.5 9a4 4 0 0 1 0 6M18.5 6.5a7.5 7.5 0 0 1 0 11"/></svg>';
   function player(sound) {
     clearTimeout(iosT);
+    if (studioOn && mxOn !== false) { mxMount(); return; } // 配信者用の隠しページ：映像のかわりにミラー
+    mxUnmount();
     $("screen").innerHTML = '<iframe title="deerman_247 の配信" src="https://player.twitch.tv/?channel=' + CH + "&parent=" + encodeURIComponent(location.hostname) + "&autoplay=true&muted=" + !sound + '" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen></iframe>'
       + (sound ? "" : IOS ? '<span class="unmute ios" id="unmute">' + SPK + "音は映像のスピーカーのボタンで出ます</span>" : '<button type="button" class="unmute" id="unmute">' + SPK + "タップで音を出す</button>");
     if (!sound && IOS) iosT = setTimeout(function () { var u = $("unmute"); if (u) u.remove(); }, 8000);
@@ -1339,7 +1531,7 @@ footer { position: relative; z-index: 2; text-align: center; color: var(--soft);
       hint(""); drawPanes(); showPane(lsGet("ml-live-tab") || "fire"); ircOpen(); lwsOpen(); pingNow();
       setTimeout(function () { chat.scrollTop = chat.scrollHeight; }, 50);
       if (!canWrite()) needScope();
-    } else { document.body.classList.remove("live-on", "vid-full"); clearTimeout(iosT); $("screen").innerHTML = "<p>配信の映像</p>"; ircClose(); lwsClose(); }
+    } else { document.body.classList.remove("live-on", "vid-full"); clearTimeout(iosT); mxUnmount(); $("screen").innerHTML = "<p>配信の映像</p>"; ircClose(); lwsClose(); }
   }
 
   function route() {
