@@ -205,6 +205,13 @@ h2.sec::before { content: ""; width: 22px; height: 22px; border-radius: 50%; bor
 .booths { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; }
 .booth h3 { font: 900 18px/1.3 var(--jp); margin: 0 0 10px; display: flex; align-items: center; gap: 8px; }
 .booth h3 i { width: 14px; height: 14px; border-radius: 50%; background: var(--c); }
+/* 鹿物語のあそびかた：遊ぶ順番なので番号つき */
+.howto ol { list-style: none; counter-reset: st; margin: 0; padding: 0; display: grid; gap: 2px; }
+.howto li { counter-increment: st; display: grid; grid-template-columns: 30px 1fr; gap: 10px; align-items: start; padding: 9px 0; border-top: 1.5px dashed var(--line); font-size: 14px; line-height: 1.6; }
+.howto li:first-child { border-top: 0; }
+.howto li::before { content: counter(st); display: grid; place-items: center; width: 26px; height: 26px; border-radius: 50%; background: #FF5A64; color: #fff; font: 900 13px/1 var(--jp); }
+.howto li button { border: 0; border-radius: 10px; background: #EEF5FF; color: var(--ink); font: 900 13px/1.2 var(--jp); padding: 4px 8px; margin: 0 2px; position: relative; cursor: pointer; }
+.howto li button.done::after { content: "コピーしました"; position: absolute; left: 50%; bottom: 100%; transform: translate(-50%, -6px); background: var(--ink); color: #fff; font-size: 11px; padding: 4px 8px; border-radius: 8px; white-space: nowrap; }
 .cmd { display: grid; grid-template-columns: auto 1fr; gap: 10px; align-items: start; padding: 10px 0; border-top: 1.5px dashed var(--line); }
 .cmd:first-of-type { border-top: 0; }
 .cmd button { border: 0; border-radius: 12px; background: #EEF5FF; color: var(--ink); font: 900 14px/1.2 var(--jp); padding: 8px 10px; white-space: nowrap; transition: transform .3s var(--spring), background .2s; position: relative; }
@@ -401,6 +408,13 @@ h2.sec::before { content: ""; width: 22px; height: 22px; border-radius: 50%; bor
   .chatwrap { grid-area: chat; margin-top: 0; align-self: stretch; contain: size; min-height: 420px; display: flex; flex-direction: column; }
   .chat { flex: 1; height: auto; min-height: 0; }
   .screen { border-radius: 22px; }
+  /* 配信を見ているあいだ：ページの横幅の上限を外し、映像を左の端から目いっぱいに。上の見出しと下の文字は隠す */
+  body.live-on .top, body.live-on footer { display: none; }
+  body.live-on main { max-width: none; padding: 0 12px 110px 0; }
+  body.live-on .live { grid-template-columns: minmax(0, 1fr) 340px; gap: 10px 12px; margin-top: 0; }
+  body.live-on .screen { border-radius: 0; box-shadow: none; max-height: 100vh; }
+  body.live-on .stage > :not(.screen), body.live-on .ltabs, body.live-on .lpanel { margin-left: 12px; }
+  body.live-on .chatwrap { margin-top: 12px; }
 }
 /* スマホを横にしたとき：映像を画面いっぱいに（下へスクロールすると打つ欄・タブ・コメント欄） */
 @media (orientation: landscape) and (max-height: 500px) {
@@ -657,6 +671,7 @@ footer { position: relative; z-index: 2; text-align: center; color: var(--soft);
     ["そのほか", "#22CC88", [["!けいじばん こんにちは", "ラウンジの掲示板に書く（1 分に 1 回・120 字まで）"], ["!バグ報告 ガチャのあと画面が止まった", "不具合を配信者に知らせる（30 秒に 1 回・300 字まで）"], ["!花火", "画面に花火（!ハート でハート）"], [null, "888 で拍手、草 で草が生える"], ["!discord", "Discord の招待をチャットで受け取る"]]]
   ];
   var NOTES = [
+    ["build 37", "2026-10-17", ["鹿物語 Ver.1.7.3：キャッシュバックの時間を 30 秒から 3 分に。当たる前の 3 分以内にヘソに入れた直近 5 人（当てた人以外）に、1 人ずつ出玉の 50% が入ります", "鹿物語の「あそびかた」は、この配信ページのコマンドのいちばん上に移りました", "大当たりのあいだ、配信画面に当てた人のプロフィールカードがエフェクトつきで最後まで出ます", "配信画面の時計の下に、各地の今日の天気が出ます", "PC の配信ページで、映像を画面の端から端まで大きくしました"]],
     ["build 36", "2026-10-17", ["鹿物語 Ver.1.7.2：キャッシュバックを変更。当たる前の 30 秒以内にヘソに玉を入れた直近 5 人（当てた人以外）に、1 人ずつ出玉の 50% が入ります"]],
     ["build 35", "2026-10-17", ["鹿物語 Ver.1.7.1：大当たりのとき、ヘソに玉を入れた直近 5 人（当てた人以外）にキャッシュバック。出玉の半分を 5 人で山分けします"]],
     ["build 34", "2026-10-17", ["鹿物語 Ver.1.7.0：大当たりのとき、当てた人のプロフィールカードが液晶に出るようになりました（スキンの色・アイコン・二つ名・レベル）"]],
@@ -731,7 +746,19 @@ footer { position: relative; z-index: 2; text-align: center; color: var(--soft);
   });
 
   // ---- コマンド（押すとコピー）----
-  $("booths").innerHTML = CMDS.map(function (g) {
+  // 鹿物語のあそびかた（鹿物語の画面から移した）。[文, コマンド…] の文の {0} {1} にコマンドのボタンが入る
+  var HOWTO = [
+    ["コメントすると玉が 1 個増えます（はじめては 10 個）。毎日のログインボーナスと、見ているだけでも増えます"],
+    ["{0} で 1 発、{1} でまとめて打てます", "!発射", "!発射 5"],
+    ["{0} {1} でハンドルの強さを変えられます", "!強く", "!弱く"],
+    ["まん中のヘソに入ると抽選スタート"],
+    ["PUSH ボタンが光ったら {0} をみんなで連打", "!押せ"],
+    ["大当たりで玉がたくさん出ます。当たる前の 3 分以内にヘソに入れた 5 人にもキャッシュバック。{0} で持ち玉を確認", "!玉"]
+  ];
+  var howHtml = '<div class="panel booth howto"><h3><i style="--c:#FF5A64"></i>鹿物語のあそびかた</h3><ol>' + HOWTO.map(function (h) {
+    return "<li><span>" + esc(h[0]).replace(/\{(\d)\}/g, function (m, i) { var c = h[+i + 1]; return '<button type="button" data-copy="' + esc(c) + '">' + esc(c) + "</button>"; }) + "</span></li>";
+  }).join("") + "</ol></div>";
+  $("booths").innerHTML = howHtml + CMDS.map(function (g) {
     return '<div class="panel booth"><h3><i style="--c:' + g[1] + '"></i>' + esc(g[0]) + '</h3>' + g[2].map(function (c) {
       return '<div class="cmd">' + (c[0] ? '<button type="button" data-copy="' + esc(c[0]) + '">' + esc(c[0]) + '</button>' : '<span class="plain">コメント</span>') + '<span>' + esc(c[1]) + '</span></div>';
     }).join("") + '</div>';
