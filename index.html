@@ -722,7 +722,7 @@ footer { position: relative; z-index: 2; text-align: center; color: var(--soft);
     ["そのほか", "#22CC88", [["!けいじばん こんにちは", "ラウンジの掲示板に書く（1 分に 1 回・120 字まで）"], ["!バグ報告 ガチャのあと画面が止まった", "不具合を配信者に知らせる（30 秒に 1 回・300 字まで）"], ["!花火", "画面に花火（!ハート でハート）"], [null, "888 で拍手、草 で草が生える"], ["!モノリンク", "MONO LINK の URL をチャットで受け取る（!サイト でも）"]]]
   ];
   var NOTES = [
-    ["MONO LINK", "2026-10-18", ["英語に対応しはじめました（Started English support）。右上と配信ページの「EN / 日本語」で切りかえます", "配信の字幕：配信者の声を文字にして、英語を選んだ人には英語の字幕で出します（日本語の字幕は「字幕」ボタンで）", "配信のコメント欄：英語の人には日本語のコメントとログに英語の訳、日本語の人には英語のコメントに日本語の訳がつきます（「英語を訳す」ボタンで消せます）"]],
+    ["MONO LINK", "2026-10-18", ["英語に対応しはじめました（Started English support）。右上と配信ページの「EN / 日本語」で切りかえます", "EN にすると、画面の文字も英語になります（コマンド・コスメの名前・パッチノートは、まだ日本語です）", "配信の字幕：配信者の声を文字にして、英語を選んだ人には英語の字幕で出します（日本語の字幕は「字幕」ボタンで）", "配信のコメント欄：英語の人には日本語のコメントとログに英語の訳、日本語の人には英語のコメントに日本語の訳がつきます（「英語を訳す」ボタンで消せます）"]],
     ["build 59", "2026-10-18", ["コスメガチャで持っている物も出るようになりました。被ると進化します（被り 1 個でⅠ 色違い・さらに 2 個でⅡ 光る・さらに 3 個でⅢ 演出が増える）。!スキン 名前 0〜3 のように段階を選べます（アイコン・二つ名・玉スキンも）", "フォントの被りと、Ⅲ の物の被りは「リソース」になります（★1 1〜★5 50）。!リソース で数が見られます。使い道はこれから", "お店では持っている物も買えます（被り 1 個と同じ）", "鹿物語 Ver.1.7.18：玉スキンの進化が玉にも出ます"]],
     ["build 58", "2026-10-18", ["プロフィールのページの丸いアイコンを、配信と同じプロフィールカードにしました（スキンの絵と動き・アイコン・二つ名・フォント・レベルがそのまま出ます）"]],
     ["build 57", "2026-10-18", ["コスメガチャに新しいスキン 15 枚（★5 6 枚・★4 9 枚）。テーマは「モチーフなし」：溶融・名前・崩壊・ブラックカード・プリズム・プラチナ・構成・すりガラス・ハーフトーン・積み木・アンチ・メンフィス・ふくらみ・アールデコ・光の帯。お店にも並びます"]],
@@ -801,7 +801,9 @@ footer { position: relative; z-index: 2; text-align: center; color: var(--soft);
   }
 
   // 見出しの文字を 1 つずつ揺らす
-  $("lobby-title").innerHTML = Array.from("ようこそ、ラウンジへ").map(function (c, i) { return '<span style="--i:' + i + '">' + esc(c) + '</span>'; }).join("");
+  // 見出しは 1 文字ずつ動かす（英語のときは英語の文字で）
+  function drawTitle() { $("lobby-title").innerHTML = Array.from(typeof LANG !== "undefined" && LANG === "en" ? "Welcome to the lounge" : "ようこそ、ラウンジへ").map(function (c, i) { return '<span style="--i:' + i + '">' + (c === " " ? "&nbsp;" : esc(c)) + '</span>'; }).join(""); }
+  drawTitle();
 
   // ---- 場面の切り替え ----
   var warp = $("warp");
@@ -1501,13 +1503,208 @@ footer { position: relative; z-index: 2; text-align: center; color: var(--soft);
   // 言語は 1 回選ぶと覚えておく。選んでいないときは、ブラウザが日本語なら日本語、ほかは英語
   var LANG = lsGet("ml-lang") === "en" || (lsGet("ml-lang") == null && !/^ja/i.test(navigator.language || "ja")) ? "en" : "ja";
   var JA = /[\u3040-\u30ff\u3400-\u9fff\uff66-\uff9f]/, EN = /[A-Za-z]{2,}/, trWait = {}, trN = 0, trOn;
+  // ---- 英語の辞書（画面の文字。日本語 → 英語）----
+  // 画面に出た文字（前後の空白を除いたもの）がここにあれば、英語のときに置きかえる。テンプレートの切れはしもそのまま並べる
+  var EN_DICT = {
+    // 入口・ゲート・ヘッダー
+    "MONO LINK:// につないでいます": "Connecting to MONO LINK://",
+    "Twitch で deerman_247 をフォローする": "Follow deerman_247 on Twitch",
+    "Twitch でログインして入る": "Log in with Twitch",
+    "deerman_247 をフォローしている人のラウンジです。Twitch でログインして入ってください。": "This lounge is for people who follow deerman_247. Log in with Twitch to come in.",
+    "フォローしているのに入れないなど、困ったときは配信のチャットに「!バグ報告」とこのコードを書くと、配信者に届きます。": "Following but can't get in? Write \"!バグ報告\" (bug report) with this code in the stream chat and the streamer will get it.",
+    "コードをコピー": "Copy code", "コピーしました": "Copied",
+    "読み込み中": "Loading", "ログアウト": "Log out", "日本語": "日本語", "日本語にする": "日本語にする",
+    "更新を待っています": "Waiting for the first update",
+    "くわしく": "Details", "時刻": "Time", "一覧の更新": "List updated", "一覧の人数": "People on the list",
+    "このラウンジには入れません。": "You can't enter this lounge.",
+    "ラウンジに入れませんでした。": "Couldn't enter the lounge.",
+    "ログインできませんでした。": "Couldn't log in.",
+    "ラウンジはまだ準備中です。配信が始まると開きます。": "The lounge isn't ready yet. It opens when the stream starts.",
+    "ログインの期限が切れました。もう一度ログインしてください。": "Your login expired. Please log in again.",
+    "このラウンジのログインではありません。もう一度ログインしてください。": "This login isn't for this lounge. Please log in again.",
+    "フォローしているかを確かめるため、もう一度ログインしてください（Twitch で「フォローしているチャンネルを見る」を許可してください）。": "Please log in again so we can check that you follow (allow \"View your followed channels\" on Twitch).",
+    "deerman_247 のフォロワーの一覧に見つかりませんでした。フォローしていないときは、フォローして 1 分ほど待ってから、もう一度ログインしてください。": "You weren't found in deerman_247's follower list. If you don't follow yet, follow, wait about a minute, then log in again.",
+    "もう一度ログインしてください。続くときは、ほかのタブでこのページを閉じてからためしてください": "Please log in again. If it keeps happening, close this page in your other tabs and try again",
+    "Twitch アプリや X などのアプリの中ではなく、Safari や Chrome でこのページを開いて、もう一度ログインしてください": "Open this page in Safari or Chrome (not inside the Twitch or X app) and log in again",
+    "Twitch のログインがキャンセルされました": "Twitch login was canceled",
+    "Twitch のログインでエラーが起きました": "An error happened while logging in with Twitch",
+    "ログインの確認用の印が合いません": "The login check didn't match",
+    "ログインを始めたページと、戻ってきたページが違います": "You came back to a different page than the one you started logging in from",
+    "門番につながりません": "Can't reach the gatekeeper",
+    "門番から思わぬ返事がありました": "The gatekeeper sent an unexpected reply",
+    "いまはつながりません。少し待ってからもう一度開いてください。": "Can't connect right now. Please wait a moment and open it again.",
+    "Twitch に止められました（": "Blocked by Twitch (",
+    // ロビー
+    "ようこそ、ラウンジへ": "Welcome to the lounge",
+    "いまログインしている人が、ここにアバターになって浮かんでいます。": "Everyone logged in right now is floating here as an avatar.",
+    "いまラウンジにいる人": "in the lounge now",
+    "Twitch の名前で探す": "Search by Twitch name", "Twitch の表示名": "Twitch display name",
+    "会いに行く": "Visit",
+    "アバターを押すと、その人のページへ。広場の床を押すと波紋が広がります。": "Tap an avatar to visit their page. Tap the floor to make ripples.",
+    "ロビー": "Lobby", "ロビーへ": "To the lobby", "ロビーへ戻る": "Back to the lobby",
+    "配信": "Stream", "コマンド": "Commands", "パッチノート": "Patch notes", "シーズン": "Season", "掲示板": "Board", "ページ": "Pages",
+    "記録は配信中に 10 分ごとに更新されます。名前は Twitch の表示名です。": "Records update every 10 minutes during the stream. Names are Twitch display names.",
+    // プロフィール
+    "このページのリンクをコピー": "Copy link to this page", "このリンクをコピーしてください": "Please copy this link",
+    "次のレベルまで": "To next level", "数字": "Stats", "持ち物のカード": "Inventory",
+    "いま続けて来ている回数": "Current visit streak", "いちばん長く続けて来た回数": "Longest visit streak",
+    "RUSH の最高連チャン": "Best RUSH chain", "大当たり": "Jackpots", "持ち玉": "Balls",
+    "リソース": "Resources",
+    "リソースは、コスメガチャでフォントや Ⅲ まで進化した物が被るともらえます。使い道はこれから増えていきます。": "You get resources from cosmetic gacha duplicates of fonts and items evolved to Ⅲ. More ways to use them are coming.",
+    "手に入れ方": "How to get", "持っています": "Owned", "使っています": "Equipped", "いま使っています": "Equipped now", "まだ": "Not yet",
+    "近日": "Soon", "配信者": "Streamer",
+    "のスキン": "'s skin", "のフォント": "'s font", "さんのプロフィールカード": "'s profile card",
+    "スキン": "Skin", "アイコン": "Icon", "二つ名": "Title", "フォント": "Font", "玉スキン": "Ball skin", "レベル": "Level",
+    "鹿あA": "Aa", "種類": "Type",
+    "」さんの記録は、まだありません。": "\" has no record yet.",
+    "配信でコメントすると、次の更新でここに出ます。": "Comment on the stream and it'll show up here after the next update.",
+    // 配信ページ
+    "配信の映像": "Stream video", "コメント": "Comment", "コメントする（! でコマンド）": "Comment (start with ! for commands)",
+    "送る": "Send", "コメントには Twitch の許可がいります": "Commenting needs permission from Twitch", "許可する": "Allow",
+    "配信のメニュー（選んでいるタブをもう一度押すとたたむ）": "Stream menu (tap the open tab again to fold it)",
+    "打つ": "Fire", "ゲーム": "Game", "ガチャ": "Gacha", "つけかえ": "Wear", "ほか": "More",
+    "確かめています": "Checking", "持ち玉を見る": "My balls", "字幕": "Captions", "訳": "Translate", "英語を訳す": "Translate",
+    "押せ": "PUSH", "押せ（連打チャンスで、みんなで押す）": "PUSH (everyone mashes it during the button chance)",
+    "1 回に打つ玉の数": "Balls per shot", "発": "", "発射": "Fire", "弱く": "Softer", "強く": "Harder",
+    "配信のコメント": "Stream chat", "新しいコメントへ": "Jump to new comments",
+    "ボタンが配信に届きます": "Buttons reach the stream", "いまは配信していないので、ボタンは届きません": "Not live right now, so buttons won't reach the stream",
+    "タップで音を出す": "Tap for sound", "音は映像のスピーカーのボタンで出ます": "Use the speaker button on the video for sound",
+    "配信のコメント欄に": "", "コメント欄につながりました": "Chat connected", "コメント欄をつなぎ直しています": "Reconnecting chat",
+    "いいね": "Like", "いいねできませんでした": "Couldn't like it", "いいねは、配信につながっているときにできます": "You can like comments while connected to the stream",
+    "配信の画面にミニゲームが出たときに押します": "Press these when a mini game shows up on stream",
+    "せんべい": "Senbei", "グー": "Rock", "チョキ": "Scissors", "パー": "Paper",
+    "玉を使うボタンは、2 回押すと決まります": "Buttons that spend balls need two taps",
+    "ガチャ 10 連": "Gacha ×10", "500 玉": "500 balls", "5,000 玉": "5,000 balls", "お店を見る": "See the shop",
+    "お店の品物は、配信のときに並びます": "Shop items appear during the stream", "お店の品物は、配信のときに並びます。": "Shop items appear during the stream.",
+    "まだ持っていません。ガチャやお店で手に入ります。": "You don't have any yet. Get them from the gacha or the shop.",
+    "記録ができると、持っている物がここに並びます。": "Once you have a record, your items will show up here.",
+    "カードを出す": "Show my card", "持ち物": "Items", "花火": "Fireworks", "ハート": "Hearts", "URL をチャットに": "Post URL to chat",
+    "書く先": "Write to", "バグ報告": "Bug report", "書くこと": "Message",
+    "1 秒に 1 回までです（ほかのタブでも押していませんか）": "Once per second (are you pressing in another tab too?)",
+    "いまはつながりません。少し待ってからもう一度押してください": "Can't connect right now. Please wait and try again",
+    "いまはつながりません。少し待ってからもう一度押してください。": "Can't connect right now. Please wait and try again.",
+    "いまはつながりません。少し待ってからためしてください": "Can't connect right now. Please try again in a moment",
+    "いまはコメントできません。少し待ってからためしてください": "Can't comment right now. Please try again in a moment",
+    "長すぎます（500 字まで）": "Too long (500 characters max)",
+    "を送りました": " sent", "送れませんでした（HTTP ": "Couldn't send (HTTP ",
+    "同じコメントは 30 秒あけてください": "Wait 30 seconds before sending the same comment",
+    "いまは低速モードです。少し待ってください": "Slow mode is on. Please wait a bit",
+    "フォロワー限定モードです": "Followers-only mode", "フォロワー限定モードです。フォローしてからの時間が足りません": "Followers-only mode. You haven't followed long enough",
+    "サブスク限定モードです": "Subscribers-only mode", "いまはエモートだけ書けます": "Emote-only mode",
+    "このチャンネルではコメントできません": "You can't comment in this channel", "このチャンネルでは、いまコメントできません": "You can't comment in this channel right now",
+    "いまはタイムアウト中です": "You're timed out right now", "コメントが速すぎます。少し待ってください": "You're commenting too fast. Please wait a bit",
+    "Twitch でメールアドレスの確かめが必要です": "Twitch needs you to verify your email", "Twitch で電話番号の確かめが必要です": "Twitch needs you to verify your phone number",
+    "AutoMod に止められました": "Blocked by AutoMod", "チャンネルが止まっています": "The channel is suspended",
+    "字幕を送る（配信者だけ）": "Send captions (streamer only)",
+    "声を文字にして、英語を選んだ人に英語の字幕で出します。Chrome で開いて、映像の音はミュートにしてください。": "Turns your voice into text and shows English captions to English viewers. Open in Chrome and mute the video.",
+    "字幕を始める": "Start captions", "字幕を止める": "Stop captions",
+    "このブラウザでは使えません。パソコンの Chrome で開いてください。": "Not supported in this browser. Open it in Chrome on a PC.",
+    "マイクの許可がありません（アドレスバーの左から許可してください）": "No microphone permission (allow it from the left of the address bar)",
+    "音を出す": "Sound on", "音を消す": "Sound off",
+    "再生の部品を読み込めませんでした。ページを開き直してください": "Couldn't load the player. Please reload the page",
+    "鹿物語の配信が始まりました": "Shika Story stream has started",
+    // コマンドのページ
+    "チャットに打つと動きます。フォローしている人だけ使えます。コマンドを押すとコピーできます。「配信」のページなら、ボタンで送れます（チャットに書かないので、続けて送ってもタイムアウトされません）。": "Type these in chat. Followers only. Tap a command to copy it. On the Stream page you can send them with buttons (they don't go to chat, so you won't be timed out for sending many).",
+    "鹿物語のあそびかた": "How to play Shika Story",
+    "コメントすると玉が 1 個増えます（はじめては 10 個）。毎日のログインボーナスと、見ているだけでも増えます": "Each comment gives you 1 ball (10 the first time). You also get balls from the daily login bonus and just from watching",
+    "で 1 発、": " fires 1, ", "でまとめて打てます": " fires several at once",
+    "でハンドルの強さを変えられます": " change the launch strength",
+    "まん中のヘソに入ると抽選スタート": "A ball in the center pocket starts a spin",
+    "PUSH ボタンが光ったら": "When the PUSH button lights up, everyone mash", "をみんなで連打": "",
+    "大当たりで玉がたくさん出ます。当たる前の 3 分以内にヘソに入れた 5 人にもキャッシュバック。": "A jackpot pays out lots of balls. The last 5 people who hit the pocket in the 3 minutes before also get cashback.", "で持ち玉を確認": " shows your balls",
+    "見た目と記録": "Looks & records", "鹿物語（パチンコ）": "Shika Story (pachinko)", "そのほか": "Other",
+    "配信画面に自分のカードを出す": "Show your card on stream", "レベルと、次のレベルまでを見る": "See your level and how far to the next",
+    "カードのスキンを変える（名前なしで一覧）": "Change your card skin (no name = list)", "アイコンを変える": "Change your icon",
+    "名前の上に出る二つ名を変える": "Change the title shown above your name", "名前と弾幕の書体を変える": "Change the font for your name and flying comments",
+    "鹿物語で落ちる自分の玉の見た目を変える": "Change how your ball looks in Shika Story", "持っている物と手に入れ方を見る": "See your items and how to get more",
+    "MONO LINK:// のアドレスを出す": "Post the MONO LINK:// address",
+    "なんでもコメントすると玉がもらえる（はじめは 10 玉）": "Any comment gives you balls (10 the first time)",
+    "持ち玉を打つ（数字なしは 1 発）": "Fire your balls (no number = 1)", "打ち出しを強く（!弱く で弱く）": "Launch harder (!弱く for softer)",
+    "連打チャンス・最終決戦でみんなで押す": "Everyone mashes during the button chance and final battle", "自分の持ち玉を見る": "See your balls",
+    "ミニゲームに参加（!数字 3・!グー も）": "Join the mini game (also !数字 3, !グー)",
+    "持ち玉 500 でコスメガチャ（★5 2%・★4 10%、10 回で ★4 以上・60 回で ★5 確定）": "Cosmetic gacha for 500 balls (★5 2%, ★4 10%; ★4+ guaranteed in 10 pulls, ★5 in 60)",
+    "持ち玉 5000 で 10 連（★4 以上が 1 つは出る）": "10 pulls for 5,000 balls (at least one ★4+)", "いまお店に並んでいる 5 品を見る": "See the 5 items in the shop now",
+    "お店の品物を持ち玉で買う（番号は 1〜5）": "Buy a shop item with balls (number 1–5)",
+    "ラウンジの掲示板に書く（1 分に 1 回・120 字まで）": "Post on the lounge board (once a minute, 120 characters max)",
+    "不具合を配信者に知らせる（30 秒に 1 回・300 字まで）": "Report a bug to the streamer (once per 30 seconds, 300 characters max)",
+    "画面に花火（!ハート でハート）": "Fireworks on screen (!ハート for hearts)", "888 で拍手、草 で草が生える": "888 for applause, 草 grows grass",
+    "MONO LINK の URL をチャットで受け取る（!サイト でも）": "Get the MONO LINK URL in chat (also !サイト)",
+    // 掲示板・シーズン・お店
+    "チャットに「!けいじばん 書きたいこと」と打つと、配信者が確かめてからここに載ります。": "Type \"!けいじばん your message\" in chat. It shows up here after the streamer checks it.",
+    "まだ書き込みはありません。チャットで「!けいじばん」と打ってみてください。": "No posts yet. Try typing \"!けいじばん\" in chat.",
+    "星降る夜・電脳・鹿の森。コスメ 80 個が加わりました。": "Starry Night, Cyber, Deer Forest. 80 new cosmetics.",
+    "次の入れ替えまで": "Next restock in", "玉": "balls", "玉です。": "balls.", "さんの持ち玉は": " has",
+    "コスメのレアリティ": "Cosmetic rarity", "コスメガチャ": "Cosmetic gacha", "レイアウト": "Layout", "ミニゲーム": "Mini games", "鹿物語": "Shika Story",
+    "人": "", "回": "", "連": "", "勝": "wins", "と": "&",
+    // 記号
+    "（": "(", "）": ")", "：": ": ", "？": "?", "（ID": "(ID"
+  };
+  // 数字の入る文は形で置きかえる
+  var EN_RULES = [
+    [/^更新 (.+)$/, "Updated $1"],
+    [/^([\d,]+) 玉$/, "$1 balls"],
+    [/^([\d,]+) 人$/, "$1 people"],
+    [/^([\d,]+) 件$/, "$1"],
+    [/^さん Lv\.$/, " Lv."],
+    [/^「!購入 (\d+)」をコピー$/, "Copy \"!購入 $1\""],
+    [/^押すと手に入れ方$/, "Tap to see how to get it"]
+  ];
+
+  // 英語のとき、画面に出た文字を辞書で置きかえる（あとから出た文字も MutationObserver で）。日本語に戻すときは元に戻す
+  // 視聴者のコメント・パッチノート・字幕は置きかえない
+  var EN_ORIG = new WeakMap(), EN_ATTRS = ["placeholder", "aria-label", "title", "alt"], EN_SKIP = "#chat li:not(.sys), #notes, .capbox, [data-notr], script, style, textarea, datalist";
+  function enText(v) {
+    var k = v.trim(); if (!k || !JA.test(k)) return null;
+    if (Object.prototype.hasOwnProperty.call(EN_DICT, k)) return EN_DICT[k];
+    for (var i = 0; i < EN_RULES.length; i++) if (EN_RULES[i][0].test(k)) return k.replace(EN_RULES[i][0], EN_RULES[i][1]);
+    return null;
+  }
+  function enSkip(n) { var e = n.nodeType === 1 ? n : n.parentElement; return !e || !!e.closest(EN_SKIP); }
+  function enNode(n) {
+    if (enSkip(n)) return;
+    var v = n.nodeValue, o = EN_ORIG.get(n); if (o && o.en === v) return;
+    var r = enText(v); if (r == null) return;
+    var en = v.match(/^\s*/)[0] + r + v.match(/\s*$/)[0]; EN_ORIG.set(n, { ja: v, en: en }); n.nodeValue = en;
+  }
+  function enAttrs(el) {
+    if (enSkip(el)) return;
+    var o = EN_ORIG.get(el) || {};
+    EN_ATTRS.forEach(function (a) {
+      var v = el.getAttribute(a); if (v == null || (o[a] && o[a].en === v)) return;
+      var r = enText(v); if (r == null) return; o[a] = { ja: v, en: r }; el.setAttribute(a, r);
+    });
+    EN_ORIG.set(el, o);
+  }
+  function enWalk(root) {
+    if (root.nodeType === 3) { enNode(root); return; }
+    if (root.nodeType !== 1) return;
+    var w = document.createTreeWalker(root, NodeFilter.SHOW_TEXT), n; while ((n = w.nextNode())) enNode(n);
+    enAttrs(root); root.querySelectorAll("[placeholder],[aria-label],[title],[alt]").forEach(enAttrs);
+  }
+  function enBack(root) {
+    var w = document.createTreeWalker(root, NodeFilter.SHOW_TEXT), n, o;
+    while ((n = w.nextNode())) { o = EN_ORIG.get(n); if (o && o.en === n.nodeValue) n.nodeValue = o.ja; }
+    root.querySelectorAll("*").forEach(function (el) { var o = EN_ORIG.get(el); if (o) EN_ATTRS.forEach(function (a) { if (o[a] && el.getAttribute(a) === o[a].en) el.setAttribute(a, o[a].ja); }); });
+  }
+  var enObs = new MutationObserver(function (ms) {
+    ms.forEach(function (m) {
+      if (m.type === "childList") m.addedNodes.forEach(enWalk);
+      else if (m.type === "characterData") enNode(m.target);
+      else if (m.type === "attributes") enAttrs(m.target);
+    });
+  });
+  function enApply() {
+    drawTitle();
+    if (LANG === "en") { enWalk(document.body); enObs.observe(document.body, { childList: true, subtree: true, characterData: true, attributes: true, attributeFilter: EN_ATTRS }); }
+    else { enObs.disconnect(); enBack(document.body); }
+  }
   function drawLang() {
     document.querySelectorAll(".langbtn").forEach(function (b) { b.textContent = LANG === "en" ? "日本語" : "EN"; b.lang = LANG === "en" ? "ja" : "en"; b.setAttribute("aria-label", LANG === "en" ? "日本語にする" : "Switch to English"); });
     document.documentElement.lang = LANG;
   }
   document.addEventListener("click", function (e) { if (e.target.closest(".langbtn")) setLang(LANG === "en" ? "ja" : "en"); });
   function setLang(v) {
-    LANG = v; lsSet("ml-lang", LANG); drawLang();
+    LANG = v; lsSet("ml-lang", LANG); drawLang(); enApply();
     if (lws && lws.readyState === 1) lws.send(JSON.stringify({ t: "lang", v: LANG }));
     ccOn = ccDefault(); drawCC(); trOn = trDefault(); drawTr();
   }
@@ -1517,6 +1714,7 @@ footer { position: relative; z-index: 2; text-align: center; color: var(--soft);
   function drawTr() { var b = $("trbtn"); b.setAttribute("aria-pressed", String(trOn)); b.textContent = LANG === "en" ? "Translate" : "英語を訳す"; b.lang = LANG; chat.classList.toggle("notr", !trOn); }
   $("trbtn").addEventListener("click", function () { trOn = !trOn; lsSet("ml-tr-" + LANG, trOn ? "1" : "0"); drawTr(); });
   trOn = trDefault(); drawTr();
+  enApply();
   // エモートの名前と URL を除いた文（訳すかどうかを決める）
   function plainOf(text, em) {
     var cs = Array.from(text);
