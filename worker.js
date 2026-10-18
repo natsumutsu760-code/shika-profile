@@ -24,8 +24,33 @@ const SLANG = [
     toEn: "玉 means the pachinko balls of the stream's game Shika Story (they work like points). Always translate 玉 as ball / balls, never coins, gems or jewels: 持ち玉 → balls (your balls), +1玉 → +1 ball, 玉スキン → ball skin, 11030 玉 → 11,030 balls, ○○ さんの持ち玉は 11030 玉です → ○○ has 11,030 balls.",
     toJa: "\"ball\" / \"balls\" means 玉, the pachinko balls of the stream's game. Translate as 玉 (your balls → 持ち玉, ball skin → 玉スキン)." },
 ];
+// パチンコ（鹿物語）の言葉：日本語 → 英語の決まった訳。文に出てきたものだけ翻訳 AI に教える
+//   [日本語（正規表現）, 英語, 英語から日本語に戻すとき見つける英語（正規表現・なければ戻さない）]
+const PACHI = [
+  ["先バレ", "sakibare (early tell)", "sakibare"], ["全回転", "zenkaiten (full spin, guaranteed jackpot)", "zenkaiten"],
+  ["スーパーリーチ|SPリーチ", "super reach", "super reach"], ["リーチ", "reach", "\\breach\\b"],
+  ["確変", "kakuhen (boosted odds)", "kakuhen"], ["時短", "jitan (time-saving mode)", "jitan"],
+  ["小当たり", "small hit"], ["大当たり|大当り", "jackpot", "jackpot"],
+  ["赤保留", "red hold"], ["金保留", "gold hold"], ["虹保留", "rainbow hold"], ["保留", "hold (pending spin)", "\\bholds?\\b"],
+  ["ヘソ", "start pocket", "start pocket"], ["激アツ|激熱", "super hot", "super hot"],
+  ["連チャン", "chain (back-to-back jackpots)", "\\bchains?\\b"], ["出玉", "payout", "payout"],
+  ["ハマり|ハマった|ハマる", "dry streak", "dry streak"], ["右打ち", "shoot right", "shoot right"],
+  ["図柄", "symbols"], ["カットイン", "cut-in", "cut-in"], ["擬似連|疑似連", "giji-ren (fake chain)", "giji-?ren"],
+  ["演出", "effect (animation)"], ["液晶", "screen"], ["回転", "spins"], ["抽選", "draw"],
+  ["天井", "pity (guaranteed after enough spins)", "\\bpity\\b"], ["キャッシュバック", "cashback"],
+  ["最終決戦", "final battle", "final battle"], ["連打", "mash", "\\bmash"], ["ラウンド", "round"],
+  ["確定", "guaranteed"], ["群予告|群", "swarm notice"], ["役物", "gimmick"], ["予告", "notice"],
+  ["ハズレ|外れ", "miss"], ["盤面", "board"], ["釘", "pins"], ["電チュー", "electric tulip"],
+  ["突入", "enter (the mode)"], ["昇格", "upgrade"], ["復活", "revival"], ["プレミア", "premium (super rare)"],
+  ["発展", "develops into"], ["虹", "rainbow (usually means guaranteed)"],
+].map(([ja, en, back]) => ({ ja: new RegExp(ja), jaWord: ja.split("|")[0], en, back: back ? new RegExp(back, "i") : null }));
 function slangHint(text, to) {
-  return SLANG.filter((w) => (to === "en" ? w.ja : w.en).test(text)).map((w) => (to === "en" ? w.toEn : w.toJa)).join(" ");
+  const out = SLANG.filter((w) => (to === "en" ? w.ja : w.en).test(text)).map((w) => (to === "en" ? w.toEn : w.toJa));
+  const p = PACHI.filter((w) => (to === "en" ? w.ja.test(text) : w.back && w.back.test(text)));
+  if (p.length) out.push(to === "en"
+    ? "The stream plays a pachinko game. Use these pachinko terms: " + p.map((w) => w.jaWord + " = " + w.en).join("; ") + "."
+    : "The stream plays a pachinko game. Use these Japanese pachinko terms: " + p.map((w) => w.en.replace(/ \(.*\)$/, "") + " = " + w.jaWord).join("; ") + ".");
+  return out.join(" ");
 }
 function glossary(text, to) {
   GLOSSARY.forEach((g) => {
@@ -40,7 +65,7 @@ function keepNames(src, out, to) {
   return out;
 }
 const TR_MODEL = "@cf/meta/llama-3.1-8b-instruct-fast";
-const TR_VER = 3; // 訳し方（用語集・ヒント・指示）を変えたら上げる。覚えている古い訳を使わないため
+const TR_VER = 4; // 訳し方（用語集・ヒント・指示）を変えたら上げる。覚えている古い訳を使わないため
 const TR_PROMPT_JA = "You translate English chat messages from a Twitch live stream into natural, casual Japanese, the way Japanese viewers write in chat. Keep names (for example 墓ニキ), emotes, numbers, URLs and commands that start with ! exactly as they are. Reply with the Japanese translation only, no quotes, no notes.";
 const TR_PROMPT = "You translate Japanese from a Twitch live stream (the streamer's speech, viewer chat, and game logs) into natural, casual English. Keep names (for example grave-niki, a viewer's name), emotes, numbers, URLs and commands that start with ! exactly as they are. Write Japanese viewer names in simple romaji exactly as they read (ぴよ → Piyo, まろびー → Marobi); never invent or change names. If part of the text is already English, keep it. Reply with the English translation only, no quotes, no notes.";
 
