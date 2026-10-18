@@ -138,6 +138,11 @@ h2.sec::before { content: ""; width: 22px; height: 22px; border-radius: 50%; bor
 /* ---- プロフィール ---- */
 .back { margin: 6px 0 0; }
 .hero { display: grid; grid-template-columns: auto 1fr; gap: clamp(18px, 4vw, 44px); align-items: center; margin-top: 18px; }
+/* 配信と同じプロフィールカード（オーバーレイの #sitecard を card.html として読み込む） */
+.hero.pcard-hero { grid-template-columns: 1fr; justify-items: center; text-align: center; }
+.hero.pcard-hero .who .tags, .hero.pcard-hero .who .acts { justify-content: center; }
+.pcard-frame { width: min(100%, 640px); aspect-ratio: 572 / 262; position: relative; }
+.pcard-frame iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; background: transparent; }
 .orb-wrap { position: relative; width: clamp(200px, 38vw, 300px); aspect-ratio: 1; }
 .orb-wrap svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
 .orb-wrap .track { fill: none; stroke: var(--line); stroke-width: 7; }
@@ -697,6 +702,7 @@ footer { position: relative; z-index: 2; text-align: center; color: var(--soft);
     ["そのほか", "#22CC88", [["!けいじばん こんにちは", "ラウンジの掲示板に書く（1 分に 1 回・120 字まで）"], ["!バグ報告 ガチャのあと画面が止まった", "不具合を配信者に知らせる（30 秒に 1 回・300 字まで）"], ["!花火", "画面に花火（!ハート でハート）"], [null, "888 で拍手、草 で草が生える"], ["!モノリンク", "MONO LINK の URL をチャットで受け取る（!サイト でも）"]]]
   ];
   var NOTES = [
+    ["build 58", "2026-10-18", ["プロフィールのページの丸いアイコンを、配信と同じプロフィールカードにしました（スキンの絵と動き・アイコン・二つ名・フォント・レベルがそのまま出ます）"]],
     ["build 57", "2026-10-18", ["コスメガチャに新しいスキン 15 枚（★5 6 枚・★4 9 枚）。テーマは「モチーフなし」：溶融・名前・崩壊・ブラックカード・プリズム・プラチナ・構成・すりガラス・ハーフトーン・積み木・アンチ・メンフィス・ふくらみ・アールデコ・光の帯。お店にも並びます"]],
     ["build 56", "2026-10-18", ["二つ名「コレクター」（★3）・「大コレクター」（★4）・「伝説のコレクター」（★5）を足しました。コスメガチャとお店で集めたコスメが 50・150・300 個になると手に入ります"]],
     ["持ち物のカード", "2026-10-18", ["持っている物も、裏返すと手に入れ方が出るようにしました（その下に使い方）"]],
@@ -755,6 +761,14 @@ footer { position: relative; z-index: 2; text-align: center; color: var(--soft);
   function fmt(n) { return Number(n || 0).toLocaleString("ja-JP"); }
   function hash(s) { var h = 7; Array.from(String(s)).forEach(function (c) { h = (h * 31 + c.codePointAt(0)) % 100003; }); return h; }
   function itemOf(kind, id) { return ((data && data.kinds[kind]) || []).filter(function (x) { return x.id === id; })[0]; }
+  // プロフィールのカード（card.html）が用意できたら、見る人の見た目を渡す
+  addEventListener("message", function (e) {
+    var fr = document.querySelector(".pcard-frame iframe");
+    if (!fr || e.source !== fr.contentWindow || e.origin !== location.origin || !e.data || e.data.type !== "sitecard-ready" || !cur) return;
+    var v = cur;
+    fr.contentWindow.postMessage({ type: "sitecard", name: v.name, skin: v.eq.skin, icon: v.eq.icon, ep: v.eq.ep, font: v.eq.font, L: v.L, X: v.X, from: v.from, to: v.to, title: v.title || "",
+      meta: "連続 " + fmt(v.best || 0) + " 回　持ち玉 " + fmt(v.balls || 0) + "玉" }, location.origin);
+  });
   function cssBg(x) { return x && x.bg && x.bg.indexOf("var(") < 0 ? x.bg : "radial-gradient(120% 140% at 0% 0%," + ((x && x.pc) || "#8FE6C0") + "," + ((x && x.pb) || "#E4FFF2") + " 55%,#fff)"; }
   function iconInner(v) {
     var it = v.eq.icon ? itemOf("icon", v.eq.icon) : null;
@@ -911,16 +925,9 @@ footer { position: relative; z-index: 2; text-align: center; color: var(--soft);
     if (!v) { box.innerHTML = '<button class="jelly light back" type="button" data-back>ロビーへ戻る</button><div class="panel empty" style="margin-top:20px">「' + esc(name) + '」さんの記録は、まだありません。<br>配信でコメントすると、次の更新でここに出ます。</div>'; wireBack(); return; }
     var sk = itemOf("skin", v.eq.skin) || data.kinds.skin[0] || {}, font = v.eq.font ? (itemOf("font", v.eq.font) || {}) : {};
     var fam = font.family || ((v.hid || {})[v.eq.font] || {}).family || "";
-    var p = Math.max(.02, Math.min(1, (v.X - v.from) / Math.max(1, v.to - v.from))), C = 2 * Math.PI * 120;
     box.style.setProperty("--pa", sk.pa || "#2EA8FF");
     var html = '<button class="jelly light back" type="button" data-back>ロビーへ戻る</button>'
-      + '<div class="hero"><div class="orb-wrap" style="--pa:' + esc(sk.pa || "#2EA8FF") + ';--skin:' + esc(cssBg(sk)) + '">'
-      + '<svg viewBox="0 0 300 300" aria-hidden="true"><defs><path id="arcp" d="M 2 150 A 148 148 0 0 1 298 150"/></defs>'
-      + '<circle class="ticks" cx="150" cy="150" r="138"/><circle class="track" cx="150" cy="150" r="120"/>'
-      + '<circle class="prog" cx="150" cy="150" r="120" stroke-dasharray="' + C.toFixed(1) + '" stroke-dashoffset="' + C.toFixed(1) + '" data-off="' + (C * (1 - p)).toFixed(1) + '"/>'
-      + (v.eq.ep ? '<text class="arc"><textPath href="#arcp" startOffset="50%" text-anchor="middle">「' + esc(v.eq.ep) + '」</textPath></text>' : "")
-      + '</svg><div class="orb"><div class="ic">' + iconInner(v) + '</div></div>'
-      + '<div class="lvbadge"><div><small>LEVEL</small><b>' + v.L + '</b></div></div></div>'
+      + '<div class="hero pcard-hero"><div class="pcard-frame"><iframe src="/card.html#sitecard" title="' + esc(v.name) + ' さんのプロフィールカード" loading="lazy"></iframe></div>'
       + '<div class="who"><h1 class="nm"' + (fam ? ' style="font-family:' + esc(fam) + '"' : "") + '>' + esc(v.name) + '</h1>'
       + '<div class="tags">' + (v.title ? '<span class="pill on">' + esc(v.title) + '</span>' : "") + '<span class="pill">' + esc(sk.name || "") + 'のスキン</span>' + (font.name && v.eq.font !== "maru" ? '<span class="pill">' + esc(font.name) + 'のフォント</span>' : "") + (v.owner ? '<span class="pill on">配信者</span>' : "") + '</div>'
       + '<div class="next">次のレベルまで <b>' + fmt(Math.ceil(v.to - v.X)) + '</b></div>'
@@ -944,7 +951,7 @@ footer { position: relative; z-index: 2; text-align: center; color: var(--soft);
       var u = location.origin + location.pathname + "#u=" + encodeURIComponent(v.name), b = $("copy");
       (navigator.clipboard ? navigator.clipboard.writeText(u) : Promise.reject()).then(function () { b.textContent = "コピーしました"; }, function () { prompt("このリンクをコピーしてください", u); });
     });
-    requestAnimationFrame(function () { var pr = box.querySelector(".prog"); pr.style.strokeDashoffset = pr.dataset.off; box.querySelectorAll("[data-n]").forEach(countUp); });
+    requestAnimationFrame(function () { box.querySelectorAll("[data-n]").forEach(countUp); });
     kindNow = "skin"; drawKinds(); drawGrid();
   }
   function wireBack() { var b = $("v-me").querySelector("[data-back]"); if (b) b.addEventListener("click", function (e) { go("lobby", e, "#2EA8FF"); }); }
