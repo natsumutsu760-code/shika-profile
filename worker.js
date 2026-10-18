@@ -17,10 +17,15 @@ const GLOSSARY = [
 ];
 function glossary(text, to) {
   GLOSSARY.forEach((g) => {
-    if (to === "en") g.ja.forEach((w) => { text = text.split(w).join(g.en); });
+    if (to === "en") g.ja.forEach((w) => { text = text.split(w).join(" " + g.en + " "); });
     else text = text.replace(new RegExp(g.en.replace(/[-]/g, "[- ]?"), "gi"), g.jaOut);
   });
-  return text;
+  return to === "en" ? text.replace(/ {2,}/g, " ").trim() : text;
+}
+// 訳から名前が消えてしまったら、前に足す
+function keepNames(src, out, to) {
+  GLOSSARY.forEach((g) => { const w = to === "en" ? g.en : g.jaOut; if (src.includes(w) && !out.toLowerCase().includes(w.toLowerCase())) out = w + (to === "en" ? ", " : "、") + out; });
+  return out;
 }
 const TR_MODEL = "@cf/meta/llama-3.1-8b-instruct-fast";
 const TR_PROMPT_JA = "You translate English chat messages from a Twitch live stream into natural, casual Japanese, the way Japanese viewers write in chat. Keep names (for example 墓ニキ), emotes, numbers, URLs and commands that start with ! exactly as they are. Reply with the Japanese translation only, no quotes, no notes.";
@@ -418,7 +423,7 @@ export class Lounge {
         en = String((r && r.response) || "").trim().replace(/^["「『]|["」』]$/g, "");
       } catch (e) { this.trErr = String((e && e.message) || e).slice(0, 300); }
       if (!en) { try { const r = await this.env.AI.run("@cf/meta/m2m100-1.2b", { text, source_lang: to === "ja" ? "english" : "japanese", target_lang: to === "ja" ? "japanese" : "english" }); en = String((r && r.translated_text) || "").trim(); } catch (e) { this.trErr2 = String((e && e.message) || e).slice(0, 300); } }
-      en = en.slice(0, 400);
+      en = en ? keepNames(text, en, to).slice(0, 400) : "";
       if (en) { this.trCache.set(key, en); if (this.trCache.size > 800) this.trCache.delete(this.trCache.keys().next().value); }
       return en;
     })();
