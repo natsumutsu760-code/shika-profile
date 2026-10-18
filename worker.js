@@ -15,6 +15,15 @@ const EN_RX = /[A-Za-z]{2,}/;
 const GLOSSARY = [
   { ja: ["墓ニキ", "墓にき", "はかニキ", "ハカニキ", "はかにき", "墓二キ"], en: "grave-niki", jaOut: "墓ニキ" },
 ];
+// 口ぐせ・スラング：形が変わる言葉は置きかえず、出てきたときだけ翻訳 AI に意味と訳し方を教える
+const SLANG = [
+  { ja: /シャバ|しゃば|ｼｬﾊﾞ/, en: /\bshabai\b/i,
+    toEn: "シャバい (also しゃばい, シャバすぎ, シャバかった, シャバくない) is the streamer's catchphrase slang meaning lame / uncool. Always keep it as \"shabai (lame)\" in English, for example: シャバい → shabai (lame), シャバすぎ → way too shabai (lame), シャバくない → not shabai (lame).",
+    toJa: "\"shabai\" is the streamer's catchphrase シャバい (meaning lame). Translate it as シャバい (or シャバすぎ, シャバくない to fit the sentence)." },
+];
+function slangHint(text, to) {
+  return SLANG.filter((w) => (to === "en" ? w.ja : w.en).test(text)).map((w) => (to === "en" ? w.toEn : w.toJa)).join(" ");
+}
 function glossary(text, to) {
   GLOSSARY.forEach((g) => {
     if (to === "en") g.ja.forEach((w) => { text = text.split(w).join(" " + g.en + " "); });
@@ -419,7 +428,8 @@ export class Lounge {
     const p = (async () => {
       let en = "";
       try {
-        const r = await this.env.AI.run(TR_MODEL, { messages: [{ role: "system", content: to === "ja" ? TR_PROMPT_JA : TR_PROMPT }, { role: "user", content: text }], max_tokens: 220, temperature: 0.2 });
+        const hint = slangHint(text, to), sys = (to === "ja" ? TR_PROMPT_JA : TR_PROMPT) + (hint ? " " + hint : "");
+        const r = await this.env.AI.run(TR_MODEL, { messages: [{ role: "system", content: sys }, { role: "user", content: text }], max_tokens: 220, temperature: 0.2 });
         en = String((r && r.response) || "").trim().replace(/^["「『]|["」』]$/g, "");
       } catch (e) { this.trErr = String((e && e.message) || e).slice(0, 300); }
       if (!en) { try { const r = await this.env.AI.run("@cf/meta/m2m100-1.2b", { text, source_lang: to === "ja" ? "english" : "japanese", target_lang: to === "ja" ? "japanese" : "english" }); en = String((r && r.translated_text) || "").trim(); } catch (e) { this.trErr2 = String((e && e.message) || e).slice(0, 300); } }
