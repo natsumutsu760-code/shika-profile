@@ -40,8 +40,9 @@ function keepNames(src, out, to) {
   return out;
 }
 const TR_MODEL = "@cf/meta/llama-3.1-8b-instruct-fast";
+const TR_VER = 3; // 訳し方（用語集・ヒント・指示）を変えたら上げる。覚えている古い訳を使わないため
 const TR_PROMPT_JA = "You translate English chat messages from a Twitch live stream into natural, casual Japanese, the way Japanese viewers write in chat. Keep names (for example 墓ニキ), emotes, numbers, URLs and commands that start with ! exactly as they are. Reply with the Japanese translation only, no quotes, no notes.";
-const TR_PROMPT = "You translate Japanese from a Twitch live stream (the streamer's speech, viewer chat, and game logs) into natural, casual English. Keep names (for example grave-niki, a viewer's name), emotes, numbers, URLs and commands that start with ! exactly as they are. If part of the text is already English, keep it. Reply with the English translation only, no quotes, no notes.";
+const TR_PROMPT = "You translate Japanese from a Twitch live stream (the streamer's speech, viewer chat, and game logs) into natural, casual English. Keep names (for example grave-niki, a viewer's name), emotes, numbers, URLs and commands that start with ! exactly as they are. Write Japanese viewer names in simple romaji exactly as they read (ぴよ → Piyo, まろびー → Marobi); never invent or change names. If part of the text is already English, keep it. Reply with the English translation only, no quotes, no notes.";
 
 const SEC = {
   "X-Content-Type-Options": "nosniff",
@@ -424,7 +425,7 @@ export class Lounge {
     if (to === "en" ? !JA_RX.test(text) : JA_RX.test(text) || !EN_RX.test(text)) return "";
     text = glossary(text, to);
     if (to === "en" ? !JA_RX.test(text) : !EN_RX.test(text)) return text; // 置きかえたら訳す所が残らなかった（「墓ニキ」だけなど）
-    const key = to + "|" + text;
+    const key = TR_VER + "|" + to + "|" + text;
     this.trCache = this.trCache || new Map(); this.trWait = this.trWait || new Map();
     if (this.trCache.has(key)) { const v = this.trCache.get(key); this.trCache.delete(key); this.trCache.set(key, v); return v; }
     if (this.trWait.has(key)) return this.trWait.get(key);
