@@ -14,6 +14,12 @@ const EN_RX = /[A-Za-z]{2,}/;
 // 用語集：決まった訳にしたい名前（翻訳 AI に渡す前に置きかえる）。ja は音声認識が書きそうな形もまとめて
 const GLOSSARY = [
   { ja: ["墓ニキ", "墓にき", "はかニキ", "ハカニキ", "はかにき", "墓二キ"], en: "grave-niki", jaOut: "墓ニキ" },
+  // パチンコの日本独特の言葉（英語でもローマ字のまま。意味は PACHI のヒントで AI に伝える）
+  { ja: ["先バレ", "さきバレ", "サキバレ"], en: "sakibare", jaOut: "先バレ" },
+  { ja: ["全回転"], en: "zenkaiten", jaOut: "全回転" },
+  { ja: ["確変", "かくへん", "カクヘン"], en: "kakuhen", jaOut: "確変" },
+  { ja: ["時短"], en: "jitan", jaOut: "時短" },
+  { ja: ["擬似連", "疑似連"], en: "giji-ren", jaOut: "擬似連" },
 ];
 // 口ぐせ・スラング：形が変わる言葉は置きかえず、出てきたときだけ翻訳 AI に意味と訳し方を教える
 const SLANG = [
@@ -27,15 +33,15 @@ const SLANG = [
 // パチンコ（鹿物語）の言葉：日本語 → 英語の決まった訳。文に出てきたものだけ翻訳 AI に教える
 //   [日本語（正規表現）, 英語, 英語から日本語に戻すとき見つける英語（正規表現・なければ戻さない）]
 const PACHI = [
-  ["先バレ", "sakibare (early tell)", "sakibare"], ["全回転", "zenkaiten (full spin, guaranteed jackpot)", "zenkaiten"],
+  ["先バレ|sakibare", "sakibare (early tell)", "sakibare"], ["全回転|zenkaiten", "zenkaiten (full spin, guaranteed jackpot)", "zenkaiten"],
   ["スーパーリーチ|SPリーチ", "super reach", "super reach"], ["リーチ", "reach", "\\breach\\b"],
-  ["確変", "kakuhen (boosted odds)", "kakuhen"], ["時短", "jitan (time-saving mode)", "jitan"],
+  ["確変|kakuhen", "kakuhen (boosted odds)", "kakuhen"], ["時短|jitan", "jitan (time-saving mode)", "jitan"],
   ["小当たり", "small hit"], ["大当たり|大当り", "jackpot", "jackpot"],
   ["赤保留", "red hold"], ["金保留", "gold hold"], ["虹保留", "rainbow hold"], ["保留", "hold (pending spin)", "\\bholds?\\b"],
   ["ヘソ", "start pocket", "start pocket"], ["激アツ|激熱", "super hot", "super hot"],
   ["連チャン", "chain (back-to-back jackpots)", "\\bchains?\\b"], ["出玉", "payout", "payout"],
   ["ハマり|ハマった|ハマる", "dry streak", "dry streak"], ["右打ち", "shoot right", "shoot right"],
-  ["図柄", "symbols"], ["カットイン", "cut-in", "cut-in"], ["擬似連|疑似連", "giji-ren (fake chain)", "giji-?ren"],
+  ["図柄", "symbols"], ["カットイン", "cut-in", "cut-in"], ["擬似連|疑似連|giji-ren", "giji-ren (fake chain)", "giji-?ren"],
   ["演出", "effect (animation)"], ["液晶", "screen"], ["回転", "spins"], ["抽選", "draw"],
   ["天井", "pity (guaranteed after enough spins)", "\\bpity\\b"], ["キャッシュバック", "cashback"],
   ["最終決戦", "final battle", "final battle"], ["連打", "mash", "\\bmash"], ["ラウンド", "round"],
@@ -65,9 +71,9 @@ function keepNames(src, out, to) {
   return out;
 }
 const TR_MODEL = "@cf/meta/llama-3.1-8b-instruct-fast";
-const TR_VER = 4; // 訳し方（用語集・ヒント・指示）を変えたら上げる。覚えている古い訳を使わないため
+const TR_VER = 5; // 訳し方（用語集・ヒント・指示）を変えたら上げる。覚えている古い訳を使わないため
 const TR_PROMPT_JA = "You translate English chat messages from a Twitch live stream into natural, casual Japanese, the way Japanese viewers write in chat. Keep names (for example 墓ニキ), emotes, numbers, URLs and commands that start with ! exactly as they are. Reply with the Japanese translation only, no quotes, no notes.";
-const TR_PROMPT = "You translate Japanese from a Twitch live stream (the streamer's speech, viewer chat, and game logs) into natural, casual English. Keep names (for example grave-niki, a viewer's name), emotes, numbers, URLs and commands that start with ! exactly as they are. Write Japanese viewer names in simple romaji exactly as they read (ぴよ → Piyo, まろびー → Marobi); never invent or change names. If part of the text is already English, keep it. Reply with the English translation only, no quotes, no notes.";
+const TR_PROMPT = "You translate Japanese from a Twitch live stream (the streamer's speech, viewer chat, and game logs) into natural, casual English. Keep names and terms (for example grave-niki, a viewer's name; sakibare, zenkaiten, kakuhen, jitan, giji-ren, pachinko terms), emotes, numbers, URLs and commands that start with ! exactly as they are. Write Japanese viewer names in simple romaji exactly as they read (ぴよ → Piyo, まろびー → Marobi); never invent or change names. If part of the text is already English, keep it. Reply with the English translation only, no quotes, no notes.";
 
 const SEC = {
   "X-Content-Type-Options": "nosniff",
