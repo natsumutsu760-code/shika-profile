@@ -24,7 +24,7 @@ function glossary(text, to) {
 }
 // 訳から名前が消えてしまったら、前に足す
 function keepNames(src, out, to) {
-  GLOSSARY.forEach((g) => { const w = to === "en" ? g.en : g.jaOut; if (src.includes(w) && !out.toLowerCase().includes(w.toLowerCase())) out = w + (to === "en" ? ", " : "、") + out; });
+  GLOSSARY.forEach((g) => { const w = to === "en" ? g.en : g.jaOut; if (src.includes(w) && !out.toLowerCase().includes(w.toLowerCase())) out = w + (to === "en" ? ", " + (/^I\b/.test(out) ? out : out.charAt(0).toLowerCase() + out.slice(1)) : "、" + out); });
   return out;
 }
 const TR_MODEL = "@cf/meta/llama-3.1-8b-instruct-fast";
