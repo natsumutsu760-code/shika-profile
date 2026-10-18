@@ -20,6 +20,9 @@ const SLANG = [
   { ja: /シャバ|しゃば|ｼｬﾊﾞ/, en: /\bshabai\b/i,
     toEn: "シャバい (also しゃばい, シャバすぎ, シャバかった, シャバくない) is the streamer's catchphrase slang meaning lame / uncool. Always keep it as \"shabai (lame)\" in English, for example: シャバい → shabai (lame), シャバすぎ → way too shabai (lame), シャバくない → not shabai (lame).",
     toJa: "\"shabai\" is the streamer's catchphrase シャバい (meaning lame). Translate it as シャバい (or シャバすぎ, シャバくない to fit the sentence)." },
+  { ja: /玉/, en: /\bballs?\b/i,
+    toEn: "玉 means the pachinko balls of the stream's game Shika Story (they work like points). Always translate 玉 as ball / balls, never coins, gems or jewels: 持ち玉 → balls (your balls), +1玉 → +1 ball, 玉スキン → ball skin, 11030 玉 → 11,030 balls.",
+    toJa: "\"ball\" / \"balls\" means 玉, the pachinko balls of the stream's game. Translate as 玉 (your balls → 持ち玉, ball skin → 玉スキン)." },
 ];
 function slangHint(text, to) {
   return SLANG.filter((w) => (to === "en" ? w.ja : w.en).test(text)).map((w) => (to === "en" ? w.toEn : w.toJa)).join(" ");

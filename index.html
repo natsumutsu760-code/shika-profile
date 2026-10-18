@@ -1642,7 +1642,8 @@ footer { position: relative; z-index: 2; text-align: center; color: var(--soft);
   // 数字の入る文は形で置きかえる
   var EN_RULES = [
     [/^更新 (.+)$/, "Updated $1"],
-    [/^([\d,]+) 玉$/, "$1 balls"],
+    [/^([\d,]+) ?玉$/, function (m, n) { return n === "1" ? "1 ball" : n + " balls"; }],
+    [/^\+([\d,]+) ?玉$/, function (m, n) { return "+" + n + (n === "1" ? " ball" : " balls"); }],
     [/^([\d,]+) 人$/, "$1 people"],
     [/^([\d,]+) 件$/, "$1"],
     [/^さん Lv\.$/, " Lv."],
