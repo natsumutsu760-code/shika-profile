@@ -1102,6 +1102,7 @@ footer { position: relative; z-index: 2; text-align: center; color: var(--soft);
     if (MX) return;
     $("screen").innerHTML = '<div class="mx" id="mx"><div class="mx-world"><div class="mx-pa"></div><div class="mx-ov"></div></div><div class="mx-msg" id="mx-msg"></div><button type="button" class="mx-snd" id="mx-snd" aria-pressed="false">' + SPK + '<span>音を出す</span></button></div>';
     var root = $("mx");
+    $("screen").appendChild(capEl); // 字幕はミラーの上にも出す
     $("mx-snd").addEventListener("click", mxSound);
     MX = { root: root, world: root.firstChild, box: { pa: root.querySelector(".mx-pa"), ov: root.querySelector(".mx-ov") }, rep: {}, ready: {}, q: { ov: [], pa: [] },
       mc: {}, media: {}, want: {}, req: {}, done: {}, byHash: {}, seq: 0, lib: false, rest: {} };

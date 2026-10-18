@@ -323,6 +323,11 @@ async function route(req, env) {
       return json({ error: "method" }, 405);
     }
     // 最近ラウンジに入れなかった人（配信オーバーレイのパネル用。上げる口と同じ鍵がいる）
+    // 翻訳 AI が動いているかを確かめる（配信者の鍵がいる）
+    if (url.pathname === "/api/trcheck") {
+      if (!env.UPLOAD_KEY || !(await sameKey(bearer(req), env.UPLOAD_KEY))) return json({ error: "key" }, 401);
+      return lounge(env).fetch("https://lounge/trcheck?" + url.searchParams.toString());
+    }
     if (url.pathname === "/api/denied") {
       if (req.method === "OPTIONS") return new Response(null, { status: 204, headers: UP_CORS });
       if (!env.UPLOAD_KEY || !(await sameKey(bearer(req), env.UPLOAD_KEY))) return json({ error: "key" }, 401, UP_CORS);
@@ -398,8 +403,8 @@ export class Lounge {
       try {
         const r = await this.env.AI.run(TR_MODEL, { messages: [{ role: "system", content: to === "ja" ? TR_PROMPT_JA : TR_PROMPT }, { role: "user", content: text }], max_tokens: 220, temperature: 0.2 });
         en = String((r && r.response) || "").trim().replace(/^["「『]|["」』]$/g, "");
-      } catch (e) {}
-      if (!en) { try { const r = await this.env.AI.run("@cf/meta/m2m100-1.2b", { text, source_lang: to === "ja" ? "english" : "japanese", target_lang: to === "ja" ? "japanese" : "english" }); en = String((r && r.translated_text) || "").trim(); } catch (e) {} }
+      } catch (e) { this.trErr = String((e && e.message) || e).slice(0, 300); }
+      if (!en) { try { const r = await this.env.AI.run("@cf/meta/m2m100-1.2b", { text, source_lang: to === "ja" ? "english" : "japanese", target_lang: to === "ja" ? "japanese" : "english" }); en = String((r && r.translated_text) || "").trim(); } catch (e) { this.trErr2 = String((e && e.message) || e).slice(0, 300); } }
       en = en.slice(0, 400);
       if (en) { this.trCache.set(key, en); if (this.trCache.size > 800) this.trCache.delete(this.trCache.keys().next().value); }
       return en;
@@ -650,6 +655,12 @@ export class Lounge {
       const s = JSON.stringify({ t: "notice", id: now.toString(36), text });
       obs.forEach((w) => { try { w.send(s); } catch (e) {} });
       return new Response(JSON.stringify({ ok: true, obs: obs.length, builds }), { headers: { "Content-Type": "application/json" } });
+    }
+    if (url.pathname === "/trcheck") {
+      const text = url.searchParams.get("text") || "今日はホラーゲームをやっていきます", to = url.searchParams.get("to") === "ja" ? "ja" : "en";
+      this.trErr = this.trErr2 = "";
+      const out = await this.tr(text, to);
+      return new Response(JSON.stringify({ ai: !!this.env.AI, model: TR_MODEL, to, text, out, err: this.trErr || "", err2: this.trErr2 || "", en: this.enViewers().length, viewers: this.viewers().length }), { headers: { "Content-Type": "application/json; charset=utf-8" } });
     }
     if (url.pathname === "/bugs/meta") return new Response(JSON.stringify({ lastOk: this.bugsReadAt || 0 }));
     if (url.pathname === "/bugs") { this.bugsReadAt = now; await this.state.storage.put("bugsReadAt", now); return new Response(JSON.stringify({ bugs: this.bugs.slice(-100) }), { headers: { "Content-Type": "application/json; charset=utf-8" } }); }
