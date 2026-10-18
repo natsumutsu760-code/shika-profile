@@ -11,9 +11,20 @@ const HERE_MS = 3 * 60 * 1000; // 最後の知らせからこの時間はラウ�
 // 英語への翻訳（Workers AI）。日本語（ひらがな・カタカナ・漢字）がある文だけ訳す
 const JA_RX = /[\u3040-\u30ff\u3400-\u9fff\uff66-\uff9f]/;
 const EN_RX = /[A-Za-z]{2,}/;
+// 用語集：決まった訳にしたい名前（翻訳 AI に渡す前に置きかえる）。ja は音声認識が書きそうな形もまとめて
+const GLOSSARY = [
+  { ja: ["墓ニキ", "墓にき", "はかニキ", "ハカニキ", "はかにき", "墓二キ"], en: "grave-niki", jaOut: "墓ニキ" },
+];
+function glossary(text, to) {
+  GLOSSARY.forEach((g) => {
+    if (to === "en") g.ja.forEach((w) => { text = text.split(w).join(g.en); });
+    else text = text.replace(new RegExp(g.en.replace(/[-]/g, "[- ]?"), "gi"), g.jaOut);
+  });
+  return text;
+}
 const TR_MODEL = "@cf/meta/llama-3.1-8b-instruct-fast";
-const TR_PROMPT_JA = "You translate English chat messages from a Twitch live stream into natural, casual Japanese, the way Japanese viewers write in chat. Keep names, emotes, numbers, URLs and commands that start with ! exactly as they are. Reply with the Japanese translation only, no quotes, no notes.";
-const TR_PROMPT = "You translate Japanese from a Twitch live stream (the streamer's speech, viewer chat, and game logs) into natural, casual English. Keep names, emotes, numbers, URLs and commands that start with ! exactly as they are. If part of the text is already English, keep it. Reply with the English translation only, no quotes, no notes.";
+const TR_PROMPT_JA = "You translate English chat messages from a Twitch live stream into natural, casual Japanese, the way Japanese viewers write in chat. Keep names (for example 墓ニキ), emotes, numbers, URLs and commands that start with ! exactly as they are. Reply with the Japanese translation only, no quotes, no notes.";
+const TR_PROMPT = "You translate Japanese from a Twitch live stream (the streamer's speech, viewer chat, and game logs) into natural, casual English. Keep names (for example grave-niki, a viewer's name), emotes, numbers, URLs and commands that start with ! exactly as they are. If part of the text is already English, keep it. Reply with the English translation only, no quotes, no notes.";
 
 const SEC = {
   "X-Content-Type-Options": "nosniff",
@@ -394,6 +405,8 @@ export class Lounge {
     text = String(text || "").replace(/[\u0000-\u001f\u007f]/g, " ").trim().slice(0, 300);
     if (!text || !this.env.AI) return "";
     if (to === "en" ? !JA_RX.test(text) : JA_RX.test(text) || !EN_RX.test(text)) return "";
+    text = glossary(text, to);
+    if (to === "en" ? !JA_RX.test(text) : !EN_RX.test(text)) return text; // 置きかえたら訳す所が残らなかった（「墓ニキ」だけなど）
     const key = to + "|" + text;
     this.trCache = this.trCache || new Map(); this.trWait = this.trWait || new Map();
     if (this.trCache.has(key)) { const v = this.trCache.get(key); this.trCache.delete(key); this.trCache.set(key, v); return v; }
