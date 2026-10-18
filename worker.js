@@ -322,6 +322,13 @@ async function replayJs() {
   return new Response(await r.text(), { headers: { "Content-Type": "application/javascript; charset=utf-8", "Cache-Control": "public, max-age=3600", ...SEC } });
 }
 
+// コスメの英語名（サイトが EN のときに読み込む）。10 分ためておく
+async function cosmeEn() {
+  const r = await fetch(HTML_URL.replace(/index\.html$/, "cosme-en.json"), { cf: { cacheTtl: 600, cacheEverything: true } });
+  if (!r.ok) return new Response("{}", { status: 502, headers: { "Content-Type": "application/json" } });
+  return new Response(await r.text(), { headers: { "Content-Type": "application/json; charset=utf-8", "Cache-Control": "public, max-age=600", ...SEC } });
+}
+
 // MONO LINK のプロフィールのカード（オーバーレイの #sitecard）。プロフィールのページの iframe からだけ読み込める
 async function cardPage() {
   const r = await fetch(HTML_URL.replace(/index\.html$/, "card.html"), { cf: { cacheTtl: 300, cacheEverything: true } });
@@ -415,6 +422,7 @@ async function route(req, env) {
     if (url.pathname === "/api/config" && req.method === "GET") return config(env);
     if (url.pathname.startsWith("/api/")) return json({ error: "notfound" }, 404);
     if (url.pathname === "/mx-replay.js" && req.method === "GET") return replayJs();
+    if (url.pathname === "/cosme-en.json" && req.method === "GET") return cosmeEn();
     if (url.pathname === "/card.html" && req.method === "GET") return cardPage();
     if (req.method !== "GET" && req.method !== "HEAD") return json({ error: "method" }, 405);
     return page();

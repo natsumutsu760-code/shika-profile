@@ -722,7 +722,7 @@ footer { position: relative; z-index: 2; text-align: center; color: var(--soft);
     ["そのほか", "#22CC88", [["!けいじばん こんにちは", "ラウンジの掲示板に書く（1 分に 1 回・120 字まで）"], ["!バグ報告 ガチャのあと画面が止まった", "不具合を配信者に知らせる（30 秒に 1 回・300 字まで）"], ["!花火", "画面に花火（!ハート でハート）"], [null, "888 で拍手、草 で草が生える"], ["!モノリンク", "MONO LINK の URL をチャットで受け取る（!サイト でも）"]]]
   ];
   var NOTES = [
-    ["MONO LINK", "2026-10-18", ["英語に対応しはじめました（Started English support）。右上と配信ページの「EN / 日本語」で切りかえます", "EN にすると、画面の文字も英語になります（コマンド・コスメの名前・パッチノートは、まだ日本語です）", "配信の字幕：配信者の声を文字にして、英語を選んだ人には英語の字幕で出します（日本語の字幕は「字幕」ボタンで）", "配信のコメント欄：英語の人には日本語のコメントとログに英語の訳、日本語の人には英語のコメントに日本語の訳がつきます（「英語を訳す」ボタンで消せます）"]],
+    ["MONO LINK", "2026-10-18", ["英語に対応しはじめました（Started English support）。右上と配信ページの「EN / 日本語」で切りかえます", "EN にすると、画面の文字とコスメ 575 個の名前・レアリティ・手に入れ方も英語になります（コマンド・パッチノート・プロフィールのカードは、まだ日本語です）", "配信の字幕：配信者の声を文字にして、英語を選んだ人には英語の字幕で出します（日本語の字幕は「字幕」ボタンで）", "配信のコメント欄：英語の人には日本語のコメントとログに英語の訳、日本語の人には英語のコメントに日本語の訳がつきます（「英語を訳す」ボタンで消せます）"]],
     ["build 59", "2026-10-18", ["コスメガチャで持っている物も出るようになりました。被ると進化します（被り 1 個でⅠ 色違い・さらに 2 個でⅡ 光る・さらに 3 個でⅢ 演出が増える）。!スキン 名前 0〜3 のように段階を選べます（アイコン・二つ名・玉スキンも）", "フォントの被りと、Ⅲ の物の被りは「リソース」になります（★1 1〜★5 50）。!リソース で数が見られます。使い道はこれから", "お店では持っている物も買えます（被り 1 個と同じ）", "鹿物語 Ver.1.7.18：玉スキンの進化が玉にも出ます"]],
     ["build 58", "2026-10-18", ["プロフィールのページの丸いアイコンを、配信と同じプロフィールカードにしました（スキンの絵と動き・アイコン・二つ名・フォント・レベルがそのまま出ます）"]],
     ["build 57", "2026-10-18", ["コスメガチャに新しいスキン 15 枚（★5 6 枚・★4 9 枚）。テーマは「モチーフなし」：溶融・名前・崩壊・ブラックカード・プリズム・プラチナ・構成・すりガラス・ハーフトーン・積み木・アンチ・メンフィス・ふくらみ・アールデコ・光の帯。お店にも並びます"]],
@@ -1636,6 +1636,10 @@ footer { position: relative; z-index: 2; text-align: center; color: var(--soft);
     "次の入れ替えまで": "Next restock in", "玉": "balls", "玉です。": "balls.", "さんの持ち玉は": " has",
     "コスメのレアリティ": "Cosmetic rarity", "コスメガチャ": "Cosmetic gacha", "レイアウト": "Layout", "ミニゲーム": "Mini games", "鹿物語": "Shika Story",
     "人": "", "回": "", "連": "", "勝": "wins", "と": "&",
+    // コスメの手に入れ方・レアリティ（名前は cosme-en.json から足す）
+    "はじめから": "From the start", "はじめてコメント": "First comment", "はじめて大当たり": "First jackpot", "鹿物語ではじめて大当たり": "First jackpot in Shika Story",
+    "通貨": "Currency", "サブスク": "Subscribe", "コスメガチャ（!ガチャ・!ガチャ10）": "Cosmetic gacha (!ガチャ / !ガチャ10)", "コスメガチャ（!ガチャ・!ガチャ10）・お店（!購入）": "Cosmetic gacha (!ガチャ / !ガチャ10) or shop (!購入)",
+    "ノーマル": "Normal", "レア": "Rare", "エピック": "Epic", "レジェンド": "Legend", "ミシック": "Mythic",
     // 記号
     "（": "(", "）": ")", "：": ": ", "？": "?", "（ID": "(ID"
   };
@@ -1648,7 +1652,23 @@ footer { position: relative; z-index: 2; text-align: center; color: var(--soft);
     [/^([\d,]+) 件$/, "$1"],
     [/^さん Lv\.$/, " Lv."],
     [/^「!購入 (\d+)」をコピー$/, "Copy \"!購入 $1\""],
-    [/^押すと手に入れ方$/, "Tap to see how to get it"]
+    [/^押すと手に入れ方$/, "Tap to see how to get it"],
+    // コスメの名前つきの文（名前は辞書で英語に。コマンドは日本語の名前でないと動かないので、英語名は横に添える）
+    [/^(.+)のスキン$/, function (m, n) { return (EN_DICT[n] || n) + " skin"; }],
+    [/^(.+)のフォント$/, function (m, n) { return (EN_DICT[n] || n) + " font"; }],
+    [/^(![^\s]+) (.+) で使えます$/, function (m, c, n) { return "Use: " + c + " " + n + (EN_DICT[n] ? " (" + EN_DICT[n] + ")" : ""); }],
+    // コスメの手に入れ方
+    [/^(\d+) 回連続で来る$/, "Visit $1 streams in a row"],
+    [/^RUSH (\d+) 連チャン$/, "$1-chain RUSH"],
+    [/^ガチャ・お店でコスメを (\d+) 個集める$/, "Collect $1 cosmetics from the gacha and shop"],
+    [/^ギフト (\d+) 人またはビッツ (\d+)$/, "Gift $1 subs or cheer $2 bits"],
+    [/^ギフト (\d+) 人$/, function (m, n) { return "Gift " + n + (n === "1" ? " sub" : " subs"); }],
+    [/^コメント (\d+) 回$/, "Comment $1 times"],
+    [/^ビッツ (\d+)$/, "Cheer $1 bits"],
+    [/^ミニゲームで (\d+) 回勝つ$/, function (m, n) { return "Win " + n + (n === "1" ? " mini game" : " mini games"); }],
+    [/^夜中（0〜5 時）にコメント (\d+) 回$/, "Comment $1 times late at night (0–5 AM)"],
+    [/^大当たり (\d+) 回$/, "$1 jackpots"],
+    [/^連打チャンスで !押せ (\d+) 回$/, "Press !押せ $1 times in button chances"]
   ];
 
   // 英語のとき、画面に出た文字を辞書で置きかえる（あとから出た文字も MutationObserver で）。日本語に戻すときは元に戻す
@@ -1694,8 +1714,18 @@ footer { position: relative; z-index: 2; text-align: center; color: var(--soft);
       else if (m.type === "attributes") enAttrs(m.target);
     });
   });
+  // コスメの英語名：EN にしたとき 1 回だけ読み込んで辞書に足す（画面の文字の訳が先。同じ言葉は画面の訳のまま）
+  var cosmeAsked = false;
+  function cosmeLoad() {
+    if (cosmeAsked) return; cosmeAsked = true;
+    fetch("/cosme-en.json", { cache: "default" }).then(function (r) { return r.ok ? r.json() : null; }).then(function (j) {
+      var n = j && j.names; if (!n) return;
+      Object.keys(n).forEach(function (k) { if (!Object.prototype.hasOwnProperty.call(EN_DICT, k)) EN_DICT[k] = n[k]; });
+      if (LANG === "en") enWalk(document.body);
+    }, function () { cosmeAsked = false; });
+  }
   function enApply() {
-    drawTitle();
+    drawTitle(); if (LANG === "en") cosmeLoad();
     if (LANG === "en") { enWalk(document.body); enObs.observe(document.body, { childList: true, subtree: true, characterData: true, attributes: true, attributeFilter: EN_ATTRS }); }
     else { enObs.disconnect(); enBack(document.body); }
   }
