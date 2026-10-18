@@ -14,3 +14,7 @@ class_name = "Lounge"
 [[migrations]]
 tag = "v1"
 new_sqlite_classes = ["Lounge"]
+
+# 英語の字幕・コメントの翻訳に使う Cloudflare の Workers AI
+[ai]
+binding = "AI"

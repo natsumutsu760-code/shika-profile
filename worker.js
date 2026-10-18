@@ -8,6 +8,12 @@
 const HTML_URL = "https://raw.githubusercontent.com/natsumutsu760-code/shika-profile/main/index.html";
 const MAX_UPLOAD = 20 * 1024 * 1024;
 const HERE_MS = 3 * 60 * 1000; // 最後の知らせからこの時間はラウンジにいることにする
+// 英語への翻訳（Workers AI）。日本語（ひらがな・カタカナ・漢字）がある文だけ訳す
+const JA_RX = /[\u3040-\u30ff\u3400-\u9fff\uff66-\uff9f]/;
+const EN_RX = /[A-Za-z]{2,}/;
+const TR_MODEL = "@cf/meta/llama-3.1-8b-instruct-fast";
+const TR_PROMPT_JA = "You translate English chat messages from a Twitch live stream into natural, casual Japanese, the way Japanese viewers write in chat. Keep names, emotes, numbers, URLs and commands that start with ! exactly as they are. Reply with the Japanese translation only, no quotes, no notes.";
+const TR_PROMPT = "You translate Japanese from a Twitch live stream (the streamer's speech, viewer chat, and game logs) into natural, casual English. Keep names, emotes, numbers, URLs and commands that start with ! exactly as they are. If part of the text is already English, keep it. Reply with the English translation only, no quotes, no notes.";
 
 const SEC = {
   "X-Content-Type-Options": "nosniff",
@@ -237,7 +243,8 @@ async function ticket(req, env) {
   if (e.res) return e.res;
   // 配信者とモデレーター（staff）だけが、配信者用ページで OBS の画面（ミラー）を受け取れる
   const gate = (await env.DB.get("gate", "json")) || {}, staff = !!e.who.id && (e.who.id === gate.owner || !!(gate.mods && gate.mods[e.who.id]));
-  const room = lounge(env), ask = async (n) => (await room.fetch("https://lounge/ticket", { method: "POST", body: JSON.stringify({ id: e.who.id, l: e.who.login, n, staff }) })).json();
+  const own = !!e.who.id && e.who.id === gate.owner; // 配信者本人だけが字幕を送れる
+  const room = lounge(env), ask = async (n) => (await room.fetch("https://lounge/ticket", { method: "POST", body: JSON.stringify({ id: e.who.id, l: e.who.login, n, staff, own }) })).json();
   let r = await ask("");
   if (r.needName) r = await ask(await displayName(e.who));
   return json(r);
@@ -374,6 +381,33 @@ export class Lounge {
     try { state.setWebSocketAutoResponse(new WebSocketRequestResponsePair("ping", "pong")); } catch (e) {}
   }
   att(ws) { try { return ws.deserializeAttachment() || {}; } catch (e) { return {}; } }
+  // ---- 英語への翻訳（Cloudflare の Workers AI。字幕・コメント・システムログ）----
+  // 同じ文は 1 回だけ訳して覚えておく（新しい 800 件）。訳している最中の同じ文は、同じ結果を待つ
+  //   to：訳す先（"en"：日本語 → 英語・"ja"：英語 → 日本語）
+  async tr(text, to) {
+    to = to === "ja" ? "ja" : "en";
+    text = String(text || "").replace(/[\u0000-\u001f\u007f]/g, " ").trim().slice(0, 300);
+    if (!text || !this.env.AI) return "";
+    if (to === "en" ? !JA_RX.test(text) : JA_RX.test(text) || !EN_RX.test(text)) return "";
+    const key = to + "|" + text;
+    this.trCache = this.trCache || new Map(); this.trWait = this.trWait || new Map();
+    if (this.trCache.has(key)) { const v = this.trCache.get(key); this.trCache.delete(key); this.trCache.set(key, v); return v; }
+    if (this.trWait.has(key)) return this.trWait.get(key);
+    const p = (async () => {
+      let en = "";
+      try {
+        const r = await this.env.AI.run(TR_MODEL, { messages: [{ role: "system", content: to === "ja" ? TR_PROMPT_JA : TR_PROMPT }, { role: "user", content: text }], max_tokens: 220, temperature: 0.2 });
+        en = String((r && r.response) || "").trim().replace(/^["「『]|["」』]$/g, "");
+      } catch (e) {}
+      if (!en) { try { const r = await this.env.AI.run("@cf/meta/m2m100-1.2b", { text, source_lang: to === "ja" ? "english" : "japanese", target_lang: to === "ja" ? "japanese" : "english" }); en = String((r && r.translated_text) || "").trim(); } catch (e) {} }
+      en = en.slice(0, 400);
+      if (en) { this.trCache.set(key, en); if (this.trCache.size > 800) this.trCache.delete(this.trCache.keys().next().value); }
+      return en;
+    })();
+    this.trWait.set(key, p);
+    try { return await p; } finally { this.trWait.delete(key); }
+  }
+  enViewers() { return this.viewers().filter((w) => this.att(w).lang === "en"); }
   // OBS の配信オーバーレイ（鍵が合ったもの）と、配信ページを開いている人
   obsSockets(but) { return this.state.getWebSockets("obs").filter((ws) => ws !== but && this.att(ws).ok); }
   viewers() { return this.state.getWebSockets("v"); }
@@ -446,7 +480,35 @@ export class Lounge {
     if (!m || typeof m !== "object") return;
     const a = this.att(ws), now = Date.now();
     if (a.v) { // 配信ページから
-      if (m.t === "hi") ws.send(JSON.stringify({ t: "hello", obs: this.obsSockets().length ? 1 : 0, likes: this.likes }));
+      if (m.t === "hi") ws.send(JSON.stringify({ t: "hello", obs: this.obsSockets().length ? 1 : 0, likes: this.likes, cap: this.capOn && now - this.capOn < 90000 ? 1 : 0 }));
+      // 見ている人の言語（"en" なら字幕を英語で受け取る）
+      if (m.t === "lang") { const lang = m.v === "en" ? "en" : "ja"; if (a.lang !== lang) ws.serializeAttachment({ ...a, lang }); return; }
+      // 配信者から：声を文字にしたもの（Chrome の音声認識）。fin が 1 のものだけ英語に訳して、全員に届ける
+      if (m.t === "cap") {
+        if (!a.own) return;
+        const q = this.capAsk && now - this.capAsk[1] < 1000 ? this.capAsk : (this.capAsk = [0, now]);
+        if (++q[0] > 12) return;
+        const text = String(m.text || "").replace(/[\u0000-\u001f\u007f]/g, " ").trim().slice(0, 300), id = String(m.id || "").slice(0, 24);
+        if (m.on === 0) { this.capOn = 0; this.toViewers({ t: "cap-on", on: 0 }); return; }
+        if (!this.capOn) this.toViewers({ t: "cap-on", on: 1 });
+        this.capOn = now;
+        if (!text || !/^[\w-]{1,24}$/.test(id)) return;
+        if (!m.fin) { this.toViewers({ t: "cap", id, ja: text, fin: 0 }); return; }
+        const en = this.enViewers().length ? await this.tr(text) : "";
+        this.toViewers({ t: "cap", id, ja: text, en, fin: 1 });
+        return;
+      }
+      // 見ている人から：コメント・システムログの日本語を英語に（1 人 2 秒に 6 回まで）
+      if (m.t === "tr") {
+        const id = String(m.id || "");
+        if (!/^[\w-]{1,64}$/.test(id) || typeof m.text !== "string") return;
+        this.trAsk = this.trAsk || {};
+        const q = this.trAsk[a.v] && now - this.trAsk[a.v][1] < 2000 ? this.trAsk[a.v] : (this.trAsk[a.v] = [0, now]);
+        if (++q[0] > 6) { ws.send(JSON.stringify({ t: "tr", id, en: "", busy: 1 })); return; }
+        const to = m.to === "ja" ? "ja" : "en", out = await this.tr(m.text, to);
+        try { ws.send(JSON.stringify({ t: "tr", id, to, en: to === "en" ? out : "", ja: to === "ja" ? out : "" })); } catch (e) {}
+        return;
+      }
       // 配信者用ページ：OBS の画面（ミラー）を見はじめる。配信者とモデレーターだけ。両方の画面に「いまの画面をまるごと」送ってもらう
       if (m.t === "mx-join") {
         if (!a.staff) { ws.send(JSON.stringify({ t: "mx-no" })); return; }
@@ -508,6 +570,14 @@ export class Lounge {
       Object.values(this.map).forEach((x) => { const n = x.n || x.l; if (n) names.add(String(n).slice(0, 40)); });
       this.viewers().forEach((v) => { const n = this.att(v).n; if (n) names.add(String(n).slice(0, 40)); });
       ws.send(JSON.stringify({ t: "who", id: String(m.id || "").slice(0, 40), names: [...names].slice(0, 500) }));
+      return;
+    }
+    // OBS から：配信のレイアウトに出す英語のコメントを日本語に（1 秒に 10 回まで）
+    if (m.t === "tr" && typeof m.text === "string" && /^[\w-]{1,64}$/.test(String(m.id || ""))) {
+      const q = this.obsTrAsk && now - this.obsTrAsk[1] < 1000 ? this.obsTrAsk : (this.obsTrAsk = [0, now]);
+      if (++q[0] > 10) return;
+      const to = m.to === "en" ? "en" : "ja", out = await this.tr(m.text, to);
+      try { ws.send(JSON.stringify({ t: "tr", id: m.id, to, en: to === "en" ? out : "", ja: to === "ja" ? out : "" })); } catch (e) {}
       return;
     }
     if (m.t === "sys" && typeof m.text === "string" && m.text.trim()) this.toViewers({ t: "sys", text: m.text.replace(/[\u0000-\u001f\u007f]/g, " ").slice(0, 300), at: now });
@@ -598,7 +668,7 @@ export class Lounge {
       if (!name) return new Response(JSON.stringify({ needName: true }));
       for (const k of Object.keys(this.tickets)) if (this.tickets[k].until < now) delete this.tickets[k];
       const tk = crypto.randomUUID();
-      this.tickets[tk] = { id, n: name, staff: b.staff === true, until: now + 60000 };
+      this.tickets[tk] = { id, n: name, staff: b.staff === true, own: b.own === true, until: now + 60000 };
       return new Response(JSON.stringify({ ticket: tk }));
     }
     if (url.pathname === "/live") {
@@ -612,7 +682,7 @@ export class Lounge {
       if (vs.length >= 500) vs.slice(0, vs.length - 499).forEach((w) => { try { w.close(1000, "too many"); } catch (e) {} });
       const pair = new WebSocketPair(), client = pair[0], server = pair[1];
       this.state.acceptWebSocket(server, ["v"]);
-      server.serializeAttachment({ v: t.id, n: t.n, staff: t.staff ? 1 : 0 });
+      server.serializeAttachment({ v: t.id, n: t.n, staff: t.staff ? 1 : 0, own: t.own ? 1 : 0 });
       return new Response(null, { status: 101, webSocket: client });
     }
     if (url.pathname === "/cmd") {

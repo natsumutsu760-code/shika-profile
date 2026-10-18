@@ -290,6 +290,18 @@ h2.sec::before { content: ""; width: 22px; height: 22px; border-radius: 50%; bor
 /* ---- 配信：映像・打つ欄・タブ・小さな操作パネル、その下にコメント欄がいつも出ている。押せのドームだけが赤い ---- */
 .stick { display: grid; gap: 8px; }
 .stage { position: relative; display: grid; gap: 8px; }
+/* 配信の字幕（配信者の声を文字にして、英語を選んだ人には英語で） */
+.capbox { position: absolute; left: 0; right: 0; bottom: 10%; display: grid; justify-items: center; gap: 4px; padding: 0 6%; pointer-events: none; z-index: 1; }
+.capbox[hidden] { display: none; }
+.screen .capbox p { position: static; inset: auto; display: block; margin: 0; max-width: 100%; font: 700 clamp(13px, 2.4vw, 22px)/1.35 var(--jp); color: #fff; background: rgba(20,22,40,.72); padding: 3px 12px; border-radius: 10px; text-align: center; transition: opacity .4s; }
+.screen .capbox p.wip { opacity: .7; font-weight: 500; }
+.screen .capbox p.out { opacity: 0; }
+.chat .tr { display: block; margin-top: 2px; font-size: .92em; color: var(--soft); }
+.chat.notr .tr { display: none; }
+.chat .tr::before { content: attr(data-l); font: 800 9px/1 var(--num, sans-serif); letter-spacing: .08em; color: #fff; background: var(--sky); border-radius: 4px; padding: 2px 4px; margin-right: 6px; vertical-align: 2px; }
+.capsend { margin-top: 10px; padding: 10px 12px; border: 1.5px dashed var(--line); border-radius: 14px; display: grid; gap: 6px; }
+.capsend p { margin: 0; font: 500 12px/1.5 var(--jp); color: var(--soft); }
+.capsend .last { color: var(--ink); font-weight: 700; min-height: 1.5em; }
 .screen { position: relative; aspect-ratio: 16 / 9; border-radius: 16px; overflow: hidden; background: var(--ink); box-shadow: var(--lift); }
 .screen iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
 .screen p { position: absolute; inset: 0; margin: 0; display: grid; place-items: center; color: rgba(255,255,255,.6); font-weight: 700; }
@@ -578,7 +590,7 @@ footer { position: relative; z-index: 2; text-align: center; color: var(--soft);
     <svg viewBox="0 0 36 36" aria-hidden="true"><circle cx="18" cy="18" r="15" fill="none" stroke="#2EA8FF" stroke-width="3.5"/><circle cx="18" cy="18" r="8.5" fill="none" stroke="#FF5A64" stroke-width="3.5"/><circle cx="18" cy="18" r="3" fill="#FFC21A"/></svg>
     <span><b class="logo">MONO LINK<i>://</i></b><small>code〈〉Lounge</small></span>
   </button>
-  <div class="upd" id="upd"><i></i><span>読み込み中</span><button class="out" type="button" id="logout" hidden>ログアウト</button></div>
+  <div class="upd" id="upd"><i></i><span>読み込み中</span><button class="out langbtn" type="button" id="lang" lang="en">EN</button><button class="out" type="button" id="logout" hidden>ログアウト</button></div>
 </header>
 
 <main>
@@ -640,7 +652,7 @@ footer { position: relative; z-index: 2; text-align: center; color: var(--soft);
       </div>
       <div class="panel lpanel" id="lpanel">
         <div role="tabpanel" id="lp-fire" aria-labelledby="lt-fire" style="--c:var(--coral)">
-          <div class="fire-top"><p class="onair" id="onair"><i></i><span>確かめています</span></p><button type="button" class="key mini" data-cmd="!玉">持ち玉を見る</button></div>
+          <div class="fire-top"><p class="onair" id="onair"><i></i><span>確かめています</span></p><button type="button" class="key mini langbtn" id="lang-live" lang="en">EN</button><button type="button" class="key mini" id="trbtn" aria-pressed="true">訳</button><button type="button" class="key mini" id="cc" aria-pressed="false" hidden>字幕</button><button type="button" class="key mini" data-cmd="!玉">持ち玉を見る</button></div>
           <div class="deck">
             <button type="button" class="push" id="push" data-cmd="!押せ" aria-label="押せ（連打チャンスで、みんなで押す）">
               <svg viewBox="0 0 92 92" aria-hidden="true"><circle class="base" cx="46" cy="46" r="42"/><circle class="wait" cx="46" cy="46" r="42" pathLength="100"/></svg>
@@ -710,6 +722,7 @@ footer { position: relative; z-index: 2; text-align: center; color: var(--soft);
     ["そのほか", "#22CC88", [["!けいじばん こんにちは", "ラウンジの掲示板に書く（1 分に 1 回・120 字まで）"], ["!バグ報告 ガチャのあと画面が止まった", "不具合を配信者に知らせる（30 秒に 1 回・300 字まで）"], ["!花火", "画面に花火（!ハート でハート）"], [null, "888 で拍手、草 で草が生える"], ["!モノリンク", "MONO LINK の URL をチャットで受け取る（!サイト でも）"]]]
   ];
   var NOTES = [
+    ["MONO LINK", "2026-10-18", ["英語に対応しはじめました（Started English support）。右上と配信ページの「EN / 日本語」で切りかえます", "配信の字幕：配信者の声を文字にして、英語を選んだ人には英語の字幕で出します（日本語の字幕は「字幕」ボタンで）", "配信のコメント欄：英語の人には日本語のコメントとログに英語の訳、日本語の人には英語のコメントに日本語の訳がつきます（「英語を訳す」ボタンで消せます）"]],
     ["build 59", "2026-10-18", ["コスメガチャで持っている物も出るようになりました。被ると進化します（被り 1 個でⅠ 色違い・さらに 2 個でⅡ 光る・さらに 3 個でⅢ 演出が増える）。!スキン 名前 0〜3 のように段階を選べます（アイコン・二つ名・玉スキンも）", "フォントの被りと、Ⅲ の物の被りは「リソース」になります（★1 1〜★5 50）。!リソース で数が見られます。使い道はこれから", "お店では持っている物も買えます（被り 1 個と同じ）", "鹿物語 Ver.1.7.18：玉スキンの進化が玉にも出ます"]],
     ["build 58", "2026-10-18", ["プロフィールのページの丸いアイコンを、配信と同じプロフィールカードにしました（スキンの絵と動き・アイコン・二つ名・フォント・レベルがそのまま出ます）"]],
     ["build 57", "2026-10-18", ["コスメガチャに新しいスキン 15 枚（★5 6 枚・★4 9 枚）。テーマは「モチーフなし」：溶融・名前・崩壊・ブラックカード・プリズム・プラチナ・構成・すりガラス・ハーフトーン・積み木・アンチ・メンフィス・ふくらみ・アールデコ・光の帯。お店にも並びます"]],
@@ -1384,8 +1397,9 @@ footer { position: relative; z-index: 2; text-align: center; color: var(--soft);
       + (sh ? '<div class="keys scroll">' + sh.items.map(function (it) { return key("!購入 " + it.no, it.no + "　" + it.name, stars(it.r) + "　" + fmt(it.price) + " 玉", { sure: 1 }); }).join("") + "</div>"
         : '<p class="pnote" style="margin:6px 0 0">お店の品物は、配信のときに並びます</p>');
     $("lp-misc").innerHTML = '<div class="keys scroll">' + [key("!プロフィール", "カードを出す"), key("!レベル", "レベル"), key("!持ち物", "持ち物"), key("!花火", "花火"), key("!ハート", "ハート"), key("!モノリンク", "URL をチャットに")].join("") + "</div>"
-      + '<form class="write"><label class="sr" for="w-kind">書く先</label><select id="w-kind"><option value="!けいじばん ">掲示板</option><option value="!バグ報告 ">バグ報告</option></select><input maxlength="300" placeholder="書くこと" aria-label="書くこと"><button class="jelly" type="submit">送る</button></form>';
-    drawWear();
+      + '<form class="write"><label class="sr" for="w-kind">書く先</label><select id="w-kind"><option value="!けいじばん ">掲示板</option><option value="!バグ報告 ">バグ報告</option></select><input maxlength="300" placeholder="書くこと" aria-label="書くこと"><button class="jelly" type="submit">送る</button></form>'
+      + '<div id="capsend"></div>';
+    drawWear(); drawCapSend();
   }
   // タブを切りかえる（前に開いていたタブを覚えておく）。選んでいるタブをもう一度押すと、たたんでコメント欄を広く
   function showPane(name, focus) {
@@ -1476,11 +1490,100 @@ footer { position: relative; z-index: 2; text-align: center; color: var(--soft);
     li.innerHTML = '<div class="ln"><b style="color:' + nameColor(t.color, name) + '">' + esc(name) + "</b>" + withEmotes(text, t.emotes) + "</div>"
       + (id && !mine ? '<button type="button" class="like" data-like="' + id + '">' + HEART + "<span></span></button>" : "");
     var b = li.querySelector(".like"); if (b) paintLike(b, id);
-    put(li);
+    put(li); trLine(li.firstChild, plainOf(text, t.emotes));
   }
   function sysLine(msg) { var li = document.createElement("li"); li.className = "sys"; li.textContent = msg; put(li); }
   // 配信のコメント欄に出たシステムログ（!スキン の返事・!玉 の持ち玉など）
-  function logLine(msg) { var li = document.createElement("li"); li.className = "log"; li.textContent = msg; put(li); }
+  function logLine(msg) { var li = document.createElement("li"); li.className = "log"; li.textContent = msg; put(li); trLine(li, msg); }
+
+  // ---- 英語：言語の切りかえ・コメントの翻訳・配信の字幕 ----
+  // 言語は 1 回選ぶと覚えておく。選んでいないときは、ブラウザが日本語なら日本語、ほかは英語
+  var LANG = lsGet("ml-lang") === "en" || (lsGet("ml-lang") == null && !/^ja/i.test(navigator.language || "ja")) ? "en" : "ja";
+  var JA = /[\u3040-\u30ff\u3400-\u9fff\uff66-\uff9f]/, EN = /[A-Za-z]{2,}/, trWait = {}, trN = 0, trOn;
+  function drawLang() {
+    document.querySelectorAll(".langbtn").forEach(function (b) { b.textContent = LANG === "en" ? "日本語" : "EN"; b.lang = LANG === "en" ? "ja" : "en"; b.setAttribute("aria-label", LANG === "en" ? "日本語にする" : "Switch to English"); });
+    document.documentElement.lang = LANG;
+  }
+  document.addEventListener("click", function (e) { if (e.target.closest(".langbtn")) setLang(LANG === "en" ? "ja" : "en"); });
+  function setLang(v) {
+    LANG = v; lsSet("ml-lang", LANG); drawLang();
+    if (lws && lws.readyState === 1) lws.send(JSON.stringify({ t: "lang", v: LANG }));
+    ccOn = ccDefault(); drawCC(); trOn = trDefault(); drawTr();
+  }
+  drawLang();
+  // 訳の切りかえ：英語の人は日本語のコメントに英語を、日本語の人は英語のコメントに日本語を足す（英語のままのほうが伝わることもあるので、消せる）
+  function trDefault() { return lsGet("ml-tr-" + LANG) !== "0"; }
+  function drawTr() { var b = $("trbtn"); b.setAttribute("aria-pressed", String(trOn)); b.textContent = LANG === "en" ? "Translate" : "英語を訳す"; b.lang = LANG; chat.classList.toggle("notr", !trOn); }
+  $("trbtn").addEventListener("click", function () { trOn = !trOn; lsSet("ml-tr-" + LANG, trOn ? "1" : "0"); drawTr(); });
+  trOn = trDefault(); drawTr();
+  // エモートの名前と URL を除いた文（訳すかどうかを決める）
+  function plainOf(text, em) {
+    var cs = Array.from(text);
+    String(em || "").split("/").forEach(function (g) { var p = g.split(":"); (p[1] || "").split(",").forEach(function (r) { var a = r.split("-"); for (var i = +a[0]; i <= +a[1] && i < cs.length; i++) cs[i] = " "; }); });
+    return cs.join("").replace(/https?:\/\/\S+/g, " ").replace(/\s+/g, " ").trim();
+  }
+  // 日本語のコメント・ログは、英語を選んでいる人にだけ、下に英語を足す（門番が Workers AI で訳す）
+  function trLine(el, text) {
+    if (!trOn || !text || /^[!！]/.test(text) || !lws || lws.readyState !== 1) return;
+    var to = LANG === "en" ? (JA.test(text) ? "en" : "") : (!JA.test(text) && EN.test(text) ? "ja" : "");
+    if (!to) return;
+    var id = "t" + (++trN); trWait[id] = el;
+    lws.send(JSON.stringify({ t: "tr", id: id, to: to, text: String(text).slice(0, 300) }));
+  }
+  function trGot(m) {
+    var el = trWait[m.id]; delete trWait[m.id];
+    var out = m.to === "ja" ? m.ja : m.en;
+    if (!el || !out || !el.isConnected) return;
+    var stick = nearBottom(), t = document.createElement("span"); t.className = "tr"; t.lang = m.to === "ja" ? "ja" : "en"; t.dataset.l = m.to === "ja" ? "JA" : "EN"; t.textContent = out; el.appendChild(t);
+    if (stick) chat.scrollTop = chat.scrollHeight;
+  }
+  // 字幕：英語の人はいつも、日本語の人は「字幕」ボタンで出す
+  var capEl = document.createElement("div"); capEl.className = "capbox"; capEl.setAttribute("aria-live", "polite"); capEl.lang = LANG;
+  var capLive = false, ccOn, capRows = {};
+  function ccDefault() { var v = lsGet("ml-cc-" + LANG); return v == null ? LANG === "en" : v === "1"; }
+  ccOn = ccDefault();
+  function drawCC() { var b = $("cc"); b.hidden = !capLive; b.setAttribute("aria-pressed", String(ccOn)); b.textContent = LANG === "en" ? "CC" : "字幕"; capEl.hidden = !ccOn; capEl.lang = LANG; }
+  $("cc").addEventListener("click", function () { ccOn = !ccOn; lsSet("ml-cc-" + LANG, ccOn ? "1" : "0"); drawCC(); });
+  function capShow(m) {
+    var text = LANG === "en" ? (m.fin ? m.en || m.ja : "") : m.ja;
+    var p = capRows[m.id];
+    if (!text) { return; }
+    if (!p) { p = capRows[m.id] = document.createElement("p"); capEl.appendChild(p); while (capEl.children.length > 2) { var f = capEl.firstChild; Object.keys(capRows).forEach(function (k) { if (capRows[k] === f) delete capRows[k]; }); f.remove(); } }
+    p.textContent = text; p.classList.toggle("wip", !m.fin);
+    clearTimeout(p._t); p._t = setTimeout(function () { p.classList.add("out"); setTimeout(function () { if (capRows[m.id] === p) delete capRows[m.id]; p.remove(); }, 450); }, m.fin ? 7000 : 4000);
+  }
+  // 配信者だけ：Chrome の音声認識で声を文字にして、門番へ送る
+  var SR = window.SpeechRecognition || window.webkitSpeechRecognition, rec = null, recOn = false, recBase = "", recLast = 0;
+  function drawCapSend() {
+    var box = $("capsend"); if (!box) return;
+    conf().then(function (c) {
+      if (!meId || c.owner !== meId) { box.innerHTML = ""; return; }
+      box.className = "capsend";
+      box.innerHTML = '<p><b>字幕を送る（配信者だけ）</b>　声を文字にして、英語を選んだ人に英語の字幕で出します。Chrome で開いて、映像の音はミュートにしてください。</p>'
+        + (SR ? '<button type="button" class="jelly ' + (recOn ? "light" : "sky") + '" id="cap-go">' + (recOn ? "字幕を止める" : "字幕を始める") + "</button>" : "<p>このブラウザでは使えません。パソコンの Chrome で開いてください。</p>")
+        + '<p class="last" id="cap-last" aria-live="polite"></p>';
+      var b = $("cap-go"); if (b) b.addEventListener("click", function () { recOn ? recStop() : recStart(); });
+    });
+  }
+  function capSend(o) { if (lws && lws.readyState === 1) lws.send(JSON.stringify(o)); }
+  function recStart() {
+    if (!SR) return; recOn = true; recBase = Date.now().toString(36);
+    rec = new SR(); rec.lang = "ja-JP"; rec.continuous = true; rec.interimResults = true;
+    rec.onresult = function (e) {
+      for (var i = e.resultIndex; i < e.results.length; i++) {
+        var r = e.results[i], text = r[0].transcript.trim(), id = recBase + "-" + i, now = Date.now();
+        if (!text) continue;
+        if (r.isFinal) { capSend({ t: "cap", id: id, text: text, fin: 1 }); var l = $("cap-last"); if (l) l.textContent = text; }
+        else if (now - recLast > 350) { recLast = now; capSend({ t: "cap", id: id, text: text, fin: 0 }); }
+      }
+    };
+    rec.onerror = function (e) { var l = $("cap-last"); if (e.error === "not-allowed" || e.error === "service-not-allowed") { recOn = false; if (l) l.textContent = "マイクの許可がありません（アドレスバーの左から許可してください）"; drawCapSend(); } };
+    // Chrome は黙っているとしばらくで止まるので、止めていなければ続ける
+    rec.onend = function () { if (recOn) { recBase = Date.now().toString(36); try { rec.start(); } catch (e) {} } };
+    try { rec.start(); } catch (e) {}
+    drawCapSend();
+  }
+  function recStop() { recOn = false; if (rec) try { rec.stop(); } catch (e) {} capSend({ t: "cap", on: 0 }); drawCapSend(); }
 
   // ---- いいね・システムログ・配信につながっているか：門番の WebSocket（ログインで 1 分だけ使える札をもらってつなぐ）----
   var lws = null, lwsTry = 0, lwsT = 0, likeN = {}, liked = {};
@@ -1493,7 +1596,7 @@ footer { position: relative; z-index: 2; text-align: center; color: var(--soft);
       if (!liveOpen || (lws && lws.readyState <= 1)) return;
       if (!j || !j.ticket) { lwsLater(); return; }
       var ws; try { ws = lws = new WebSocket(location.origin.replace(/^http/, "ws") + "/api/live?ticket=" + encodeURIComponent(j.ticket)); } catch (e) { lwsLater(); return; }
-      ws.onopen = function () { lwsTry = 0; ws.send(JSON.stringify({ t: "hi" })); if (studioOn) mxJoin(); };
+      ws.onopen = function () { lwsTry = 0; ws.send(JSON.stringify({ t: "hi" })); ws.send(JSON.stringify({ t: "lang", v: LANG })); if (studioOn) mxJoin(); };
       ws.onmessage = function (ev) {
         if (ev.data === "pong") return;
         if (typeof ev.data === "string" && /^m[xcmba]/.test(ev.data)) { mxRaw(ev.data); return; } // ミラー（OBS の画面の変化・素材・音）
@@ -1506,7 +1609,10 @@ footer { position: relative; z-index: 2; text-align: center; color: var(--soft);
   function lwsClose() { clearTimeout(lwsT); var ws = lws; lws = null; if (ws) try { ws.close(); } catch (e) {} }
   setInterval(function () { if (lws && lws.readyState === 1) lws.send("ping"); }, 30000);
   function onLive(m) {
-    if (m.t === "hello") { setObs(m.obs); var L = m.likes || {}; Object.keys(L).forEach(function (k) { likeN[k] = L[k]; }); chat.querySelectorAll(".like").forEach(function (b) { paintLike(b, b.dataset.like); }); }
+    if (m.t === "cap") { if (!capLive) { capLive = true; drawCC(); } capShow(m); return; }
+    if (m.t === "cap-on") { capLive = !!m.on; drawCC(); if (!capLive) capEl.innerHTML = ""; return; }
+    if (m.t === "tr") { trGot(m); return; }
+    if (m.t === "hello") { capLive = !!m.cap; drawCC(); setObs(m.obs); var L = m.likes || {}; Object.keys(L).forEach(function (k) { likeN[k] = L[k]; }); chat.querySelectorAll(".like").forEach(function (b) { paintLike(b, b.dataset.like); }); }
     else if (m.t === "obs") setObs(m.on);
     else if (m.t === "mx-ok") { mxOn = true; mxSrcOn.ov = !!m.ov; mxSrcOn.pa = !!m.pa; mxMsg(); }
     else if (m.t === "mx-no") { mxOn = false; if (liveOpen) player(canSound()); } // ミラーは配信者とモデレーターだけ。ほかの人はふつうの映像
@@ -1589,6 +1695,7 @@ footer { position: relative; z-index: 2; text-align: center; color: var(--soft);
     $("screen").innerHTML = '<iframe title="deerman_247 の配信" src="https://player.twitch.tv/?channel=' + CH + "&parent=" + encodeURIComponent(location.hostname) + "&autoplay=true&muted=" + !sound + '" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen></iframe>'
       + (sound ? "" : IOS ? '<span class="unmute ios" id="unmute">' + SPK + "音は映像のスピーカーのボタンで出ます</span>" : '<button type="button" class="unmute" id="unmute">' + SPK + "タップで音を出す</button>");
     if (!sound && IOS) iosT = setTimeout(function () { var u = $("unmute"); if (u) u.remove(); }, 8000);
+    $("screen").appendChild(capEl);
   }
   function canSound() { return !IOS && !!(navigator.userActivation && navigator.userActivation.hasBeenActive); }
   $("screen").addEventListener("click", function (e) { if (e.target.closest("button.unmute")) player(true); });
