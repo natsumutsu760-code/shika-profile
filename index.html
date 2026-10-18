@@ -185,6 +185,8 @@ h2.sec::before { content: ""; width: 22px; height: 22px; border-radius: 50%; bor
 .card .back { transform: rotateY(180deg); background: var(--ink); color: #fff; justify-content: center; }
 .card .back small { color: rgba(255,255,255,.65); font-size: 12px; }
 .card .back p { margin: 0; font: 700 14px/1.5 var(--jp); }
+.card .back .have { align-self: flex-start; font: 700 11px/1 var(--jp); color: #fff; background: var(--leaf); padding: 4px 8px; border-radius: 999px; }
+.card .back .how-use { color: #fff; margin-top: 2px; }
 .card .rar { font: 600 12px/1 var(--num); color: var(--rc); display: flex; justify-content: space-between; }
 .card .rar em { font: 700 11px/1 var(--jp); font-style: normal; }
 .card .look { flex: 1; border-radius: 16px; display: grid; place-items: center; font-size: 34px; overflow: hidden; background: #F1F5FB; }
@@ -695,6 +697,7 @@ footer { position: relative; z-index: 2; text-align: center; color: var(--soft);
     ["そのほか", "#22CC88", [["!けいじばん こんにちは", "ラウンジの掲示板に書く（1 分に 1 回・120 字まで）"], ["!バグ報告 ガチャのあと画面が止まった", "不具合を配信者に知らせる（30 秒に 1 回・300 字まで）"], ["!花火", "画面に花火（!ハート でハート）"], [null, "888 で拍手、草 で草が生える"], ["!モノリンク", "MONO LINK の URL をチャットで受け取る（!サイト でも）"]]]
   ];
   var NOTES = [
+    ["持ち物のカード", "2026-10-18", ["持っている物も、裏返すと手に入れ方が出るようにしました（その下に使い方）"]],
     ["build 55", "2026-10-18", ["玉スキンのチョコ玉・火星・ヨーヨー・水素・こま・彗星は、コスメガチャで手に入るようにしました（条件で手に入る玉は ★4・★5 だけになります）"]],
     ["build 54", "2026-10-18", ["コスメ第 3 弾：スキン・アイコン・二つ名・フォント・玉スキンを 20 個ずつ、合わせて 100 個足しました（海と深海・からくり・楽器と宝石・冒険と音楽・お菓子と天体）。★1〜★5 があり、条件で手に入る物と、コスメガチャ・お店で手に入る物があります", "鹿物語 Ver.1.7.17：新しい玉スキン 20 個（★1〜★3 も初めて登場）"]],
     ["build 53", "2026-10-18", ["鹿物語 Ver.1.7.16：大当たりのときのプロフィールカードは、液晶いっぱいに 3 秒出すようにしました（スキンのエフェクトはそのまま）。そのあとボーナスのタイトルへ進みます"]],
@@ -962,7 +965,9 @@ footer { position: relative; z-index: 2; text-align: center; color: var(--soft);
       return '<button type="button" class="card r' + x.r + (has ? "" : " lock") + '" style="animation:rise .5s var(--out) both;animation-delay:' + Math.min(i, 20) * .03 + 's" aria-label="' + esc(name) + '（' + (has ? "持っています" : "まだ") + '）。押すと手に入れ方">'
         + '<div class="flip"><div class="face front">' + (used === x.id ? '<span class="use">使っています</span>' : "")
         + '<span class="rar"><span>' + stars(x.r) + '</span><em>' + esc(data.rar[x.r - 1] || "") + '</em></span>' + look + '<span class="nm">' + esc(name) + '</span></div>'
-        + '<div class="face back"><small>' + (has ? "持っています" : "手に入れ方") + '</small><p>' + esc(has ? (used === x.id ? "いま使っています" : "!" + ({ skin: "スキン", icon: "アイコン", ep: "二つ名", font: "フォント", ball: "玉スキン" })[k] + " " + name + " で使えます") : how) + '</p></div></div></button>';
+        // 裏：持っていてもいなくても手に入れ方を出す。持っている物は、その上に「持っています」、下に使い方
+        + '<div class="face back">' + (has ? '<span class="have">持っています</span>' : "") + '<small>手に入れ方</small><p>' + esc(how) + '</p>'
+        + (has ? '<small class="how-use">' + esc(used === x.id ? "いま使っています" : "!" + ({ skin: "スキン", icon: "アイコン", ep: "二つ名", font: "フォント", ball: "玉スキン" })[k] + " " + name + " で使えます") + '</small>' : "") + '</div></div></button>';
     }).join("");
     $("grid").querySelectorAll(".card").forEach(function (c) { c.addEventListener("click", function () { c.classList.toggle("turn"); }); });
   }
