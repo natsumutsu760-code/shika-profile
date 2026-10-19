@@ -41,7 +41,7 @@
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Dela+Gothic+One&family=M+PLUS+Rounded+1c:wght@500;800&display=swap">
 <!-- フォントスキン（視聴者が手に入れて使うフォント）。日本語は使う文字の分だけ読み込まれる -->
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DotGothic16&family=Yusei+Magic&family=Mochiy+Pop+One&family=Yuji+Syuku&family=Train+One&family=Rampart+One&family=Zen+Antique&family=Kaisei+Decol:wght@700&family=Reggae+One&family=Hachi+Maru+Pop&family=Stick&family=RocknRoll+One&family=Kiwi+Maru:wght@500&family=Klee+One:wght@600&family=M+PLUS+1+Code:wght@700&family=Shippori+Mincho+B1:wght@800&family=Zen+Old+Mincho:wght@700&family=Zen+Maru+Gothic:wght@500&family=Zen+Kaku+Gothic+New:wght@500&family=Sawarabi+Mincho&family=Kosugi+Maru&family=Yomogi&family=Zen+Kurenaido&family=M+PLUS+1p:wght@100&family=Kaisei+Opti:wght@700&family=Kaisei+Tokumin:wght@800&family=Murecho:wght@900&family=Hina+Mincho&family=Zen+Antique+Soft&family=Shippori+Antique+B1&family=New+Tegomin&family=Kaisei+HarunoUmi:wght@700&family=Noto+Serif+JP:wght@900&family=Yuji+Mai&family=Yuji+Boku&family=Potta+One&family=WDXL+Lubrifont+JP+N&display=swap">
-<!-- 高レアリティのフォント（Adobe Fonts のキット 5 つ。ドメイン absolute / localhost / file:// とサイトで登録）。
+<!-- 高レアリティのフォント（Adobe Fonts のキット 6 つ。ドメイン absolute / localhost / file:// とサイトで登録。最後の mme1jki は大型アップデート記念）。
      1 つずつ順に読む（いっしょに読むと、先のキットが止まってしまうため）。返事がないキットは 3 秒で次へ -->
 <script>
   (function (d) {
@@ -53,7 +53,7 @@
       tk.src = "https://use.typekit.net/" + k + ".js"; tk.async = true;
       tk.onload = function () { try { Typekit.load({ kitId: k, async: true, active: go, inactive: go }); } catch (e) { go(); } setTimeout(go, 3000); };
       tk.onerror = go; d.head.appendChild(tk);
-    })(["ccs0dma", "lxr0ywy", "nkw4clh", "iaa5aep", "hpx0gfb"]);
+    })(["ccs0dma", "lxr0ywy", "nkw4clh", "iaa5aep", "hpx0gfb", "mme1jki"]);
   })(document);
 </script>
 <style>
@@ -301,6 +301,8 @@ body.demo .game .demo-game { display: block; }
 @keyframes gfglitch { 0%, 100% { clip-path: none; translate: 0; } 6% { clip-path: inset(30% 0 40% 0); translate: 16px; } 9% { clip-path: none; translate: 0; } 52% { clip-path: inset(60% 0 10% 0); translate: -20px; } 55% { clip-path: none; translate: 0; } }
 @media (prefers-reduced-motion: reduce) { .getfx .gf-rays { animation: none; } .getfx.r5 .gf-tier.on { animation: none; } }
 .chat li .msg { font: 500 20px/1.45 var(--font-body); word-break: break-word; }
+.chat li .msg .tr { display: block; margin-top: 2px; font-size: .8em; font-weight: 700; opacity: .8; } /* 英語のコメントの日本語訳 */
+.chat li .msg .tr::before { content: "訳"; display: inline-block; font-size: .75em; line-height: 1; padding: 2px 5px; margin-right: 6px; border-radius: 6px; background: rgba(0,0,0,.12); }
 .chat li .msg img { height: 28px; vertical-align: -7px; }
 .chat li.sys { grid-template-columns: 1fr; }
 .chat li.sys > div { background: none; border: 0; padding: 0; }
@@ -534,6 +536,13 @@ body.demo .game .demo-game { display: block; }
 .tx-star:is(.tx-gold, .tx-leak, .tx-scan) .ch { animation: txStarH .6s steps(1) infinite; animation-delay: calc(var(--i) * -.1s); }
 @keyframes txStarH { 0% { filter: hue-rotate(0) brightness(1.15) drop-shadow(0 0 .1em #FFF6CF); } 25% { filter: hue-rotate(90deg) brightness(1.3); } 50% { filter: hue-rotate(180deg) brightness(1.15) drop-shadow(0 0 .12em #19E3FF); } 75% { filter: hue-rotate(270deg) brightness(1.3); } }
 @media (prefers-reduced-motion: reduce) { .tx .ch::before, .tx .ch::after { animation: none !important; content: none !important; } }
+/* 大型アップデート記念の文字の技（iconep）。rewind・sink は .ci、warp は全体 */
+.tx-rewind .ci { animation: txRewind 2.8s steps(14) infinite; animation-delay: calc(var(--i) * -.09s); }
+@keyframes txRewind { 0%, 62% { transform: none; } 66% { transform: translateX(.18em) skewX(-14deg); } 72% { transform: translateX(-.06em) rotateY(-180deg) skewX(8deg); opacity: .55; } 80% { transform: translateX(.1em) rotateY(-360deg); opacity: 1; } 86%, 100% { transform: none; } }
+.tx-sink .ci { animation: txSink 3.6s cubic-bezier(.55, 0, .45, 1) infinite; animation-delay: calc(var(--i) * .11s); }
+@keyframes txSink { 0%, 45% { transform: none; opacity: 1; } 52% { transform: translateY(.08em); } 70% { transform: translateY(.55em) scale(.85, 1.1); opacity: .2; color: #5B1AA8; } 71% { transform: translateY(-.45em); opacity: 0; } 86% { transform: translateY(.04em); opacity: 1; } 92%, 100% { transform: none; } }
+.tx-warp { display: inline-block; animation: txWarp 3.2s cubic-bezier(.7, 0, .3, 1) infinite; }
+@keyframes txWarp { 0%, 58% { transform: none; } 68% { transform: scale(.4, .9) rotate(-10deg) skewX(30deg); opacity: .6; } 71% { transform: scale(.18, .6) rotate(-30deg); opacity: .4; } 76% { transform: scale(1.3, .75) rotate(6deg); opacity: 1; } 82% { transform: scale(.92, 1.08); } 88%, 100% { transform: none; } }
 
 
 /* ===== 新しいスキン ===== */
@@ -1317,6 +1326,95 @@ body.demo .game .demo-game { display: block; }
 .chat li.sk-artdeco > div { border: 2px solid #E2BE6A; box-shadow: inset 0 0 0 2px #0B0A08, inset 0 0 0 3px rgba(226,190,106,.45); background: conic-gradient(from var(--sk4bFan) at 88% 130%, #100E0B 0 calc(360deg - var(--sk4bFan) * 2), transparent 0) padding-box, repeating-conic-gradient(from 0deg at 88% 130%, rgba(226,190,106,.45) 0 1deg, transparent 1deg 8deg) padding-box, #100E0B; animation: sk4bFan 5.4s ease-in-out infinite; }
 .chat li.sk-artdeco .msg { color: #F6E7C2; }
 @media (prefers-reduced-motion: reduce) { .chat li:is(.sk-blackcard, .sk-prism, .sk-platinum, .sk-artdeco) > div { animation: none !important; } }
+/* ===== 大型アップデート記念のスキン（skin5）：★5 ハイパージャックポット（金の後光）・レインボー（宇宙の虹の道）・ネビュラ（星雲のボス戦）・アビス（紫の奈落）・パラドックス（逆に回る時計）。絵は canvas の FXMAKE ===== */
+.sk-hyperjp { --pa: #FFD54A; --pb: #1A0F02; --pc: #FFF2B8; }
+.sk-rainbowroad { --pa: #7FE9FF; --pb: #140A30; --pc: #FF4FA8; }
+.sk-nebulaboss { --pa: #FF4FA8; --pb: #0E0726; --pc: #3FF0D8; }
+.sk-abyssdeep { --pa: #C69BFF; --pb: #10052A; --pc: #6A2CFF; }
+.sk-paradoxclock { --pa: #3FE0D0; --pb: #04181A; --pc: #E8433A; }
+.pcard.sk-hyperjp { background: radial-gradient(120% 140% at 15% 50%, #6A3C06, #1A0F02 65%); border-color: #3A2204; box-shadow: 0 10px 0 rgba(20,22,74,.35), 0 0 0 3px #FFD54A inset, 0 0 0 5px rgba(255,242,184,.45) inset; }
+.pcard.sk-rainbowroad { background: linear-gradient(135deg, #1A0B3A, #0B0624 60%, #21082E); border-color: #2A1660; box-shadow: 0 10px 0 rgba(20,22,74,.35), -2px 0 0 2px rgba(255,59,92,.55) inset, 2px 0 0 2px rgba(47,200,255,.55) inset; }
+.pcard.sk-nebulaboss { background: radial-gradient(120% 130% at 70% 50%, #2A1250, #0E0726 60%); border-color: #3A1A6A; box-shadow: 0 10px 0 rgba(20,22,74,.35), 0 0 0 3px rgba(255,79,168,.6) inset; }
+.pcard.sk-abyssdeep { background: radial-gradient(110% 130% at 62% 50%, #06020F, #1E0A44 55%, #10052A); border-color: #1E0A44; box-shadow: 0 10px 0 rgba(20,22,74,.35), 0 0 0 3px rgba(198,155,255,.4) inset; }
+.pcard.sk-paradoxclock { background: radial-gradient(120% 130% at 64% 50%, #0E3434, #04181A 60%); border-color: #0A2A2A; box-shadow: 0 10px 0 rgba(20,22,74,.35), 0 0 0 2px rgba(63,224,208,.6) inset, 0 0 0 4px rgba(232,67,58,.35) inset; }
+/* 暗い地は文字を白に。名前に地の色の縁（絵が文字の後ろを通るので） */
+.pcard:is(.sk-hyperjp, .sk-rainbowroad, .sk-nebulaboss, .sk-abyssdeep, .sk-paradoxclock) { color: #fff; }
+.pcard:is(.sk-hyperjp, .sk-rainbowroad, .sk-nebulaboss, .sk-abyssdeep, .sk-paradoxclock) .nm:not(.tx-gold):not(.tx-leak):not(.tx-scan) { paint-order: stroke fill; -webkit-text-stroke: 5px var(--pb); }
+.pcard:is(.sk-hyperjp, .sk-rainbowroad, .sk-nebulaboss, .sk-abyssdeep, .sk-paradoxclock) .meta { color: #F2EEFF; text-shadow: 0 0 3px var(--pb), 0 0 3px var(--pb), 0 1px 3px var(--pb); }
+.pcard.sk-hyperjp .meta { color: #FFF1C8; } .pcard.sk-paradoxclock .meta { color: #E6FFFA; }
+/* コメント欄の吹き出し：ハイパーは金の縁が回って後光が回る・レインボーは虹の縞が流れて縁が赤と青緑にずれる・ネビュラは星雲が漂い照準の角が閉じる・アビスは輪が奥へ沈みつづける・パラドックスは巻き戻しの帯が上へ走る */
+@property --sk5Ray { syntax: "<angle>"; inherits: false; initial-value: 0deg; }
+@keyframes sk5Ray { to { --sk5Ray: 360deg; } }
+@keyframes sk5Road { to { background-position: 0 0, 98px 0; } }
+@keyframes sk5Neb { to { background-position: 100% 60%, 30% 100%, 0 0; } }
+@keyframes sk5Lock { 0% { inset: -8px; opacity: 0; } 30%, 85% { inset: 3px; opacity: 1; } 100% { inset: 3px; opacity: 0; } }
+@property --sk5Dep { syntax: "<length>"; inherits: false; initial-value: 0px; }
+@keyframes sk5Dep { from { --sk5Dep: 16px; } to { --sk5Dep: 0px; } }
+@keyframes sk5Rew { from { background-position: 0 0, 0 0, 0 0; } to { background-position: 0 100%, 0 0, 0 0; } }
+@keyframes sk5Jit { 0% { box-shadow: 2px 0 0 rgba(232,67,58,.6); } 50% { box-shadow: -2px 0 0 rgba(232,67,58,.6), 2px 0 0 rgba(63,224,208,.5); } }
+.chat li:is(.sk-hyperjp, .sk-rainbowroad, .sk-nebulaboss, .sk-abyssdeep, .sk-paradoxclock) .msg { color: #fff; }
+.chat li.sk-hyperjp > div { border: 3px solid transparent; background: repeating-conic-gradient(from var(--sk5Ray) at 0 50%, rgba(255,214,110,.26) 0 6deg, transparent 6deg 15deg) padding-box, radial-gradient(140% 200% at 0 50%, #7A4708, #1A0F02 70%) padding-box, conic-gradient(from var(--spin, 0deg), #FFD54A, #FFF8DC, #C8860E, #FFE48A, #FFD54A) border-box; animation: hue 2.4s linear infinite, sk5Ray 9s linear infinite; }
+.chat li.sk-hyperjp .msg { color: #FFF4D2; }
+.chat li.sk-rainbowroad > div { border: 2px solid rgba(255,255,255,.8); box-shadow: -2px 0 0 rgba(255,59,92,.7), 2px 0 0 rgba(47,200,255,.7); background: linear-gradient(rgba(20,10,48,.66), rgba(20,10,48,.66)), linear-gradient(90deg, #FF3B5C 0 14px, #FF8A2A 14px 28px, #FFD93A 28px 42px, #3BE07A 42px 56px, #2FC8FF 56px 70px, #5A6BFF 70px 84px, #B45CFF 84px 98px) 0 0 / 98px 100%; animation: sk5Road .4s linear infinite; }
+.chat li.sk-nebulaboss > div { position: relative; border: 2px solid rgba(255,79,168,.8); background: radial-gradient(circle at 30% 40%, rgba(255,79,168,.5), transparent 40%) 0 0 / 200% 200%, radial-gradient(circle at 70% 60%, rgba(63,240,216,.4), transparent 40%) 0 0 / 200% 200%, #0E0726; animation: sk5Neb 6s ease-in-out infinite alternate; }
+.chat li.sk-nebulaboss > div::after { content: ""; position: absolute; inset: 3px; pointer-events: none; --c: #3FF0D8; background: linear-gradient(var(--c), var(--c)) 0 0 / 10px 2px, linear-gradient(var(--c), var(--c)) 0 0 / 2px 10px, linear-gradient(var(--c), var(--c)) 100% 0 / 10px 2px, linear-gradient(var(--c), var(--c)) 100% 0 / 2px 10px, linear-gradient(var(--c), var(--c)) 0 100% / 10px 2px, linear-gradient(var(--c), var(--c)) 0 100% / 2px 10px, linear-gradient(var(--c), var(--c)) 100% 100% / 10px 2px, linear-gradient(var(--c), var(--c)) 100% 100% / 2px 10px; background-repeat: no-repeat; animation: sk5Lock 1.6s cubic-bezier(.3, 1.6, .5, 1) infinite; }
+.chat li.sk-abyssdeep > div { border: 2px solid #8A5CE0; background: radial-gradient(40px 22px at 72% 50%, #000 30%, transparent 100%), repeating-radial-gradient(ellipse at 72% 50%, rgba(198,155,255,.34) calc(var(--sk5Dep) - 16px) calc(var(--sk5Dep) - 14px), transparent calc(var(--sk5Dep) - 14px) var(--sk5Dep)), radial-gradient(ellipse at 72% 50%, #1E0A44, #0A0318 80%); animation: sk5Dep 1.33s linear infinite; }
+.chat li.sk-paradoxclock > div { border: 2px solid #3FE0D0; box-shadow: 2px 0 0 rgba(232,67,58,.6); background: linear-gradient(transparent 40%, rgba(220,255,250,.22) 45%, transparent 55%) 0 0 / 100% 300%, repeating-linear-gradient(0deg, rgba(63,224,208,.1) 0 1px, transparent 1px 4px), radial-gradient(120% 140% at 80% 50%, #0E3434, #04181A); animation: sk5Rew 1.94s linear infinite, sk5Jit .97s steps(1) infinite; }
+.chat li.sk-paradoxclock .msg { color: #E6FFFA; }
+@media (prefers-reduced-motion: reduce) { .chat li:is(.sk-hyperjp, .sk-rainbowroad, .sk-nebulaboss, .sk-abyssdeep, .sk-paradoxclock) > div, .chat li.sk-nebulaboss > div::after { animation: none !important; } }
+/* ===== 大型アップデート記念のスキン（skin4）：鹿物語の新モードの ★4。絵は canvas の FXMAKE ===== */
+/* プラチナモード（黒いフェルトに銀のチップ）・ルーレット（赤と黒の円盤）・ジャックポット（暗いステージの鉢と玉）・ワームホール（裂ける時空）・アストロ（90 年代の宇宙ピンボール） */
+.sk-platfelt { --pa: #D6DCE4; --pb: #0E1013; --pc: #7D8693; }
+.sk-roulrouge { --pa: #E8C46A; --pb: #2A0306; --pc: #C8141F; }
+.sk-jpbowl { --pa: #F5C84C; --pb: #060607; --pc: #8A9099; }
+.sk-wormrift { --pa: #7CC7FF; --pb: #02010A; --pc: #E05CFF; }
+.sk-astropin { --pa: #FFD23F; --pb: #05071F; --pc: #2AD8FF; }
+.pcard.sk-platfelt { background: radial-gradient(110% 130% at 55% 40%, #1E2228, #121418 60%, #08090B); border-color: #2A2E35; box-shadow: 0 10px 0 rgba(20,22,74,.35), 0 0 0 1.5px rgba(214,222,234,.55) inset; }
+.pcard.sk-roulrouge { background: linear-gradient(135deg, #8E0E18, #4A0509 55%, #160204); border-color: #3A1A0A; box-shadow: 0 10px 0 rgba(20,22,74,.35), 0 0 0 3px #2A1206 inset, 0 0 0 4.5px rgba(216,178,90,.75) inset; }
+.pcard.sk-jpbowl { background: radial-gradient(90% 120% at 70% 0%, #2A2620, #0B0B0C 60%, #050506); border-color: #1C1A16; box-shadow: 0 10px 0 rgba(20,22,74,.35), 0 0 0 2px rgba(245,200,76,.5) inset; }
+.pcard.sk-wormrift { background: radial-gradient(80% 110% at 80% 46%, #000 0 6%, #1A0F3A 28%, #02010A 75%); border-color: #120A2A; box-shadow: 0 10px 0 rgba(20,22,74,.35), -2px 0 0 1.5px rgba(224,92,255,.55) inset, 2px 0 0 1.5px rgba(124,199,255,.55) inset; }
+.pcard.sk-astropin { background: radial-gradient(120% 140% at 30% 20%, #1A2470, #0B1240 50%, #05071F); border-color: #10164A; box-shadow: 0 10px 0 rgba(20,22,74,.35), 0 0 0 2px #05071F inset, 0 0 0 3.5px rgba(42,216,255,.75) inset; }
+/* 暗い地なので文字は白。名前に地の色の縁、メタに地の色の影（絵が文字の後ろを通るので） */
+.pcard:is(.sk-platfelt, .sk-roulrouge, .sk-jpbowl, .sk-wormrift, .sk-astropin) { color: #fff; }
+.pcard:is(.sk-platfelt, .sk-roulrouge, .sk-jpbowl, .sk-wormrift, .sk-astropin) .nm:not(.tx-gold):not(.tx-leak):not(.tx-scan) { paint-order: stroke fill; -webkit-text-stroke: 5px var(--pb); }
+.pcard:is(.sk-platfelt, .sk-roulrouge, .sk-jpbowl, .sk-wormrift, .sk-astropin) .meta { text-shadow: 0 0 3px var(--pb), 0 0 3px var(--pb), 0 1px 3px var(--pb); }
+.pcard:is(.sk-platfelt, .sk-roulrouge, .sk-jpbowl, .sk-wormrift, .sk-astropin) .big { paint-order: stroke fill; -webkit-text-stroke: 4px var(--pb); }
+.pcard.sk-platfelt .meta { color: #E6EAF0; } .pcard.sk-roulrouge .meta { color: #FFE9C8; } .pcard.sk-jpbowl .meta { color: #F2E6C4; } .pcard.sk-wormrift .meta { color: #DDEBFF; } .pcard.sk-astropin .meta { color: #FFF3C0; }
+.pcard.sk-platfelt .big { color: #E6EAF0; } .pcard.sk-roulrouge .big { color: #FFE2A0; } .pcard.sk-jpbowl .big { color: #F5C84C; } .pcard.sk-wormrift .big { color: #CFE8FF; } .pcard.sk-astropin .big { color: #FFD23F; }
+/* アイコンの枠：銀の細い線・円盤の塔の真鍮・金の細い線・光の輪・桃と水色の二重 */
+.pcard.sk-platfelt .ic { box-shadow: 0 0 0 4px #0E1013, 0 0 0 5.5px #C9D0DA; }
+.pcard.sk-roulrouge .ic { box-shadow: 0 0 0 4px #E8C46A, 0 0 0 6px #2A1206; }
+.pcard.sk-jpbowl .ic { box-shadow: 0 0 0 4px #060607, 0 0 0 6px #F5C84C; }
+.pcard.sk-wormrift .ic { box-shadow: 0 0 0 4px #02010A, 0 0 0 6px #7CC7FF, 0 0 18px 6px rgba(224,92,255,.5); }
+.pcard.sk-astropin .ic { box-shadow: 0 0 0 4px #05071F, 0 0 0 7px #FF4FA8, 0 0 0 9px #2AD8FF; }
+/* コメント欄の吹き出し（★4 は少し動く）：プラチナモードは銀の光が通り角のチップが裏返る・ルーレットは上のふちの電球が流れ角の円盤が回る・
+   ジャックポットはスポットライトと金の縁が心臓の音のように脈打つ・ワームホールは右の渦が回る・アストロは下の電光の点が流れ角の玉が弾む */
+@keyframes skb4Sheen { to { background-position: 260% 0, 0 0; } }
+@keyframes skb4Flip { 0%, 62%, 100% { scale: 1 1; } 70% { scale: .05 1; } 78% { scale: 1 1; } 86% { scale: .05 1; } 94% { scale: 1 1; } }
+@keyframes skb4Turn { to { rotate: 360deg; } }
+@keyframes skb4Bulb { to { background-position: 12px 1px, 0 0; } }
+@keyframes skb4Beat { 0%, 30%, 100% { box-shadow: 0 0 0 rgba(245,200,76,0); } 6% { box-shadow: 0 0 10px rgba(245,200,76,.75); } 18% { box-shadow: 0 0 6px rgba(245,200,76,.45); } }
+@keyframes skb4Hole { 0%, 100% { opacity: .55; scale: .8; } 8% { opacity: 1; scale: 1.15; } }
+@keyframes skb4Led { to { background-position: 24px calc(100% - 3px), 0 0, 7px 9px, 0 0; } }
+@keyframes skb4Hop { 0%, 100% { translate: 0 0; } 35% { translate: -3px -9px; } 60% { translate: 0 0; scale: 1.12 .88; } }
+.chat li:is(.sk-platfelt, .sk-roulrouge, .sk-jpbowl, .sk-wormrift, .sk-astropin) > div { position: relative; }
+.chat li:is(.sk-platfelt, .sk-roulrouge, .sk-jpbowl, .sk-wormrift, .sk-astropin) .msg { color: #fff; }
+.chat li.sk-platfelt > div { border: 1.5px solid #AEB6C2; box-shadow: inset 0 0 0 2px #0E1013, inset 0 0 0 2.6px rgba(214,222,234,.35); background: linear-gradient(105deg, transparent 40%, rgba(230,236,245,.2) 50%, transparent 60%) -160% 0 / 250% 100% no-repeat, radial-gradient(120% 160% at 50% 0%, #20242B, #0E1013 70%); animation: skb4Sheen 4.5s ease-in-out infinite; }
+.chat li.sk-platfelt > div::after { content: ""; position: absolute; right: -8px; top: -9px; width: 20px; height: 20px; border-radius: 50%; border: 1px solid #0E1013; background: radial-gradient(circle, #1A1C20 0 5px, #C9D0DA 5.5px 6.5px, transparent 7px), repeating-conic-gradient(#E6EAF0 0 14deg, #1A1C20 14deg 45deg); animation: skb4Flip 2.7s ease-in-out infinite; pointer-events: none; }
+.chat li.sk-platfelt .msg { color: #EEF1F5; }
+.chat li.sk-roulrouge > div { border: 2px solid #D8B25A; background: radial-gradient(circle, #FFE7A0 0 1.6px, rgba(255,231,160,.18) 2.2px, transparent 2.6px) 0 1px / 12px 6px repeat-x, linear-gradient(135deg, #7A0C14, #3A0408 60%, #160204); animation: skb4Bulb .9s steps(3) infinite; }
+.chat li.sk-roulrouge > div::after { content: ""; position: absolute; right: -10px; top: -11px; width: 22px; height: 22px; border-radius: 50%; border: 2px solid #7A3E18; background: radial-gradient(circle, #E8C46A 0 2.5px, #3A1A0A 3px 5.5px, transparent 6px), conic-gradient(#0E7A3A 0 18deg, transparent 18deg), repeating-conic-gradient(#C8141F 0 18deg, #151113 18deg 36deg); animation: skb4Turn 2.4s linear infinite; pointer-events: none; }
+.chat li.sk-roulrouge .msg { color: #FFF1E0; }
+.chat li.sk-jpbowl > div { border: 2px solid #F5C84C; background: radial-gradient(55% 150% at 50% -30%, rgba(255,236,190,.32), transparent 70%), #0B0B0C; animation: skb4Beat 1.8s ease-out infinite; }
+.chat li.sk-jpbowl > div::after { content: ""; position: absolute; right: 8px; bottom: -6px; width: 11px; height: 11px; border-radius: 50%; background: #000; box-shadow: 0 0 0 2px #F5C84C, 0 0 8px 2px rgba(245,200,76,.6); animation: skb4Hole 1.8s ease-out infinite; pointer-events: none; }
+.chat li.sk-jpbowl .msg { color: #F7EED8; }
+.chat li.sk-wormrift > div { overflow: hidden; isolation: isolate; border: 2px solid #7CC7FF; box-shadow: inset 2px 0 0 rgba(224,92,255,.6); background: radial-gradient(circle at 92% 50%, #000 0 7px, #1A0F3A 24px, #02010A 70%); }
+.chat li.sk-wormrift > div::before { content: ""; position: absolute; right: -52px; top: 50%; width: 120px; height: 120px; margin-top: -60px; border-radius: 50%; z-index: -1; background: repeating-conic-gradient(rgba(124,199,255,0) 0 9deg, rgba(124,199,255,.55) 11deg, rgba(224,92,255,.35) 13deg, rgba(224,92,255,0) 16deg 24deg); -webkit-mask: radial-gradient(circle, transparent 0 8%, #000 24%, transparent 68%); mask: radial-gradient(circle, transparent 0 8%, #000 24%, transparent 68%); animation: skb4Turn 1.8s linear infinite; pointer-events: none; }
+.chat li.sk-wormrift .msg { color: #EAF4FF; }
+.chat li.sk-astropin > div { border: 2px solid #2AD8FF; box-shadow: inset 0 0 0 2px #05071F, 0 0 0 1px #FF4FA8; background: linear-gradient(90deg, #FFB020 0 6px, rgba(255,176,32,.16) 6px) 0 calc(100% - 3px) / 12px 2px repeat-x, radial-gradient(circle, rgba(255,255,255,.75) 0 .8px, transparent 1.3px) 0 0 / 23px 17px, radial-gradient(circle, rgba(42,216,255,.6) 0 .8px, transparent 1.3px) 7px 9px / 31px 21px, linear-gradient(160deg, #1A2470, #0B1240 55%, #05071F); animation: skb4Led 1.2s steps(4) infinite; }
+.chat li.sk-astropin > div::after { content: ""; position: absolute; right: -6px; top: -8px; width: 12px; height: 12px; border-radius: 50%; background: radial-gradient(circle at 35% 35%, #fff, #C9D0DA 45%, #5A6472); animation: skb4Hop .9s cubic-bezier(.3, 0, .2, 1) infinite; pointer-events: none; }
+.chat li.sk-astropin .msg { color: #FFFBE6; }
+@media (prefers-reduced-motion: reduce) { .chat li:is(.sk-platfelt, .sk-roulrouge, .sk-jpbowl, .sk-wormrift, .sk-astropin) > div, .chat li:is(.sk-platfelt, .sk-roulrouge, .sk-jpbowl, .sk-wormrift, .sk-astropin) > div::before, .chat li:is(.sk-platfelt, .sk-roulrouge, .sk-jpbowl, .sk-wormrift, .sk-astropin) > div::after { animation: none !important; } }
 /* ===== 鹿物語の液晶の中のカード（overlay-obs.html#lcdcard を鹿物語が読み込む）：当てた人のカードだけを、液晶いっぱいに ===== */
 body.lcdcard-mode { margin: 0; overflow: hidden; background: transparent; }
 body.lcdcard-mode > :not(.lc-wrap) { display: none !important; }
@@ -1666,6 +1764,7 @@ if (location.hash === "#lcdcard" || location.hash === "#sitecard" || document.do
     <h2>音</h2>
     <label for="p-vol">効果音の大きさ<input id="p-vol" type="range" min="0" max="1" step="0.05"></label>
     <label class="check"><input type="checkbox" id="p-chat-se"> コメントが来たときの小さな音</label>
+    <label class="check"><input type="checkbox" id="p-tr-ja"> 英語のコメントに日本語の訳をつける（MONO LINK の門番につながっているとき）</label>
     <label class="check"><input type="checkbox" id="p-mute"> 音をすべて消す</label>
     <p>OBS のブラウザソースで「OBS で音声を制御する」をオンにすると、音声ミキサーで調整できます。</p>
   </section>
@@ -1745,6 +1844,10 @@ if (location.hash === "#lcdcard" || location.hash === "#sitecard" || document.do
   // ★4・★5 の一部はコスメガチャ（鹿物語の !ガチャ 500 玉・!ガチャ10 5000 玉）と、お店（!購入）だけで手に入る。引いた物は shika-gacha-v1 に覚える
   var GACHA_HOW = "コスメガチャ（!ガチャ・!ガチャ10）・お店（!購入）", GACHA = "shika-gacha-v1";
   function GA(k) { var f = function (u) { return u.g.indexOf(k) >= 0; }; f.gacha = k; return f; }
+  // 大型アップデート（鹿物語の新モード）の記念コスメ：公開まで「準備中」（視聴者には見えず、ガチャにも出ない。図鑑にだけ並ぶ）。
+  // 大型アップデートを配るときに BIG_ON を true にすると、ふつうのガチャの景品になる
+  var BIG_ON = true;
+  function BG(k) { return BIG_ON ? GA(k) : SOON; }
   var RARITY = [null, ["ノーマル", 0x9AA0B8], ["レア", 0x2F7BFF], ["エピック", 0x9B4DFF], ["レジェンド", 0xFFB300], ["ミシック", 0xFF2E4D]];
   var RAR = {
     skin: { wakaba: 1, aozora: 1, hougan: 1, sakura: 2, senbei: 2, shiden: 2, amiten: 2, neon: 3, rush: 3, support: 3, kansoku: 3, kogane: 4, patron: 4, kanoko: 4, gokusai: 5, gentou: 5, yozora: 4, gekkou: 4, seiza: 4, ryusei: 5, aurora: 5, amanogawa: 5, kairo: 4, terminal: 4, pixel: 4, wire: 4, holo: 5, glitch: 5, signal: 5, koke: 4, momiji: 4, shirakaba: 4, komorebi: 5, hotaru: 5, shikaduno: 5, kingyo: 4, soda: 4, washi: 4, hanabi: 5, dairiseki: 5, mangekyo: 5 },
@@ -2291,6 +2394,99 @@ if (location.hash === "#lcdcard" || location.hash === "#sitecard" || document.do
       g.restore(); rim("#1E2240", 1.1);
       g.strokeStyle = ML[k % 4]; g.globalAlpha = .7; g.lineWidth = Math.max(1, R * .14); g.beginPath(); g.arc(x, y, R * 1.25, 0, 6.283); g.stroke(); g.globalAlpha = 1;
       for (i = 0; i < 2; i++) { var mph = (t * 2.5 + i * .5 + sd * .1) % 1, mn = Math.floor(t * 2.5 + i * .5 + sd * .1) * 2.7 + i * 1.9, mxx = x + Math.cos(mn) * R * .75, myy = y + Math.sin(mn) * R * .75, mz2 = R * .8 * Math.sin(mph * 3.14); g.fillStyle = "#fff"; g.beginPath(); g.moveTo(mxx, myy - mz2); g.lineTo(mxx + mz2 * .2, myy); g.lineTo(mxx, myy + mz2); g.lineTo(mxx - mz2 * .2, myy); g.closePath(); g.moveTo(mxx - mz2, myy); g.lineTo(mxx, myy - mz2 * .2); g.lineTo(mxx + mz2, myy); g.lineTo(mxx, myy + mz2 * .2); g.closePath(); g.fill(); }
+    // ---------- 大型アップデート記念の玉スキン（ball）：新モード 10 個に 1 つずつ。小さくても形でわかり、毎フレームの影・filter は使わない ----------
+    } else if (st === "platchip") { // プラチナチップ：黒と銀のカジノのチップ。ふちの白い切れこみ、2 秒ごとに縦にくるりと 2 回まわり、そのあと銀の光が走る
+      var pcf = (t * .5 + sd * .13) % 1, pcs = pcf < .3 ? Math.cos(pcf / .3 * 12.566) : 1, pcw = Math.max(.16, Math.abs(pcs)), pcq = R * .84 * 6.283 / 12;
+      tail(R * 3.5, R * .7, "rgba(220,226,240,.5)", "rgba(220,226,240,0)");
+      g.translate(x, y); g.scale(pcw, 1);
+      g.fillStyle = pcs > 0 ? "#0E0E14" : "#262630"; g.beginPath(); g.arc(0, 0, R, 0, 6.283); g.fill();
+      g.strokeStyle = "#EEF1F8"; g.lineWidth = Math.max(1.2, R * .3); g.setLineDash([pcq * .5, pcq * .5]); g.lineDashOffset = -t * R * 1.5; g.beginPath(); g.arc(0, 0, R * .84, 0, 6.283); g.stroke(); g.setLineDash([]);
+      g.strokeStyle = "#8C93A8"; g.lineWidth = Math.max(1, R * .1); g.beginPath(); g.arc(0, 0, R * .5, 0, 6.283); g.stroke();
+      g.fillStyle = "#D6DBE8"; g.beginPath(); g.moveTo(0, -R * .3); g.lineTo(R * .22, 0); g.lineTo(0, R * .3); g.lineTo(-R * .22, 0); g.closePath(); g.fill();
+      g.strokeStyle = "#B8BECC"; g.lineWidth = 1; g.beginPath(); g.arc(0, 0, R, 0, 6.283); g.stroke();
+      k = (pcf - .32) / .25; if (k > 0 && k < 1) { var pgx = -R * 1.3 + k * R * 2.6; g.save(); g.beginPath(); g.arc(0, 0, R, 0, 6.283); g.clip(); g.fillStyle = "rgba(255,255,255,.75)"; g.beginPath(); g.moveTo(pgx - R * .2, -R); g.lineTo(pgx + R * .25, -R); g.lineTo(pgx + R * .05, R); g.lineTo(pgx - R * .4, R); g.closePath(); g.fill(); g.restore(); }
+    } else if (st === "roulwheel") { // ルーレット盤：赤と黒のポケットの盤がまわり、白い玉が逆にまわる。木の縁と真鍮の塔、緑の 0 がときどき光る
+      var rw = t * 2.2 + sd, rk = Math.floor(t * 1.4 + sd) % 3 === 0;
+      if (tl > .05) for (i = 1; i < 4; i++) { var rz = Math.max(1.2, R * .32 * (1 - i * .2)); g.fillStyle = i % 2 ? "#E0102E" : "#18141C"; g.fillRect(x + ux * R * 1.5 * i * tl - rz / 2, y + uy * R * 1.5 * i * tl - rz / 2, rz, rz); }
+      disc("#6A3814");
+      for (i = 0; i < 10; i++) { g.fillStyle = i === 0 ? (rk ? "#7DFFB8" : "#0E8A4A") : i % 2 ? "#D8102C" : "#141018"; g.beginPath(); g.moveTo(x, y); g.arc(x, y, R * .8, rw + i * .6283, rw + (i + 1) * .6283); g.closePath(); g.fill(); }
+      g.fillStyle = "#E8C46A"; g.beginPath(); g.arc(x, y, R * .26, 0, 6.283); g.fill();
+      g.strokeStyle = "#E8C46A"; g.lineWidth = Math.max(1, R * .1); g.beginPath(); g.moveTo(x + Math.cos(rw) * R * .5, y + Math.sin(rw) * R * .5); g.lineTo(x - Math.cos(rw) * R * .5, y - Math.sin(rw) * R * .5); g.moveTo(x - Math.sin(rw) * R * .5, y + Math.cos(rw) * R * .5); g.lineTo(x + Math.sin(rw) * R * .5, y - Math.cos(rw) * R * .5); g.stroke();
+      var rb = -t * 5.5 + sd; g.fillStyle = "#fff"; g.beginPath(); g.arc(x + Math.cos(rb) * R * .9, y + Math.sin(rb) * R * .9, Math.max(1.3, R * .2), 0, 6.283); g.fill();
+      rim("#2A0F1C", 1.2);
+    } else if (st === "jpkrone") { // クルーン：見下ろしの金の鉢。玉がふちを回りながら真ん中の穴へ落ちていき、落ちると金の輪が広がる
+      var jp = (t * .5 + sd * .11) % 1, jr = t * .8 + sd;
+      gr = g.createRadialGradient(x, y, 0, x, y, R); gr.addColorStop(0, "#1E1204"); gr.addColorStop(.4, "#8A6420"); gr.addColorStop(1, "#FFE7A0"); disc(gr);
+      g.strokeStyle = "rgba(255,240,190,.55)"; g.lineWidth = 1; g.beginPath(); g.arc(x, y, R * .62, 0, 6.283); g.stroke();
+      ["#19E3B1", "#FF2E4D", "#FFFFFF"].forEach(function (c, ji) { var ja = jr + ji * 2.094; g.fillStyle = "#140A02"; g.beginPath(); g.arc(x + Math.cos(ja) * R * .62, y + Math.sin(ja) * R * .62, Math.max(1, R * .17), 0, 6.283); g.fill(); g.strokeStyle = c; g.lineWidth = Math.max(.8, R * .07); g.stroke(); });
+      g.fillStyle = "#000"; g.beginPath(); g.arc(x, y, R * .2, 0, 6.283); g.fill();
+      if (jp < .8) { var jq = jp / .8, ja2 = t * (6 + jq * 8) + sd; g.fillStyle = "#fff"; g.beginPath(); g.arc(x + Math.cos(ja2) * R * .86 * (1 - jq * .9), y + Math.sin(ja2) * R * .86 * (1 - jq * .9), Math.max(1.2, R * .2 * (1 - jq * .3)), 0, 6.283); g.fill(); }
+      else { var jb = (jp - .8) / .2; g.strokeStyle = "rgba(255,226,120," + (1 - jb).toFixed(2) + ")"; g.lineWidth = Math.max(1, R * .2 * (1 - jb)); g.beginPath(); g.arc(x, y, R * (.25 + jb * 1.5), 0, 6.283); g.stroke(); }
+      rim("#5A3A00", 1.2);
+    } else if (st === "wormrift") { // ワームホール：濃い青の玉にジグザグの裂け目が開いたり閉じたりし、光があふれる。まわりの輪が裂け目へ吸いこまれる
+      var wo = Math.max(0, Math.sin(t * 2.4 + sd)), wz = [0, -.28, .2, -.16, .26, 0];
+      tail(R * 4, R, "rgba(130,90,255,.5)", "rgba(25,227,255,0)");
+      g.lineWidth = 1; for (i = 0; i < 3; i++) { var wp = (t * .9 + i / 3 + sd * .1) % 1, wr = R * (2 - wp * 1.5); g.strokeStyle = "rgba(160,130,255," + (wp * .85).toFixed(2) + ")"; g.beginPath(); g.ellipse(x, y, wr, wr * .42, -.55, 0, 6.283); g.stroke(); }
+      disc("#0C1046"); g.translate(x, y); g.rotate(-.55);
+      [[1.9, "rgba(25,227,255,.75)"], [1, "#FFFFFF"]].forEach(function (L) { var wh = R * (.07 + .3 * wo) * L[0]; g.fillStyle = L[1]; g.beginPath(); for (var wi = 0; wi < 6; wi++) g.lineTo(-R * .95 + wi * R * .38, wz[wi] * R - wh * (wi % 5 ? 1 : .2)); for (wi = 5; wi >= 0; wi--) g.lineTo(-R * .95 + wi * R * .38, wz[wi] * R + wh * (wi % 5 ? 1 : .2)); g.closePath(); g.fill(); });
+      if (wo > .55) { g.fillStyle = "#FF8BF0"; for (i = 0; i < 3; i++) { var wq = (t * 3 + i / 3) % 1; g.fillRect(-R * .6 + i * R * .55 - 1, (i % 2 ? -1 : 1) * R * (.3 + wq * 1.1) - 1, Math.max(1.5, R * .16), Math.max(1.5, R * .16)); } }
+      g.rotate(.55); g.strokeStyle = "#7A6CFF"; g.lineWidth = 1.1; g.beginPath(); g.arc(0, 0, R, 0, 6.283); g.stroke();
+    } else if (st === "astropin") { // ピンボール：鏡のような銀の玉に地平線と星空が映り、ピンクの星のマークが転がる。黄色の点の明かりが尾になり、ときどきバンパーの輪
+      if (tl > .05) for (i = 1; i < 5; i++) { var az = Math.max(1.2, R * .3); g.fillStyle = (Math.floor(t * 10) + i) % 2 ? "#FFD23A" : "rgba(255,210,58,.4)"; g.fillRect(x + ux * R * 1.1 * i * tl - az / 2, y + uy * R * 1.1 * i * tl - az / 2, az, az); }
+      gr = g.createLinearGradient(x, y - R, x, y + R); gr.addColorStop(0, "#F4F8FF"); gr.addColorStop(.46, "#8E98BC"); gr.addColorStop(.5, "#141834"); gr.addColorStop(.66, "#3A2A78"); gr.addColorStop(1, "#C9B8FF"); disc(gr);
+      var asx = Math.sin(t * 3 + sd), ac = Math.cos(t * 3 + sd);
+      if (ac > -.2) { var acx = x + asx * R * .5, acy = y + R * .05, asr = R * .4 * (.55 + .45 * ac); g.fillStyle = "#FF4FB8"; g.beginPath(); for (i = 0; i < 10; i++) { var aa2 = -1.571 + i * .6283 + t * 2, ar2 = i % 2 ? asr * .45 : asr; g.lineTo(acx + Math.cos(aa2) * ar2, acy + Math.sin(aa2) * ar2); } g.closePath(); g.fill(); }
+      shine(); rim("#241E4A", 1.2);
+      k = (t * .8 + sd * .1) % 1; if (k < .25) { g.strokeStyle = "rgba(255,210,58," + (1 - k / .25).toFixed(2) + ")"; g.lineWidth = Math.max(1, R * .16); g.beginPath(); g.arc(x, y, R * (1.15 + k * 3), 0, 6.283); g.stroke(); }
+    } else if (st === "hyperwing") { // ハイパーの翼：金の玉に白い翼がはばたき、頭の上に天使の輪。金の粉の尾、2 秒ごとの頭に十字の光と輪が弾ける
+      var hf = Math.sin(t * 7 + sd), hb = (t * .5 + sd * .05) % 1;
+      tail(R * 5, R * 1.2, "rgba(255,215,90,.6)", "rgba(255,240,180,0)");
+      if (tl > .05) for (i = 1; i < 4; i++) { var hz = Math.max(1, R * .22), hw = Math.sin(t * 13 + i * 2 + sd) * R * .5; g.fillStyle = i % 2 ? "#FFF6C8" : "#FFC930"; g.fillRect(x + ux * R * 1.6 * i * tl - uy * hw - hz / 2, y + uy * R * 1.6 * i * tl + ux * hw - hz / 2, hz, hz); }
+      g.fillStyle = "#FFFFFF"; g.strokeStyle = "#C8961E"; g.lineWidth = 1; g.lineJoin = "round";
+      [-1, 1].forEach(function (s) { var ty = y - R * (.85 + .55 * hf); g.beginPath(); g.moveTo(x + s * R * .5, y - R * .25); g.quadraticCurveTo(x + s * R * 1.2, ty - R * .2, x + s * R * 2.15, ty); g.lineTo(x + s * R * 1.85, y - R * (.35 + .2 * hf)); g.lineTo(x + s * R * 1.95, y - R * (.05 + .1 * hf)); g.lineTo(x + s * R * 1.55, y + R * .05); g.lineTo(x + s * R * 1.6, y + R * .35); g.lineTo(x + s * R * .7, y + R * .3); g.closePath(); g.fill(); g.stroke(); });
+      gr = g.createRadialGradient(x - R * .3, y - R * .3, 0, x, y, R); gr.addColorStop(0, "#FFFBE0"); gr.addColorStop(.5, "#FFC930"); gr.addColorStop(1, "#9A5E00"); disc(gr); rim("#5A3600", 1.2);
+      g.strokeStyle = "#FFE58A"; g.lineWidth = Math.max(1.2, R * .2); g.beginPath(); g.ellipse(x, y - R * 1.35, R * .72, R * .2, 0, 0, 6.283); g.stroke();
+      var hg = t * 3 + sd; g.strokeStyle = "#fff"; g.lineWidth = Math.max(1, R * .12); g.beginPath(); g.ellipse(x, y - R * 1.35, R * .72, R * .2, 0, hg, hg + .9); g.stroke();
+      if (hb < .22) { var hq = 1 - hb / .22, hl = R * (1.2 + 2.6 * (1 - hq)); g.globalAlpha = hq; g.fillStyle = "#FFFDF0"; g.fillRect(x - hl, y - Math.max(.6, R * .08), hl * 2, Math.max(1.2, R * .16)); g.fillRect(x - Math.max(.6, R * .08), y - hl, Math.max(1.2, R * .16), hl * 2); g.strokeStyle = "#FFE58A"; g.lineWidth = Math.max(1, R * .14); g.beginPath(); g.arc(x, y, hl * .8, 0, 6.283); g.stroke(); g.globalAlpha = 1; }
+    } else if (st === "rainprism") { // 虹のプリズム：すりガラスの三角が回り、白い光が入って反対へ虹の扇が広がる。縁は赤と青緑にずれ、角がきらりと光る
+      var rp = t * 1.3 + sd, rfa = tl > .05 ? Math.atan2(uy, ux) : t * .9 + sd, RC = ["#FF2E4D", "#FF8A1E", "#FFD60A", "#19E37A", "#1E8BFF", "#9B4DFF"], rL = R * (2.4 + .4 * Math.sin(t * 3 + sd));
+      g.globalAlpha = .6; for (i = 0; i < 6; i++) { var r0 = rfa - .45 + i * .15; g.fillStyle = RC[i]; g.beginPath(); g.moveTo(x, y); g.lineTo(x + Math.cos(r0) * rL, y + Math.sin(r0) * rL); g.lineTo(x + Math.cos(r0 + .15) * rL, y + Math.sin(r0 + .15) * rL); g.closePath(); g.fill(); }
+      g.globalAlpha = 1; g.strokeStyle = "#fff"; g.lineWidth = Math.max(1, R * .2); g.lineCap = "round"; g.beginPath(); g.moveTo(x - Math.cos(rfa) * R * 2.3, y - Math.sin(rfa) * R * 2.3); g.lineTo(x, y); g.stroke();
+      var tri = function (dx, c) { g.fillStyle = c; g.beginPath(); for (var ri = 0; ri < 3; ri++) { var ra = rp + ri * 2.094; g.lineTo(x + dx + Math.cos(ra) * R * 1.25, y + Math.sin(ra) * R * 1.25); } g.closePath(); g.fill(); };
+      tri(-R * .14, "rgba(255,46,77,.75)"); tri(R * .14, "rgba(25,227,220,.75)"); tri(0, "rgba(236,244,255,.82)");
+      g.strokeStyle = "#fff"; g.lineWidth = 1.2; g.lineJoin = "round"; g.stroke();
+      g.strokeStyle = "rgba(160,120,255,.7)"; g.lineWidth = 1; g.beginPath(); g.moveTo(x + Math.cos(rp) * R * .6, y + Math.sin(rp) * R * .6); g.lineTo(x + Math.cos(rp + 2.094) * R * .6, y + Math.sin(rp + 2.094) * R * .6); g.stroke();
+      k = Math.max(0, Math.sin(t * 4 + sd)); if (k > .3) { var rva = rp + Math.floor(t * 4 / 6.283 + sd) % 3 * 2.094, rvx = x + Math.cos(rva) * R * 1.25, rvy = y + Math.sin(rva) * R * 1.25, rs = R * .75 * k; g.fillStyle = "#fff"; g.beginPath(); g.moveTo(rvx, rvy - rs); g.lineTo(rvx + rs * .2, rvy); g.lineTo(rvx, rvy + rs); g.lineTo(rvx - rs * .2, rvy); g.closePath(); g.moveTo(rvx - rs, rvy); g.lineTo(rvx, rvy - rs * .2); g.lineTo(rvx + rs, rvy); g.lineTo(rvx, rvy + rs * .2); g.closePath(); g.fill(); }
+    } else if (st === "nebulock") { // ネビュラの照準：桃色と青緑の星雲の玉を照準の枠が回りながら狙い、ロックオンで赤く点滅。弾が渦を巻いて飛ぶ
+      var nl = (t * .7 + sd * .09) % 1, nk = nl > .6, nd = R * (nk ? 1.3 : 2.2 - nl / .6 * .9), nr = t * (nk ? 0 : 2) + sd, nbl = nk && Math.floor(t * 12) % 2;
+      for (i = 0; i < 3; i++) { var np = (t * 1.2 + i / 3 + sd * .1) % 1, na = t * 4 + i * 2.094 + sd, nz = Math.max(1.2, R * .2 * (1 - np * .5)); g.fillStyle = i % 2 ? "#19E3C8" : "#FF5FB8"; g.fillRect(x + Math.cos(na) * R * (1.2 + np * 1.8) - nz / 2, y + Math.sin(na) * R * (1.2 + np * 1.8) - nz / 2, nz, nz); }
+      disc("#1E0A3E"); g.globalCompositeOperation = "lighter";
+      g.fillStyle = "rgba(255,80,180,.7)"; g.beginPath(); g.arc(x - R * .28, y - R * .22, R * .58, 0, 6.283); g.fill();
+      g.fillStyle = "rgba(25,227,200,.6)"; g.beginPath(); g.arc(x + R * .32, y + R * .3, R * .5, 0, 6.283); g.fill();
+      g.globalCompositeOperation = "source-over"; g.fillStyle = "#fff"; g.fillRect(x - R * .05 - .5, y - R * .02 - .5, Math.max(1.2, R * .14), Math.max(1.2, R * .14)); g.fillRect(x + R * .45, y - R * .5, 1, 1);
+      rim("#C9A6FF", 1);
+      g.strokeStyle = nk ? (nbl ? "#FF2E4D" : "#FFFFFF") : "#7FFFE8"; g.lineWidth = Math.max(1.1, R * .17); g.lineCap = "square";
+      g.beginPath(); for (i = 0; i < 4; i++) { var nb = nr + i * 1.571 + .785, ncx = x + Math.cos(nb) * nd, ncy = y + Math.sin(nb) * nd, nc1 = nb + 2.356, nc2 = nb - 2.356, nn = R * .5; g.moveTo(ncx + Math.cos(nc1) * nn, ncy + Math.sin(nc1) * nn); g.lineTo(ncx, ncy); g.lineTo(ncx + Math.cos(nc2) * nn, ncy + Math.sin(nc2) * nn); } g.stroke();
+      if (nk) { g.lineWidth = 1; g.beginPath(); for (i = 0; i < 4; i++) { var nt = i * 1.571; g.moveTo(x + Math.cos(nt) * R * 1.1, y + Math.sin(nt) * R * 1.1); g.lineTo(x + Math.cos(nt) * R * 1.6, y + Math.sin(nt) * R * 1.6); } g.stroke(); }
+    } else if (st === "abysswell") { // アビスの底：紫の闇の玉の中へ輪が次々に沈んでいく。まわりを上へ流れる筋、ときどきガクッと沈み、底で赤い光がまたたく
+      var ad = (t * .45 + sd * .07) % 1, ay = y + (ad < .1 ? Math.sin(ad / .1 * 3.14) * R * .35 : 0);
+      g.lineWidth = 1; g.lineCap = "round"; for (i = 0; i < 4; i++) { var ap = (t * 1.6 + i * .37 + sd * .13) % 1, asx2 = x + (i - 1.5) * R * .78, asy = y + R * (1.7 - ap * 3.4); g.strokeStyle = "rgba(185,140,255," + (Math.sin(ap * 3.14) * .85).toFixed(2) + ")"; g.beginPath(); g.moveTo(asx2, asy); g.lineTo(asx2, asy + R * (.7 + (i % 2) * .4)); g.stroke(); }
+      g.fillStyle = "rgba(91,26,168,.35)"; g.beginPath(); g.arc(x, ay, R * 1.35, 0, 6.283); g.fill();
+      gr = g.createRadialGradient(x, ay + R * .15, 0, x, ay, R); gr.addColorStop(0, "#000000"); gr.addColorStop(.55, "#1E0840"); gr.addColorStop(1, "#5B1AA8"); g.fillStyle = gr; g.beginPath(); g.arc(x, ay, R, 0, 6.283); g.fill();
+      for (i = 0; i < 3; i++) { var aq = (t * .8 + i / 3 + sd * .05) % 1; g.strokeStyle = "rgba(185,140,255," + ((1 - aq) * .9).toFixed(2) + ")"; g.lineWidth = Math.max(.8, R * .13 * (1 - aq)); g.beginPath(); g.arc(x, ay + aq * R * .2, R * (.92 - aq * .8), 0, 6.283); g.stroke(); }
+      k = .5 + .5 * Math.sin(t * 5 + sd); g.fillStyle = "rgba(255,61,110," + (.5 + k * .5).toFixed(2) + ")"; g.beginPath(); g.arc(x, ay + R * .18, Math.max(1, R * (.12 + .08 * k)), 0, 6.283); g.fill();
+      g.strokeStyle = "#B98CFF"; g.lineWidth = 1.1; g.beginPath(); g.arc(x, ay, R, 0, 6.283); g.stroke();
+    } else if (st === "paraclock") { // パラドックスの時計：紙色の文字盤の針が逆に回る。ときどき巻き戻しで針が速く逆回りし、VHS のように赤と青緑にずれる
+      var pz = (t * .3 + sd * .05) % 1, prw = pz > .75, pa2 = -(t * 1.2 + sd) - Math.min(1, Math.max(0, (pz - .75) / .25)) * 12.566;
+      if (prw) { g.globalCompositeOperation = "lighter"; g.fillStyle = "rgba(255,46,77,.8)"; g.beginPath(); g.arc(x - R * .28, y, R, 0, 6.283); g.fill(); g.fillStyle = "rgba(25,227,200,.8)"; g.beginPath(); g.arc(x + R * .28, y, R, 0, 6.283); g.fill(); g.globalCompositeOperation = "source-over"; }
+      disc("#EFE6D2");
+      g.strokeStyle = "#0E7F78"; g.lineWidth = Math.max(1, R * .12); g.beginPath(); for (i = 0; i < 4; i++) { var pt2 = i * 1.571; g.moveTo(x + Math.cos(pt2) * R * .68, y + Math.sin(pt2) * R * .68); g.lineTo(x + Math.cos(pt2) * R * .9, y + Math.sin(pt2) * R * .9); } g.stroke();
+      g.lineCap = "round"; g.strokeStyle = "#2A0F1C"; g.lineWidth = Math.max(1.2, R * .16); g.beginPath(); g.moveTo(x, y); g.lineTo(x + Math.cos(pa2 / 12 - 1) * R * .45, y + Math.sin(pa2 / 12 - 1) * R * .45); g.stroke();
+      g.strokeStyle = "#E8344A"; g.lineWidth = Math.max(1, R * .11); g.beginPath(); g.moveTo(x, y); g.lineTo(x + Math.cos(pa2) * R * .8, y + Math.sin(pa2) * R * .8); g.stroke();
+      g.fillStyle = "#2A0F1C"; g.beginPath(); g.arc(x, y, Math.max(1, R * .12), 0, 6.283); g.fill(); rim("#123C3A", 1.2);
+      var pq2 = -t * (prw ? 6 : 1.5) + sd; g.strokeStyle = "#19C8B8"; g.lineWidth = Math.max(1, R * .13); g.beginPath(); g.arc(x, y, R * 1.32, pq2, pq2 + 1.6); g.stroke();
+      var pax = x + Math.cos(pq2) * R * 1.32, pay = y + Math.sin(pq2) * R * 1.32, ps2 = Math.max(1.5, R * .3); g.fillStyle = "#19C8B8"; g.beginPath(); g.moveTo(pax + Math.cos(pq2 - 1.571) * ps2, pay + Math.sin(pq2 - 1.571) * ps2); g.lineTo(pax + Math.cos(pq2) * ps2 * .7, pay + Math.sin(pq2) * ps2 * .7); g.lineTo(pax - Math.cos(pq2) * ps2 * .7, pay - Math.sin(pq2) * ps2 * .7); g.closePath(); g.fill();
+      if (prw && Math.floor(t * 15) % 3 === 0) { g.fillStyle = "rgba(255,255,255,.85)"; g.fillRect(x - R * 1.5, y + R * (((t * 3) % 1) * 2 - 1), R * 3, Math.max(1, R * .14)); }
     } else { // ふつう：銀の玉にその人の色の帯
       gr = g.createRadialGradient(x - 2.5, y - 2.5, 1, x, y, R); gr.addColorStop(0, "#FFFFFF"); gr.addColorStop(.45, col); gr.addColorStop(1, "#2A0F1C"); disc(gr); rim();
     }
@@ -2530,6 +2726,22 @@ if (location.hash === "#lcdcard" || location.hash === "#sitecard" || document.do
      ["gyugyu", "ぎゅうぎゅう", "\"WDXL Lubrifont JP N\", sans-serif", GACHA_HOW, GA("f:gyugyu"), false, 5]
     ].forEach(function (x) { var r = x.pop(); if (!x[5]) x.pop(); FONTS.push(x); RAR.font[x[0]] = r; });
   })();
+  // ---------- 大型アップデート記念のフォント（font）----------
+  // 鹿物語の新モード 10 個に 1 つずつ。演出は付けず、書体の個性でモードの雰囲気を出す。[id, 名前, font-family, 手に入れ方, 条件, 隠し, ★]
+  // 書体は Adobe Fonts のキット mme1jki（shika-big-update-fonts。<head> のキットの列の最後）
+  (function () {
+    [["platyakai", "夜会", "\"vdl-kuromincho\", serif", GACHA_HOW, BG("f:platyakai"), false, 4],             // プラチナ：VDL 黒明朝。細い明朝に銀の星がきらめく夜会
+     ["roulakakuro", "赤と黒", "\"ads-mambo\", sans-serif", GACHA_HOW, BG("f:roulakakuro"), false, 4],       // ルーレット：ADS マンボ。はずむ丸い粒で陽気なカジノ
+     ["jpoichiban", "電光", "\"dottonoji\", sans-serif", GACHA_HOW, BG("f:jpoichiban"), false, 4],           // ジャックポット：ドットの文字。息をのむ電光掲示板
+     ["wormsakeme", "裂け目", "\"ab-neostencil\", sans-serif", GACHA_HOW, BG("f:wormsakeme"), false, 4],     // ワームホール：AB ネオステンシル。線がところどころ切れて裂ける
+     ["astropin", "ピンボール", "\"ab-24h\", sans-serif", GACHA_HOW, BG("f:astropin"), false, 4],            // アストロ：AB 24h。角ばった 90 年代のデジタル表示
+     ["hypergokou", "後光", "\"ryo-display-plusn\", serif", GACHA_HOW, BG("f:hypergokou"), false, 5],        // ハイパー：りょうディスプレイ H。太細の差が大きい見出し明朝で神々しく
+     ["rainbowroad", "虹の道", "\"pop-fury\", sans-serif", GACHA_HOW, BG("f:rainbowroad"), false, 5],        // レインボー：ポップフューリー。前のめりの勢いで疾走
+     ["nebulasoryoku", "総力戦", "\"sicbenitsurugi\", sans-serif", GACHA_HOW, BG("f:nebulasoryoku"), false, 5], // ネビュラ：紅剣。剣を振るような筆でボスに挑む
+     ["abyssnaraku", "奈落", "\"taw-midare-tsurara\", sans-serif", GACHA_HOW, BG("f:abyssnaraku"), false, 5], // アビス：乱れつらら。下へしたたる線で闇へ落ちる
+     ["paradoxzenmai", "うつろい", "\"kazuraki-sp2n\", serif", GACHA_HOW, BG("f:paradoxzenmai"), false, 5]   // パラドックス：かづらき。ゆらぐ仮名で時間がねじれる不思議
+    ].forEach(function (x) { var r = x.pop(); if (!x[5]) x.pop(); FONTS.push(x); RAR.font[x[0]] = r; });
+  })();
   // 玉スキン：鹿物語で落ちる自分の玉の見た目（!玉スキン 名前 で選ぶ）。[id, 名前, 手に入れ方, 条件]
   var BALLS = [
     ["moon", "月", GACHA_HOW, GA("b:moon")],
@@ -2552,6 +2764,12 @@ if (location.hash === "#lcdcard" || location.hash === "#sitecard" || document.do
    ["kaleido", "万華鏡", 4, "RUSH 7 連チャン", function (u) { return u.pa.rush >= 7; }], ["plasma", "プラズマ", 4, "大当たり 30 回", function (u) { return u.pa.jp >= 30; }], ["candy", "キャンディ", 4], ["taiyo", "太陽", 4],
    ["pulsar", "パルサー", 5], ["blackhole", "ブラックホール", 5], ["genshi", "原子核", 5], ["mirrorball", "ミラーボール", 5]].forEach(function (x) {
     BALLS.push([x[0], x[1], x[3] || (x[2] >= 4 ? GACHA_HOW : "コスメガチャ（!ガチャ・!ガチャ10）"), x[4] || GA("b:" + x[0])]); RAR.ball[x[0]] = x[2];
+  });
+  // ---------- 大型アップデート記念の玉スキン（ball）----------
+  // 新モード 10 個に 1 つずつ。公開まで BG（準備中）。[id, 名前, ★]
+  [["platchip", "プラチナチップ", 4], ["roulwheel", "ルーレット盤", 4], ["jpkrone", "ジャックポットの鉢", 4], ["wormrift", "ワームホールの裂け目", 4], ["astropin", "アストロピンボール", 4],
+   ["hyperwing", "ハイパーの翼", 5], ["rainprism", "レインボープリズム", 5], ["nebulock", "ネビュラの照準", 5], ["abysswell", "アビスの底", 5], ["paraclock", "パラドックス時計", 5]].forEach(function (x) {
+    BALLS.push([x[0], x[1], GACHA_HOW, BG("b:" + x[0])]); RAR.ball[x[0]] = x[2];
   });
   // 持ち物の種類ごとの表し方（コマンド・パネル・Discord で共通）
   var EQ_KIND = {
@@ -2589,6 +2807,197 @@ if (location.hash === "#lcdcard" || location.hash === "#sitecard" || document.do
   [["☔", "雨", 1], ["🌂", "たたみ傘", 1], ["⛅", "くもり時々晴れ", 1], ["🌞", "お日さま", 1], ["🌝", "まんまる月", 1], ["🍂", "落ち葉", 1], ["🌾", "稲穂", 1], ["🌊", "なみ", 1], ["🌀", "うずまき", 1], ["🎍", "門松", 1], ["⛄", "雪だるま", 2], ["🌈", "にじ", 2], ["🎐", "風鈴", 2], ["🎋", "七夕", 2], ["🎏", "こいのぼり", 2], ["🌅", "日の出", 2], ["🌁", "きり", 2], ["🌄", "山の朝", 2], ["🎑", "お月見", 2], ["🌃", "星空の街", 3], ["🎆", "花火", 3], ["🌋", "火山", 3], ["🌠", "流れ星", 3], ["🌇", "夕暮れの街", 3], ["🌌", "銀河", 3], ["🍙", "おにぎり", 1], ["🍞", "食パン", 1], ["🥛", "牛乳", 1], ["🍵", "お茶", 1], ["🍡", "だんご", 1], ["🍪", "クッキー", 1], ["🍎", "りんご", 1], ["🍌", "バナナ", 1], ["🍊", "みかん", 1], ["🍓", "いちご", 1], ["🍩", "ドーナツ", 2], ["🍮", "プリン", 2], ["🍦", "ソフトクリーム", 2], ["🍧", "かき氷", 2], ["🍰", "ショートケーキ", 2], ["🍫", "チョコ", 2], ["🍬", "あめ", 2], ["🍭", "ペロペロキャンディ", 2], ["🍉", "すいか", 2], ["🍣", "おすし", 3], ["🍜", "ラーメン", 3], ["🍛", "カレー", 3], ["🥞", "パンケーキ", 3], ["🍤", "えびフライ", 3], ["🍱", "お弁当", 3], ["🐱", "ねこ", 1], ["🐶", "いぬ", 1], ["🐰", "うさぎ", 1], ["🐹", "ハムスター", 1], ["🐤", "ひよこ", 1], ["🐸", "かえる", 1], ["🐟", "さかな", 1], ["🌷", "チューリップ", 1], ["🌻", "ひまわり", 1], ["🌵", "サボテン", 1], ["🐼", "パンダ", 2], ["🐧", "ペンギン", 2], ["🐨", "コアラ", 2], ["🦊", "きつね", 2], ["🐻", "くま", 2], ["🦉", "ふくろう", 2], ["🐢", "かめ", 2], ["🐙", "たこ", 2], ["🍀", "四つ葉", 2], ["🦄", "ユニコーン", 3], ["🐳", "くじら", 3], ["🦋", "ちょうちょ", 3], ["🐬", "イルカ", 3], ["🌺", "ハイビスカス", 3], ["🐠", "熱帯魚", 3], ["📝", "メモ", 1], ["📎", "クリップ", 1], ["📌", "画びょう", 1], ["🔑", "かぎ", 1], ["📮", "ポスト", 1], ["📻", "ラジオ", 1], ["📺", "テレビ", 1], ["📞", "受話器", 1], ["🚲", "自転車", 1], ["🎈", "ふうせん", 1], ["🎮", "ゲーム", 2], ["👾", "ドット星人", 2], ["📷", "カメラ", 2], ["🎨", "パレット", 2], ["🎪", "テント", 2], ["🚃", "電車", 2], ["🚌", "バス", 2], ["🏮", "ちょうちん", 2], ["🎡", "観覧車", 2], ["🎢", "ジェットコースター", 3], ["🎠", "メリーゴーランド", 3], ["🚀", "ロケット", 3], ["🗼", "タワー", 3], ["📼", "ビデオテープ", 3], ["🎸", "ギター", 3]].forEach(function (x) { ICONS.push([x[0], x[1], GACHA_HOW_LOW, GA("i:" + x[0])]); RAR.icon[x[0]] = x[2]; });
   [["日なたぼっこ", 1], ["こたつの住人", 1], ["傘を忘れた鹿", 1], ["梅雨きらい", 1], ["夏バテ鹿", 1], ["春眠中", 1], ["秋の鹿", 1], ["冬ごもり", 1], ["雨やどり", 1], ["てるてる坊主", 1], ["雪合戦の鹿", 2], ["夕立に追われる鹿", 2], ["天気予報士", 2], ["虹を見た鹿", 2], ["風鈴の音", 2], ["紅葉狩り", 2], ["初雪の鹿", 2], ["台風の目", 2], ["花粉と戦う鹿", 2], ["春を呼ぶ鹿", 3], ["真夏の太陽", 3], ["雪の妖精", 3], ["夜明けの鹿", 3], ["雷さま", 3], ["季節の旅人", 3], ["はらぺこ鹿", 1], ["おにぎり派", 1], ["パン派", 1], ["甘党", 1], ["辛党", 1], ["猫舌", 1], ["食いしん坊", 1], ["おやつの時間", 1], ["早食い", 1], ["麦茶係", 1], ["ラムネ瓶", 2], ["プリン愛好家", 2], ["チョコミント派", 2], ["だんご大好き", 2], ["駄菓子マスター", 2], ["給食当番", 2], ["大盛りで", 2], ["隠し味", 2], ["秘密のレシピ", 2], ["かき氷職人", 3], ["パティシエ鹿", 3], ["伝説の屋台", 3], ["満腹の鹿", 3], ["夜食の帝王", 3], ["至高のプリン", 3], ["猫派", 1], ["犬派", 1], ["うさぎ好き", 1], ["鳥好き", 1], ["金魚すくい名人", 1], ["草むしり係", 1], ["水やり係", 1], ["虫取り名人", 1], ["散歩の鹿", 1], ["もふもふ好き", 1], ["猫の下僕", 2], ["森の案内人", 2], ["四つ葉を探す鹿", 2], ["花屋さん", 2], ["ペンギン歩き", 2], ["動物園の常連", 2], ["渡り鳥", 2], ["野良鹿", 2], ["夜行性", 2], ["動物と話せる鹿", 3], ["ひまわり畑の主", 3], ["深海の住人", 3], ["百獣の鹿", 3], ["森の音楽家", 3], ["満開の鹿", 3], ["商店街の顔", 1], ["帰宅部", 1], ["文房具好き", 1], ["レトロ好き", 1], ["寄り道の鹿", 1], ["電車好き", 1], ["自転車通学", 1], ["ラジオ体操", 1], ["銭湯通い", 1], ["図書委員", 1], ["駄菓子屋の常連", 2], ["ゲーセン通い", 2], ["喫茶店の主", 2], ["街角の写真家", 2], ["路地裏の鹿", 2], ["8ビットの鹿", 2], ["屋上の鹿", 2], ["終電の鹿", 2], ["落書き名人", 2], ["ハイスコア保持者", 3], ["夜の街の鹿", 3], ["伝説の常連", 3], ["遊園地の主", 3], ["タイムトラベラー", 3], ["レトロフューチャー", 3]].forEach(function (x) { EPITHETS.push([x[0], GACHA_HOW_LOW, GA("e:" + x[0])]); RAR.ep[x[0]] = x[1]; });
   SKIN_COLOR["kosame"] = 0x5B7FA6; SKIN_COLOR["kumori"] = 0x7A8296; SKIN_COLOR["harugasumi"] = 0xC98BB9; SKIN_COLOR["yuyake"] = 0xF06A3C; SKIN_COLOR["asayake"] = 0xE9788E; SKIN_COLOR["konayuki"] = 0x6F9CCB; SKIN_COLOR["shimo"] = 0x5E9AAB; SKIN_COLOR["kogarashi"] = 0xA0703C; SKIN_COLOR["wakakusa"] = 0x6DAF40; SKIN_COLOR["akizora"] = 0x3D7BD9; SKIN_COLOR["tsuyu"] = 0x4E6FB0; SKIN_COLOR["nyudogumo"] = 0x2F8BE0; SKIN_COLOR["yudachi"] = 0x5A6C8C; SKIN_COLOR["yukidaruma"] = 0x4A78B8; SKIN_COLOR["tenkiame"] = 0xD9A000; SKIN_COLOR["tanabata"] = 0xE9407A; SKIN_COLOR["nanohana"] = 0xE8B800; SKIN_COLOR["furin"] = 0x2B9FD0; SKIN_COLOR["koharu"] = 0xE8955A; SKIN_COLOR["ameagari"] = 0x3F8FE0; SKIN_COLOR["yukizukiyo"] = 0xBFD9FF; SKIN_COLOR["natsumatsuri"] = 0xE83A3A; SKIN_COLOR["yonaga"] = 0xFFC857; SKIN_COLOR["haruichiban"] = 0xFF7FA8; SKIN_COLOR["hatsuhinode"] = 0xF04E2E; SKIN_COLOR["gyunyu"] = 0x4C8BD6; SKIN_COLOR["ichigomilk"] = 0xF27A9B; SKIN_COLOR["matcha"] = 0x5E8C3A; SKIN_COLOR["houjicha"] = 0x8A5A3B; SKIN_COLOR["shiratama"] = 0xB86E8F; SKIN_COLOR["custard"] = 0xC99700; SKIN_COLOR["mint"] = 0x23A88C; SKIN_COLOR["mugicha"] = 0xB26A2C; SKIN_COLOR["tofu"] = 0x7D8499; SKIN_COLOR["hachimitsu"] = 0xD98E00; SKIN_COLOR["ramune"] = 0x1FA3D9; SKIN_COLOR["chocomint"] = 0x5A3825; SKIN_COLOR["ichigodaifuku"] = 0xE8506F; SKIN_COLOR["sanshoku"] = 0xF28FB0; SKIN_COLOR["melonsoda"] = 0x2FB34A; SKIN_COLOR["donut"] = 0xE85A9B; SKIN_COLOR["biscuit"] = 0x9C6428; SKIN_COLOR["onigiri"] = 0x1F3B2D; SKIN_COLOR["taiyaki"] = 0xB8692A; SKIN_COLOR["kakigori"] = 0xFF4D6D; SKIN_COLOR["creamsoda"] = 0x1FB86A; SKIN_COLOR["purin"] = 0x8A4B14; SKIN_COLOR["pancake"] = 0xC77A2E; SKIN_COLOR["konpeito"] = 0xFF8FB8; SKIN_COLOR["wataame"] = 0xFF8BC6; SKIN_COLOR["tanpopo"] = 0xE0A800; SKIN_COLOR["yomogi"] = 0x6B8E4E; SKIN_COLOR["suzuran"] = 0x4F9A6A; SKIN_COLOR["shirousagi"] = 0xE87C9A; SKIN_COLOR["hiyoko"] = 0xE0B000; SKIN_COLOR["kurumi"] = 0x8B5E3C; SKIN_COLOR["penguin"] = 0x23314F; SKIN_COLOR["lavender"] = 0x8B6FD0; SKIN_COLOR["matsuba"] = 0x2F6B4F; SKIN_COLOR["shibafu"] = 0x43A047; SKIN_COLOR["mikeneko"] = 0x2B2B2B; SKIN_COLOR["himawari"] = 0xE8A800; SKIN_COLOR["saboten"] = 0x3E8E4E; SKIN_COLOR["panda"] = 0x1E1E1E; SKIN_COLOR["tentomushi"] = 0x1E1E1E; SKIN_COLOR["shimauma"] = 0x1E1E1E; SKIN_COLOR["ajisai"] = 0x6A6FD8; SKIN_COLOR["clover"] = 0x3FA35A; SKIN_COLOR["nishikigoi"] = 0xE0412F; SKIN_COLOR["nettaigyo"] = 0xFF7A1A; SKIN_COLOR["yozakura"] = 0xFFB3CF; SKIN_COLOR["hitsuji"] = 0x8C7A6B; SKIN_COLOR["flamingo"] = 0xFF6F9C; SKIN_COLOR["asagao"] = 0x4A5BD8; SKIN_COLOR["fukurou"] = 0xF2C14E; SKIN_COLOR["shinbun"] = 0x3A3A3A; SKIN_COLOR["danboru"] = 0x7A5228; SKIN_COLOR["kokuban"] = 0xF4F1D0; SKIN_COLOR["gayoshi"] = 0xD9694C; SKIN_COLOR["keshigomu"] = 0x2D6CDF; SKIN_COLOR["enpitsu"] = 0x2E7D4F; SKIN_COLOR["konkuri"] = 0x5F646B; SKIN_COLOR["buriki"] = 0x6E7C8A; SKIN_COLOR["aizome"] = 0x24407A; SKIN_COLOR["futo"] = 0xC0392B; SKIN_COLOR["genko"] = 0xD24B3E; SKIN_COLOR["sento"] = 0x2F7FC1; SKIN_COLOR["dagashiya"] = 0xE23C3C; SKIN_COLOR["jihanki"] = 0x1E6FD9; SKIN_COLOR["hachibit"] = 0x6A3DE8; SKIN_COLOR["kissaten"] = 0x6B3E26; SKIN_COLOR["shotengai"] = 0xF25C54; SKIN_COLOR["kitte"] = 0x2E8B57; SKIN_COLOR["kyushoku"] = 0xF08A24; SKIN_COLOR["gesen"] = 0xFF3DCE; SKIN_COLOR["showa"] = 0xE07A1F; SKIN_COLOR["cassette"] = 0xF2545B; SKIN_COLOR["yuenchi"] = 0xFF5DA2; SKIN_COLOR["eigakan"] = 0xFFD166; SKIN_COLOR["yakoressha"] = 0xFFD86B;
+  // ---------- 大型アップデート記念のアイコン（iconep）----------
+  // 鹿物語の新モード 10 個のエンブレム。★4 は明るいポップ（インクの影と太い線）、★5 は暗いタイルの上。止まった絵は t = 0
+  // 影は filter を使わず、同じ形をインクで右下へずらして塗る（毎フレーム軽く）
+  function bigInk(g, path, fill, w) { g.save(); g.translate(3, 3); path(); g.fillStyle = INK; g.fill(); g.restore(); path(); g.fillStyle = fill; g.fill(); if (w) { ol(g, w); g.stroke(); } }
+  function bigStar(g, x, y, s, col) { g.fillStyle = col; poly(g, [[x, y - s], [x + s * .26, y - s * .26], [x + s, y], [x + s * .26, y + s * .26], [x, y + s], [x - s * .26, y + s * .26], [x - s, y], [x - s * .26, y - s * .26]]); g.fill(); }
+  function bigCircle(g, x, y, r) { g.beginPath(); g.arc(x, y, r, 0, 6.29); }
+  // ★4 白金チップ（プラチナ）：黒いカジノチップに銀の縁の札。チップがゆっくり傾き、銀の光が横切る
+  EMB.platchip = function (g, t) {
+    var sx = t ? .8 + .2 * Math.cos(t * 1.5) : 1, rot = t ? t * .45 : .2, i;
+    g.save(); g.translate(50, 52); g.scale(sx, 1);
+    bigInk(g, function () { bigCircle(g, 0, 0, 42); }, lg(g, 0, -42, 0, 42, ["#3A3E4C", "#15161D", "#050507"]), 4.5);
+    for (i = 0; i < 8; i++) { var a = rot + i * Math.PI / 4; g.beginPath(); g.arc(0, 0, 36.5, a - .2, a + .2); g.lineWidth = 10; g.strokeStyle = i % 2 ? "#C9D0DE" : "#F5F7FB"; g.lineCap = "butt"; g.stroke(); }
+    g.lineCap = "round"; g.strokeStyle = "#AEB6C6"; g.lineWidth = 1.6; g.setLineDash([3, 3]); bigCircle(g, 0, 0, 29); g.stroke(); g.setLineDash([]);
+    bigCircle(g, 0, 0, 25); g.fillStyle = lg(g, 0, -25, 0, 25, ["#2C2F3A", "#0C0D12"]); g.fill(); ol(g, 3); g.stroke();
+    poly(g, [[0, -17], [12, 0], [0, 17], [-12, 0]]); g.fillStyle = lg(g, -12, -17, 12, 17, ["#FFFFFF", "#C9D0DE", "#8C95A8", "#E8ECF4"]); g.fill(); ol(g, 2.6); g.stroke();
+    g.strokeStyle = "rgba(255,255,255,.9)"; g.lineWidth = 1.4; g.beginPath(); g.moveTo(-6, -2); g.lineTo(0, -11); g.stroke();
+    g.save(); bigCircle(g, 0, 0, 40); g.clip(); var gx = t ? ((t * .55) % 1) * 150 - 75 : -14; g.rotate(-.55); g.fillStyle = "rgba(255,255,255,.2)"; g.fillRect(gx, -60, 9, 120); g.fillStyle = "rgba(255,255,255,.1)"; g.fillRect(gx + 13, -60, 4, 120); g.restore();
+    g.restore();
+    var s = t ? 2 + 6 * Math.max(0, Math.sin(t * 2.3)) : 7; bigStar(g, 84, 16, s, "#FFFFFF"); bigStar(g, 15, 86, t ? 1 + 4 * Math.max(0, Math.sin(t * 2.3 + 2.4)) : 4, "#C9D0DE");
+  };
+  // ★4 ルーレット盤（ルーレット）：木の縁に赤と黒のポケット（1 つだけ緑）、真鍮の塔。盤と逆向きに白い玉が走る
+  EMB.roulwheel = function (g, t) {
+    var rot = t ? t * .9 : .2, i;
+    bigInk(g, function () { bigCircle(g, 50, 52, 44); }, lg(g, 0, 8, 0, 96, ["#B8692A", "#7A3E14", "#4A240A"]), 4.5);
+    g.save(); g.translate(50, 52); g.rotate(rot);
+    for (i = 0; i < 18; i++) { var a = i * Math.PI / 9; g.beginPath(); g.moveTo(Math.cos(a) * 22, Math.sin(a) * 22); g.arc(0, 0, 36, a, a + Math.PI / 9); g.closePath(); g.fillStyle = i === 0 ? "#18A558" : i % 2 ? "#17181F" : "#E8233A"; g.fill(); }
+    g.strokeStyle = "#F2C14E"; g.lineWidth = 1.2; for (i = 0; i < 18; i++) { var b = i * Math.PI / 9; g.beginPath(); g.moveTo(Math.cos(b) * 22, Math.sin(b) * 22); g.lineTo(Math.cos(b) * 36, Math.sin(b) * 36); g.stroke(); }
+    g.restore();
+    g.strokeStyle = "#F2C14E"; g.lineWidth = 2.4; bigCircle(g, 50, 52, 36.5); g.stroke();
+    bigCircle(g, 50, 52, 21); g.fillStyle = lg(g, 30, 32, 70, 72, ["#FFE7A0", "#D9A23A", "#8A5A00"]); g.fill(); ol(g, 3); g.stroke();
+    g.save(); g.translate(50, 52); g.rotate(-rot * .5); for (i = 0; i < 4; i++) { g.rotate(Math.PI / 2); g.fillStyle = INK; rr(g, -3, -17, 6, 15, 3); g.fill(); g.fillStyle = "#FFE7A0"; rr(g, -2, -16, 4, 12, 2); g.fill(); bigCircle(g, 0, -16, 3.6); g.fillStyle = "#FFD24A"; g.fill(); ol(g, 1.6); g.stroke(); }
+    bigCircle(g, 0, 0, 6); g.fillStyle = "#FFF6CF"; g.fill(); ol(g, 2.2); g.stroke(); g.restore();
+    var ba = t ? -t * 2.4 : -.9, br = t ? 40 - 4 * Math.max(0, Math.sin(t * .9)) : 40, bx = 50 + Math.cos(ba) * br, by = 52 + Math.sin(ba) * br;
+    bigCircle(g, bx + 1.2, by + 1.2, 4.4); g.fillStyle = INK; g.fill(); bigCircle(g, bx, by, 4.4); g.fillStyle = "#FFFFFF"; g.fill();
+  };
+  // ★4 クルーン（ジャックポット）：見下ろしの鉢。うず巻きの溝を玉がまわって穴へ寄っていき、入ると金の穴が光る
+  EMB.jpcroon = function (g, t) {
+    var rot = t ? t * .5 : .4, p = t ? (t * .3) % 1 : .35, i;
+    bigInk(g, function () { bigCircle(g, 50, 52, 44); }, lg(g, 0, 8, 0, 96, ["#FFE07A", "#FF9A3D", "#E0602A"]), 4.5);
+    var bw = g.createRadialGradient(46, 46, 2, 50, 52, 36); bw.addColorStop(0, "#E6FBFF"); bw.addColorStop(.45, "#5AC8FF"); bw.addColorStop(1, "#1E4FD8");
+    bigCircle(g, 50, 52, 35); g.fillStyle = bw; g.fill(); ol(g, 3.5); g.stroke();
+    g.strokeStyle = "rgba(255,255,255,.5)"; g.lineWidth = 1.4; [29, 23].forEach(function (r) { bigCircle(g, 50, 52, r); g.stroke(); });
+    var H = [["#FF2E4D", 0], ["#FFD60A", 2.094], ["#19E3B1", 4.189]], win = p > .82;
+    H.forEach(function (h, k) { var a = rot + h[1], x = 50 + Math.cos(a) * 15, y = 52 + Math.sin(a) * 15; if (k === 1 && win) { g.fillStyle = "rgba(255,240,150," + (.9 - (p - .82) * 4).toFixed(2) + ")"; bigCircle(g, x, y, 12); g.fill(); } bigCircle(g, x, y, 6.5); g.fillStyle = INK; g.fill(); bigCircle(g, x, y, 4.2); g.fillStyle = h[0]; g.fill(); });
+    bigCircle(g, 50, 52, 4); g.fillStyle = "#fff"; g.fill(); ol(g, 2); g.stroke();
+    if (p < .82) { var u = p / .82, ga = rot + 2.094, ba = ga + (1 - u) * 9, rb = 15 + (1 - u * u) * 17, bx = 50 + Math.cos(ba) * rb, by = 52 + Math.sin(ba) * rb;
+      for (i = 1; i < 5; i++) { var pa = ga + (1 - Math.max(0, u - i * .025)) * 9, pr = 15 + (1 - Math.pow(Math.max(0, u - i * .025), 2)) * 17; g.fillStyle = "rgba(255,255,255," + (.5 - i * .1).toFixed(2) + ")"; bigCircle(g, 50 + Math.cos(pa) * pr, 52 + Math.sin(pa) * pr, 4 - i * .5); g.fill(); }
+      bigCircle(g, bx + 1, by + 1, 5); g.fillStyle = INK; g.fill(); var sb = g.createRadialGradient(bx - 1.5, by - 1.5, .5, bx, by, 5); sb.addColorStop(0, "#FFFFFF"); sb.addColorStop(1, "#9AA3B5"); bigCircle(g, bx, by, 5); g.fillStyle = sb; g.fill(); }
+    else { var q = (p - .82) / .18; [[16, 14], [86, 22], [84, 84]].forEach(function (s, k) { bigStar(g, s[0], s[1], (3 + k) * Math.sin(q * Math.PI) * 2, "#FFD60A"); }); }
+  };
+  // ★4 時空の穴（ワームホール）：ぎざぎざに裂けた口の中で、うずが巻き、輪がまん中へ吸い込まれる。星の粒も吸い込まれる
+  EMB.wormgate = function (g, t) {
+    var tt = t || 0, sp = t ? t * 1.6 : .5, i;
+    function mouth() { g.beginPath(); for (var k = 0; k < 18; k++) { var a = k / 18 * 6.283 + (t ? Math.sin(t * .7) * .05 : 0), r = k % 2 ? 37 + Math.sin(k * 3.1 + tt * 2) * 2 : 44; g.lineTo(50 + Math.cos(a) * r, 52 + Math.sin(a) * r * .94); } g.closePath(); }
+    bigInk(g, mouth, lg(g, 10, 10, 90, 94, ["#6A2BFF", "#2A0E7A", "#120638"]), 4.5);
+    g.save(); mouth(); g.clip(); g.translate(50, 52);
+    for (i = 0; i < 5; i++) { var u = ((t ? t * .45 : 0) + i / 5) % 1, r = 36 * (1 - u); g.strokeStyle = i % 2 ? "rgba(25,227,255," + (.25 + .6 * (1 - u)).toFixed(2) + ")" : "rgba(255,61,240," + (.25 + .6 * (1 - u)).toFixed(2) + ")"; g.lineWidth = 1 + 3 * (1 - u); g.beginPath(); g.ellipse(0, 0, r, r * .78, sp * .3 + u * 2, 0, 6.29); g.stroke(); }
+    g.lineCap = "round"; for (i = 0; i < 3; i++) { g.beginPath(); for (var k2 = 0; k2 <= 24; k2++) { var v = k2 / 24, a2 = sp + i * 2.094 + v * 4.2, r2 = 4 + v * 34; g.lineTo(Math.cos(a2) * r2, Math.sin(a2) * r2 * .85); } g.strokeStyle = ["#19E3FF", "#FF3DF0", "#FFD60A"][i]; g.lineWidth = 3.4; g.stroke(); }
+    for (i = 0; i < 8; i++) { var w = ((t ? t * .6 : 0) + i / 8) % 1, a3 = i * 2.4 + w * 3 + sp * .5, r3 = 38 * (1 - w); g.fillStyle = "rgba(255,255,255," + (1 - w * .6).toFixed(2) + ")"; g.fillRect(Math.cos(a3) * r3 - 1.4, Math.sin(a3) * r3 * .85 - 1.4, 2.8 * (1.3 - w), 2.8 * (1.3 - w)); }
+    var hc = g.createRadialGradient(0, 0, 2, 0, 0, 11); hc.addColorStop(0, "#000000"); hc.addColorStop(.7, "#05010F"); hc.addColorStop(1, "rgba(5,1,15,0)"); bigCircle(g, 0, 0, 11); g.fillStyle = hc; g.fill();
+    g.strokeStyle = "#FFFFFF"; g.lineWidth = 1.8; g.beginPath(); g.ellipse(0, 0, 6.5, 5.2, 0, 0, 6.29); g.stroke();
+    g.restore();
+    mouth(); ol(g, 4.5); g.stroke();
+  };
+  // ★4 スペースバンパー（アストロ）：90 年代の宇宙ピンボールのバンパー。銀の玉が来るたびに光ってはじき、点の星がまたたく
+  EMB.astrobumper = function (g, t) {
+    var p = t ? (t * 1.15) % 1 : .3, hit = t ? Math.max(0, 1 - p * 6) : 0, k = t ? Math.floor(t * 1.15) : 1, i;
+    bigInk(g, function () { bigCircle(g, 50, 52, 44); }, lg(g, 0, 8, 0, 96, ["#3A2AA8", "#1A1260", "#0E0838"]), 4.5);
+    g.strokeStyle = "#19E3FF"; g.lineWidth = 2.6; bigCircle(g, 50, 52, 38.5); g.stroke();
+    g.save(); bigCircle(g, 50, 52, 37); g.clip();
+    g.strokeStyle = "rgba(25,227,255,.35)"; g.lineWidth = 1.4; g.beginPath(); g.ellipse(50, 60, 40, 13, -.25, 0, 6.29); g.stroke();
+    for (i = 0; i < 4; i++) { var sx = [26, 74, 30, 76][i], sy = [28, 30, 84, 80][i], on = t ? (Math.floor(t * 4) + i) % 3 !== 0 : 1; g.fillStyle = on ? "#FFD60A" : "#6A5A2A"; for (var d = 0; d < 5; d++) { var dx = [0, -3.6, 3.6, 0, 0][d], dy = [0, 0, 0, -3.6, 3.6][d]; g.fillRect(sx + dx - 1.4, sy + dy - 1.4, 2.8, 2.8); } }
+    var cx = 50, cy = 56, s = 1 + .12 * hit;
+    g.save(); g.translate(cx, cy); g.scale(s, s);
+    bigInk(g, function () { g.beginPath(); g.ellipse(0, 9, 27, 12, 0, 0, 6.29); }, "#0A0628", 3);
+    bigInk(g, function () { g.beginPath(); g.moveTo(-20, 8); g.lineTo(-20, -2); g.ellipse(0, -2, 20, 9, 0, Math.PI, 0); g.lineTo(20, 8); g.ellipse(0, 8, 20, 9, 0, 0, Math.PI); g.closePath(); }, lg(g, -20, 0, 20, 0, ["#19E3FF", "#1E9BFF", "#0A5FD8"]), 3.2);
+    g.beginPath(); g.ellipse(0, -4, 23, 11, 0, 0, 6.29); g.fillStyle = hit > .1 ? "#FFF07A" : lg(g, -23, -11, 23, 11, ["#FF6FA8", "#FF2E6E", "#C4104A"]); g.fill(); ol(g, 3.2); g.stroke();
+    g.beginPath(); g.ellipse(0, -5, 14, 6.4, 0, 0, 6.29); g.fillStyle = hit > .1 ? "#FFFFFF" : "#FFD60A"; g.fill(); ol(g, 2.2); g.stroke();
+    bigStar(g, 0, -5, 6 + 3 * hit, hit > .1 ? "#FF2E6E" : "#FFFFFF");
+    g.restore();
+    if (hit > 0) { g.strokeStyle = "rgba(255,240,120," + hit.toFixed(2) + ")"; g.lineWidth = 2.6; for (i = 0; i < 8; i++) { var ra = i * .785 + .3, r0 = 28, r1 = 36 + 6 * (1 - hit); g.beginPath(); g.moveTo(cx + Math.cos(ra) * r0, cy - 3 + Math.sin(ra) * r0 * .55); g.lineTo(cx + Math.cos(ra) * r1, cy - 3 + Math.sin(ra) * r1 * .55); g.stroke(); } }
+    g.restore();
+    var dir = -1.25 - (k % 4) * .5, dist = 18 + 20 * Math.sin(p * Math.PI), bx = cx + Math.cos(dir) * dist * 1.1, by = cy - 10 + Math.sin(dir) * dist;
+    bigCircle(g, bx + 1.5, by + 1.5, 7); g.fillStyle = INK; g.fill(); var cg = g.createRadialGradient(bx - 2.4, by - 2.4, .5, bx, by, 7); cg.addColorStop(0, "#FFFFFF"); cg.addColorStop(.5, "#C9D0DE"); cg.addColorStop(1, "#5A6278"); bigCircle(g, bx, by, 7); g.fillStyle = cg; g.fill(); ol(g, 1.8); g.stroke();
+  };
+  // ★5 ハイパーの光輪（ハイパージャックポット）：金の光がまわる中に、金の翼と玉。10 ラウンドの明かりが 1 つずつ灯る
+  EMB.hyperhalo = function (g, t) {
+    darkTile(g); g.save(); rr(g, 6, 6, 88, 88, 20); g.clip();
+    var rot = t ? t * .25 : .1, n = t ? Math.floor(t * 2.6) % 13 : 10, beat = t ? Math.exp(-((t * 1.3) % 1) * 4) : .4, i;
+    g.fillStyle = "rgba(60,30,0,.55)"; g.fillRect(6, 6, 88, 88);
+    g.globalCompositeOperation = "lighter";
+    for (i = 0; i < 12; i++) { var a = rot + i * Math.PI / 6; g.fillStyle = i % 2 ? "rgba(255,200,60,.16)" : "rgba(255,240,170,.24)"; g.beginPath(); g.moveTo(50, 50); g.arc(50, 50, 70, a, a + .2); g.closePath(); g.fill(); }
+    var gl = g.createRadialGradient(50, 50, 4, 50, 50, 34); gl.addColorStop(0, "rgba(255,230,140," + (.55 + .3 * beat).toFixed(2) + ")"); gl.addColorStop(1, "rgba(255,180,40,0)"); g.fillStyle = gl; g.fillRect(14, 14, 72, 72);
+    g.globalCompositeOperation = "source-over";
+    g.strokeStyle = lg(g, 14, 14, 86, 86, ["#8A5A00", "#FFE7A0", "#FFD24A", "#B8862A"]); g.lineWidth = 3.4; bigCircle(g, 50, 50, 35); g.stroke();
+    for (i = 0; i < 10; i++) { var la = -Math.PI / 2 + i * Math.PI / 5, lx = 50 + Math.cos(la) * 35, ly = 50 + Math.sin(la) * 35, on = i < n; bigCircle(g, lx, ly, on ? 3.6 : 2.6); g.fillStyle = on ? (i === n - 1 && t ? "#FFFFFF" : "#FFE7A0") : "#5A3A10"; g.fill(); }
+    var fl = t ? Math.sin(t * 2.2) * .12 : 0;
+    [-1, 1].forEach(function (sd) { g.save(); g.translate(50 + sd * 9, 52); g.scale(sd, 1); g.rotate(-fl);
+      for (var f = 0; f < 4; f++) { g.save(); g.rotate(-.55 + f * .3); g.beginPath(); g.ellipse(17 - f * 1.5, 0, 17 - f * 2, 4.6, 0, 0, 6.29); g.fillStyle = lg(g, 0, 0, 34, 0, ["#FFF6CF", "#FFD24A", "#C98A10"]); g.fill(); g.strokeStyle = "rgba(90,50,0,.6)"; g.lineWidth = 1; g.stroke(); g.restore(); }
+      g.restore(); });
+    var sp = 1 + .08 * beat, ball = g.createRadialGradient(46, 45, 1, 50, 50, 13 * sp); ball.addColorStop(0, "#FFFFFF"); ball.addColorStop(.35, "#FFE7A0"); ball.addColorStop(.75, "#E0A100"); ball.addColorStop(1, "#7A4A00");
+    bigCircle(g, 50, 50, 13 * sp); g.fillStyle = ball; g.fill();
+    bigStar(g, 50, 50, 7 * sp, "rgba(255,255,255,.9)");
+    for (i = 0; i < 7; i++) { var u = t ? (t * .5 + i / 7) % 1 : i / 7; g.fillStyle = "rgba(255,231,160," + (1 - u).toFixed(2) + ")"; g.fillRect(16 + i * 11, 88 - u * 76, 2, 2); }
+    var s2 = t ? 3 + 7 * Math.max(0, Math.sin(t * 1.9)) : 8; bigStar(g, 78, 20, s2, "#FFFFFF");
+    scan(g); g.restore();
+  };
+  // ★5 レインボーロード（レインボー）：宇宙の果てまで続く虹の道。縞がこちらへ流れ、星が飛ぶ。縁は赤と青緑にずれる
+  EMB.rainbowroad = function (g, t) {
+    darkTile(g); g.save(); rr(g, 6, 6, 88, 88, 20); g.clip();
+    var V = [50, 34], sw = t ? Math.sin(t * .9) * 5 : 0, C = ["#FF2E4D", "#FF8A3D", "#FFD60A", "#2BFF88", "#19E3FF", "#9B4DFF"], i;
+    for (i = 0; i < 16; i++) { var u = t ? (t * .7 + i / 16) % 1 : i / 16, a = i * 2.4, d = 4 + u * u * 70, x = V[0] + Math.cos(a) * d, y = V[1] + Math.sin(a) * d * .7; g.strokeStyle = "rgba(255,255,255," + (u * .9).toFixed(2) + ")"; g.lineWidth = .6 + u * 1.6; g.beginPath(); g.moveTo(x, y); g.lineTo(x - Math.cos(a) * u * 9, y - Math.sin(a) * u * 6); g.stroke(); }
+    var gl = g.createRadialGradient(V[0], V[1], 0, V[0], V[1], 18); gl.addColorStop(0, "rgba(255,255,255,.95)"); gl.addColorStop(.3, "rgba(200,170,255,.5)"); gl.addColorStop(1, "rgba(155,77,255,0)"); g.fillStyle = gl; g.fillRect(V[0] - 18, V[1] - 18, 36, 36);
+    var L = 6, bx0 = 6 + sw, bx1 = 94 + sw, by = 96;
+    function px(k, y) { var f = (y - V[1]) / (by - V[1]), x0 = V[0] - 2 + (bx0 - V[0] + 2) * f, x1 = V[0] + 2 + (bx1 - V[0] - 2) * f; return x0 + (x1 - x0) * k / L; }
+    for (i = 0; i < L; i++) { poly(g, [[px(i, V[1] + 1), V[1] + 1], [px(i + 1, V[1] + 1), V[1] + 1], [px(i + 1, by), by], [px(i, by), by]]); g.fillStyle = C[i]; g.globalAlpha = .88; g.fill(); }
+    g.globalAlpha = 1; g.globalCompositeOperation = "lighter";
+    for (i = 0; i < 7; i++) { var w = t ? (t * 1.4 + i / 7) % 1 : i / 7, y2 = V[1] + 1 + (by - V[1]) * w * w; g.fillStyle = "rgba(255,255,255," + (.15 + .5 * w).toFixed(2) + ")"; g.fillRect(px(0, y2), y2, px(L, y2) - px(0, y2), .6 + w * 3); }
+    var j = t ? 1 + (Math.floor(t * 10) % 3) : 1.5;
+    [["#FF2E4D", -j], ["#19E3FF", j]].forEach(function (e) { g.strokeStyle = e[0]; g.globalAlpha = .7; g.lineWidth = 2; g.beginPath(); g.moveTo(px(0, V[1] + 1) + e[1], V[1] + 1); g.lineTo(px(0, by) + e[1], by); g.moveTo(px(L, V[1] + 1) + e[1], V[1] + 1); g.lineTo(px(L, by) + e[1], by); g.stroke(); });
+    g.globalAlpha = 1; g.globalCompositeOperation = "source-over";
+    var sy = t ? 70 + Math.sin(t * 3) * 3 : 70; g.fillStyle = "#FFFFFF"; bigStar(g, 50 + sw * .6, sy, 8, "#FFFFFF"); g.fillStyle = "rgba(255,255,255,.35)"; g.beginPath(); g.ellipse(50 + sw * .6, sy + 10, 9, 2.4, 0, 0, 6.29); g.fill();
+    var s2 = t ? 2 + 6 * Math.max(0, Math.sin(t * 2.1)) : 6; bigStar(g, 20, 18, s2, "#FFFFFF");
+    scan(g); g.restore();
+  };
+  // ★5 ネビュラボス（ネビュラ）：星雲の中のボスの目に照準。ためて赤く光り、弾幕がらせんに広がる。上に体力のゲージ
+  EMB.nebulaboss = function (g, t) {
+    darkTile(g); g.save(); rr(g, 6, 6, 88, 88, 20); g.clip();
+    var tt = t || .8, cyc = t ? (t % 3.2) / 3.2 : .5, charge = cyc > .72, i;
+    g.globalCompositeOperation = "lighter";
+    [["255,61,168", 30, 40, 30], ["25,227,200", 72, 64, 28], ["155,77,255", 60, 26, 22]].forEach(function (c) { var gr = g.createRadialGradient(c[1], c[2], 0, c[1], c[2], c[3]); gr.addColorStop(0, "rgba(" + c[0] + ",.42)"); gr.addColorStop(1, "rgba(" + c[0] + ",0)"); g.fillStyle = gr; g.fillRect(c[1] - c[3], c[2] - c[3], c[3] * 2, c[3] * 2); });
+    g.globalCompositeOperation = "source-over";
+    for (i = 0; i < 14; i++) { var u = ((t ? t * .7 : 0) + i / 14) % 1, a = i * .449 + tt * 1.3 + u * 1.2, r = 20 + u * 44; bigCircle(g, 50 + Math.cos(a) * r, 54 + Math.sin(a) * r, 2.6 - u); g.fillStyle = i % 2 ? "#FF6FC8" : "#5AF2E0"; g.fill(); }
+    var sh = charge && t ? (Math.floor(t * 30) % 2 ? 1 : -1) : 0, bob = t ? Math.sin(t * 1.4) * 2 : 0;
+    g.save(); g.translate(50 + sh, 54 + bob);
+    bigCircle(g, 0, 0, 20); g.fillStyle = lg(g, 0, -20, 0, 20, ["#5A1A8A", "#2A0A4A"]); g.fill(); g.lineWidth = 2.4; g.strokeStyle = "#FF3DA8"; g.stroke();
+    for (i = 0; i < 8; i++) { var sa = i * .785 + (t ? t * .6 : 0); g.fillStyle = "#FF3DA8"; g.save(); g.rotate(sa); poly(g, [[18, -3], [26, 0], [18, 3]]); g.fill(); g.restore(); }
+    var eye = charge ? "#FF2E4D" : "#19E3C8", eg = g.createRadialGradient(0, 0, 1, 0, 0, 11); eg.addColorStop(0, "#FFFFFF"); eg.addColorStop(.35, eye); eg.addColorStop(1, "rgba(0,0,0,0)"); bigCircle(g, 0, 0, 11 + (charge ? 3 * Math.sin(cyc * 60) : 0)); g.fillStyle = eg; g.fill();
+    bigCircle(g, 0, 0, 3.4); g.fillStyle = "#14062A"; g.fill();
+    g.restore();
+    var ra = t ? Math.sin(t * .7) * .25 : .1, rs = 26 + (t ? Math.sin(t * 2) * 2 : 0); g.save(); g.translate(50, 54); g.rotate(ra); g.strokeStyle = "#5AF2E0"; g.lineWidth = 2.6; g.lineCap = "square";
+    for (i = 0; i < 4; i++) { g.rotate(Math.PI / 2); g.beginPath(); g.moveTo(-rs, -rs + 9); g.lineTo(-rs, -rs); g.lineTo(-rs + 9, -rs); g.stroke(); }
+    g.lineWidth = 1.2; g.beginPath(); g.moveTo(-rs - 4, 0); g.lineTo(-rs + 6, 0); g.moveTo(rs - 6, 0); g.lineTo(rs + 4, 0); g.stroke(); g.restore(); g.lineCap = "round";
+    var hp = t ? 1 - ((t / 7) % 1) : .62; g.fillStyle = "rgba(0,0,0,.5)"; g.fillRect(16, 13, 68, 6); g.fillStyle = hp > .3 ? "#FF3DA8" : "#FF2E4D"; g.fillRect(17, 14, 66 * hp, 4); g.strokeStyle = "rgba(255,255,255,.8)"; g.lineWidth = 1; g.strokeRect(16, 13, 68, 6);
+    if (charge && t) { g.fillStyle = "rgba(255,46,77," + (.15 + .12 * Math.sin(t * 40)).toFixed(2) + ")"; g.fillRect(6, 6, 88, 88); }
+    scan(g); g.restore();
+  };
+  // ★5 奈落の目（アビス）：紫の輪のトンネルの底に黒い穴。輪がこちらへ迫り（落ちていく）、筋が上へ流れる。ときどきガクッと沈む。右に深さの計器
+  EMB.abyssfall = function (g, t) {
+    g.fillStyle = INK; rr(g, 9, 9, 88, 88, 20); g.fill(); g.fillStyle = lg(g, 0, 6, 0, 94, ["#1A0838", "#07020F"]); rr(g, 6, 6, 88, 88, 20); g.fill();
+    g.save(); rr(g, 6, 6, 88, 88, 20); g.clip();
+    var lp = t ? (t % 2.4) / 2.4 : 1, jolt = t ? (lp < .12 ? Math.sin(lp / .12 * Math.PI) * 5 : 0) : 0, cx = 46, cy = 50 + jolt, i;
+    for (i = 0; i < 7; i++) { var u = ((t ? t * .35 : 0) + i / 7) % 1, r = 3 + u * u * 62; g.strokeStyle = "rgba(185,140,255," + (u * .85).toFixed(2) + ")"; g.lineWidth = .6 + u * 3.4; rr(g, cx - r, cy - r * .9, r * 2, r * 1.8, r * .5); g.stroke(); }
+    var hg = g.createRadialGradient(cx, cy, 1, cx, cy, 20); hg.addColorStop(0, "#000000"); hg.addColorStop(.5, "#0A0218"); hg.addColorStop(.85, "rgba(91,26,168,.6)"); hg.addColorStop(1, "rgba(91,26,168,0)"); bigCircle(g, cx, cy, 20); g.fillStyle = hg; g.fill();
+    for (i = 0; i < 9; i++) { var w = ((t ? t * (.8 + (i % 3) * .3) : 0) + i * .37) % 1, x = 12 + (i * 23) % 64, y = 96 - w * 100; g.fillStyle = "rgba(185,140,255," + (.15 + .35 * (1 - w)).toFixed(2) + ")"; g.fillRect(x, y, 1.4, 10 + (i % 3) * 6); }
+    g.strokeStyle = "#FF3D6E"; g.lineWidth = 1.6; bigCircle(g, cx, cy, 6 + (t ? Math.sin(t * 3) : 0)); g.stroke();
+    g.fillStyle = "rgba(7,2,15,.75)"; g.fillRect(80, 6, 14, 88); g.fillStyle = "#B98CFF";
+    var off = t ? (t * 14 + jolt * 3) % 10 : 4; for (i = -1; i < 10; i++) { var ty = 10 + i * 10 - off; g.fillRect(83, ty, i % 2 ? 4 : 7, 1.4); }
+    g.fillStyle = "#FF3D6E"; poly(g, [[80, 50], [86, 46], [86, 54]]); g.fill(); g.fillRect(86, 49, 6, 2);
+    if (jolt > 1) { g.fillStyle = "rgba(255,61,110," + (jolt / 20).toFixed(2) + ")"; g.fillRect(6, 6, 88, 88); }
+    scan(g); g.restore();
+  };
+  // ★5 逆時計（パラドックス）：紙色の文字盤の針が逆にまわり、2 秒ごとに大きく巻き戻る。青緑の残像・◀◀・走る VHS の帯・オルゴールの歯車
+  EMB.paradoxclock = function (g, t) {
+    g.fillStyle = INK; rr(g, 9, 9, 88, 88, 20); g.fill(); g.fillStyle = lg(g, 0, 6, 0, 94, ["#0A2A2A", "#041414"]); rr(g, 6, 6, 88, 88, 20); g.fill();
+    g.save(); rr(g, 6, 6, 88, 88, 20); g.clip();
+    var tt = t || 0, seg = Math.floor(tt / 2), sp = tt % 2, back = sp > 1.6 ? (sp - 1.6) / .4 : 0, i;
+    var mA = t ? -(seg * 2.6 + (sp < 1.6 ? sp * .5 : .8 + back * 1.8)) - .6 : -2.1, hA = mA / 6 + .9;
+    g.save(); g.translate(22, 24); g.rotate(t ? -t * .6 : 0); g.fillStyle = "#1E8C80"; for (i = 0; i < 10; i++) { g.rotate(Math.PI / 5); g.fillRect(-2, -15, 4, 5); } bigCircle(g, 0, 0, 11); g.fill(); bigCircle(g, 0, 0, 4); g.fillStyle = "#0A2A2A"; g.fill(); g.restore();
+    var cx = 54, cy = 54;
+    bigCircle(g, cx + 2, cy + 2, 31); g.fillStyle = "rgba(0,0,0,.5)"; g.fill();
+    bigCircle(g, cx, cy, 31); g.fillStyle = lg(g, 0, 23, 0, 85, ["#FBF6EA", "#E8DCC2"]); g.fill(); g.strokeStyle = "#1E8C80"; g.lineWidth = 3; g.stroke();
+    for (i = 0; i < 12; i++) { var a = i * Math.PI / 6, r0 = i % 3 ? 25 : 22; g.strokeStyle = i % 3 ? "#5A8A84" : "#14164A"; g.lineWidth = i % 3 ? 1.4 : 2.6; g.beginPath(); g.moveTo(cx + Math.cos(a) * r0, cy + Math.sin(a) * r0); g.lineTo(cx + Math.cos(a) * 28, cy + Math.sin(a) * 28); g.stroke(); }
+    function hand(a, len, w, col) { g.strokeStyle = col; g.lineWidth = w; g.lineCap = "round"; g.beginPath(); g.moveTo(cx - Math.cos(a) * 4, cy - Math.sin(a) * 4); g.lineTo(cx + Math.cos(a) * len, cy + Math.sin(a) * len); g.stroke(); }
+    for (i = 3; i >= 1; i--) { g.globalAlpha = .18 * (4 - i) * (back > 0 ? 1.6 : 1); hand(mA + i * (back > 0 ? .35 : .12), 24, 3, "#19C8B4"); } g.globalAlpha = 1;
+    hand(hA, 15, 4.4, "#14164A"); hand(mA, 24, 3, "#E8233A");
+    bigCircle(g, cx, cy, 3.2); g.fillStyle = "#E8233A"; g.fill();
+    var bl = t ? (Math.floor(t * 3) % 2 || back > 0) : 1; if (bl) { g.fillStyle = back > 0 ? "#FF3D6E" : "#19E3C8"; poly(g, [[22, 86], [30, 81], [30, 91]]); g.fill(); poly(g, [[30, 86], [38, 81], [38, 91]]); g.fill(); g.fillRect(19, 81, 2.4, 10); }
+    var vb = t ? 94 - ((t * 30) % 100) : 66; g.fillStyle = "rgba(255,255,255,.14)"; g.fillRect(6, vb, 88, 5); g.fillStyle = "rgba(255,61,110,.25)"; g.fillRect(6, vb + 5, 88, 1.4);
+    if (back > 0) { g.fillStyle = "rgba(25,227,200,.12)"; for (i = 0; i < 4; i++) g.fillRect(6, 10 + ((i * 23 + Math.floor(t * 30) * 7) % 80), 88, 2 + i % 2 * 3); }
+    scan(g); g.restore();
+  };
+  // [id, 名前, ★]。条件は BG（公開まで準備中）
+  [["em:platchip", "白金チップ", 4], ["em:roulwheel", "ルーレット盤", 4], ["em:jpcroon", "クルーン", 4], ["em:wormgate", "時空の穴", 4], ["em:astrobumper", "スペースバンパー", 4],
+    ["em:hyperhalo", "ハイパーの光輪", 5], ["em:rainbowroad", "レインボーロード", 5], ["em:nebulaboss", "ネビュラボス", 5], ["em:abyssfall", "奈落の目", 5], ["em:paradoxclock", "逆時計", 5]
+  ].forEach(function (x) { ICONS.push([x[0], x[1], GACHA_HOW, BG("i:" + x[0])]); RAR.icon[x[0]] = x[2]; });
+  // ---------- 大型アップデート記念の二つ名（iconep）----------
+  // モードを制した・見届けた人の肩書き。[名前, ★]。条件は BG（公開まで準備中）。技は EP_TX の「大型アップデート記念の二つ名の技」
+  [["プラチナの常連", 4], ["赤か黒か", 4], ["息をのむ鹿", 4], ["時空の迷子", 4], ["宇宙ピンボーラー", 4],
+    ["ハイパーを見た鹿", 5], ["虹を駆ける鹿", 5], ["星雲討伐隊", 5], ["奈落帰り", 5], ["時をかける鹿", 5]
+  ].forEach(function (x) { EPITHETS.push([x[0], GACHA_HOW, BG("e:" + x[0])]); RAR.ep[x[0]] = x[1]; });
   // ---------- 第 3 弾のスキン（海と深海・からくり）----------
   // [id, 名前, ★, 手に入れ方, 条件]。条件がないものはコスメガチャ（★1〜3 は GACHA_HOW_LOW、★4・★5 は GACHA_HOW でお店にも並ぶ）。絵は CSS の「第 3 弾のスキン」の欄と FXMAKE
   [["shiosai", "潮騒", 1, "Lv.7", function (u) { return u.L >= 7; }],
@@ -2714,6 +3123,33 @@ if (location.hash === "#lcdcard" || location.hash === "#sitecard" || document.do
     g.strokeStyle = "rgba(" + rgb + "," + a + ")"; g.lineWidth = 1;
     g.beginPath(); g.moveTo(x - s, y); g.lineTo(x + s, y); g.moveTo(x, y - s * .6); g.lineTo(x, y + s * .6); g.stroke();
   }
+  // ---------- 大型アップデート記念のスキン（skin5）----------
+  // [id, 名前, ★]。鹿物語の大型アップデートの新モードの記念（ハイパージャックポット・レインボー・ネビュラ・アビス・パラドックス）。公開まで BG（準備中）。絵は CSS の「大型アップデート記念のスキン（skin5）」の欄と FXMAKE
+  [["hyperjp", "ハイパージャックポット", 5], ["rainbowroad", "レインボー", 5], ["nebulaboss", "ネビュラ", 5], ["abyssdeep", "アビス", 5], ["paradoxclock", "パラドックス", 5]].forEach(function (x) {
+    SKINS.push([x[0], x[1], "sk-" + x[0], GACHA_HOW, BG("s:" + x[0])]); RAR.skin[x[0]] = x[2];
+  });
+  SKIN_COLOR["hyperjp"] = 0xFFC83A; SKIN_COLOR["rainbowroad"] = 0x7FD8FF; SKIN_COLOR["nebulaboss"] = 0xFF4FA8; SKIN_COLOR["abyssdeep"] = 0xA96BFF; SKIN_COLOR["paradoxclock"] = 0x3FE0D0;
+  // skin5 の絵で使う道具：金の玉（光る球を作り置き）・後光（放射の光の筋を作り置き。回して貼るだけ）
+  function sk5bBall(hi, mid, lo, r) {
+    var c = sk4bCv(r * 2, r * 2), x = c.getContext("2d"), gr = x.createRadialGradient(r * .7, r * .6, r * .1, r, r, r);
+    gr.addColorStop(0, hi); gr.addColorStop(.45, mid); gr.addColorStop(1, lo); x.fillStyle = gr; x.beginPath(); x.arc(r, r, r - .5, 0, 6.2832); x.fill();
+    x.fillStyle = "rgba(255,255,255,.85)"; x.beginPath(); x.arc(r * .7, r * .62, r * .2, 0, 6.2832); x.fill();
+    return c;
+  }
+  function sk5bRays(r, n, rgb) {
+    var c = sk4bCv(r * 2, r * 2), x = c.getContext("2d"), gr = x.createRadialGradient(r, r, 0, r, r, r);
+    gr.addColorStop(0, "rgba(" + rgb + ",.95)"); gr.addColorStop(.3, "rgba(" + rgb + ",.45)"); gr.addColorStop(1, "rgba(" + rgb + ",0)"); x.fillStyle = gr; x.beginPath();
+    for (var k = 0; k < n; k++) { var a = k / n * 6.2832, w = (k % 2 ? .035 : .07); x.moveTo(r, r); x.lineTo(r + Math.cos(a - w) * r, r + Math.sin(a - w) * r); x.lineTo(r + Math.cos(a + w) * r, r + Math.sin(a + w) * r); x.closePath(); }
+    x.fill(); return c;
+  }
+  // ---------- 大型アップデート記念のスキン（skin4）----------
+  // [id, 名前, ★]。鹿物語の新モード（プラチナ・ルーレット・ジャックポット・ワームホール・アストロ）の記念の ★4。公開まで準備中（BG）。絵は CSS の「大型アップデート記念のスキン（skin4）」の欄と FXMAKE
+  [["platfelt", "プラチナモード", 4], ["roulrouge", "ルーレット", 4], ["jpbowl", "ジャックポット", 4], ["wormrift", "ワームホール", 4], ["astropin", "アストロ", 4]].forEach(function (x) {
+    SKINS.push([x[0], x[1], "sk-" + x[0], GACHA_HOW, BG("s:" + x[0])]); RAR.skin[x[0]] = x[2];
+  });
+  SKIN_COLOR["platfelt"] = 0xAEB6C2; SKIN_COLOR["roulrouge"] = 0xD3202E; SKIN_COLOR["jpbowl"] = 0xF5C84C; SKIN_COLOR["wormrift"] = 0x7CC7FF; SKIN_COLOR["astropin"] = 0xFFD23F;
+  // 玉が円の上を回って穴に止まる角度（ルーレットとジャックポット）。q は 1 周期の進み、ql で止まる。L0 前に止まった角度・L1 次に止まる角度（円盤から見た角度）。だんだん遅くなって止まる
+  function skb4Ang(q, ql, L0, L1, turns) { if (q >= ql) return L1; var u = 1 - q / ql, gap = ((L0 - L1) % 6.2832 + 6.2832) % 6.2832; return L1 + (turns * 6.2832 + gap) * u * u; }
   function lvTier(L) { return L >= 30 ? 5 : L >= 20 ? 4 : L >= 10 ? 3 : L >= 5 ? 2 : 1; }
   function titleOf(sp) {
     if (!sp) return null;
@@ -4836,6 +5272,730 @@ if (location.hash === "#lcdcard" || location.hash === "#sitecard" || document.do
         glints.forEach(function (q) { var a = t - q.t0 - q.n * .12; if (a < 0) return; var v = Math.sin(Math.min(1, a / .6) * Math.PI), rr = FR[q.n % 3], hh = Math.PI / 2 * open(ph, .35 * (q.n % 3 + 1)) * ent, aa = -Math.PI / 2 + (q.a - Math.PI * 1.5) * (hh / (Math.PI / 2)); if (v <= 0 || hh < .1) return; var px = OX + Math.cos(aa) * rr, py = OY + Math.sin(aa) * rr; g.globalAlpha = v; g.drawImage(gl, px - 8, py - 8, 16, 16); g.globalAlpha = 1; sk4bStar(g, px, py, 9 * v, v.toFixed(2), "255,240,200"); });
         g.globalCompositeOperation = "source-over";
       };
+    },
+    // ===== 大型アップデート記念のスキン（skin5）。★5 ハイパージャックポット・レインボー・ネビュラ・アビス・パラドックス。548×238 の canvas =====
+    // 拍の長さはそのモードの BGM の速さ（140・150・150・90・124 BPM）。16 拍で場面がめぐり、小節の頭（4 拍ごと）に見せ場。重い物は最初に作り置き
+    // ★5 ハイパージャックポット：アイコンから金の後光が回り、金の粉が昇る。場面が切りかわる（鉢を玉がまわって穴へ・ROUND の数字が拍ごとに上がる・金の玉の雨）。小節の頭に白い光と金の衝撃の輪
+    hyperjp: function (g, el, name, L, lk, M) {
+      var W = g.canvas.width, H = g.canvas.height, R = prng(nameSeed(name) + 601), ic = null, lastB = -1, dust = [], rain = [], B = 60 / 140;
+      var SCN = ["halo", "halo", "bowl", "halo", "flick", "round", "round", "bowl", "halo", "rain", "round", "bowl", "rain", "rain", "flick", "halo"];
+      var CUT = [[1.04, 0], [1.12, -1.4], [1.06, 1.2], [1.16, 1.8], [1.08, -.8]];
+      var gl = sk3Glow("255,226,140", 10), ball = sk5bBall("#FFF2B8", "#E0A21E", "#5A3204", 9), RAYS = sk5bRays(400, 28, "255,214,110");
+      var sky = sk4bCv(W, H), x = sky.getContext("2d"), gr = x.createRadialGradient(95, H / 2, 10, 95, H / 2, 560);
+      gr.addColorStop(0, "#FFF3C8"); gr.addColorStop(.08, "#F2B634"); gr.addColorStop(.26, "#8A5208"); gr.addColorStop(.6, "#2A1603"); gr.addColorStop(1, "#120A02"); x.fillStyle = gr; x.fillRect(0, 0, W, H);
+      var soft = sk4dSoft("255,236,190", 60); // 雲（やわらかい光のかたまり）
+      for (var i = 0; i < 14; i++) { x.globalAlpha = .1 + R() * .14; var s = 60 + R() * 90; x.drawImage(soft, 200 + R() * (W - 160) - s, (R() < .5 ? R() * 50 : H - R() * 50) - s * .5, s * 2, s); }
+      x.globalAlpha = 1;
+      var deep = sk4bCv(W, H); x = deep.getContext("2d"); gr = x.createLinearGradient(0, 0, 0, H); gr.addColorStop(0, "#2A1804"); gr.addColorStop(1, "#0C0601"); x.fillStyle = gr; x.fillRect(0, 0, W, H);
+      x.globalAlpha = .5; x.drawImage(soft, W * .66 - 200, -60, 400, 160); x.globalAlpha = 1;
+      for (i = 0; i < 46; i++) dust.push([R() * W, R() * H, .4 + R() * .9, R() * 6.28, 14 + R() * 30]);
+      for (i = 0; i < 64; i++) rain.push([R() * W, R(), .7 + R() * .6, R() * 6.28]);
+      // ROUND の数字（金の文字を作り置き。フォントが届いてから作り直す）
+      var NUM = {}, numAt = 0;
+      function num(n) {
+        if (NUM[n]) return NUM[n];
+        var c = sk4bCv(220, 190), y = c.getContext("2d"), gg = y.createLinearGradient(0, 40, 0, 180);
+        gg.addColorStop(0, "#FFFBE6"); gg.addColorStop(.45, "#FFD54A"); gg.addColorStop(.55, "#C8860E"); gg.addColorStop(1, "#FFE9A0");
+        y.textAlign = "center"; y.textBaseline = "alphabetic"; y.lineJoin = "round";
+        y.font = '26px "Dela Gothic One", sans-serif'; y.lineWidth = 6; y.strokeStyle = "#2A1602"; y.strokeText("ROUND", 110, 36); y.fillStyle = gg; y.fillText("ROUND", 110, 36);
+        y.font = '128px "Dela Gothic One", sans-serif'; y.lineWidth = 10; y.strokeText(String(n), 110, 170); y.fillText(String(n), 110, 170);
+        return (NUM[n] = c);
+      }
+      function rays(a, al) { g.save(); g.translate(ic.cx, ic.cy); g.rotate(a); g.globalAlpha = al; g.drawImage(RAYS, -400, -400); g.restore(); }
+      function halo(t) {
+        g.drawImage(sky, 0, 0); g.globalCompositeOperation = "lighter"; rays(t * .22, .42); rays(-t * .31 + .1, .24); g.globalAlpha = 1; g.globalCompositeOperation = "source-over";
+      }
+      function bowl(t, b, bt) { // 金の鉢：玉がまわりながら 4 拍かけて穴へ
+        g.drawImage(deep, 0, 0);
+        var cx = W * .66, cy = H * .64, p = ((b % 4) + bt) / 4, hk = 8 - Math.floor(bt * 9);
+        for (var k = 8; k >= 0; k--) { var rx = 26 + k * 30; g.strokeStyle = k === hk ? "rgba(255,240,190,.95)" : "rgba(255,200,90," + (.16 + .05 * (8 - k)).toFixed(2) + ")"; g.lineWidth = k === hk ? 2.4 : 1.2; g.beginPath(); g.ellipse(cx, cy, rx, rx * .34, 0, 0, 6.2832); g.stroke(); }
+        g.fillStyle = "#050200"; g.beginPath(); g.ellipse(cx, cy, 16, 5.5, 0, 0, 6.2832); g.fill();
+        g.globalCompositeOperation = "lighter"; g.globalAlpha = .5 + .5 * Math.sin(t * 9); g.drawImage(gl, cx - 22, cy - 14, 44, 22); g.globalAlpha = 1; g.globalCompositeOperation = "source-over";
+        for (var j = 7; j >= 0; j--) { // 玉と残像
+          var q = Math.max(0, p - j * .012), rr = 250 * (1 - q) + 22 * q, an = -t * (2.6 + q * 7) + j * .14, bx = cx + Math.cos(an) * rr, by = cy + Math.sin(an) * rr * .34, sz = 13 * (.8 + .2 * Math.sin(an));
+          g.globalAlpha = j ? .22 * (1 - j / 8) : 1; g.drawImage(ball, bx - sz, by - sz * 2, sz * 2, sz * 2);
+        }
+        g.globalAlpha = 1;
+      }
+      function round(t, b, bt) { // ROUND の数字が拍ごとに 1 つ上がる（最大 10）
+        g.drawImage(sky, 0, 0); g.globalCompositeOperation = "lighter"; rays(t * .9, .6); g.globalCompositeOperation = "source-over";
+        var c = num(b % 10 + 1), z = 1.5 - .5 * EZ(bt * 3.5), a = Math.min(1, bt * 6);
+        g.save(); g.translate(W - 92, H * .5); g.scale(z * .85, z * .85); g.globalAlpha = a * .9; g.drawImage(c, -110, -100); g.restore(); g.globalAlpha = 1;
+      }
+      function rainy(t) { // 金の玉の雨（みんなに 2500 玉）
+        g.drawImage(deep, 0, 0);
+        for (var k = 0; k < rain.length; k++) {
+          var q = rain[k], y = ((q[1] + t * q[2] * .9) % 1) * (H + 40) - 20, xx = q[0] + Math.sin(t * 2 + q[3]) * 4, sz = 6 + q[2] * 4;
+          g.fillStyle = "rgba(255,214,110,.18)"; g.fillRect(xx - 1, y - sz * 4, 2, sz * 3);
+          g.drawImage(ball, xx - sz, y - sz, sz * 2, sz * 2);
+        }
+      }
+      return function (t, f) {
+        if (f % 15 === 0 || !ic) ic = relRect(g.canvas, el.querySelector(".ic"));
+        if (!numAt && t > 1.5) { NUM = {}; numAt = 1; }
+        var b = Math.floor(t / B), bt = t / B - b, sn = SCN[b % 16], s = sn;
+        if (sn === "flick") s = ["halo", "round", "bowl", "rain"][(f >> 1) % 4];
+        if (b !== lastB) { lastB = b; var c = CUT[b % CUT.length]; M.cut = { s: c[0], r: c[1] }; if (sn === "flick") M.glitch = Math.max(M.glitch, 8); else if (sn === "round" && SCN[(b + 15) % 16] !== "round") M.glitch = Math.max(M.glitch, 3); }
+        if (t < .55 && t > .12 && (f >> 1) % 3 === 0) M.invert = true; // 登場：短い反転を 3 回
+        if (s === "halo") halo(t); else if (s === "bowl") bowl(t, b, bt); else if (s === "round") round(t, b, bt); else rainy(t);
+        sk3Scrim(g, W, H, "26,14,2", .36);
+        g.globalCompositeOperation = "lighter"; // 昇る金の粉
+        dust.forEach(function (d) { var y = ((d[1] - t * d[4]) % (H + 20) + H + 20) % (H + 20) - 10, xx = d[0] + Math.sin(t * 1.3 + d[3]) * 6; g.globalAlpha = .3 + .5 * Math.abs(Math.sin(t * 2 + d[3])); g.drawImage(gl, xx - 5 * d[2], y - 5 * d[2], 10 * d[2], 10 * d[2]); });
+        g.globalAlpha = 1;
+        if (b % 4 === 0) { // 小節の頭：白い光・金の衝撃の輪・後光が強く
+          var q = EZ(bt); rays(-t * .5, .7 * (1 - q));
+          for (var k = 0; k < 2; k++) { var qq = Math.max(0, q - k * .15); g.strokeStyle = "rgba(255,226,140," + (.9 * (1 - qq)).toFixed(2) + ")"; g.lineWidth = 8 * (1 - qq) + 1; g.beginPath(); g.arc(ic.cx, ic.cy, 60 + qq * 400, 0, 6.2832); g.stroke(); }
+          g.globalAlpha = 1; if (bt < .1) { g.fillStyle = "rgba(255,250,225," + (.45 * (1 - bt / .1)).toFixed(2) + ")"; g.fillRect(0, 0, W, H); }
+        }
+        g.globalCompositeOperation = "source-over";
+      };
+    },
+    // ★5 レインボー：宇宙をまっすぐ伸びる虹の道を走る（縞が手前へ流れ、星が線になる）。場面が切りかわる（光速のワープ・すりガラスの板の向こうを色が流れる・プリズムが光を虹に分ける）。小節の頭に虹の 7 色の輪
+    rainbowroad: function (g, el, name, L, lk, M) {
+      var W = g.canvas.width, H = g.canvas.height, R = prng(nameSeed(name) + 607), ic = null, lastB = -1, B = 60 / 150, st = [], pane = [];
+      var SCN = ["road", "road", "warp", "road", "flick", "glass", "glass", "warp", "road", "prism", "glass", "warp", "prism", "prism", "flick", "road"];
+      var CUT = [[1.04, 0], [1.12, 1.4], [1.06, -1.2], [1.16, -1.8], [1.08, .8]];
+      var RB = ["#FF3B5C", "#FF8A2A", "#FFD93A", "#3BE07A", "#2FC8FF", "#5A6BFF", "#B45CFF"], RGB = ["255,59,92", "255,138,42", "255,217,58", "59,224,122", "47,200,255", "90,107,255", "180,92,255"];
+      var space = sk4bCv(W, H), x = space.getContext("2d"), gr = x.createLinearGradient(0, 0, W, H);
+      gr.addColorStop(0, "#1A0B3A"); gr.addColorStop(.6, "#0B0624"); gr.addColorStop(1, "#21082E"); x.fillStyle = gr; x.fillRect(0, 0, W, H);
+      [["180,92,255", .35], ["255,79,168", .25], ["255,138,42", .14], ["47,200,255", .14]].forEach(function (c, k) { x.globalAlpha = c[1]; x.drawImage(sk4dSoft(c[0], 120), 160 + k * 100 + R() * 60 - 160, R() * H - 120, 320, 240); });
+      x.globalAlpha = 1; x.fillStyle = "#fff"; for (var i = 0; i < 90; i++) { x.globalAlpha = .2 + R() * .6; var sz = R() < .1 ? 2 : 1; x.fillRect(R() * W, R() * H, sz, sz); }
+      x.globalAlpha = 1;
+      for (i = 0; i < 84; i++) st.push([R() * 6.2832, R(), .5 + R(), i % 7]);
+      var blob = [0, 1, 2, 3, 4, 5, 6].map(function (k) { return sk4dSoft(RGB[k], 70); }), small = sk4bCv(69, 30), sg = small.getContext("2d"), white = sk4dSoft("255,255,255", 50);
+      for (i = 0; i < 3; i++) pane.push([200 + i * 112, 22 + i * 18, 128, 150 - i * 12]);
+      function edge(p, u, vx, vy, bx) { return [vx + (u - .5) * 8 + ((bx + (u - .5) * 900) - (vx + (u - .5) * 8)) * p, vy + (H + 10 - vy) * p]; }
+      function streaks(cx, cy, t, sp, len, lw) { // 中心から外へ飛ぶ星の線（色ごとにまとめて描く）
+        g.lineWidth = lw; g.globalCompositeOperation = "lighter";
+        for (var c = 0; c < 7; c++) { g.strokeStyle = "rgba(" + RGB[c] + ",.75)"; g.beginPath(); for (var k = c; k < st.length; k += 7) { var s = st[k], z = (s[1] + t * sp * s[2]) % 1, r1 = 10 + z * z * 560, r2 = r1 * (1 + len * (.2 + z)); g.moveTo(cx + Math.cos(s[0]) * r1, cy + Math.sin(s[0]) * r1 * .7); g.lineTo(cx + Math.cos(s[0]) * r2, cy + Math.sin(s[0]) * r2 * .7); } g.stroke(); }
+        g.globalCompositeOperation = "source-over";
+      }
+      function road(t, bt) {
+        g.drawImage(space, 0, 0);
+        var vx = W * .7 + Math.sin(t * .9) * 26, vy = H * .34, bx = W * .5 + Math.sin(t * .9 + 1) * 40;
+        streaks(vx, vy, t, .9, .25, 1.2);
+        g.globalAlpha = .82 + .18 * (1 - bt);
+        for (var i = 0; i < 7; i++) { var a = edge(0, i / 7, vx, vy, bx), b2 = edge(0, (i + 1) / 7, vx, vy, bx), c = edge(1, (i + 1) / 7, vx, vy, bx), d = edge(1, i / 7, vx, vy, bx); g.fillStyle = RB[i]; g.beginPath(); g.moveTo(a[0], a[1]); g.lineTo(b2[0], b2[1]); g.lineTo(c[0], c[1]); g.lineTo(d[0], d[1]); g.closePath(); g.fill(); }
+        g.globalAlpha = 1; g.fillStyle = "rgba(12,4,34,.5)"; g.beginPath(); // 手前へ流れる縞
+        for (var k = 0; k < 10; k++) { var z = (k / 10 + t * 1.5) % 1, p1 = Math.pow(z, 2.2), p2 = Math.pow(Math.min(1, z + .045), 2.2), l1 = edge(p1, 0, vx, vy, bx), r1 = edge(p1, 1, vx, vy, bx), r2 = edge(p2, 1, vx, vy, bx), l2 = edge(p2, 0, vx, vy, bx); g.moveTo(l1[0], l1[1]); g.lineTo(r1[0], r1[1]); g.lineTo(r2[0], r2[1]); g.lineTo(l2[0], l2[1]); g.closePath(); }
+        g.fill();
+        g.strokeStyle = "rgba(255,255,255,.85)"; g.lineWidth = 1.5; g.beginPath(); var e0 = edge(0, 0, vx, vy, bx), e1 = edge(1, 0, vx, vy, bx), e2 = edge(0, 1, vx, vy, bx), e3 = edge(1, 1, vx, vy, bx); g.moveTo(e0[0], e0[1]); g.lineTo(e1[0], e1[1]); g.moveTo(e2[0], e2[1]); g.lineTo(e3[0], e3[1]); g.stroke();
+        g.globalCompositeOperation = "lighter"; g.drawImage(white, vx - 40, vy - 30, 80, 60); g.globalCompositeOperation = "source-over";
+      }
+      function warp(t, bt) {
+        g.fillStyle = "#07031A"; g.fillRect(0, 0, W, H);
+        var cx = W * .64, cy = H * .5; streaks(cx, cy, t, 1.4 + 1.6 * (1 - EZ(bt * 1.5)), 1.4, 2.6);
+        g.globalCompositeOperation = "lighter"; g.drawImage(white, cx - 70, cy - 50, 140, 100); g.globalCompositeOperation = "source-over";
+      }
+      function glass(t, b, bt) { // 色の玉がすりガラスの板の後ろを流れる（板の中は小さく描いて広げる＝ぼかし）
+        g.drawImage(space, 0, 0); sg.clearRect(0, 0, 69, 30);
+        var P = [];
+        for (var k = 0; k < 7; k++) { var px = W * .3 + ((k * 97 + t * 70) % (W * .9)), py = H * .5 + Math.sin(t * 1.3 + k * 2) * 70, s = 70 + (k % 3) * 22; P.push([px, py, s, k]); }
+        g.globalCompositeOperation = "lighter"; sg.globalCompositeOperation = "lighter";
+        P.forEach(function (p) { g.globalAlpha = .55; g.drawImage(blob[p[3]], p[0] - p[2], p[1] - p[2], p[2] * 2, p[2] * 2); sg.drawImage(blob[p[3]], (p[0] - p[2] * 1.3) / 8, (p[1] - p[2] * 1.3) / 8, p[2] * 2.6 / 8, p[2] * 2.6 / 8); });
+        g.globalAlpha = 1; g.globalCompositeOperation = "source-over";
+        pane.forEach(function (q, n) {
+          var sl = (n === b % 3 ? 1 - EZ(bt * 2.5) : 0) * 30, px = q[0] + sl, py = q[1];
+          g.save(); g.beginPath(); sk4dRR(g, px, py, q[2], q[3], 14); g.clip(); g.fillStyle = "rgba(20,10,50,.55)"; g.fillRect(px, py, q[2], q[3]); g.drawImage(small, 0, 0, 69, 30, 0, 0, 552, 240); g.fillStyle = "rgba(255,255,255,.1)"; g.fillRect(px, py, q[2], q[3]); g.restore();
+          g.lineWidth = 1.5; g.strokeStyle = "rgba(255,59,92,.7)"; g.beginPath(); sk4dRR(g, px - 2, py, q[2], q[3], 14); g.stroke(); // 色収差（赤と青緑にずれた縁）
+          g.strokeStyle = "rgba(47,220,255,.7)"; g.beginPath(); sk4dRR(g, px + 2, py, q[2], q[3], 14); g.stroke();
+          g.strokeStyle = "rgba(255,255,255,.8)"; g.lineWidth = 1; g.beginPath(); sk4dRR(g, px, py, q[2], q[3], 14); g.stroke();
+        });
+      }
+      function prism(t, bt) { // 白い光がプリズムで虹に分かれる
+        g.drawImage(space, 0, 0);
+        var cx = W * .6, cy = H * .54, s = 46, a = Math.sin(t * .8) * .12, P = [0, 1, 2].map(function (k) { var an = a - Math.PI / 2 + k * 2.0944; return [cx + Math.cos(an) * s, cy + Math.sin(an) * s]; });
+        var hitL = [(P[0][0] + P[2][0]) / 2, (P[0][1] + P[2][1]) / 2], hitR = [(P[0][0] + P[1][0]) / 2, (P[0][1] + P[1][1]) / 2], pw = 1 + .6 * (1 - EZ(bt * 2));
+        g.globalCompositeOperation = "lighter";
+        g.strokeStyle = "rgba(255,255,255,.9)"; g.lineWidth = 3 * pw; g.beginPath(); g.moveTo(150, cy + 40); g.lineTo(hitL[0], hitL[1]); g.stroke();
+        for (var k = 0; k < 7; k++) { var y0 = hitR[1] - 4 + k * 1.6, y1 = cy - 120 + k * 34 * pw, y2 = y1 + 34 * pw; g.fillStyle = "rgba(" + RGB[k] + ",.5)"; g.beginPath(); g.moveTo(hitR[0], y0); g.lineTo(W + 10, y1); g.lineTo(W + 10, y2); g.lineTo(hitR[0], y0 + 1.6); g.closePath(); g.fill(); }
+        g.globalCompositeOperation = "source-over";
+        g.fillStyle = "rgba(255,255,255,.12)"; g.beginPath(); g.moveTo(P[0][0], P[0][1]); g.lineTo(P[1][0], P[1][1]); g.lineTo(P[2][0], P[2][1]); g.closePath(); g.fill();
+        [[-2, "rgba(255,59,92,.8)"], [2, "rgba(47,220,255,.8)"], [0, "rgba(255,255,255,.95)"]].forEach(function (o) { g.strokeStyle = o[1]; g.lineWidth = o[0] ? 1.5 : 1.2; g.beginPath(); g.moveTo(P[0][0] + o[0], P[0][1]); g.lineTo(P[1][0] + o[0], P[1][1]); g.lineTo(P[2][0] + o[0], P[2][1]); g.closePath(); g.stroke(); });
+      }
+      return function (t, f) {
+        if (f % 15 === 0 || !ic) ic = relRect(g.canvas, el.querySelector(".ic"));
+        var b = Math.floor(t / B), bt = t / B - b, sn = SCN[b % 16], s = sn;
+        if (sn === "flick") s = ["road", "glass", "warp", "prism"][(f >> 1) % 4];
+        if (b !== lastB) { lastB = b; var c = CUT[b % CUT.length]; M.cut = { s: c[0], r: c[1] }; if (sn === "flick") M.glitch = Math.max(M.glitch, 8); else if (sn === "warp" && SCN[(b + 15) % 16] !== "warp") M.glitch = Math.max(M.glitch, 3); }
+        if (t < .55 && t > .12 && (f >> 1) % 3 === 0) M.invert = true;
+        if (s === "road") road(t, bt); else if (s === "warp") warp(t, bt); else if (s === "glass") glass(t, b, bt); else prism(t, bt);
+        sk3Scrim(g, W, H, "14,6,36", .3);
+        if (b % 4 === 0) { // 小節の頭：虹の 7 色の輪が時間差で広がる
+          var q = EZ(bt); g.globalCompositeOperation = "lighter";
+          for (var k = 0; k < 7; k++) { var qq = Math.max(0, q - k * .04); g.strokeStyle = "rgba(" + RGB[k] + "," + (.9 * (1 - qq)).toFixed(2) + ")"; g.lineWidth = 4 * (1 - qq) + 1; g.beginPath(); g.arc(ic.cx, ic.cy, 64 + qq * 420, 0, 6.2832); g.stroke(); }
+          if (bt < .08) { g.fillStyle = "rgba(255,255,255,.2)"; g.fillRect(0, 0, W, H); }
+          g.globalCompositeOperation = "source-over";
+        }
+      };
+    },
+    // ★5 ネビュラ：桃色と青緑の星雲の渦がゆっくり回り、星の釘がまたたく。場面が切りかわる（照準がアイコンと敵を捕まえる・ボスの弾幕のらせん・WARNING のテープ）。小節の頭にレーザーが横切る
+    nebulaboss: function (g, el, name, L, lk, M) {
+      var W = g.canvas.width, H = g.canvas.height, R = prng(nameSeed(name) + 613), ic = null, lastB = -1, B = 60 / 150, nail = [];
+      var SCN = ["nebula", "nebula", "lock", "nebula", "flick", "barrage", "barrage", "lock", "nebula", "warning", "barrage", "lock", "warning", "warning", "flick", "nebula"];
+      var CUT = [[1.04, 0], [1.14, -1.6], [1.06, 1.2], [1.18, 2], [1.08, -.8]];
+      var back = sk4bCv(W, H), x = back.getContext("2d"), gr = x.createLinearGradient(0, 0, 0, H); gr.addColorStop(0, "#140A33"); gr.addColorStop(1, "#05031A"); x.fillStyle = gr; x.fillRect(0, 0, W, H);
+      x.fillStyle = "#fff"; for (var i = 0; i < 70; i++) { x.globalAlpha = .15 + R() * .5; x.fillRect(R() * W, R() * H, 1, 1); } x.globalAlpha = 1;
+      // 星雲の渦（640 角に作り置きして回す）
+      var neb = sk4bCv(640, 640); x = neb.getContext("2d"); var sp = [sk4dSoft("255,79,168", 40), sk4dSoft("63,240,216", 40), sk4dSoft("140,90,255", 40)];
+      for (i = 0; i < 150; i++) { var arm = i % 2, a = i * .085 + arm * Math.PI, r = 10 + (i >> 1) * 3.6 + R() * 14, s = 22 + (i >> 1) * .7; x.globalAlpha = .24 + R() * .14; x.drawImage(sp[(i >> 1) % 7 === 0 ? 2 : arm], 320 + Math.cos(a) * r - s * 1.3, 320 + Math.sin(a) * r - s * 1.3, s * 2.6, s * 2.6); }
+      x.globalAlpha = .9; x.drawImage(sk4dSoft("200,255,245", 40), 290, 290, 60, 60); x.globalAlpha = 1;
+      for (i = 0; i < 44; i++) nail.push([180 + R() * (W - 180), R() * H, R() * 6.28, R() < .5]);
+      var star = sk3Glow("255,255,255", 6), bp = sk3Glow("255,79,168", 7), bc = sk3Glow("63,240,216", 7), pink = sk3Glow("255,120,190", 16);
+      // WARNING のテープ（作り置き）
+      var tape = sk4bCv(1200, 30); x = tape.getContext("2d"); x.fillStyle = "#C2164A"; x.fillRect(0, 0, 1200, 30); x.fillStyle = "#1A0610"; x.fillRect(0, 0, 1200, 3); x.fillRect(0, 27, 1200, 3);
+      x.fillStyle = "#FFF1F6"; x.font = '700 16px "M PLUS 1 Code", monospace'; x.textBaseline = "middle"; for (i = 0; i < 6; i++) x.fillText("⚠ BOSS BATTLE  ⚠ ALL FIRE  ", i * 200, 16);
+      var warn = sk4bCv(360, 80); x = warn.getContext("2d"); x.font = '64px "Dela Gothic One", sans-serif'; x.textAlign = "center"; x.textBaseline = "middle"; x.lineWidth = 2; x.strokeStyle = "rgba(255,79,168,.9)"; x.strokeText("WARNING", 180, 42);
+      function dots(t, al) { // 点の輪（桃色と青緑が逆に回る）
+        [[W * .62, H * .5, 92, 34, .5, "255,79,168"], [W * .62, H * .5, 150, 48, -.32, "63,240,216"], [W * .62, H * .5, 210, 60, .2, "255,79,168"]].forEach(function (c) {
+          g.fillStyle = "rgba(" + c[5] + "," + al + ")"; g.beginPath(); for (var k = 0; k < c[3]; k++) { var a = k / c[3] * 6.2832 + t * c[4]; g.rect(c[0] + Math.cos(a) * c[2] * 1.2 - 2, c[1] + Math.sin(a) * c[2] * .7 - 2, 4, 4); } g.fill();
+        });
+      }
+      function nebula(t, al) {
+        g.drawImage(back, 0, 0);
+        g.save(); g.translate(W * .62, H * .5); g.scale(1.2, .72); g.rotate(t * .18); g.globalCompositeOperation = "lighter"; g.globalAlpha = al; g.drawImage(neb, -320, -320); g.restore();
+        g.globalCompositeOperation = "lighter";
+        nail.forEach(function (n) { var a = .25 + .75 * Math.pow(Math.abs(Math.sin(t * 1.6 + n[2])), 3); g.globalAlpha = a * al; g.drawImage(n[3] ? star : bc, n[0] - 4, n[1] - 4, 8, 8); });
+        g.globalAlpha = 1; g.globalCompositeOperation = "source-over";
+      }
+      function lock(t, b, bt) { // 照準：大きく開いた枠がカチッと閉じて捕まえる
+        nebula(t, .55); dots(t, .35);
+        var T = [[ic.cx, ic.cy], [W * .72, H * .4], [W * .88, H * .64], [W * .55, H * .72]][b % 4], s = 30 + 80 * (1 - sk3Back(bt * 2.4)), cl = 14;
+        g.strokeStyle = "rgba(255,79,168,.45)"; g.lineWidth = 1; g.beginPath(); g.moveTo(0, T[1] + .5); g.lineTo(W, T[1] + .5); g.moveTo(T[0] + .5, 0); g.lineTo(T[0] + .5, H); g.stroke();
+        g.strokeStyle = "#5FF6E0"; g.lineWidth = 3; g.beginPath();
+        [[-1, -1], [1, -1], [1, 1], [-1, 1]].forEach(function (c) { var px = T[0] + c[0] * s, py = T[1] + c[1] * s; g.moveTo(px, py - c[1] * cl); g.lineTo(px, py); g.lineTo(px - c[0] * cl, py); }); g.stroke();
+        if (bt > .35 && (f2 >> 2) % 2 === 0) { g.fillStyle = "#FF4FA8"; g.font = '700 11px "M PLUS 1 Code", monospace'; g.fillText("LOCK ON", T[0] + s + 6, T[1] - s); }
+        var hp = 20 - b % 20; for (var k = 0; k < 20; k++) { g.fillStyle = k < hp ? "#FF4FA8" : "rgba(63,240,216,.35)"; g.fillRect(W - 24 - (20 - k) * 9, H - 9, 7, 4); }
+      }
+      var f2 = 0;
+      function barrage(t) { // ボスの弾幕：6 本の腕のらせん
+        nebula(t, .6);
+        var cx = W * .78, cy = H * .46;
+        g.globalCompositeOperation = "lighter";
+        for (var k = 0; k < 17; k++) { var a = k * .075 + (t % .075); for (var j = 0; j < 6; j++) { var an = (t - a) * 2.4 + j * 1.0472, r = 22 + a * 190; var bx = cx + Math.cos(an) * r, by = cy + Math.sin(an) * r * .8; g.drawImage(j % 2 ? bc : bp, bx - 8, by - 8, 16, 16); g.drawImage(star, bx - 3, by - 3, 6, 6); } }
+        g.globalAlpha = .7 + .3 * Math.sin(t * 12); g.drawImage(pink, cx - 34, cy - 34, 68, 68); g.globalAlpha = 1; g.globalCompositeOperation = "source-over";
+        g.fillStyle = "#12051E"; g.beginPath(); g.arc(cx, cy, 15, 0, 6.2832); g.fill();
+        g.strokeStyle = "#FF4FA8"; g.lineWidth = 2; g.beginPath(); for (var h = 0; h <= 6; h++) { var ha = h / 6 * 6.2832 + t * 1.5; if (!h) g.moveTo(cx + Math.cos(ha) * 24, cy + Math.sin(ha) * 24); else g.lineTo(cx + Math.cos(ha) * 24, cy + Math.sin(ha) * 24); } g.stroke();
+      }
+      function warning(t, bt) { // 赤い点滅と、逆に流れる 2 本のテープ
+        g.fillStyle = "#1A0612"; g.fillRect(0, 0, W, H); g.fillStyle = "rgba(255,30,80," + (.28 * (1 - bt)).toFixed(2) + ")"; g.fillRect(0, 0, W, H);
+        g.globalAlpha = .55 + .45 * (1 - bt); g.drawImage(warn, W - 330, H * .5 - 40); g.globalAlpha = 1;
+        [[H * .26, -.12, -1], [H * .8, .09, 1]].forEach(function (o) { var off = ((t * 160 * o[2]) % 200 + 200) % 200; g.save(); g.translate(W / 2, o[0]); g.rotate(o[1]); g.drawImage(tape, -600 - 200 + off, -15); g.restore(); });
+      }
+      return function (t, f) {
+        if (f % 15 === 0 || !ic) ic = relRect(g.canvas, el.querySelector(".ic"));
+        f2 = f;
+        var b = Math.floor(t / B), bt = t / B - b, sn = SCN[b % 16], s = sn;
+        if (sn === "flick") s = ["nebula", "warning", "lock", "barrage"][(f >> 1) % 4];
+        if (b !== lastB) { lastB = b; var c = CUT[b % CUT.length]; M.cut = { s: c[0], r: c[1] }; if (sn === "flick") M.glitch = Math.max(M.glitch, 8); else if (sn === "warning" && SCN[(b + 15) % 16] !== "warning") M.glitch = Math.max(M.glitch, 4); }
+        if (t < .55 && t > .12 && (f >> 1) % 3 === 0) M.invert = true;
+        if (s === "nebula") { nebula(t, 1); dots(t, .85); } else if (s === "lock") lock(t, b, bt); else if (s === "barrage") barrage(t); else warning(t, bt);
+        sk3Scrim(g, W, H, "12,5,32", .32);
+        if (b % 4 === 0 && bt < .7) { // 小節の頭：アイコンからレーザーが横切る
+          var q = bt / .7, w = 22 * (1 - q), y = ic.cy, x0 = ic.cx + 50, x1 = x0 + (W - x0) * EZ(q * 4);
+          g.globalCompositeOperation = "lighter"; gr = g.createLinearGradient(0, y - w, 0, y + w); gr.addColorStop(0, "rgba(255,79,168,0)"); gr.addColorStop(.35, "rgba(255,79,168,.8)"); gr.addColorStop(.5, "rgba(255,255,255,1)"); gr.addColorStop(.65, "rgba(63,240,216,.8)"); gr.addColorStop(1, "rgba(63,240,216,0)");
+          g.fillStyle = gr; g.fillRect(x0, y - w, x1 - x0, w * 2); g.globalAlpha = 1 - q; g.drawImage(pink, x1 - 40, y - 40, 80, 80); g.globalAlpha = 1;
+          if (bt < .06) { g.fillStyle = "rgba(255,200,230,.2)"; g.fillRect(0, 0, W, H); }
+          g.globalCompositeOperation = "source-over";
+        }
+      };
+    },
+    // ★5 アビス：紫の雲を抜けて奈落へ落ちつづける（雲と光のすじが上へ流れる）。場面が切りかわる（迫る輪のトンネル・深さの計器・まん中の黒い穴へ吸いこまれる粒）。小節の頭に光の輪が穴へ縮み、画面が一瞬暗く沈む
+    abyssdeep: function (g, el, name, L, lk, M) {
+      var W = g.canvas.width, H = g.canvas.height, R = prng(nameSeed(name) + 619), ic = null, lastB = -1, B = 60 / 90, sk = [], pt = [];
+      var SCN = ["fall", "fall", "tunnel", "fall", "flick", "depth", "depth", "tunnel", "fall", "void", "depth", "tunnel", "void", "void", "flick", "fall"];
+      var CUT = [[1.05, 0], [1.14, 1], [1.07, -.8], [1.2, -1.4], [1.1, .6]];
+      // 縦につながる雲（高さ 2H。上下を重ねて描いて切れ目をなくす）
+      var CH = H * 2, cloud = sk4bCv(W, CH), x = cloud.getContext("2d"), sp = [sk4dSoft("120,60,200", 60), sk4dSoft("190,120,255", 60), sk4dSoft("255,110,200", 60), sk4dSoft("60,20,120", 60)];
+      for (var i = 0; i < 70; i++) { var px = 120 + R() * (W - 60), py = R() * CH, s = 40 + R() * 90, k = R() < .1 ? 2 : R() < .5 ? 1 : R() < .7 ? 3 : 0; x.globalAlpha = .26 + R() * .26; [-CH, 0, CH].forEach(function (o) { x.drawImage(sp[k], px - s * 1.4, py + o - s, s * 2.8, s * 2); }); }
+      x.globalAlpha = 1;
+      var vig = sk4bCv(W, H); x = vig.getContext("2d"); var gr = x.createRadialGradient(W * .62, H * .5, 30, W * .62, H * .5, 380); gr.addColorStop(0, "rgba(8,2,18,0)"); gr.addColorStop(.55, "rgba(8,2,18,.12)"); gr.addColorStop(1, "rgba(8,2,18,.7)"); x.fillStyle = gr; x.fillRect(0, 0, W, H);
+      var hole = sk4bCv(200, 200); x = hole.getContext("2d"); gr = x.createRadialGradient(100, 100, 0, 100, 100, 100); gr.addColorStop(0, "rgba(0,0,0,1)"); gr.addColorStop(.42, "rgba(0,0,0,1)"); gr.addColorStop(.5, "rgba(120,60,220,.9)"); gr.addColorStop(.62, "rgba(198,155,255,.35)"); gr.addColorStop(1, "rgba(120,60,220,0)"); x.fillStyle = gr; x.fillRect(0, 0, 200, 200);
+      var band = sk4bCv(900, 16); x = band.getContext("2d"); x.fillStyle = "rgba(255,170,230,.75)"; x.font = '700 11px "M PLUS 1 Code", monospace'; x.textBaseline = "middle"; for (i = 0; i < 5; i++) x.fillText("奈落 ▼ DEEPER ▼ ABYSS ▼ ", i * 180, 9);
+      for (i = 0; i < 46; i++) sk.push([170 + R() * (W - 170), R() * H, 14 + R() * 40, 160 + R() * 240]);
+      for (i = 0; i < 56; i++) pt.push([R() * 6.2832, R(), .7 + R() * .6]);
+      var mote = sk3Glow("214,180,255", 5);
+      function fall(t, al) {
+        g.fillStyle = "#12062A"; g.fillRect(0, 0, W, H);
+        var oy = (t * 120) % CH; g.globalAlpha = al; g.drawImage(cloud, 0, -oy); g.drawImage(cloud, 0, CH - oy); g.globalAlpha = 1;
+        g.strokeStyle = "rgba(214,180,255,.5)"; g.lineWidth = 1.2; g.beginPath(); // 上へ流れる光のすじ（落ちている）
+        for (var k = 0; k < sk.length; k++) { var q = sk[k], y = ((q[1] - t * q[3]) % (H + q[2]) + H + q[2]) % (H + q[2]) - q[2]; g.moveTo(q[0], y); g.lineTo(q[0], y + q[2]); }
+        g.stroke(); g.drawImage(vig, 0, 0);
+      }
+      function tunnel(t) { // 迫る輪のトンネル
+        g.fillStyle = "#0A0318"; g.fillRect(0, 0, W, H);
+        var cx = W * .62 + Math.sin(t * .7) * 10, cy = H * .5 + Math.cos(t * .5) * 6;
+        g.strokeStyle = "rgba(150,90,240,.3)"; g.lineWidth = 1; g.beginPath(); for (var k = 0; k < 16; k++) { var a = k / 16 * 6.2832 + t * .1; g.moveTo(cx + Math.cos(a) * 20, cy + Math.sin(a) * 12); g.lineTo(cx + Math.cos(a) * 600, cy + Math.sin(a) * 372); } g.stroke();
+        for (k = 0; k < 11; k++) { var z = (k / 11 + t * .5) % 1, s = Math.pow(z, 2.6), rx = 12 + s * 560; g.strokeStyle = k % 3 ? "rgba(198,155,255," + Math.min(1, .15 + s * 1.2).toFixed(2) + ")" : "rgba(255,110,200," + Math.min(1, .15 + s).toFixed(2) + ")"; g.lineWidth = 1 + s * 7; g.beginPath(); g.ellipse(cx + Math.sin(t * .7 - z * 3) * 14 * (1 - s), cy, rx, rx * .62, 0, 0, 6.2832); g.stroke(); }
+        g.drawImage(hole, cx - 50, cy - 50, 100, 100);
+      }
+      function depth(t, b, bt) { // 深さの計器：数字が増え、目盛りが上へ流れる
+        fall(t, .4);
+        var d = Math.floor(1000 + (b + EZ(bt * 2)) * 137 + t * 9), off = (t * 90) % 14, rx = W - 34;
+        g.strokeStyle = "rgba(214,180,255,.7)"; g.lineWidth = 1; g.beginPath(); for (var y = -off; y < H; y += 14) { var big = Math.round((y + off + t * 90) / 14) % 5 === 0; g.moveTo(rx, y); g.lineTo(rx + (big ? 18 : 8), y); } g.moveTo(rx + .5, 0); g.lineTo(rx + .5, H); g.stroke();
+        g.fillStyle = "rgba(240,225,255,.92)"; g.textAlign = "right"; g.font = '700 10px "M PLUS 1 Code", monospace'; g.fillText("DEPTH", rx - 10, H * .44);
+        g.font = '700 25px "M PLUS 1 Code", monospace'; g.fillText("-" + String(d).replace(/\B(?=(\d{3})+$)/g, ",") + "m", rx - 8, H * .6); g.textAlign = "start";
+        var mo = (t * 40) % 180; g.globalAlpha = .7; g.drawImage(band, 170 - mo, H - 16); g.globalAlpha = 1;
+      }
+      function voidp(t, bt) { // まん中の黒い穴へ粒が吸いこまれる
+        g.fillStyle = "#06020F"; g.fillRect(0, 0, W, H);
+        var cx = W * .62, cy = H * .5, pu = 1 + .12 * (1 - EZ(bt * 2));
+        g.globalCompositeOperation = "lighter";
+        for (var k = 0; k < pt.length; k++) { var p = pt[k], a = (p[1] + t * .3 * p[2]) % 1, r = 300 * Math.pow(1 - a, 1.6), an = p[0] + a * 5; g.globalAlpha = Math.min(1, a * 2) * (1 - a * a); g.drawImage(mote, cx + Math.cos(an) * r * 1.3 - 6, cy + Math.sin(an) * r * .7 - 6, 12, 12); }
+        g.globalAlpha = 1; g.globalCompositeOperation = "source-over";
+        g.drawImage(hole, cx - 80 * pu, cy - 80 * pu, 160 * pu, 160 * pu);
+      }
+      return function (t, f) {
+        if (f % 15 === 0 || !ic) ic = relRect(g.canvas, el.querySelector(".ic"));
+        var b = Math.floor(t / B), bt = t / B - b, sn = SCN[b % 16], s = sn;
+        if (sn === "flick") s = ["fall", "void", "tunnel", "depth"][(f >> 1) % 4];
+        if (b !== lastB) { lastB = b; var c = b % 4 === 0 ? [1.22, 0] : CUT[b % CUT.length]; M.cut = { s: c[0], r: c[1] }; if (sn === "flick") M.glitch = Math.max(M.glitch, 8); else if (sn === "void" && SCN[(b + 15) % 16] !== "void") M.glitch = Math.max(M.glitch, 3); }
+        if (t < .55 && t > .12 && (f >> 1) % 3 === 0) M.invert = true;
+        if (s === "fall") fall(t, 1); else if (s === "tunnel") tunnel(t); else if (s === "depth") depth(t, b, bt); else voidp(t, bt);
+        sk3Scrim(g, W, H, "14,4,30", .3);
+        if (b % 4 === 0) { // 小節の頭：画面が一瞬暗く沈み、光の輪がアイコンへ縮んで落ちる
+          var q = EZ(bt * 1.2);
+          if (bt < .3) { g.fillStyle = "rgba(4,0,10," + (.55 * (1 - bt / .3)).toFixed(2) + ")"; g.fillRect(0, 0, W, H); }
+          g.globalCompositeOperation = "lighter";
+          for (var k = 0; k < 3; k++) { var qq = Math.min(1, q + k * .1), r = 30 + (1 - qq) * 420; g.strokeStyle = "rgba(198,155,255," + (.8 * qq * (1 - qq) * 3).toFixed(2) + ")"; g.lineWidth = 2 + 5 * (1 - qq); g.beginPath(); g.arc(ic.cx, ic.cy, r, 0, 6.2832); g.stroke(); }
+          g.globalCompositeOperation = "source-over";
+        }
+      };
+    },
+    // ★5 パラドックス：大きな時計の針が逆に回り、秒針は拍ごとに 1 つ戻る（前の位置が残像で残る）。場面が切りかわる（VHS の巻き戻し・逆に回るオルゴール・逆に流れる青緑の符号）。小節の頭に赤い針が左回りにひと回りする
+    paradoxclock: function (g, el, name, L, lk, M) {
+      var W = g.canvas.width, H = g.canvas.height, R = prng(nameSeed(name) + 631), ic = null, lastB = -1, B = 60 / 124, notes = [];
+      var SCN = ["clock", "clock", "rewind", "clock", "flick", "orgel", "orgel", "rewind", "clock", "code", "orgel", "rewind", "code", "code", "flick", "clock"];
+      var CUT = [[1.04, 0], [1.12, 1.2], [1.06, -1.4], [1.16, -2], [1.08, 1]];
+      var back = sk4bCv(W, H), x = back.getContext("2d"), gr = x.createRadialGradient(W * .64, H * .5, 10, W * .64, H * .5, 380); gr.addColorStop(0, "#0E3434"); gr.addColorStop(1, "#020E10"); x.fillStyle = gr; x.fillRect(0, 0, W, H);
+      // 文字盤（作り置き）
+      var DR = 150, dial = sk4bCv(DR * 2 + 20, DR * 2 + 20), C = DR + 10; x = dial.getContext("2d");
+      x.strokeStyle = "rgba(200,255,245,.55)"; x.lineWidth = 1.5; x.beginPath(); x.arc(C, C, DR, 0, 6.2832); x.stroke(); x.lineWidth = .8; x.beginPath(); x.arc(C, C, DR - 18, 0, 6.2832); x.stroke();
+      for (var i = 0; i < 60; i++) { var a = i / 60 * 6.2832, l = i % 5 ? 5 : 12; x.lineWidth = i % 5 ? 1 : 2; x.beginPath(); x.moveTo(C + Math.cos(a) * DR, C + Math.sin(a) * DR); x.lineTo(C + Math.cos(a) * (DR - l), C + Math.sin(a) * (DR - l)); x.stroke(); }
+      x.fillStyle = "rgba(200,255,245,.6)"; x.font = '13px "Noto Serif JP", serif'; x.textAlign = "center"; x.textBaseline = "middle";
+      ["XII", "I", "II", "III", "IIII", "V", "VI", "VII", "VIII", "IX", "X", "XI"].forEach(function (s, k) { var a = k / 12 * 6.2832 - Math.PI / 2; x.fillText(s, C + Math.cos(a) * (DR - 30), C + Math.sin(a) * (DR - 30)); });
+      x.strokeStyle = "rgba(200,255,245,.18)"; x.lineWidth = 1; x.beginPath(); x.moveTo(C - DR - 8, C); x.lineTo(C + DR + 8, C); x.moveTo(C, C - DR - 8); x.lineTo(C, C + DR + 8); x.stroke();
+      // 青緑の符号の行（縦につながる。逆に流す）
+      var CH = H * 2, code = sk4bCv(W, CH); x = code.getContext("2d");
+      for (var y = 4; y < CH; y += 8) { var xx = R() < .5 ? 4 + R() * 30 : 170 + R() * 260; for (var n = 0; n < 1 + R() * 5; n++) { var w = 4 + R() * 30; x.fillStyle = R() < .08 ? "rgba(232,67,58,.8)" : "rgba(63,224,208," + (.5 + R() * .45).toFixed(2) + ")"; x.fillRect(xx, y, w, 4); xx += w + 4 + R() * 10; } }
+      // 紙（オルゴールの場面）：繊維と五線
+      var paper = sk4bCv(W, H); x = paper.getContext("2d"); x.fillStyle = "#EDE3CC"; x.fillRect(0, 0, W, H);
+      for (i = 0; i < 260; i++) { x.fillStyle = "rgba(120,90,50," + (.04 + R() * .08).toFixed(2) + ")"; x.fillRect(R() * W, R() * H, 1 + R() * 6, 1); }
+      x.strokeStyle = "rgba(4,40,44,.25)"; x.lineWidth = 1; for (i = 0; i < 5; i++) { x.beginPath(); x.moveTo(170, 30 + i * 9 + .5); x.lineTo(W, 30 + i * 9 + .5); x.stroke(); }
+      gr = x.createRadialGradient(W * .6, H * .5, 80, W * .6, H * .5, 400); gr.addColorStop(0, "rgba(60,40,10,0)"); gr.addColorStop(1, "rgba(60,40,10,.35)"); x.fillStyle = gr; x.fillRect(0, 0, W, H);
+      var cyl = sk4bCv(250, 60); x = cyl.getContext("2d"); gr = x.createLinearGradient(0, 0, 0, 60); gr.addColorStop(0, "#5A3A14"); gr.addColorStop(.3, "#E8C36A"); gr.addColorStop(.45, "#FFF1C4"); gr.addColorStop(.7, "#B8862E"); gr.addColorStop(1, "#3A240A"); x.fillStyle = gr; x.fillRect(0, 0, 250, 60);
+      var noise = sk4bCv(W, 26); x = noise.getContext("2d"); var im = x.createImageData(W, 26), d = im.data; for (i = 0; i < W * 26; i++) { var v = R() * 255; d[i * 4] = d[i * 4 + 1] = d[i * 4 + 2] = v; d[i * 4 + 3] = R() < .5 ? 160 : 40; } x.putImageData(im, 0, 0);
+      var mir = sk4bCv(330, 70); x = mir.getContext("2d"); x.translate(330, 0); x.scale(-1, 1); x.font = '52px "Dela Gothic One", sans-serif'; x.textAlign = "center"; x.textBaseline = "middle"; x.fillStyle = "rgba(63,224,208,.2)"; x.fillText("PARADOX", 165, 38);
+      var PINS = []; for (i = 0; i < 40; i++) PINS.push([R() * 250, Math.floor(R() * 12)]);
+      var tg = sk3Glow("120,255,235", 8), DIAL_X = W * .64, DIAL_Y = H * .5, buf = sk4bCv(W, H), bg2 = buf.getContext("2d");
+      function hand(gx, cx, cy, a, len, w, col) { gx.strokeStyle = col; gx.lineWidth = w; gx.lineCap = "round"; gx.beginPath(); gx.moveTo(cx - Math.cos(a) * len * .15, cy - Math.sin(a) * len * .15); gx.lineTo(cx + Math.cos(a) * len, cy + Math.sin(a) * len); gx.stroke(); }
+      function clock(gx, t, b, bt) { // 針は逆回り。秒針は拍ごとに 1 目盛り戻って行き過ぎて止まる
+        gx.drawImage(back, 0, 0); gx.globalAlpha = .3; var oy = ((t * 26) % CH + CH) % CH; gx.drawImage(code, 0, oy - CH); gx.drawImage(code, 0, oy); gx.globalAlpha = 1;
+        gx.drawImage(dial, DIAL_X - C, DIAL_Y - C);
+        hand(gx, DIAL_X, DIAL_Y, -t * .35 - 1, 70, 4, "rgba(220,255,248,.9)"); hand(gx, DIAL_X, DIAL_Y, -t * 1.9 + 2, 110, 2.5, "rgba(220,255,248,.9)");
+        var st = 6.2832 / 30, sa = -Math.PI / 2 - (b + sk3Back(bt * 3)) * st;
+        for (var k = 3; k >= 1; k--) hand(gx, DIAL_X, DIAL_Y, sa + k * st, 136, 1.2, "rgba(232,67,58," + (.32 - k * .08).toFixed(2) + ")"); // 前の位置の残像
+        hand(gx, DIAL_X, DIAL_Y, sa, 136, 1.6, "#E8433A");
+        gx.fillStyle = "#E8433A"; gx.beginPath(); gx.arc(DIAL_X, DIAL_Y, 4, 0, 6.2832); gx.fill(); gx.lineCap = "butt";
+      }
+      function stamp(t) { var s = Math.max(0, 11163.36 - t * 37), hh = Math.floor(s / 3600), mm = Math.floor(s / 60) % 60, ss = Math.floor(s) % 60, cc = Math.floor(s * 100) % 100, p = function (n) { return (n < 10 ? "0" : "") + n; }; return "2026.10.18 " + p(hh) + ":" + p(mm) + ":" + p(ss) + "." + p(cc); }
+      function rewind(t, b, bt, f) { // VHS の巻き戻し：帯に切ってずらし、ノイズの帯が上へ走る
+        g.drawImage(back, 0, 0); clock(bg2, t * 8, b, bt); // 針が速く逆に回る
+        for (var k = 0; k < 12; k++) { var sy = k * 20, off = Math.sin(k * 1.7 + Math.floor(t * 12) * 2.3) * 14 * (k % 3 ? .4 : 1); g.drawImage(buf, 0, sy, W, 20, off, sy, W, 20); }
+        var ny = H - ((t * 320) % (H + 60)); g.globalAlpha = .55; g.drawImage(noise, 0, ny); g.globalAlpha = 1; g.fillStyle = "rgba(255,255,255,.5)"; g.fillRect(0, ny + 30, W, 1);
+        g.fillStyle = "rgba(240,255,250,.92)"; g.font = '700 13px "M PLUS 1 Code", monospace'; g.textAlign = "right"; if ((f >> 3) % 2 === 0) g.fillText("◀◀ REWIND", W - 36, 84); g.font = '400 10px "M PLUS 1 Code", monospace'; g.fillText(stamp(t), W - 36, 100); g.textAlign = "start";
+      }
+      function orgel(t, b, bt) { // 紙の上のオルゴール：ピンの筒が逆に回り、音符が下へ戻っていく
+        g.drawImage(paper, 0, 0);
+        var cx = W * .56, cy = H * .3, sp = (t * 60) % 250;
+        g.drawImage(cyl, cx, cy);
+        g.fillStyle = "#4A2E0A"; for (var k = 0; k < PINS.length; k++) { var px = (PINS[k][0] + sp) % 250; g.fillRect(cx + px, cy + 6 + PINS[k][1] * 4, 2, 3); }
+        g.fillStyle = "#3A2A18"; g.fillRect(cx - 6, cy + 64, 262, 6); // 櫛
+        for (k = 0; k < 18; k++) { var tx = cx + 6 + k * 14, hit = Math.abs(((k * 37 + b * 5) % 18) - 0) < 1 ? Math.sin(bt * 40) * 3 * (1 - bt) : 0; g.fillRect(tx + hit, cy + 70, 6, 30 - (k % 6) * 3); }
+        if (notes.length < 14 && Math.random() < .2) notes.push([cx + Math.random() * 250, H * .1 + Math.random() * 30, t, Math.random() < .5 ? "♪" : "♫", Math.random() < .3]);
+        notes = notes.filter(function (n) { return t - n[2] < 2.2; });
+        g.font = '22px "Noto Serif JP", serif'; notes.forEach(function (n) { var a = t - n[2]; g.globalAlpha = Math.min(1, a * 3) * (1 - a / 2.2); g.fillStyle = n[4] ? "#C8322A" : "#0E5A58"; g.fillText(n[3], n[0] + Math.sin(a * 3) * 6, n[1] + a * 60); });
+        g.globalAlpha = 1;
+      }
+      function codes(t) { // 逆に流れる符号と、裏返しの PARADOX
+        g.drawImage(back, 0, 0); var oy = (t * 140) % CH; g.drawImage(code, 0, oy - CH); g.drawImage(code, 0, oy);
+        g.drawImage(mir, W - 340, H * .5 - 36);
+      }
+      return function (t, f) {
+        if (f % 15 === 0 || !ic) ic = relRect(g.canvas, el.querySelector(".ic"));
+        var b = Math.floor(t / B), bt = t / B - b, sn = SCN[b % 16], s = sn;
+        if (sn === "flick") s = ["clock", "code", "rewind", "orgel"][(f >> 1) % 4];
+        if (b !== lastB) { lastB = b; var c = CUT[b % CUT.length]; M.cut = { s: c[0], r: c[1] }; if (sn === "flick") M.glitch = Math.max(M.glitch, 8); else if (sn === "rewind" && SCN[(b + 15) % 16] !== "rewind") M.glitch = Math.max(M.glitch, 4); }
+        if (t < .55 && t > .12 && (f >> 1) % 3 === 0) M.invert = true;
+        if (s === "clock") clock(g, t, b, bt); else if (s === "rewind") rewind(t, b, bt, f); else if (s === "orgel") orgel(t, b, bt); else codes(t);
+        sk3Scrim(g, W, H, s === "orgel" ? "40,30,14" : "2,16,18", s === "orgel" ? .22 : .32);
+        if (b % 4 === 0) { // 小節の頭：赤い針がアイコンから左回りにひと回り（後ろに扇の残像）
+          var q = EZ(bt * 1.3), a0 = -Math.PI / 2 - q * 6.2832;
+          g.globalCompositeOperation = "lighter";
+          for (var k = 0; k < 10; k++) { g.strokeStyle = "rgba(232,67,58," + ((1 - k / 10) * .6 * (1 - q * .7)).toFixed(2) + ")"; g.lineWidth = 2; g.beginPath(); g.moveTo(ic.cx, ic.cy); var a1 = a0 + k * .07; g.lineTo(ic.cx + Math.cos(a1) * 420, ic.cy + Math.sin(a1) * 420); g.stroke(); }
+          if (bt < .08) { g.fillStyle = "rgba(120,255,235,.2)"; g.fillRect(0, 0, W, H); }
+          g.globalAlpha = 1 - q; g.drawImage(tg, ic.cx - 16, ic.cy - 16, 32, 32); g.globalAlpha = 1;
+          g.globalCompositeOperation = "source-over";
+        }
+      };
+    },
+    // ===== 大型アップデート記念のスキン（skin4）。鹿物語の新モードの ★4。548×238 の canvas。地も絵も作り置きして、毎フレームは貼るのと少しの線だけ。拍（0.9 秒）ごとに動き、小節の頭に見せ場 =====
+    // ★4 プラチナモード：夜のカジノの黒いフェルトに銀の印刷（テーブルの弧・上のふちの文字とトランプの印）。拍ごとに銀と黒のチップが左から投げこまれ、くるくる裏返りながら右の 2 つの山に積もり、銀の細い線がフェルトを切る。
+    //   小節の頭は弧と上のふちの文字に銀の光が走る。16 拍で山が右へ払い出されて、また 1 枚目から
+    platfelt: function (g, el, name) {
+      var W = g.canvas.width, H = g.canvas.height, R = prng(nameSeed(name) + 601), B = .9, OX = W * .62, OY = -64, RA = 150, RB = 166, SB = [214, 104], SXc = 518, Z = 1.35, i;
+      var gl = sk3Glow("235,240,250", 12), bk = sk4dSoft("214,222,234", 60);
+      // フェルト（まん中が少し明るい・細かい毛羽）と、銀の印刷（テーブルの弧 3 本）
+      var bg = sk4bCv(W, H), x = bg.getContext("2d"), gr = x.createRadialGradient(W * .55, H * .4, 20, W * .55, H * .5, W * .7);
+      gr.addColorStop(0, "#1F232A"); gr.addColorStop(.6, "#121418"); gr.addColorStop(1, "#08090B"); x.fillStyle = gr; x.fillRect(0, 0, W, H);
+      var nz = sk4bCv(W, H), nx = nz.getContext("2d"), im = nx.createImageData(W, H), d = im.data;
+      for (i = 0; i < W * H; i++) { var v = R(); d[i * 4] = d[i * 4 + 1] = d[i * 4 + 2] = v > .5 ? 255 : 0; d[i * 4 + 3] = Math.abs(v - .5) * 26; }
+      nx.putImageData(im, 0, 0); x.drawImage(nz, 0, 0);
+      x.strokeStyle = "rgba(214,222,234,.46)"; x.lineWidth = 1.2; [RA, RB].forEach(function (r) { x.beginPath(); x.arc(OX, OY, r, 0, Math.PI); x.stroke(); });
+      x.lineWidth = .6; x.beginPath(); x.arc(OX, OY, RB + 5, 0, Math.PI); x.stroke();
+      x.fillStyle = "rgba(0,0,0,.45)"; x.fillRect(0, 0, W, 17); x.fillStyle = "rgba(214,222,234,.4)"; x.fillRect(0, 17, W, 1);
+      // 上のふちの銀の文字（うすい版と明るい版。小節の頭に明るい版を光の帯で切り抜いて重ねる）
+      var TXT = "♠ PLATINUM ♦ BLACK & SILVER ♣ PAYS 2 TO 1 ♥ HIGH ROLLER ♠ PLATINUM ♦ BLACK & SILVER ♣";
+      function strip(col) { var c = sk4bCv(W, 18), y = c.getContext("2d"); y.font = "700 11px sans-serif"; if ("letterSpacing" in y) y.letterSpacing = "2px"; y.fillStyle = col; y.textBaseline = "middle"; y.fillText(TXT, 10, 9.5); return c; }
+      var SD = strip("rgba(214,222,234,.42)"), SL = strip("#FFFFFF"), tc = sk4bCv(W, 18);
+      // フェルトをななめに通る光（作り置きの帯。8 拍で 1 回）
+      var shn = sk4bCv(160, 400); x = shn.getContext("2d"); gr = x.createLinearGradient(0, 0, 160, 0); gr.addColorStop(0, "rgba(220,228,240,0)"); gr.addColorStop(.5, "rgba(220,228,240,.09)"); gr.addColorStop(1, "rgba(220,228,240,0)"); x.fillStyle = gr; x.fillRect(0, 0, 160, 400);
+      // チップ（横から見た形。黒に銀の印・銀に黒の印）
+      function chip(body, spot, ring) {
+        var c = sk4bCv(40, 22), y = c.getContext("2d"), k;
+        y.fillStyle = body; y.beginPath(); y.ellipse(20, 12, 17, 7, 0, 0, Math.PI); y.lineTo(3, 7); y.ellipse(20, 7, 17, 7, 0, Math.PI, 0); y.closePath(); y.fill();
+        y.save(); y.beginPath(); y.ellipse(20, 12, 17, 7, 0, 0, Math.PI); y.lineTo(3, 7); y.lineTo(37, 7); y.clip(); y.fillStyle = spot; for (k = 0; k < 5; k++) y.fillRect(6.5 + k * 7, 7, 2, 13); y.restore();
+        y.fillStyle = body; y.beginPath(); y.ellipse(20, 7, 17, 7, 0, 0, 6.2832); y.fill(); y.strokeStyle = "rgba(0,0,0,.6)"; y.lineWidth = .7; y.stroke();
+        y.fillStyle = spot; for (k = 0; k < 8; k++) { var a = k / 8 * 6.2832; y.save(); y.translate(20 + Math.cos(a) * 14.5, 7 + Math.sin(a) * 5.9); y.rotate(a + Math.PI / 2); y.fillRect(-2, -1, 4, 2); y.restore(); }
+        y.strokeStyle = ring; y.lineWidth = 1; y.beginPath(); y.ellipse(20, 7, 10.5, 4.3, 0, 0, 6.2832); y.stroke();
+        return c;
+      }
+      var CH = [chip("#17191D", "#B9C1CC", "#AEB6C2"), chip("#C9D0DA", "#3A3E45", "#5A6472")];
+      var BK = []; for (i = 0; i < 7; i++) BK.push({ x: R() * W, y: 20 + R() * (H - 20), s: 30 + R() * 50, v: 4 + R() * 8, a: .07 + R() * .09, ph: R() * 6.28 });
+      function cof(k, st) { return CH[(k + st) % 3 === 0 ? 1 : 0]; }
+      function stack(st, n, sh, al) { g.globalAlpha = al; for (var k = 0; k < n; k++) g.drawImage(cof(k, st), SXc - 20 * Z + sh, SB[st] - 7 * Z - k * 4.5 * Z, 40 * Z, 22 * Z); g.globalAlpha = 1; }
+      return function (t, f) {
+        var b = Math.floor(t / B), bt = t / B - b, s = ((b % 16) + 16) % 16, bar = b % 4 === 0, k;
+        g.drawImage(bg, 0, 0);
+        // 銀のぼけ（ゆっくり漂う。拍で少し明るく）
+        g.globalCompositeOperation = "lighter";
+        BK.forEach(function (o) { var px = (o.x + t * o.v) % (W + 120) - 60, py = o.y + Math.sin(t * .4 + o.ph) * 10; g.globalAlpha = o.a * (1 + .6 * Math.exp(-bt * 4)); g.drawImage(bk, px - o.s, py - o.s, o.s * 2, o.s * 2); });
+        var sp8 = (t / (B * 8)) % 1; g.save(); g.translate(-200 + sp8 * (W + 400), H / 2); g.rotate(.5); g.drawImage(shn, -80, -200); g.restore();
+        // 拍ごとに、銀の細い線がフェルトをななめに切る（ディーラーの手さばき）
+        var LR = prng(nameSeed(name) + b * 19), ly0 = 30 + LR() * (H - 60), ly1 = 30 + LR() * (H - 60), lp = EZ(bt * 3), lf = Math.max(0, 1 - bt * 1.6);
+        if (lf > 0) { var lg = g.createLinearGradient(0, ly0, W, ly1); lg.addColorStop(Math.max(0, lp - .25), "rgba(230,236,245,0)"); lg.addColorStop(lp, "rgba(230,236,245," + (.5 * lf).toFixed(2) + ")"); lg.addColorStop(Math.min(1, lp + .001), "rgba(230,236,245,0)"); g.strokeStyle = lg; g.lineWidth = 1; g.beginPath(); g.moveTo(0, ly0); g.lineTo(W, ly1); g.stroke(); }
+        // 小節の頭：弧に銀の光が左から右へ走る
+        if (bar && bt < .85) {
+          var hd = Math.PI - EZ(bt * 1.25) * Math.PI, la = 1 - Math.max(0, bt - .55) / .3;
+          g.globalAlpha = la; g.strokeStyle = "rgba(240,244,250,.9)"; g.lineWidth = 1.8;
+          [RA, RB].forEach(function (r) { g.beginPath(); g.arc(OX, OY, r, hd, Math.min(Math.PI, hd + .32)); g.stroke(); });
+          g.drawImage(gl, OX + Math.cos(hd) * RA - 12, OY + Math.sin(hd) * RA - 12, 24, 24); g.drawImage(gl, OX + Math.cos(hd) * RB - 10, OY + Math.sin(hd) * RB - 10, 20, 20);
+        }
+        g.globalAlpha = 1; g.globalCompositeOperation = "source-over";
+        // 上のふちの文字：小節の頭に左から右へ光が通る。拍ごとにどこかがきらり
+        g.drawImage(SD, 0, 0);
+        if (bar && bt < .9) g.drawImage(sk4bBand(tc, SL, -60 + EZ(bt * 1.1) * (W + 120), 70, 0, 1), 0, 0);
+        var gx = 30 + ((b * 137) % (W - 60)), gv = Math.exp(-bt * 3); sk4bStar(g, gx, 9, 10 * gv, gv.toFixed(2), "240,244,250");
+        // チップの山：0〜13 拍に 1 枚ずつ、右の上と下の山へ交互に投げる。14 拍目は山が光り、15 拍目に右へ払い出して、また 1 枚目から
+        var land = bt >= .55, nA = Math.min(7, Math.ceil(s / 2) + (s < 14 && s % 2 === 0 && land ? 1 : 0)), nB = Math.min(7, Math.floor(s / 2) + (s < 14 && s % 2 === 1 && land ? 1 : 0));
+        var sh = s === 15 ? EZ(bt * 1.4) * 90 : 0, al = s === 15 ? 1 - EZ(bt * 1.4) : 1;
+        stack(0, nA, sh, al); stack(1, nB, sh, al);
+        if (s === 14) { k = .5 + .5 * Math.sin(bt * 12.57); g.globalCompositeOperation = "lighter"; g.globalAlpha = k * .8; g.drawImage(gl, SXc - 16, SB[0] - 18 - nA * 4.5 * Z, 32, 32); g.drawImage(gl, SXc - 16, SB[1] - 18 - nB * 4.5 * Z, 32, 32); g.globalAlpha = 1; g.globalCompositeOperation = "source-over"; }
+        // 投げたチップ：左のふちから山の上へ、くるくる裏返りながら。着いたら光と輪
+        if (s < 14) {
+          var st = s % 2, n = st ? Math.floor(s / 2) : Math.ceil(s / 2), ty = SB[st] - 7 * Z - n * 4.5 * Z, p = Math.min(1, bt / .55), px = -30 + (SXc + 30) * EZ(p), py = 200 + (ty - 200) * p - Math.sin(p * Math.PI) * 50;
+          if (!land) { g.save(); g.translate(px, py + 7 * Z); g.scale(Z, Z * Math.max(.12, Math.abs(Math.cos(p * 9.42)))); g.drawImage(cof(n, st), -20, -11); g.restore(); }
+          else { var q = (bt - .55) / .45; g.globalCompositeOperation = "lighter"; g.globalAlpha = Math.max(0, 1 - q * 1.6); g.drawImage(gl, SXc - 18, ty - 10, 36, 36); g.strokeStyle = "rgba(230,236,245," + Math.max(0, .6 - q).toFixed(2) + ")"; g.lineWidth = 1; g.beginPath(); g.ellipse(SXc, ty + 9, 24 + q * 24, 9 + q * 9, 0, 0, 6.2832); g.stroke(); g.globalAlpha = 1; g.globalCompositeOperation = "source-over"; }
+        }
+      };
+    },
+    // ★4 ルーレット：赤と黒の陽気なカジノ。アイコンが円盤のまん中の塔になり、まわりを赤と黒のポケット（0 だけ緑）が回る。白い玉は逆向きに回って 1 小節で 1 回、
+    //   小節の頭にポケットへ落ちて止まる（ふちで少し跳ねる）。止まった数字が右の盤（1〜36 の表）で金に光り、紙吹雪。上下のふちの電球は拍ごとに流れ、止まった瞬間は全部が点滅する
+    roulrouge: function (g, el, name) {
+      var W = g.canvas.width, H = g.canvas.height, seed = nameSeed(name) + 611, ic = null, conf = [], lastN = -999, B = .9, i, j;
+      var ORD = [0, 32, 15, 19, 4, 21, 2, 25, 17, 34, 6, 27, 13, 36, 11, 30, 8, 23, 10, 5, 24, 16, 33, 1, 20, 14, 31, 9, 22, 18, 29, 7, 28, 12, 35, 3, 26], N = 37;
+      var RED = [1, 3, 5, 7, 9, 12, 14, 16, 18, 19, 21, 23, 25, 27, 30, 32, 34, 36], P1 = 116, P2 = 146, TR = 158, RW = 176, PM = (P1 + P2) / 2, GX = 214, GY = 17, CW = 27, CHh = 68;
+      function col(n) { return n === 0 ? "#0E7A3A" : RED.indexOf(n) >= 0 ? "#C8141F" : "#151113"; }
+      // 円盤（作り置きして毎フレーム回して貼る）：木の縁・真鍮の仕切り・37 のポケットと数字
+      var S = RW * 2 + 4, wh = sk4bCv(S, S), x = wh.getContext("2d"), gr; x.translate(S / 2, S / 2);
+      gr = x.createRadialGradient(0, 0, P2, 0, 0, RW); gr.addColorStop(0, "#2A1206"); gr.addColorStop(.35, "#8A4A1E"); gr.addColorStop(.7, "#5A2C10"); gr.addColorStop(1, "#1E0C04");
+      x.fillStyle = gr; x.beginPath(); x.arc(0, 0, RW, 0, 6.2832); x.fill();
+      for (i = 0; i < 12; i++) { x.strokeStyle = "rgba(255,210,150," + (.03 + (i % 3) * .025).toFixed(3) + ")"; x.lineWidth = 1; x.beginPath(); x.arc(0, 0, P2 + 4 + i * 2.2, 0, 6.2832); x.stroke(); }
+      gr = x.createRadialGradient(0, 0, 60, 0, 0, P1); gr.addColorStop(0, "#3A2410"); gr.addColorStop(1, "#140A04"); x.fillStyle = gr; x.beginPath(); x.arc(0, 0, P1, 0, 6.2832); x.fill();
+      x.font = "700 11px sans-serif"; x.textAlign = "center"; x.textBaseline = "middle";
+      for (i = 0; i < N; i++) {
+        var a0 = (i - .5) / N * 6.2832, a1 = (i + .5) / N * 6.2832;
+        x.fillStyle = col(ORD[i]); x.beginPath(); x.arc(0, 0, P2, a0, a1); x.arc(0, 0, P1, a1, a0, true); x.closePath(); x.fill();
+        x.strokeStyle = "#D8B25A"; x.lineWidth = 1.2; x.beginPath(); x.moveTo(Math.cos(a0) * P1, Math.sin(a0) * P1); x.lineTo(Math.cos(a0) * (P2 + 3), Math.sin(a0) * (P2 + 3)); x.stroke();
+        x.save(); x.rotate(i / N * 6.2832 + Math.PI / 2); x.fillStyle = "#FFF6E6"; x.fillText(String(ORD[i]), 0, -(P2 - 9)); x.restore();
+      }
+      x.strokeStyle = "#E8C46A"; x.lineWidth = 2.5; x.beginPath(); x.arc(0, 0, P2, 0, 6.2832); x.stroke(); x.lineWidth = 2; x.beginPath(); x.arc(0, 0, P1, 0, 6.2832); x.stroke();
+      for (i = 0; i < 8; i++) { x.save(); x.rotate((i + .5) / 8 * 6.2832); x.translate(TR + 7, 0); x.fillStyle = "#E8C46A"; x.beginPath(); x.moveTo(-6, 0); x.lineTo(0, -3); x.lineTo(6, 0); x.lineTo(0, 3); x.closePath(); x.fill(); x.restore(); }
+      // 地：赤から黒・右に 1〜36 の表（薄く）・上下のふちの消えた電球
+      var bg = sk4bCv(W, H); x = bg.getContext("2d"); gr = x.createLinearGradient(0, 0, W, H); gr.addColorStop(0, "#8E0E18"); gr.addColorStop(.55, "#4A0509"); gr.addColorStop(1, "#160204"); x.fillStyle = gr; x.fillRect(0, 0, W, H);
+      x.font = "700 22px sans-serif"; x.textAlign = "center"; x.textBaseline = "middle";
+      for (i = 0; i < 12; i++) for (j = 0; j < 3; j++) {
+        var nn = i * 3 + 3 - j; x.fillStyle = RED.indexOf(nn) >= 0 ? "rgba(200,20,31,.26)" : "rgba(10,4,6,.3)"; x.fillRect(GX + i * CW, GY + j * CHh, CW, CHh);
+        x.fillStyle = "rgba(255,240,220,.1)"; x.save(); x.translate(GX + i * CW + CW / 2, GY + j * CHh + CHh / 2); x.rotate(-Math.PI / 2); x.fillText(String(nn), 0, 1); x.restore();
+      }
+      x.strokeStyle = "rgba(216,178,90,.3)"; x.lineWidth = 1;
+      for (i = 0; i <= 12; i++) { x.beginPath(); x.moveTo(GX + i * CW + .5, GY); x.lineTo(GX + i * CW + .5, GY + CHh * 3); x.stroke(); }
+      for (j = 0; j <= 3; j++) { x.beginPath(); x.moveTo(GX, GY + j * CHh + .5); x.lineTo(GX + CW * 12, GY + j * CHh + .5); x.stroke(); }
+      var BX = []; for (i = 9; i < W; i += 18) BX.push(i);
+      x.fillStyle = "rgba(255,220,150,.22)"; BX.forEach(function (bx) { x.beginPath(); x.arc(bx, 5, 2, 0, 6.2832); x.fill(); x.beginPath(); x.arc(bx, H - 5, 2, 0, 6.2832); x.fill(); });
+      var ball = sk4bCv(14, 14); x = ball.getContext("2d"); gr = x.createRadialGradient(5, 5, 1, 7, 7, 7); gr.addColorStop(0, "#fff"); gr.addColorStop(.6, "#ECE8E0"); gr.addColorStop(1, "#8A8076"); x.fillStyle = gr; x.beginPath(); x.arc(7, 7, 6, 0, 6.2832); x.fill();
+      var bOn = sk3Glow("255,214,120", 8), gl = sk3Glow("255,226,150", 16), CC = ["#FFD24A", "#E8C46A", "#C8141F", "#0E7A3A", "#FFF6E6"];
+      function wa(t) { return t * .42; }
+      function land(n) { var r = prng(seed + n * 13), want = (r() - .5) * 1.1, k = Math.round((want - wa(n * 4 * B)) / 6.2832 * N); return ((k % N) + N) % N; } // n 小節目の頭に止まるポケット（右側の見える所で止まるように）
+      return function (t, f) {
+        if (f % 15 === 0 || !ic) ic = relRect(g.canvas, el.querySelector(".ic"));
+        var b = Math.floor(t / B), qq = t / B / 4 + .75, n = Math.floor(qq), q = qq - n, L1 = land(n), L0 = land(n - 1), w = wa(t), u = q / .75, dp, k;
+        var a = skb4Ang(q, .75, L0 / N * 6.2832, L1 / N * 6.2832, 4), win = q >= .75 ? (q - .75) / .25 : -1, num = ORD[L1];
+        if (q >= .75) dp = 1; else if (u < .07) dp = 1 - u / .07; else if (u < .7) dp = 0; else { k = (u - .7) / .3; dp = Math.min(1, k + Math.abs(Math.sin(k * 9.42)) * .4 * (1 - k)); } // ふち → ポケット（少し跳ねる）
+        var pa = L1 / N * 6.2832 + w, px = ic.cx + Math.cos(pa) * PM, py = ic.cy + Math.sin(pa) * PM;
+        if (win >= 0 && n !== lastN) { lastN = n; var r = prng(seed + n * 31); for (i = 0; i < 26; i++) conf.push({ x: px, y: py, vx: 40 + r() * 260, vy: -60 - r() * 200, t0: t, c: CC[(r() * 5) | 0], s: 2 + r() * 3, sp: (r() - .5) * 14 }); }
+        g.drawImage(bg, 0, 0);
+        // 当たった数字：表のます目が金に光る（0 は全体が緑に光る）
+        if (win >= 0) {
+          var hv = 1 - win;
+          if (num > 0) { var ci = Math.floor((num - 1) / 3), cj = 2 - (num - 1) % 3, cx = GX + ci * CW, cy = GY + cj * CHh; g.fillStyle = "rgba(255,210,80," + (.45 * hv).toFixed(2) + ")"; g.fillRect(cx, cy, CW, CHh); g.strokeStyle = "rgba(255,226,140," + (.4 + .6 * hv).toFixed(2) + ")"; g.lineWidth = 2; g.strokeRect(cx + 1, cy + 1, CW - 2, CHh - 2); }
+          else { g.fillStyle = "rgba(14,122,58," + (.4 * hv).toFixed(2) + ")"; g.fillRect(0, 0, W, H); }
+        }
+        // 円盤
+        g.save(); g.translate(ic.cx, ic.cy); g.rotate(w); g.drawImage(wh, -S / 2, -S / 2); g.restore();
+        g.globalCompositeOperation = "lighter";
+        if (win >= 0) { g.globalAlpha = (1 - win) * (Math.floor(t * 10) % 2 ? 1 : .6); g.drawImage(gl, px - 22, py - 22, 44, 44); }
+        // 玉（速いときは残像）
+        var sp = q < .75 ? (1 - u) * (1 - u) : 0, br = TR - (TR - PM) * dp;
+        for (j = 3; j >= 1 && sp > .15; j--) { var ag = a + w + j * .2 * sp; g.globalAlpha = .18 * (4 - j) / 3; g.drawImage(ball, ic.cx + Math.cos(ag) * br - 7, ic.cy + Math.sin(ag) * br - 7); }
+        g.globalAlpha = 1; g.globalCompositeOperation = "source-over";
+        g.drawImage(ball, ic.cx + Math.cos(a + w) * br - 7, ic.cy + Math.sin(a + w) * br - 7);
+        // 上下のふちの電球：拍ごとに流れる・止まった瞬間は全部点滅
+        var all = win >= 0 && win < .7, blink = Math.floor(t * 10) % 2;
+        g.globalCompositeOperation = "lighter";
+        for (i = 0; i < BX.length; i++) { var on = all ? blink : (i + b) % 3 === 0; if (!on) continue; g.drawImage(bOn, BX[i] - 8, -3); g.drawImage(bOn, BX[BX.length - 1 - i] - 8, H - 13); }
+        g.globalCompositeOperation = "source-over";
+        // 紙吹雪
+        conf = conf.filter(function (c) { return t - c.t0 < 1.4; });
+        conf.forEach(function (c) { var e = t - c.t0; g.globalAlpha = Math.min(1, (1.4 - e) * 2); g.fillStyle = c.c; g.save(); g.translate(c.x + c.vx * e, c.y + c.vy * e + 300 * e * e); g.rotate(e * c.sp); g.fillRect(-c.s, -c.s * .5, c.s * 2, c.s); g.restore(); });
+        g.globalAlpha = 1;
+      };
+    },
+    // ★4 ジャックポット：暗いステージに鉢（クルーン）がひとつ。上からのスポットライトが心臓の音のように拍ごとに 2 回脈打ち、小節の終わりへ向けてまわりが暗くなる。
+    //   銀の玉が鉢のふちを回りながら 1 小節かけて内へ寄り、小節の頭に穴へ落ちる。金の「当」なら金の粉と輪、白の「進」なら次のラウンド（まん中の灯りが 1 つ増える）、灰の「外」なら灯りが消えて 1 から
+    jpbowl: function (g, el, name) {
+      var W = g.canvas.width, H = g.canvas.height, seed = nameSeed(name) + 621, CX = W * .81, CY = H * .5, RO = 108, RH = 72, HR = 11, HUB = 24, B = .9, NH = 8, i;
+      var KIND = ["hit", "adv", "miss", "adv", "hit", "miss", "adv", "miss"], OUT = [], dust = [], lastN = -999, gl = sk3Glow("255,214,110", 16), wg = sk3Glow("235,240,250", 12);
+      // 鉢（作り置きして回して貼る）：削り目・銀のふち・穴と字
+      var S = RO * 2 + 8, bw = sk4bCv(S, S), x = bw.getContext("2d"), gr; x.translate(S / 2, S / 2);
+      gr = x.createRadialGradient(-22, -28, 10, 0, 0, RO); gr.addColorStop(0, "#565B63"); gr.addColorStop(.5, "#2A2D33"); gr.addColorStop(.86, "#141619"); gr.addColorStop(1, "#3A3E45");
+      x.fillStyle = gr; x.beginPath(); x.arc(0, 0, RO, 0, 6.2832); x.fill();
+      for (i = 0; i < 21; i++) { x.strokeStyle = i % 2 ? "rgba(255,255,255,.05)" : "rgba(0,0,0,.25)"; x.lineWidth = 1; x.beginPath(); x.arc(0, 0, HUB + 6 + i * 3.8, 0, 6.2832); x.stroke(); }
+      gr = x.createLinearGradient(-RO, -RO, RO, RO); gr.addColorStop(0, "#F4F6F8"); gr.addColorStop(.5, "#6E757D"); gr.addColorStop(1, "#C9CED6"); x.strokeStyle = gr; x.lineWidth = 4; x.beginPath(); x.arc(0, 0, RO - 2, 0, 6.2832); x.stroke();
+      x.font = '700 12px "Shippori Mincho B1", serif'; x.textAlign = "center"; x.textBaseline = "middle";
+      for (i = 0; i < NH; i++) {
+        var a = i / NH * 6.2832, k = KIND[i], c = k === "hit" ? "#F5C84C" : k === "adv" ? "#E6EAF0" : "#555A62";
+        x.fillStyle = "#000"; x.beginPath(); x.arc(Math.cos(a) * RH, Math.sin(a) * RH, HR, 0, 6.2832); x.fill();
+        x.strokeStyle = c; x.lineWidth = 2.5; x.beginPath(); x.arc(Math.cos(a) * RH, Math.sin(a) * RH, HR + 2, 0, 6.2832); x.stroke();
+        x.fillStyle = c; x.save(); x.translate(Math.cos(a) * (RH + 22), Math.sin(a) * (RH + 22)); x.rotate(a + Math.PI / 2); x.fillText(k === "hit" ? "当" : k === "adv" ? "進" : "外", 0, 0); x.restore();
+      }
+      var hub = sk4bCv(HUB * 2 + 4, HUB * 2 + 4); x = hub.getContext("2d"); gr = x.createRadialGradient(HUB - 6, HUB - 6, 2, HUB + 2, HUB + 2, HUB); gr.addColorStop(0, "#FFFFFF"); gr.addColorStop(1, "#8A9099");
+      x.fillStyle = gr; x.beginPath(); x.arc(HUB + 2, HUB + 2, HUB, 0, 6.2832); x.fill(); x.strokeStyle = "#000"; x.lineWidth = 2; x.stroke();
+      var HL = ["JP", "R1", "R2", "R3", "R4", "R5"].map(function (s2, j) { var c = sk4bCv(40, 22), y = c.getContext("2d"); y.font = '400 15px "Righteous", sans-serif'; y.textAlign = "center"; y.textBaseline = "middle"; y.fillStyle = j ? "#23262B" : "#8A6410"; y.fillText(s2, 20, 12); return c; }); // まん中の字（作り置き。毎フレーム字を描くと重い）
+      var ball = sk4bCv(16, 16); x = ball.getContext("2d"); gr = x.createRadialGradient(5.5, 5.5, 1, 8, 8, 7); gr.addColorStop(0, "#FFFFFF"); gr.addColorStop(.6, "#E9EDF2"); gr.addColorStop(1, "#8A9099"); x.fillStyle = gr; x.beginPath(); x.arc(8, 8, 7, 0, 6.2832); x.fill(); x.strokeStyle = "#000"; x.lineWidth = 1; x.stroke();
+      // 地：暗いステージ・スポットライトの筋と光の溜まり・まわりの暗がり（作り置き）
+      var bg = sk4bCv(W, H); x = bg.getContext("2d"); gr = x.createRadialGradient(CX, CY - 30, 20, CX, CY, 380); gr.addColorStop(0, "#26231E"); gr.addColorStop(1, "#050506"); x.fillStyle = gr; x.fillRect(0, 0, W, H);
+      var R0 = prng(seed); for (i = 0; i < 70; i++) { x.fillStyle = "rgba(255,236,200," + (.04 + R0() * .14).toFixed(2) + ")"; x.fillRect(R0() * W, R0() * H, 1, 1); }
+      var spot = sk4bCv(W, H); x = spot.getContext("2d"); gr = x.createLinearGradient(0, 0, 0, H); gr.addColorStop(0, "rgba(255,240,205,.34)"); gr.addColorStop(1, "rgba(255,240,205,.06)");
+      x.fillStyle = gr; x.beginPath(); x.moveTo(CX - 22, -4); x.lineTo(CX + 22, -4); x.lineTo(CX + 150, H + 4); x.lineTo(CX - 150, H + 4); x.closePath(); x.fill();
+      x.globalCompositeOperation = "lighter"; x.drawImage(sk4dSoft("255,236,190", 130), CX - 150, CY - 110, 300, 220);
+      var vig = sk4bCv(W, H); x = vig.getContext("2d"); gr = x.createRadialGradient(CX, CY, 90, CX, CY, 420); gr.addColorStop(0, "rgba(0,0,0,0)"); gr.addColorStop(1, "rgba(0,0,0,.95)"); x.fillStyle = gr; x.fillRect(0, 0, W, H);
+      function res(n) { // n 小節目の頭に落ちる穴の種類と、そのあとのラウンド [種類, 次のラウンド, いまのラウンド]
+        n = Math.max(0, n);
+        while (OUT.length <= n) {
+          var m = OUT.length, rd = m ? OUT[m - 1][1] : 1, r = prng(seed + m * 17)(), kk;
+          kk = rd >= 5 ? (r < .55 ? "hit" : "miss") : r < .3 ? "hit" : r < .75 ? "adv" : "miss";
+          OUT.push([kk, kk === "adv" ? rd + 1 : 1, rd]);
+        }
+        return OUT[n];
+      }
+      function hole(n) { var kk = res(n)[0], cs = []; KIND.forEach(function (v, j) { if (v === kk) cs.push(j); }); return cs[Math.floor(prng(seed + Math.max(0, n) * 29)() * cs.length)]; }
+      function pulse(v) { return v < 0 ? 0 : Math.exp(-v * 12); }
+      return function (t, f) {
+        var b = Math.floor(t / B), bt = t / B - b, qq = t / B / 4 + .75, n = Math.floor(qq), q = qq - n, u = q / .75, ba = t * .35, rs = res(n), hi = hole(n);
+        var a = skb4Ang(q, .75, hole(n - 1) / NH * 6.2832, hi / NH * 6.2832, 3) + ba, win = q >= .75 ? (q - .75) / .25 : -1, hb = pulse(bt) + .6 * pulse(bt - .2);
+        var hx = CX + Math.cos(hi / NH * 6.2832 + ba) * RH, hy = CY + Math.sin(hi / NH * 6.2832 + ba) * RH;
+        if (win >= 0 && n !== lastN) { lastN = n; if (rs[0] === "hit") { var r = prng(seed + n * 41); for (i = 0; i < 36; i++) { var an = r() * 6.2832, v = 60 + r() * 220; dust.push({ x: hx, y: hy, vx: Math.cos(an) * v, vy: Math.sin(an) * v - 60, t0: t, s: 1 + r() * 2.2 }); } } }
+        g.drawImage(bg, 0, 0);
+        g.globalCompositeOperation = "lighter"; g.globalAlpha = Math.min(1, .45 + .55 * hb + (win >= 0 && rs[0] === "hit" ? (1 - win) : 0)); g.drawImage(spot, 0, 0); g.globalAlpha = 1; g.globalCompositeOperation = "source-over";
+        g.save(); g.translate(CX, CY); g.rotate(ba); g.drawImage(bw, -S / 2, -S / 2); g.restore();
+        g.drawImage(hub, CX - HUB - 2, CY - HUB - 2);
+        // まん中：ラウンドの字と 5 つの灯り
+        var lit = win < 0 ? rs[2] : rs[0] === "adv" ? rs[1] : rs[0] === "hit" ? 5 : 0, gold = win >= 0 && rs[0] === "hit";
+        var lb = HL[gold ? 0 : Math.min(5, win >= 0 && rs[0] === "adv" ? rs[1] : win >= 0 && rs[0] === "miss" ? 1 : rs[2])]; g.drawImage(lb, CX - 20, CY - 11);
+        for (i = 0; i < 5; i++) { var la = -Math.PI / 2 + (i - 2) * .42, on = i < lit; g.fillStyle = on ? (gold && Math.floor(t * 10) % 2 ? "#FFF3C8" : "#F5C84C") : "rgba(120,126,134,.6)"; g.beginPath(); g.arc(CX + Math.cos(la) * (HUB + 9), CY + Math.sin(la) * (HUB + 9), 3, 0, 6.2832); g.fill(); }
+        // 玉：ふちを回りながら内へ寄り（ふちで細かく跳ねる）、小節の頭に穴へ沈む
+        var um = Math.min(1, u), rr = RO - 13 - (RO - 13 - RH) * Math.pow(um, 2.4) + Math.sin(um * 40) * 2.2 * (1 - um), sc = 1, fade = u < .06 ? u / .06 : 1;
+        if (win >= 0) { rr = RH; sc = Math.max(0, 1 - win * 3); }
+        var bx = CX + Math.cos(a) * rr, by = CY + Math.sin(a) * rr;
+        if (sc > 0) {
+          if (q < .6) { g.globalCompositeOperation = "lighter"; for (i = 1; i <= 3; i++) { var ag = a + i * .18 * (1 - u); g.globalAlpha = .15 * (4 - i) / 3 * fade; g.drawImage(wg, CX + Math.cos(ag) * rr - 8, CY + Math.sin(ag) * rr - 8, 16, 16); } g.globalCompositeOperation = "source-over"; }
+          g.globalAlpha = fade; g.drawImage(ball, bx - 8 * sc, by - 8 * sc, 16 * sc, 16 * sc); g.globalAlpha = 1;
+        }
+        // 落ちた瞬間：当は金の輪と粉と光、進は白い輪、外は灰色の小さな輪
+        if (win >= 0) {
+          var e = EZ(win * 1.3), kd = rs[0], cl = kd === "hit" ? "255,214,110" : kd === "adv" ? "235,240,250" : "120,126,134", rad = 12 + e * (kd === "hit" ? 230 : kd === "adv" ? 70 : 26);
+          g.globalCompositeOperation = "lighter"; g.strokeStyle = "rgba(" + cl + "," + (1 - win).toFixed(2) + ")"; g.lineWidth = kd === "hit" ? 3 : 2; g.beginPath(); g.arc(hx, hy, rad, 0, 6.2832); g.stroke();
+          if (kd !== "miss") { g.globalAlpha = 1 - win; g.drawImage(kd === "hit" ? gl : wg, hx - 24, hy - 24, 48, 48); }
+          if (kd === "hit" && win < .15) { g.globalAlpha = .3 * (1 - win / .15); g.fillStyle = "#F5C84C"; g.fillRect(0, 0, W, H); }
+          g.globalAlpha = 1; g.globalCompositeOperation = "source-over";
+        }
+        // 張りつめる：小節の終わりへ向けて、まわりが暗くなる（落ちたらほどける）
+        g.globalAlpha = win >= 0 ? .35 * win : .35 + .5 * um; g.drawImage(vig, 0, 0); g.globalAlpha = 1;
+        dust = dust.filter(function (d) { return t - d.t0 < 1.5; });
+        g.globalCompositeOperation = "lighter"; g.fillStyle = "#FFD86B";
+        dust.forEach(function (d) { var e2 = t - d.t0, px = d.x + d.vx * e2 * (1 - e2 * .3), py = d.y + d.vy * e2 + 90 * e2 * e2; g.globalAlpha = Math.max(0, 1 - e2 / 1.5); g.fillRect(px - d.s / 2, py - d.s / 2, d.s, d.s); });
+        g.globalAlpha = 1; g.globalCompositeOperation = "source-over";
+      };
+    },
+    // ★4 ワームホール：時空が裂けて吸い込まれる。右寄りの黒い穴へ、ゆがんだ時空の網（傾いた輪とねじれた筋）と星の光の筋が、らせんを描いて吸い込まれ続ける。
+    //   拍ごとに光の輪が穴へ落ち、穴がふくらむ。小節の頭は時空が裂ける（ぎざぎざの光の裂け目が色をずらして走り、衝撃の輪が広がり、吸い込みが一瞬速くなる）
+    wormrift: function (g, el, name) {
+      var W = g.canvas.width, H = g.canvas.height, R = prng(nameSeed(name) + 631), CX = W * .8, CY = H * .46, B = .9, CR = 28, TILT = -.38, SQ = .58, SP = [], crack = null, lastBar = -999, i;
+      var bg = sk4bCv(W, H), x = bg.getContext("2d"), gr = x.createRadialGradient(CX, CY, 10, CX, CY, 520);
+      gr.addColorStop(0, "#1A0F3A"); gr.addColorStop(.35, "#0A0620"); gr.addColorStop(1, "#02010A"); x.fillStyle = gr; x.fillRect(0, 0, W, H);
+      x.globalCompositeOperation = "lighter";
+      [[90, 50, "224,92,255", 150, .2], [250, 210, "77,216,255", 130, .16], [CX - 70, CY + 40, "122,107,255", 170, .24]].forEach(function (nb) { x.globalAlpha = nb[4]; x.drawImage(sk4dSoft(nb[2], nb[3]), nb[0] - nb[3], nb[1] - nb[3]); });
+      x.globalAlpha = 1; for (i = 0; i < 180; i++) { var v = R(); x.fillStyle = "rgba(" + (v < .3 ? "124,199,255" : v < .45 ? "224,92,255" : "255,255,255") + "," + (.2 + R() * .6).toFixed(2) + ")"; x.fillRect(R() * W, R() * H, v > .92 ? 2 : 1, v > .92 ? 2 : 1); }
+      x.globalCompositeOperation = "source-over";
+      // 穴：黒い芯と光の輪（片側が明るい）。作り置きを回して貼る
+      var cs = sk4bCv(170, 170); x = cs.getContext("2d"); x.translate(85, 85); x.globalCompositeOperation = "lighter";
+      x.drawImage(sk4dSoft("224,92,255", 76), -76, -76); x.drawImage(sk4dSoft("124,199,255", 50), -50, -50); x.globalCompositeOperation = "source-over";
+      for (i = 0; i < 36; i++) { var a0 = i / 36 * 6.2832, br = .3 + .7 * Math.pow((Math.cos(a0) + 1) / 2, 2); x.strokeStyle = "rgba(235,245,255," + br.toFixed(2) + ")"; x.lineWidth = 4; x.beginPath(); x.arc(0, 0, CR + 2.5, a0, a0 + .2); x.stroke(); x.strokeStyle = "rgba(124,199,255," + (br * .5).toFixed(2) + ")"; x.lineWidth = 3; x.beginPath(); x.arc(0, 0, CR + 7, a0, a0 + .2); x.stroke(); }
+      x.fillStyle = "#000"; x.beginPath(); x.arc(0, 0, CR, 0, 6.2832); x.fill();
+      for (i = 0; i < 120; i++) SP.push({ a: R() * 6.2832, o: R(), sp: .16 + R() * .22, m: 280 + R() * 200 });
+      var COLS = ["rgba(124,199,255,.75)", "rgba(224,92,255,.7)", "rgba(255,255,255,.8)"];
+      function mkCrack(n) { // 裂け目の線（穴から左へ、ぎざぎざ。枝が 2 本）
+        var r = prng(nameSeed(name) + n * 53), pts = [[CX - CR, CY]], an = Math.PI + (r() - .5) * .9, px = pts[0][0], py = pts[0][1], brs = [], k, m;
+        while (px > -20 && px < W + 20 && py > -20 && py < H + 20 && pts.length < 40) { an = Math.PI + Math.max(-.7, Math.min(.7, an + (r() - .5) * 1.1 - Math.PI)); var st = 14 + r() * 14; px += Math.cos(an) * st; py += Math.sin(an) * st; pts.push([px, py]); }
+        for (k = 0; k < 2; k++) { var bi = 2 + Math.floor(r() * Math.max(1, pts.length - 4)), bp = [pts[bi]], ba = Math.PI + (k ? 1 : -1) * (.8 + r() * .5), bx = pts[bi][0], by = pts[bi][1]; for (m = 0; m < 4; m++) { ba += (r() - .5) * .9; bx += Math.cos(ba) * 12; by += Math.sin(ba) * 12; bp.push([bx, by]); } brs.push(bp); }
+        return { p: pts, br: brs };
+      }
+      function line(pts, upto, dx, dy) { g.beginPath(); g.moveTo(pts[0][0] + dx, pts[0][1] + dy); for (var k = 1; k < upto && k < pts.length; k++) g.lineTo(pts[k][0] + dx, pts[k][1] + dy); g.stroke(); }
+      return function (t, f) {
+        var b = Math.floor(t / B), bt = t / B - b, bar = b % 4 === 0, nb = Math.floor(b / 4), k, j;
+        var ex = nb * .7 - (bar ? (1 - EZ(bt * 2.2)) * .7 : 0), ph = t * .8 + ex, tw = t * .3 + ex * 1.5; // 小節の頭に吸い込みが一瞬速くなる（そのぶん先へ進む）
+        if (bar && nb !== lastBar) { lastBar = nb; crack = mkCrack(nb); }
+        g.drawImage(bg, 0, 0);
+        g.save(); g.translate(CX, CY); g.rotate(TILT); g.scale(1, SQ);
+        g.globalCompositeOperation = "lighter";
+        // ねじれた筋（穴に近いほど強くねじれる）
+        g.strokeStyle = "rgba(124,199,255,.16)"; g.lineWidth = 1; g.beginPath();
+        for (k = 0; k < 18; k++) { var a0 = k / 18 * 6.2832 + tw; for (j = 0; j <= 6; j++) { var rr = CR + Math.pow(j / 6, 1.6) * 470, aa = a0 + 1.6 * CR / rr; if (j) g.lineTo(Math.cos(aa) * rr, Math.sin(aa) * rr); else g.moveTo(Math.cos(aa) * rr, Math.sin(aa) * rr); } }
+        g.stroke();
+        // 傾いた輪：外から穴へ縮みながら吸い込まれる
+        for (k = 0; k < 13; k++) { var r2 = CR + 440 * Math.exp(-.34 * (k + (ph % 1))), al = .06 + .38 * (1 - (r2 - CR) / 440); g.strokeStyle = (k % 2 ? "rgba(224,92,255," : "rgba(124,199,255,") + al.toFixed(3) + ")"; g.lineWidth = 1.2; g.beginPath(); g.arc(0, 0, r2, 0, 6.2832); g.stroke(); }
+        // 拍の光の輪（外から穴へ落ちる）
+        var pr = CR + 420 * Math.pow(1 - bt, 2.2); g.strokeStyle = "rgba(190,230,255," + (.75 * Math.min(1, bt * 4) * (1 - bt * .6)).toFixed(2) + ")"; g.lineWidth = 3; g.beginPath(); g.arc(0, 0, pr, 0, 6.2832); g.stroke();
+        // 星の光の筋（らせんで吸い込まれる。穴の近くほど速く回る）
+        for (j = 0; j < 3; j++) {
+          g.strokeStyle = COLS[j]; g.lineWidth = j === 2 ? 1 : 1.4; g.beginPath();
+          for (k = j; k < SP.length; k += 3) { var p = SP[k], s1 = (p.o + p.sp * (t + ex * 1.4)) % 1, s0 = Math.max(0, s1 - .03), r3 = p.m * Math.pow(1 - s1, 1.7) + CR * .7, r0 = p.m * Math.pow(1 - s0, 1.7) + CR * .7, a3 = p.a + s1 * s1 * 6, a2 = p.a + s0 * s0 * 6; g.moveTo(Math.cos(a2) * r0, Math.sin(a2) * r0); g.lineTo(Math.cos(a3) * r3, Math.sin(a3) * r3); }
+          g.stroke();
+        }
+        // 小節の頭：衝撃の輪
+        if (bar) { var sr = CR + EZ(bt * 1.3) * 520; g.strokeStyle = "rgba(255,255,255," + (.8 * (1 - bt)).toFixed(2) + ")"; g.lineWidth = 4 * (1 - bt) + .5; g.beginPath(); g.arc(0, 0, sr, 0, 6.2832); g.stroke(); }
+        g.restore();
+        // 穴（拍でふくらむ）
+        var cz = 1 + .12 * Math.exp(-bt * 5); g.save(); g.translate(CX, CY); g.rotate(-t * 1.6); g.scale(cz, cz); g.drawImage(cs, -85, -85); g.restore();
+        // 小節の頭：時空の裂け目（色をずらして 3 回なぞる）と、一瞬の白い光
+        if (bar && crack && bt < .8) {
+          var up = Math.ceil(EZ(bt * 5) * crack.p.length), fa = bt < .3 ? 1 : 1 - (bt - .3) / .5, jit = bt < .3 ? (Math.floor(t * 30) % 2 ? 2 : -2) : 0;
+          g.globalCompositeOperation = "lighter"; g.lineJoin = "round";
+          g.globalAlpha = .6 * fa; g.lineWidth = 12; g.strokeStyle = "rgba(224,92,255,.45)"; line(crack.p, up, 0, 0);
+          g.globalAlpha = fa; g.lineWidth = 3.5; g.strokeStyle = "rgba(255,60,200,.85)"; line(crack.p, up, -3 + jit, 1); g.strokeStyle = "rgba(60,220,255,.85)"; line(crack.p, up, 3 - jit, -1);
+          g.lineWidth = 2.2; g.strokeStyle = "#fff"; line(crack.p, up, 0, 0);
+          if (up >= crack.p.length) crack.br.forEach(function (bp) { g.lineWidth = 1.2; g.strokeStyle = "rgba(200,235,255,.9)"; line(bp, bp.length, 0, 0); });
+          if (bt < .07) { g.globalAlpha = .28 * (1 - bt / .07); g.fillStyle = "#E8DFFF"; g.fillRect(0, 0, W, H); }
+          g.globalAlpha = 1; g.globalCompositeOperation = "source-over";
+        }
+      };
+    },
+    // ★4 アストロ：90 年代の宇宙ピンボール。星空の台に桃色と水色のバンパーが 3 つ。銀の玉が拍ごとにバンパーに当たって弾み（当たったバンパーが光ってふくらみ、点数が浮かぶ）、
+    //   上のふちの電光掲示（黄色の点の文字）が流れ、左のふちの矢印の灯りが下から上へ走る。小節の頭は掲示が ASTRO! に変わって点滅し、バンパーが全部光り、玉から水色の輪
+    astropin: function (g, el, name) {
+      var W = g.canvas.width, H = g.canvas.height, seed = nameSeed(name) + 641, R = prng(seed), B = .9, BR = 6, ORD = [0], pops = [], lastB = -1, i;
+      var BP = [[248, 218, 18], [522, 202, 21], [470, 68, 18]];
+      // 地：深い青と紫・星雲・星・台の弧・上の掲示の黒い帯
+      var bg = sk4bCv(W, H), x = bg.getContext("2d"), gr = x.createRadialGradient(W * .3, H * .2, 20, W * .4, H * .5, W * .75);
+      gr.addColorStop(0, "#1A2470"); gr.addColorStop(.5, "#0B1240"); gr.addColorStop(1, "#05071F"); x.fillStyle = gr; x.fillRect(0, 0, W, H);
+      x.globalCompositeOperation = "lighter"; x.globalAlpha = .22; x.drawImage(sk4dSoft("255,79,168", 120), 300, 40, 240, 200); x.globalAlpha = .18; x.drawImage(sk4dSoft("42,216,255", 110), 120, 60, 220, 220); x.globalAlpha = 1;
+      for (i = 0; i < 170; i++) { var v = R(); x.fillStyle = v < .4 ? "rgba(42,216,255," + (.3 + R() * .5).toFixed(2) + ")" : "rgba(255,255,255," + (.2 + R() * .6).toFixed(2) + ")"; x.fillRect(R() * W, R() * H, v > .9 ? 2 : 1, v > .9 ? 2 : 1); }
+      x.globalCompositeOperation = "source-over";
+      x.strokeStyle = "rgba(42,216,255,.18)"; x.lineWidth = 1.5; x.beginPath(); x.arc(W * .52, H + 260, 420, Math.PI * 1.15, Math.PI * 1.85); x.stroke();
+      x.fillStyle = "#140A04"; x.fillRect(0, 0, W, 17); x.fillStyle = "rgba(255,176,32,.35)"; x.fillRect(0, 17, W, 1);
+      // 輪のある星（作り置き）
+      var pl = sk4bCv(80, 50); x = pl.getContext("2d"); gr = x.createRadialGradient(34, 19, 2, 40, 25, 17); gr.addColorStop(0, "#C9A0FF"); gr.addColorStop(1, "#5A2A9A"); x.fillStyle = gr; x.beginPath(); x.arc(40, 25, 16, 0, 6.2832); x.fill();
+      x.strokeStyle = "#FFD23F"; x.lineWidth = 1.5; x.setLineDash([4, 3]); x.beginPath(); x.ellipse(40, 25, 34, 9, -.25, -.2, Math.PI + .2); x.stroke(); x.setLineDash([]);
+      // バンパー（ふだん・光った）
+      function bump(r, lit) {
+        var s = Math.ceil(r * 2 + 34), c = sk4bCv(s, s), y = c.getContext("2d"), m = s / 2;
+        if (lit) { y.globalCompositeOperation = "lighter"; y.drawImage(sk4dSoft("255,79,168", r + 16), m - r - 16, m - r - 16); y.globalCompositeOperation = "source-over"; }
+        y.fillStyle = lit ? "#FF4FA8" : "#7A1A52"; y.beginPath(); y.arc(m, m, r, 0, 6.2832); y.fill();
+        y.strokeStyle = lit ? "#C8F8FF" : "#2AD8FF"; y.lineWidth = 3; y.beginPath(); y.arc(m, m, r - 3.5, 0, 6.2832); y.stroke();
+        y.fillStyle = lit ? "#FFF6C8" : "#FFD23F"; y.beginPath(); y.arc(m, m, r * .5, 0, 6.2832); y.fill();
+        y.fillStyle = lit ? "#FF4FA8" : "#B07A00"; y.beginPath(); for (var k = 0; k < 10; k++) { var a = -Math.PI / 2 + k * Math.PI / 5, rr = k % 2 ? r * .15 : r * .36; y.lineTo(m + Math.cos(a) * rr, m + Math.sin(a) * rr); } y.closePath(); y.fill();
+        return c;
+      }
+      var BS = BP.map(function (p) { return [bump(p[2], 0), bump(p[2], 1)]; });
+      var ball = sk4bCv(16, 16); x = ball.getContext("2d"); gr = x.createRadialGradient(5.5, 5.5, 1, 8, 8, 7); gr.addColorStop(0, "#FFFFFF"); gr.addColorStop(.5, "#D6DCE4"); gr.addColorStop(1, "#5A6472"); x.fillStyle = gr; x.beginPath(); x.arc(8, 8, BR, 0, 6.2832); x.fill();
+      var bglow = sk3Glow("120,230,255", 12);
+      // 電光掲示：小さな字を 1 画素ずつ点にする（作り置き。点は 2px ごと。読み取りは作るときの 1 回だけ）
+      function dots(txt) {
+        var tc = sk4bCv(700, 10), y = tc.getContext("2d"); y.font = "700 9px monospace"; y.textBaseline = "alphabetic"; y.fillStyle = "#fff";
+        var tw = Math.min(700, Math.ceil(y.measureText(txt).width)); y.fillText(txt, 0, 8);
+        var d = y.getImageData(0, 0, tw, 8).data, out = sk4bCv(tw * 2, 16), o = out.getContext("2d");
+        for (var cx = 0; cx < tw; cx++) for (var r = 0; r < 8; r++) { var on = d[(r * tw + cx) * 4 + 3] > 110; o.fillStyle = on ? "#FFB020" : "rgba(255,140,30,.13)"; o.fillRect(cx * 2, r * 2, 1.5, 1.5); }
+        return out;
+      }
+      var TK = dots(" ASTRO * BALL 3 * SCORE 1,250,000 * BUMPER x500 * SPACE PINBALL *"), MS = dots("ASTRO!  ASTRO!  ASTRO!  ASTRO!  ASTRO!  ASTRO!  ASTRO!  ASTRO!  ");
+      // 左のふちの矢印の灯り（ふだん・光った）
+      function chev(on) { var c = sk4bCv(20, 16), y = c.getContext("2d"); if (on) { y.globalCompositeOperation = "lighter"; y.drawImage(sk3Glow("255,210,63", 10), 0, -2); y.globalCompositeOperation = "source-over"; } y.fillStyle = on ? "#FFE680" : "rgba(42,216,255,.28)"; y.beginPath(); y.moveTo(10, 3); y.lineTo(17, 12); y.lineTo(13, 12); y.lineTo(10, 8); y.lineTo(7, 12); y.lineTo(3, 12); y.closePath(); y.fill(); return c; }
+      var CV = [chev(0), chev(1)], NC = 8, SC = ["+500", "+1000", "+250", "+500", "+750"], PT = {};
+      SC.concat(["JACKPOT"]).forEach(function (s2) { var c = sk4bCv(90, 24), y = c.getContext("2d"); y.font = '700 15px "DotGothic16", monospace'; y.textAlign = "center"; y.textBaseline = "middle"; y.lineWidth = 3; y.strokeStyle = "#05071F"; y.lineJoin = "round"; y.strokeText(s2, 45, 12); y.fillStyle = s2 === "JACKPOT" ? "#FF4FA8" : "#FFD23F"; y.fillText(s2, 45, 12); PT[s2] = c; }); // 点数の字（作り置き）
+      function ord(b) { b = Math.max(0, b); while (ORD.length <= b) { var m = ORD.length; ORD.push((ORD[m - 1] + 1 + (prng(seed + m * 7)() < .5 ? 0 : 1)) % 3); } return ORD[b]; } // b 拍目に当たるバンパー（続けて同じには当たらない）
+      function hitPt(i0, i1) { var p = BP[i0], q = BP[i1], dx = q[0] - p[0], dy = q[1] - p[1], l = Math.sqrt(dx * dx + dy * dy) || 1, rr = p[2] + BR; return [p[0] + dx / l * rr, p[1] + dy / l * rr]; }
+      function bpos(b, bt) { var i0 = ord(b), i1 = ord(b + 1), a = hitPt(i0, i1), c = hitPt(i1, i0), u = 1 - Math.pow(1 - bt, 1.3); return [a[0] + (c[0] - a[0]) * u, a[1] + (c[1] - a[1]) * u + 34 * u * (1 - u)]; } // 弱い重力で少し曲がる
+      return function (t, f) {
+        var b = Math.floor(t / B), bt = t / B - b, bar = b % 4 === 0, hb = ord(b), k;
+        if (b !== lastB) { lastB = b; var hp = hitPt(hb, ord(b + 1)); if (hb) pops.push({ x: hp[0], y: hp[1] - 12, t0: t, s: bar ? "JACKPOT" : SC[b % 5] }); pops = pops.filter(function (p) { return t - p.t0 < .9; }); }
+        g.drawImage(bg, 0, 0);
+        // 星のまたたき・輪のある星
+        for (i = 0; i < 18; i++) { var v = .5 + .5 * Math.sin(t * (1.5 + i % 4) + i); g.fillStyle = "rgba(255,255,255," + (v * .8).toFixed(2) + ")"; g.fillRect((i * 97 + seed) % W, 20 + (i * 53) % (H - 24), 2, 2); }
+        g.drawImage(pl, 432, 112 + Math.sin(t * .9) * 3);
+        // バンパー：当たったものは光ってふくらむ（行き過ぎて戻る）。小節の頭は全部光る
+        for (i = 0; i < 3; i++) {
+          var p = BP[i], hitNow = i === hb, lv = Math.max(hitNow ? Math.exp(-bt * 4) : 0, bar ? Math.exp(-bt * 3) * (Math.floor(t * 12) % 2 ? 1 : .5) : 0), z = hitNow ? 1 + .25 * (1 - sk3Back(bt * 3)) + .1 * Math.exp(-bt * 6) : 1, sp = BS[i], s = sp[0].width * z;
+          g.drawImage(sp[0], p[0] - s / 2, p[1] - s / 2, s, s);
+          if (lv > .02) { g.globalAlpha = lv; g.drawImage(sp[1], p[0] - s / 2, p[1] - s / 2, s, s); g.globalAlpha = 1; }
+        }
+        // 玉（残像つき）
+        g.globalCompositeOperation = "lighter";
+        for (k = 4; k >= 1; k--) { var q = bpos(b, Math.max(0, bt - k * .035)); g.globalAlpha = .12 * (5 - k) / 4; g.drawImage(bglow, q[0] - 10, q[1] - 10, 20, 20); }
+        var bp = bpos(b, bt); g.globalAlpha = .5; g.drawImage(bglow, bp[0] - 12, bp[1] - 12, 24, 24); g.globalAlpha = 1;
+        if (bar) { g.strokeStyle = "rgba(42,216,255," + (.85 * (1 - bt)).toFixed(2) + ")"; g.lineWidth = 3 * (1 - bt) + .5; g.beginPath(); g.arc(bp[0], bp[1], 8 + EZ(bt * 1.2) * 170, 0, 6.2832); g.stroke(); }
+        g.globalCompositeOperation = "source-over";
+        g.drawImage(ball, bp[0] - 8, bp[1] - 8);
+        // 点数が浮かぶ（下のバンパーはメタの文字に重なるので出さない）
+        pops.forEach(function (p) { var e = t - p.t0; if (e > .9) return; g.globalAlpha = Math.min(1, (.9 - e) * 3); g.drawImage(PT[p.s], p.x - 45, p.y - EZ(e * 1.5) * 26 - 12); });
+        g.globalAlpha = 1;
+        // 上のふちの電光掲示：ふだんは流れる。小節の頭は ASTRO! が点滅
+        if (bar && bt < .75) { if (Math.floor(t * 8) % 2) g.drawImage(MS, 0, 0, Math.min(W, MS.width), 16, 0, 0, Math.min(W, MS.width), 16); }
+        else { var tw2 = TK.width, off = (Math.floor(t * 30) * 2) % tw2, w1 = Math.min(W, tw2 - off); g.drawImage(TK, off, 0, w1, 16, 0, 0, w1, 16); if (w1 < W) g.drawImage(TK, 0, 0, Math.min(tw2, W - w1), 16, w1, 0, Math.min(tw2, W - w1), 16); }
+        // 左のふちの矢印：拍ごとに下から上へ走る。小節の頭は全部点滅
+        var hd = Math.floor(bt * NC * 1.2);
+        for (i = 0; i < NC; i++) { var on = bar && bt < .5 ? Math.floor(t * 10) % 2 : i === hd || i === hd - 1; g.drawImage(CV[on ? 1 : 0], 1, 218 - i * 26); }
+      };
     }
   };
   // レアリティごとの演出の量（上の★は下の★の分をすべて持ったうえで足す）
@@ -4983,6 +6143,11 @@ if (location.hash === "#lcdcard" || location.hash === "#sitecard" || document.do
     ["em:vinyl", ["notes", "ripple", "echo"]], ["em:ruby", ["facet", "holo", "leak"]], ["em:fork", ["ripple", "haze", "echo"]], ["em:geode", ["facet", "leak", "boil"]],
     ["em:eq", ["eq", "notes", "crt", "rgbframe", "bars", "mosh", "cuts"]], ["em:speaker", ["ripple", "impact", "eq", "slices", "rgbframe", "cuts"]],
     ["em:crystal", ["facet", "holo", "haze", "slices", "rgbframe", "cuts"]], ["em:opal", ["facet", "holo", "leak", "echo", "pixel", "cuts"]]].forEach(function (x) { ICON_FX[x[0]] = x[1]; });
+  // ---------- 大型アップデート記念のアイコンの技（iconep）。★4 は 3 つ、★5 は 4〜6 つ＋cuts ----------
+  [["em:platchip", ["facet", "trail", "rgbframe"]], ["em:roulwheel", ["confetti", "beat", "speed"]], ["em:jpcroon", ["ripple", "impact", "facet"]], ["em:wormgate", ["haze", "orbitp", "echo"]], ["em:astrobumper", ["neon", "impact", "pixel"]],
+    ["em:hyperhalo", ["leak", "facet", "beat", "holo", "impact", "cuts"]], ["em:rainbowroad", ["speed", "holo", "trail", "rgbframe", "slices", "cuts"]],
+    ["em:nebulaboss", ["radar", "impact", "crt", "rgbframe", "bars", "cuts"]], ["em:abyssfall", ["mosh", "echo", "slices", "bars", "rgbframe", "cuts"]],
+    ["em:paradoxclock", ["crt", "stopmo", "slices", "bars", "rgbframe", "cuts"]]].forEach(function (x) { ICON_FX[x[0]] = x[1]; });
   var FX_BY_R = [[], [], ["leak"], ["echo", "stopmo"], ["trail", "leak", "holo"], ["crt", "mosh", "echo", "leak", "cuts"]]; // レシピのないアイコン
   var EMOJI_FONT = '"Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji", sans-serif';
   var IC_MORE = ["leak", "confetti", "beat", "petals"]; // Ⅲ で足す技（軽いものだけ。echo・trail は残像を何枚も描くので足さない）
@@ -5166,6 +6331,14 @@ if (location.hash === "#lcdcard" || location.hash === "#sitecard" || document.do
   var FONT_TX = {}; // フォントには演出を付けない（書体そのものの差で見せる）
   var TX_CHAR = ["wave", "bounce", "stopmo", "spin"], TX_ONCE = ["type", "decode", "cuts"];
   TX_CHAR.push("drop", "assemble", "eq", "note", "star"); // 第 3 弾の文字ごとの技（1 文字ずつに分ける）
+  // ---------- 大型アップデート記念の二つ名の技（iconep）。★4 は 3 つ、★5 は 5〜7 つ＋cuts ----------
+  // 足した技：rewind 右から左へ逆まわしに戻る（パラドックス）・sink 文字が奈落へ沈んで浮かぶ（アビス）・warp 時空の穴に吸い込まれて戻る（ワームホール）
+  TX_CHAR.push("rewind", "sink"); // warp は全体の技
+  [["プラチナの常連", ["spin", "sparkle", "outline"]], ["赤か黒か", ["spin", "shake", "marker"]], ["息をのむ鹿", ["drop", "shake", "gold"]], ["時空の迷子", ["warp", "chroma", "echo"]], ["宇宙ピンボーラー", ["bounce", "neon", "chroma"]],
+    ["ハイパーを見た鹿", ["assemble", "gold", "sparkle", "star", "leak", "shake", "cuts"]], ["虹を駆ける鹿", ["star", "wave", "chroma", "sparkle", "echo", "warp", "cuts"]],
+    ["星雲討伐隊", ["shake", "glitch", "chroma", "neon", "drop", "scan", "cuts"]], ["奈落帰り", ["sink", "echo", "glitch", "neon", "scan", "cuts"]],
+    ["時をかける鹿", ["rewind", "decode", "chroma", "echo", "stopmo", "glitch", "cuts"]]
+  ].forEach(function (x) { EP_TX[x[0]] = x[1]; });
   var TX_MORE = ["sparkle", "wave", "echo", "gold", "neon", "leak", "bounce"]; // Ⅲ の二つ名に足す技
   function txRecipe(kind, x, lv) {
     var r = rarOf(kind, x), m = kind === "ep" ? EP_TX[x[0]] : FONT_TX[x[0]];
@@ -5435,7 +6608,7 @@ if (location.hash === "#lcdcard" || location.hash === "#sitecard" || document.do
   }
 
   var TIP_SEC = 8; // ルール・TIPS は 1 つを 8 秒ずつ（読み切れるように）。この窓では 2 つ出してから次の窓へ
-  var DEF = { channel: "", game: "", dmOn: true, dmArea: 1, dmSpeed: 6.5, dmSize: 42, dmAlpha: 1, vol: .6, chatSe: true, mute: false, rot: 12, tips: DEFAULT_TIPS.join("\n"), clientId: "", lvAlert: true, followOnly: true, discordHook: "", linkMsg: "MONO LINK:// code〈〉Lounge（フォローしている人だけ入れます）→ {url}", linkEvery: 0, siteUrl: "", siteKey: "" };
+  var DEF = { channel: "", game: "", dmOn: true, dmArea: 1, dmSpeed: 6.5, dmSize: 42, dmAlpha: 1, vol: .6, chatSe: true, mute: false, rot: 12, tips: DEFAULT_TIPS.join("\n"), clientId: "", lvAlert: true, followOnly: true, discordHook: "", linkMsg: "MONO LINK:// code〈〉Lounge（フォローしている人だけ入れます）→ {url}", linkEvery: 0, siteUrl: "", siteKey: "", trJa: true };
   function loadCfg() {
     var saved = read(CFG, {}) || {};
     // 前に自分で TIPS を書き換えていた人にも、新しいルール 3 つを 1 回だけ足す
@@ -5466,7 +6639,7 @@ if (location.hash === "#lcdcard" || location.hash === "#sitecard" || document.do
     if (typeof c.game === "string") o.game = c.game.slice(0, 40);
     if (typeof c.tips === "string") o.tips = c.tips.slice(0, 3000);
     if (typeof c.clientId === "string") o.clientId = c.clientId.replace(/[^a-z0-9]/gi, "").slice(0, 64);
-    ["dmOn", "chatSe", "mute", "tipsV2", "lvAlert"].forEach(function (k) { if (c[k] != null) o[k] = !!c[k]; });
+    ["dmOn", "chatSe", "mute", "tipsV2", "lvAlert", "trJa"].forEach(function (k) { if (c[k] != null) o[k] = !!c[k]; });
     [["dmArea", .1, 1], ["dmSpeed", 2, 20], ["dmSize", 16, 80], ["dmAlpha", .1, 1], ["vol", 0, 1], ["rot", 4, 60]].forEach(function (k) { if (c[k[0]] != null) o[k[0]] = num(c[k[0]], k[1], k[2], DEF[k[0]]); });
     if (c.rewards && typeof c.rewards === "object") {
       o.rewards = {};
@@ -5911,6 +7084,26 @@ if (location.hash === "#lcdcard" || location.hash === "#sitecard" || document.do
     Sound.play("blip");
     danmaku(user, text, opt.emotes, false, ff && ff[2], opt.guest ? "" : fontFx(lk));
     if (!(opt.guest && /^[!！]/.test(text))) effects(text, li);
+    trAsk(li, text, opt.emotes);
+  }
+  // 英語のコメントに日本語の訳をつける（門番が Workers AI で訳す。英語のままのほうが伝わることもあるので、パネルで消せる）
+  var trWait = {}, trN = 0;
+  function trAsk(li, text, emotes) {
+    if (!cfg.trJa || /^[!！]/.test(text)) return;
+    var cs = Array.from(text);
+    String(emotes || "").split("/").forEach(function (g) { var p = g.split(":"); (p[1] || "").split(",").forEach(function (r) { var a = r.split("-"); for (var i = +a[0]; i <= +a[1] && i < cs.length; i++) cs[i] = " "; }); });
+    var plain = cs.join("").replace(/https?:\/\/\S+/g, " ").replace(/\s+/g, " ").trim();
+    if (!plain || /[\u3040-\u30ff\u3400-\u9fff\uff66-\uff9f]/.test(plain) || !/[A-Za-z]{2,}/.test(plain)) return;
+    if (!remoteWs || remoteWs.readyState !== 1 || remoteState !== "on") return;
+    var id = "o" + (++trN); trWait[id] = li;
+    var ks = Object.keys(trWait); if (ks.length > 40) delete trWait[ks[0]];
+    remoteSend({ t: "tr", id: id, to: "ja", text: plain.slice(0, 300) });
+  }
+  function trGot(m) {
+    var li = trWait[m.id]; delete trWait[m.id];
+    if (!li || !m.ja || !li.isConnected) return;
+    var msg = li.querySelector(".msg"); if (!msg) return;
+    var t = document.createElement("span"); t.className = "tr"; t.textContent = m.ja; msg.appendChild(t);
   }
   function addSys(text) {
     remoteSay(text); // MONO LINK の配信ページのコメント欄にも出す
@@ -7131,6 +8324,7 @@ if (location.hash === "#lcdcard" || location.hash === "#sitecard" || document.do
       if (m.t === "bugok" && typeof m.id === "string") { bugSent(m.id); return; }
       if (m.t === "cmd" && typeof m.n === "string" && typeof m.text === "string" && m.n) remoteCmd(m.n.slice(0, 40), m.text.slice(0, 320));
       if (m.t === "like" && typeof m.id === "string" && m.byId) onLike(m);
+      if (m.t === "tr" && typeof m.id === "string") trGot(m);
       if (m.t === "notice" && typeof m.text === "string") notice(m.text, m.id);
       // 鹿物語の「みんなに玉」：MONO LINK にいまいる人の名前を、聞いてきた id と一緒に渡す
       if (m.t === "who" && typeof m.id === "string" && Array.isArray(m.names)) write("shika-who-v1", { id: m.id.slice(0, 40), names: m.names.slice(0, 500).map(function (n) { return String(n).slice(0, 40); }), at: Date.now() });
@@ -7347,7 +8541,7 @@ if (location.hash === "#lcdcard" || location.hash === "#sitecard" || document.do
     bind("p-channel", "channel", "text"); bind("p-game", "game", "text"); bind("p-client", "clientId", "text");
     bind("p-dm-on", "dmOn", "check"); bind("p-dm-area", "dmArea", "num"); bind("p-dm-speed", "dmSpeed", "num"); bind("p-dm-size", "dmSize", "num"); bind("p-dm-alpha", "dmAlpha", "num");
     bind("p-vol", "vol", "num"); $("p-vol").addEventListener("input", function () { cfg.vol = +$("p-vol").value; saveCfg(); });
-    bind("p-chat-se", "chatSe", "check"); bind("p-mute", "mute", "check"); bind("p-rot", "rot", "num"); bind("p-tips", "tips", "text");
+    bind("p-chat-se", "chatSe", "check"); bind("p-tr-ja", "trJa", "check"); bind("p-mute", "mute", "check"); bind("p-rot", "rot", "num"); bind("p-tips", "tips", "text");
     document.querySelectorAll("[data-test]").forEach(function (b) { b.addEventListener("click", function () { send({ type: "test", what: b.dataset.test }); }); });
     $("p-new").addEventListener("click", function () { send({ type: "new-stream" }); $("p-new").textContent = "始め直しました"; setTimeout(function () { $("p-new").textContent = "今日の配信を始め直す"; }, 2000); });
     var armed = false;
