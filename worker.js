@@ -125,7 +125,10 @@ async function upload(req, env) {
       if (!gate.block && prev.block) { gate.block = prev.block; gate.blockAt = prev.blockAt || prev.at; }
     }
   }
-  await env.DB.put("data", JSON.stringify(body.data));
+  // 上書きする前の data を控えておく（パネルの操作ミスで持ち玉が消えたときに、前の状態から戻せるように）。14 日で消える
+  const prevData = await env.DB.get("data"), nextData = JSON.stringify(body.data);
+  if (prevData && prevData !== nextData) await env.DB.put("data-bak-" + Date.now(), prevData, { expirationTtl: 14 * 86400 });
+  await env.DB.put("data", nextData);
   await env.DB.put("gate", JSON.stringify(gate));
   // 最近ラウンジに入れなかった人の記録も返す（配信者のパネルに出す）
   const denied = (await env.DB.get("denied", "json")) || [];
@@ -351,6 +354,18 @@ export default {
 async function route(req, env) {
   {
     const url = new URL(req.url);
+    // 控えの data を読む（上げる口と同じ鍵がいる）。?k=data-bak-… で 1 つ。なしなら控えの一覧と、いまの data
+    if (url.pathname === "/api/data-backup" && req.method === "GET") {
+      if (!env.UPLOAD_KEY || !(await sameKey(bearer(req), env.UPLOAD_KEY))) return json({ error: "key" }, 401);
+      const k = url.searchParams.get("k");
+      if (k) {
+        if (!/^data-bak-\d{1,16}$/.test(k)) return json({ error: "k" }, 400);
+        const v = await env.DB.get(k);
+        return v ? new Response(v, { headers: { "Content-Type": "application/json" } }) : json({ error: "none" }, 404);
+      }
+      const l = await env.DB.list({ prefix: "data-bak-" });
+      return json({ now: Date.now(), backups: l.keys.map((x) => x.name), current: JSON.parse((await env.DB.get("data")) || "null") });
+    }
     if (url.pathname === "/api/upload") {
       if (req.method === "OPTIONS") return new Response(null, { status: 204, headers: UP_CORS });
       if (req.method === "POST") return upload(req, env);
