@@ -6626,7 +6626,7 @@ if (location.hash === "#lcdcard" || location.hash === "#sitecard" || document.do
   }
   // チャンネルポイントで出せる効果。ここに 1 行足し、下の REWARD_RUN に同じ名前で動きを書くと、パネルの選択肢に出る
   var REWARD_FX = [["hanabi", "花火"], ["heart", "ハート"], ["clap", "888 拍手"], ["grass", "草"], ["shout", "名前と報酬を大きく出す"], ["say", "入力した文を大きく流す"]];
-  var SCOPES = "moderator:read:followers channel:read:redemptions user:write:chat moderation:read user:read:blocked_users"; // user:write:chat：MONO LINK の URL をチャットに送る（!モノリンク）／moderation:read・user:read:blocked_users：MONO LINK:// に BAN・ブロックした人を入れない
+  var SCOPES = "moderator:read:followers channel:read:redemptions user:write:chat moderation:read user:read:blocked_users channel:read:hype_train"; // user:write:chat：MONO LINK の URL をチャットに送る（!モノリンク）／moderation:read・user:read:blocked_users：MONO LINK:// に BAN・ブロックした人を入れない／channel:read:hype_train：ハイプトレインを鹿物語に渡す
   var cfg = loadCfg();
 
   // ---------- 引き継ぎ（file:/// → OBS のローカルファイル方式 http://absolute/）で受け取るものの検査 ----------
@@ -7949,7 +7949,7 @@ if (location.hash === "#lcdcard" || location.hash === "#sitecard" || document.do
   }
 
   // ---------- フォロー（Twitch にログインしたときだけ。EventSub の WebSocket で受け取る） ----------
-  var es = null, esRetry = 0, esState = "off", ptState = "off";
+  var es = null, esRetry = 0, esState = "off", ptState = "off", hypeState = "off"; // hypeState：ハイプトレイン（on・noscope＝許可がない・error）
   function auth() { return read(AUTH, null); }
   function helix(path, opt) {
     var a = auth(); opt = opt || {};
@@ -8011,7 +8011,11 @@ if (location.hash === "#lcdcard" || location.hash === "#sitecard" || document.do
             .then(function (r) { ptState = r && r.data ? "on" : r && r.status === 403 ? "noscope" : "error"; pushStatus(); }, function () { ptState = "error"; pushStatus(); });
           var p2 = helix("eventsub/subscriptions", { method: "POST", body: { type: "channel.follow", version: "2", condition: { broadcaster_user_id: uid, moderator_user_id: uid }, transport: { method: "websocket", session_id: sid } } })
             .then(function (r) { esState = r && r.data ? "on" : "error"; esRetry = 0; pushStatus(); }, esFail);
-          return Promise.all([p1, p2]);
+          // ハイプトレイン（version 2。許可がない古いログインなら noscope。ほかの受け取りには響かせない）
+          var p3 = Promise.all(["begin", "progress", "end"].map(function (k) {
+            return helix("eventsub/subscriptions", { method: "POST", body: { type: "channel.hype_train." + k, version: "2", condition: { broadcaster_user_id: uid }, transport: { method: "websocket", session_id: sid } } });
+          })).then(function (rs) { hypeState = rs.every(function (r) { return r && r.data; }) ? "on" : rs.some(function (r) { return r && r.status === 403; }) ? "noscope" : "error"; }, function () { hypeState = "error"; });
+          return Promise.all([p1, p2, p3]);
         };
         (a.userId ? Promise.resolve(a.userId) : helix("users").then(saveMe))
           .then(go, function () { ptState = "error"; esFail(); }).then(esCheck);
@@ -8026,9 +8030,10 @@ if (location.hash === "#lcdcard" || location.hash === "#sitecard" || document.do
         onRedeem({ id: String(rw.id || ""), title: String(rw.title || ""), user: ev.user_name || ev.user_login || "だれか", input: String(ev.user_input || "") });
         relayRedeem(ev, rw);
       }
+      if (t === "notification" && /^channel\.hype_train\./.test(j.payload.subscription.type)) relayHype(j.payload.subscription.type.split(".").pop(), j.payload.event || {});
       if (t === "session_reconnect") { var old = es; es = new WebSocket(j.payload.session.reconnect_url); es.onmessage = old.onmessage; es.onclose = old.onclose; }
     };
-    es.onclose = function () { esLast = 0; esState = "connecting"; ptState = "off"; pushStatus(); setTimeout(startEventSub, Math.min(60000, 3000 * Math.pow(2, esRetry++))); };
+    es.onclose = function () { esLast = 0; esState = "connecting"; ptState = "off"; hypeState = "off"; pushStatus(); setTimeout(startEventSub, Math.min(60000, 3000 * Math.pow(2, esRetry++))); };
   }
 
   // ---------- フォローしている人だけ遊べる：フォロワー一覧を Twitch から取り、鹿物語にも shika-follow-v1 で渡す ----------
@@ -8111,6 +8116,11 @@ if (location.hash === "#lcdcard" || location.hash === "#sitecard" || document.do
   // 受け取った交換は、鹿物語にも shika-redeem-v1 で渡す（鹿物語も自分の Twitch ログインで受け取るが、どちらかのログインが切れていても玉が出るように。
   // 同じ交換は、鹿物語が Twitch の交換の id で 1 回にまとめる）
   var RELAY = "shika-redeem-v1";
+  // ハイプトレインを鹿物語に渡す（鹿物語がレベルで確変率を上げ、終わったらコメントした人に玉を配る）
+  function relayHype(phase, e) {
+    if (demo || !/^(begin|progress|end)$/.test(phase)) return;
+    write("shika-hype-v1", { id: String(e.id || "").slice(0, 64), phase: phase, level: Math.max(1, Math.floor(+e.level) || 1), expires: Date.parse(e.expires_at || "") || 0, at: Date.now() });
+  }
   function relayRedeem(ev, rw) {
     var rid = String(rw.id || ""); if (!/^[\w-]{1,64}$/.test(rid) || demo) return;
     var d = read(RELAY, null), list = d && Array.isArray(d.list) ? d.list.slice(-19) : [], at = Date.now(), last = list[list.length - 1];
@@ -8242,6 +8252,7 @@ if (location.hash === "#lcdcard" || location.hash === "#sitecard" || document.do
       else if (diagLast(DG, "OV04", esState !== "on", W)) c.push(["OV04", "フォロー通知（Twitch）を受け取れていません", "e"]);
       if (ptState === "noscope") c.push(["OV05", "チャンネルポイントの許可がありません。パネルでもう一度ログインしてください", "e"]);
       else if (esState !== "expired" && diagLast(DG, "OV06", ptState !== "on", W)) c.push(["OV06", "オーバーレイがチャンネルポイントを受け取れていません", "e"]);
+      if (hypeState === "noscope") c.push(["OV11", "ハイプトレインの許可がありません（パネルでログインし直すと、ハイプトレインで鹿物語の確変率が上がります）", "w"]);
     }
     if (siteUrl() && siteKey()) {
       if (remoteState === "badkey") c.push(["OV07", "MONO LINK の鍵が違います（パネルの ① の鍵を確かめてください）", "e"]);
@@ -8553,7 +8564,8 @@ if (location.hash === "#lcdcard" || location.hash === "#sitecard" || document.do
     var polling = 0;
     function authStatus(t, on) { var s = $("p-auth"); s.classList.toggle("on", !!on); s.querySelector("span").textContent = t; }
     // ログインに足りない許可（前のログインには、あとから足した許可が入っていない）。Twitch にきいて、足りなければ知らせる
-    var SCOPE_NAME = { "moderator:read:followers": "フォロワーの一覧", "channel:read:redemptions": "チャンネルポイント", "user:write:chat": "チャットに書き込む", "moderation:read": "BAN の一覧（ラウンジ）", "user:read:blocked_users": "ブロックの一覧（ラウンジ）" };
+    var SCOPE_NAME = { "moderator:read:followers": "フォロワーの一覧", "channel:read:redemptions": "チャンネルポイント", "user:write:chat": "チャットに書き込む", "moderation:read": "BAN の一覧（ラウンジ）", "user:read:blocked_users": "ブロックの一覧（ラウンジ）", "channel:read:hype_train": "ハイプトレイン" };
+    var SCOPE_WHY = { "moderation:read": "BAN・ブロックした人もラウンジに入れてしまいます", "user:read:blocked_users": "BAN・ブロックした人もラウンジに入れてしまいます", "channel:read:hype_train": "ハイプトレインで鹿物語の確変率が上がりません" };
     function showAuth() {
       var a = read(AUTH, null), base = a && a.access ? "ログイン済み" + (a.login ? "（" + a.login + "）" : "") : "ログインしていません";
       authStatus(base, a && a.access); $("p-auth").classList.remove("warn");
@@ -8562,7 +8574,8 @@ if (location.hash === "#lcdcard" || location.hash === "#sitecard" || document.do
         if (!j || !Array.isArray(j.scopes)) return;
         var miss = SCOPES.split(" ").filter(function (sc) { return j.scopes.indexOf(sc) < 0; });
         if (!miss.length) return;
-        authStatus(base + "。ただし、このログインには「" + miss.map(function (sc) { return SCOPE_NAME[sc] || sc; }).join("」「") + "」の許可がありません。上の「Twitch でログイン」をもう一度押して許可してください（これがないと、BAN・ブロックした人もラウンジに入れてしまいます）", false);
+        var why = miss.map(function (sc) { return SCOPE_WHY[sc]; }).filter(function (w, i, l) { return w && l.indexOf(w) === i; });
+        authStatus(base + "。ただし、このログインには「" + miss.map(function (sc) { return SCOPE_NAME[sc] || sc; }).join("」「") + "」の許可がありません。上の「Twitch でログイン」をもう一度押して許可してください" + (why.length ? "（これがないと、" + why.join("。") + "）" : ""), false);
         $("p-auth").classList.add("warn");
       }, function () {});
     }
