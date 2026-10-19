@@ -73,6 +73,7 @@ button { cursor: pointer; }
 .logo i { font-style: normal; color: var(--sky); }
 .brand small { display: block; font: 700 11px/1.2 var(--jp); color: var(--soft); letter-spacing: .02em; }
 .upd { font: 700 12px/1.3 var(--jp); color: var(--soft); background: rgba(255,255,255,.8); border: 1.5px solid var(--line); border-radius: 999px; padding: 6px 12px; display: flex; align-items: center; gap: 6px; }
+.upd .out { white-space: nowrap; flex: none; } /* 英語の「日本語」・「Log out」が狭い画面で縦に折れないように */
 .upd i { width: 8px; height: 8px; border-radius: 50%; background: var(--leaf); box-shadow: 0 0 0 0 rgba(34,204,136,.6); animation: ping 2s infinite; }
 @keyframes ping { 70% { box-shadow: 0 0 0 8px rgba(34,204,136,0); } }
 
@@ -227,6 +228,53 @@ h2.sec::before { content: ""; width: 22px; height: 22px; border-radius: 50%; bor
 .howto li::before { content: counter(st); display: grid; place-items: center; width: 26px; height: 26px; border-radius: 50%; background: #FF5A64; color: #fff; font: 900 13px/1 var(--jp); }
 .howto li button { border: 0; border-radius: 10px; background: #EEF5FF; color: var(--ink); font: 900 13px/1.2 var(--jp); padding: 4px 8px; margin: 0 2px; position: relative; cursor: pointer; }
 .howto li button.done::after { content: "コピーしました"; position: absolute; left: 50%; bottom: 100%; transform: translate(-50%, -6px); background: var(--ink); color: #fff; font-size: 11px; padding: 4px 8px; border-radius: 8px; white-space: nowrap; }
+/* ---- 英語の人向け：パチンコのガイド（#guide）と、配信ページのチュートリアル。日本語のときは入口を出さない ---- */
+html:not([lang="en"]) .en-only { display: none !important; }
+.gd { display: grid; gap: 16px; }
+.gd h3 { font: 900 19px/1.3 var(--jp); margin: 0 0 10px; display: flex; align-items: center; gap: 8px; }
+.gd h3 i { width: 14px; height: 14px; border-radius: 50%; background: var(--c, var(--sky)); flex: none; }
+.gd p { margin: 0 0 10px; }
+.gd p:last-child { margin-bottom: 0; }
+.gd-hero { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 300px); gap: 20px; align-items: center; }
+.gd-hero svg { width: 100%; height: auto; display: block; }
+.gd-free { display: inline-block; background: #E9FBF3; color: #0E7A50; border-radius: 10px; padding: 3px 10px; font: 900 13px/1.5 var(--jp); }
+.gd-flow { list-style: none; counter-reset: gs; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 12px; }
+.gd-flow li { counter-increment: gs; background: #F6F9FF; border-radius: 18px; padding: 14px 14px 14px 52px; position: relative; font-size: 14px; line-height: 1.6; }
+.gd-flow li::before { content: counter(gs); position: absolute; left: 12px; top: 13px; width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center; background: var(--coral); color: #fff; font: 900 14px/1 var(--num); }
+.gd-flow li > b:first-child { display: block; font-size: 15px; margin-bottom: 2px; }
+.gd-terms { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 0 18px; margin: 0; }
+.gd-terms div { display: grid; grid-template-columns: 116px 1fr; gap: 10px; padding: 9px 0; border-top: 1.5px dashed var(--line); font-size: 14px; line-height: 1.55; }
+.gd-terms dt { font: 900 15px/1.35 var(--jp); }
+.gd-terms dt small { display: block; font: 700 11px/1.3 var(--jp); color: var(--soft); margin-top: 2px; }
+.gd-terms dd { margin: 0; }
+.gd-dots { display: flex; flex-wrap: wrap; gap: 6px; margin: 6px 0 0; padding: 0; list-style: none; }
+.gd-dots li { display: flex; align-items: center; gap: 5px; font: 800 12px/1 var(--jp); background: #F3F5FA; border-radius: 99px; padding: 5px 9px 5px 6px; }
+.gd-dots i { width: 14px; height: 14px; border-radius: 50%; background: var(--c); box-shadow: inset 0 0 0 1.5px rgba(27,35,64,.18); }
+.gd-modes { display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 10px; }
+.gd-modes div { border-radius: 16px; padding: 11px 13px; background: #F6F9FF; border-left: 6px solid var(--c); font-size: 13.5px; line-height: 1.55; }
+.gd-modes b { display: block; font-size: 15px; }
+.gd-modes b small { font-weight: 700; color: var(--soft); margin-left: 4px; }
+.gd-two { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; }
+.gd ul.gd-list { margin: 0; padding-left: 1.2em; font-size: 14px; line-height: 1.65; }
+.gd ul.gd-list li { margin: 3px 0; }
+.gd code { font: 900 13px/1.2 var(--jp); background: #EEF5FF; border-radius: 8px; padding: 2px 6px; }
+.gd-go { display: flex; flex-wrap: wrap; gap: 10px; }
+.gd-entry { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; margin: 0 0 16px; }
+.gd-entry b { font: 900 16px/1.4 var(--jp); }
+@media (max-width: 640px) { .gd-hero { grid-template-columns: 1fr; } .gd-hero svg { max-width: 300px; margin: 0 auto; } .gd-terms div { grid-template-columns: 96px 1fr; } }
+.tut-spot { position: fixed; z-index: 95; border-radius: 18px; pointer-events: none; box-shadow: 0 0 0 4px #fff, 0 0 0 200vmax rgba(27,35,64,.58); transition: left .35s var(--out), top .35s var(--out), width .35s var(--out), height .35s var(--out); }
+.tut-spot.none { left: 50% !important; top: 50% !important; width: 0 !important; height: 0 !important; box-shadow: 0 0 0 200vmax rgba(27,35,64,.58); }
+.tut-card { position: fixed; z-index: 96; width: min(360px, calc(100vw - 24px)); background: #fff; border-radius: 22px; box-shadow: var(--lift); padding: 18px 18px 14px; font-size: 15px; line-height: 1.6; transition: left .35s var(--out), top .35s var(--out); }
+.tut-card h4 { margin: 0 0 6px; font: 900 17px/1.35 var(--jp); }
+.tut-card p { margin: 0 0 12px; }
+.tut-row { display: flex; align-items: center; gap: 8px; }
+.tut-row .jelly { padding: 10px 16px; font-size: 14px; }
+.tut-row .skip { margin-right: auto; border: 0; background: none; color: var(--soft); font: 800 13px/1 var(--jp); padding: 8px 4px; text-decoration: underline; }
+.tut-dots { display: flex; gap: 5px; margin: 0 0 10px; }
+.tut-dots i { width: 7px; height: 7px; border-radius: 50%; background: var(--line); }
+.tut-dots i.on { background: var(--coral); width: 18px; border-radius: 99px; }
+.key.help { width: 28px; height: 28px; padding: 0; border-radius: 50%; display: grid; place-items: center; font: 900 14px/1 var(--num); }
+@media (prefers-reduced-motion: reduce) { .tut-spot, .tut-card { transition: none; } }
 .cmd { display: grid; grid-template-columns: auto 1fr; gap: 10px; align-items: start; padding: 10px 0; border-top: 1.5px dashed var(--line); }
 .cmd:first-of-type { border-top: 0; }
 .cmd button { border: 0; border-radius: 12px; background: #EEF5FF; color: var(--ink); font: 900 14px/1.2 var(--jp); padding: 8px 10px; white-space: nowrap; transition: transform .3s var(--spring), background .2s; position: relative; }
@@ -599,6 +647,7 @@ footer { position: relative; z-index: 2; text-align: center; color: var(--soft);
     <div class="lobby-head">
       <h1 id="lobby-title"></h1>
       <p>いまログインしている人が、ここにアバターになって浮かんでいます。</p>
+      <p class="en-only" lang="en" data-notr><button type="button" class="jelly sky" data-go="guide">New to pachinko? Read the guide</button></p>
     </div>
     <div class="plaza" id="plaza">
       <div class="rings">
@@ -652,7 +701,7 @@ footer { position: relative; z-index: 2; text-align: center; color: var(--soft);
       </div>
       <div class="panel lpanel" id="lpanel">
         <div role="tabpanel" id="lp-fire" aria-labelledby="lt-fire" style="--c:var(--coral)">
-          <div class="fire-top"><p class="onair" id="onair"><i></i><span>確かめています</span></p><button type="button" class="key mini langbtn" id="lang-live" lang="en">EN</button><button type="button" class="key mini" id="trbtn" aria-pressed="true">訳</button><button type="button" class="key mini" id="cc" aria-pressed="false" hidden>字幕</button><button type="button" class="key mini" data-cmd="!玉">持ち玉を見る</button></div>
+          <div class="fire-top"><p class="onair" id="onair"><i></i><span>確かめています</span></p><button type="button" class="key mini langbtn" id="lang-live" lang="en">EN</button><button type="button" class="key mini" id="trbtn" aria-pressed="true">訳</button><button type="button" class="key mini" id="cc" aria-pressed="false" hidden>字幕</button><button type="button" class="key mini" data-cmd="!玉">持ち玉を見る</button><button type="button" class="key mini help en-only" id="tut-open" lang="en" data-notr aria-label="How to play (tour)">?</button></div>
           <div class="deck">
             <button type="button" class="push" id="push" data-cmd="!押せ" aria-label="押せ（連打チャンスで、みんなで押す）">
               <svg viewBox="0 0 92 92" aria-hidden="true"><circle class="base" cx="46" cy="46" r="42"/><circle class="wait" cx="46" cy="46" r="42" pathLength="100"/></svg>
@@ -677,6 +726,7 @@ footer { position: relative; z-index: 2; text-align: center; color: var(--soft);
   <section class="view" id="v-cmd" hidden>
     <h2 class="sec" style="--c:var(--leaf)">コマンド</h2>
     <p class="soft">チャットに打つと動きます。フォローしている人だけ使えます。コマンドを押すとコピーできます。「配信」のページなら、ボタンで送れます（チャットに書かないので、続けて送ってもタイムアウトされません）。</p>
+    <div class="panel gd-entry en-only" lang="en" data-notr><b>New to pachinko?</b><span class="soft">Learn the rules and the Japanese words on screen.</span><button type="button" class="jelly sky" data-go="guide">Pachinko Guide</button></div>
     <div class="booths" id="booths"></div>
   </section>
 
@@ -698,6 +748,123 @@ footer { position: relative; z-index: 2; text-align: center; color: var(--soft);
     <h2 class="sec" style="--c:var(--coral)">掲示板</h2>
     <p class="soft">チャットに「!けいじばん 書きたいこと」と打つと、配信者が確かめてからここに載ります。</p>
     <ul class="posts" id="posts"></ul>
+  </section>
+
+  <!-- パチンコのガイド（英語の人向け。中の日本語の言葉は画面の文字なので訳さない：data-notr。入口は英語のときだけ出す）。隠しの台の設定は書かない -->
+  <section class="view" id="v-guide" hidden lang="en" data-notr>
+    <h2 class="sec" style="--c:var(--coral)">Pachinko Guide</h2>
+    <div class="gd">
+      <div class="panel gd-hero">
+        <div>
+          <h3><i style="--c:var(--coral)"></i>Pachinko in one minute</h3>
+          <p>Pachinko is a Japanese arcade game &mdash; think <b>pinball meets a slot machine</b>. You launch small steel balls into a board full of pins. Most balls bounce down and fall out the bottom. But when a ball drops into the <b>center pocket</b>, the slot reels on the screen spin. Line up <b>three matching numbers</b> and it&rsquo;s a <b>JACKPOT</b>: the machine pays out lots of balls.</p>
+          <p><b>Shika Story</b> (鹿物語) is deerman_247&rsquo;s pachinko machine. Everyone in chat shares the same machine on stream and plays it with chat commands or the buttons on the Stream page.</p>
+          <p class="gd-free">Balls are free points &mdash; no real money, ever.</p>
+        </div>
+        <svg viewBox="0 0 320 300" role="img" aria-label="A pachinko board: balls fall through pins; the center pocket under the screen starts a spin">
+            <circle cx="160" cy="150" r="136" fill="#FFF6EC" stroke="#E9C88F" stroke-width="6"/>
+            <path d="M58 262 C 18 200, 20 70, 120 26 C 150 14, 190 16, 212 30" fill="none" stroke="#B9C3D6" stroke-width="3" stroke-dasharray="2 7" stroke-linecap="round"/>
+            <g fill="#B49A6B"><circle cx="70" cy="110" r="3"/><circle cx="88" cy="96" r="3"/><circle cx="74" cy="140" r="3"/><circle cx="92" cy="160" r="3"/><circle cx="72" cy="182" r="3"/><circle cx="96" cy="196" r="3"/><circle cx="250" cy="110" r="3"/><circle cx="232" cy="96" r="3"/><circle cx="246" cy="140" r="3"/><circle cx="228" cy="160" r="3"/><circle cx="248" cy="182" r="3"/><circle cx="224" cy="196" r="3"/><circle cx="118" cy="182" r="3"/><circle cx="202" cy="182" r="3"/><circle cx="132" cy="214" r="3"/><circle cx="188" cy="214" r="3"/><circle cx="150" cy="58" r="3"/><circle cx="170" cy="58" r="3"/><circle cx="130" cy="64" r="3"/><circle cx="190" cy="64" r="3"/><circle cx="148" cy="194" r="3"/><circle cx="172" cy="194" r="3"/></g>
+            <rect x="104" y="76" width="112" height="72" rx="12" fill="#1B2340"/>
+            <text x="160" y="124" text-anchor="middle" font-size="28" font-weight="900" fill="#FFC21A" letter-spacing="6">777</text>
+            <path d="M147 204 h26 l-5 12 h-16 z" fill="#FF5A64"/>
+            <circle cx="160" cy="194" r="6" fill="#DDE3EE" stroke="#8A95AE" stroke-width="1.5"/>
+            <ellipse cx="160" cy="268" rx="18" ry="7" fill="#3A3F52"/>
+            <g font-size="11" font-weight="800" fill="#1B2340">
+              <text x="160" y="70" text-anchor="middle">screen = slot reels</text>
+              <text x="246" y="232" text-anchor="middle">pins</text>
+              <text x="160" y="236" text-anchor="middle">center pocket (ヘソ)</text>
+              <text x="160" y="288" text-anchor="middle">out = miss</text>
+            </g>
+          </svg>
+      </div>
+      <div class="panel">
+        <h3><i style="--c:var(--sky)"></i>How a game goes</h3>
+        <ol class="gd-flow">
+          <li><b>Get balls</b>Chat to earn them (10 for your first comment, then 1 per comment), plus a daily login bonus and a few just for being in chat.</li>
+          <li><b>Fire</b>Press <b>Fire</b> on the Stream page (or type <code>!発射 5</code> in chat). <b>Softer</b> / <b>Harder</b> change the launch strength.</li>
+          <li><b>Hit the center pocket</b>A ball in the center pocket (ヘソ, <i>heso</i>) starts a spin. Up to 4 spins can wait in line (保留, <i>horyū</i>).</li>
+          <li><b>Reach!</b>When two reels match, it&rsquo;s a <b>reach</b> (リーチ). The show that follows hints at how likely the third reel is to match.</li>
+          <li><b>Jackpot</b>Three of a kind is a 大当たり (<i>ōatari</i>). The balls go to whoever&rsquo;s ball started that spin, and the last 5 people who hit the pocket in the 3 minutes before get cashback.</li>
+          <li><b>RUSH</b>About half of the jackpots start <b>RUSH</b> (確変, <i>kakuhen</i>): 4 bonus spins at 1-in-8 odds. Hit again and the RUSH keeps going!</li>
+        </ol>
+      </div>
+      <div class="panel">
+        <h3><i style="--c:var(--violet)"></i>Words you&rsquo;ll see on screen</h3>
+        <p class="soft">The machine is in Japanese. Here is what the words mean.</p>
+        <dl class="gd-terms">
+          <div><dt>持ち玉<small>mochidama</small></dt><dd>Your balls. 持ち玉ランキング ranks who has the most.</dd></div>
+          <div><dt>大当たり<small>ōatari</small></dt><dd>Jackpot! It pays out over several rounds (ROUND 1/8 &hellip;).</dd></div>
+          <div><dt>回転数<small>kaitensū</small></dt><dd>How many spins the machine has done.</dd></div>
+          <div><dt>確率 1/60<small>kakuritsu</small></dt><dd>The odds: about 1 jackpot every 60 spins.</dd></div>
+          <div><dt>ハマり<small>hamari</small></dt><dd>Spins since the last jackpot &mdash; a dry streak.</dd></div>
+          <div><dt>天井まで<small>tenjō made</small></dt><dd>Spins left until the &ldquo;ceiling&rdquo;. Reach it and 遊タイム starts.</dd></div>
+          <div><dt>遊タイム<small>yū-time</small></dt><dd>A rescue after a long dry streak: for 20 spins an extra gate opens to let more balls in.</dd></div>
+          <div><dt>保留 ・ 抽選まち<small>horyū</small></dt><dd>Spins waiting in line (up to 4), and whose they are.</dd></div>
+          <div><dt>リーチ<small>rīchi</small></dt><dd>A reach: two reels match. SPリーチ and SPSPリーチ are stronger &mdash; roughly 5% &rarr; 30% &rarr; 65% to win.</dd></div>
+          <div><dt>確変 ・ RUSH<small>kakuhen</small></dt><dd>Boosted odds after a jackpot: 1 in 8 for 4 spins.</dd></div>
+          <div><dt>押せ ・ 連打<small>ose ・ renda</small></dt><dd>&ldquo;Push!&rdquo; / &ldquo;Mash!&rdquo; &mdash; press the big PUSH button as fast as you can.</dd></div>
+          <div><dt>最終決戦<small>saishū kessen</small></dt><dd>The final battle on the last RUSH spin &mdash; everyone mashes PUSH.</dd></div>
+          <div><dt>予告<small>yokoku</small></dt><dd>Hint effects before a result. The color tells you how hot it is (below).</dd></div>
+          <div><dt>プライズ ・ ジャックポット<small>prize ・ jackpot</small></dt><dd>Prize balls float on the board. Knock 10 down and the Jackpot stage starts, paid from the pool of missed balls.</dd></div>
+        </dl>
+        <p style="margin:14px 0 0"><b>Hint colors</b>, from cold to hot:</p>
+        <ul class="gd-dots">
+          <li><i style="--c:#FFFFFF"></i>white</li><li><i style="--c:#2F7BFF"></i>blue</li><li><i style="--c:#22CC88"></i>green</li><li><i style="--c:#FF2E4D"></i>red</li><li><i style="--c:#FFC21A"></i>gold</li><li><i style="--c:repeating-linear-gradient(45deg,#E8A33A 0 4px,#5A3412 4px 6px)"></i>giraffe pattern (キリン柄) &mdash; the hottest</li>
+        </ul>
+      </div>
+      <div class="panel">
+        <h3><i style="--c:var(--sun)"></i>Special modes</h3>
+        <p>Sometimes the machine switches into a special mode for a few spins. The board, music and colors change, and payouts swing bigger. When a mode runs out of spins there&rsquo;s a chance to extend it, and some modes can level up into stronger ones.</p>
+        <div class="gd-modes">
+          <div style="--c:#E11D48"><b>ブチ切れ<small>Rage</small></b>The deer loses it! Happens when PUSH is spammed with no chance going on.</div>
+          <div style="--c:#39FF8A"><b>クラッキング<small>Cracking</small></b>Hacker mode. Can break into Inferno, Golden Deer or Paradox.</div>
+          <div style="--c:#FF7A2F"><b>インフェルノ<small>Inferno</small></b>Everything&rsquo;s on fire. Can heat up into Golden Deer.</div>
+          <div style="--c:#E7B23C"><b>金鹿プレミアム<small>Golden Deer</small></b>A premium mode with big payout swings. Can upgrade to Platinum.</div>
+          <div style="--c:#B8BFC9"><b>プラチナ<small>Platinum</small></b>+5&ndash;25 balls every time you hit the center pocket, with its own roulette and prizes.</div>
+          <div style="--c:#7FD8FF"><b>レインボー<small>Rainbow</small></b>The rarest: +50&ndash;100 balls per center pocket. Its Hyper Jackpot gives 2,500 balls to everyone who played along.</div>
+          <div style="--c:#FFD23F"><b>アストロ<small>Astro</small></b>The board turns into pinball. Every bumper hit pays +1&ndash;5 balls.</div>
+          <div style="--c:#1FB5B0"><b>パラドックス<small>Paradox</small></b>Time bends: 30% of misses rewind, and sometimes the machine predicts the future.</div>
+          <div style="--c:#A96BFF"><b>アビス<small>Abyss</small></b>Every miss sinks one level deeper, and payouts grow 20% per level (up to &times;3).</div>
+          <div style="--c:#FF4FA8"><b>ネビュラ<small>Nebula</small></b>Boss battle! Everyone shoots the boss together and splits the reward.</div>
+        </div>
+        <p style="margin:12px 0 0" class="soft">Rare surprise: 1 in 200 balls in the center pocket spins the red-and-black roulette, which can send you straight into a mode.</p>
+      </div>
+      <div class="gd-two">
+        <div class="panel">
+          <h3><i style="--c:var(--leaf)"></i>Getting balls</h3>
+          <ul class="gd-list">
+            <li><b>Chat:</b> 10 balls for your first comment, then 1 per comment (one every few seconds counts).</li>
+            <li><b>Daily bonus:</b> your first comment each day.</li>
+            <li><b>Being in chat</b> gives a few balls now and then.</li>
+            <li><b>Mini-games</b> on stream (Game tab): be quick to win.</li>
+            <li><b>Cashback:</b> hit the center pocket &mdash; if someone gets a jackpot within the next 3 minutes, the last 5 pocket hitters each get half of it.</li>
+            <li>And of course, <b>jackpots</b>.</li>
+          </ul>
+        </div>
+        <div class="panel">
+          <h3><i style="--c:var(--violet)"></i>Using balls</h3>
+          <ul class="gd-list">
+            <li><b>Gacha:</b> 500 balls for one cosmetic, 5,000 for 10 (at least one ★4 or better).</li>
+            <li><b>Shop:</b> 5 items that change every 6 hours.</li>
+            <li><b>Wear:</b> put on the skins, icons, titles, fonts and ball skins you own. They show on stream and on your card.</li>
+            <li>Keep a lot of balls to climb the 持ち玉ランキング.</li>
+          </ul>
+        </div>
+      </div>
+      <div class="panel">
+        <h3><i style="--c:var(--sky)"></i>Tips</h3>
+        <ul class="gd-list">
+          <li>You need to <b>follow deerman_247</b> on Twitch to play.</li>
+          <li>The stream is a few seconds behind. Your presses reach the machine right away &mdash; you&rsquo;ll see them a moment later.</li>
+          <li><b>Buttons reach the stream</b> at the top of the Fire tab means your buttons are connected.</li>
+          <li>Buttons that spend balls (gacha, shop) need two taps to confirm.</li>
+          <li><b>Translate</b> adds English under Japanese chat. <b>CC</b> shows English captions of what deerman says (when it&rsquo;s on).</li>
+          <li>Something broken? Type <code>!バグ報告</code> and what happened in chat.</li>
+        </ul>
+        <div class="gd-go" style="margin-top:14px"><button type="button" class="jelly sky" id="gd-tut">Replay the Stream page tour</button><button type="button" class="jelly" data-go="cmd">All commands</button></div>
+      </div>
+    </div>
   </section>
 </main>
 <footer>記録は配信中に 10 分ごとに更新されます。名前は Twitch の表示名です。</footer>
@@ -819,7 +986,7 @@ footer { position: relative; z-index: 2; text-align: center; color: var(--soft);
     warp.style.setProperty("--x", x + "px"); warp.style.setProperty("--y", y + "px");
     warp.style.setProperty("--c", color || "#2EA8FF");
     var swap = function () {
-      view = v; if (v !== "live") studio(false); liveView(v === "live");
+      view = v; if (v !== "live") { studio(false); if (tut) tutEnd(); } liveView(v === "live");
       document.querySelectorAll(".view").forEach(function (s) { s.hidden = s.id !== "v-" + v; s.classList.remove("enter"); });
       var el = $("v-" + v); void el.offsetWidth; el.classList.add("enter");
       document.querySelectorAll(".dock button").forEach(function (b) { if (b.dataset.go === v) b.setAttribute("aria-current", "page"); else b.removeAttribute("aria-current"); });
@@ -856,6 +1023,78 @@ footer { position: relative; z-index: 2; text-align: center; color: var(--soft);
     var b = e.target.closest("[data-copy]"); if (!b) return;
     var t = b.dataset.copy; (navigator.clipboard ? navigator.clipboard.writeText(t) : Promise.reject()).then(function () { b.classList.add("done"); setTimeout(function () { b.classList.remove("done"); }, 1200); }, function () {});
   });
+
+  // ---- 英語の人向け：配信ページのチュートリアル（はじめて配信ページを開いたときだけ自動で。? ボタン・ガイドからいつでも）----
+  // 本物のボタンを順に光らせて説明する。光らせた部分も押せる（そのまま試せる）。ほかのページへ移ったら終わる
+  var TUT = [
+    { el: "#screen", h: "Welcome to Shika Story!", p: "This is the stream. The machine on it is a pachinko game that everyone in chat plays together. Here's a quick tour." },
+    { el: "#say-form", h: "Chat to get balls", p: "Every comment gives you balls: 10 for your first one, then 1 each. You also get a daily bonus and a few just for being in chat." },
+    { el: ".fire", h: "Fire!", p: "Pick how many balls to shoot (1, 5 or 10) and press Fire. Softer and Harder change the launch strength. Aim for the center pocket under the screen: that starts a spin." },
+    { el: "#push", h: "Mash PUSH when it lights up", p: "During a button chance or the final battle, everyone mashes PUSH together. Don't spam it at other times, or the deer gets angry!" },
+    { el: '[data-cmd="!玉"]', h: "Your balls", p: "My balls shows how many you have in chat. The stream is a few seconds behind, so what you press shows up a moment later." },
+    { el: "#ltabs", h: "More to do", p: "Game: mini-game buttons. Gacha: spend balls on cosmetics. Wear: put on what you own. More: your card, fireworks and more." },
+    { el: null, h: "You're ready. Have fun!", p: "New to pachinko? The Pachinko Guide explains jackpots, RUSH and the Japanese words on screen. Replay this tour any time with the ? button.", end: true }
+  ];
+  var tut = null;
+  function tutStart() {
+    if (tut || view !== "live") return;
+    if (pane !== "fire") showPane("fire");
+    var spot = document.createElement("div"), card = document.createElement("div");
+    spot.className = "tut-spot"; card.className = "tut-card"; card.lang = "en"; card.setAttribute("data-notr", "");
+    card.setAttribute("role", "dialog"); card.setAttribute("aria-modal", "true"); card.setAttribute("aria-labelledby", "tut-h");
+    document.body.appendChild(spot); document.body.appendChild(card);
+    tut = { i: 0, spot: spot, card: card, back: document.activeElement };
+    addEventListener("resize", tutPlace); addEventListener("scroll", tutPlace, true); addEventListener("keydown", tutKey, true);
+    tutShow(0);
+  }
+  function tutEnd(toGuide) {
+    if (!tut) return;
+    var t = tut; tut = null; lsSet("ml-tut", "1");
+    removeEventListener("resize", tutPlace); removeEventListener("scroll", tutPlace, true); removeEventListener("keydown", tutKey, true);
+    t.spot.remove(); t.card.remove();
+    if (toGuide) go("guide"); else if (t.back && t.back.focus) try { t.back.focus({ preventScroll: true }); } catch (e) {}
+  }
+  function tutKey(e) {
+    if (!tut) return;
+    if (e.key === "Escape") { e.preventDefault(); tutEnd(); return; }
+    if (e.key !== "Tab") return; // カードの中のボタンだけを行き来する
+    var bs = Array.prototype.slice.call(tut.card.querySelectorAll("button")), i = bs.indexOf(document.activeElement);
+    e.preventDefault(); bs[(i + (e.shiftKey ? -1 : 1) + bs.length) % bs.length].focus();
+  }
+  function tutTarget() { var st = TUT[tut.i], el = st.el && document.querySelector(st.el); return el && el.offsetParent !== null ? el : null; }
+  function tutShow(i) {
+    var st = TUT[i]; tut.i = i;
+    tut.card.innerHTML = '<div class="tut-dots" aria-hidden="true">' + TUT.map(function (x, k) { return "<i" + (k === i ? ' class="on"' : "") + "></i>"; }).join("") + "</div>"
+      + '<h4 id="tut-h">' + esc(st.h) + "</h4><p>" + esc(st.p) + '</p><div class="tut-row">'
+      + (st.end ? '<button type="button" class="skip" data-t="end">Close</button><button type="button" class="jelly sky" data-t="guide">Open the guide</button>'
+        : '<button type="button" class="skip" data-t="end">Skip</button>' + (i ? '<button type="button" class="jelly light" data-t="back">Back</button>' : "") + '<button type="button" class="jelly sky" data-t="next">Next</button>')
+      + "</div>";
+    var el = tutTarget();
+    if (el) { var r = el.getBoundingClientRect(); if (r.top < 8 || r.bottom > innerHeight - 8) el.scrollIntoView({ block: "center", behavior: RM ? "auto" : "smooth" }); }
+    tutPlace(); setTimeout(tutPlace, RM ? 0 : 400); // なめらかに動かしたあと、もう一度合わせる
+    var f = tut.card.querySelector('[data-t="next"], [data-t="guide"]'); if (f) f.focus({ preventScroll: true });
+  }
+  // 光らせる枠と説明のカードを置く。カードは光らせた部分の下に、入らなければ上に、どちらも入らなければ画面の下に
+  function tutPlace() {
+    if (!tut) return;
+    var el = tutTarget(), r = el ? el.getBoundingClientRect() : null, c = tut.card, sp = tut.spot, pad = 6, vw = innerWidth, vh = innerHeight;
+    sp.classList.toggle("none", !r);
+    if (r) { sp.style.left = (r.left - pad) + "px"; sp.style.top = (r.top - pad) + "px"; sp.style.width = (r.width + pad * 2) + "px"; sp.style.height = (r.height + pad * 2) + "px"; }
+    var cw = c.offsetWidth, ch = c.offsetHeight, x, y;
+    if (!r) { x = (vw - cw) / 2; y = (vh - ch) / 2; }
+    else {
+      x = Math.min(vw - cw - 12, Math.max(12, r.left + r.width / 2 - cw / 2));
+      y = r.bottom + pad + 10 + ch <= vh - 8 ? r.bottom + pad + 10 : r.top - pad - 10 - ch >= 8 ? r.top - pad - 10 - ch : Math.max(8, vh - ch - 8);
+    }
+    c.style.left = Math.round(x) + "px"; c.style.top = Math.round(y) + "px";
+  }
+  document.addEventListener("click", function (e) {
+    var b = e.target.closest(".tut-card [data-t]"); if (!b || !tut) return;
+    var t = b.dataset.t;
+    if (t === "next") tutShow(Math.min(TUT.length - 1, tut.i + 1)); else if (t === "back") tutShow(Math.max(0, tut.i - 1)); else tutEnd(t === "guide");
+  });
+  $("tut-open").addEventListener("click", tutStart);
+  $("gd-tut").addEventListener("click", function (e) { go("live", e, "#FF2E4D"); setTimeout(tutStart, RM ? 100 : 700); });
 
   // ---- パッチノート ----
   $("notes").innerHTML = NOTES.map(function (n, i) { return '<li style="--c:' + ACC[i % 5] + '"><span class="ver">' + esc(n[0]) + '</span><time>' + esc(n[1]) + '</time><ul>' + n[2].map(function (x) { return "<li>" + esc(x) + "</li>"; }).join("") + "</ul></li>"; }).join("");
@@ -1988,6 +2227,7 @@ footer { position: relative; z-index: 2; text-align: center; color: var(--soft);
       hint(""); drawPanes(); showPane(lsGet("ml-live-tab") || "fire"); ircOpen(); lwsOpen(); pingNow();
       setTimeout(function () { chat.scrollTop = chat.scrollHeight; }, 50);
       if (!canWrite()) needScope();
+      if (LANG === "en" && !studioOn && !lsGet("ml-tut")) setTimeout(function () { if (view === "live" && liveOpen && !studioOn && !tut) tutStart(); }, 1200);
     } else { document.body.classList.remove("live-on", "vid-full"); clearTimeout(iosT); mxUnmount(); $("screen").innerHTML = "<p>配信の映像</p>"; ircClose(); lwsClose(); }
   }
 
@@ -1995,7 +2235,7 @@ footer { position: relative; z-index: 2; text-align: center; color: var(--soft);
     var h = decodeURIComponent(location.hash.slice(1));
     if (h === STUDIO) { studio(true); if (view === "live") history.replaceState(null, "", "#" + STUDIO); else go("live"); return; }
     if (h.indexOf("u=") === 0 && data) { var v = findViewer(h.slice(2)); view = "me"; studio(false); liveView(false); document.querySelectorAll(".view").forEach(function (s) { s.hidden = s.id !== "v-me"; }); render(v, h.slice(2)); }
-    else if (/^(live|cmd|notes|season|board)$/.test(h)) { studio(false); go(h); }
+    else if (/^(live|cmd|notes|season|board|guide)$/.test(h)) { studio(false); go(h); }
     else document.querySelector('.dock [data-go="lobby"]').setAttribute("aria-current", "page");
   }
   function boot(d) {
