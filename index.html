@@ -1112,18 +1112,19 @@ footer { position: relative; z-index: 2; text-align: center; color: var(--soft);
     $("screen").appendChild(capEl); // 字幕はミラーの上にも出す
     $("mx-snd").addEventListener("click", mxSound);
     MX = { root: root, world: root.firstChild, box: { pa: root.querySelector(".mx-pa"), ov: root.querySelector(".mx-ov") }, rep: {}, ready: {}, q: { ov: [], pa: [] },
-      mc: {}, media: {}, want: {}, req: {}, done: {}, byHash: {}, seq: 0, lib: false, rest: {} };
+      mc: {}, media: {}, want: {}, req: {}, done: {}, byHash: {}, seq: 0, lib: false, rest: {}, wq: [], sent: [] };
+    MX.reqT = setInterval(mxReqCheck, 5000);
     var fit = function () { if (MX) MX.world.style.transform = "scale(" + (MX.root.clientWidth / 1920) + ")"; };
     MX.ro = window.ResizeObserver ? new ResizeObserver(fit) : null; if (MX.ro) MX.ro.observe(root); else addEventListener("resize", fit);
     fit(); mxMsg();
     mxLib().then(function () { if (!MX) return; MX.lib = true; ["ov", "pa"].forEach(function (src) { var q = MX.q[src]; MX.q[src] = []; q.forEach(function (l) { mxFeed(src, l); }); }); },
       function () { if (MX) $("mx-msg").textContent = "再生の部品を読み込めませんでした。ページを開き直してください"; });
     // ときどき画面をまるごと送り直してもらい、ずれを直す（古い再生はそのとき捨てる）。OBS の負担にならないように 15 分ごと
-    MX.resync = setInterval(function () { if (MX && mxOn) lsend({ t: "mx-snap" }); }, 900000);
+    MX.resync = setInterval(function () { if (MX && mxOn) mxSend({ t: "mx-snap" }); }, 900000);
   }
   function mxUnmount() {
     if (!MX) return;
-    clearInterval(MX.resync); if (MX.ro) MX.ro.disconnect();
+    clearInterval(MX.resync); clearInterval(MX.reqT); clearTimeout(MX.pumpT); if (MX.ro) MX.ro.disconnect();
     if (MX.snd) { try { MX.snd.close(); } catch (e) {} lsend({ t: "mx-audio", on: 0 }); }
     ["ov", "pa"].forEach(function (src) { var R = MX.rep[src]; if (R) try { R.destroy(); } catch (e) {} });
     Object.keys(MX.byHash).forEach(function (h) { URL.revokeObjectURL(MX.byHash[h]); });
@@ -1212,7 +1213,7 @@ footer { position: relative; z-index: 2; text-align: center; color: var(--soft);
     var R;
     try {
       R = new window.rrwebReplay.Replayer([], { root: host, liveMode: true, mouseTail: false, showWarning: false, showDebug: false, triggerFocus: false, UNSAFE_replayCanvas: false,
-        insertStyleRules: ["html, body { background: transparent !important; }"] });
+        insertStyleRules: ["html, body { background: transparent !important; }", "video::-webkit-media-controls { display: none !important; }"] });
     } catch (x) { host.remove(); return; }
     R.__host = host;
     R.on("event-cast", function (e) { mxFix(src, R, e); });
@@ -1258,13 +1259,15 @@ footer { position: relative; z-index: 2; text-align: center; color: var(--soft);
   }
   function mxSrc(src, R, el) {
     var cur = el.getAttribute("src") || "", path = el.getAttribute("data-mx") || "";
-    if (!cur && !path) return;
-    if (cur && (/^(data|https):/i.test(cur) || cur.indexOf("blob:" + location.origin + "/") === 0)) return; // そのまま読めるもの・もう入れたもの
+    // OBS でいま読み込んでいないもの（使い終わって外した動画。名前の data-mx だけ残っている）は頼まない。
+    // 前は 56 本の動画を全部頼み、門番の上限（1 人 10 秒に 60 回）を超えて、映すべき背景の頼みが捨てられていた（OBS も全部読んで重くなる）
+    if (!cur) return;
+    if (/^(data|https):/i.test(cur) || cur.indexOf("blob:" + location.origin + "/") === 0) return; // そのまま読めるもの・もう入れたもの
     var key = path || cur, url = MX.done[key];
-    el.__mxKey = key; el.__mxSrc = src;
+    el.__mxKey = key; el.__mxSrc = src; el.__mxCur = cur;
     if (url) { el.setAttribute("src", url); mxResume(src, R, el); return; }
     el.removeAttribute("src");
-    mxGet(src, cur, path, key);
+    mxGet(src, cur, path, key, el.tagName === "VIDEO" && el.classList.contains("on"));
   }
   // 動画の再生のようす（再生中か・どこまで）を覚えておき、素材が届いて入れたあとに合わせる
   function mxMediaNote(src, id, play, t) {
@@ -1294,26 +1297,63 @@ footer { position: relative; z-index: 2; text-align: center; color: var(--soft);
   }
   // 素材：OBS に情報（hash）を聞き、このパソコンにあればそれを使う。なければ中身を小分けでもらい、覚えておく（Cache Storage）
   function mxCache() { return window.caches ? caches.open("mx-assets-v1").catch(function () { return null; }) : Promise.resolve(null); }
-  function mxGet(src, url, alt, key) {
+  // 頼むのは列に並べて少しずつ（同時に 3 つ・10 秒に 40 通まで。門番は 1 人 10 秒に 60 通を超えた頼みを捨てる）。いま映っている動画（on）を先に
+  function mxGet(src, url, alt, key, first) {
     if (MX.want[key]) return;
-    var id = "a" + (++MX.seq) + Date.now().toString(36);
-    MX.want[key] = id; MX.req[id] = { key: key, src: src };
-    lsend({ t: "mx-get", src: src, id: id, url: url, alt: alt });
-    setTimeout(function () { if (MX && MX.req[id] && !MX.req[id].hash) { delete MX.req[id]; delete MX.want[key]; } }, 20000); // 返事がなければ、次に見かけたときに頼み直す
+    MX.want[key] = "q";
+    var job = { src: src, url: url, alt: alt, key: key };
+    if (first) MX.wq.unshift(job); else MX.wq.push(job);
+    mxPump();
+  }
+  function mxSend(o) { MX.sent.push(Date.now()); lsend(o); }
+  function mxPump() {
+    if (!MX) return;
+    clearTimeout(MX.pumpT);
+    var now = Date.now(); MX.sent = MX.sent.filter(function (t) { return now - t < 10000; });
+    while (MX.wq.length && Object.keys(MX.req).length < 3 && MX.sent.length < 40) {
+      var j = MX.wq.shift(), id = "a" + (++MX.seq) + Date.now().toString(36);
+      MX.want[j.key] = id; MX.req[id] = { key: j.key, src: j.src, at: Date.now() };
+      mxSend({ t: "mx-get", src: j.src, id: id, url: j.url, alt: j.alt });
+    }
+    if (MX.wq.length) MX.pumpT = setTimeout(mxPump, 1000);
+  }
+  // 返事も小分けも 20 秒届かない頼みは捨てる（門番が回数の上限で捨てた・OBS が 1 分で手放した）。その素材をまだ待っている動画・画像があれば、頼み直す
+  function mxReqCheck() {
+    if (!MX) return;
+    var now = Date.now();
+    Object.keys(MX.req).forEach(function (id) {
+      var r = MX.req[id]; if (now - r.at < 20000) return;
+      delete MX.req[id]; if (MX.want[r.key] === id) delete MX.want[r.key];
+      mxAgain(r.key, 3000);
+    });
+    mxPump();
+  }
+  function mxAgain(key, ms) {
+    setTimeout(function () {
+      if (!MX || MX.want[key] || MX.done[key]) return;
+      ["ov", "pa"].some(function (src) {
+        var R = MX.rep[src], doc = R && R.iframe && R.iframe.contentDocument; if (!doc) return false;
+        return [].some.call(doc.querySelectorAll("video,img"), function (el) {
+          if (el.__mxKey !== key || el.getAttribute("src") || !el.__mxCur) return false;
+          mxGet(el.__mxSrc, el.__mxCur, el.getAttribute("data-mx") || "", key, el.tagName === "VIDEO" && el.classList.contains("on"));
+          return true;
+        });
+      });
+    }, ms);
   }
   function mxMeta(o) {
     var r = MX.req[o.id]; if (!r) return;
-    if (o.err || !o.hash) { delete MX.req[o.id]; setTimeout(function () { if (MX && MX.want[r.key] === o.id) delete MX.want[r.key]; }, 30000); return; }
+    if (o.err || !o.hash) { delete MX.req[o.id]; mxPump(); setTimeout(function () { if (MX && MX.want[r.key] === o.id) { delete MX.want[r.key]; mxAgain(r.key, 0); } }, 30000); return; }
     r.hash = String(o.hash).replace(/[^\w-]/g, "").slice(0, 40); r.type = String(o.type || "").slice(0, 60);
     if (MX.byHash[r.hash]) { mxDone(o.id, MX.byHash[r.hash]); return; }
-    var pull = function () { if (!MX || !MX.req[o.id]) return; r.parts = []; r.got = 0; lsend({ t: "mx-pull", src: r.src, id: o.id }); };
+    var pull = function () { if (!MX || !MX.req[o.id]) return; r.parts = []; r.got = 0; r.at = Date.now(); mxSend({ t: "mx-pull", src: r.src, id: o.id }); };
     mxCache().then(function (c) { return c ? c.match("/mx-asset/" + r.hash) : null; }).then(function (res) { return res ? res.blob() : null; })
       .then(function (b) { if (!MX) return; if (b && b.size) mxDone(o.id, URL.createObjectURL(b.type ? b : new Blob([b], { type: r.type }))); else pull(); }, pull);
   }
   function mxChunk(id, i, n, b64) {
     var r = MX.req[id]; if (!r || !r.parts || !(n > 0) || !(i >= 0 && i < n) || r.parts[i]) return;
     try { var bin = atob(b64), u8 = new Uint8Array(bin.length); for (var k = 0; k < bin.length; k++) u8[k] = bin.charCodeAt(k); } catch (e) { return; }
-    r.parts[i] = u8; r.got++;
+    r.parts[i] = u8; r.got++; r.at = Date.now();
     if (r.got < n) return;
     var blob = new Blob(r.parts, { type: r.type || "application/octet-stream" }); r.parts = null;
     mxCache().then(function (c) { if (c) return c.put("/mx-asset/" + r.hash, new Response(blob, { headers: { "Content-Type": blob.type } })); }).catch(function () {});
@@ -1321,7 +1361,7 @@ footer { position: relative; z-index: 2; text-align: center; color: var(--soft);
   }
   function mxDone(id, url) {
     var r = MX.req[id]; delete MX.req[id]; if (!r) return;
-    MX.byHash[r.hash] = url; MX.done[r.key] = url; delete MX.want[r.key];
+    MX.byHash[r.hash] = url; MX.done[r.key] = url; delete MX.want[r.key]; mxPump();
     ["ov", "pa"].forEach(function (src) {
       var R = MX.rep[src], doc = R && R.iframe && R.iframe.contentDocument; if (!doc) return;
       doc.querySelectorAll("video,img").forEach(function (el) { if (el.__mxKey === r.key && el.getAttribute("src") !== url) { el.setAttribute("src", url); mxResume(src, R, el); } });
