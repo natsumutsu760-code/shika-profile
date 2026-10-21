@@ -908,6 +908,7 @@ footer { position: relative; z-index: 2; text-align: center; color: var(--soft);
     ["そのほか", "#22CC88", [["!けいじばん こんにちは", "ラウンジの掲示板に書く（1 分に 1 回・120 字まで）"], ["!バグ報告 ガチャのあと画面が止まった", "不具合を配信者に知らせる（30 秒に 1 回・300 字まで）"], ["!花火", "画面に花火（!ハート でハート）"], [null, "888 で拍手、草 で草が生える"], ["!モノリンク", "MONO LINK の URL をチャットで受け取る（!サイト でも）"]]]
   ];
   var NOTES = [
+    ["build 80", "2026-10-22", ["鹿物語 Ver.1.8.20：配信者用ページのミラーで、リールの数字の色と、持ち玉・回転数・ジャックポットなどの数字の字体が崩れていたのを直しました（OBS の画面の見た目そのものは変わりません）", "配信者用ページのミラーで、盤面の背景動画がそのパソコンの Chrome で映らないときは、映し方を自動で切りかえるようにしました（webm → MSE → mp4。映った方法は覚えます）"]],
     ["build 79", "2026-10-21", ["スキン「XIII」とアイコン「緋角の紋」の紋章を、鹿さんの絵をもとにした切子（多面体）の頭蓋骨に描き直しました。骨は銀、鬼の角は緋。目のくぼみの奥が拍で緋く光ります"]],
     ["build 78", "2026-10-21", ["プレステージ専用のスキン「緋角」の名前を「XIII」にしました（!スキン XIII で使えます）", "スキン「XIII」とアイコン「緋角の紋」の紋章を、角の生えた鹿の頭蓋骨にしました"]],
     ["build 77", "2026-10-21", ["プレステージ専用コスメ P1 を、鹿の角と緋の宝石と月桂樹の紋章で作り直しました：スキン「緋角（ひづの）」・アイコン「緋角の紋」・二つ名「緋をまとう鹿」・玉スキン「紅蓮」（紅い蓮の炎）。どれも ★5 で、プレステージすると手に入ります（ガチャ・お店には出ません）"]],
@@ -1625,10 +1626,10 @@ footer { position: relative; z-index: 2; text-align: center; color: var(--soft);
     ["ov", "pa"].forEach(function (src) {
       var R = MX.rep[src], doc = R && R.iframe && R.iframe.contentDocument; if (!doc) return;
       doc.querySelectorAll("video.on").forEach(function (el) {
-        if (!el.__mxAt || el.__mxHow !== MX.vhow || el.__mxOk) return;
+        if (!el.__mxAt || el.__mxHow !== MX.vhow || el.__mxOk || el.ended) return; // 終わった動画（液晶の短い動画）は数えない
         var m = MX.media[src + ":" + R.getMirror().getId(el)]; if (m && !m.play) return; // OBS で止まっている動画は見ない
         var t = el.currentTime || 0;
-        if (el.readyState >= 2 && el.__mxT != null && t !== el.__mxT) { el.__mxOk = 1; return; }
+        if (el.readyState >= 2 && el.__mxT != null && t !== el.__mxT) { el.__mxOk = 1; if (MX.vgaveUp) { MX.vgaveUp = 0; MX.st.last = MX_HOW[MX.vhow] + " で映りました"; } return; }
         el.__mxT = t;
         if (el.error || el.__mxDead || now - Math.max(el.__mxAt, MX.visAt || 0) > 6000) bad = true;
       });

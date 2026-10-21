@@ -12243,6 +12243,7 @@ if (location.hash === "#lcdcard" || location.hash === "#sitecard" || document.do
 
 
 
+
 <!--shika-mirror--><script>
 /* rrweb 2.1.7 — MIT License. Copyright (c) 2018 Contributors (https://github.com/rrweb-io/rrweb/graphs/contributors). https://github.com/rrweb-io/rrweb/blob/master/LICENSE */
 (function (g, f) {
@@ -12531,7 +12532,25 @@ return module.exports;
     return out;
   }
   function cvStop() { clearTimeout(cvT); cvT = 0; if (cvW) { try { cvW.terminate(); } catch (e) {} cvW = null; } cvBusy = {}; }
-  function push(e) { buf.push(e); if (!flushT) flushT = setTimeout(flush, 100); }
+  // <style> は書いたままの文字で送る。rrweb は CSSOM（sheet.cssRules の cssText）から書き戻して _cssText に入れるが、
+  // まとめ書きに var() を使い、あとで一部を上書きした規則（例：background: linear-gradient(… var(--rc1) …) のあとに background-clip: text、
+  // font: … var(--font-display) のあとに font-variant-numeric）は、書き戻すと値が空になる。ミラーでリールの数字の色と字体などが消えていた
+  // （2026-10-22。鹿物語 28 か所・オーバーレイ 8 か所）
+  function rawStyles(n) {
+    if (!n || typeof n !== "object") return;
+    if (n.type === 2 && n.tagName === "style" && n.attributes && typeof n.attributes._cssText === "string") {
+      var el = R.mirror && R.mirror.getNode(n.id), t = el && el.childNodes.length <= 1 ? el.textContent : "";
+      if (t && t.trim()) n.attributes._cssText = t;
+    }
+    var c = n.childNodes; if (c) for (var i = 0; i < c.length; i++) rawStyles(c[i]);
+  }
+  function push(e) {
+    try {
+      if (e.type === 2 && e.data) rawStyles(e.data.node);
+      else if (e.type === 3 && e.data && e.data.source === 0 && e.data.adds) e.data.adds.forEach(function (a) { rawStyles(a.node); });
+    } catch (x) {}
+    buf.push(e); if (!flushT) flushT = setTimeout(flush, 100);
+  }
   function flush() {
     flushT = 0;
     var list = buf; buf = [];
