@@ -909,6 +909,7 @@ footer { position: relative; z-index: 2; text-align: center; color: var(--soft);
     ["そのほか", "#22CC88", [["!けいじばん こんにちは", "ラウンジの掲示板に書く（1 分に 1 回・120 字まで）"], ["!バグ報告 ガチャのあと画面が止まった", "不具合を配信者に知らせる（30 秒に 1 回・300 字まで）"], ["!花火", "画面に花火（!ハート でハート）"], [null, "888 で拍手、草 で草が生える"], ["!モノリンク", "MONO LINK の URL をチャットで受け取る（!サイト でも）"]]]
   ];
   var NOTES = [
+    ["build 82", "2026-10-22", ["鹿物語 Ver.1.8.22：配信者用ページのミラーで、玉の動きがコマ送りだったのを滑らかにしました。盤面の絵を小さく（0.6 倍）して、1 秒 20 枚まで送ります（前は 1 秒 3〜8 枚）。配信者用ページでは、OBS で写した間隔のとおりに並べて出します", "「軽くする」を押しているときの盤面の絵は、1 秒 10 枚までにしました"]],
     ["build 81", "2026-10-22", ["鹿物語 Ver.1.8.21：配信者用ページのミラーを軽くしました。盤面のまわりのランプと LED リングの色は、ミラーへは 0.25 秒ごとにまとめて送ります（配信の画面の光り方は変わりません）。盤面の絵の取り込みも軽くし、タブが隠れているあいだは描きません", "ミラーの右下に「軽くする」ボタンを足しました。押すと、ミラーだけ影・ぼかし・光のにじみを描かず、盤面の絵を 1 秒に 4 枚にします（このパソコンに覚えます）"]],
     ["build 80", "2026-10-22", ["鹿物語 Ver.1.8.20：配信者用ページのミラーで、リールの数字の色と、持ち玉・回転数・ジャックポットなどの数字の字体が崩れていたのを直しました（OBS の画面の見た目そのものは変わりません）", "配信者用ページのミラーで、盤面の背景動画がそのパソコンの Chrome で映らないときは、映し方を自動で切りかえるようにしました（webm → MSE → mp4。映った方法は覚えます）"]],
     ["build 79", "2026-10-21", ["スキン「XIII」とアイコン「緋角の紋」の紋章を、鹿さんの絵をもとにした切子（多面体）の頭蓋骨に描き直しました。骨は銀、鬼の角は緋。目のくぼみの奥が拍で緋く光ります"]],
@@ -1514,9 +1515,9 @@ footer { position: relative; z-index: 2; text-align: center; color: var(--soft);
       if (e.type === 5 && e.data && e.data.tag === "mx-rest") { MX.rest[src] = Date.now() + 1000 * Math.min(3600, +(e.data.payload || {}).sec || 600); mxMsg(); return; }
       if (e.type === 2) { mxNew(src, e); return; }
       if (!MX.ready[src] || e.type !== 3) return;
-      e.timestamp = MX["last" + src] = Math.max(MX["last" + src], Date.now());
       var d = e.data || {};
-      if (d.source === 9) { mxCanvas(src, d); return; } // キャンバスの絵は自分で描く
+      if (d.source === 9) { mxCvSched(src, d, e.timestamp); return; } // キャンバスの絵は自分で描く（OBS で写した間隔のとおりに）
+      e.timestamp = MX["last" + src] = Math.max(MX["last" + src], Date.now());
       if (d.source === 7) mxMediaNote(src, d.id, d.type === 1 ? false : d.type === 0 ? true : null, d.currentTime);
       try { MX.rep[src].addEvent(e); } catch (x) {}
     });
@@ -1750,7 +1751,7 @@ footer { position: relative; z-index: 2; text-align: center; color: var(--soft);
       doc.querySelectorAll("video,img").forEach(function (el) { if (el.__mxKey === r.key && el.getAttribute("src") !== url) mxAttach(src, R, el, r.key, url); });
     });
   }
-  // 軽くする（右下のボタン・このパソコンに覚える）：影・ぼかし・光のにじみを描かない・盤面の絵は 1 秒に 4 枚まで。OBS と配信の画面は変わらない
+  // 軽くする（右下のボタン・このパソコンに覚える）：影・ぼかし・光のにじみを描かない・盤面の絵は 1 秒に 10 枚まで。OBS と配信の画面は変わらない
   var MX_LITE_KEY = "mx-lite-v1", MX_LITE_CSS = "*, *::before, *::after { filter: none !important; backdrop-filter: none !important; box-shadow: none !important; text-shadow: none !important; }";
   function mxLiteGet() { try { return localStorage.getItem(MX_LITE_KEY) === "1"; } catch (e) { return false; } }
   function mxLiteCss(doc) {
@@ -1795,9 +1796,18 @@ footer { position: relative; z-index: 2; text-align: center; color: var(--soft);
     if (!el || el.tagName !== "CANVAS" || !ab || typeof ab.base64 !== "string") return;
     // base64 のまま data URL にしてブラウザに読ませる（1 バイトずつ組み立てない）
     var url = "data:" + (/^image\/(webp|png|jpeg)$/.test(bl.type) ? bl.type : "image/webp") + ";base64," + ab.base64;
-    if (document.hidden || (MX.lite && Date.now() - (el.__mxAt || 0) < 250)) { el.__mxLater = url; MX.cvLater[d.id + src] = el; return; } // 隠れているあいだは描かない（見えたら最後の絵だけ）。軽くしているときは 1 秒に 4 枚まで
+    if (document.hidden || (MX.lite && Date.now() - (el.__mxAt || 0) < 100)) { el.__mxLater = url; MX.cvLater[d.id + src] = el; return; } // 隠れているあいだは描かない（見えたら最後の絵だけ）。軽くしているときは 1 秒に 10 枚まで
     el.__mxAt = Date.now();
     mxPaint(el, url, false);
+  }
+  // 盤面の絵は、OBS で写した間隔のとおりに出す。OBS は 0.1 秒ごとにまとめて送るので、届いてすぐ出すと 2 枚ずつ固まってコマ送りに見える。
+  // 「届いた時刻 − OBS の時刻」のいちばん小さいもの（少しずつ大きくなるのは許す）に 0.12 秒足した時刻に出す
+  function mxCvSched(src, d, ot) {
+    var now = Date.now(), lag = now - ot;
+    MX.cvLag = MX.cvLag == null || lag < MX.cvLag ? lag : MX.cvLag + 1;
+    var wait = ot + MX.cvLag + 120 - now;
+    if (!(wait > 0) || wait > 1500) { mxCanvas(src, d); return; }
+    setTimeout(function () { if (MX) mxCanvas(src, d); }, wait);
   }
   // あとで描く絵（隠れていた・軽くしていて間引いた）を描く
   function mxCvLater() {
