@@ -186,11 +186,27 @@ h2.sec::before { content: ""; width: 22px; height: 22px; border-radius: 50%; bor
 .evo { display: inline-block; font: 700 11px/1 var(--num); font-style: normal; padding: 3px 6px 2px; border-radius: 999px; background: #C9FFE9; color: var(--ink); vertical-align: 2px; margin-left: 4px; white-space: nowrap; }
 .evo.e2 { background: #BFF4FF; box-shadow: 0 0 0 2px #7ADFFF, 0 0 8px #7ADFFF; }
 .evo.e3 { color: #fff; background: linear-gradient(100deg, #FF4D7A, #FFB300, #22CC88, #2EA8FF, #8E6CFF); }
+/* プレステージ（Lv.100 から Lv.1 にもどった回数） */
+.pill.prs { background: var(--ink); color: #FFD60A; box-shadow: inset 0 0 0 2px #FFD60A; }
 
 .kinds { display: inline-flex; gap: 4px; padding: 5px; background: #fff; border-radius: 999px; box-shadow: var(--lift); flex-wrap: wrap; margin-bottom: 16px; }
 .kinds button { border: 0; background: none; border-radius: 999px; padding: 9px 14px; font: 900 14px/1 var(--jp); transition: background .25s, color .25s; }
 .kinds button small { font: 600 12px/1 var(--num); margin-left: 4px; opacity: .7; }
 .kinds button[aria-pressed="true"] { background: var(--ink); color: #fff; }
+/* 持ち物のしぼりこみ：持っているか・レア・並び・名前（種類を替えてもそのまま） */
+.inv-f { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; margin: -4px 0 16px; }
+.inv-f > * { flex: none; }
+.inv-f .seg { display: inline-flex; flex-wrap: wrap; gap: 2px; padding: 4px; background: #fff; border-radius: 999px; box-shadow: var(--lift); }
+.inv-f .seg button { border: 0; background: none; border-radius: 999px; padding: 7px 11px; font: 900 13px/1 var(--jp); white-space: nowrap; transition: background .25s, color .25s; }
+.inv-f .seg button[aria-pressed="true"] { background: var(--ink); color: #fff; }
+.inv-f .seg.rar button { font: 600 13px/1 var(--num); color: var(--rc); padding: 7px 10px; }
+.inv-f .seg.rar button[aria-pressed="true"] { background: var(--rc); color: #fff; }
+.inv-f select, .inv-f input { border: 0; background: #fff; border-radius: 999px; box-shadow: var(--lift); padding: 10px 14px; font: 700 13px/1 var(--jp); color: var(--ink); }
+.inv-f input { flex: 1 1 150px; min-width: 0; -webkit-appearance: none; appearance: none; }
+.inv-f .cnt { font: 600 13px/1 var(--num); color: var(--soft); white-space: nowrap; }
+.inv-f .clear { border: 0; background: none; font: 700 12px/1 var(--jp); color: var(--soft); text-decoration: underline; padding: 6px 2px; }
+.inv-f .clear[hidden] { display: none; }
+.grid .none { grid-column: 1 / -1; margin: 0; padding: 26px 16px; text-align: center; color: var(--soft); font-weight: 700; background: #fff; border-radius: 22px; box-shadow: var(--lift); }
 .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 14px; }
 .card { perspective: 800px; border: 0; padding: 0; background: none; text-align: left; height: 176px; }
 .card .flip { position: relative; width: 100%; height: 100%; transform-style: preserve-3d; transition: transform .6s var(--spring); }
@@ -884,11 +900,12 @@ footer { position: relative; z-index: 2; text-align: center; color: var(--soft);
   var KIND = [["skin", "スキン"], ["icon", "アイコン"], ["ep", "二つ名"], ["font", "フォント"], ["ball", "玉スキン"]];
   var ACC = ["#2EA8FF", "#FF5A64", "#FFC21A", "#22CC88", "#8E6CFF"];
   var CMDS = [
-    ["見た目と記録", "#2EA8FF", [["!プロフ", "配信画面に自分のカードを出す"], ["!レベル", "レベルと、次のレベルまでを見る"], ["!スキン 名前", "カードのスキンを変える（名前なしで一覧）"], ["!アイコン 名前", "アイコンを変える"], ["!二つ名 名前", "名前の上に出る二つ名を変える"], ["!フォント 名前", "名前と弾幕の書体を変える"], ["!玉スキン 名前", "鹿物語で落ちる自分の玉の見た目を変える"], ["!持ち物", "持っている物と手に入れ方を見る"], ["!サイト", "MONO LINK:// のアドレスを出す"]]],
-    ["鹿物語（パチンコ）", "#FF5A64", [[null, "なんでもコメントすると玉がもらえる（はじめは 10 玉）"], ["!発射 5", "持ち玉を打つ（数字なしは 1 発）。みんな同時に打てる。1 人連続 50 発でオーバーヒートし、冷えるまで 1 発ずつ。ルーレット・ジャックポットのあいだは打てない"], ["!強く", "打ち出しを強く（!弱く で弱く）"], ["!押せ", "連打チャンス・最終決戦でみんなで押す"], ["!玉", "自分の持ち玉を見る"], ["!せんべい", "ミニゲームに参加（!数字 3・!グー も）"], ["!ガチャ", "持ち玉 500 でコスメガチャ（★5 2%・★4 10%、10 回で ★4 以上・60 回で ★5 確定）"], ["!ガチャ10", "持ち玉 5000 で 10 連（★4 以上が 1 つは出る）"], ["!お店", "いまお店に並んでいる 5 品を見る"], ["!購入 1", "お店の品物を持ち玉で買う（番号は 1〜5）"]]],
+    ["見た目と記録", "#2EA8FF", [["!プロフ", "配信画面に自分のカードを出す"], ["!レベル", "レベルと、次のレベルまでを見る"], ["!プレステージ", "Lv.100 から。30 秒以内に 2 回打つと Lv.1 にもどり、レベルに P1・P2…が付く（持ち物・称号・持ち玉はそのまま）"], ["!スキン 名前", "カードのスキンを変える（名前なしで一覧）"], ["!アイコン 名前", "アイコンを変える"], ["!二つ名 名前", "名前の上に出る二つ名を変える"], ["!フォント 名前", "名前と弾幕の書体を変える"], ["!玉スキン 名前", "鹿物語で落ちる自分の玉の見た目を変える"], ["!持ち物", "持っている物と手に入れ方を見る"], ["!サイト", "MONO LINK:// のアドレスを出す"]]],
+    ["鹿物語（パチンコ）", "#FF5A64", [[null, "なんでもコメントすると玉がもらえる（はじめは 10 玉）"], ["!発射 5", "持ち玉を打つ（数字なしは 1 発）。みんな同時に打てる。1 人連続 50 発でオーバーヒートし、冷えるまで 1 発ずつ。ルーレット・ジャックポットのあいだは打てない"], ["!強く", "打ち出しを強く（!弱く で弱く）"], ["!押せ", "連打チャンス・最終決戦でみんなで押す"], ["!玉", "自分の持ち玉を見る"], ["!経験値 1000", "持ち玉をプロフィールの経験値に変える（ふだんは 1 玉で経験値 1。!経験値 全部 で全部）"], ["!せんべい", "ミニゲームに参加（!数字 3・!グー も）"], ["!ガチャ", "持ち玉 500 でコスメガチャ（★5 2%・★4 10%、10 回で ★4 以上・60 回で ★5 確定）"], ["!ガチャ10", "持ち玉 5000 で 10 連（★4 以上が 1 つは出る）"], ["!お店", "いまお店に並んでいる 5 品を見る"], ["!購入 1", "お店の品物を持ち玉で買う（番号は 1〜5）"]]],
     ["そのほか", "#22CC88", [["!けいじばん こんにちは", "ラウンジの掲示板に書く（1 分に 1 回・120 字まで）"], ["!バグ報告 ガチャのあと画面が止まった", "不具合を配信者に知らせる（30 秒に 1 回・300 字まで）"], ["!花火", "画面に花火（!ハート でハート）"], [null, "888 で拍手、草 で草が生える"], ["!モノリンク", "MONO LINK の URL をチャットで受け取る（!サイト でも）"]]]
   ];
   var NOTES = [
+    ["build 75", "2026-10-21", ["持ち玉をプロフィールの経験値に変えられるようにしました（鹿物語 Ver.1.8.16）。「!経験値 1000」で 1,000 玉を経験値 1,000 に、「!経験値 全部」で持ち玉ぜんぶを変えます（何玉で経験値 1 かは配信者が決めます）", "レベルの上限（Lv.99）をなくしました。Lv.100 から「!プレステージ」を 30 秒以内に 2 回打つと Lv.1 にもどり、レベルの札に P1・P2…の印が付きます。持ち物・称号・持ち玉はそのままで、レベルで手に入れたコスメもなくなりません（Lv.100 をこえた分の経験値はなくなります）", "ラウンジの持ち物を、持っている物・まだの物・進化した物、★1〜5（いくつでも選べます）、名前でしぼりこめるようにしました。並びは持っている順・レアが高い順・低い順・新しく入った順・名前順から選べます。条件は種類を替えてもそのままです", "配信オーバーレイの操作パネルから、コスメの一覧を外しました（全部の見た目はコスメ図鑑で見られます）"]],
     ["build 74", "2026-10-21", ["鹿物語 Ver.1.8.15：ジャックポットとハイパージャックポットの見た目を、メダルゲームの回る鉢に作り直しました。斜め上から見た鉢が下へ段になって続き、NEXT の穴に落ちると下の段へ降ります", "段ごとに縁の色が変わり（最後の段は GOLD）、まん中の白い円盤には JACKPOT・NEXT・OUT の区画が回ります。側面の電球は、当たりの穴に落ちると金色に点滅します", "ラウンド数・当たりの確率・穴の並びは、今までと同じです"]],
     ["build 73", "2026-10-20", ["鹿物語 Ver.1.8.14：オーバーヒートのゲージが冷えている途中に !発射 すると、持ち玉が小数で引かれることがある不具合を直しました（1.8.12 から。打てる玉は整数に切り捨てます）。持ち玉の端数は、台を読み込み直したときに切り捨てられます"]],
     ["build 72", "2026-10-20", ["鹿物語 Ver.1.8.13：持ち玉の端数（1 玉に満たない分）で !発射 すると、「発射待ち」の数字がマイナスの小数になって止まる不具合を直しました。端数では打てません（持ち玉に残ります）", "持ち玉のランキングと !玉 は、端数を切り捨てて出すようにしました"]],
@@ -968,7 +985,7 @@ footer { position: relative; z-index: 2; text-align: center; color: var(--soft);
     if (!fr || e.source !== fr.contentWindow || e.origin !== location.origin || !e.data || e.data.type !== "sitecard-ready" || !cur) return;
     var v = cur;
     // 段階（skinLv など）はオーバーレイの新しい記録にだけある（古い記録ではふつう）
-    fr.contentWindow.postMessage({ type: "sitecard", name: v.name, skin: v.eq.skin, icon: v.eq.icon, ep: v.eq.ep, font: v.eq.font, skinLv: v.eq.skinLv || 0, iconLv: v.eq.iconLv || 0, epLv: v.eq.epLv || 0, L: v.L, X: v.X, from: v.from, to: v.to, title: v.title || "",
+    fr.contentWindow.postMessage({ type: "sitecard", name: v.name, skin: v.eq.skin, icon: v.eq.icon, ep: v.eq.ep, font: v.eq.font, skinLv: v.eq.skinLv || 0, iconLv: v.eq.iconLv || 0, epLv: v.eq.epLv || 0, L: v.L, X: v.X, pr: v.pr || 0, from: v.from, to: v.to, title: v.title || "",
       meta: "連続 " + fmt(v.best || 0) + " 回　持ち玉 " + fmt(v.balls || 0) + "玉" }, location.origin);
   });
   function cssBg(x) { return x && x.bg && x.bg.indexOf("var(") < 0 ? x.bg : "radial-gradient(120% 140% at 0% 0%," + ((x && x.pc) || "#8FE6C0") + "," + ((x && x.pb) || "#E4FFF2") + " 55%,#fff)"; }
@@ -1115,8 +1132,9 @@ footer { position: relative; z-index: 2; text-align: center; color: var(--soft);
       var v = findViewer(h.n) || (h.l && findViewer(h.l));
       if (!v) v = { name: h.n, L: 1, X: 0, eq: {}, ghost: true };
       if (seen[v.name]) return null; seen[v.name] = 1; return v;
-    }).filter(Boolean).sort(function (a, b) { return b.X - a.X; });
+    }).filter(Boolean).sort(function (a, b) { return (b.pr || 0) - (a.pr || 0) || b.X - a.X; }); // プレステージした人が先
   }
+  function lvTxt(v) { return (v.pr > 0 ? "P" + (+v.pr) + "・" : "") + "Lv." + v.L; } // P2・Lv.15（P はプレステージの回数）
   function buildPlaza() {
     avs.forEach(function (o) { o.el.remove(); }); avs = [];
     var vs = present().slice(0, 42);
@@ -1126,14 +1144,14 @@ footer { position: relative; z-index: 2; text-align: center; color: var(--soft);
       var sk = itemOf("skin", v.eq.skin) || {}, b = document.createElement("button");
       b.type = "button"; b.className = "av" + (i < 3 && !v.ghost ? " top" : "");
       b.style.setProperty("--pa", sk.pa || ACC[hash(v.name) % 5]); b.style.setProperty("--pc", sk.pc || "#fff");
-      b.innerHTML = iconInner(v) + '<span class="tag">' + esc(v.name) + '<b>Lv.' + v.L + '</b></span>';
-      b.setAttribute("aria-label", v.name + " さん Lv." + v.L);
+      b.innerHTML = iconInner(v) + '<span class="tag">' + esc(v.name) + '<b>' + lvTxt(v) + '</b></span>';
+      b.setAttribute("aria-label", v.name + " さん " + lvTxt(v));
       b.addEventListener("click", function (e) { openProfile(v.name, e); });
       plaza.appendChild(b);
       avs.push({ el: b, rx: ring[0], ry: ring[1], dir: ring[2], a: (k / n) * Math.PI * 2 + (i % 3) * .7, sp: .00006 + (i % 3) * .00002, z: Math.max(40, 70 - i * .8) });
     });
     var top = vs.filter(function (x) { return !x.owner; }).slice(0, 12);
-    $("leaders").innerHTML = top.map(function (v) { var sk = itemOf("skin", v.eq.skin) || {}; return '<button type="button" class="chip" data-n="' + esc(v.name) + '" style="--pa:' + esc(sk.pa || ACC[hash(v.name) % 5]) + '"><i></i>' + esc(v.name) + '<b>Lv.' + v.L + '</b></button>'; }).join("");
+    $("leaders").innerHTML = top.map(function (v) { var sk = itemOf("skin", v.eq.skin) || {}; return '<button type="button" class="chip" data-n="' + esc(v.name) + '" style="--pa:' + esc(sk.pa || ACC[hash(v.name) % 5]) + '"><i></i>' + esc(v.name) + '<b>' + lvTxt(v) + '</b></button>'; }).join("");
     $("leaders").querySelectorAll(".chip").forEach(function (b) { b.addEventListener("click", function (e) { openProfile(b.dataset.n, e); }); });
     var num = $("num"), was = +num.dataset.n || 0; num.dataset.n = here.length;
     if (was !== here.length) countTo(num, here.length, was);
@@ -1205,7 +1223,7 @@ footer { position: relative; z-index: 2; text-align: center; color: var(--soft);
     var html = '<button class="jelly light back" type="button" data-back>ロビーへ戻る</button>'
       + '<div class="hero pcard-hero"><div class="pcard-frame"><iframe src="/card.html#sitecard" title="' + esc(v.name) + ' さんのプロフィールカード" loading="lazy"></iframe></div>'
       + '<div class="who"><h1 class="nm"' + (fam ? ' style="font-family:' + esc(fam) + '"' : "") + '>' + esc(v.name) + '</h1>'
-      + '<div class="tags">' + (v.title ? '<span class="pill on">' + esc(v.title) + '</span>' : "") + '<span class="pill">' + esc(sk.name || "") + 'のスキン</span>' + (font.name && v.eq.font !== "maru" ? '<span class="pill">' + esc(font.name) + 'のフォント</span>' : "") + (v.owner ? '<span class="pill on">配信者</span>' : "") + '</div>'
+      + '<div class="tags">' + (v.pr > 0 ? '<span class="pill prs">プレステージ ' + (+v.pr) + '</span>' : "") + (v.title ? '<span class="pill on">' + esc(v.title) + '</span>' : "") + '<span class="pill">' + esc(sk.name || "") + 'のスキン</span>' + (font.name && v.eq.font !== "maru" ? '<span class="pill">' + esc(font.name) + 'のフォント</span>' : "") + (v.owner ? '<span class="pill on">配信者</span>' : "") + '</div>'
       + '<div class="next">次のレベルまで <b>' + fmt(Math.ceil(v.to - v.X)) + '</b></div>'
       + '<div class="acts"><button class="jelly" type="button" id="copy">このページのリンクをコピー</button></div></div></div>'
       + '<h2 class="sec" style="--c:var(--sun)">数字</h2><div class="stats">'
@@ -1220,7 +1238,7 @@ footer { position: relative; z-index: 2; text-align: center; color: var(--soft);
       + stat("", v.gacha, "回", "コスメガチャ", "var(--violet)")
       + '</div>'
       + '<h2 class="sec" style="--c:var(--leaf)">通貨</h2><div class="panel"><div class="coins"><div class="coin res" style="--i:0"><b>' + fmt(v.res || 0) + '</b><small>リソース</small></div>' + [1, 2, 3].map(function (i) { return '<div class="coin" style="--i:' + i + '">近日</div>'; }).join("") + '</div><p class="soft" style="margin:12px 0 0">リソースは、コスメガチャでフォントや Ⅲ まで進化した物が被るともらえます。使い道はこれから増えていきます。</p></div>'
-      + '<h2 class="sec" style="--c:var(--violet)">持ち物</h2><div class="kinds" id="kinds"></div><div class="grid" id="grid"></div>';
+      + '<h2 class="sec" style="--c:var(--violet)">持ち物</h2><div class="kinds" id="kinds"></div><div class="inv-f" id="invf"></div><div class="grid" id="grid"></div>';
     box.innerHTML = html;
     wireBack();
     $("copy").addEventListener("click", function () {
@@ -1228,27 +1246,68 @@ footer { position: relative; z-index: 2; text-align: center; color: var(--soft);
       (navigator.clipboard ? navigator.clipboard.writeText(u) : Promise.reject()).then(function () { b.textContent = "コピーしました"; }, function () { prompt("このリンクをコピーしてください", u); });
     });
     requestAnimationFrame(function () { box.querySelectorAll("[data-n]").forEach(countUp); });
-    kindNow = "skin"; drawKinds(); drawGrid();
+    kindNow = "skin"; invF.q = ""; drawKinds(); drawFilters(); drawGrid();
   }
   function wireBack() { var b = $("v-me").querySelector("[data-back]"); if (b) b.addEventListener("click", function (e) { go("lobby", e, "#2EA8FF"); }); }
   function stat(cls, n, unit, label, c) { return '<div class="stat ' + cls + '" style="--c:' + c + '"><b data-n="' + (+n || 0) + '">0<small>' + unit + '</small></b><span>' + label + '</span></div>'; }
   function drawKinds() {
     var v = cur;
     $("kinds").innerHTML = KIND.map(function (k) { return '<button type="button" data-k="' + k[0] + '" aria-pressed="' + (k[0] === kindNow) + '">' + k[1] + '<small>' + (v.own[k[0]] || []).length + '/' + (data.kinds[k[0]] || []).length + '</small></button>'; }).join("");
-    $("kinds").querySelectorAll("button").forEach(function (b) { b.addEventListener("click", function () { kindNow = b.dataset.k; drawKinds(); drawGrid(); }); });
+    $("kinds").querySelectorAll("button").forEach(function (b) { b.addEventListener("click", function () { kindNow = b.dataset.k; drawKinds(); drawGrid(); }); }); // しぼりこみの条件はそのまま
   }
-  function drawGrid() {
-    var v = cur, k = kindNow, own = v.own[k] || [], used = v.eq[k];
-    var list = (data.kinds[k] || []).slice().sort(function (a, b) { return (own.indexOf(b.id) >= 0) - (own.indexOf(a.id) >= 0) || b.r - a.r; });
-    $("grid").innerHTML = list.map(function (x, i) {
-      var has = own.indexOf(x.id) >= 0, h = x.hidden && has ? (v.hid || {})[x.id] : null, name = h ? h.name : x.name, how = h ? h.how : x.how, look = "";
-      var lv = has && v.lv ? Math.floor(+v.lv[({ skin: "s:", icon: "i:", ep: "e:", font: "f:", ball: "b:" })[k] + x.id]) || 0 : 0, mark = lv >= 1 && lv <= 3 ? '<i class="evo e' + lv + '">' + ["", "Ⅰ", "Ⅱ", "Ⅲ"][lv] + '</i>' : ""; // 進化の段階
+  // ---- 持ち物のしぼりこみ：持っているか（すべて・持っている・まだ・進化した）・レア（★1〜5 をいくつでも）・並び・名前 ----
+  // 種類を替えても、ほかの人のページを開いても同じ条件のまま。名前のほかはこの端末に覚える
+  var INVF_KEY = "ml-inv-filter-v1", INV_OWN = [["all", "すべて"], ["have", "持っている"], ["not", "まだ"], ["evo", "進化した"]];
+  var INV_SORT = [["own", "持っている順"], ["rare", "レアが高い順"], ["low", "レアが低い順"], ["new", "新しく入った順"], ["name", "名前順"]];
+  var invF = (function () {
+    var o = null; try { o = JSON.parse(localStorage.getItem(INVF_KEY) || "null"); } catch (e) {}
+    var ok = function (list, v) { return list.some(function (x) { return x[0] === v; }); };
+    o = o && typeof o === "object" ? o : {};
+    return { own: ok(INV_OWN, o.own) ? o.own : "all", rar: Array.isArray(o.rar) ? o.rar.filter(function (r, i, a) { return r >= 1 && r <= 5 && a.indexOf(r) === i; }) : [], sort: ok(INV_SORT, o.sort) ? o.sort : "own", q: "" };
+  })();
+  function invSave() { try { localStorage.setItem(INVF_KEY, JSON.stringify({ own: invF.own, rar: invF.rar, sort: invF.sort })); } catch (e) {} }
+  function invDirty() { return invF.own !== "all" || invF.rar.length > 0 || invF.sort !== "own" || !!invF.q.trim(); }
+  function drawFilters() {
+    var box = $("invf"); if (!box) return;
+    box.innerHTML = '<div class="seg" role="group" aria-label="持っているかどうか">' + INV_OWN.map(function (o) { return '<button type="button" data-own="' + o[0] + '" aria-pressed="' + (invF.own === o[0]) + '">' + o[1] + '</button>'; }).join("") + '</div>'
+      + '<div class="seg rar" role="group" aria-label="レアリティ">' + [1, 2, 3, 4, 5].map(function (r) { return '<button type="button" class="r' + r + '" data-rar="' + r + '" aria-pressed="' + (invF.rar.indexOf(r) >= 0) + '" title="' + esc(data.rar[r - 1] || "") + '">★' + r + '</button>'; }).join("") + '</div>'
+      + '<select id="invf-sort" aria-label="並び">' + INV_SORT.map(function (o) { return '<option value="' + o[0] + '"' + (invF.sort === o[0] ? " selected" : "") + '>' + o[1] + '</option>'; }).join("") + '</select>'
+      + '<input id="invf-q" type="search" placeholder="名前でさがす" aria-label="名前でさがす" autocomplete="off" value="' + esc(invF.q) + '">'
+      + '<span class="cnt" id="invf-n" aria-live="polite"></span><button type="button" class="clear" id="invf-clear"' + (invDirty() ? "" : " hidden") + '>条件をもどす</button>';
+    box.querySelectorAll("[data-own]").forEach(function (b) { b.addEventListener("click", function () { invF.own = b.dataset.own; invSave(); drawFilters(); drawGrid(); }); });
+    box.querySelectorAll("[data-rar]").forEach(function (b) { b.addEventListener("click", function () { var r = +b.dataset.rar, i = invF.rar.indexOf(r); if (i >= 0) invF.rar.splice(i, 1); else invF.rar.push(r); invSave(); drawFilters(); drawGrid(); }); });
+    $("invf-sort").addEventListener("change", function (e) { invF.sort = e.target.value; invSave(); $("invf-clear").hidden = !invDirty(); drawGrid(); });
+    var qt = 0; $("invf-q").addEventListener("input", function (e) { invF.q = e.target.value.slice(0, 40); clearTimeout(qt); qt = setTimeout(function () { $("invf-clear").hidden = !invDirty(); drawGrid(true); }, 150); });
+    $("invf-clear").addEventListener("click", function () { invF.own = "all"; invF.rar = []; invF.sort = "own"; invF.q = ""; invSave(); drawFilters(); drawGrid(); });
+  }
+  function drawGrid(quiet) {
+    var v = cur, k = kindNow, own = v.own[k] || [], used = v.eq[k], pre = ({ skin: "s:", icon: "i:", ep: "e:", font: "f:", ball: "b:" })[k], all = data.kinds[k] || [];
+    var lvOf = function (x, has) { return has && v.lv ? Math.floor(+v.lv[pre + x.id]) || 0 : 0; }; // 進化の段階
+    var nmOf = function (x, has) { var h = x.hidden && has ? (v.hid || {})[x.id] : null; return h ? h.name : x.name; };
+    var q = invF.q.trim().toLowerCase(), S = invF.sort;
+    var list = all.map(function (x, i) { var has = own.indexOf(x.id) >= 0; return { x: x, i: i, has: has, lv: lvOf(x, has), nm: nmOf(x, has) }; }).filter(function (o) {
+      if (invF.own === "have" && !o.has || invF.own === "not" && o.has || invF.own === "evo" && o.lv < 1) return false;
+      if (invF.rar.length && invF.rar.indexOf(o.x.r) < 0) return false;
+      // 名前は日本語でも英語名でも。アイコンは絵文字でもさがせる
+      return !q || (o.nm + " " + (Object.prototype.hasOwnProperty.call(EN_DICT, o.nm) ? EN_DICT[o.nm] : "") + (k === "icon" ? " " + o.x.id : "")).toLowerCase().indexOf(q) >= 0;
+    }).sort(function (a, b) {
+      if (S === "rare") return b.x.r - a.x.r || b.has - a.has || a.i - b.i;
+      if (S === "low") return a.x.r - b.x.r || b.has - a.has || a.i - b.i;
+      if (S === "new") return b.i - a.i; // 一覧のあとのほうに足した物ほど新しい
+      if (S === "name") return a.nm.localeCompare(b.nm, "ja") || a.i - b.i;
+      return b.has - a.has || b.x.r - a.x.r || a.i - b.i;
+    });
+    var cnt = $("invf-n"); if (cnt) cnt.textContent = list.length + " / " + all.length;
+    if (!list.length) { $("grid").innerHTML = '<p class="none">条件に合う物がありません</p>'; return; }
+    $("grid").innerHTML = list.map(function (o, i) {
+      var x = o.x, has = o.has, h = x.hidden && has ? (v.hid || {})[x.id] : null, name = o.nm, how = h ? h.how : x.how, look = "";
+      var lv = o.lv, mark = lv >= 1 && lv <= 3 ? '<i class="evo e' + lv + '">' + ["", "Ⅰ", "Ⅱ", "Ⅲ"][lv] + '</i>' : ""; // 進化の段階
       if (k === "skin") look = '<div class="look" style="background:' + esc(cssBg(x)) + '"></div>';
       if (k === "icon") look = '<div class="look">' + (x.img ? '<img src="' + x.img + '" alt="">' : esc(x.id)) + '</div>';
       if (k === "ep") look = '<div class="look ep">「' + esc(x.name) + '」</div>';
       if (k === "ball") look = '<div class="look">' + (x.img ? '<img src="' + x.img + '" alt="">' : "") + '</div>';
       if (k === "font") { var fam = h ? h.family : x.family; look = '<div class="look font"' + (fam ? ' style="font-family:' + esc(fam) + '"' : "") + '>' + (fam ? "鹿あA" : "？") + '</div>'; }
-      return '<button type="button" class="card r' + x.r + (has ? "" : " lock") + '" style="animation:rise .5s var(--out) both;animation-delay:' + Math.min(i, 20) * .03 + 's" aria-label="' + esc(name) + '（' + (has ? "持っています" : "まだ") + '）。押すと手に入れ方">'
+      return '<button type="button" class="card r' + x.r + (has ? "" : " lock") + '"' + (quiet ? "" : ' style="animation:rise .5s var(--out) both;animation-delay:' + Math.min(i, 20) * .03 + 's"') + ' aria-label="' + esc(name) + '（' + (has ? "持っています" : "まだ") + '）。押すと手に入れ方">'
         + '<div class="flip"><div class="face front">' + (used === x.id ? '<span class="use">使っています</span>' : "")
         + '<span class="rar"><span>' + stars(x.r) + '</span><em>' + esc(data.rar[x.r - 1] || "") + '</em></span>' + look + '<span class="nm">' + esc(name) + mark + '</span></div>'
         // 裏：持っていてもいなくても手に入れ方を出す。持っている物は、その上に「持っています」、下に使い方
@@ -1838,6 +1897,10 @@ footer { position: relative; z-index: 2; text-align: center; color: var(--soft);
     // プロフィール
     "このページのリンクをコピー": "Copy link to this page", "このリンクをコピーしてください": "Please copy this link",
     "次のレベルまで": "To next level", "数字": "Stats", "持ち物のカード": "Inventory",
+    // 持ち物のしぼりこみ
+    "すべて": "All", "持っている": "Owned", "進化した": "Evolved", "持っているかどうか": "Owned or not", "レアリティ": "Rarity", "並び": "Sort",
+    "持っている順": "Owned first", "レアが高い順": "Rarity: high to low", "レアが低い順": "Rarity: low to high", "新しく入った順": "Newest first", "名前順": "By name",
+    "名前でさがす": "Search by name", "条件をもどす": "Clear filters", "条件に合う物がありません": "Nothing matches these filters",
     "いま続けて来ている回数": "Current visit streak", "いちばん長く続けて来た回数": "Longest visit streak",
     "RUSH の最高連チャン": "Best RUSH chain", "大当たり": "Jackpots", "持ち玉": "Balls",
     "リソース": "Resources",
@@ -1905,6 +1968,8 @@ footer { position: relative; z-index: 2; text-align: center; color: var(--soft);
     "大当たりで玉がたくさん出ます。当たる前の 3 分以内にヘソに入れた 5 人にもキャッシュバック。": "A jackpot pays out lots of balls. The last 5 people who hit the pocket in the 3 minutes before also get cashback.", "で持ち玉を確認": " shows your balls",
     "見た目と記録": "Looks & records", "鹿物語（パチンコ）": "Shika Story (pachinko)", "そのほか": "Other",
     "配信画面に自分のカードを出す": "Show your card on stream", "レベルと、次のレベルまでを見る": "See your level and how far to the next",
+    "Lv.100 から。30 秒以内に 2 回打つと Lv.1 にもどり、レベルに P1・P2…が付く（持ち物・称号・持ち玉はそのまま）": "From Lv.100. Type it twice within 30 seconds to go back to Lv.1 and earn a P1, P2… badge (you keep your items, title and balls)",
+    "持ち玉をプロフィールの経験値に変える（ふだんは 1 玉で経験値 1。!経験値 全部 で全部）": "Turn your balls into profile XP (usually 1 ball = 1 XP; !経験値 全部 converts them all)",
     "カードのスキンを変える（名前なしで一覧）": "Change your card skin (no name = list)", "アイコンを変える": "Change your icon",
     "名前の上に出る二つ名を変える": "Change the title shown above your name", "名前と弾幕の書体を変える": "Change the font for your name and flying comments",
     "鹿物語で落ちる自分の玉の見た目を変える": "Change how your ball looks in Shika Story", "持っている物と手に入れ方を見る": "See your items and how to get more",
@@ -1942,6 +2007,7 @@ footer { position: relative; z-index: 2; text-align: center; color: var(--soft);
     [/^([\d,]+) 人$/, "$1 people"],
     [/^([\d,]+) 件$/, "$1"],
     [/^さん Lv\.$/, " Lv."],
+    [/^プレステージ (\d+)$/, "Prestige $1"],
     [/^「!購入 (\d+)」をコピー$/, "Copy \"!購入 $1\""],
     [/^押すと手に入れ方$/, "Tap to see how to get it"],
     // コスメの名前つきの文（名前は辞書で英語に。コマンドは日本語の名前でないと動かないので、英語名は横に添える）
