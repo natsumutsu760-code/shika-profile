@@ -494,6 +494,7 @@ html:not([lang="en"]) .en-only { display: none !important; }
   background: rgba(255,255,255,.92); color: var(--ink); font: 900 13px/1.2 var(--jp); box-shadow: var(--lift); }
 .mx-snd svg { width: 18px; height: 18px; fill: none; stroke: var(--coral); stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; flex: none; }
 .mx-snd[aria-pressed="true"] { background: var(--ink); color: #fff; }
+.mx-snd.mx-lite { right: 132px; padding: 8px 14px; }
 
 /* スマホ（縦）：配信ページは画面ぴったりの 1 枚。映像は端から端まで。コメント欄が残りの高さを全部使う */
 @media (max-width: 899px) and (min-height: 501px) {
@@ -908,6 +909,7 @@ footer { position: relative; z-index: 2; text-align: center; color: var(--soft);
     ["そのほか", "#22CC88", [["!けいじばん こんにちは", "ラウンジの掲示板に書く（1 分に 1 回・120 字まで）"], ["!バグ報告 ガチャのあと画面が止まった", "不具合を配信者に知らせる（30 秒に 1 回・300 字まで）"], ["!花火", "画面に花火（!ハート でハート）"], [null, "888 で拍手、草 で草が生える"], ["!モノリンク", "MONO LINK の URL をチャットで受け取る（!サイト でも）"]]]
   ];
   var NOTES = [
+    ["build 81", "2026-10-22", ["鹿物語 Ver.1.8.21：配信者用ページのミラーを軽くしました。盤面のまわりのランプと LED リングの色は、ミラーへは 0.25 秒ごとにまとめて送ります（配信の画面の光り方は変わりません）。盤面の絵の取り込みも軽くし、タブが隠れているあいだは描きません", "ミラーの右下に「軽くする」ボタンを足しました。押すと、ミラーだけ影・ぼかし・光のにじみを描かず、盤面の絵を 1 秒に 4 枚にします（このパソコンに覚えます）"]],
     ["build 80", "2026-10-22", ["鹿物語 Ver.1.8.20：配信者用ページのミラーで、リールの数字の色と、持ち玉・回転数・ジャックポットなどの数字の字体が崩れていたのを直しました（OBS の画面の見た目そのものは変わりません）", "配信者用ページのミラーで、盤面の背景動画がそのパソコンの Chrome で映らないときは、映し方を自動で切りかえるようにしました（webm → MSE → mp4。映った方法は覚えます）"]],
     ["build 79", "2026-10-21", ["スキン「XIII」とアイコン「緋角の紋」の紋章を、鹿さんの絵をもとにした切子（多面体）の頭蓋骨に描き直しました。骨は銀、鬼の角は緋。目のくぼみの奥が拍で緋く光ります"]],
     ["build 78", "2026-10-21", ["プレステージ専用のスキン「緋角」の名前を「XIII」にしました（!スキン XIII で使えます）", "スキン「XIII」とアイコン「緋角の紋」の紋章を、角の生えた鹿の頭蓋骨にしました"]],
@@ -1420,15 +1422,16 @@ footer { position: relative; z-index: 2; text-align: center; color: var(--soft);
   }
   function mxMount() {
     if (MX) return;
-    $("screen").innerHTML = '<div class="mx" id="mx"><div class="mx-world"><div class="mx-pa"></div><div class="mx-ov"></div></div><div class="mx-msg" id="mx-msg"></div><div class="mx-dbg" id="mx-dbg"></div><button type="button" class="mx-snd" id="mx-snd" aria-pressed="false">' + SPK + '<span>音を出す</span></button></div>';
+    $("screen").innerHTML = '<div class="mx" id="mx"><div class="mx-world"><div class="mx-pa"></div><div class="mx-ov"></div></div><div class="mx-msg" id="mx-msg"></div><div class="mx-dbg" id="mx-dbg"></div><button type="button" class="mx-snd mx-lite" id="mx-lite" aria-pressed="false">軽くする</button><button type="button" class="mx-snd" id="mx-snd" aria-pressed="false">' + SPK + '<span>音を出す</span></button></div>';
     var root = $("mx");
     $("screen").appendChild(capEl); // 字幕はミラーの上にも出す
     $("mx-snd").addEventListener("click", mxSound);
     MX = { root: root, world: root.firstChild, box: { pa: root.querySelector(".mx-pa"), ov: root.querySelector(".mx-ov") }, rep: {}, ready: {}, q: { ov: [], pa: [] },
       mc: {}, media: {}, want: {}, req: {}, done: {}, byHash: {}, seq: 0, lib: false, rest: {}, wq: [], sent: [],
-      st: { get: 0, meta: 0, err: 0, done: 0, drop: 0, last: "" } };
+      st: { get: 0, meta: 0, err: 0, done: 0, drop: 0, last: "" }, cvLater: {}, lite: mxLiteGet() };
     MX.vhow = mxHowGet();
-    MX.reqT = setInterval(mxReqCheck, 5000); MX.dbgT = setInterval(function () { mxVidCheck(); mxDbg(); }, 1000);
+    MX.reqT = setInterval(mxReqCheck, 5000); MX.dbgT = setInterval(function () { mxVidCheck(); mxCvLater(); mxDbg(); }, 1000);
+    $("mx-lite").addEventListener("click", mxLiteToggle); mxLiteBtn();
     var fit = function () { if (MX) MX.world.style.transform = "scale(" + (MX.root.clientWidth / 1920) + ")"; };
     MX.ro = window.ResizeObserver ? new ResizeObserver(fit) : null; if (MX.ro) MX.ro.observe(root); else addEventListener("resize", fit);
     fit(); mxMsg();
@@ -1541,6 +1544,7 @@ footer { position: relative; z-index: 2; text-align: center; color: var(--soft);
   // 再生に入ったものを直す：動画・画像は OBS から素材をもらって入れる。音は出さない。弾幕は同じ動きをつける
   function mxFix(src, R, e) {
     var M = R.getMirror(), doc = R.iframe && R.iframe.contentDocument;
+    if (e.type === 2) { mxLiteCss(doc); } // 軽くしているなら、新しい再生にも
     if (e.type === 2) { // 画面まるごとを組み立てたあと（再生の部品が動画を再生しようとして中断されたときの知らせは出さない）
       try { R.iframe.contentWindow.addEventListener("unhandledrejection", function (ev) { ev.preventDefault(); }); } catch (x) {}
       if (doc && doc.documentElement) doc.documentElement.classList.remove("rrweb-paused"); // 再生の部品は止めた扱いで CSS の動きを止めるので、動かす
@@ -1746,6 +1750,23 @@ footer { position: relative; z-index: 2; text-align: center; color: var(--soft);
       doc.querySelectorAll("video,img").forEach(function (el) { if (el.__mxKey === r.key && el.getAttribute("src") !== url) mxAttach(src, R, el, r.key, url); });
     });
   }
+  // 軽くする（右下のボタン・このパソコンに覚える）：影・ぼかし・光のにじみを描かない・盤面の絵は 1 秒に 4 枚まで。OBS と配信の画面は変わらない
+  var MX_LITE_KEY = "mx-lite-v1", MX_LITE_CSS = "*, *::before, *::after { filter: none !important; backdrop-filter: none !important; box-shadow: none !important; text-shadow: none !important; }";
+  function mxLiteGet() { try { return localStorage.getItem(MX_LITE_KEY) === "1"; } catch (e) { return false; } }
+  function mxLiteCss(doc) {
+    if (!doc || !doc.documentElement) return;
+    var st = doc.getElementById("mx-lite-css");
+    if (MX.lite && !st) { st = doc.createElement("style"); st.id = "mx-lite-css"; st.textContent = MX_LITE_CSS; (doc.head || doc.documentElement).appendChild(st); }
+    else if (!MX.lite && st) st.remove();
+  }
+  function mxLiteBtn() { var b = $("mx-lite"); if (b) { b.setAttribute("aria-pressed", String(!!MX.lite)); b.textContent = MX.lite ? "軽くしている" : "軽くする"; } }
+  function mxLiteToggle() {
+    if (!MX) return;
+    MX.lite = !MX.lite; mxLiteBtn();
+    try { localStorage.setItem(MX_LITE_KEY, MX.lite ? "1" : "0"); } catch (e) {}
+    ["ov", "pa"].forEach(function (src) { var R = MX.rep[src]; mxLiteCss(R && R.iframe && R.iframe.contentDocument); });
+  }
+  document.addEventListener("visibilitychange", function () { if (!document.hidden) mxCvLater(); }); // 見えたら、隠れていたあいだの最後の絵を描く
   // 背景動画の受け渡しのようす（ミラーの左下に 1 秒ごと）：OBS でいま流れている背景と、それがこのページに届いたか・頼んだ回数
   function mxName(k) { return String(k || "").replace(/^.*\//, "").slice(0, 40); }
   function mxDbg() {
@@ -1772,21 +1793,36 @@ footer { position: relative; z-index: 2; text-align: center; color: var(--soft);
     var R = MX.rep[src], el = R && R.getMirror().getNode(d.id);
     var cmd = d.commands && d.commands[1], img = cmd && cmd.args && cmd.args[0], bl = img && img.args && img.args[0], ab = bl && bl.data && bl.data[0];
     if (!el || el.tagName !== "CANVAS" || !ab || typeof ab.base64 !== "string") return;
-    var bin, u8;
-    try { bin = atob(ab.base64); u8 = new Uint8Array(bin.length); for (var k = 0; k < bin.length; k++) u8[k] = bin.charCodeAt(k); } catch (e) { return; }
-    mxPaint(el, URL.createObjectURL(new Blob([u8], { type: /^image\/(webp|png|jpeg)$/.test(bl.type) ? bl.type : "image/webp" })), true);
+    // base64 のまま data URL にしてブラウザに読ませる（1 バイトずつ組み立てない）
+    var url = "data:" + (/^image\/(webp|png|jpeg)$/.test(bl.type) ? bl.type : "image/webp") + ";base64," + ab.base64;
+    if (document.hidden || (MX.lite && Date.now() - (el.__mxAt || 0) < 250)) { el.__mxLater = url; MX.cvLater[d.id + src] = el; return; } // 隠れているあいだは描かない（見えたら最後の絵だけ）。軽くしているときは 1 秒に 4 枚まで
+    el.__mxAt = Date.now();
+    mxPaint(el, url, false);
   }
+  // あとで描く絵（隠れていた・軽くしていて間引いた）を描く
+  function mxCvLater() {
+    if (!MX || document.hidden) return;
+    var l = MX.cvLater; MX.cvLater = {};
+    Object.keys(l).forEach(function (k) { var el = l[k], u = el.__mxLater; el.__mxLater = null; if (u && el.isConnected) { el.__mxAt = Date.now(); mxPaint(el, u, false); } });
+  }
+  // 前の絵を読み込んでいるあいだに次が来たら、最新の 1 枚だけ待たせる（間の絵は描かない）
   function mxPaint(el, url, own) {
-    var doc = el.ownerDocument, old = el.__mxImg, im = doc.createElement("img"), seq = el.__mxPaint = (el.__mxPaint || 0) + 1;
+    if (el.__mxBusy) { var nx = el.__mxNext; if (nx && nx.own) URL.revokeObjectURL(nx.url); el.__mxNext = { url: url, own: own }; return; }
+    el.__mxBusy = 1;
+    var doc = el.ownerDocument, old = el.__mxImg, im = doc.createElement("img");
     im.style.cssText = "display:block;width:100%;height:100%;pointer-events:none"; im.alt = ""; im.src = url; im.__own = own;
     var put = function () {
-      if (el.__mxPaint !== seq) { if (own) URL.revokeObjectURL(url); return; }
+      el.__mxBusy = 0;
       if (old && old.parentNode === el) el.replaceChild(im, old); else el.appendChild(im);
       if (old && old.__own) URL.revokeObjectURL(old.src);
       el.__mxImg = im;
-      var w = doc.defaultView;
-      if (w && w.getComputedStyle(el).display === "inline") el.style.display = "inline-block";
-      var r = el.getBoundingClientRect(); if (!r.width || !r.height) { el.style.width = el.width + "px"; el.style.height = el.height + "px"; }
+      if (!el.__mxSized) { // 大きさの直しは最初の 1 回だけ（毎回だとそのたびにレイアウトの計算が走る）
+        el.__mxSized = 1;
+        var w = doc.defaultView;
+        if (w && w.getComputedStyle(el).display === "inline") el.style.display = "inline-block";
+        var r = el.getBoundingClientRect(); if (!r.width || !r.height) { el.style.width = el.width + "px"; el.style.height = el.height + "px"; }
+      }
+      var nx = el.__mxNext; if (nx) { el.__mxNext = null; mxPaint(el, nx.url, nx.own); }
     };
     (im.decode ? im.decode() : Promise.resolve()).then(put, put);
   }

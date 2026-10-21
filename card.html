@@ -12244,6 +12244,7 @@ if (location.hash === "#lcdcard" || location.hash === "#sitecard" || document.do
 
 
 
+
 <!--shika-mirror--><script>
 /* rrweb 2.1.7 — MIT License. Copyright (c) 2018 Contributors (https://github.com/rrweb-io/rrweb/graphs/contributors). https://github.com/rrweb-io/rrweb/blob/master/LICENSE */
 (function (g, f) {
@@ -12431,7 +12432,7 @@ return module.exports;
     if (!stop) return;
     lastSnap = Date.now();
     if (performance.now() - t > slow()) { rest("start"); return; }
-    cvStart(); watchStart();
+    cvStart(); watchStart(); clearInterval(thrT); thrT = setInterval(thrTick, THR_MS);
   }
   // 画面まるごと（見ている人が来たとき・ときどきのずれ直し）。30 秒に 1 回まで（それより早い頼みは、30 秒たってから 1 回だけ）
   function snap() {
@@ -12446,7 +12447,7 @@ return module.exports;
   function halt() {
     if (stop) { try { stop(); } catch (e) {} stop = null; }
     buf = []; clearTimeout(flushT); flushT = 0; clearTimeout(snapT); snapT = 0; gen++; held = {};
-    cvStop(); watchStop(); audioStop();
+    cvStop(); watchStop(); audioStop(); clearInterval(thrT); thrT = 0; thrIds = null; thrLast = {};
   }
 
   // ---- 見張り：記録のせいでこの画面が重くなったら、記録をやめて 10 分休む（配信の画面のほうが大事） ----
@@ -12544,13 +12545,32 @@ return module.exports;
     }
     var c = n.childNodes; if (c) for (var i = 0; i < c.length; i++) rawStyles(c[i]);
   }
+  // 盤面のまわりのランプ・LED リング（鹿物語）は、0.07 秒ごとに全部の色を JS で書きかえている。そのまま記録すると 1 秒に 1,000 回をこえる
+  // 書きかえを送り、配信者用ページはそれを全部当てはめて重くなる。ミラーには 0.25 秒ごとに、変わったものだけまとめて送る（配信の画面の光り方は変えない）
+  var THR_SEL = "#ledring > *, #lamps > *", THR_MS = 250, thrIds = null, thrLast = {}, thrT = 0;
+  function thrMap() { thrIds = {}; var l = document.querySelectorAll(THR_SEL); for (var i = 0; i < l.length; i++) { var id = R.mirror.getId(l[i]); if (id > 0) thrIds[id] = l[i]; } }
+  function thrTick() {
+    if (!stop) return;
+    if (!thrIds) thrMap();
+    var out = [];
+    for (var id in thrIds) { var v = thrIds[id].getAttribute("style"); if (thrLast[id] !== v) { thrLast[id] = v; out.push({ id: +id, attributes: { style: v } }); } }
+    if (out.length) queue({ type: 3, timestamp: Date.now(), data: { source: 0, texts: [], attributes: out, removes: [], adds: [] } });
+  }
   function push(e) {
     try {
-      if (e.type === 2 && e.data) rawStyles(e.data.node);
-      else if (e.type === 3 && e.data && e.data.source === 0 && e.data.adds) e.data.adds.forEach(function (a) { rawStyles(a.node); });
+      if (e.type === 2 && e.data) { rawStyles(e.data.node); thrIds = null; thrLast = {}; } // 画面まるごと：いまの色も入っている。番号も付け直される
+      else if (e.type === 3 && e.data && e.data.source === 0) {
+        if (e.data.adds) e.data.adds.forEach(function (a) { rawStyles(a.node); });
+        if (e.data.attributes && e.data.attributes.length) {
+          if (!thrIds) thrMap();
+          e.data.attributes = e.data.attributes.filter(function (a) { return !thrIds[a.id]; });
+          if (!e.data.attributes.length && !(e.data.adds || []).length && !(e.data.removes || []).length && !(e.data.texts || []).length) return; // ランプの色だけだった
+        }
+      }
     } catch (x) {}
-    buf.push(e); if (!flushT) flushT = setTimeout(flush, 100);
+    queue(e);
   }
+  function queue(e) { buf.push(e); if (!flushT) flushT = setTimeout(flush, 100); }
   function flush() {
     flushT = 0;
     var list = buf; buf = [];
