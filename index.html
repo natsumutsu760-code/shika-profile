@@ -1426,7 +1426,8 @@ footer { position: relative; z-index: 2; text-align: center; color: var(--soft);
     MX = { root: root, world: root.firstChild, box: { pa: root.querySelector(".mx-pa"), ov: root.querySelector(".mx-ov") }, rep: {}, ready: {}, q: { ov: [], pa: [] },
       mc: {}, media: {}, want: {}, req: {}, done: {}, byHash: {}, seq: 0, lib: false, rest: {}, wq: [], sent: [],
       st: { get: 0, meta: 0, err: 0, done: 0, drop: 0, last: "" } };
-    MX.reqT = setInterval(mxReqCheck, 5000); MX.dbgT = setInterval(mxDbg, 1000);
+    MX.vhow = mxHowGet();
+    MX.reqT = setInterval(mxReqCheck, 5000); MX.dbgT = setInterval(function () { mxVidCheck(); mxDbg(); }, 1000);
     var fit = function () { if (MX) MX.world.style.transform = "scale(" + (MX.root.clientWidth / 1920) + ")"; };
     MX.ro = window.ResizeObserver ? new ResizeObserver(fit) : null; if (MX.ro) MX.ro.observe(root); else addEventListener("resize", fit);
     fit(); mxMsg();
@@ -1576,11 +1577,74 @@ footer { position: relative; z-index: 2; text-align: center; color: var(--soft);
     // 前は 56 本の動画を全部頼み、門番の上限（1 人 10 秒に 60 回）を超えて、映すべき背景の頼みが捨てられていた（OBS も全部読んで重くなる）
     if (!cur) return;
     if (/^(data|https):/i.test(cur) || cur.indexOf("blob:" + location.origin + "/") === 0) return; // そのまま読めるもの・もう入れたもの
-    var key = path || cur, url = MX.done[key];
-    el.__mxKey = key; el.__mxSrc = src; el.__mxCur = cur;
-    if (url) { el.setAttribute("src", url); mxResume(src, R, el); return; }
+    el.__mxSrc = src; el.__mxCur = cur; el.__mxPath = path;
+    var key = el.__mxKey = mxKeyOf(el), url = MX.done[key];
+    if (url) { mxAttach(src, R, el, key, url); return; }
     el.removeAttribute("src");
-    mxGet(src, cur, path, key, el.tagName === "VIDEO" && el.classList.contains("on"));
+    mxAsk(el, key);
+  }
+  // 動画の映し方：このパソコンの Chrome で映らなかったら次の方法へ（OBS の鹿物語と同じ考え方）。映った方法は覚えて、次の動画もそこから
+  //   0：webm をそのまま・1：webm を MSE で流し込む・2：OBS に同じ名前の mp4 を頼む
+  // 鹿さんの PC の Chrome では、届いた webm が「再生中 0.0 秒・読み込み 1/4」のまま 1 コマも出なかった（2026-10-22）
+  var MX_HOW = ["webm", "webm（MSE）", "mp4"], MX_HOW_KEY = "mx-video-how-v1";
+  function mxHowGet() { try { var n = +(JSON.parse(localStorage.getItem(MX_HOW_KEY) || "{}").how || 0); return n >= 0 && n <= 2 ? Math.floor(n) : 0; } catch (e) { return 0; } }
+  function mxKeyOf(el) {
+    var path = el.__mxPath || "", key = path || el.__mxCur || "";
+    return el.tagName === "VIDEO" && MX.vhow === 2 && /\.webm$/i.test(path) ? path.replace(/\.webm$/i, ".mp4") : key;
+  }
+  // OBS に頼む：mp4 に置きかえたものは名前だけで頼む（OBS で流れているのは webm なので、OBS の動画そのものは使えない）
+  function mxAsk(el, key) {
+    var path = el.__mxPath || "", alt = key !== (path || el.__mxCur);
+    mxGet(el.__mxSrc, alt ? "" : el.__mxCur, alt ? key : path, key, el.tagName === "VIDEO" && el.classList.contains("on"));
+  }
+  function mxAttach(src, R, el, key, url) {
+    var bad = window.__mxFail || ""; // 試験用：映らない Chrome のまね（"webm"：そのままの webm・"mse"：MSE）
+    el.__mxHow = MX.vhow; el.__mxAt = Date.now(); el.__mxOk = 0; el.__mxT = null;
+    if (el.tagName !== "VIDEO" || !/\.webm$/i.test(key) || MX.vhow === 2) { el.setAttribute("src", url); mxResume(src, R, el); return; }
+    if (MX.vhow === 0) { el.setAttribute("src", bad.indexOf("webm") >= 0 ? URL.createObjectURL(new Blob(["x"], { type: "video/webm" })) : url); mxResume(src, R, el); return; }
+    // MSE：届いた webm をまるごと流し込む（OBS の鹿物語の「MSE」と同じやり方）。再生の中の窓の MediaSource を使う
+    var W = el.ownerDocument.defaultView, T = 'video/webm; codecs="vp9"';
+    if (bad.indexOf("mse") >= 0 || !W || !W.MediaSource || !W.MediaSource.isTypeSupported(T)) { el.removeAttribute("src"); el.__mxDead = 1; return; }
+    fetch(url).then(function (r) { return r.arrayBuffer(); }).then(function (ab) {
+      if (!MX || el.__mxKey !== key || el.__mxHow !== 1) return;
+      var ms = new W.MediaSource();
+      ms.addEventListener("sourceopen", function () {
+        try {
+          var sb = ms.addSourceBuffer(T);
+          sb.addEventListener("updateend", function () { try { if (ms.readyState === "open") ms.endOfStream(); } catch (e) {} }, { once: true });
+          sb.appendBuffer(ab);
+        } catch (e) { el.__mxDead = 1; }
+      }, { once: true });
+      el.setAttribute("src", W.URL.createObjectURL(ms)); mxResume(src, R, el);
+    }).catch(function () { el.__mxDead = 1; });
+  }
+  // 見張り（1 秒ごと）：OBS で流れている動画（on）が、入れてから 6 秒たっても 1 コマも進まない・エラー → 次の映し方にして入れ直す
+  function mxVidCheck() {
+    if (document.hidden) { MX.visAt = Date.now(); return; } // 隠れているあいだは Chrome が動画を止めるので見ない
+    var bad = false, now = Date.now();
+    ["ov", "pa"].forEach(function (src) {
+      var R = MX.rep[src], doc = R && R.iframe && R.iframe.contentDocument; if (!doc) return;
+      doc.querySelectorAll("video.on").forEach(function (el) {
+        if (!el.__mxAt || el.__mxHow !== MX.vhow || el.__mxOk) return;
+        var m = MX.media[src + ":" + R.getMirror().getId(el)]; if (m && !m.play) return; // OBS で止まっている動画は見ない
+        var t = el.currentTime || 0;
+        if (el.readyState >= 2 && el.__mxT != null && t !== el.__mxT) { el.__mxOk = 1; return; }
+        el.__mxT = t;
+        if (el.error || el.__mxDead || now - Math.max(el.__mxAt, MX.visAt || 0) > 6000) bad = true;
+      });
+    });
+    if (!bad) return;
+    if (MX.vhow >= 2) { if (!MX.vgaveUp) { MX.vgaveUp = 1; MX.st.last = "この Chrome では、どの方法でも動画が映りません"; } return; }
+    MX.vhow++; MX.st.last = "映らないので " + MX_HOW[MX.vhow] + " に切りかえ";
+    try { localStorage.setItem(MX_HOW_KEY, JSON.stringify({ how: MX.vhow, t: Date.now() })); } catch (e) {}
+    ["ov", "pa"].forEach(function (src) {
+      var R = MX.rep[src], doc = R && R.iframe && R.iframe.contentDocument; if (!doc) return;
+      doc.querySelectorAll("video").forEach(function (el) {
+        if (!el.__mxCur || (!el.getAttribute("src") && !el.classList.contains("on"))) return; // OBS で読み込んでいないもの
+        var key = el.__mxKey = mxKeyOf(el), url = MX.done[key]; el.__mxDead = 0;
+        if (url) mxAttach(src, R, el, key, url); else { el.removeAttribute("src"); el.__mxAt = 0; mxAsk(el, key); }
+      });
+    });
   }
   // 動画の再生のようす（再生中か・どこまで）を覚えておき、素材が届いて入れたあとに合わせる
   function mxMediaNote(src, id, play, t) {
@@ -1649,7 +1713,7 @@ footer { position: relative; z-index: 2; text-align: center; color: var(--soft);
         var R = MX.rep[src], doc = R && R.iframe && R.iframe.contentDocument; if (!doc) return false;
         return [].some.call(doc.querySelectorAll("video,img"), function (el) {
           if (el.__mxKey !== key || el.getAttribute("src") || !el.__mxCur) return false;
-          mxGet(el.__mxSrc, el.__mxCur, el.getAttribute("data-mx") || "", key, el.tagName === "VIDEO" && el.classList.contains("on"));
+          mxAsk(el, key);
           return true;
         });
       });
@@ -1678,7 +1742,7 @@ footer { position: relative; z-index: 2; text-align: center; color: var(--soft);
     MX.byHash[r.hash] = url; MX.done[r.key] = url; delete MX.want[r.key]; MX.st.done++; mxPump();
     ["ov", "pa"].forEach(function (src) {
       var R = MX.rep[src], doc = R && R.iframe && R.iframe.contentDocument; if (!doc) return;
-      doc.querySelectorAll("video,img").forEach(function (el) { if (el.__mxKey === r.key && el.getAttribute("src") !== url) { el.setAttribute("src", url); mxResume(src, R, el); } });
+      doc.querySelectorAll("video,img").forEach(function (el) { if (el.__mxKey === r.key && el.getAttribute("src") !== url) mxAttach(src, R, el, r.key, url); });
     });
   }
   // 背景動画の受け渡しのようす（ミラーの左下に 1 秒ごと）：OBS でいま流れている背景と、それがこのページに届いたか・頼んだ回数
@@ -1698,7 +1762,7 @@ footer { position: relative; z-index: 2; text-align: center; color: var(--soft);
         : q ? (q.parts ? "中身を受け取り中 " + q.got + "/" + (q.n || "?") : q.hash ? "このパソコンの控えを確かめている" : "OBS に頼んでいる " + Math.round((Date.now() - q.at) / 1000) + " 秒")
         : !src ? "まだ頼んでいない" : "OBS の動画のまま（頼んでいない）"));
     }
-    out.push("頼み " + s.get + "・返事 " + s.meta + "・届いた " + s.done + "・OBS が送れない " + s.err + "・返事なし " + s.drop + (s.last ? "（最後：" + s.last + "）" : ""));
+    out.push("映し方：" + MX_HOW[MX.vhow] + "・頼み " + s.get + "・返事 " + s.meta + "・届いた " + s.done + "・OBS が送れない " + s.err + "・返事なし " + s.drop + (s.last ? "（最後：" + s.last + "）" : ""));
     var t = out.join("\n"); if (el.textContent !== t) el.textContent = t;
   }
   // キャンバス（盤面・背景）：OBS が送ってくる絵（webp）を出す。再生の中はスクリプトが止まっていてキャンバスの絵は映らないので、
