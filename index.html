@@ -909,6 +909,7 @@ footer { position: relative; z-index: 2; text-align: center; color: var(--soft);
     ["そのほか", "#22CC88", [["!けいじばん こんにちは", "ラウンジの掲示板に書く（1 分に 1 回・120 字まで）"], ["!バグ報告 ガチャのあと画面が止まった", "不具合を配信者に知らせる（30 秒に 1 回・300 字まで）"], ["!花火", "画面に花火（!ハート でハート）"], [null, "888 で拍手、草 で草が生える"], ["!モノリンク", "MONO LINK の URL をチャットで受け取る（!サイト でも）"]]]
   ];
   var NOTES = [
+    ["build 83", "2026-10-22", ["鹿物語 Ver.1.8.23：配信者用ページのミラーの玉を、絵ではなく位置で送るようにしました。玉の位置は 1 秒 30 回届き、配信者用ページであいだを補って、パソコンの画面の速さ（ふつうは 1 秒 60 コマ）で動かします。玉のスキン・名前の札・入賞の吹き出しも同じように出ます", "玉の入っていない盤面の絵は 1 秒 8 枚にして、回線とパソコンの負担を減らしました（配信の画面の見た目は変わりません）"]],
     ["build 82", "2026-10-22", ["鹿物語 Ver.1.8.22：配信者用ページのミラーで、玉の動きがコマ送りだったのを滑らかにしました。盤面の絵を小さく（0.6 倍）して、1 秒 20 枚まで送ります（前は 1 秒 3〜8 枚）。配信者用ページでは、OBS で写した間隔のとおりに並べて出します", "「軽くする」を押しているときの盤面の絵は、1 秒 10 枚までにしました"]],
     ["build 81", "2026-10-22", ["鹿物語 Ver.1.8.21：配信者用ページのミラーを軽くしました。盤面のまわりのランプと LED リングの色は、ミラーへは 0.25 秒ごとにまとめて送ります（配信の画面の光り方は変わりません）。盤面の絵の取り込みも軽くし、タブが隠れているあいだは描きません", "ミラーの右下に「軽くする」ボタンを足しました。押すと、ミラーだけ影・ぼかし・光のにじみを描かず、盤面の絵を 1 秒に 4 枚にします（このパソコンに覚えます）"]],
     ["build 80", "2026-10-22", ["鹿物語 Ver.1.8.20：配信者用ページのミラーで、リールの数字の色と、持ち玉・回転数・ジャックポットなどの数字の字体が崩れていたのを直しました（OBS の画面の見た目そのものは変わりません）", "配信者用ページのミラーで、盤面の背景動画がそのパソコンの Chrome で映らないときは、映し方を自動で切りかえるようにしました（webm → MSE → mp4。映った方法は覚えます）"]],
@@ -1429,7 +1430,7 @@ footer { position: relative; z-index: 2; text-align: center; color: var(--soft);
     $("mx-snd").addEventListener("click", mxSound);
     MX = { root: root, world: root.firstChild, box: { pa: root.querySelector(".mx-pa"), ov: root.querySelector(".mx-ov") }, rep: {}, ready: {}, q: { ov: [], pa: [] },
       mc: {}, media: {}, want: {}, req: {}, done: {}, byHash: {}, seq: 0, lib: false, rest: {}, wq: [], sent: [],
-      st: { get: 0, meta: 0, err: 0, done: 0, drop: 0, last: "" }, cvLater: {}, lite: mxLiteGet() };
+      st: { get: 0, meta: 0, err: 0, done: 0, drop: 0, last: "" }, cvLater: {}, lite: mxLiteGet(), spr: {}, bf: [], bLag: null, bLast: 0, blRaf: 0, bl: null };
     MX.vhow = mxHowGet();
     MX.reqT = setInterval(mxReqCheck, 5000); MX.dbgT = setInterval(function () { mxVidCheck(); mxCvLater(); mxDbg(); }, 1000);
     $("mx-lite").addEventListener("click", mxLiteToggle); mxLiteBtn();
@@ -1443,7 +1444,7 @@ footer { position: relative; z-index: 2; text-align: center; color: var(--soft);
   }
   function mxUnmount() {
     if (!MX) return;
-    clearInterval(MX.resync); clearInterval(MX.reqT); clearInterval(MX.dbgT); clearTimeout(MX.pumpT); if (MX.ro) MX.ro.disconnect();
+    clearInterval(MX.resync); clearInterval(MX.reqT); clearInterval(MX.dbgT); if (MX.blRaf) cancelAnimationFrame(MX.blRaf); clearTimeout(MX.pumpT); if (MX.ro) MX.ro.disconnect();
     if (MX.snd) { try { MX.snd.close(); } catch (e) {} lsend({ t: "mx-audio", on: 0 }); }
     ["ov", "pa"].forEach(function (src) { var R = MX.rep[src]; if (R) try { R.destroy(); } catch (e) {} });
     Object.keys(MX.byHash).forEach(function (h) { URL.revokeObjectURL(MX.byHash[h]); });
@@ -1512,6 +1513,8 @@ footer { position: relative; z-index: 2; text-align: center; color: var(--soft);
     list.forEach(function (e) {
       if (!e || typeof e.timestamp !== "number") return;
       if (e.type === 4) { MX["meta" + src] = e; return; }
+      if (e.type === 5 && e.data && e.data.tag === "mx-sprite") { mxSprite(e.data.payload); return; }
+      if (e.type === 5 && e.data && e.data.tag === "mx-balls") { if (src === "pa" && MX.ready.pa) mxBallsIn(e.timestamp, e.data.payload); return; }
       if (e.type === 5 && e.data && e.data.tag === "mx-rest") { MX.rest[src] = Date.now() + 1000 * Math.min(3600, +(e.data.payload || {}).sec || 600); mxMsg(); return; }
       if (e.type === 2) { mxNew(src, e); return; }
       if (!MX.ready[src] || e.type !== 3) return;
@@ -1767,7 +1770,94 @@ footer { position: relative; z-index: 2; text-align: center; color: var(--soft);
     try { localStorage.setItem(MX_LITE_KEY, MX.lite ? "1" : "0"); } catch (e) {}
     ["ov", "pa"].forEach(function (src) { var R = MX.rep[src]; mxLiteCss(R && R.iframe && R.iframe.contentDocument); });
   }
-  document.addEventListener("visibilitychange", function () { if (!document.hidden) mxCvLater(); }); // 見えたら、隠れていたあいだの最後の絵を描く
+  document.addEventListener("visibilitychange", function () { // 見えたら、隠れていたあいだの最後の絵を描き、玉の描画を再開する
+    if (document.hidden || !MX) return;
+    mxCvLater();
+    if (!MX.blRaf && Date.now() - MX.bLast < 3000) MX.blRaf = requestAnimationFrame(mxBallLoop);
+  });
+  // ---- 玉（鹿物語）：OBS から位置が 1 秒 30 回届く。OBS で読んだ時刻のとおりに 0.12 秒遅らせて並べ、あいだを補って 1 秒 60 コマで描く ----
+  // 再生の中はスクリプトが止まっていてキャンバスに描けないので、盤面（#cvb）の上に置いた要素を動かす。見た目（スキン）は OBS が作った小さな絵
+  function mxSprite(p) {
+    if (!p || typeof p.k !== "string" || typeof p.u !== "string" || p.u.indexOf("data:image/") !== 0) return;
+    MX.spr[p.k] = { u: p.u, s: +p.s || 36 };
+    if (MX.bl) MX.bl.balls.forEach(function (el) { if (el.__k === p.k) el.__k = ""; }); // 絵が届いたら付け直す
+  }
+  function mxBallsIn(ot, p) {
+    if (!p || !Array.isArray(p.b)) return;
+    var now = Date.now(), lag = now - ot;
+    MX.bLag = MX.bLag == null || lag < MX.bLag ? lag : MX.bLag + 1;
+    var f = { t: ot, m: {}, b: p.b, g: Array.isArray(p.g) ? p.g : [], p: Array.isArray(p.p) ? p.p : [] };
+    p.b.forEach(function (x) { f.m[x[0]] = x; });
+    MX.bf.push(f); MX.bLast = now;
+    while (MX.bf.length > 2 && MX.bf[1].t < ot - 1500) MX.bf.shift();
+    if (!MX.blRaf && !document.hidden) MX.blRaf = requestAnimationFrame(mxBallLoop);
+  }
+  function mxBallLoop() {
+    if (!MX) return;
+    MX.blRaf = 0;
+    if (document.hidden) return;
+    mxBallDraw();
+    if (Date.now() - MX.bLast < 3000) MX.blRaf = requestAnimationFrame(mxBallLoop);
+  }
+  function mxBallLayer() {
+    var R = MX.rep.pa, doc = R && R.iframe && R.iframe.contentDocument, cvb = doc && doc.getElementById("cvb");
+    if (!cvb || !cvb.parentNode) return null;
+    var L = MX.bl;
+    if (!L || L.doc !== doc || !L.box.isConnected) {
+      var box = doc.createElement("div"), lay = doc.createElement("div");
+      box.style.cssText = "position:absolute;left:0;top:0;width:100%;height:100%;pointer-events:none;overflow:hidden";
+      lay.style.cssText = "position:absolute;left:0;top:0;width:620px;height:620px;transform-origin:0 0";
+      box.appendChild(lay); cvb.parentNode.insertBefore(box, cvb.nextSibling);
+      L = MX.bl = { doc: doc, box: box, lay: lay, balls: [], tags: [], pops: [], w: 0, wAt: 0 };
+    }
+    if (Date.now() - L.wAt > 1000) { L.wAt = Date.now(); var w = cvb.clientWidth || 620; if (w !== L.w) { L.w = w; L.lay.style.transform = "scale(" + (w / 620) + ")"; } } // 盤面の大きさは 1 秒ごとに見直す
+    return L;
+  }
+  function mxPool(L, list, n, make) {
+    while (list.length < n) { var el = make(L.doc); L.lay.appendChild(el); list.push(el); }
+    for (var i = n; i < list.length; i++) if (list[i].style.display !== "none") list[i].style.display = "none";
+  }
+  function mxBallDraw() {
+    var L = mxBallLayer(), F = MX.bf; if (!L || !F.length) return;
+    var rt = Date.now() - MX.bLag - 120, a = F[0], b = null;
+    for (var i = 0; i < F.length; i++) { if (F[i].t <= rt) a = F[i]; else { b = F[i]; break; } }
+    var u = b && b.t > a.t && a.t <= rt ? Math.min(1, (rt - a.t) / (b.t - a.t)) : 0, cur = b && u > .5 ? b : a, pos = {};
+    // 玉：前と後の両方にあるものは、あいだの位置にする
+    mxPool(L, L.balls, cur.b.length, function (d) { var el = d.createElement("i"); el.style.cssText = "position:absolute;left:0;top:0;background-size:100% 100%;will-change:transform"; return el; });
+    cur.b.forEach(function (x, k) {
+      var pa = a.m[x[0]], pb = b && b.m[x[0]], X = x[1], Y = x[2];
+      if (pa && pb) { X = pa[1] + (pb[1] - pa[1]) * u; Y = pa[2] + (pb[2] - pa[2]) * u; }
+      pos[x[0]] = [X, Y];
+      var el = L.balls[k], sp = MX.spr[x[3]], S = sp ? sp.s : 14;
+      if (el.__k !== x[3] || el.__sp !== !!sp) {
+        el.__k = x[3]; el.__sp = !!sp;
+        el.style.width = el.style.height = S + "px"; el.style.borderRadius = sp ? "" : "50%";
+        el.style.backgroundImage = sp ? 'url("' + sp.u + '")' : "radial-gradient(circle at 35% 35%, #fff 0, " + (String(x[3]).split("|")[1] || "#ccc") + " 45%, #2A0F1C 100%)"; // 絵が届くまでは持ち主の色の丸
+      }
+      if (el.style.display === "none") el.style.display = "";
+      el.style.transform = "translate(" + (X - S / 2).toFixed(1) + "px," + (Y - S / 2).toFixed(1) + "px)";
+    });
+    // 名前の札：玉の 17px 上
+    var tg = cur.g.filter(function (t) { return pos[t[0]]; });
+    mxPool(L, L.tags, tg.length, function (d) { var el = d.createElement("b"); el.style.cssText = "position:absolute;left:0;top:0;height:18px;box-sizing:border-box;padding:0 7px;border:2px solid #2A0F1C;border-radius:9px;color:#fff;font:900 12px/14px 'Zen Maru Gothic',sans-serif;white-space:nowrap;will-change:transform"; return el; });
+    tg.forEach(function (t, k) {
+      var el = L.tags[k], p = pos[t[0]];
+      if (el.__t !== t[1]) { el.__t = t[1]; el.textContent = t[1]; }
+      if (el.__c !== t[2]) { el.__c = t[2]; el.style.background = t[2]; }
+      if (el.style.display === "none") el.style.display = "";
+      el.style.transform = "translate(" + p[0].toFixed(1) + "px," + (p[1] - 17).toFixed(1) + "px) translate(-50%,-50%)";
+    });
+    // 入賞の吹き出し：上へ 30px 動きながら消える
+    mxPool(L, L.pops, cur.p.length, function (d) { var el = d.createElement("em"); el.style.cssText = "position:absolute;left:0;top:0;height:22px;box-sizing:border-box;padding:0 8px;border:2.5px solid #2A0F1C;border-radius:11px;color:#fff;font:normal 900 15px/17px 'Zen Maru Gothic',sans-serif;white-space:nowrap"; return el; });
+    cur.p.forEach(function (q, k) {
+      var el = L.pops[k], tt = +q[4] || 0;
+      if (el.__t !== q[0]) { el.__t = q[0]; el.textContent = q[0]; }
+      if (el.__c !== q[1]) { el.__c = q[1]; el.style.background = q[1]; }
+      if (el.style.display === "none") el.style.display = "";
+      el.style.opacity = String(1 - tt * tt);
+      el.style.transform = "translate(" + q[2] + "px," + (q[3] - 26 - tt * 30) + "px) translate(-50%,-50%)";
+    });
+  }
   // 背景動画の受け渡しのようす（ミラーの左下に 1 秒ごと）：OBS でいま流れている背景と、それがこのページに届いたか・頼んだ回数
   function mxName(k) { return String(k || "").replace(/^.*\//, "").slice(0, 40); }
   function mxDbg() {

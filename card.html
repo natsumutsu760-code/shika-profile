@@ -12246,6 +12246,8 @@ if (location.hash === "#lcdcard" || location.hash === "#sitecard" || document.do
 
 
 
+
+
 <!--shika-mirror--><script>
 /* rrweb 2.1.7 — MIT License. Copyright (c) 2018 Contributors (https://github.com/rrweb-io/rrweb/graphs/contributors). https://github.com/rrweb-io/rrweb/blob/master/LICENSE */
 (function (g, f) {
@@ -12433,7 +12435,7 @@ return module.exports;
     if (!stop) return;
     lastSnap = Date.now();
     if (performance.now() - t > slow()) { rest("start"); return; }
-    cvStart(); watchStart(); clearInterval(thrT); thrT = setInterval(thrTick, THR_MS);
+    cvStart(); watchStart(); clearInterval(thrT); thrT = setInterval(thrTick, THR_MS); clearInterval(ballT); ballT = setInterval(ballTick, BALL_MS);
   }
   // 画面まるごと（見ている人が来たとき・ときどきのずれ直し）。30 秒に 1 回まで（それより早い頼みは、30 秒たってから 1 回だけ）
   function snap() {
@@ -12448,7 +12450,7 @@ return module.exports;
   function halt() {
     if (stop) { try { stop(); } catch (e) {} stop = null; }
     buf = []; clearTimeout(flushT); flushT = 0; clearTimeout(snapT); snapT = 0; gen++; held = {};
-    cvStop(); watchStop(); audioStop(); clearInterval(thrT); thrT = 0; thrIds = null; thrLast = {};
+    cvStop(); watchStop(); audioStop(); clearInterval(thrT); thrT = 0; thrIds = null; thrLast = {}; clearInterval(ballT); ballT = 0; sprSent = {}; ballQuiet = false;
   }
 
   // ---- 見張り：記録のせいでこの画面が重くなったら、記録をやめて 10 分休む（配信の画面のほうが大事） ----
@@ -12478,9 +12480,9 @@ return module.exports;
 
   // ---- キャンバスの絵：createImageBitmap（GPU を待たない）で写し、ワーカーで小さくして webp にする ----
   // rrweb のキャンバスの記録と同じ形のできごと（source 9：clearRect と drawImage）にして送るので、見る側はそのまま描ける
-  // 鹿物語の盤面（玉）は 0.6 倍・1 秒 20 枚。配信者用ページでは元の 4 割ほどの大きさでしか映らないので、小さくして枚数を増やす
-  // （前は等倍・1 秒 8 枚のつもりが、1 枚の webp を作るのに時間がかかって 1 秒 3 枚ほどしか出ず、玉がコマ送りに見えた）
-  var CV_MS = SRC === "pa" ? 50 : 250, CV_SCALE = 0.6, cvW = null, cvBusy = {}, cvT = 0, cvVis = null, cvVisAt = 0;
+  // キャンバスは 0.6 倍（配信者用ページでは元の 4 割ほどの大きさでしか映らない）。鹿物語の盤面は 1 秒 8 枚・オーバーレイは 4 枚。
+  // 鹿物語の玉は絵ではなく位置で送る（下の ball…。data-mx-skip のキャンバスは写さない）
+  var CV_MS = SRC === "pa" ? 125 : 250, CV_SCALE = 0.6, cvW = null, cvBusy = {}, cvT = 0, cvVis = null, cvVisAt = 0;
   var CV_WORKER = [
     "var last = {}, q = Promise.resolve();",
     "function fnv(u) { var h = 0x811c9dc5; for (var i = 0; i < u.length; i++) { h ^= u[i]; h = Math.imul(h, 0x01000193); } return (h >>> 0).toString(36) + ':' + u.length; }",
@@ -12514,7 +12516,7 @@ return module.exports;
     cvT = setTimeout(cvTick, CV_MS);
     if (!stop || !cvW || !ws || ws.bufferedAmount > 1e6) return; // 回線が詰まっているときは写さない
     var list = canvases(), now = Date.now();
-    if (!cvVis || now - cvVisAt > 1000) { cvVisAt = now; cvVis = list.filter(function (c) { return c.getClientRects().length > 0; }); } // 画面に出ているものだけ（1 秒ごとに見直す）
+    if (!cvVis || now - cvVisAt > 1000) { cvVisAt = now; cvVis = list.filter(function (c) { return !c.hasAttribute("data-mx-skip") && c.getClientRects().length > 0; }); } // 画面に出ているものだけ（1 秒ごとに見直す）
     list = cvVis;
     for (var i = 0; i < list.length; i++) {
       var c = list[i], id = R.mirror.getId(c);
@@ -12563,7 +12565,7 @@ return module.exports;
   }
   function push(e) {
     try {
-      if (e.type === 2 && e.data) { rawStyles(e.data.node); thrIds = null; thrLast = {}; } // 画面まるごと：いまの色も入っている。番号も付け直される
+      if (e.type === 2 && e.data) { rawStyles(e.data.node); thrIds = null; thrLast = {}; sprSent = {}; ballQuiet = false; } // 画面まるごと：いまの色も入っている。番号も付け直される。新しく見はじめた人に玉の絵も送り直す
       else if (e.type === 3 && e.data && e.data.source === 0) {
         if (e.data.adds) e.data.adds.forEach(function (a) { rawStyles(a.node); });
         if (e.data.attributes && e.data.attributes.length) {
@@ -12576,6 +12578,26 @@ return module.exports;
     queue(e);
   }
   function queue(e) { buf.push(e); if (!flushT) flushT = setTimeout(flush, 100); }
+
+  // ---- 玉（鹿物語の window.__mxBalls）：位置を 1 秒 30 回送る。見た目（スキン）は種類ごとに最初の 1 回だけ小さな絵で送る ----
+  // 配信者用ページは OBS で読んだ時刻のとおりに並べ、あいだを補って 1 秒 60 コマで描く（絵で送ると 1 秒数枚しか届かず、玉がコマ送りに見えた）
+  var BALL_MS = 33, ballT = 0, sprSent = {}, ballQuiet = false;
+  function ballTick() {
+    if (!stop || typeof window.__mxBalls !== "function") return;
+    var st; try { st = window.__mxBalls(); } catch (x) { return; }
+    if (!st) return;
+    var quiet = !st.b.length && !st.p.length;
+    if (quiet && ballQuiet) return; // 玉も吹き出しもないあいだは、なくなったと 1 回だけ送る
+    ballQuiet = quiet;
+    for (var i = 0; i < st.b.length; i++) {
+      var k = st.b[i][3];
+      if (sprSent[k] || typeof window.__mxBallSprite !== "function") continue;
+      sprSent[k] = 1;
+      var sp = null; try { sp = window.__mxBallSprite(k); } catch (x) {}
+      if (sp) queue({ type: 5, timestamp: Date.now(), data: { tag: "mx-sprite", payload: { k: k, u: sp.u, s: sp.s } } });
+    }
+    queue({ type: 5, timestamp: Date.now(), data: { tag: "mx-balls", payload: st } });
+  }
   function flush() {
     flushT = 0;
     var list = buf; buf = [];
