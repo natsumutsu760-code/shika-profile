@@ -909,6 +909,7 @@ footer { position: relative; z-index: 2; text-align: center; color: var(--soft);
     ["そのほか", "#22CC88", [["!けいじばん こんにちは", "ラウンジの掲示板に書く（1 分に 1 回・120 字まで）"], ["!バグ報告 ガチャのあと画面が止まった", "不具合を配信者に知らせる（30 秒に 1 回・300 字まで）"], ["!花火", "画面に花火（!ハート でハート）"], [null, "888 で拍手、草 で草が生える"], ["!モノリンク", "MONO LINK の URL をチャットで受け取る（!サイト でも）"]]]
   ];
   var NOTES = [
+    ["build 84", "2026-10-22", ["鹿物語 Ver.1.8.24：配信者用ページのミラーで、ルーレットの円盤がコマ送りだったのを滑らかにしました。円盤の絵を送るのをやめ、回り始めの値（目・止まるポケット・初めの角度）だけを送ります。配信者用ページで同じ動きの円盤を組み立てて、パソコンの画面の速さで回します", "ルーレットなどの舞台が出ているあいだは、下に隠れた盤面の絵を送らないようにしました（配信の画面の見た目は変わりません）"]],
     ["build 83", "2026-10-22", ["鹿物語 Ver.1.8.23：配信者用ページのミラーの玉を、絵ではなく位置で送るようにしました。玉の位置は 1 秒 30 回届き、配信者用ページであいだを補って、パソコンの画面の速さ（ふつうは 1 秒 60 コマ）で動かします。玉のスキン・名前の札・入賞の吹き出しも同じように出ます", "玉の入っていない盤面の絵は 1 秒 8 枚にして、回線とパソコンの負担を減らしました（配信の画面の見た目は変わりません）"]],
     ["build 82", "2026-10-22", ["鹿物語 Ver.1.8.22：配信者用ページのミラーで、玉の動きがコマ送りだったのを滑らかにしました。盤面の絵を小さく（0.6 倍）して、1 秒 20 枚まで送ります（前は 1 秒 3〜8 枚）。配信者用ページでは、OBS で写した間隔のとおりに並べて出します", "「軽くする」を押しているときの盤面の絵は、1 秒 10 枚までにしました"]],
     ["build 81", "2026-10-22", ["鹿物語 Ver.1.8.21：配信者用ページのミラーを軽くしました。盤面のまわりのランプと LED リングの色は、ミラーへは 0.25 秒ごとにまとめて送ります（配信の画面の光り方は変わりません）。盤面の絵の取り込みも軽くし、タブが隠れているあいだは描きません", "ミラーの右下に「軽くする」ボタンを足しました。押すと、ミラーだけ影・ぼかし・光のにじみを描かず、盤面の絵を 1 秒に 4 枚にします（このパソコンに覚えます）"]],
@@ -1430,7 +1431,7 @@ footer { position: relative; z-index: 2; text-align: center; color: var(--soft);
     $("mx-snd").addEventListener("click", mxSound);
     MX = { root: root, world: root.firstChild, box: { pa: root.querySelector(".mx-pa"), ov: root.querySelector(".mx-ov") }, rep: {}, ready: {}, q: { ov: [], pa: [] },
       mc: {}, media: {}, want: {}, req: {}, done: {}, byHash: {}, seq: 0, lib: false, rest: {}, wq: [], sent: [],
-      st: { get: 0, meta: 0, err: 0, done: 0, drop: 0, last: "" }, cvLater: {}, lite: mxLiteGet(), spr: {}, bf: [], bLag: null, bLast: 0, blRaf: 0, bl: null };
+      st: { get: 0, meta: 0, err: 0, done: 0, drop: 0, last: "" }, cvLater: {}, lite: mxLiteGet(), spr: {}, bf: [], bLag: null, bLast: 0, blRaf: 0, bl: null, wh: null, wi: {}, wl: null };
     MX.vhow = mxHowGet();
     MX.reqT = setInterval(mxReqCheck, 5000); MX.dbgT = setInterval(function () { mxVidCheck(); mxCvLater(); mxDbg(); }, 1000);
     $("mx-lite").addEventListener("click", mxLiteToggle); mxLiteBtn();
@@ -1448,6 +1449,7 @@ footer { position: relative; z-index: 2; text-align: center; color: var(--soft);
     if (MX.snd) { try { MX.snd.close(); } catch (e) {} lsend({ t: "mx-audio", on: 0 }); }
     ["ov", "pa"].forEach(function (src) { var R = MX.rep[src]; if (R) try { R.destroy(); } catch (e) {} });
     Object.keys(MX.byHash).forEach(function (h) { URL.revokeObjectURL(MX.byHash[h]); });
+    Object.keys(MX.wi).forEach(function (k) { var u = MX.wi[k].u || {}; Object.keys(u).forEach(function (n) { URL.revokeObjectURL(u[n]); }); });
     MX = null;
   }
   function mxMsg() {
@@ -1514,6 +1516,7 @@ footer { position: relative; z-index: 2; text-align: center; color: var(--soft);
       if (!e || typeof e.timestamp !== "number") return;
       if (e.type === 4) { MX["meta" + src] = e; return; }
       if (e.type === 5 && e.data && e.data.tag === "mx-sprite") { mxSprite(e.data.payload); return; }
+      if (e.type === 5 && e.data && e.data.tag === "mx-wheel") { if (src === "pa") mxWheelIn(e.timestamp, e.data.payload); return; }
       if (e.type === 5 && e.data && e.data.tag === "mx-balls") { if (src === "pa" && MX.ready.pa) mxBallsIn(e.timestamp, e.data.payload); return; }
       if (e.type === 5 && e.data && e.data.tag === "mx-rest") { MX.rest[src] = Date.now() + 1000 * Math.min(3600, +(e.data.payload || {}).sec || 600); mxMsg(); return; }
       if (e.type === 2) { mxNew(src, e); return; }
@@ -1773,7 +1776,7 @@ footer { position: relative; z-index: 2; text-align: center; color: var(--soft);
   document.addEventListener("visibilitychange", function () { // 見えたら、隠れていたあいだの最後の絵を描き、玉の描画を再開する
     if (document.hidden || !MX) return;
     mxCvLater();
-    if (!MX.blRaf && Date.now() - MX.bLast < 3000) MX.blRaf = requestAnimationFrame(mxBallLoop);
+    if (!MX.blRaf && (Date.now() - MX.bLast < 3000 || MX.wh)) MX.blRaf = requestAnimationFrame(mxBallLoop);
   });
   // ---- 玉（鹿物語）：OBS から位置が 1 秒 30 回届く。OBS で読んだ時刻のとおりに 0.12 秒遅らせて並べ、あいだを補って 1 秒 60 コマで描く ----
   // 再生の中はスクリプトが止まっていてキャンバスに描けないので、盤面（#cvb）の上に置いた要素を動かす。見た目（スキン）は OBS が作った小さな絵
@@ -1796,8 +1799,8 @@ footer { position: relative; z-index: 2; text-align: center; color: var(--soft);
     if (!MX) return;
     MX.blRaf = 0;
     if (document.hidden) return;
-    mxBallDraw();
-    if (Date.now() - MX.bLast < 3000) MX.blRaf = requestAnimationFrame(mxBallLoop);
+    mxBallDraw(); mxWheelDraw();
+    if (Date.now() - MX.bLast < 3000 || MX.wh) MX.blRaf = requestAnimationFrame(mxBallLoop);
   }
   function mxBallLayer() {
     var R = MX.rep.pa, doc = R && R.iframe && R.iframe.contentDocument, cvb = doc && doc.getElementById("cvb");
@@ -1857,6 +1860,248 @@ footer { position: relative; z-index: 2; text-align: center; color: var(--soft);
       el.style.opacity = String(1 - tt * tt);
       el.style.transform = "translate(" + q[2] + "px," + (q[3] - 26 - tt * 30) + "px) translate(-50%,-50%)";
     });
+  }
+  // ---- ルーレット（鹿物語の spinWheel）：OBS から回り始めの値（目・止まるポケット・初めの角度・時刻）だけ届く（mx-wheel）。終わったら null ----
+  // 再生の中のキャンバスには描けないので、動かない部分（地・縁・すり鉢・塔）は遠近つきの絵、回る部分（目の輪・筋）は真上から見た絵にして 1 回だけ作り、
+  // #jpcv の上に重ねて CSS の 3D（OBS と同じ傾きと視点の距離）で回す。角度と玉は OBS と同じ ShikaWheel.motion で出し、玉と同じく 0.12 秒遅らせて描く
+  /*<shika-wheel>*/
+// ルーレットの円盤（鹿物語の spinWheel）を描く部品。鹿物語（OBS）と MONO LINK の配信者用ページ（ミラー）の両方に、
+// inline.py で同じものを入れる（shika-wheel の印のあいだ）。ここを直したら両方に入れ直すこと。
+//   OBS：frame() で 1 コマずつ遠近をつけて描く。
+//   ミラー：OBS から回り始めの値（目・止まるポケット・初めの角度・時刻）だけを受け取る。動かない部分（地・縁・溝・まん中・塔）は遠近つきで、
+//   回る部分（目の輪・筋）は真上から見た絵にして 1 回だけ作り、CSS の 3D（傾けて回す）で動かす。角度はどちらも motion() で出すので、同じ目で止まる。
+// P（見え方）は pj（遠近）か flat(s, c)（真上から s 倍・中心 c）。どちらも P(x, z, 高さ) → { x, y, k：その場所の大きさの倍率 }
+var ShikaWheel = (function () {
+  var W = {
+    C: { x: 310, y: 330 }, RW: 262, RT: 246, RN: 226, RP: 176, RI: 134, RB: 154, BR: 9,
+    T1: 3.4, T2: 4.7, END: 6.3, // T1 で玉が外の溝を離れ、T2 でポケットに入り、END で回り終わる
+    BETA: 50 * Math.PI / 180, DIST: 700, FOC: 714
+  };
+  var C = W.C, CB = Math.cos(W.BETA), SB = Math.sin(W.BETA), DT = 1 / 600;
+  // 動き：円盤はゆっくり右回り、玉は速く左回りで減速
+  function ww(t) { return 1.3 * Math.exp(-t / 7); }
+  function wb(t) { return -10 * Math.exp(-t / 1.5); }
+  function drift(t) { var d = 0; for (var s = 0; s < t; s += DT) d += (wb(s) - ww(s)) * DT; return d; } // 円盤から見た玉の角度の進み
+  // cells：1 周ぶんの目 [名前, 地の色, 文字の色, 特別な目なら 1]。ti：玉が止まるポケット。th0：円盤の初めの角度
+  W.setup = function (cells, ti, th0) {
+    var n = cells.length, seg = 6.283 / n, aim = ti * seg + seg / 2;
+    return { cells: cells, n: n, seg: seg, ti: ti, aim: aim, th0: th0, phi0: aim - drift(W.T2) }; // phi0：T2 でちょうど aim になる玉の初めの角度
+  };
+  // t 秒のときの円盤の角度 thW・玉の角度 ballA と半径 ballR・溝を離れてからの進み u（0〜1）・ポケットに入ったか settled
+  W.motion = function (S, t) {
+    var thW = S.th0 + 1.3 * 7 * (1 - Math.exp(-t / 7)), m = { t: t, thW: thW, u: 0, settled: t >= W.T2 };
+    if (!m.settled) {
+      var u = Math.max(0, (t - W.T1) / (W.T2 - W.T1)), hop = u > 0 ? Math.sin(Math.PI * 3 * u) * S.seg * 1.3 * (1 - u) : 0;
+      m.u = u; m.ballA = thW + S.phi0 + drift(t) + hop;
+      m.ballR = u <= 0 ? W.RT : W.RT + (W.RB - W.RT) * (1 - Math.pow(1 - u, 2)) - Math.abs(Math.sin(Math.PI * 3 * u)) * 16 * (1 - u);
+    } else { m.ballA = thW + S.aim; m.ballR = W.RB; }
+    return m;
+  };
+  // 遠近：円盤の面を斜め上から見る。手前ほど大きく見える
+  function pj(x, z, h) { h = h || 0; var d = W.DIST + z * SB - h * CB, k = W.FOC / d; return { x: C.x + x * k, y: C.y - (z * CB + h * SB) * k, k: k }; }
+  W.pj = pj;
+  W.flat = function (s, c) { var f = function (x, z) { return { x: c + x * s, y: c - z * s, k: s }; }; f.s = s; return f; };
+  function lw(P) { return P.s || 1; } // 線の太さの倍率（遠近のときは画面の px のまま）
+  function ring(g, P, r1, r2, a0, a1, h1, h2) { // 輪の一部（a0〜a1）を、面の上の多角形として描く
+    var m = Math.max(3, Math.ceil(Math.abs(a1 - a0) / .06)), q, j;
+    g.beginPath();
+    for (j = 0; j <= m; j++) { var aa = a0 + (a1 - a0) * j / m; q = P(Math.cos(aa) * r1, Math.sin(aa) * r1, h1 || 0); j ? g.lineTo(q.x, q.y) : g.moveTo(q.x, q.y); }
+    for (j = m; j >= 0; j--) { var ab = a0 + (a1 - a0) * j / m; q = P(Math.cos(ab) * r2, Math.sin(ab) * r2, h2 || 0); g.lineTo(q.x, q.y); }
+    g.closePath();
+  }
+  // 面に文字を貼る（文字の上が外を向く）。flip：null なら手前の目だけさかさまにしない（OBS）・true／false は全部そう
+  function onPlane(g, P, r, aa, h, flip) {
+    var q = P(Math.cos(aa) * r, Math.sin(aa) * r, h), e1 = P(Math.cos(aa) * r + Math.sin(aa), Math.sin(aa) * r - Math.cos(aa), h), e2 = P(Math.cos(aa) * (r - 1), Math.sin(aa) * (r - 1), h);
+    var ax = e1.x - q.x, ay = e1.y - q.y, bx = e2.x - q.x, by = e2.y - q.y;
+    if (flip === true || (flip == null && ax < 0)) { ax = -ax; ay = -ay; bx = -bx; by = -by; } // 手前の目も、さかさまにならないように
+    g.setTransform(ax, ay, bx, by, q.x, q.y);
+  }
+  // 動かない部分：地・縁の側面と上面・玉の溝・ひし形の止め（遠近）
+  W.base = function (g, th) {
+    var bg = g.createRadialGradient(310, 200, 30, 310, 330, 380); bg.addColorStop(0, th.bg[0]); bg.addColorStop(1, th.bg[1]); g.fillStyle = bg; g.fillRect(0, 0, 620, 620);
+    // 縁の側面（手前だけ見える厚み）と、上面
+    g.fillStyle = th.side[0]; ring(g, pj, W.RW + 16, W.RW + 16, Math.PI, 2 * Math.PI, 0, -34); g.fill();
+    g.fillStyle = th.side[1]; ring(g, pj, W.RW + 16, W.RW + 16, Math.PI * 1.02, Math.PI * 1.98, -6, -30); g.fill();
+    var c0 = pj(0, 0), rim = g.createRadialGradient(c0.x, c0.y - 120, 60, c0.x, c0.y, (W.RW + 16) * c0.k * 1.3); rim.addColorStop(0, th.rim[0]); rim.addColorStop(.55, th.rim[1]); rim.addColorStop(1, th.rim[2]);
+    g.fillStyle = rim; ring(g, pj, W.RW + 16, 0, 0, 6.2832); g.fill();
+    g.strokeStyle = th.rimLine; g.lineWidth = 2.5; ring(g, pj, W.RW + 12, W.RW + 12, 0, 6.2832); g.stroke();
+    // 玉の溝（外へ上がるすり鉢。明るい縁）
+    var tr = g.createRadialGradient(c0.x, c0.y - 60, W.RN * c0.k, c0.x, c0.y, (W.RT + 16) * c0.k * 1.25); tr.addColorStop(0, th.track[0]); tr.addColorStop(.75, th.track[1]); tr.addColorStop(1, th.track[2]);
+    g.fillStyle = tr; ring(g, pj, W.RT + 14, W.RN, 0, 6.2832); g.fill();
+    // ひし形の止め（動かない 8 個）
+    g.fillStyle = th.dia;
+    for (var k = 0; k < 8; k++) { var da = k / 8 * 6.283 + .2, rr = (W.RT + W.RN) / 2 + 6; var q1 = pj(Math.cos(da) * (rr - 14), Math.sin(da) * (rr - 14)), q2 = pj(Math.cos(da + .025) * rr, Math.sin(da + .025) * rr, 3), q3 = pj(Math.cos(da) * (rr + 14), Math.sin(da) * (rr + 14)), q4 = pj(Math.cos(da - .025) * rr, Math.sin(da - .025) * rr, 3); g.beginPath(); g.moveTo(q1.x, q1.y); g.lineTo(q2.x, q2.y); g.lineTo(q3.x, q3.y); g.lineTo(q4.x, q4.y); g.closePath(); g.fill(); }
+  };
+  // 止まったポケットの白い枠
+  W.hl = function (g, S, thW, P) {
+    var a0 = thW + S.ti * S.seg, a1 = a0 + S.seg;
+    g.strokeStyle = "#FFFFFF"; g.lineWidth = 3 * lw(P); ring(g, P, W.RN - 2, W.RI + 2, a0 + .015, a1 - .015); g.stroke();
+  };
+  // 回る円盤：目の輪・ポケット・仕切り・目の名前。hl：止まったポケットに枠
+  W.disc = function (g, S, th, thW, P, flip, hl) {
+    var n = S.n, seg = S.seg, c = S.cells, i;
+    for (i = 0; i < n; i++) {
+      var a0 = thW + i * seg, a1 = a0 + seg;
+      g.fillStyle = c[i][1]; ring(g, P, W.RN, W.RP, a0, a1); g.fill();
+      g.fillStyle = c[i][3] && th.innerSp ? th.innerSp : th.inner[i % 2]; ring(g, P, W.RP, W.RI, a0, a1); g.fill();
+      if (hl && i === S.ti) W.hl(g, S, thW, P);
+      var f1 = P(Math.cos(a0) * W.RI, Math.sin(a0) * W.RI, 0), f2 = P(Math.cos(a0) * W.RP, Math.sin(a0) * W.RP, 7);
+      g.strokeStyle = th.fret; g.lineWidth = 2.2 * f2.k; g.beginPath(); g.moveTo(f1.x, f1.y); g.lineTo(f2.x, f2.y); g.stroke();
+    }
+    g.strokeStyle = th.fret; g.lineWidth = 1.6 * lw(P); [W.RN, W.RP, W.RI].forEach(function (r) { ring(g, P, r, r, 0, 6.2832); g.stroke(); });
+    // 目の名前（面に貼る）
+    for (i = 0; i < n; i++) {
+      var lb = c[i][0];
+      onPlane(g, P, (W.RN + W.RP) / 2, thW + i * seg + seg / 2, 0, flip);
+      g.fillStyle = c[i][2]; g.textAlign = "center"; g.textBaseline = "middle"; g.font = "800 " + (lb.length > 3 ? 13 : lb.length > 2 ? 16 : 20) + "px 'Zen Maru Gothic', sans-serif";
+      g.fillText(lb, 0, 0);
+    }
+    g.setTransform(1, 0, 0, 1, 0, 0);
+  };
+  // まん中のすり鉢（動かない・遠近）
+  W.cone = function (g, th) {
+    var c0 = pj(0, 0), cone = g.createRadialGradient(c0.x, c0.y - 20, 8, c0.x, c0.y, W.RI * c0.k); cone.addColorStop(0, th.cone[0]); cone.addColorStop(1, th.cone[1]);
+    g.fillStyle = cone; ring(g, pj, W.RI, 0, 0, 6.2832); g.fill();
+  };
+  // すり鉢の 4 本の筋（円盤といっしょに回る）
+  W.spokes = function (g, th, thW, P) {
+    g.strokeStyle = th.spoke; g.lineWidth = 3 * lw(P);
+    for (var sp = 0; sp < 4; sp++) { var sa = thW + sp * 1.5708, s1 = P(Math.cos(sa) * 34, Math.sin(sa) * 34), s2 = P(Math.cos(sa) * (W.RI - 6), Math.sin(sa) * (W.RI - 6)); g.beginPath(); g.moveTo(s1.x, s1.y); g.lineTo(s2.x, s2.y); g.stroke(); }
+  };
+  // 玉の場所（遠近）：bq 玉・sh 影・r 半径・far 奥にある（塔より先に描く）
+  W.ballAt = function (m) {
+    var bq = pj(Math.cos(m.ballA) * m.ballR, Math.sin(m.ballA) * m.ballR, W.BR), sh = pj(Math.cos(m.ballA) * m.ballR + 3, Math.sin(m.ballA) * m.ballR - 3, 0);
+    return { bq: bq, sh: sh, r: W.BR * bq.k, far: Math.sin(m.ballA) > 0 };
+  };
+  W.ball = function (g, b) {
+    g.fillStyle = "rgba(0,0,0,.5)"; g.beginPath(); g.ellipse(b.sh.x, b.sh.y, b.r, b.r * .5, 0, 0, 6.283); g.fill();
+    var bl = g.createRadialGradient(b.bq.x - 3, b.bq.y - 3, 1, b.bq.x, b.bq.y, b.r); bl.addColorStop(0, "#FFFFFF"); bl.addColorStop(.7, "#E9EDF2"); bl.addColorStop(1, "#8A9099");
+    g.fillStyle = bl; g.beginPath(); g.arc(b.bq.x, b.bq.y, b.r, 0, 6.283); g.fill();
+  };
+  // まん中の銀の塔（立っているもの・動かない）
+  W.tower = function (g, th) {
+    var base = pj(0, 0, 0), top = pj(0, 0, 120), sc = base.k;
+    var cyl = g.createLinearGradient(base.x - 40 * sc, 0, base.x + 40 * sc, 0); cyl.addColorStop(0, th.tower[0]); cyl.addColorStop(.32, th.tower[1]); cyl.addColorStop(.58, th.tower[2]); cyl.addColorStop(1, th.tower[3]);
+    g.fillStyle = cyl;
+    g.beginPath(); g.moveTo(base.x - 46 * sc, base.y); g.quadraticCurveTo(base.x - 12 * sc, base.y - 18 * sc, base.x - 13 * sc, top.y + 40 * sc); g.lineTo(base.x + 13 * sc, top.y + 40 * sc); g.quadraticCurveTo(base.x + 12 * sc, base.y - 18 * sc, base.x + 46 * sc, base.y); g.closePath(); g.fill();
+    g.beginPath(); g.ellipse(base.x, base.y, 46 * sc, 46 * sc * CB * .9, 0, 0, Math.PI); g.fill();
+    g.beginPath(); g.ellipse(base.x, top.y + 40 * sc, 20 * sc, 8 * sc, 0, 0, 6.283); g.fill();
+    g.fillRect(base.x - 9 * sc, top.y + 6 * sc, 18 * sc, 36 * sc);
+    g.beginPath(); g.ellipse(base.x, top.y + 6 * sc, 14 * sc, 6 * sc, 0, 0, 6.283); g.fill();
+    g.strokeStyle = th.towerLine; g.lineWidth = 5 * sc; g.beginPath(); g.moveTo(base.x - 34 * sc, top.y + 8 * sc); g.lineTo(base.x + 34 * sc, top.y + 8 * sc); g.stroke();
+    g.fillStyle = "#FFFFFF"; g.beginPath(); g.arc(base.x - 4 * sc, top.y + 2 * sc, 4 * sc, 0, 6.283); g.fill();
+  };
+  // OBS の 1 コマ
+  W.frame = function (g, S, th, m) {
+    g.setTransform(1, 0, 0, 1, 0, 0); g.clearRect(0, 0, 620, 620);
+    W.base(g, th);
+    W.disc(g, S, th, m.thW, pj, null, m.settled);
+    W.cone(g, th); W.spokes(g, th, m.thW, pj);
+    var b = W.ballAt(m);
+    if (b.far) W.ball(g, b);
+    W.tower(g, th);
+    if (!b.far) W.ball(g, b);
+  };
+  return W;
+})();
+/*</shika-wheel>*/
+  function mxWheelIn(ot, p) {
+    var now = Date.now(), lag = now - ot;
+    MX.bLag = MX.bLag == null || lag < MX.bLag ? lag : MX.bLag + 1;
+    if (!p) { if (MX.wh) MX.wh.end = ot; return; }
+    if (typeof p !== "object" || !Array.isArray(p.c) || !p.c.length || p.c.length > 64 || !p.th || typeof p.th !== "object") return;
+    var ti = Math.floor(+p.ti), th0 = +p.th0, t0 = +p.t0;
+    if (!(ti >= 0 && ti < p.c.length) || !isFinite(th0) || !isFinite(t0)) return;
+    if (MX.wh && MX.wh.id === p.id && MX.wh.t0 === t0) return; // 送り直し（画面まるごとのあと）はそのまま
+    var cells = p.c.map(function (c) { c = Array.isArray(c) ? c : []; return [String(c[0] == null ? "" : c[0]).slice(0, 8), String(c[1] || "#000"), String(c[2] || "#fff"), c[3] ? 1 : 0]; });
+    var W = MX.wh = { id: p.id, t0: t0, th: p.th, S: ShikaWheel.setup(cells, ti, th0), end: 0, key: JSON.stringify([p.th, cells]), img: null };
+    mxWheelImgs(W);
+    if (!MX.blRaf && !document.hidden) MX.blRaf = requestAnimationFrame(mxBallLoop);
+  }
+  // 絵を作る。盤と目の組ごとに 6 組までとっておく（2 回目からはすぐ出る）。動かないものは 620 四方、回るものは円盤の 1.5 倍の細かさ。
+  // 文字の書体が読めてから描き、全部の絵を読み込み終えてから使う（読み込み中の絵を出さない）
+  function mxWheelImgs(W) {
+    var all = MX.wi, c = all[W.key];
+    if (c) { c.at = Date.now(); if (c.u) W.img = c; else c.wait.push(W); return; }
+    var ks = Object.keys(all).filter(function (k) { return all[k].u && !(MX.wh && MX.wh.img === all[k]); });
+    if (ks.length >= 6) { ks.sort(function (x, y) { return all[x].at - all[y].at; }); var o = all[ks[0]]; Object.keys(o.u).forEach(function (n) { URL.revokeObjectURL(o.u[n]); }); delete all[ks[0]]; }
+    c = all[W.key] = { key: W.key, u: null, wait: [W], at: Date.now() };
+    var th = W.th, S = W.S, R = ShikaWheel.RN + 4, sc = 1.5, sz = Math.ceil(R * 2 * sc), out = {}, left = 1;
+    function ready() { if (!MX || MX.wi[W.key] !== c) return; c.u = out; c.wait.forEach(function (w) { w.img = c; }); c.wait = []; }
+    function fin() {
+      if (--left) return;
+      if (!MX || MX.wi[W.key] !== c || Object.keys(out).length !== 7) { Object.keys(out).forEach(function (k) { URL.revokeObjectURL(out[k]); }); if (MX && MX.wi[W.key] === c) delete MX.wi[W.key]; return; }
+      Promise.all(Object.keys(out).map(function (k) { var im = new Image(); im.src = out[k]; return im.decode ? im.decode() : null; })).then(ready, ready);
+    }
+    function put(k, cn) { left++; cn.toBlob(function (b) { if (b) out[k] = URL.createObjectURL(b); fin(); }, "image/png"); }
+    function cv(w) { var e = document.createElement("canvas"); e.width = e.height = w; return e; }
+    function stat(k, f) { var e = cv(620); f(e.getContext("2d")); put(k, e); }
+    function flat(k, f) { var e = cv(sz), g = e.getContext("2d"); f(g, ShikaWheel.flat(sc, sz / 2)); put(k, e); }
+    function draw() {
+      try {
+        stat("base", function (g) { ShikaWheel.base(g, th); });
+        stat("cone", function (g) { ShikaWheel.cone(g, th); });
+        stat("tower", function (g) { ShikaWheel.tower(g, th); });
+        flat("a", function (g, P) { ShikaWheel.disc(g, S, th, 0, P, false, false); }); // 奥の半分に使う：目の名前は上が外
+        flat("b", function (g, P) { ShikaWheel.disc(g, S, th, 0, P, true, false); });  // 手前の半分に使う：さかさまにならないように上が内
+        flat("hl", function (g, P) { ShikaWheel.hl(g, S, 0, P); });
+        flat("sp", function (g, P) { ShikaWheel.spokes(g, th, 0, P); });
+      } catch (e) {}
+      fin();
+    }
+    var txt = S.cells.map(function (x) { return x[0]; }).join("");
+    if (document.fonts && document.fonts.load) Promise.all([13, 16, 20].map(function (n) { return document.fonts.load("800 " + n + "px 'Zen Maru Gothic'", txt); })).then(draw, draw);
+    else draw();
+  }
+  // 重ねる要素：地 → 円盤（奥の半分・手前の半分・止まった枠）→ すり鉢 → 筋 → 玉（奥なら塔の後ろ）→ 塔 → 玉（手前なら塔の前）
+  function mxWheelBuild(doc) {
+    var Wh = ShikaWheel, C = Wh.C, R = Wh.RN + 4, full = "position:absolute;left:0;top:0;width:620px;height:620px;";
+    var box = doc.createElement("div"); box.style.cssText = "position:absolute;left:0;top:0;width:100%;height:100%;overflow:hidden;background:#050506;pointer-events:none;display:none";
+    var lay = doc.createElement("div"); lay.style.cssText = full + "transform-origin:0 0"; box.appendChild(lay);
+    function el(tag, css, par) { var e = doc.createElement(tag); e.style.cssText = css; if (tag === "img") e.alt = ""; (par || lay).appendChild(e); return e; }
+    function spin(z) { return el("div", full + "z-index:" + z + ";transform-origin:" + C.x + "px " + C.y + "px;transform:scale(" + (Wh.FOC / Wh.DIST) + ")"); } // OBS の遠近：視点の距離 DIST の 3D を FOC/DIST 倍
+    function persp(par, clip) { return el("div", full + "perspective:" + Wh.DIST + "px;perspective-origin:" + C.x + "px " + C.y + "px", el("div", full + (clip ? "clip-path:" + clip : ""), par)); }
+    var rot = "position:absolute;left:" + (C.x - R) + "px;top:" + (C.y - R) + "px;width:" + 2 * R + "px;height:" + 2 * R + "px;will-change:transform";
+    var L = { doc: doc, box: box, lay: lay, w: 0, wAt: 0, img: undefined };
+    L.base = el("img", full + "z-index:1");
+    var d = spin(2);
+    L.a = el("img", rot, persp(d, "inset(0 0 " + (620 - C.y) + "px 0)"));
+    L.b = el("img", rot, persp(d, "inset(" + C.y + "px 0 0 0)"));
+    L.hl = el("img", rot, persp(d));
+    L.cone = el("img", full + "z-index:3");
+    L.sp = el("img", rot, persp(spin(4)));
+    L.sh = el("i", "position:absolute;left:0;top:0;z-index:5;border-radius:50%;background:rgba(0,0,0,.5);will-change:transform");
+    L.ball = el("i", "position:absolute;left:0;top:0;z-index:5;border-radius:50%;background:radial-gradient(circle at 34% 34%,#fff 0,#E9EDF2 55%,#8A9099 100%);will-change:transform");
+    L.tower = el("img", full + "z-index:6");
+    return L;
+  }
+  function mxWheelLayer() {
+    var R = MX.rep.pa, doc = R && R.iframe && R.iframe.contentDocument, cv = doc && doc.getElementById("jpcv");
+    if (!cv || !cv.parentNode) return null;
+    var L = MX.wl;
+    if (!L || L.doc !== doc || !L.box.isConnected) { L = MX.wl = mxWheelBuild(doc); cv.parentNode.insertBefore(L.box, cv.nextSibling); }
+    if (!L.w || Date.now() - L.wAt > 500) { L.wAt = Date.now(); var w = cv.clientWidth; if (w && w !== L.w) { L.w = w; L.lay.style.transform = "scale(" + (w / 620) + ")"; } } // 盤面の大きさ（舞台が出てから測る）
+    return L;
+  }
+  var MX_WK = ["base", "cone", "tower", "a", "b", "hl", "sp"];
+  function mxWheelDraw() {
+    var W = MX.wh; if (!W) return;
+    var rt = Date.now() - MX.bLag - 120, L = mxWheelLayer();
+    if ((W.end && rt >= W.end) || rt - W.t0 > 30000) { MX.wh = null; if (L) L.box.style.display = "none"; return; }
+    if (!L) return;
+    var im = W.img, show = im ? "" : "none";
+    if (L.box.style.display !== show) L.box.style.display = show; // 絵ができるまでは OBS が送ってくる円盤の絵（回り始めの 2 秒は送ってくる）のまま
+    if (!im) return;
+    if (L.img !== im) { L.img = im; MX_WK.forEach(function (k) { L[k].src = im.u[k]; }); }
+    var t = Math.max(0, Math.min((rt - W.t0) / 1000, ShikaWheel.END)), m = ShikaWheel.motion(W.S, t);
+    var tr = "rotateX(" + ShikaWheel.BETA + "rad) rotateZ(" + (-m.thW).toFixed(5) + "rad)";
+    if (L.tr !== tr) { L.tr = tr; L.a.style.transform = L.b.style.transform = L.hl.style.transform = L.sp.style.transform = tr; }
+    var hd = m.settled ? "" : "none"; if (L.hl.style.display !== hd) L.hl.style.display = hd;
+    var b = ShikaWheel.ballAt(m), z = b.far ? "5" : "7", d = (2 * b.r).toFixed(2) + "px";
+    L.ball.style.width = L.ball.style.height = L.sh.style.width = d; L.sh.style.height = b.r.toFixed(2) + "px";
+    L.ball.style.transform = "translate(" + (b.bq.x - b.r).toFixed(2) + "px," + (b.bq.y - b.r).toFixed(2) + "px)";
+    L.sh.style.transform = "translate(" + (b.sh.x - b.r).toFixed(2) + "px," + (b.sh.y - b.r / 2).toFixed(2) + "px)";
+    if (L.ball.style.zIndex !== z) L.ball.style.zIndex = L.sh.style.zIndex = z;
   }
   // 背景動画の受け渡しのようす（ミラーの左下に 1 秒ごと）：OBS でいま流れている背景と、それがこのページに届いたか・頼んだ回数
   function mxName(k) { return String(k || "").replace(/^.*\//, "").slice(0, 40); }
