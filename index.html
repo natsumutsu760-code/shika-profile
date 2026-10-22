@@ -56,10 +56,13 @@ button { cursor: pointer; }
 /* ---- 空間：地平線のグラデーションと、遠くへ続く床の格子と、漂う島 ---- */
 .space { position: fixed; inset: 0; z-index: 0; pointer-events: none; overflow: hidden;
   background: radial-gradient(120% 80% at 50% 0%, #FFFFFF 0%, var(--space) 55%, #EAF0FA 100%); }
-.floor { position: absolute; left: -50%; right: -50%; bottom: -10%; height: 70%; transform: perspective(600px) rotateX(64deg); transform-origin: 50% 0;
+.floor { position: absolute; left: -50%; right: -50%; bottom: -10%; height: 70%; transform: perspective(600px) rotateX(64deg); transform-origin: 50% 0; overflow: hidden;
+  -webkit-mask: linear-gradient(transparent, #000 40%); mask: linear-gradient(transparent, #000 40%); }
+/* 格子は 1 マスぶん長く描いておき、transform でずらす（背景の位置を動かすと、スマホでは毎コマ大きな絵を描き直して熱くなっていた） */
+.floor::before { content: ""; position: absolute; left: 0; right: 0; top: -64px; bottom: 0; will-change: transform;
   background-image: linear-gradient(rgba(46,168,255,.16) 1.5px, transparent 1.5px), linear-gradient(90deg, rgba(46,168,255,.16) 1.5px, transparent 1.5px);
-  background-size: 64px 64px; -webkit-mask: linear-gradient(transparent, #000 40%); mask: linear-gradient(transparent, #000 40%); animation: floor 9s linear infinite; }
-@keyframes floor { to { background-position: 0 64px; } }
+  background-size: 64px 64px; animation: floor 9s linear infinite; }
+@keyframes floor { to { transform: translateY(64px); } }
 .isle { position: absolute; border-radius: 50%; animation: bob var(--d, 9s) ease-in-out infinite; }
 .isle::before { content: ""; position: absolute; inset: 0; border-radius: 50%; background: var(--c); opacity: .9; }
 .isle::after { content: ""; position: absolute; left: 12%; right: 12%; top: 110%; height: 18%; border-radius: 50%; background: rgba(27,35,64,.08); filter: blur(4px); }
@@ -74,8 +77,9 @@ button { cursor: pointer; }
 .brand small { display: block; font: 700 11px/1.2 var(--jp); color: var(--soft); letter-spacing: .02em; }
 .upd { font: 700 12px/1.3 var(--jp); color: var(--soft); background: rgba(255,255,255,.8); border: 1.5px solid var(--line); border-radius: 999px; padding: 6px 12px; display: flex; align-items: center; gap: 6px; }
 .upd .out { white-space: nowrap; flex: none; } /* 英語の「日本語」・「Log out」が狭い画面で縦に折れないように */
-.upd i { width: 8px; height: 8px; border-radius: 50%; background: var(--leaf); box-shadow: 0 0 0 0 rgba(34,204,136,.6); animation: ping 2s infinite; }
-@keyframes ping { 70% { box-shadow: 0 0 0 8px rgba(34,204,136,0); } }
+.upd i { position: relative; width: 8px; height: 8px; border-radius: 50%; background: var(--leaf); }
+.upd i::after, .onair.on i::after { content: ""; position: absolute; inset: 0; border-radius: 50%; background: rgba(34,204,136,.6); animation: ping 2s infinite; }
+@keyframes ping { 70%, 100% { transform: scale(3); opacity: 0; } } /* 点のまわりに 8px の輪が広がって消える（描き直しのいらない動き） */
 
 main { position: relative; z-index: 2; padding: 0 clamp(16px, 4vw, 40px) 140px; max-width: 1100px; margin: 0 auto; }
 .view[hidden] { display: none; }
@@ -402,7 +406,7 @@ html:not([lang="en"]) .en-only { display: none !important; }
 .fire-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 8px; }
 .onair { display: inline-flex; align-items: center; gap: 6px; margin: 0; min-width: 0; font: 700 12px/1.3 var(--jp); color: var(--soft); background: #fff; border-radius: 999px; padding: 4px 10px; box-shadow: inset 0 0 0 1.5px var(--line); }
 .onair i { width: 8px; height: 8px; border-radius: 50%; background: var(--line); flex: none; }
-.onair.on { color: var(--ink); } .onair.on i { background: var(--leaf); animation: ping 2s infinite; }
+.onair.on { color: var(--ink); } .onair.on i { position: relative; background: var(--leaf); }
 .onair.off i { background: var(--soft); }
 .deck { display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 12px; align-items: center; }
 .push { position: relative; width: 92px; height: 92px; border: 0; padding: 0; background: none; border-radius: 50%; touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
@@ -613,6 +617,8 @@ footer { position: relative; z-index: 2; text-align: center; color: var(--soft);
   .lobby-head p { font-size: 14px; }
   .plaza { width: 100%; }
 }
+/* 配信を見ているあいだは、背景の床と島を止める（映像とボタンの裏でほとんど見えない。スマホの電池と熱は映像とボタンに回す） */
+body.live-on .floor::before, body.live-on .isle { animation: none; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: .001ms !important; animation-iteration-count: 1 !important; transition-duration: .001ms !important; }
   .warp { display: none; }
@@ -909,6 +915,7 @@ footer { position: relative; z-index: 2; text-align: center; color: var(--soft);
     ["そのほか", "#22CC88", [["!けいじばん こんにちは", "ラウンジの掲示板に書く（1 分に 1 回・120 字まで）"], ["!バグ報告 ガチャのあと画面が止まった", "不具合を配信者に知らせる（30 秒に 1 回・300 字まで）"], ["!花火", "画面に花火（!ハート でハート）"], [null, "888 で拍手、草 で草が生える"], ["!モノリンク", "MONO LINK の URL をチャットで受け取る（!サイト でも）"]]]
   ];
   var NOTES = [
+    ["MONO LINK", "2026-10-22", ["スマホで配信ページを開いたまま遊ぶと、熱くなって電池が早く減るのを軽くしました", "背景の床の格子が、映像とボタンの裏で毎コマ描き直されていたのをやめました（ページの処理が 1 秒あたり約 0.55 秒 → ほぼ 0）。見た目は変わりません。配信ページを開いているあいだは、背景の床と島は止まります"]],
     ["build 88", "2026-10-22", ["鹿物語 Ver.1.8.28：アストロで、右打ちの玉が足場をすり抜けてドレインに落ちる不具合を直しました", "フリッパーへ玉を集める左右のガイドが壁の少し手前で止まっていて、壁ぞいに下りてきた玉がすき間をこすり抜け、ガイドの裏からそのまま落ちていました。ガイドを壁まで伸ばし、速い玉がガイドを飛び越えないようにもしました"]],
     ["build 87", "2026-10-22", ["鹿物語 Ver.1.8.27：実は確変（突確）は通常・RUSH・遊タイムのときだけに", "ブチ切れ・インフェルノ・クラッキング・金鹿などの特殊モード中は、突確（外れたふりをして、あとで「実は確変でした！」）が起きなくなりました。特殊モードで引いた当たりは、すべて見える大当たりになります"]],
     ["build 86", "2026-10-22", ["鹿物語 Ver.1.8.26：オーバーヒートの不具合を直しました", "1.8.25 から、3 発ほどでオーバーヒートし、2 秒ほどで冷めていました。インフェルノの熱量ゲージ（3 目盛り）の数字が、オーバーヒートの上限（50 発）を上書きしていたためです。もとどおり、1 人連続 50 発で満タンになり、打つのをやめてから約 10 秒で冷えます"]],
@@ -1026,7 +1033,7 @@ footer { position: relative; z-index: 2; text-align: center; color: var(--soft);
     warp.style.setProperty("--x", x + "px"); warp.style.setProperty("--y", y + "px");
     warp.style.setProperty("--c", color || "#2EA8FF");
     var swap = function () {
-      view = v; if (v !== "live") { studio(false); if (tut) tutEnd(); } liveView(v === "live");
+      view = v; if (v !== "live") { studio(false); if (tut) tutEnd(); } liveView(v === "live"); loopWake();
       document.querySelectorAll(".view").forEach(function (s) { s.hidden = s.id !== "v-" + v; s.classList.remove("enter"); });
       var el = $("v-" + v); void el.offsetWidth; el.classList.add("enter");
       document.querySelectorAll(".dock button").forEach(function (b) { if (b.dataset.go === v) b.setAttribute("aria-current", "page"); else b.removeAttribute("aria-current"); });
@@ -1182,9 +1189,14 @@ footer { position: relative; z-index: 2; text-align: center; color: var(--soft);
     plaza.appendChild(d); setTimeout(function () { d.remove(); }, 900);
     avs.forEach(function (o) { var b = o.el.getBoundingClientRect(), dx = b.left + b.width / 2 - e.clientX, dy = b.top + b.height / 2 - e.clientY; if (dx * dx + dy * dy < 160 * 160) { o.el.animate([{ translate: "0 0" }, { translate: "0 -18px" }, { translate: "0 0" }], { duration: 520, easing: "cubic-bezier(.34,1.56,.64,1)" }); } });
   });
+  // ロビーを見ているときだけ回す（ほかのページでも毎コマ起きていて、スマホの電池を使っていた）
+  var loopOn = false;
+  function loopWake() { if (!loopOn && view === "lobby" && !document.hidden) { loopOn = true; requestAnimationFrame(loop); } }
+  document.addEventListener("visibilitychange", loopWake);
   function loop(t) {
+    if (view !== "lobby" || document.hidden) { loopOn = false; return; }
     tx += (tiltX - tx) * .06; ty += (tiltY - ty) * .06;
-    if (view === "lobby") {
+    {
       var W = plaza.clientWidth, H = plaza.clientHeight, zk = Math.max(.58, Math.min(1, W / 660));
       avs.forEach(function (o) {
         var a = o.a + (RM ? 0 : t * o.sp * o.dir);
@@ -2801,7 +2813,7 @@ var ShikaWheel = (function () {
     buildPlaza(); drawBoard(); drawShop(); route();
   }
   function done() { setTimeout(function () { $("boot").classList.add("off"); }, RM ? 0 : 900); }
-  requestAnimationFrame(loop);
+  loopWake();
 
   // ---- 入口：Twitch でログイン → 門番（/api/data）がフォロー・BAN・ブロックを確かめて記録をくれる ----
   var TOK = "ml-token", ST = "ml-state", BACK = "ml-back";
