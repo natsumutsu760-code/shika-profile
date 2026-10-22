@@ -8,6 +8,7 @@
 const HTML_URL = "https://raw.githubusercontent.com/natsumutsu760-code/shika-profile/main/index.html";
 const MAX_UPLOAD = 20 * 1024 * 1024;
 const HERE_MS = 3 * 60 * 1000; // 最後の知らせからこの時間はラウンジにいることにする
+const OBS_STALE_MS = 150000; // OBS のつながりを「黙って切れた」とみなすまで（オーバーレイは 30 秒ごとに ping）
 // 英語への翻訳（Workers AI）。日本語（ひらがな・カタカナ・漢字）がある文だけ訳す
 const JA_RX = /[\u3040-\u30ff\u3400-\u9fff\uff66-\uff9f]/;
 const EN_RX = /[A-Za-z]{2,}/;
@@ -500,7 +501,20 @@ export class Lounge {
   }
   enViewers() { return this.viewers().filter((w) => this.att(w).lang === "en"); }
   // OBS の配信オーバーレイ（鍵が合ったもの）と、配信ページを開いている人
-  obsSockets(but) { return this.state.getWebSockets("obs").filter((ws) => ws !== but && this.att(ws).ok); }
+  // 生きているかは、30 秒ごとの "ping" に門番が自動で答えた時刻（なければ鍵が合った時刻）で見る。
+  // 2 分半（ping 5 回ぶん）合図のないつながりは、黙って切れたものとして数えずに閉じる（OBS が読み込み直したあとに古い線が残っていた）
+  obsSockets(but) {
+    const now = Date.now();
+    return this.state.getWebSockets("obs").filter((ws) => {
+      if (ws === but) return false;
+      const a = this.att(ws); if (!a.ok) return false;
+      let last = a.at || 0;
+      try { const t = this.state.getWebSocketAutoResponseTimestamp(ws); if (t) last = Math.max(last, +t); } catch (e) { return true; } // 時刻を読めないときは、これまでどおり閉じない
+      if (now - last <= OBS_STALE_MS) return true;
+      try { ws.close(1001, "stale"); } catch (e) {}
+      return false;
+    });
+  }
   viewers() { return this.state.getWebSockets("v"); }
   toViewers(o) { const s = JSON.stringify(o); this.viewers().forEach((ws) => { try { ws.send(s); } catch (e) {} }); }
   // ---- ミラー：OBS の 2 画面（ov：オーバーレイ・pa：鹿物語）の変化を、配信者・モデの配信者用ページ（見ている人）へ中継する ----
