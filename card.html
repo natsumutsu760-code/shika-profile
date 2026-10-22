@@ -92,10 +92,14 @@ body.obs .viewport { place-items: start; }
 .game { position: absolute; left: 24px; top: 24px; width: 1440px; height: 810px; border-radius: 28px; }
 .game .rim { position: absolute; inset: -8px; border-radius: 34px; border: 8px solid var(--ink); pointer-events: none; }
 .game .rim::after { content: ""; position: absolute; inset: 2px; border-radius: 26px; border: 3px solid var(--white); }
-.game .glow { position: absolute; inset: -18px; border-radius: 44px; pointer-events: none;
-  background: conic-gradient(from var(--spin, 0deg), var(--blue), var(--pink), var(--yellow), var(--mint), var(--blue));
+.game .glow { position: absolute; inset: -18px; border-radius: 44px; pointer-events: none; overflow: hidden;
   -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor; mask-composite: exclude;
   padding: 6px; opacity: .9; }
+/* 縁の虹色は、窓の対角線（1701px）より大きい正方形を輪の形の型の下で回す（1 周 9 秒）。
+   スクリプトで角度を 1 秒 30 回書き換えると、そのたびに窓の大きさぶんを描き直していた */
+.game .glow::before { content: ""; position: absolute; left: 50%; top: 50%; width: 1720px; height: 1720px; margin: -860px 0 0 -860px; will-change: transform;
+  background: conic-gradient(var(--blue), var(--pink), var(--yellow), var(--mint), var(--blue)); animation: glowturn 9s linear infinite; }
+@keyframes glowturn { to { rotate: 360deg; } }
 .game .tag { position: absolute; left: 22px; top: -22px; display: flex; gap: 8px; align-items: center;
   background: var(--white); border: 4px solid var(--ink); border-radius: 999px; padding: 4px 16px 4px 8px; box-shadow: 4px 4px 0 var(--ink);
   font: 400 20px/1.2 var(--font-pop); }
@@ -10387,7 +10391,7 @@ if (location.hash === "#lcdcard" || location.hash === "#sitecard" || document.do
 
   // ---------- ライブ背景（OZ の白い空間：波紋・浮かぶアバター・回路を走る光・きらめき） ----------
   var cv = $("bg"), g = cv.getContext("2d"), W = 960, H = 540, S = .5; // 半分の解像度で描いて、ゲームの負担を減らす
-  var bgCtx = g, fg = $("fx").getContext("2d"); // 手前の層（エフェクト用）
+  var bgCtx = g, fg = $("fx").getContext("2d"), fgDirty = true; // 手前の層（エフェクト用）
   var HOLE = { x: 12, y: 12, w: 720, h: 405, r: 14 }; // ゲームの窓（半分の座標）
   var COLORS = ["#1E6BFF", "#FF2E9A", "#FFD60A", "#19E3B1", "#8B3DFF", "#FF7A1A"];
   var base = document.createElement("canvas"); base.width = W; base.height = H;
@@ -10481,7 +10485,10 @@ if (location.hash === "#lcdcard" || location.hash === "#sitecard" || document.do
       g.beginPath(); g.moveTo(s.x - z, s.y); g.lineTo(s.x, s.y + z * .25); g.lineTo(s.x + z, s.y); g.lineTo(s.x, s.y - z * .25); g.closePath(); g.fill();
     });
     // 紙吹雪・花火・ハートと、その波紋は手前の層に（カードやゲーム画面に隠れないように）
-    fg.clearRect(0, 0, W, H);
+    // 何もないときは、一度消したあとは描き直さない（空の絵を毎コマ描き直していた）
+    var fgBusy = fxRipples.length || parts.length;
+    if (fgBusy || fgDirty) fg.clearRect(0, 0, W, H);
+    fgDirty = !!fgBusy;
     for (var fi = fxRipples.length - 1; fi >= 0; fi--) {
       var fr = fxRipples[fi]; fr.r += fr.sp; var fk = 1 - fr.r / fr.max;
       if (fk <= 0) { fxRipples.splice(fi, 1); continue; }
@@ -10504,8 +10511,7 @@ if (location.hash === "#lcdcard" || location.hash === "#sitecard" || document.do
     g.save(); g.globalCompositeOperation = "destination-out"; g.globalAlpha = 1; g.fillStyle = "#000"; g.beginPath();
     if (g.roundRect) g.roundRect(HOLE.x, HOLE.y, HOLE.w, HOLE.h, HOLE.r); else g.rect(HOLE.x, HOLE.y, HOLE.w, HOLE.h);
     g.fill(); g.restore();
-    // 縁の回る虹色
-    document.querySelector(".game .glow").style.setProperty("--spin", (t * 40 % 360) + "deg");
+    // 縁の回る虹色は CSS で回す（.game .glow::before）
   }
   requestAnimationFrame(frame);
   // 盤面の DOM 座標（1920）→ 背景の座標（960）
@@ -12236,6 +12242,7 @@ if (location.hash === "#lcdcard" || location.hash === "#sitecard" || document.do
   }
 })();
 </script>
+
 
 
 
