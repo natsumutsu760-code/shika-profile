@@ -156,17 +156,22 @@ function machine(S) {
     const up = alive(), me = up.map((m) => ({ ...m.c, startHp: m.hp, startMp: m.mp, startFx: m.fx })), foes = g.map((f, k) => ({ ...foeOf(f), boss: boss && k === 0 }));
     const ev = simulateTeams(me, foes, Math.floor(R() * 1e9), { pve: true, quiet: S.lite }), end = ev.at(-1), win = end.winner === 0, cost = BATTLE_TICKS(end.turns || 1);
     up.forEach((m, k) => { m.hp = Math.max(0, end.final[k].hp); m.mp = end.final[k].mp; m.fx = end.carry[k]; if (m.hp <= 0 || !win) m.down = true; });
-    const b = S.battles.length;
-    S.battles.push({ foe: g[0], foes: g, boss, win, ...(S.lite ? {} : { ev }), party: up.map((m) => m.c.name), floor: S.floor, tick: S.tick, cost });
-    say(`${boss ? "ボスの " : ""}${g[0].name}${g.length > 1 ? ` たち（${g.length} たい）` : ""}と 戦った。${win ? "勝った！" : "力つきた……"}`, "btl");
+    const b = S.battles.length, kill = win ? null : g.map((f, k) => k).filter((k) => end.final[up.length + k].hp <= 0);   // 負けた 戦いで たおせた 敵（何番め）
+    S.battles.push({ foe: g[0], foes: g, boss, win, ...(kill ? { kill } : {}), ...(S.lite ? {} : { ev }), party: up.map((m) => m.c.name), floor: S.floor, tick: S.tick, cost });
+    say(`${boss ? "ボスの " : ""}${g[0].name}${g.length > 1 ? ` たち（${g.length} たい）` : ""}と 戦った。${win ? "勝った！" : kill.length ? `${kill.length} たい たおしたが、力つきた……` : "力つきた……"}`, "btl");
     for (let i = 0; i < cost; i++) { snap("b", b); S.tick++; }
+    const lvOf = (list) => list.reduce((s, f) => s + f.lv, 0);
+    // 敵の素材：深い階ほど品質が高い（希少な敵 ＋1、ボスはいつも 5 を 2 こ）
+    const dropMats = (ks) => { for (const k of ks) { const f = g[k], rk = boss && k === 0 ? "ボス" : rankOf(f); if (M() >= ENEMY_DROP[rk]) continue;
+      const q = rk === "ボス" ? 5 : Math.min(5, pickW(M, QUALITY[S.floor]) + (rk === "希少" ? 1 : 0)); for (let i = 0; i < (rk === "ボス" ? 2 : 1); i++) addMat(ENEMY_MAT[f.tree], q); } };
+    // 負けても、たおせた 敵は 勝った ときと 同じ（経験値・クレジット・素材）、たおせなかった 敵は 経験値の 半分（鹿さんの決め、2026-10-25）
+    // 捕まえる・おやつ・ボスの ごほうびは 勝った ときだけ
+    if (!win) { const beat = kill.map((k) => g[k]), left = g.filter((f, k) => !kill.includes(k)); S.kills += beat.length; S.exp += (lvOf(beat) + lvOf(left) / 2) * EXP_PER_LV; S.credits += lvOf(beat) * CREDIT.perLv; dropMats(kill); }
     if (!win && tool === "tea" && !S.toolUsed) { S.toolUsed = true; for (const m of team) { m.hp = m.maxHp; m.mp = m.maxMp; m.fx = undefined; m.down = false; } say("力つきそうに なった。元気のお茶を のんで 立ちあがった", "sys"); return; }
     if (!win) { S.status = "end"; S.reason = "wipe"; return; }
-    S.wins++; S.kills += g.length; S.exp += g.reduce((s, f) => s + f.lv, 0) * EXP_PER_LV; S.credits += g.reduce((s, f) => s + f.lv, 0) * CREDIT.perLv;
+    S.wins++; S.kills += g.length; S.exp += lvOf(g) * EXP_PER_LV; S.credits += lvOf(g) * CREDIT.perLv;
     for (const f of g) if (C() < CAPTURE[rankOf(f)] * (tool === "net" ? NET_MULT : 1)) { S.captured.push(f); if (tool === "net") S.toolUsed = true; say(`${f.name}を 捕まえた！`); }
-    // 敵の素材：深い階ほど品質が高い（希少な敵 ＋1、ボスはいつも 5 を 2 こ）
-    for (const [k, f] of g.entries()) { const rk = boss && k === 0 ? "ボス" : rankOf(f); if (M() >= ENEMY_DROP[rk]) continue;
-      const q = rk === "ボス" ? 5 : Math.min(5, pickW(M, QUALITY[S.floor]) + (rk === "希少" ? 1 : 0)); for (let i = 0; i < (rk === "ボス" ? 2 : 1); i++) addMat(ENEMY_MAT[f.tree], q); }
+    dropMats(g.map((f, k) => k));
     if (C() < SNACK_DROP) { S.snacks++; say("おやつを 拾った", "sys"); }
     if (boss) {
       S.bossDone = true; prog.bossKills++; S.resource += BOSS_RESOURCE; S.credits += CREDIT.boss; const it = rollItem(R, d, pickW(R, BOSS_STAR)); S.drops.push(it); S.chests.push({ ...it, boss: true });

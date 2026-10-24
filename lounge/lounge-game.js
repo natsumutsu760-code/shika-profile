@@ -217,7 +217,7 @@ export function tripDone(rec, sim) {
 }
 function tripStats(res, run, tool) {
   const kills = {}, caught = {};
-  for (const b of res.battles) if (b.win) for (const f of b.foes) kills[f.tree] = (kills[f.tree] || 0) + 1;
+  for (const b of res.battles) for (const f of b.win ? b.foes : (b.kill || []).map((k) => b.foes[k])) kills[f.tree] = (kills[f.tree] || 0) + 1;   // 負けた 戦いで たおせた 敵も 数える
   for (const f of res.captured) caught[f.tree] = (caught[f.tree] || 0) + 1;
   const ch = res.chests.filter((c) => !c.boss);
   return { kills, caught, gather: res.gathered.length, chests: ch.length, hchests: ch.filter((c) => c.hidden).length, rests: res.rests, wipe: res.reason === "wipe", boss: res.bossDefeated ? 1 : 0, run, tool };
