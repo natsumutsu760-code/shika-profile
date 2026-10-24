@@ -109,8 +109,9 @@ export function petStat(rec, b) {
   if (!pet || !pet.type) return { ok: false, why: "さきに 職業を えらんで" };
   const f = b.free && typeof b.free === "object" ? b.free : null, old = pet.free || {};
   if (!f || !Object.keys(f).every((k) => has(BASE_STATS, k) && Number.isInteger(f[k]) && f[k] >= (old[k] || 0))) return { ok: false, why: "ふやす ことだけ できる（へらすのは 振り直し）" };
-  if (Object.values(f).reduce((a, v) => a + v, 0) > freeTotal(pet.lv)) return { ok: false, why: "ポイントが 足りない" };
-  pet.free = Object.fromEntries(Object.entries({ ...old, ...f }).filter(([, v]) => v > 0));
+  const all = { ...old, ...f };   // 送られなかった ステータスも 前の まま 数える（少しずつ 送って 上限を こえない ように）
+  if (Object.values(all).reduce((a, v) => a + v, 0) > freeTotal(pet.lv)) return { ok: false, why: "ポイントが 足りない" };
+  pet.free = Object.fromEntries(Object.entries(all).filter(([, v]) => v > 0));
   return { ok: true };
 }
 // ガンビット（null で お手本に もどす）。条件は battle-sim.js の COND、行動は 覚えた 技・こうげき・ぼうぎょ
