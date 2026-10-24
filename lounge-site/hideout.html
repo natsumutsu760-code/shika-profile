@@ -1,0 +1,303 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lounge Facilities</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DotGothic16&family=Fredoka:wght@500;600;700&family=Zen+Maru+Gothic:wght@500;700;900&display=swap">
+<style>
+  /* MONO LINK のラウンジ：地下の 隠れ家（施設）の画面の見本（タルコフの隠れ家のように、素材を集めて Lv を上げる。鹿さんの決め、2026-10-22）
+     どれも Lv 3 まで・すぐできる。使う物は素材・玉・リソース・クレジット・ほかの施設の Lv。PC は置くだけ。データは facilities.js
+     タブで「つくる・派遣・倉庫」を切りかえる（一度に見るのは 1〜3 こ）。左で えらぶ／見る、右で 上げる
+     倉庫の中は しゅるい（採取・レア・敵）と 行き先で 分けて、多い順・品質の高い順・名前順に ならべる
+     ?t=make|trip|store でタブ、?f=施設の id で えらんだ施設から開く。押すと見本の中だけで動く（保存しない） */
+  :root {
+    --space:#F6F8FC; --ink:#1B2340; --soft:#6A7394; --line:#DCE3F0;
+    --sky:#2EA8FF; --coral:#FF5A64; --sun:#FFC21A; --leaf:#22CC88; --violet:#8E6CFF;
+    --jp:"Zen Maru Gothic", "Hiragino Maru Gothic ProN", sans-serif; --num:"Fredoka", "Zen Maru Gothic", sans-serif; --game:"DotGothic16", monospace;
+    --lift:0 18px 40px -18px rgba(27,35,64,.35), 0 2px 0 rgba(27,35,64,.06);
+  }
+  * { box-sizing:border-box; }
+  body { margin:0; min-height:100vh; background:radial-gradient(120% 80% at 50% 0%, #FFFFFF 0%, var(--space) 55%, #EAF0FA 100%); color:var(--ink); font:500 16px/1.65 var(--jp); word-break:auto-phrase; text-wrap:pretty; }
+  button { font:inherit; color:inherit; cursor:pointer; }
+  button:disabled { cursor:not-allowed; }
+  :focus-visible { outline:3px solid var(--sky); outline-offset:3px; border-radius:12px; }
+  h1, h2, h3, p, ul { margin:0; padding:0; } ul { list-style:none; }
+  .top { display:flex; align-items:center; gap:10px; padding:12px clamp(16px, 4vw, 40px); }
+  .top b { font:700 22px/1 var(--num); letter-spacing:.06em; } .top b i { font-style:normal; color:var(--sky); }
+  .top small { font:700 13px/1 var(--jp); color:var(--soft); margin-left:6px; }
+  main { max-width:1000px; margin:0 auto; padding:0 clamp(16px, 4vw, 40px) 48px; }
+  .panel { background:rgba(255,255,255,.92); border-radius:26px; box-shadow:var(--lift); padding:clamp(14px, 2.4vw, 20px); }
+  .jelly { border:0; border-radius:999px; padding:13px 18px; font:900 16px/1 var(--jp); background:var(--ink); color:#fff; box-shadow:0 5px 0 rgba(27,35,64,.25); }
+  .jelly.sky { background:var(--sky); box-shadow:0 5px 0 rgba(46,168,255,.3); }
+  .jelly:disabled { background:#C9D1E2; box-shadow:0 5px 0 #E3E8F2; }
+
+  /* さいふ */
+  .wallet { display:flex; flex-wrap:wrap; gap:8px 24px; align-items:center; padding:12px 20px; }
+  .wallet h1 { font:900 20px/1.2 var(--jp); margin-right:auto; }
+  .wallet span { font:700 11.5px/1.2 var(--jp); color:var(--soft); }
+  .wallet b { display:block; font:600 21px/1 var(--num); color:var(--ink); }
+  .wallet .cr b { color:#13A36A; } .wallet .rs b { color:var(--violet); }
+  .roomlink { margin-left:8px; padding:5px 12px; border-radius:999px; border:1.5px solid var(--line); background:#fff; font:900 12px/1 var(--jp); color:var(--ink); text-decoration:none; vertical-align:3px; }
+
+  /* タブ（上げられる施設の数を みどりの丸で） */
+  .tabs { display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin:18px 0 12px; }
+  .tab { display:inline-flex; align-items:center; gap:8px; padding:10px 18px; border-radius:999px; border:2px solid var(--line); background:#fff; font:900 15px/1 var(--jp); color:var(--soft); }
+  .tab[aria-selected="true"] { background:var(--ink); border-color:var(--ink); color:#fff; }
+  .tab .bd { min-width:20px; height:20px; padding:0 6px; border-radius:99px; background:var(--leaf); color:#fff; font:600 12px/20px var(--num); text-align:center; }
+  .pc { margin-left:auto; display:inline-flex; align-items:center; gap:8px; padding:7px 16px 7px 8px; border-radius:999px; background:#120D22; color:#FFB547; font:400 14px/1 var(--game); text-decoration:none; }
+  .pc .ico { width:28px; height:28px; border-radius:9px; } .pc .ico svg { width:17px; height:17px; }
+
+  /* 左：えらぶ（施設）か 見る（倉庫の中）。右：上げる */
+  .room { display:grid; grid-template-columns:minmax(0, 1fr) 400px; gap:14px; align-items:start; }
+  .facs { display:grid; gap:10px; }
+  .fac { display:grid; grid-template-columns:auto minmax(0, 1fr) auto; gap:12px; align-items:center; text-align:left; padding:12px 14px 12px 12px; border-radius:20px; border:2px solid var(--line); background:#fff; }
+  .fac[aria-pressed="true"] { border-color:var(--ink); box-shadow:0 0 0 3px rgba(27,35,64,.1); }
+  .ico { width:48px; height:48px; border-radius:15px; display:grid; place-items:center; background:color-mix(in srgb, var(--c) 16%, #fff); color:var(--c); }
+  .ico svg { width:26px; height:26px; fill:none; stroke:currentColor; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; }
+  .ico.dark { background:#120D22; color:#FFB547; }
+  .fac b { display:flex; align-items:center; gap:8px; font:700 16px/1.3 var(--jp); }
+  .fac small { display:block; font:700 12px/1.45 var(--jp); color:var(--soft); }
+  .lvp { display:inline-flex; gap:3px; } .lvp i { width:9px; height:9px; border-radius:50%; background:var(--line); } .lvp i.on { background:var(--c); }
+  .st { padding:4px 10px; border-radius:999px; font:900 12px/1.3 var(--jp); background:var(--space); color:var(--soft); white-space:nowrap; }
+  .st.can { background:#E3F8EE; color:#0E8F5A; } .st.max { background:#FFF4D2; color:#A56A00; }
+
+  .detail { position:sticky; top:12px; }
+  .detail header { display:grid; grid-template-columns:52px minmax(0, 1fr); gap:12px; align-items:center; }
+  .detail header .ico { width:52px; height:52px; }
+  .detail h2 { display:flex; align-items:center; gap:8px; font:900 21px/1.25 var(--jp); } .detail header p { font:700 12px/1.5 var(--jp); color:var(--soft); }
+  .next { margin-top:14px; padding:12px 14px; border-radius:16px; background:#F2F8FF; box-shadow:inset 0 0 0 1.5px #CFE6FF; }
+  .next small, .need-h { display:block; font:900 12px/1.3 var(--jp); color:var(--soft); }
+  .next p { margin-top:4px; font:900 16px/1.5 var(--jp); }
+  .now { margin-top:8px; font:700 12px/1.5 var(--jp); color:var(--soft); }
+  .need-h { margin:16px 0 4px; }
+  .need li { display:grid; grid-template-columns:28px minmax(0, 1fr) auto; gap:8px; align-items:center; padding:5px 0; font:700 14px/1.35 var(--jp); }
+  .need img { width:24px; height:24px; image-rendering:pixelated; } .dot { width:14px; height:14px; margin:5px; border-radius:4px; background:#86C25A; } .dot.hd { background:linear-gradient(135deg, #FF8FC4, #8FC8FF); }
+  .dot.cur { border-radius:50%; } .dot.b { background:var(--sky); } .dot.r { background:var(--violet); } .dot.c { background:#13A36A; } .dot.f { background:var(--ink); }
+  .need .tag { margin-left:6px; font:700 11px/1 var(--jp); color:#B07A00; }
+  .need .n { font:600 15px/1 var(--num); white-space:nowrap; color:#0E8F5A; } .need .ng .n { color:var(--coral); }
+  .go { margin-top:16px; width:100%; }
+  .use { display:inline-block; margin-top:12px; padding:9px 16px; border-radius:999px; border:1.5px solid var(--line); background:#fff; font:900 13px/1 var(--jp); color:var(--ink); text-decoration:none; }
+  .why { margin-top:10px; font:700 13px/1.5 var(--jp); color:var(--coral); text-align:center; }
+  .done { margin-top:14px; font:700 14px/1.6 var(--jp); color:#A56A00; }
+  details { margin-top:14px; border-top:1px dashed var(--line); padding-top:10px; }
+  summary { font:900 13px/1.4 var(--jp); color:var(--soft); cursor:pointer; }
+  .lvs li { display:grid; grid-template-columns:40px minmax(0, 1fr); gap:6px; padding:4px 0; font:700 13px/1.5 var(--jp); color:var(--soft); }
+  .lvs li b { font:600 14px/1.5 var(--num); } .lvs li.got { color:var(--ink); } .lvs li.got b { color:var(--c); }
+
+  /* 倉庫の中 */
+  .stash header { display:flex; align-items:center; gap:12px; flex-wrap:wrap; }
+  .stash h2 { font:900 18px/1.3 var(--jp); }
+  .cap { display:flex; align-items:center; gap:8px; font:600 15px/1 var(--num); color:var(--soft); margin-left:auto; }
+  .cap i { width:150px; height:10px; border-radius:99px; background:#EDF1F8; overflow:hidden; } .cap i b { display:block; height:100%; background:var(--sky); border-radius:99px; }
+  .filters { display:grid; gap:6px; margin:12px 0; padding:10px 12px; border-radius:16px; background:var(--space); }
+  .frow { display:grid; grid-template-columns:64px minmax(0, 1fr); gap:6px; align-items:start; }
+  .frow > span { padding-top:6px; font:900 11px/1.2 var(--jp); color:var(--soft); } .frow > div { display:flex; gap:6px; flex-wrap:wrap; }
+  .chip { border:1.5px solid var(--line); background:#fff; border-radius:999px; padding:5px 10px; font:700 12px/1 var(--jp); display:inline-flex; align-items:center; gap:5px; }
+  .chip small { font:600 11px/1 var(--num); color:var(--soft); }
+  .chip[aria-pressed="true"] { background:var(--ink); border-color:var(--ink); color:#fff; } .chip[aria-pressed="true"] small { color:rgba(255,255,255,.7); }
+  .chip:disabled { opacity:.4; }
+  .grp { display:flex; align-items:center; gap:8px; margin:14px 0 8px; font:900 13px/1.2 var(--jp); } .grp:first-of-type { margin-top:0; }
+  .grp small { font:700 11px/1 var(--jp); color:var(--soft); } .grp::after { content:""; flex:1; height:1.5px; background:var(--line); }
+  .mlist { display:grid; grid-template-columns:repeat(auto-fill, minmax(180px, 1fr)); gap:6px; }
+  .mt { display:grid; grid-template-columns:28px minmax(0, 1fr) auto; gap:8px; align-items:center; padding:6px 10px 6px 6px; border-radius:14px; border:1.5px solid var(--line); background:#fff; }
+  .mt.rare { border-color:#D9C8FF; background:#F7F2FF; }
+  .mt img { width:24px; height:24px; margin:2px; image-rendering:pixelated; }
+  .mt b { display:block; font:700 13px/1.3 var(--jp); } .mt small { display:block; font:700 10.5px/1.35 var(--jp); color:var(--soft); }
+  .mt small.q { color:#B07A00; } .mt em { font:600 15px/1 var(--num); font-style:normal; }
+  .empty { font:700 13px/1.6 var(--jp); color:var(--soft); }
+  /* あずかり箱：倉庫に 入らなかった 素材。7 日で なくなる */
+  .panel.box { margin:0 0 14px; padding:14px; border:1.5px dashed #F2B544; background:#FFFBF0; box-shadow:none; }
+  .box .bh { display:flex; align-items:center; gap:10px; flex-wrap:wrap; } .box .bh b { font:900 14px/1.2 var(--jp); } .box .bh span { font:700 12px/1.3 var(--jp); color:var(--soft); margin-right:auto; }
+  .box .bh button { padding:8px 16px; border-radius:999px; border:0; background:var(--ink); color:#fff; font:900 13px/1 var(--jp); } .box .bh button:disabled { background:#C9D0E0; }
+  .box .mlist { margin-top:10px; } .box .mt { background:transparent; border-style:dashed; } .box .mt small.soon { color:#C2410C; }
+  .box .why { margin:8px 0 0; text-align:left; font-size:12px; } .box .why a { color:var(--ink); margin-left:6px; }
+  .tab .bd.bx { background:#F2B544; }
+
+  .toast { position:fixed; left:50%; bottom:24px; transform:translateX(-50%) translateY(16px); max-width:calc(100vw - 32px); padding:10px 18px; border-radius:20px; background:var(--ink); color:#fff; font:700 14px/1.4 var(--jp); opacity:0; transition:opacity .2s, transform .2s; pointer-events:none; text-align:center; z-index:5; }
+  .toast.on { opacity:1; transform:translateX(-50%); }
+  .up .ico { animation:up .6s ease-out; }
+  @keyframes up { 30% { transform:scale(1.15) rotate(-6deg); } 100% { transform:none; } }
+  @media (max-width:860px) { .room { grid-template-columns:minmax(0, 1fr); } .detail { position:static; scroll-margin-top:12px; } .cap { margin-left:0; }
+    /* 倉庫のタブは 中の一覧が長いので、スマホでは 倉庫を上げる所を 先に */
+    .room.store #left { display:contents; } .room.store .box { order:-2; margin:0; } .room.store .detail { order:-1; } }
+  @media (max-width:520px) { .wallet h1 { flex-basis:100%; } .tabs { flex-wrap:nowrap; gap:6px; } .tab { padding:10px 13px; } .pc { padding:7px; } .pc .lbl { display:none; } .fac { gap:10px; padding:10px; } .fac .ico { width:42px; height:42px; } .fac small { font-size:11.5px; } .frow { grid-template-columns:50px minmax(0, 1fr); } .filters { padding:10px; } }
+  @media (prefers-reduced-motion:reduce) { .toast { transition:none; } .up .ico { animation:none; } }
+</style>
+</head>
+<body>
+<header class="top"><a href="/" style="color:inherit;text-decoration:none" aria-label="MONO LINK の サイトへ"><b>MONO LINK<i>://</i></b></a><small><a href="lounge-room.html" style="color:inherit">ラウンジ</a> ／ 地下の 隠れ家</small></header>
+<main>
+  <section class="panel wallet" aria-label="持っている物"><h1>地下の 隠れ家 <a class="roomlink" href="hideout-room.html">部屋を 見る</a></h1><span>玉<b id="balls"></b></span><span class="rs">リソース<b id="res"></b></span><span class="cr">クレジット<b id="cr"></b></span></section>
+  <nav class="tabs" id="tabs"></nav>
+  <div class="room" id="room" role="tabpanel"><div id="left"></div><aside class="panel detail" id="detail" aria-live="polite"></aside></div>
+</main>
+<p class="toast" id="toast" role="status"></p>
+<script type="module">
+import { FACILITIES, STORAGE_CAP } from "./facilities.js";
+import { MAT_NAME, MAT_FROM, HIDDEN_MAT, GATHER, ENEMY_MAT, toStash } from "./materials.js";
+import { DUNGEONS } from "./dungeons.js";
+import { spriteURL } from "./sprites.js";
+import { BASES } from "./equip.js";
+import { me, act, busy, waitText } from "./lounge-client.js";   // 施設の Lv・倉庫・あずかり箱・さいふは 門番から（見本では ブラウザの 中の ためしの 門番）
+
+const q = new URLSearchParams(location.search);
+const fmt = (n) => n.toLocaleString("ja-JP");
+const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
+const COLOR = { bench: "#E59A00", lab: "#8E6CFF", snack: "#C98A3A", maproom: "#22CC88", medic: "#FF5A64", gym: "#2EA8FF", storage: "#7A8299" };
+const ICON = { bench: '<path d="M4 20l9-9"/><path d="M12 5l7 7-3 3-7-7z"/>', lab: '<path d="M9 3h6"/><path d="M10 3v6l-5 9a2 2 0 0 0 2 3h10a2 2 0 0 0 2-3l-5-9V3"/><path d="M7.5 14h9"/>',
+  snack: '<circle cx="12" cy="12" r="8"/><path d="M9 9.5h.01M14.5 10h.01M11 14.5h.01M15 15h.01"/>', maproom: '<path d="M3 6l6-2 6 2 6-2v14l-6 2-6-2-6 2z"/><path d="M9 4v14M15 6v14"/>',
+  medic: '<path d="M10 4h4v6h6v4h-6v6h-4v-6H4v-4h6z"/>', gym: '<path d="M6 7v10M18 7v10M3 10v4M21 10v4M6 12h12"/>', storage: '<path d="M3 7l9-4 9 4v10l-9 4-9-4z"/><path d="M3 7l9 4 9-4M12 11v10"/>',
+  pc: '<rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/>' };
+const icon = (id) => `<span class="ico ${id === "pc" ? "dark" : ""}" style="--c:${COLOR[id] || "#000"}" aria-hidden="true"><svg viewBox="0 0 24 24">${ICON[id]}</svg></span>`;
+// タブ：施設を 使いみちで 分ける
+const TABS = [{ id: "make", name: "つくる", facs: ["bench", "snack", "lab"] }, { id: "trip", name: "派遣", facs: ["maproom", "medic", "gym"] }, { id: "store", name: "倉庫", facs: ["storage"] }];
+const tabOf = (fid) => TABS.find((t) => t.facs.includes(fid));
+// 倉庫の中の 分け方：しゅるい・行き先・ならべる（なかまの画面と 同じ形）
+const KINDS = [["gather", "採取"], ["rare", "レア"], ["enemy", "敵"]];
+const KIND_NOTE = { gather: "採取ポイントで 拾う", rare: "かくし通路の 採取ポイントだけ", enemy: "敵が 落とす。品質 1〜5" };
+const WHERE = {};
+for (const d of DUNGEONS) { for (const [id] of GATHER[d.id].mats) WHERE[id] = d.id; WHERE[GATHER[d.id].hidden[0]] = d.id; for (const f of [...d.foes, d.rare, d.boss]) WHERE[ENEMY_MAT[f.tree][0]] = d.id; }
+const kindOf = (id) => (MAT_FROM[id] ? "enemy" : HIDDEN_MAT.has(id) ? "rare" : "gather");
+const SORTS = [["n", "多い順"], ["q", "品質の 高い順"], ["name", "名前順"]];
+
+// 門番の 記録を 画面の 形に。玉と リソースが まだ わからない 人は known: false（足りるかは 門番が 決める）
+const S = { balls: 0, res: 0, cr: 0, known: false, up: null, sk: "all", sw: "all", sort: "n", lv: {}, inv: [], box: [], boxEq: [], cap: STORAGE_CAP[0] };
+let ME = null;
+function load(m) {
+  ME = m; const now = Date.now(), days = (t) => Math.max(1, Math.ceil((t - now) / 864e5));
+  S.known = !!(m.wallet && m.wallet.known); S.balls = S.known ? m.wallet.balls : 0; S.res = S.known ? m.wallet.res : 0; S.cr = m.credits || 0;
+  S.lv = Object.fromEntries(FACILITIES.map((f) => [f.id, (m.hideout || {})[f.id] || 0]));
+  S.inv = ((m.own && m.own.mats) || []).map((x) => ({ id: x.id, n: x.n, q: x.q || 0 }));
+  const box = (m.own && m.own.box) || [];
+  S.box = box.filter((x) => !x.equip).map((x) => ({ id: x.id, n: x.n, q: x.q || 0, days: days(x.until), name: MAT_NAME[x.id] }));
+  S.boxEq = box.filter((x) => x.equip).map((x) => ({ ...x.equip, days: days(x.until) }));
+  S.cap = (m.stash && m.stash.cap) || STORAGE_CAP[S.lv.storage || 0];
+}
+load(await me());
+const qf = FACILITIES.some((f) => f.id === q.get("f")) ? q.get("f") : null;
+S.tab = qf ? tabOf(qf).id : TABS.some((t) => t.id === q.get("t")) ? q.get("t") : "make";
+S.sel = qf || TABS.find((t) => t.id === S.tab).facs[0];
+const have = (id, minQ = 0) => S.inv.filter((m) => m.id === id && m.q >= minQ).reduce((a, m) => a + m.n, 0);
+const total = () => S.inv.reduce((a, m) => a + m.n, 0);
+const F = (id) => FACILITIES.find((f) => f.id === id);
+// 次の Lv に足りているか（足りない物の一覧も）
+function check(f) {
+  const lv = S.lv[f.id], next = f.lv[lv]; if (!next) return { max: true, ok: false, rows: [], lv };
+  const n = next.need, rows = [];
+  for (const [id, k, mq] of n.mats) rows.push({ kind: "mat", id, mq, need: k, have: have(id, mq || 0) });
+  if (n.credits) rows.push({ kind: "c", need: n.credits, have: S.cr });
+  if (n.balls) rows.push({ kind: "b", need: n.balls, have: S.known ? S.balls : n.balls, unknown: !S.known });
+  if (n.res) rows.push({ kind: "r", need: n.res, have: S.known ? S.res : n.res, unknown: !S.known });
+  for (const [fid, flv] of n.fac || []) rows.push({ kind: "f", id: fid, need: flv, have: S.lv[fid] });
+  return { ok: rows.every((r) => r.have >= r.need), rows, next, lv };
+}
+const lvp = (f) => `<span class="lvp" style="--c:${COLOR[f.id]}" aria-label="Lv${S.lv[f.id]}">${[1, 2, 3].map((k) => `<i class="${k <= S.lv[f.id] ? "on" : ""}"></i>`).join("")}</span>`;
+const stHtml = (c) => `<span class="st ${c.max ? "max" : c.ok ? "can" : ""}">${c.max ? "Lv3" : c.ok ? "上げられる" : "足りない"}</span>`;
+const rowName = (r) => r.kind === "mat" ? MAT_NAME[r.id] : r.kind === "f" ? `${F(r.id).name} Lv${r.need}` : { c: "クレジット", b: "玉", r: "リソース" }[r.kind];
+
+function tabsHtml() {
+  return `<div role="tablist" aria-label="施設の しゅるい" style="display:contents">${TABS.map((t) => { const k = t.facs.filter((id) => check(F(id)).ok).length;
+    const bx = t.id === "store" ? S.box.reduce((a, m) => a + m.n, 0) + S.boxEq.length : 0;
+    return `<button class="tab" role="tab" data-tab="${t.id}" aria-selected="${S.tab === t.id}" tabindex="${S.tab === t.id ? 0 : -1}">${t.name}${k ? `<span class="bd" aria-label="上げられる ${k}">${k}</span>` : ""}${bx ? `<span class="bd bx" aria-label="あずかり箱 ${bx}">${bx}</span>` : ""}</button>`; }).join("")}</div>
+    <a class="pc" href="deeplink.html" aria-label="PC：DEEP LINK/: を 開く">${icon("pc")}<span class="lbl">DEEP LINK/:</span></a>`;
+}
+function facsHtml(t) {
+  return `<div class="facs">${t.facs.map((id) => { const f = F(id), c = check(f);
+    return `<button class="fac ${S.up === id ? "up" : ""}" data-f="${id}" aria-pressed="${S.sel === id}">${icon(id)}<span><b>${f.name} ${lvp(f)}</b><small>${S.lv[id] ? esc(f.lv[S.lv[id] - 1].fx) : "まだ 作っていない"}</small></span>${stHtml(c)}</button>`; }).join("")}</div>`;
+}
+// 同じ素材は 1 まいに まとめる（敵の素材は 品質ごとの数も）
+function stock() {
+  const m = new Map();
+  for (const x of S.inv) { const e = m.get(x.id) || { id: x.id, n: 0, qs: {} }; e.n += x.n; if (x.q) e.qs[x.q] = (e.qs[x.q] || 0) + x.n; m.set(x.id, e); }
+  return [...m.values()].map((e) => ({ ...e, kind: kindOf(e.id), where: WHERE[e.id], top: Math.max(0, ...Object.keys(e.qs).map(Number)) }));
+}
+// あずかり箱：うけとると 倉庫の あいている 分だけ 入る（いい物から）。いっぱいなら 理由と 売りに いく 道を 1 行で
+function boxHtml(cap) {
+  if (!S.box.length && !S.boxEq.length) return "";
+  const n = S.box.reduce((a, m) => a + m.n, 0) + S.boxEq.length, free = cap - total(), soon = Math.min(...S.box.map((m) => m.days), ...S.boxEq.map((e) => e.days));
+  const tile = (m) => { const en = MAT_FROM[m.id];
+    return `<li class="mt">${en ? `<img src="${spriteURL(en)}" alt="">` : `<i class="dot ${HIDDEN_MAT.has(m.id) ? "hd" : ""}"></i>`}<span><b>${esc(MAT_NAME[m.id])}</b><small class="${m.days <= 2 ? "soon" : ""}">あと ${m.days} 日${m.q ? `・品質${m.q}` : ""}</small></span><em>×${m.n}</em></li>`; };
+  return `<section class="panel box" aria-label="あずかり箱"><div class="bh"><b>あずかり箱</b><span>${n} こ・はやい物は あと ${soon} 日で なくなる</span><button data-take="1" ${free > 0 || S.boxEq.length ? "" : "disabled"}>うけとる</button></div>
+    <ul class="mlist">${S.box.map(tile).join("")}${S.boxEq.map((e) => `<li class="mt"><img src="img/icon-${e.base}.png" alt=""><span><b>${esc((BASES.find((x) => x.id === e.base) || { name: e.base }).name)} ★${e.star}</b><small class="${e.days <= 2 ? "soon" : ""}">あと ${e.days} 日・装備</small></span><em>×1</em></li>`).join("")}</ul>${free > 0 || S.boxEq.length ? "" : `<p class="why">倉庫が いっぱい：素材を 使うか 売ると あく<a href="deeplink.html?go=junk&tab=shop&boot=0">ガラクに 売る</a></p>`}</section>`;
+}
+function stashHtml() {
+  const cap = S.cap, all = stock();
+  const okK = (e, k = S.sk) => k === "all" || e.kind === k, okW = (e, w = S.sw) => w === "all" || e.where === w;
+  const chip = (k, v, label, n) => `<button class="chip" data-act="${k}" data-v="${v}" aria-pressed="${S[k] === v}" ${n === 0 && S[k] !== v ? "disabled" : ""}>${label}${n === null ? "" : `<small>${n}</small>`}</button>`;
+  const nK = (k) => all.filter((e) => okK(e, k) && okW(e)).length, nW = (w) => all.filter((e) => okK(e) && okW(e, w)).length;
+  const by = { n: (a, b) => b.n - a.n, q: (a, b) => b.top - a.top || b.n - a.n, name: (a, b) => MAT_NAME[a.id].localeCompare(MAT_NAME[b.id], "ja") }[S.sort];
+  const tile = (e) => { const en = MAT_FROM[e.id], qs = Object.keys(e.qs).map(Number).sort((a, b) => b - a);
+    return `<li class="mt ${e.kind}">${en ? `<img src="${spriteURL(en)}" alt="">` : `<i class="dot ${e.kind === "rare" ? "hd" : ""}"></i>`}<span><b>${esc(MAT_NAME[e.id])}</b><small>${esc((DUNGEONS.find((d) => d.id === e.where) || { name: "" }).name)}</small>${qs.length ? `<small class="q">${qs.map((q) => `品質${q} ×${e.qs[q]}`).join("・")}</small>` : ""}</span><em>×${e.n}</em></li>`; };
+  const vis = all.filter((e) => okK(e) && okW(e));
+  const groups = KINDS.map(([k, name]) => { const g = vis.filter((e) => e.kind === k).sort(by);
+    return g.length ? `<h3 class="grp">${name}の 素材<small>${g.length} しゅるい・${KIND_NOTE[k]}</small></h3><ul class="mlist">${g.map(tile).join("")}</ul>` : ""; }).join("");
+  return `${boxHtml(cap)}<section class="panel stash" aria-label="倉庫の中"><header><h2>倉庫の 中</h2><span class="cap"><i><b style="width:${Math.min(100, (total() / cap) * 100)}%"></b></i>${total()} / ${cap}</span></header>
+    <div class="filters" role="group" aria-label="分け方">
+      <div class="frow"><span>しゅるい</span><div>${chip("sk", "all", "すべて", nK("all"))}${KINDS.map(([k, name]) => chip("sk", k, name, nK(k))).join("")}</div></div>
+      <div class="frow"><span>行き先</span><div>${chip("sw", "all", "すべて", nW("all"))}${DUNGEONS.map((d) => chip("sw", d.id, d.name, nW(d.id))).join("")}</div></div>
+      <div class="frow"><span>ならべる</span><div>${SORTS.map(([k, name]) => chip("sort", k, name, null)).join("")}</div></div></div>
+    ${groups || `<p class="empty">この分け方の 素材は ない</p>`}</section>`;
+}
+function rowHtml(r) {
+  const ng = r.have < r.need, n = `<span class="n">${r.kind === "f" ? `Lv${r.have}` : r.unknown ? `？ / ${fmt(r.need)}` : `${fmt(r.have)} / ${fmt(r.need)}`}</span>`;
+  let pic = `<i class="dot cur ${r.kind}"></i>`;
+  if (r.kind === "mat") { const en = MAT_FROM[r.id]; pic = en ? `<img src="${spriteURL(en)}" alt="">` : `<i class="dot ${HIDDEN_MAT.has(r.id) ? "hd" : ""}"></i>`; }
+  return `<li class="${ng ? "ng" : ""}">${pic}<span>${esc(rowName(r))}${r.mq ? `<span class="tag">品質 ${r.mq}〜</span>` : ""}</span>${n}</li>`;
+}
+function detailHtml() {
+  const f = F(S.sel), c = check(f), lv = S.lv[f.id];
+  const head = `<header style="--c:${COLOR[f.id]}">${icon(f.id)}<div><h2>${f.name} ${lvp(f)}</h2><p>${esc(f.text)}</p></div></header>${f.id === "bench" && lv ? `<a class="use" href="bench.html">作業台を つかう</a>` : ""}`;
+  const all = `<details><summary>Lv3 まで 見る</summary><ul class="lvs" style="--c:${COLOR[f.id]}">${f.lv.map((x, i) => `<li class="${i < lv ? "got" : ""}"><b>Lv${i + 1}</b><span>${esc(x.fx)}</span></li>`).join("")}</ul></details>`;
+  if (c.max) return `${head}<p class="done">いちばん上の Lv3 です。いまは「${esc(f.lv[2].fx)}」</p>${all}`;
+  const lack = c.rows.filter((r) => r.have < r.need), rows = [...lack, ...c.rows.filter((r) => r.have >= r.need)];
+  // 足りない物は 2 つまで 名前を出す（のこりは「ほか N こ」。くわしくは 赤い 数）
+  const why = lack.slice(0, 2).map((r) => r.kind === "f" ? `${F(r.id).name}を Lv${r.need} に` : `${rowName(r)} あと ${fmt(r.need - r.have)}`).join("、") + (lack.length > 2 ? `、ほか ${lack.length - 2} こ` : "");
+  return `${head}<div class="next"><small>Lv${lv + 1} に すると</small><p>${esc(c.next.fx)}</p></div>
+    ${lv ? `<p class="now">いま（Lv${lv}）：${esc(f.lv[lv - 1].fx)}</p>` : ""}
+    <span class="need-h">使う物</span><ul class="need">${rows.map(rowHtml).join("")}</ul>
+    <button class="jelly sky go" data-up="${f.id}" ${c.ok ? "" : "disabled"}>Lv${lv + 1} に する</button>${c.ok ? "" : `<p class="why">足りない：${esc(why)}</p>`}${all}`;
+}
+function render() {
+  document.getElementById("balls").textContent = S.known ? fmt(S.balls) : "？"; document.getElementById("res").textContent = S.known ? fmt(S.res) : "？"; document.getElementById("cr").textContent = fmt(S.cr);
+  const t = TABS.find((x) => x.id === S.tab);
+  document.getElementById("tabs").innerHTML = tabsHtml();
+  document.getElementById("room").setAttribute("aria-label", t.name); document.getElementById("room").classList.toggle("store", t.id === "store");
+  document.getElementById("left").innerHTML = t.id === "store" ? stashHtml() : facsHtml(t);
+  document.getElementById("detail").innerHTML = detailHtml();
+  document.getElementById("detail").classList.toggle("up", S.up === S.sel);
+  S.up = null;
+}
+const small = () => matchMedia("(max-width:860px)").matches, calm = () => matchMedia("(prefers-reduced-motion:reduce)").matches;
+let tid;
+const toast = (t) => { const el = document.getElementById("toast"); el.textContent = t; el.classList.add("on"); clearTimeout(tid); tid = setTimeout(() => el.classList.remove("on"), 2600); };
+function pickTab(id) { S.tab = id; S.sel = TABS.find((t) => t.id === id).facs[0]; render(); document.querySelector(`[data-tab="${id}"]`)?.focus(); }
+// 門番に 頼んで、記録を 読みなおして 描きなおす
+async function ask(b, a, body, msg) {
+  const r = await busy(b, () => act(a, body));
+  if (!r.ok && !r.wait) return toast(r.why || "できませんでした");
+  load(await me());
+  if (r.ok) { if (a === "hideout.up") S.up = body.id; toast(msg(r)); } else toast(waitText);
+  render();
+}
+document.querySelector("main").addEventListener("click", async (e) => {
+  const b = e.target.closest("button"); if (!b || b.disabled) return;
+  if (b.dataset.tab) return pickTab(b.dataset.tab);
+  if (b.dataset.act) { S[b.dataset.act] = b.dataset.v; render(); return document.querySelector(`[data-act="${b.dataset.act}"][data-v="${b.dataset.v}"]`)?.focus(); }
+  if (b.dataset.f) S.sel = b.dataset.f;
+  if (b.dataset.take) return ask(b, "box.take", {}, (r) => `倉庫に 入れた：${r.took} こ${r.left ? `（のこりは 箱に）` : ""}`);
+  if (b.dataset.up) { const f = F(b.dataset.up); return ask(b, "hideout.up", { id: f.id }, () => `${f.name}が Lv${S.lv[f.id]} に なった！ ${f.lv[S.lv[f.id] - 1].fx}`); }
+  render();
+  if (b.dataset.f) { document.querySelector(`[data-f="${b.dataset.f}"]`)?.focus({ preventScroll: true }); if (small()) document.getElementById("detail").scrollIntoView({ behavior: calm() ? "auto" : "smooth" }); }
+});
+// タブは ← → でも 切りかえる
+document.getElementById("tabs").addEventListener("keydown", (e) => {
+  if (!e.target.dataset.tab || !["ArrowLeft", "ArrowRight"].includes(e.key)) return;
+  const i = TABS.findIndex((t) => t.id === S.tab), d = e.key === "ArrowRight" ? 1 : -1; e.preventDefault(); pickTab(TABS[(i + d + TABS.length) % TABS.length].id);
+});
+if (ME.denied || ME.ok === false) document.querySelector("main").innerHTML = `<section class="panel wallet"><h1>入れません</h1><span>${esc(ME.why || "もう 1 回 開いて ください")}</span>${ME.login ? `<a href="/">MONO LINK で ログイン</a>` : ""}</section>`;
+else render();
+window.ready = true;
+</script>
+</body>
+</html>

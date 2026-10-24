@@ -18,3 +18,16 @@ new_sqlite_classes = ["Lounge"]
 # 英語の字幕・コメントの翻訳に使う Cloudflare の Workers AI
 [ai]
 binding = "AI"
+
+# プライベートラウンジ：1 人ずつの 記録（Viewer）と みんなの依頼の 板（Market）
+[[durable_objects.bindings]]
+name = "VIEWER"
+class_name = "Viewer"
+
+[[durable_objects.bindings]]
+name = "MARKET"
+class_name = "Market"
+
+[[migrations]]
+tag = "v2"
+new_sqlite_classes = ["Viewer", "Market"]

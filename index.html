@@ -105,6 +105,12 @@ main { position: relative; z-index: 2; padding: 0 clamp(16px, 4vw, 40px) 140px; 
 .desk svg { width: 44%; height: auto; display: block; margin: 0 auto 6%; }
 .desk .num { display: block; font: 700 clamp(30px, 7vw, 54px)/1 var(--num); }
 .desk .count { font: 700 clamp(10px, 1.8vw, 14px)/1.4 var(--jp); color: var(--soft); white-space: nowrap; }
+/* まんなかの ロゴ ＝ 自分の部屋（プライベートラウンジ）への 入口。円ぜんたいが 押せる */
+.desk-go { position: absolute; inset: 0; border-radius: 50%; display: grid; place-items: center; padding: 8%; color: inherit; text-decoration: none; transition: transform .2s var(--out); }
+.desk-go:hover { transform: scale(1.04); }
+.desk-go:focus-visible { outline: 3px solid var(--sky); outline-offset: 12px; }
+.desk .go-room { position: absolute; left: 50%; bottom: -14px; transform: translateX(-50%); padding: 7px 14px; border-radius: 999px; background: var(--sky); color: #fff; font: 800 clamp(11px, 1.7vw, 14px)/1 var(--jp); white-space: nowrap; box-shadow: 0 4px 0 rgba(46,168,255,.3); }
+@media (prefers-reduced-motion: reduce) { .desk-go { transition: none; } .desk-go:hover { transform: none; } }
 .find { display: flex; gap: 8px; max-width: 460px; margin: 10px auto 0; padding: 6px; background: #fff; border-radius: 999px; box-shadow: var(--lift); }
 .find input { flex: 1; min-width: 0; border: 0; background: none; padding: 10px 16px; font: 700 16px/1.2 var(--jp); }
 .find input:focus { outline: none; }
@@ -687,11 +693,12 @@ body.live-on .floor::before, body.live-on .isle { animation: none; }
         </svg>
       </div>
       <div class="desk">
-        <div>
+        <a class="desk-go" href="/lounge"><div>
           <svg viewBox="0 0 36 36" aria-hidden="true"><circle cx="18" cy="18" r="15" fill="none" stroke="#2EA8FF" stroke-width="3"/><circle cx="18" cy="18" r="8.5" fill="none" stroke="#FF5A64" stroke-width="3"/><circle cx="18" cy="18" r="3" fill="#FFC21A"/></svg>
           <b class="num" id="num">0</b>
           <div class="count" id="count">いまラウンジにいる人</div>
-        </div>
+          <span class="go-room">自分の部屋へ</span>
+        </div></a>
       </div>
     </div>
     <form class="find" id="find" autocomplete="off" role="search">
@@ -918,6 +925,7 @@ body.live-on .floor::before, body.live-on .isle { animation: none; }
     ["そのほか", "#22CC88", [["!けいじばん こんにちは", "ラウンジの掲示板に書く（1 分に 1 回・120 字まで）"], ["!バグ報告 ガチャのあと画面が止まった", "不具合を配信者に知らせる（30 秒に 1 回・300 字まで）"], ["!花火", "画面に花火（!ハート でハート）"], [null, "888 で拍手、草 で草が生える"], ["!モノリンク", "MONO LINK の URL をチャットで受け取る（!サイト でも）"]]]
   ];
   var NOTES = [
+    ["build 99", "2026-10-25", ["プライベートラウンジ（自分の部屋）ができました。ロビーのまんなかのロゴ（いまラウンジにいる人の数）を押すと入れます", "部屋：家具を置いてもようがえ。家具はリソースで買うか、家具ガチャで", "ペット：6 つの質問の性格診断で 1 匹目をむかえます。職業を選んで、VR ダンジョンへ派遣（1・3・10 分）。素材・装備・クレジットを持って帰ります", "なかま：派遣で捕まえた敵は、おやつで仲間に（ペットと 3 体で出かけられます）。隠れ家（部屋のはしごから地下へ）で施設を強くしたり、作業台で装備を作ったり", "DEEP LINK/:（部屋の PC）：トレーダーのタスク・買い物・売り買い・みんなの依頼の板", "玉とリソースは配信と同じ物です。配信していないときに使った分は、次の配信のはじめにまとめて反映されます"]],
     ["build 98", "2026-10-25", ["鹿物語 Ver.1.8.36：ハイアンドローにダブルアップと BGM（Afterglow）を足しました", "勝ち残った人と、途中で降りた人は、最後に賞金を賭けてダブルアップに挑戦できます。伏せたカード 2 枚から「!左」か「!右」。鹿なら賞金 ×2、ドクロなら没収。3 回まで（最大 ×8）", "「!やめ」か、答えなければ、そこで受け取って終わり。途中で降りた人の賞金も、受け取りはハイアンドローの最後になりました", "配信ページの「ゲーム」タブに、左・右のボタンを足しました"]],
     ["build 97", "2026-10-25", ["鹿物語 Ver.1.8.35：宝くじの 1等に最低保証を付けました。毎日の宝くじは 10,000 玉、ジャンボは 100,000 玉、ナンバーズのストレートは 50,000 玉より少なくなりません", "これまでは売れた枚数が少ないと 1等が小さく、1 枚だけだと 400 玉でした。人が増えて売り上げの割合のほうが大きくなれば、そちらが 1等になります"]],
     ["build 96", "2026-10-25", ["鹿物語 Ver.1.8.34：新しいミニゲーム「ハイアンドロー」を足しました（鹿さんの声つき）", "受付 15 秒のあいだに「!ハイロー 1000」で玉を賭けて参加（100〜10,000 玉）。トランプが 1 枚出るので、次のカードが上なら「!ハイ」、下なら「!ロー」", "当たると賞金が増え、外したら全損で脱落。倍率は当たりやすさで決まります（7 なら上も下も ×1.9、10 なら上 ×3.8・下 ×1.2）。引き分けは生き残り", "5 回戦まで。2 回戦からは「!やめ」で、その時点の賞金を受け取って降りられます", "配信ページの「ゲーム」タブに、参加・ハイ・ロー・やめる のボタンを足しました"]],
@@ -2400,6 +2408,7 @@ var ShikaWheel = (function () {
     "ようこそ、ラウンジへ": "Welcome to the lounge",
     "いまログインしている人が、ここにアバターになって浮かんでいます。": "Everyone logged in right now is floating here as an avatar.",
     "いまラウンジにいる人": "in the lounge now",
+    "自分の部屋へ": "Your room",
     "Twitch の名前で探す": "Search by Twitch name", "Twitch の表示名": "Twitch display name",
     "会いに行く": "Visit",
     "アバターを押すと、その人のページへ。広場の床を押すと波紋が広がります。": "Tap an avatar to visit their page. Tap the floor to make ripples.",

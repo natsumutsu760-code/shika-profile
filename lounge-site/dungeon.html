@@ -1,0 +1,723 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pet Adventure</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DotGothic16&family=Fredoka:wght@500;600;700&family=Zen+Maru+Gothic:wght@500;700;900&display=swap">
+<style>
+  /* MONO LINK のラウンジ：冒険（VR ゲームの行き先）の画面。門番の 記録で 動く：ペットが いない → 性格診断へ、職業が まだ → えらぶ、出かけて いる → ようす、帰って きた → 結果と日記
+     部品と色は装備・ガンビットの画面と同じ。ゲームの中の画面（ワールドマップ・戦い）だけ「ゴーグルの中」として黒いふちで囲む
+     ワールドマップは鹿さんの参考ゲーム「魔界派遣ヴェルヴェット(株) M1試作」と同じ描き方。絵（img/world.jpg）は worldmap.py で Blender の 3D の島を写したもの */
+  :root {
+    --space:#F6F8FC; --ink:#1B2340; --soft:#6A7394; --line:#DCE3F0;
+    --sky:#2EA8FF; --coral:#FF5A64; --sun:#FFC21A; --leaf:#22CC88; --violet:#8E6CFF;
+    --r1:#9AA0B8; --r2:#2F7BFF; --r3:#9B4DFF; --r4:#FFB300; --r5:#FF2E4D;
+    --visor:#141826; --led:#52F2A0; --cyan:#46D4FF;
+    --myth:linear-gradient(90deg, #FF8FC4, #FFE27A, #8FF0C8, #8FC8FF, #C4A0FF);
+    --jp:"Zen Maru Gothic", "Hiragino Maru Gothic ProN", sans-serif; --num:"Fredoka", "Zen Maru Gothic", sans-serif; --game:"DotGothic16", "Zen Maru Gothic", monospace;
+    --lift:0 18px 40px -18px rgba(27,35,64,.35), 0 2px 0 rgba(27,35,64,.06);
+  }
+  * { box-sizing:border-box; }
+  [hidden] { display:none !important; }
+  body { margin:0; min-height:100vh; background:radial-gradient(120% 80% at 50% 0%, #FFFFFF 0%, var(--space) 55%, #EAF0FA 100%); color:var(--ink); font:500 16px/1.65 var(--jp); }
+  button { font:inherit; color:inherit; cursor:pointer; }
+  :focus-visible { outline:3px solid var(--sky); outline-offset:3px; border-radius:12px; }
+  h2, h3, p { margin:0; }
+  .top { display:flex; align-items:center; gap:10px; padding:12px clamp(16px, 4vw, 40px); }
+  .top b { font:700 22px/1 var(--num); letter-spacing:.06em; } .top b i { font-style:normal; color:var(--sky); }
+  .top small { font:700 13px/1 var(--jp); color:var(--soft); margin-left:6px; }
+  main { max-width:1100px; margin:0 auto; padding:0 clamp(16px, 4vw, 40px) 40px; }
+  .panel { background:rgba(255,255,255,.9); border-radius:26px; box-shadow:var(--lift); padding:clamp(14px, 2.4vw, 18px); }
+  .pet { display:grid; grid-template-columns:60px auto 1fr; gap:14px; align-items:center; padding:8px 20px 8px 8px; border-radius:22px; }
+  .pet .pic { width:60px; height:60px; border-radius:16px; background:radial-gradient(circle at 50% 38%, #fff 0, #E4F7EE 80%); display:flex; justify-content:center; overflow:hidden; }
+  .pet .pic img { height:150%; margin-top:-4%; }
+  .pet h1 { margin:0; font:900 24px/1.1 var(--jp); display:flex; align-items:baseline; gap:10px; white-space:nowrap; }
+  .pet h1 small { font:700 13px/1 var(--jp); color:var(--soft); }
+  .pet .meta { margin-top:6px; display:flex; gap:8px; align-items:center; }
+  .badge { display:inline-flex; align-items:center; gap:5px; border-radius:999px; padding:4px 10px 4px 5px; font:700 12px/1 var(--jp); color:#fff; background:var(--c); }
+  .badge::before { content:""; width:11px; height:11px; border-radius:50%; background:#fff; opacity:.85; }
+  .lv { font:600 16px/1 var(--num); } .lv small { font:700 12px/1 var(--jp); color:var(--soft); margin-right:3px; }
+  .res { justify-self:end; text-align:right; font:700 12px/1.2 var(--jp); color:var(--soft); }
+  .res b { display:block; font:600 24px/1 var(--num); color:var(--ink); }
+  .tabs { display:flex; gap:8px; margin:12px 0 10px; overflow-x:auto; padding-bottom:4px; }
+  .tabs button { flex:none; border:1.5px solid var(--line); background:rgba(255,255,255,.9); border-radius:999px; padding:8px 16px; font:700 14px/1 var(--jp); display:inline-flex; align-items:center; gap:6px; }
+  .tabs button[aria-selected="true"] { background:var(--ink); color:#fff; border-color:var(--ink); box-shadow:0 5px 0 rgba(27,35,64,.22); }
+  .tabs .away { width:8px; height:8px; border-radius:50%; background:var(--led); box-shadow:0 0 0 3px rgba(82,242,160,.25); }
+  .jelly { border:0; border-radius:999px; padding:11px 16px; font:900 14px/1 var(--jp); background:var(--ink); color:#fff; box-shadow:0 5px 0 rgba(27,35,64,.25); }
+  .jelly.light { background:#fff; color:var(--ink); box-shadow:0 5px 0 var(--line); border:1.5px solid var(--line); }
+  .jelly.sky { background:var(--sky); box-shadow:0 5px 0 rgba(46,168,255,.3); }
+  .stars { display:inline-flex; gap:1px; font-size:13px; line-height:1; color:var(--rc); letter-spacing:-1px; }
+  .r1 { --rc:var(--r1); } .r2 { --rc:var(--r2); } .r3 { --rc:var(--r3); } .r4 { --rc:var(--r4); } .r5 { --rc:var(--r5); }
+  .ico { display:grid; place-items:center; border-radius:12px; background:radial-gradient(circle at 50% 40%, #fff 0, color-mix(in srgb, var(--rc, var(--r1)) 16%, #fff) 85%); }
+  .ico img { width:86%; height:86%; object-fit:contain; }
+  .sub { font:900 12px/1.2 var(--jp); color:var(--soft); margin:12px 0 6px; }
+
+  /* ゴーグルの中の画面：黒いふち・右上の緑のランプ・下の水色の線（3D のゴーグルと同じ） */
+  .visor { position:relative; display:block; border-radius:22px; border:6px solid var(--visor); background:var(--visor); overflow:hidden; isolation:isolate; }
+  .visor svg { display:block; width:100%; height:100%; }
+  .visor::after { content:""; position:absolute; inset:0; z-index:2; pointer-events:none; border-radius:16px;
+    background:repeating-linear-gradient(0deg, rgba(20,24,38,.12) 0 1px, transparent 1px 3px), radial-gradient(120% 90% at 50% 45%, transparent 60%, rgba(20,24,38,.35) 100%); }
+
+  /* ===== えらぶ ===== */
+  .pick { display:grid; grid-template-columns:minmax(0, 1fr) 380px; gap:16px; align-items:start; }
+  /* ワールドマップ：絵の地図にピンと道。奥へ行くほど敵が強い。スマホでは地図を指で動かす */
+  .world { padding:0; }
+  .world::after { display:none; }
+  .world::before { content:""; position:absolute; z-index:4; right:12px; top:10px; width:9px; height:9px; border-radius:50%; background:var(--led); box-shadow:0 0 8px var(--led); }
+  .wtitle { position:absolute; z-index:4; left:10px; top:9px; padding:5px 10px; border-radius:10px; background:rgba(20,24,38,.72); color:#fff; font:400 13px/1 var(--game); pointer-events:none; }
+  .wscroll { overflow:auto; overscroll-behavior:contain; scrollbar-width:none; }
+  .wscroll::-webkit-scrollbar { display:none; }
+  .wmap { position:relative; width:100%; aspect-ratio:16 / 10; background:#1d3b55 url(img/world.jpg) center / cover no-repeat; }
+  .wmap::before { content:""; position:absolute; inset:0; pointer-events:none;
+    background:repeating-linear-gradient(0deg, rgba(20,24,38,.04) 0 1px, transparent 1px 3px), radial-gradient(120% 90% at 50% 45%, transparent 62%, rgba(20,24,38,.4) 100%); }
+  .wmap svg { position:absolute; inset:0; width:100%; height:100%; pointer-events:none; }
+  .road { fill:none; stroke-linecap:round; } .road.under { stroke:rgba(20,24,38,.5); stroke-width:9; } .road.top { stroke:#F3E2B8; stroke-width:4.5; stroke-dasharray:14 11; }
+  .wpin { position:absolute; z-index:2; left:var(--x); top:var(--y); width:0; height:0; padding:0; border:0; background:none; }
+  /* ピンは地図の場所（町・遺跡・村・水晶）を隠さないように、細い棒で上に浮かせる */
+  .wpin::before { content:""; position:absolute; left:-4px; top:-4px; width:8px; height:8px; border-radius:50%; background:var(--dc, #fff); box-shadow:0 0 0 2px #fff, 0 1px 4px rgba(20,24,38,.6); }
+  .wpin .chip { position:absolute; left:0; bottom:26px; transform:translateX(-50%); display:inline-flex; align-items:stretch; border-radius:10px; white-space:nowrap; background:rgba(20,24,38,.8); color:#fff; box-shadow:0 3px 10px rgba(20,24,38,.45); }
+  .wpin .chip::after { content:""; position:absolute; left:calc(50% - 1px); top:100%; width:2px; height:22px; background:rgba(255,255,255,.9); box-shadow:0 0 3px rgba(20,24,38,.5); }
+  .wpin .chip b { display:grid; place-items:center; padding:0 7px; border-radius:10px 0 0 10px; background:var(--fit); color:var(--visor); font:600 12px/1 var(--num); }
+  .wpin .chip span { padding:6px 9px 5px 8px; font:400 13px/1 var(--game); }
+  .wpin.home::before { background:var(--visor); }
+  .wpin.home .chip { bottom:auto; top:26px; background:rgba(255,255,255,.92); color:var(--visor); }
+  .wpin.home .chip::after { top:auto; bottom:100%; }
+  .wpin.home .chip span { padding:5px 9px 4px; }
+  .wpin[aria-pressed="true"] { z-index:3; }
+  .wpin[aria-pressed="true"] .chip { background:var(--cyan); color:var(--visor); box-shadow:0 0 0 2px #fff, 0 0 0 4px var(--dc), 0 6px 14px rgba(20,24,38,.5); }
+  .wpin[aria-pressed="true"]::after { content:""; position:absolute; left:-22px; top:-22px; width:44px; height:44px; border-radius:50%; border:2px solid var(--cyan); animation:ping 1.6s ease-out infinite; }
+  .wpin:focus-visible { outline:none; } .wpin:focus-visible .chip { outline:3px solid var(--sky); outline-offset:2px; }
+  @keyframes ping { from { transform:scale(.45); opacity:1; } to { transform:scale(1.25); opacity:0; } }
+  .wleg { margin-top:8px; display:flex; align-items:center; flex-wrap:wrap; gap:4px 6px; font:700 12px/1.4 var(--jp); color:var(--soft); }
+  .wleg span { margin-right:4px; color:var(--ink); } .wleg i { width:10px; height:10px; border-radius:3px; background:var(--c); margin-left:6px; }
+  .hist { list-style:none; margin:0; padding:0; display:grid; gap:4px; }
+  .hist li { display:grid; grid-template-columns:84px 132px 92px 72px minmax(0, 1fr); gap:10px; align-items:center; padding:6px 12px; border-radius:12px; background:var(--space); font:700 12px/1.3 var(--jp); color:var(--soft); }
+  .hist b { font:700 13px/1.3 var(--jp); color:var(--ink); display:inline-flex; align-items:center; gap:6px; white-space:nowrap; } .hist b::before { content:""; width:9px; height:9px; border-radius:3px; background:var(--dc); }
+  .hist .when, .hist .rk { font-family:var(--num); font-weight:500; } .hist .out { color:#13A36A; } .hist .out.ng { color:var(--soft); }
+  .hist .it { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .detail h2 { font:900 22px/1.25 var(--jp); display:flex; align-items:center; gap:8px; }
+  .detail h2::before { content:""; width:14px; height:14px; border-radius:5px; background:var(--dc); flex:none; }
+  .detail h2 .rec { margin-left:auto; font:700 12px/1 var(--jp); color:var(--soft); white-space:nowrap; }
+  .detail .desc { margin-top:4px; font:700 13px/1.6 var(--jp); color:var(--soft); }
+  .foes { list-style:none; margin:0; padding:0; display:flex; flex-wrap:wrap; gap:6px; }
+  .foes li { display:inline-flex; align-items:center; gap:6px; padding:4px 10px 4px 7px; border-radius:999px; border:1.5px solid var(--line); background:#fff; font:700 12px/1.2 var(--jp); }
+  .foes li i { width:9px; height:9px; border-radius:50%; background:var(--c); }
+  .foes li small { font:600 12px/1 var(--num); color:var(--soft); }
+  .foes li.boss { border-color:#FFD98A; background:#FFF8E6; }
+  .foes li.boss.off { opacity:.45; }
+  .foes li.rare { border-color:#D9C8FF; background:#F7F2FF; }
+  .foes li .tg { font:700 10px/1 var(--jp); color:#7A55E0; }
+  .drops { display:flex; gap:6px; align-items:center; flex-wrap:wrap; }
+  .drops .ico { width:38px; height:38px; }
+  .myth { margin-top:8px; display:grid; grid-template-columns:46px 1fr; gap:10px; align-items:center; padding:6px 10px 6px 6px; border-radius:16px; border:2px solid transparent; background:linear-gradient(#fff, #fff) padding-box, var(--myth) border-box; }
+  .myth .ico { width:46px; height:46px; background:#F1F3F9; }
+  .myth .ico img { filter:brightness(0) opacity(.28); }
+  .myth b { font:900 14px/1.2 var(--jp); letter-spacing:.1em; }
+  .myth small { display:block; font:700 11px/1.45 var(--jp); color:var(--soft); }
+  .runs { display:grid; grid-template-columns:repeat(3, minmax(0, 1fr)); gap:6px; }
+  .runs button { border:1.5px solid var(--line); background:#fff; border-radius:16px; padding:8px 6px 7px; text-align:center; }
+  .runs button b { display:block; font:600 20px/1 var(--num); } .runs button b small { font:700 12px/1 var(--jp); margin-left:1px; }
+  .runs button span { display:block; margin-top:4px; font:700 11px/1.3 var(--jp); color:var(--soft); }
+  .runs button[aria-pressed="true"] { border-color:var(--sky); background:#EAF6FF; box-shadow:0 0 0 3px rgba(46,168,255,.16); }
+  .runs button[aria-pressed="true"] span { color:var(--ink); }
+  .est { margin-top:10px; display:grid; grid-template-columns:auto 1fr auto; gap:10px; align-items:center; font:700 12px/1.3 var(--jp); color:var(--soft); }
+  .est .bar { height:10px; border-radius:99px; background:#EDF1F8; overflow:hidden; }
+  .est .bar i { display:block; height:100%; border-radius:99px; background:var(--ec); }
+  .est b { font:600 18px/1 var(--num); color:var(--ink); } .est b small { font:700 11px/1 var(--jp); color:var(--soft); margin-left:4px; }
+  .starline { margin-top:6px; font:700 12px/1.4 var(--jp); color:var(--soft); }
+  .starline b { font:600 13px/1 var(--num); color:var(--ink); }
+  .go { margin-top:14px; width:100%; padding:15px 16px; font-size:16px; display:flex; align-items:center; justify-content:center; gap:10px; }
+  .go svg { width:30px; height:18px; }
+
+  /* ===== 出かけている途中 ===== */
+  .play { display:grid; grid-template-columns:270px minmax(0, 1fr); gap:16px; align-items:stretch; }
+  .real { display:flex; flex-direction:column; align-self:start; }
+  .real .stage { height:220px; border-radius:20px; background:radial-gradient(circle at 50% 36%, #fff 0, #E4F7EE 82%); display:flex; justify-content:center; overflow:hidden; }
+  .real .stage img { height:116%; margin-top:-3%; }
+  .real .where { margin-top:10px; font:900 15px/1.3 var(--jp); }
+  .real .where small { display:block; font:700 12px/1.4 var(--jp); color:var(--soft); }
+  .timer { margin-top:8px; display:flex; align-items:baseline; gap:8px; }
+  .timer b { font:600 40px/1 var(--num); letter-spacing:.02em; } .timer small { font:700 13px/1 var(--jp); color:var(--soft); }
+  .pbar { margin-top:8px; height:10px; border-radius:99px; background:#EDF1F8; overflow:hidden; } .pbar i { display:block; height:100%; border-radius:99px; background:var(--sky); }
+  .real .jelly { margin-top:auto; } .real .note { margin:8px 0 0; font:700 11px/1.5 var(--jp); color:var(--soft); }
+  .real .spacer { flex:1; min-height:12px; }
+  .inside { min-height:420px; border-width:8px; border-radius:30px; }
+  .inside > svg { position:absolute; inset:0; z-index:0; }
+  .inside .shade { position:absolute; inset:0; z-index:1; background:linear-gradient(180deg, rgba(20,24,38,0) 30%, rgba(20,24,38,.82) 78%); }
+  .hud { position:absolute; z-index:3; left:16px; right:16px; top:14px; display:flex; gap:6px; flex-wrap:wrap; }
+  .hud span { display:inline-flex; align-items:center; gap:5px; padding:5px 10px; border-radius:10px; background:rgba(20,24,38,.7); color:rgba(255,255,255,.55); font:400 13px/1 var(--game); }
+  .hud span.done { color:#fff; } .hud span.done::before { content:"✓"; color:var(--led); } .hud span i { font-style:normal; }
+  .hud span.now { color:var(--visor); background:var(--cyan); }
+  .hud span.boss { box-shadow:inset 0 0 0 1.5px #FFD98A; }
+  .glog { position:absolute; z-index:3; left:18px; right:18px; bottom:16px; list-style:none; margin:0; padding:0; display:grid; gap:4px; font:400 15px/1.45 var(--game); color:#fff; }
+  .glog li { opacity:.55; } .glog li:nth-last-child(-n+3) { opacity:.8; } .glog li:last-child { opacity:1; }
+  .glog li.sys { color:var(--cyan); }
+  .glog li em { font-style:normal; display:inline-block; min-width:1.6em; color:var(--led); }
+  .glog li:last-child::after { content:"▍"; margin-left:3px; color:var(--cyan); animation:blink 1s steps(1) infinite; }
+  @keyframes bob { 50% { transform:translateY(-4px); } }
+  .meter { background:rgba(20,24,38,.7); border-radius:12px; padding:6px 10px 8px; color:#fff; font:400 12px/1.2 var(--game); }
+  .meter div { display:flex; justify-content:space-between; gap:8px; } .meter div span { white-space:nowrap; } .meter div span:first-child { min-width:0; overflow:hidden; text-overflow:ellipsis; } .meter i { display:block; margin-top:5px; height:6px; border-radius:9px; background:rgba(255,255,255,.18); overflow:hidden; } .meter i b { display:block; height:100%; background:var(--mc); }
+  @keyframes blink { 50% { opacity:0; } }
+
+  /* ===== 結果と日記 ===== */
+  .done { display:grid; grid-template-columns:minmax(0, 1fr) 400px; gap:16px; align-items:start; }
+  .diary { position:relative; padding:0; overflow:hidden; }
+  .diary header { display:flex; align-items:baseline; gap:10px; padding:16px 20px 10px; border-bottom:2px solid #F1C9CF; }
+  .diary header b { font:900 18px/1.2 var(--jp); } .diary header small { font:700 12px/1 var(--jp); color:var(--soft); }
+  .diary .page { position:relative; padding:4px 20px 18px; min-height:248px; background:repeating-linear-gradient(180deg, transparent 0 35px, #DCE6F5 35px 36px); background-position:0 4px; }
+  .diary .page p { font:700 18px/36px var(--jp); padding-right:150px; }
+  .diary .page p .m { display:inline; padding:0 2px; background:linear-gradient(transparent 55%, #FFE7A1 55%); }
+  .diary .sticker { position:absolute; right:12px; bottom:10px; width:140px; transform:rotate(5deg); filter:drop-shadow(0 6px 10px rgba(27,35,64,.18)); }
+  .diary .stamp { margin-left:auto; font:400 13px/1 var(--game); color:var(--dc); border:2px solid var(--dc); border-radius:8px; padding:5px 8px; transform:rotate(-4deg); background:#fff; white-space:nowrap; }
+  .result h2 { font:900 26px/1.1 var(--jp); display:flex; align-items:baseline; gap:10px; }
+  .result h2 small { font:600 16px/1 var(--num); color:var(--soft); }
+  .result h2.lose { color:var(--soft); }
+  .gain { margin-top:10px; display:flex; gap:8px; flex-wrap:wrap; }
+  .gain span { padding:6px 12px; border-radius:12px; background:var(--space); font:700 12px/1.2 var(--jp); color:var(--soft); }
+  .gain b { font:600 16px/1 var(--num); color:var(--ink); margin-left:4px; }
+  .got { list-style:none; margin:0; padding:0; display:grid; gap:8px; }
+  .got li { display:grid; grid-template-columns:56px minmax(0, 1fr); gap:10px; align-items:center; padding:6px 10px 6px 6px; border-radius:16px; border:1.5px solid var(--line); background:#fff; }
+  .got .ico { width:56px; height:56px; }
+  .got b { font:700 14px/1.25 var(--jp); } .got .stars { margin-left:6px; vertical-align:1px; }
+  .got .ops { display:block; margin-top:3px; font:700 11px/1.5 var(--jp); color:var(--soft); }
+  .got li.mythic { border:3px solid transparent; background:linear-gradient(135deg, #FFFDF4, #F6F0FF) padding-box, var(--myth) border-box; padding:8px 12px 10px 8px; grid-template-columns:72px minmax(0, 1fr); }
+  .got li.mythic .ico { width:72px; height:72px; background:radial-gradient(circle at 50% 40%, #fff 0, #FFF1C9 60%, #EBDDFF 100%); }
+  .got li.mythic b { font-size:16px; }
+  .got .tag { display:inline-block; margin-right:6px; padding:3px 8px; border-radius:7px; background:var(--ink); color:#fff; font:700 11px/1 var(--jp); vertical-align:2px; }
+  .got .fx { display:block; margin-top:4px; font:700 12px/1.5 var(--jp); color:var(--ink); }
+  .got .chat { display:inline-flex; align-items:center; gap:5px; margin-top:6px; padding:3px 9px 3px 7px; border-radius:999px; background:#EAF6FF; color:#1A7BD1; font:700 11px/1 var(--jp); }
+  .got .chat::before { content:""; width:7px; height:7px; border-radius:50%; background:var(--sky); }
+  .result .btns { margin-top:14px; display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+  .caught { list-style:none; margin:0; padding:0; display:grid; gap:8px; }
+  .caught li { display:grid; grid-template-columns:56px minmax(0, 1fr); gap:10px; align-items:center; padding:8px 12px 8px 8px; border-radius:16px; border:2px solid #CDB8FF; background:linear-gradient(135deg, #FFFFFF, #F5F0FF); }
+  .caught .orb.spr { background:color-mix(in srgb, var(--c) 14%, #fff); border-radius:30%; box-shadow:none; } .caught .orb.spr img { width:48px; height:48px; image-rendering:pixelated; margin-top:-4px; }
+  .caught .orb { width:56px; height:56px; border-radius:50%; display:grid; place-items:center; background:radial-gradient(circle at 35% 30%, #fff 0, var(--c) 75%); box-shadow:inset 0 -4px 0 rgba(27,35,64,.12); font:900 22px/1 var(--jp); color:#fff; text-shadow:0 2px 0 rgba(27,35,64,.25); }
+  .caught b { font:700 14px/1.25 var(--jp); }
+  .caught .rk { display:inline-block; margin-left:6px; padding:2px 7px; border-radius:6px; background:var(--ink); color:#fff; font:700 10px/1.2 var(--jp); vertical-align:2px; }
+  .caught .tr { display:block; margin-top:3px; font:700 12px/1.45 var(--jp); color:#5B3FC4; }
+  .caught .lab { display:block; margin-top:2px; font:700 11px/1.45 var(--jp); color:var(--soft); }
+  .none { padding:12px; border-radius:14px; background:var(--space); font:700 13px/1.5 var(--jp); color:var(--soft); }
+
+  /* ===== 探索（ヴェルヴェットと同じ。鹿さんの決め、2026-10-22） ===== */
+  .wpin.r .chip { transform:translateX(-22%); }
+  .wpin .chip em { display:grid; place-items:center; padding:0 7px; font:600 11px/1 var(--num); font-style:normal; background:rgba(255,255,255,.16); border-radius:0 10px 10px 0; }
+  .wpin[aria-pressed="true"] .chip em { background:rgba(20,24,38,.12); }
+  .sub.exh { display:flex; align-items:baseline; gap:8px; } .exh b { font:600 22px/1 var(--num); color:var(--ink); } .exh b small { font-size:13px; }
+  .exh i { margin-left:auto; font-style:normal; font:700 11px/1 var(--jp); color:#A56A00; background:#FFF4D2; padding:4px 8px; border-radius:99px; }
+  .floors { list-style:none; margin:0; padding:0; display:grid; gap:5px; }
+  .floors li { display:grid; grid-template-columns:34px minmax(0, 1fr) 38px 66px; gap:8px; align-items:center; font:700 12px/1 var(--jp); }
+  .floors .bar { position:relative; display:block; height:8px; border-radius:9px; background:#EDF1F8; overflow:hidden; }
+  .floors .bar b { position:absolute; left:0; top:0; height:100%; border-radius:9px; background:var(--dc); }
+  .floors li.full .bar b { background:var(--leaf); }
+  .floors em { font:600 12px/1 var(--num); font-style:normal; text-align:right; } .floors small { font:700 10px/1 var(--jp); color:#7A55E0; white-space:nowrap; }
+  .floors li.lock { color:#A9B0C4; }
+  .floors.small { margin-top:8px; } .floors.small li { grid-template-columns:34px minmax(0, 1fr) 38px; }
+  .floors .bar b.was { background:color-mix(in srgb, var(--dc) 45%, #fff); } .floors .bar b.now { background:var(--sky); border-radius:0 9px 9px 0; }
+  .foes li img.fs { width:24px; height:24px; image-rendering:pixelated; margin:-4px -2px -4px -5px; }
+  .pparty { display:flex; gap:8px; }
+  .pparty span { flex:1; min-width:0; display:grid; justify-items:center; gap:2px; padding:8px 4px 6px; border-radius:14px; background:var(--space); text-align:center; }
+  .pparty img.pf { width:44px; height:44px; object-fit:cover; object-position:50% 6%; border-radius:12px; background:radial-gradient(circle at 50% 38%, #fff 0, #E4F7EE 80%); }
+  .pparty img.ps { width:48px; height:48px; image-rendering:pixelated; margin:-4px 0 -2px; }
+  .pparty b { font:700 12px/1.2 var(--jp); max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; } .pparty small { font:600 11px/1 var(--num); color:var(--soft); }
+  /* ===== じゅんび（2 だんめ）===== */
+  .prephead { display:flex; align-items:center; gap:10px 16px; flex-wrap:wrap; padding:12px 18px; margin-bottom:14px; }
+  .prephead h2 { font:900 22px/1.2 var(--jp); display:flex; align-items:center; gap:8px; }
+  .prephead h2::before { content:""; width:14px; height:14px; border-radius:5px; background:var(--dc); }
+  .prephead .pexp { margin-left:auto; font:700 12px/1 var(--jp); color:var(--soft); } .prephead .pexp b { font:600 20px/1 var(--num); color:var(--ink); margin-left:4px; }
+  .back { border:1.5px solid var(--line); background:#fff; border-radius:999px; padding:8px 14px; font:700 13px/1 var(--jp); }
+  .prep { display:grid; grid-template-columns:minmax(0, 1fr) 380px; gap:16px; align-items:start; }
+  .prep .sub:first-child, .sub.first { margin-top:0; }
+  .tools { display:grid; grid-template-columns:repeat(4, minmax(0, 1fr)); gap:6px; }
+  .tools button { border:1.5px solid var(--line); background:#fff; border-radius:14px; padding:9px 4px 8px; text-align:center; display:grid; gap:3px; align-content:center; min-height:52px; }
+  .tools b { font:700 12px/1.25 var(--jp); } .tools span { font:600 11px/1 var(--num); color:var(--soft); }
+  .tools button[aria-pressed="true"] { border-color:var(--sky); background:#EAF6FF; box-shadow:0 0 0 3px rgba(46,168,255,.16); }
+  .tools button:disabled { opacity:.45; }
+  .ttext { margin-top:6px; font:700 12px/1.5 var(--jp); color:var(--soft); }
+  .pcards { display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:8px; }
+  .pcards button { display:grid; gap:4px; align-content:start; text-align:left; border:1.5px solid var(--line); background:#fff; border-radius:16px; padding:12px 14px; }
+  .pcards b { font:900 15px/1.2 var(--jp); } .pcards span { font:700 12px/1.45 var(--jp); color:var(--soft); } .pcards em { font:700 11px/1 var(--jp); font-style:normal; color:#1E88D6; }
+  .pcards button[aria-pressed="true"] { border-color:var(--sky); background:#EAF6FF; box-shadow:0 0 0 3px rgba(46,168,255,.16); } .pcards button[aria-pressed="true"] span { color:var(--ink); }
+  .tgts { margin-top:6px; display:flex; flex-wrap:wrap; gap:6px; }
+  .tgts button { display:inline-flex; align-items:center; gap:4px; border:1.5px solid var(--line); background:#fff; border-radius:999px; padding:2px 10px 2px 3px; font:700 12px/1 var(--jp); }
+  .tgts img { width:24px; height:24px; image-rendering:pixelated; } .tgts .tg { font:700 10px/1 var(--jp); color:#7A55E0; }
+  .tgts button[aria-pressed="true"] { border-color:var(--ink); box-shadow:0 0 0 2px rgba(27,35,64,.12); }
+  .outlook { margin-top:12px; padding:10px 12px; border-radius:16px; background:var(--space); display:grid; gap:5px; }
+  .outlook .lab { font:900 11px/1 var(--jp); color:var(--soft); }
+  .outlook p { margin:0; font:700 13px/1.4 var(--jp); } .outlook p > b { font:600 18px/1 var(--num); }
+  .outlook .w { display:grid; grid-template-columns:minmax(0, 1fr) auto auto; gap:8px; align-items:center; font-size:12px; color:var(--soft); } .outlook .w > b { font-size:15px; color:var(--ink); }
+  .outlook .bar { display:block; height:8px; border-radius:9px; background:#E3E8F2; overflow:hidden; } .outlook .bar b { display:block; height:100%; border-radius:9px; background:var(--ec); }
+  .outlook small { font:700 11px/1 var(--jp); color:var(--ec); }
+  /* ゴーグルの中：いまの階の地図。見たマスだけ見える（行き先ごとに色がちがう） */
+  .th-hals { --fl:#D9C48E; --rm:#A9CC74; --wl:#3F5E38; --fog:#141C2A; } .th-morph { --fl:#BDB0E2; --rm:#D9CEF6; --wl:#3B305F; --fog:#151428; }
+  .th-kurai { --fl:#6D729C; --rm:#8A90BC; --wl:#1F2340; --fog:#0C0E1A; } .th-crystal { --fl:#93CDE0; --rm:#BDEAF6; --wl:#1F3C4C; --fog:#0A1820; }
+  .inside.ex { display:flex; flex-direction:column; gap:10px; padding:14px; min-height:470px; }
+  .inside.ex .shade { background:linear-gradient(180deg, rgba(14,18,32,.55), rgba(14,18,32,.82)); }
+  .inside.ex .hud { position:relative; left:auto; right:auto; top:auto; }
+  .inside.ex .hud span.ex { margin-left:auto; color:#fff; } .inside.ex .hud span.act { color:var(--visor); background:var(--led); } .inside.ex .hud span.act.b { background:#FF7A86; } .inside.ex .hud span.act.r { background:var(--sun); }
+  .pgrid { position:relative; z-index:3; display:grid; grid-template-columns:auto minmax(0, 1fr); gap:14px; align-items:start; }
+  .dmap { --c:20px; display:grid; grid-template-columns:repeat(15, var(--c)); grid-auto-rows:var(--c); border-radius:8px; overflow:hidden; box-shadow:0 0 0 2px rgba(255,255,255,.14); background:var(--fog); }
+  .dmap i { position:relative; display:block; background-position:center; background-size:70%; background-repeat:no-repeat; image-rendering:pixelated; }
+  .dmap .fog { background-color:var(--fog); }
+  .dmap .c0 { background-color:var(--wl); }
+  .dmap .c1, .dmap .c3, .dmap .c4, .dmap .c5, .dmap .c6, .dmap .c8 { background-color:var(--fl); }
+  .dmap .c2, .dmap .c7 { background-color:var(--rm); }
+  .dmap .c3 { background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8' shape-rendering='crispEdges'%3E%3Cpath fill='%2346D4FF' d='M2 1h4v1h1v6H1V2h1z'/%3E%3Cpath fill='%231B2340' d='M3 3h2v5H3z'/%3E%3C/svg%3E"); }
+  .dmap .c4 { background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8' shape-rendering='crispEdges'%3E%3Cg fill='%23FF5A64'%3E%3Crect x='1' y='1' width='2' height='2'/%3E%3Crect x='5' y='1' width='2' height='2'/%3E%3Crect x='3' y='3' width='2' height='2'/%3E%3Crect x='1' y='5' width='2' height='2'/%3E%3Crect x='5' y='5' width='2' height='2'/%3E%3C/g%3E%3C/svg%3E"); }
+  .dmap .c5 { background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8' shape-rendering='crispEdges'%3E%3Cpath fill='%237CE05A' d='M3 0h2v3h3v2H5v3H3V5H0V3h3z'/%3E%3Crect x='3' y='3' width='2' height='2' fill='%23E8FFD8'/%3E%3C/svg%3E"); }
+  .dmap .c6 { background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8' shape-rendering='crispEdges'%3E%3Crect x='1' y='2' width='6' height='5' fill='%23B07A42'/%3E%3Crect x='1' y='2' width='6' height='1' fill='%23FFD24A'/%3E%3Crect x='3' y='4' width='2' height='2' fill='%23FFD24A'/%3E%3C/svg%3E"); }
+  .dmap .c7 { background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8' shape-rendering='crispEdges'%3E%3Cpath fill='%23FFD24A' d='M0 2h2v1h1V1h2v2h1V2h2v5H0z'/%3E%3Crect x='3' y='4' width='2' height='1' fill='%23FF5A64'/%3E%3C/svg%3E"); }
+  .dmap .c8 { background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8' shape-rendering='crispEdges'%3E%3Cpath fill='%23F3E2B8' d='M0 6h2V4h2V2h2V0h2v8H0z'/%3E%3Cpath fill='%231B2340' d='M2 6h6v1H2zM4 4h4v1H4zM6 2h2v1H6z' opacity='.25'/%3E%3C/svg%3E"); }
+  .dmap .hid { box-shadow:inset 0 0 0 1px rgba(255,255,255,.5); }
+  .dmap i.op::after { content:""; position:absolute; inset:0; background:var(--fl); opacity:.6; }
+  .dmap .me::before { content:""; position:absolute; inset:3px; z-index:2; border-radius:50%; background:var(--cyan); box-shadow:0 0 0 2px #fff, 0 0 10px var(--cyan); }
+  .dmap .me::after { content:""; position:absolute; inset:-6px; z-index:2; border-radius:50%; border:2px solid var(--cyan); animation:ping 1.4s ease-out infinite; opacity:1; background:none; }
+  .side { display:grid; gap:10px; align-content:start; min-width:0; }
+  .side .party { display:grid; gap:6px; }
+  .pm { display:grid; grid-template-columns:28px minmax(0, 1fr); gap:8px; align-items:center; background:rgba(20,24,38,.72); border-radius:12px; padding:5px 10px 5px 5px; color:#fff; font:400 12px/1.2 var(--game); }
+  .pm img.pf { width:28px; height:28px; object-fit:cover; object-position:50% 6%; border-radius:8px; background:#E4F7EE; } .pm img.ps { width:24px; height:24px; image-rendering:pixelated; margin:2px; }
+  .pm span { display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .pm i { display:block; margin-top:4px; height:6px; border-radius:9px; background:rgba(255,255,255,.18); overflow:hidden; } .pm i b { display:block; height:100%; background:var(--led); } .pm.down { opacity:.45; }
+  .bpanel { display:grid; gap:6px; }
+  .bspr { display:flex; gap:6px; justify-content:center; align-items:flex-end; min-height:72px; }
+  .bspr img { width:72px; height:72px; image-rendering:pixelated; filter:drop-shadow(0 4px 0 rgba(20,24,38,.35)); animation:bob 1s steps(2) infinite; animation-delay:calc(var(--k) * -.33s); }
+  .bspr img.boss { width:96px; height:96px; } .bspr img.down { filter:grayscale(1) brightness(.75); opacity:.45; animation:none; }
+  .idle { background:rgba(20,24,38,.72); border-radius:12px; padding:10px 12px; color:#fff; font:400 14px/1.4 var(--game); display:grid; gap:2px; } .idle span { color:rgba(255,255,255,.65); font-size:12px; }
+  .idle.rest b::after { content:" Zzz"; color:var(--sun); }
+  .inside.ex .glog { position:relative; left:auto; right:auto; bottom:auto; margin-top:auto; font-size:14px; }
+  /* 結果：探索率がどれだけ増えたか */
+  .result .sum { margin-top:4px; font:700 12px/1.5 var(--jp); color:var(--soft); }
+  .exbox { margin-top:10px; display:flex; align-items:baseline; gap:10px; padding:10px 14px; border-radius:16px; background:linear-gradient(135deg, #F2F9FF, #fff); border:1.5px solid #CFE6FF; }
+  .exbox span { font:900 12px/1 var(--jp); color:var(--soft); } .exbox b { font:600 26px/1 var(--num); } .exbox b i { font-style:normal; color:var(--soft); margin:0 6px; font-size:18px; }
+  .exbox small { margin-left:auto; font:600 16px/1 var(--num); color:#13A36A; }
+  .got .where { display:inline-block; margin-left:6px; padding:2px 7px; border-radius:7px; background:var(--space); font:700 10px/1.3 var(--jp); color:var(--soft); vertical-align:2px; }
+  .sub small { font:700 11px/1 var(--jp); color:var(--soft); margin-left:6px; }
+  .mats { list-style:none; margin:0; padding:0; display:flex; flex-wrap:wrap; gap:6px; }
+  .mats li { display:inline-flex; align-items:center; gap:5px; padding:3px 10px 3px 4px; border-radius:999px; border:1.5px solid var(--line); background:#fff; font:700 12px/1.2 var(--jp); }
+  .mats img { width:24px; height:24px; image-rendering:pixelated; } .mats li i { width:14px; height:14px; margin:5px; border-radius:4px; background:#86C25A; }
+  .mats li.hd { border-color:#D9C8FF; background:#F7F2FF; } .mats li.hd i { background:linear-gradient(135deg, #FF8FC4, #8FC8FF); }
+  .mats.bx li { border-style:dashed; background:transparent; opacity:.85; }
+  .boxgo { display:inline-block; margin-top:8px; font:900 12px/1 var(--jp); color:var(--ink); text-decoration:none; border-bottom:2px solid var(--sky); padding-bottom:2px; }
+  .full { margin:10px 0 0; font:700 12px/1.4 var(--jp); color:#C2410C; }
+  .mats .q { font-size:9px; letter-spacing:-1px; color:#E0A21C; } .mats em { font:600 12px/1 var(--num); font-style:normal; color:var(--soft); }
+  .mline { margin:0; font:700 12px/1.7 var(--jp); color:var(--ink); } .mline .hd { color:#7A55E0; }
+  .caught .lvb { margin-left:6px; font:600 12px/1 var(--num); color:var(--soft); }
+  /* ===== まだ ペットが いない・職業を えらぶ（派遣を はじめて 開いた とき） ===== */
+  .gate { max-width:520px; margin:24px auto 0; text-align:center; display:grid; justify-items:center; gap:10px; padding:28px 24px; }
+  .gate h2 { font:900 22px/1.3 var(--jp); } .gate p { font:700 13px/1.6 var(--jp); color:var(--soft); }
+  .gate .go { max-width:320px; }
+  .job { display:grid; grid-template-columns:minmax(0, 1fr) 360px; gap:16px; align-items:start; }
+  .job h2.jt { font:900 22px/1.25 var(--jp); }
+  .jbig { display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:10px; }
+  .jbig button, .jsmall button { position:relative; text-align:left; border:2px solid var(--line); background:#fff; border-radius:20px; }
+  .jbig button { display:grid; gap:6px; align-content:start; padding:16px 16px 14px 20px; min-height:118px; overflow:hidden; }
+  .jbig button::before { content:""; position:absolute; left:0; top:0; bottom:0; width:7px; background:var(--c); }
+  .jbig b { font:900 19px/1.2 var(--jp); } .jbig span { font:700 13px/1.5 var(--jp); color:var(--soft); }
+  .jbig em { justify-self:start; font:700 11px/1 var(--jp); font-style:normal; color:#fff; background:var(--c); border-radius:999px; padding:4px 9px; }
+  .jsmall { display:flex; flex-wrap:wrap; gap:8px; }
+  .jsmall button { display:inline-flex; align-items:center; gap:7px; border-radius:999px; padding:9px 14px 9px 10px; font:700 14px/1 var(--jp); }
+  .jsmall button::before { content:""; width:11px; height:11px; border-radius:50%; background:var(--c); }
+  .jbig button[aria-pressed="true"], .jsmall button[aria-pressed="true"] { border-color:var(--c); box-shadow:0 0 0 3px color-mix(in srgb, var(--c) 22%, transparent); }
+  .jbig button[aria-pressed="true"] span { color:var(--ink); }
+  .jdet h2 { font:900 24px/1.2 var(--jp); display:flex; align-items:center; gap:10px; }
+  .jdet h2::before { content:""; width:16px; height:16px; border-radius:6px; background:var(--c); }
+  .jdet .role { margin-top:4px; font:700 14px/1.6 var(--jp); color:var(--soft); }
+  .jgrow { list-style:none; margin:0; padding:0; display:flex; gap:6px; }
+  .jgrow li { font:600 15px/1 var(--num); padding:7px 12px; border-radius:12px; background:color-mix(in srgb, var(--c) 14%, #fff); }
+  .jdet .later { margin-top:8px; text-align:center; font:700 12px/1.4 var(--jp); color:var(--soft); }
+  .why { margin:8px 0 0; font:700 12px/1.5 var(--jp); color:#C2410C; text-align:center; }
+  .why:empty { display:none; }
+  .toast { position:fixed; left:50%; bottom:24px; z-index:20; transform:translate(-50%, 16px); opacity:0; pointer-events:none; max-width:calc(100vw - 32px); padding:12px 18px; border-radius:16px; background:var(--ink); color:#fff; font:700 14px/1.4 var(--jp); box-shadow:var(--lift); transition:opacity .2s, transform .2s; }
+  .toast.on { opacity:1; transform:translate(-50%, 0); }
+  .toast b { font-family:var(--num); font-weight:600; color:var(--led); }
+
+  @media (max-width:820px) {
+    .pgrid { grid-template-columns:minmax(0, 1fr); } .dmap { --c:min(20px, calc((100vw - 96px) / 15)); justify-self:center; } .inside.ex { min-height:0; padding:10px; } 
+    .pet { grid-template-columns:48px 1fr auto; padding:6px 12px 6px 6px; gap:10px; border-radius:18px; }
+    .pet .pic { width:48px; height:48px; border-radius:12px; } .pet h1 { font-size:20px; } .pet h1 small { font-size:12px; }
+    .pick, .prep, .play, .done, .job { grid-template-columns:minmax(0, 1fr); } .pick > *, .prep > *, .play > *, .done > *, .job > * { min-width:0; }
+    .jbig button { min-height:0; padding:12px 12px 12px 16px; } .jbig b { font-size:17px; } .prephead { flex-wrap:nowrap; padding:10px 14px; } .prephead h2 { font-size:19px; } .back .lbl, .pexp .lbl { display:none; } .prephead h2 { min-width:0; } .prephead .pexp { white-space:nowrap; }
+    .visor { border-width:5px; border-radius:18px; }
+    .wscroll { height:300px; } .wmap { width:720px; }
+    .hist li { grid-template-columns:auto 1fr auto; gap:2px 8px; } .hist li:nth-child(n+2) { display:none; } .hist .when { grid-column:1 / -1; font-size:11px; } .hist .rk { display:none; } .hist .it { grid-column:1 / -1; }
+    .real { display:grid; grid-template-columns:120px minmax(0, 1fr); gap:4px 12px; }
+    .real .stage { height:140px; grid-row:span 4; } .real .where { margin-top:0; } .timer b { font-size:32px; }
+    .real .spacer { display:none; } .real .jelly, .real .note { grid-column:1 / -1; } .real .jelly { margin-top:10px; }
+    .inside { min-height:390px; border-width:6px; border-radius:24px; }
+    .hud span.done .n { display:none; }
+    .glog { font-size:13px; left:14px; right:14px; bottom:12px; } .glog li:nth-last-child(n+5) { display:none; }
+    .hud { left:12px; right:12px; top:10px; } .hud span { font-size:11px; padding:4px 7px; }
+    .diary header { padding:12px 14px 8px; flex-wrap:wrap; row-gap:6px; } .diary header b, .diary header small { white-space:nowrap; } .diary .page { min-height:0; padding:4px 14px 12px; } .diary .page p { font-size:16px; padding-right:72px; } .diary .sticker { width:84px; right:4px; bottom:4px; }
+  }
+  @media (prefers-reduced-motion:reduce) { .toast { transition:none; } .glog li:last-child::after, .bspr img, .dmap .me::after { animation:none; } .wpin[aria-pressed="true"]::after { animation:none; opacity:.8; transform:scale(.8); } }
+</style>
+</head>
+<body>
+<header class="top"><a href="/" style="color:inherit;text-decoration:none" aria-label="MONO LINK の サイトへ"><b>MONO LINK<i>://</i></b></a><small><a href="lounge-room.html" style="color:inherit">ラウンジ</a> ／ ペット</small></header>
+<main>
+  <section class="panel pet" aria-label="ペット">
+    <div class="pic"><img id="petImg" src="img/nemu.png" alt=""></div>
+    <div><h1><span id="petName">ペット</span><small id="petSub"></small></h1><div class="meta" id="petMeta"></div></div>
+    <div class="res">リソース<b id="petRes">？</b></div>
+  </section>
+  <nav class="tabs" role="tablist">
+    <button role="tab" aria-selected="false">ステータス</button><button role="tab" aria-selected="false">スキルツリー</button><button role="tab" aria-selected="false">ガンビット</button><button role="tab" aria-selected="false">装備</button><button role="tab" aria-selected="true" id="tab-bouken">冒険</button><button role="tab" aria-selected="false">なかま</button>
+  </nav>
+  <div id="app"></div>
+</main>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+<script type="module">
+import { DUNGEONS, RUNS, RESEARCH, PURPOSES, TICK, TOOLS } from "./dungeons.js";
+import { runDungeon, diaryOf, rankOf, tamedOf, newProgress, floorRatio, dungeonRatio } from "./dungeon-sim.js";
+import { floorMap, exploredRatio, keyOf, DIRS, GW, GH, FLOORS, T } from "./floors.js";
+import { petAt } from "./builds.js";
+import { ENEMY_TREES } from "./enemy-trees.js";
+import { BASES, OPS } from "./equip.js";
+import { TYPES } from "./skills.js";
+import { spriteURL } from "./sprites.js";
+import { GATHER, MAT_FROM, MAT_NAME, HIDDEN_MAT, sellPrice, toStash, BOX_DAYS } from "./materials.js";
+import { me, act, busy } from "./lounge-client.js";
+import { fillPet, petInfo, linkTabs, gateHtml } from "./pet-head.js";   // ペット・探索の 進み・道具・出発・うけとるは 門番から（見本では ブラウザの 中の ためしの 門番）
+
+const IMG = "img/";
+const q = new URLSearchParams(location.search);
+// ペットと パーティ・探索の 進み・道具・倉庫は 門番から（戦う 形は 門番が 作った 物：ME.pets[0].build）
+const ME = await me(), MP = ME.pets && ME.pets[0], NOW = Date.now();
+const eqOf = (x) => ["head", "neck", "hand"].map((k) => x.equip && x.equip[k]).filter(Boolean).map((u) => (ME.own.equip || []).find((e) => e.uid === u)).filter(Boolean);
+const PET = MP && MP.build ? { ...MP.build, owner: ME.name } : null;
+const mateOf = (u) => { const c = (ME.tamed || []).find((x) => x.uid === u); return c ? { ...tamedOf(c, c.lv, eqOf(c)), owner: "" } : null; };   // 門番の mateOf と 同じ 形
+const PARTY = PET ? [PET, ...(ME.party || []).map(mateOf).filter(Boolean)] : [];
+const PROG = Object.fromEntries(DUNGEONS.map((x) => [x.id, (ME.explore || {})[x.id] || newProgress()]));
+const TRIP = (ME.trips || []).find((t) => !t.done) || null;   // 出かけて いる・帰って きて まだ うけとって いない
+const INFO = petInfo(MP), PET_IMG = INFO ? INFO.img : "img/nemu.png";
+const VR_IMG = MP && MP.qid === "nemu" ? IMG + "nemu-vr.png" : PET_IMG;   // ゴーグルを つけた 絵（いまは ネムだけ）
+const LAST = (ME.trips || []).at(-1) || null;   // 前の 冒険の 行き先・時間を はじめに えらんで おく
+const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
+const stars = (n) => `<span class="stars r${n}" aria-label="★${n}">${"★".repeat(n)}</span>`;
+const baseName = (id) => BASES.find((b) => b.id === id)?.name || id;
+const mm = (sec) => `${Math.floor(sec / 60)}:${String(Math.floor(sec % 60)).padStart(2, "0")}`;
+
+// ---------- 行き先の絵（ゴーグルの中のゲーム画面）。320×180 ----------
+function scene(id, k = "") {
+  const g = (n) => `${n}${id}${k}`;
+  const S = {
+    hals: `<defs><linearGradient id="${g("s")}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#7CCBFF"/><stop offset="1" stop-color="#E4F6FF"/></linearGradient></defs>
+      <rect width="320" height="180" fill="url(#${g("s")})"/><circle cx="262" cy="40" r="15" fill="#FFF6C2"/>
+      <g fill="#fff"><ellipse cx="66" cy="44" rx="26" ry="8"/><ellipse cx="82" cy="38" rx="15" ry="9"/><ellipse cx="190" cy="28" rx="20" ry="6"/><ellipse cx="202" cy="24" rx="11" ry="7"/></g>
+      <path d="M0 108 Q50 84 110 102 T220 96 T320 98 V180 H0Z" fill="#B7E5A1"/>
+      <g fill="#8FA9C9"><rect x="226" y="80" width="18" height="16"/><rect x="230" y="72" width="5" height="9"/><rect x="238" y="74" width="5" height="7"/><path d="M228 80 L232 70 L236 80Z"/></g>
+      <path d="M0 128 Q90 106 170 126 T320 120 V180 H0Z" fill="#7BC96F"/>
+      <path d="M118 180 C140 160 186 150 176 136 C168 125 196 116 212 104 L218 104 C206 116 182 128 190 138 C200 152 170 166 178 180Z" fill="#F2E0AA"/>
+      <path d="M0 152 Q60 140 120 156 T240 150 T320 154 V180 H0Z" fill="#5DB463"/>
+      <g><rect x="62" y="118" width="4" height="30" fill="#9A6A3E"/><rect x="50" y="118" width="30" height="11" rx="2" fill="#C99A5E"/></g>
+      <g fill="#3E9A4E"><circle cx="276" cy="140" r="10"/><circle cx="288" cy="136" r="12"/><rect x="284" y="142" width="4" height="12" fill="#7A5A3A"/></g>`,
+    morph: `<defs><linearGradient id="${g("s")}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#5A4AA8"/><stop offset=".7" stop-color="#C9A6EC"/><stop offset="1" stop-color="#F3DDF6"/></linearGradient></defs>
+      <rect width="320" height="180" fill="url(#${g("s")})"/>
+      <g fill="#fff" opacity=".8"><circle cx="30" cy="22" r="1.5"/><circle cx="140" cy="16" r="1.2"/><circle cx="200" cy="40" r="1.4"/><circle cx="300" cy="20" r="1.2"/><circle cx="250" cy="58" r="1"/></g>
+      <circle cx="88" cy="58" r="28" fill="#FFF3D9"/>
+      <g fill="#fff" font-family="DotGothic16, monospace" opacity=".85"><text x="122" y="44" font-size="14">Z</text><text x="136" y="32" font-size="10">z</text><text x="145" y="23" font-size="7">z</text></g>
+      <path d="M0 140 Q80 128 160 136 T320 132 V180 H0Z" fill="#8C78C4"/>
+      <g fill="#E6DCF7"><rect x="176" y="70" width="16" height="70"/><rect x="236" y="70" width="16" height="70"/><rect x="170" y="62" width="88" height="10"/><rect x="172" y="56" width="84" height="7"/>
+        <rect x="40" y="96" width="14" height="44"/><path d="M38 96 L58 96 L56 88 L50 92 L45 86 L40 91Z"/><rect x="276" y="104" width="14" height="36"/><path d="M274 104 L292 104 L290 98 L284 101 L278 96Z"/></g>
+      <g fill="#CDBFEA"><rect x="182" y="70" width="4" height="70"/><rect x="242" y="70" width="4" height="70"/></g>
+      <path d="M150 140 H280 V146 H150Z M160 146 H270 V152 H160Z" fill="#B3A3DE"/>
+      <path d="M0 158 Q100 148 200 160 T320 156 V180 H0Z" fill="#6F5DAE"/>`,
+    kurai: `<defs><linearGradient id="${g("s")}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#151A38"/><stop offset="1" stop-color="#4A5486"/></linearGradient><radialGradient id="${g("w")}"><stop offset="0" stop-color="#FFC85A" stop-opacity=".55"/><stop offset="1" stop-color="#FFC85A" stop-opacity="0"/></radialGradient></defs>
+      <rect width="320" height="180" fill="url(#${g("s")})"/>
+      <g fill="#fff"><circle cx="24" cy="20" r="1.2"/><circle cx="70" cy="36" r="1"/><circle cx="120" cy="14" r="1.4"/><circle cx="180" cy="30" r="1"/><circle cx="214" cy="12" r="1.2"/><circle cx="300" cy="44" r="1"/><circle cx="160" cy="54" r=".9"/></g>
+      <mask id="${g("m")}"><rect width="320" height="180" fill="#fff"/><circle cx="270" cy="29" r="13" fill="#000"/></mask><circle cx="262" cy="34" r="15" fill="#FFE9A8" mask="url(#${g("m")})"/>
+      <path d="M0 120 Q80 104 160 116 T320 110 V180 H0Z" fill="#283058"/>
+      <g fill="#12172F"><path d="M40 132 V104 L62 88 L84 104 V132Z"/><path d="M104 136 V100 L132 80 L160 100 V136Z"/><path d="M196 134 V108 L216 94 L236 108 V134Z"/><path d="M250 138 V112 L274 96 L298 112 V138Z"/><rect x="140" y="80" width="8" height="14"/></g>
+      <g><circle cx="58" cy="114" r="14" fill="url(#${g("w")})"/><circle cx="124" cy="112" r="16" fill="url(#${g("w")})"/><circle cx="282" cy="122" r="14" fill="url(#${g("w")})"/></g>
+      <g fill="#FFC85A"><rect x="54" y="110" width="8" height="8"/><rect x="118" y="106" width="9" height="10"/><rect x="134" y="106" width="9" height="10" fill="#3A4170"/><rect x="210" y="112" width="8" height="8" fill="#3A4170"/><rect x="278" y="118" width="8" height="8"/></g>
+      <path d="M0 150 Q90 138 170 150 T320 146 V180 H0Z" fill="#1C2244"/>
+      <g><rect x="176" y="118" width="3" height="34" fill="#0E1226"/><circle cx="177.5" cy="116" r="5" fill="#FFD27A"/><circle cx="177.5" cy="116" r="16" fill="url(#${g("w")})"/></g>`,
+    crystal: `<defs><radialGradient id="${g("s")}" cx=".5" cy=".55" r=".75"><stop offset="0" stop-color="#2B7B95"/><stop offset="1" stop-color="#0A2230"/></radialGradient><radialGradient id="${g("w")}"><stop offset="0" stop-color="#8FEAFF" stop-opacity=".6"/><stop offset="1" stop-color="#8FEAFF" stop-opacity="0"/></radialGradient></defs>
+      <rect width="320" height="180" fill="url(#${g("s")})"/>
+      <path d="M0 0 H320 V60 Q300 30 260 26 Q220 10 160 18 Q90 10 50 34 Q14 46 0 70Z" fill="#0B1E2A"/>
+      <path d="M0 180 V138 Q60 128 120 140 T240 136 T320 140 V180Z" fill="#123544"/>
+      <circle cx="160" cy="112" r="60" fill="url(#${g("w")})"/>
+      <g><path d="M146 140 L156 70 L170 62 L178 140Z" fill="#5CC9E8"/><path d="M156 70 L170 62 L166 140 L146 140Z" fill="#A8F0FF"/>
+        <path d="M120 142 L128 104 L138 98 L142 142Z" fill="#5CC9E8"/><path d="M128 104 L138 98 L134 142 L120 142Z" fill="#A8F0FF"/>
+        <path d="M186 142 L192 96 L204 104 L206 142Z" fill="#5CC9E8"/><path d="M192 96 L204 104 L198 142 L186 142Z" fill="#A8F0FF"/>
+        <path d="M30 150 L36 120 L46 116 L50 150Z" fill="#4AB3D6"/><path d="M36 120 L46 116 L43 150 L30 150Z" fill="#8FE0F5"/>
+        <path d="M262 150 L270 112 L282 118 L286 150Z" fill="#4AB3D6"/><path d="M270 112 L282 118 L278 150 L262 150Z" fill="#8FE0F5"/>
+        <path d="M70 0 L78 28 L86 0Z M232 0 L240 22 L248 0Z" fill="#3E9CBE"/></g>
+      <g fill="#fff"><path d="M100 80 l2 -5 l2 5 l5 2 l-5 2 l-2 5 l-2 -5 l-5 -2Z" opacity=".9"/><circle cx="222" cy="76" r="1.6"/><circle cx="60" cy="96" r="1.2"/><circle cx="250" cy="96" r="1.2"/></g>`,
+  };
+  return `<svg viewBox="0 0 320 180" preserveAspectRatio="xMidYMid slice" aria-hidden="true">${S[id]}</svg>`;
+}
+
+// ---------- ワールドマップ：img/world.jpg（1280×800）の上の場所。スタートから、おすすめ Lv の順に道でつなぐ ----------
+// 位置は worldmap.py が書き出す pins.json から
+const MAP_W = 1280, MAP_H = 800, HOME = [489, 431];
+const MAP_POS = { hals: [678, 423], morph: [659, 234], kurai: [953, 218], crystal: [994, 490] };
+// 道：スタートの町 → 街道の畑 → 台地の湖の島の遺跡 → 北東の高台の暗い村 → 東の海ぞいを南へ → 南東の雪山の水晶
+const ROAD = "M489 433 C500 431 526 423 557 422 C588 421 653 432 678 425 C703 418 706 403 708 382 C710 361 695 321 687 297 C679 273 646 245 659 236 C672 227 734 246 766 245 C798 244 823 235 854 231 C885 227 922 212 953 220 C984 228 1019 254 1038 281 C1057 308 1059 361 1068 385 C1077 409 1106 405 1094 423 C1082 441 1010 480 993 492";
+const CHIP_SIDE = { kurai: "r" };   // ピンの札を右にずらす（となりの札と重ならないように）
+const at = ([x, y]) => `--x:${(x / MAP_W) * 100}%;--y:${(y / MAP_H) * 100}%`;
+function worldMap(did) {
+  const pins = DUNGEONS.map((x) => { const gap = PET.lv - x.lv, fit = gap >= 5 ? "var(--leaf)" : gap >= 0 ? "var(--sky)" : gap >= -5 ? "var(--sun)" : "var(--coral)", pct = Math.round(dungeonRatio(x.id, PROG[x.id]) * 100);
+    return `<button class="wpin ${CHIP_SIDE[x.id] || ""}" data-d="${x.id}" aria-pressed="${x.id === did}" aria-label="${esc(x.name)}（おすすめ Lv${x.lv}）" style="${at(MAP_POS[x.id])};--dc:${x.color};--fit:${fit}"><span class="chip"><b>Lv${x.lv}</b><span>${esc(x.name)}</span><em>${pct}%</em></span></button>`; }).join("");
+  return `<div class="visor world"><span class="wtitle">ワールドマップ</span><div class="wscroll"><div class="wmap" role="group" aria-label="行き先">
+      <svg viewBox="0 0 ${MAP_W} ${MAP_H}" aria-hidden="true"><path class="road under" d="${ROAD}"/><path class="road top" d="${ROAD}"/></svg>
+      <span class="wpin home" style="${at(HOME)}"><span class="chip"><span>スタート</span></span></span>${pins}</div></div></div>
+    <p class="wleg"><span>Lv の色</span><i style="--c:var(--leaf)"></i>らく<i style="--c:var(--sky)"></i>ちょうどいい<i style="--c:var(--sun)"></i>きびしい<i style="--c:var(--coral)"></i>むずかしい</p>`;
+}
+
+const STEPS = (k) => Math.round(RUNS[k].sec / TICK);   // 歩ける数
+const wipeWord = (w) => (w < 0.25 ? ["あんしん", "var(--leaf)"] : w < 0.5 ? ["ちょうどいい", "var(--sky)"] : w < 0.75 ? ["きびしい", "var(--sun)"] : ["むずかしい", "var(--coral)"]);
+// 見通し：いまのパーティと探索の進みで 24 回ためした平均
+function outlook(did, rk, pu, tg, tool, n = 24) {
+  const b0 = dungeonRatio(did, PROG[did]); let gain = 0, wipe = 0, boss = 0, gat = 0, meet = 0, mat = 0;
+  for (let s = 0; s < n; s++) { const r = runDungeon(PARTY, did, rk, 5000 + s, { purpose: pu, target: tg, tool, progress: PROG[did] }); gain += dungeonRatio(did, r.progress) - b0; wipe += r.reason === "wipe"; boss += r.bossDefeated; gat += r.gathered.length; meet += r.battles.length; mat += r.materials.reduce((a, m) => a + m.n, 0); }
+  return { gain: gain / n, wipe: wipe / n, boss: boss / n, gat: gat / n, meet: meet / n, mat: mat / n };
+}
+const startFloorOf = (did, pu) => { const p = PROG[did]; if (pu !== "explore") return p.maxFloor; for (let n = 1; n <= p.maxFloor; n++) if (floorRatio(did, p, n) < 1) return n; return p.maxFloor; };
+const opts = () => { const did = DUNGEONS.some((x) => x.id === q.get("d")) ? q.get("d") : LAST ? LAST.did : DUNGEONS[0].id, d = DUNGEONS.find((x) => x.id === did), pu = PURPOSES[q.get("pu")] ? q.get("pu") : "explore";
+  return { did, d, rk: RUNS[q.get("run")] ? q.get("run") : LAST ? LAST.run : "mid", pu, tg: [...d.foes, d.rare].some((f) => f.tree === q.get("tg")) ? q.get("tg") : d.foes[0].tree, tool: TOOLS[q.get("tool")] && TOOL_HAVE[q.get("tool")] ? q.get("tool") : null }; };
+const TOOL_HAVE = ME.tools || {};   // 持って いる 道具の 数（DEEP LINK/: の 商人の 店で 買う）
+const STASH = { have: (ME.own && ME.own.mats || []).reduce((a, m) => a + m.n, 0), cap: (ME.stash && ME.stash.cap) || 100 };   // 倉庫（入らない 分は あずかり箱へ）
+const face = (c) => (c.species ? `<img class="pf" src="${PET_IMG}" alt="">` : `<img class="ps" src="${spriteURL(c.tree)}" alt="">`);
+
+// これまでの冒険（門番に のこる 新しい 10 回）
+const whenOf = (t) => { const d = new Date(t), today = new Date(); return `${d.toDateString() === today.toDateString() ? "きょう" : `${d.getMonth() + 1}/${d.getDate()}`} ${d.getHours()}:${String(d.getMinutes()).padStart(2, "0")}`; };
+const HIST = (ME.trips || []).filter((t) => t.done && t.got).slice().reverse().map((t) => ({ when: whenOf(t.start), d: t.did, min: RUNS[t.run].sec / 60, pu: PURPOSES[t.purpose].name, ok: t.got.reason !== "wipe",
+  got: `探索率 +${Math.max(0, Math.round((t.got.ratio[1] - t.got.ratio[0]) * 100))}%・${t.got.kills} たい たおした${t.got.equip.length ? `・装備 ${t.got.equip.length} こ` : ""}` }));
+
+// ---------- えらぶ（1 だんめ：行き先と、そこのこと）----------
+const floorsHtml = (did, prog) => Array.from({ length: FLOORS }, (_, i) => { const n = i + 1, r = floorRatio(did, prog, n), open = n <= prog.maxFloor;
+  return `<li class="${open ? "" : "lock"} ${r >= 1 ? "full" : ""}"><span>${n} 階</span><i class="bar"><b style="width:${Math.round(r * 100)}%"></b></i><em>${open ? `${Math.round(r * 100)}%` : "まだ"}</em><small>${prog.floors[n]?.hidden ? "かくし通路" : n === FLOORS ? "ボスの部屋" : ""}</small></li>`; }).join("");
+function renderPick() {
+  if (q.get("step") === "prep") return renderPrep();
+  const { did, d } = opts(), prog = PROG[did];
+  return `<div class="pick">
+    <section class="panel" aria-label="行き先">
+      ${worldMap(did)}
+      ${HIST.length ? `<h3 class="sub">これまでの冒険</h3>` : ""}
+      <ul class="hist">${HIST.map((h) => `<li style="--dc:${DUNGEONS.find((x) => x.id === h.d).color}"><span class="when">${h.when}</span><b>${esc(DUNGEONS.find((x) => x.id === h.d).name)}</b><span class="rk">${h.min} 分・${h.pu}</span><span class="out ${h.ok ? "" : "ng"}">${h.ok ? "帰ってきた" : "力つきた"}</span><span class="it">${h.got}</span></li>`).join("")}</ul>
+    </section>
+    <aside class="panel detail" style="--dc:${d.color}" aria-label="えらんだ行き先">
+      <h2>${esc(d.name)}<span class="rec">おすすめ Lv${d.lv}</span></h2><p class="desc">${esc(d.text)}</p>
+      <h3 class="sub exh"><span>探索率</span><b>${Math.round(dungeonRatio(did, prog) * 100)}<small>%</small></b>${prog.bossKills ? `<i>ボスを たおした ${prog.bossKills} 回</i>` : ""}</h3>
+      <ul class="floors">${floorsHtml(did, prog)}</ul>
+      <h3 class="sub">出てくる敵</h3>
+      <ul class="foes">${d.foes.map((f) => `<li><img class="fs" src="${spriteURL(f.tree)}" alt="">${esc(f.name)}<small>Lv${f.lv}</small></li>`).join("")}
+        <li class="rare"><img class="fs" src="${spriteURL(d.rare.tree)}" alt=""><span class="tg">希少</span>${esc(d.rare.name)}<small>Lv${d.rare.lv}</small></li>
+        <li class="boss"><img class="fs" src="${spriteURL(d.boss.tree)}" alt="">ボス ${esc(d.boss.name)}<small>Lv${d.boss.lv}</small></li></ul>
+      <h3 class="sub">宝箱の 装備</h3>
+      <div class="drops">${d.drops.slice(0, 7).map((b) => `<span class="ico" title="${esc(baseName(b))}"><img src="${IMG}icon-${b}.png" alt="${esc(baseName(b))}"></span>`).join("")}${d.drops.length > 7 ? `<span class="starline">ほか ${d.drops.length - 7} 種類</span>` : ""}</div>
+      <h3 class="sub">採取の 素材</h3>
+      <ul class="mats">${GATHER[did].mats.map(([, n]) => `<li><i></i><b>${esc(n)}</b></li>`).join("")}<li class="hd"><i></i><b>${esc(GATHER[did].hidden[1])}</b><em>かくし通路</em></li></ul>
+      <div class="myth"><span class="ico"><img src="${IMG}icon-${d.mythic.id}.png" alt=""></span><div><b>？？？</b><small>ボスから ごくまれに。ここだけの ミシック装備</small></div></div>
+      <button class="jelly sky go" data-step="prep">じゅんびへ</button>
+    </aside></div>`;
+}
+// ---------- じゅんび（2 だんめ：目的・時間をえらんで、出発）----------
+const PU_SHORT = { explore: "まだ 見ていない マスを うめる", boss: "ボスの 部屋へ まっすぐ", gather: "採取ポイントを 回る", target: "えらんだ 敵とだけ 戦う" };
+function renderPrep() {
+  const { did, d, rk, pu, tg, tool } = opts(), prog = PROG[did], o = outlook(did, rk, pu, tg, tool), [word, ec] = wipeWord(o.wipe), tgF = [...d.foes, d.rare].find((f) => f.tree === tg);
+  const foeChips = `<h3 class="sub">${pu === "target" ? "戦う敵" : "笛で よぶ敵"}</h3><div class="tgts" role="group" aria-label="${pu === "target" ? "戦う敵" : "笛で よぶ敵"}">${[...d.foes, d.rare].map((f) => `<button data-tg="${f.tree}" aria-pressed="${f.tree === tg}"><img src="${spriteURL(f.tree)}" alt="">${esc(f.name)}${f === d.rare ? `<span class="tg">希少</span>` : ""}</button>`).join("")}</div>`;
+  const metric = pu === "boss" ? `ボスを たおせそう <b>${Math.round(o.boss * 100)}%</b>` : pu === "gather" ? `採取ポイント <b>${o.gat.toFixed(1)}</b> か所くらい` : pu === "target" ? `${esc(tgF.name)}と <b>${o.meet.toFixed(1)}</b> 回 出会えそう` : `探索率 <b>+${Math.round(o.gain * 100)}%</b> くらい`;
+  return `<section class="panel prephead" style="--dc:${d.color}"><button class="back" data-step="" aria-label="行き先を えらびなおす">←<span class="lbl"> 行き先を えらびなおす</span></button><h2>${esc(d.name)} へ</h2><span class="pexp"><span class="lbl">探索率</span><b>${Math.round(dungeonRatio(did, prog) * 100)}%</b></span></section>
+    <div class="prep">
+    <section class="panel" aria-label="目的と時間">
+      <h3 class="sub">目的</h3>
+      <div class="pcards" role="group" aria-label="目的">${Object.entries(PURPOSES).map(([k, p]) => `<button data-pu="${k}" aria-pressed="${k === pu}"><b>${p.name}</b><span>${PU_SHORT[k]}</span><em>${startFloorOf(did, k)} 階から</em></button>`).join("")}</div>
+      ${pu === "target" ? foeChips : ""}
+      <h3 class="sub">時間</h3>
+      <div class="runs" role="group" aria-label="時間">${Object.entries(RUNS).map(([k, r]) => `<button data-run="${k}" aria-pressed="${k === rk}"><b>${r.sec / 60}<small>分</small></b><span>${STEPS(k)} 歩</span></button>`).join("")}</div>
+      <h3 class="sub">持っていく 道具<small>1 つ</small></h3>
+      <div class="tools" role="group" aria-label="持っていく 道具"><button data-tool="" aria-pressed="${!tool}"><b>なし</b></button>${Object.entries(TOOLS).map(([k, t]) => `<button data-tool="${k}" aria-pressed="${k === tool}" ${TOOL_HAVE[k] ? "" : "disabled"}><b>${t.name}</b><span>×${TOOL_HAVE[k]}</span></button>`).join("")}</div>
+      ${tool ? `<p class="ttext">${esc(TOOLS[tool].text)}</p>` : ""}
+      ${tool === "lure" && pu !== "target" ? foeChips : ""}
+    </section>
+    <aside class="panel detail" style="--dc:${d.color}" aria-label="出発">
+      <h3 class="sub first">パーティ</h3>
+      <div class="pparty">${PARTY.map((c) => `<span>${face(c)}<b>${esc(c.name)}</b><small>Lv${c.lv}</small></span>`).join("")}</div>
+      <div class="outlook" style="--ec:${ec}"><span class="lab">見通し</span><p>${metric}</p><p class="w"><i class="bar"><b style="width:${Math.round(o.wipe * 100)}%"></b></i>力つきる <b>${Math.round(o.wipe * 100)}%</b><small>${word}</small></p></div>
+      ${o.mat > STASH.cap - STASH.have ? `<p class="full">倉庫 のこり ${STASH.cap - STASH.have} こ。入らない分は あずかり箱へ</p>` : ""}
+      <button class="jelly sky go" data-go="play"><svg viewBox="0 0 30 18" aria-hidden="true"><rect x="1" y="2" width="28" height="14" rx="6" fill="#fff"/><rect x="4" y="5" width="22" height="8" rx="3" fill="#1B2340"/><circle cx="23" cy="7" r="1.3" fill="#52F2A0"/></svg>ゴーグルをつけて出発</button><p class="why" id="goWhy"></p>
+    </aside></div>`;
+}
+
+// ---------- 出かけている途中：ゴーグルの中に、いまの階の地図 ----------
+function logLines(b, upto) {
+  const out = [], foe = b.foe.name;
+  out.push({ sys: true, t: `${b.boss ? "ボスの " : ""}${foe}${b.foes.length > 1 ? ` たち` : ""} が あらわれた！` });
+  for (const e of b.ev.slice(0, upto)) if (e.type === "act" && e.log) out.push({ by: e.who < b.party.length ? (e.by === "auto" ? "オ" : "①②③④⑤⑥⑦⑧"[e.by - 1] || "") : "", t: e.log });
+  return out;
+}
+const CELL = { [T.WALL]: "c0", [T.PATH]: "c1", [T.ROOM]: "c2", [T.START]: "c3", [T.TRAP]: "c4", [T.GATHER]: "c5", [T.CHEST]: "c6", [T.BOSS]: "c7", [T.STAIRS]: "c8" };
+function mapHtml(did, f, seen, opened, hidOpen, me) {
+  const m = floorMap(did, f), hid = new Set(m.hidden.map(([x, y]) => keyOf(x, y))), g = m.grid.map((r) => r.slice());
+  if (hidOpen) for (const [x, y, t] of m.hidden) g[y][x] = t;
+  let html = "";
+  for (let y = 0; y < GH; y++) for (let x = 0; x < GW; x++) { const k = keyOf(x, y), t = g[y][x];
+    html += `<i class="${seen.has(k) ? CELL[t] : "fog"}${seen.has(k) && hid.has(k) && hidOpen ? " hid" : ""}${opened.has(k) && (t === T.CHEST || t === T.GATHER) ? " op" : ""}${me.x === x && me.y === y ? " me" : ""}"></i>`; }
+  return `<div class="dmap" role="img" aria-label="${f} 階の地図">${html}</div>`;
+}
+let PLAY = null;   // 出かけた ときと 同じ 種・行き先・パーティで、この ブラウザでも 1 回 計算する（ごほうびは 門番が 出かける ときに 決めて いる）
+function renderPlay() {
+  const t = TRIP, did = t.did, d = DUNGEONS.find((x) => x.id === did), run = RUNS[t.run], pu = t.purpose;
+  if (!PLAY) { const party = [PET, ...t.party.slice(1).map(mateOf).filter(Boolean)]; PLAY = { party, res: runDungeon(party, did, t.run, t.seed, { purpose: pu, target: t.target, tool: t.tool, progress: PROG[did] }) }; }
+  const { party: TP, res } = PLAY, now = Date.now();
+  if (t.calc) t.end = t.start + Math.min(res.budget, res.track.length) * TICK * 1000;   // 門番が まだ 計算中：帰る 時間は この ブラウザの 計算で（同じ 種なので 同じ）
+  const at = Math.max(0, Math.min(res.track.length - 1, Math.floor((now - t.start) / (TICK * 1000))));
+  const tr = res.track[at], f = tr.f, seen = new Set(PROG[did].floors[f]?.seen || []), opened = new Set();
+  for (let k = 0; k <= at; k++) { const p = res.track[k]; if (p.f !== f) continue; opened.add(keyOf(p.x, p.y)); for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) if (p.x + dx >= 0 && p.y + dy >= 0 && p.x + dx < GW && p.y + dy < GH) seen.add(keyOf(p.x + dx, p.y + dy)); }
+  const hidOpen = !!PROG[did].floors[f]?.hidden || res.log.some((l) => l.t <= at && l.s.includes("かくし通路を 見つけた") && res.track[l.t]?.f === f);
+  const pct = Math.round(exploredRatio(did, f, [...seen]) * 100), act = tr.a === "b" ? "戦っている" : tr.a === "r" ? "休憩中" : "探索中", actAt = tr.a === "w" ? `${f} 階を 探索中` : `${f} 階で ${act}`;
+  const wonSoFar = res.battles.filter((b) => b.tick + b.cost <= at && b.win).length;
+  let side = "", lines;
+  if (tr.a === "b") {
+    const b = res.battles[tr.b], acts = b.ev.filter((e) => e.type === "act"), frac = Math.min(1, (at - b.tick + 1) / b.cost), upto = acts.length ? b.ev.indexOf(acts[Math.max(0, Math.min(acts.length - 1, Math.floor(acts.length * frac) - 1))]) + 1 : 1;
+    const last = b.ev.slice(0, upto).filter((e) => e.after).at(-1)?.after ?? [], fs = b.ev[0].fighters, np = b.party.length;
+    side = `<div class="bpanel"><div class="bspr">${b.foes.map((ff, k) => `<img class="${b.boss && k === 0 ? "boss" : ""} ${(last[np + k]?.hp ?? 1) <= 0 ? "down" : ""}" src="${spriteURL(ff.tree)}" alt="${esc(ff.name)}" style="--k:${k}">`).join("")}</div>
+      ${b.foes.map((ff, k) => { const a = last[np + k], mx = fs[np + k].maxHp; return `<div class="meter" style="--mc:#FF7A86"><div><span>${esc(ff.name)} Lv${ff.lv}</span><span>HP ${a?.hp ?? mx}/${mx}</span></div><i><b style="width:${Math.round(((a?.hp ?? mx) / mx) * 100)}%"></b></i></div>`; }).join("")}</div>`;
+    lines = logLines(b, upto).slice(-5);
+  } else {
+    side = tr.a === "r" ? `<div class="idle rest"><b>休憩中</b><span>HP と MP が もどっている</span></div>` : `<div class="idle"><b>${f} 階を 探索中</b><span>${PURPOSES[pu].name}</span></div>`;
+    lines = res.log.filter((l) => l.t <= at).slice(-5).map((l) => ({ sys: l.k === "sys", t: l.s }));
+  }
+  const party = TP.map((c, k) => `<div class="pm ${tr.hp[k] <= 0 ? "down" : ""}">${face(c)}<div><span>${esc(c.name)}</span><i><b style="width:${tr.hp[k]}%"></b></i></div></div>`).join("");
+  const hud = Array.from({ length: FLOORS }, (_, i) => { const n = i + 1, full = n < f ? floorRatio(did, res.progress, n) >= 1 : false; return `<span class="${n === f ? "now" : full ? "done" : ""} ${n === FLOORS ? "boss" : ""}">${n} 階</span>`; }).join("") + `<span class="ex">探索率 ${pct}%</span>`;
+  document.getElementById("tab-bouken").innerHTML = `冒険<i class="away" aria-label="出かけている"></i>`;
+  return `<div class="play">
+    <section class="panel real" aria-label="${esc(MP.name)}のようす">
+      <div class="stage"><img src="${VR_IMG}" alt="ゴーグルをつけた${esc(MP.name)}"></div>
+      <p class="where">${esc(d.name)} ${actAt}<small>${run.sec / 60} 分コース・${PURPOSES[pu].name}・${wonSoFar} 戦 勝った</small></p>
+      <div class="timer"><b>${mm(Math.max(0, (t.end - now) / 1000))}</b><small>のこり</small></div>
+      <div class="pbar"><i style="width:${Math.round(Math.min(1, (now - t.start) / Math.max(1, t.end - t.start)) * 100)}%"></i></div>
+      <div class="spacer"></div>
+    </section>
+    <section class="visor inside ex th-${did}" style="--dc:${d.color}" aria-label="ゴーグルの中">
+      ${scene(d.id, "p")}<div class="shade"></div>
+      <div class="hud">${hud}<span class="act ${tr.a}">${act}</span></div>
+      <div class="pgrid">${mapHtml(did, f, seen, opened, hidOpen, tr)}<div class="side"><div class="party">${party}</div>${side}</div></div>
+      <ol class="glog">${lines.map((l) => `<li class="${l.sys ? "sys" : ""}">${l.sys ? "▶ " : l.by !== undefined ? `<em>${l.by}</em>` : ""}${esc(l.t)}</li>`).join("")}</ol>
+    </section></div>`;
+}
+
+// ---------- 結果と日記（門番が 出かける ときに 決めた ごほうび：TRIP.got）----------
+let GOT = null;   // うけとった ときの 門番の 返事
+const hl = (text, s) => text.replace(esc(s), (m) => `<span class="m">${m}</span>`);
+function renderDone() {
+  const t = TRIP, g = t.got, d = DUNGEONS.find((x) => x.id === t.did), myth = g.mythic && d.mythic.id === g.mythic ? d.mythic : null, eq = g.equip.filter((it) => it.base !== g.mythic);
+  let text = esc(g.diary);
+  for (const it of eq) text = hl(text, `${baseName(it.base)}（★${it.star}）`);
+  if (myth) text = hl(text, `★ミシック★ ${myth.name}を 手に入れた！`);
+  for (const f of g.captured) text = hl(text, `${f.name}を 捕まえた！`);
+  const items = eq.map((it) => `<li class="r${it.star}"><span class="ico"><img src="${IMG}icon-${it.base}.png" alt=""></span><div><b>${esc(baseName(it.base))}</b>${stars(it.star)}<span class="ops">${it.ops.map((o) => esc(OPS[o].fmt(OPS[o].v[it.star - 1]))).join("・")}</span></div></li>`).join("");
+  const mythLi = myth ? `<li class="mythic"><span class="ico"><img src="${IMG}icon-${myth.id}.png" alt=""></span><div><span class="tag">ミシック</span><b>${esc(myth.name)}</b><span class="fx">${esc(myth.text)}</span></div></li>` : "";
+  const title = g.reason === "wipe" ? "力つきて 帰ってきた" : g.boss ? "ボスを たおした！" : g.reason === "done" ? "目的を はたして 帰ってきた" : "時間に なって 帰ってきた";
+  const [r0, r1] = g.ratio, date = new Date(t.end), wd = "日月火水木金土"[date.getDay()];
+  const mats = g.materials.map((m) => ({ ...m, name: MAT_NAME[m.id] || m.id }));
+  const split = toStash(mats, STASH.cap - STASH.have), chip = (m) => `<li class="${MAT_FROM[m.id] ? "en" : HIDDEN_MAT.has(m.id) ? "hd" : "ga"}">${MAT_FROM[m.id] ? `<img src="${spriteURL(MAT_FROM[m.id])}" alt="">` : "<i></i>"}<b>${esc(m.name)}</b>${m.q ? `<span class="q" aria-label="品質 ${m.q}">${"◆".repeat(m.q)}${"◇".repeat(5 - m.q)}</span>` : ""}<em>×${m.n}</em></li>`;
+  const btns = GOT ? `<div class="btns"><button class="jelly sky" id="again">もう一度 出発</button><a class="jelly light" href="equip.html" style="text-align:center;text-decoration:none">装備を見る</a></div>`
+    : `<button class="jelly sky go" id="collect">うけとる</button><p class="why" id="cWhy"></p>`;
+  return `<div class="done">
+    <section class="panel diary" style="--dc:${d.color}" aria-label="${esc(MP.name)}の日記">
+      <header><b>${date.getMonth() + 1}月${date.getDate()}日（${wd}）</b><small>${esc(MP.name)}の日記</small><span class="stamp">${esc(d.name)} ${RUNS[t.run].sec / 60}分</span></header>
+      <div class="page"><p>${text}</p><img class="sticker" src="${VR_IMG}" alt=""></div>
+    </section>
+    <aside class="panel result" style="--dc:${d.color}" aria-label="結果">
+      <h2 class="${g.reason === "wipe" ? "lose" : ""}">${title}</h2>
+      <p class="sum">${g.wins} 戦 勝った・${g.kills} たい たおした・休憩 ${(g.stats && g.stats.rests) || 0} 回</p>
+      <div class="exbox"><span>探索率</span><b>${Math.round(r0 * 100)}%<i>→</i>${Math.round(r1 * 100)}%</b><small>+${Math.max(0, Math.round((r1 - r0) * 100))}%</small></div>
+      <div class="gain"><span>経験値<b>+${GOT ? GOT.exp : g.exp}</b></span><span>クレジット<b>+${g.credits.toLocaleString("ja-JP")}</b></span>${g.snacks ? `<span>おやつ<b>+${g.snacks}</b></span>` : ""}${g.resource ? `<span>リソース<b>+${g.resource}</b></span>` : ""}${g.stats && g.stats.gather ? `<span>採取<b>${g.stats.gather}</b> か所</span>` : ""}</div>
+      ${g.captured.length ? `<h3 class="sub">捕まえた</h3><ul class="caught">${g.captured.map((f) => { const TR = ENEMY_TREES[f.tree], rk2 = rankOf(f); return `<li><span class="orb spr" style="--c:${TYPES[f.type].color}"><img src="${spriteURL(f.tree)}" alt=""></span><div><b>${esc(f.name)}</b><span class="lvb">Lv${f.lv}</span>${rk2 === "通常" ? "" : `<span class="rk">${rk2}</span>`}<span class="tr">スキルツリー「${esc(TR.name)}」</span><span class="lab">なかまの画面で 研究（リソース ${RESEARCH[rk2]}）・懐柔できる</span></div></li>`; }).join("")}</ul>` : ""}
+      <h3 class="sub">宝箱から 届いた装備</h3>
+      ${mythLi || items ? `<ul class="got">${mythLi}${items}</ul>` : `<p class="none">今回は 宝箱を 見つけられなかった。地図が うまるほど 見つけやすい</p>`}
+      ${mats.length ? `<h3 class="sub">拾った素材<small>売ると 玉 ${mats.reduce((a, m) => a + sellPrice(m) * m.n, 0).toLocaleString("ja-JP")}</small></h3>
+      ${split.stash.length ? `<ul class="mats">${split.stash.map(chip).join("")}</ul>` : ""}
+      ${split.box.length ? `<h3 class="sub">あずかり箱へ<small>倉庫が いっぱい・${BOX_DAYS} 日 のこる</small></h3><ul class="mats bx">${split.box.map(chip).join("")}</ul><a class="boxgo" href="hideout.html?t=store">倉庫で うけとる</a>` : ""}` : ""}
+      ${btns}
+    </aside></div>`;
+}
+
+// ---------- まだ ペットが いない・職業を えらぶ ----------
+function renderGate() {
+  if (ME.denied || ME.ok === false) return gateHtml(ME, esc);   // ログインが 切れて いれば MONO LINK で ログインする 道も
+  return `<section class="panel gate"><h2>まず 1 匹目を むかえる</h2><p>6 つの 質問で、いっしょに 冒険する 子が 決まります</p><a class="jelly sky go" href="quiz.html" style="text-decoration:none">性格診断へ</a></section>`;
+}
+// 職業は 派遣を はじめて 開いた ときに えらぶ（鹿さんの決め、2026-10-23）。合う 2 つを 大きく、ほかは 小さく（A 案）
+const jobOf = (label) => Object.keys(TYPES).find((k) => TYPES[k].label === label);
+let JOB = null;
+function renderJob() {
+  const fit = (INFO.jobs || []).map(jobOf).filter(Boolean), rest = Object.keys(TYPES).filter((k) => !fit.includes(k));
+  JOB ||= fit[0] || rest[0];
+  const T = TYPES[JOB];
+  return `<div class="job">
+    <section class="panel" aria-label="職業">
+      <h2 class="jt">${esc(MP.name)}の 職業を えらぶ</h2>
+      <h3 class="sub">${esc(INFO.label)}に 合う</h3>
+      <div class="jbig" role="group" aria-label="合う 職業">${fit.map((k) => `<button data-job="${k}" aria-pressed="${k === JOB}" style="--c:${TYPES[k].color}"><em>合う</em><b>${TYPES[k].label}</b><span>${esc(TYPES[k].role)}</span></button>`).join("")}</div>
+      <h3 class="sub">ほかの 職業</h3>
+      <div class="jsmall" role="group" aria-label="ほかの 職業">${rest.map((k) => `<button data-job="${k}" aria-pressed="${k === JOB}" style="--c:${TYPES[k].color}">${TYPES[k].label}</button>`).join("")}</div>
+    </section>
+    <aside class="panel jdet" id="jdet" style="--c:${T.color}" aria-label="えらんだ 職業">
+      <h2>${T.label}</h2><p class="role">${esc(T.role)}</p>
+      <h3 class="sub">よく 伸びる</h3><ul class="jgrow">${T.grow.map((k) => `<li>${k.toUpperCase()}</li>`).join("")}</ul>
+      <button class="jelly sky go" id="jobGo">この 職業に する</button><p class="why" id="jobWhy"></p><p class="later">あとで かえられる</p>
+    </aside></div>`;
+}
+
+// ---------- 上の ペットの 札 ----------
+function fillHead() {
+  document.querySelector(".pet").hidden = document.querySelector(".tabs").hidden = !MP;
+  if (!MP) return;
+  fillPet(ME);
+  document.getElementById("petRes").textContent = ME.wallet && ME.wallet.known ? ME.wallet.res.toLocaleString("ja-JP") : "？";
+}
+let toastT = 0;
+function toast(html) { const el = document.getElementById("toast"); el.innerHTML = html; el.classList.add("on"); clearTimeout(toastT); toastT = setTimeout(() => el.classList.remove("on"), 4200); }
+
+// ---------- どの 画面を 出すか：門番の 記録で 決める ----------
+const route = () => (!MP ? renderGate() : !MP.type ? renderJob() : TRIP ? (TRIP.got ? renderDone() : renderPlay()) : renderPick());
+function paint() { document.getElementById("app").innerHTML = route(); bind(); }
+const reopen = (k, v) => { q.set(k, v); location.search = q.toString(); };   // 行き先・目的・時間は アドレスに のこす（開きなおしても 同じ）
+function bind() {
+  const on = (sel, f) => document.querySelectorAll(sel).forEach((b) => b.addEventListener("click", () => f(b)));
+  on("[data-d]", (b) => reopen("d", b.dataset.d));
+  on("[data-run]", (b) => reopen("run", b.dataset.run));
+  on("[data-pu]", (b) => reopen("pu", b.dataset.pu));
+  on("[data-tg]", (b) => reopen("tg", b.dataset.tg));
+  on("[data-tool]", (b) => { if (b.dataset.tool) q.set("tool", b.dataset.tool); else q.delete("tool"); location.search = q.toString(); });
+  on("[data-step]", (b) => { if (b.dataset.step) q.set("step", b.dataset.step); else q.delete("step"); location.search = q.toString(); });
+  // 職業：えらぶと 右（スマホは 下）の くわしい所が かわる
+  on("[data-job]", (b) => { JOB = b.dataset.job; paint(); if (innerWidth <= 820) document.getElementById("jdet").scrollIntoView({ behavior: "smooth", block: "start" }); });
+  on("#jobGo", async (b) => {
+    const r = await busy(b, () => act("pet.job", { type: JOB }));
+    if (r.ok) location.reload(); else document.getElementById("jobWhy").textContent = r.why || "決められませんでした";
+  });
+  // 出発：門番が 行き先・時間・目的・道具を たしかめて、道のりを 1 回 計算する
+  on("[data-go]", async (b) => {
+    const { did, rk, pu, tg, tool } = opts(), html = b.innerHTML;
+    const r = await busy(b, () => act("trip.start", { did, run: rk, purpose: pu, target: tg, tool }), "出発して います…");
+    if (r.ok) { location.href = location.pathname; return; }
+    b.innerHTML = html; document.getElementById("goWhy").textContent = r.why || "出発できませんでした";
+  });
+  // うけとる：経験値・クレジット・素材・装備・捕まえた 子が 入る（リソースは 帳簿へ）
+  on("#collect", async (b) => {
+    const r = await busy(b, () => act("trip.collect", { uid: TRIP.uid }));
+    if (!r.ok) { document.getElementById("cWhy").textContent = r.why || "うけとれませんでした"; return; }
+    GOT = r; MP.lv = r.lv || MP.lv; fillHead(); paint();
+    toast(`経験値 <b>+${r.exp}</b>${r.up ? `・Lv <b>${r.lv}</b> に 上がった` : ""}${r.boxed ? `・${r.boxed} こ あずかり箱へ` : ""}`);
+  });
+  on("#again", () => { const t = TRIP, p = new URLSearchParams({ step: "prep", d: t.did, run: t.run, pu: t.purpose }); if (t.target) p.set("tg", t.target); if (t.tool) p.set("tool", t.tool); location.search = p.toString(); });
+  // スマホ：地図は えらんだ 行き先の まわりから 見せる
+  const ws = document.querySelector(".wscroll"), pin = document.querySelector('.wpin[aria-pressed="true"]');
+  if (ws && pin) { ws.scrollLeft = pin.offsetLeft - ws.clientWidth / 2; ws.scrollTop = pin.offsetTop - ws.clientHeight / 2; }
+}
+
+fillHead();
+linkTabs();
+paint();
+document.querySelector(".tabs").scrollLeft = 9999;   // スマホ：えらんでいるタブ（冒険）を見えるところに
+// 出かけて いる あいだは 2 秒ごとに ようすを 進める。帰る 時間を すぎたら 門番に 聞きなおす（ごほうびは 帰って から 見える）
+if (MP && MP.type && TRIP && !TRIP.got) setInterval(() => { if (Date.now() >= TRIP.end + (TRIP.calc ? 4000 : 1500)) location.reload(); else paint(); }, 2000);
+window.ready = true;
+</script>
+</body>
+</html>

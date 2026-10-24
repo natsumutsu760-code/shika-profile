@@ -1,0 +1,437 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pet Skill Tree</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Zen+Maru+Gothic:wght@500;700;900&display=swap">
+<style>
+  /* MONO LINK のラウンジ：スキルツリーの画面の見本（30 ノード・分岐 2 か所）。&slot=1 でサブツリー（敵のツリー）を見る
+     ?view=all 5 つの職業ツリーの中身、?view=enemies 敵ツリー 20 本の中身、?view=lab 図鑑と研究（捕まえた敵を研究するとサブツリーに付けられる）
+     ペットは「職業ツリー 1 本 ＋ サブツリー 3 本」。部品と色は装備・冒険の画面と同じ */
+  :root {
+    --space:#F6F8FC; --ink:#1B2340; --soft:#6A7394; --line:#DCE3F0;
+    --sky:#2EA8FF; --coral:#FF5A64; --sun:#FFC21A; --leaf:#22CC88; --violet:#8E6CFF; --amber:#E0A100;
+    --jp:"Zen Maru Gothic", "Hiragino Maru Gothic ProN", sans-serif; --num:"Fredoka", "Zen Maru Gothic", sans-serif;
+    --lift:0 18px 40px -18px rgba(27,35,64,.35), 0 2px 0 rgba(27,35,64,.06);
+  }
+  * { box-sizing:border-box; }
+  body { margin:0; min-height:100vh; background:radial-gradient(120% 80% at 50% 0%, #FFFFFF 0%, var(--space) 55%, #EAF0FA 100%); color:var(--ink); font:500 16px/1.65 var(--jp); }
+  button { font:inherit; color:inherit; cursor:pointer; }
+  :focus-visible { outline:3px solid var(--sky); outline-offset:3px; border-radius:12px; }
+  h2, h3, p { margin:0; }
+  .top { display:flex; align-items:center; gap:10px; padding:12px clamp(16px, 4vw, 40px); }
+  .top b { font:700 22px/1 var(--num); letter-spacing:.06em; } .top b i { font-style:normal; color:var(--sky); }
+  .top small { font:700 13px/1 var(--jp); color:var(--soft); margin-left:6px; }
+  main { max-width:1100px; margin:0 auto; padding:0 clamp(16px, 4vw, 40px) 40px; }
+  .panel { background:rgba(255,255,255,.9); border-radius:26px; box-shadow:var(--lift); padding:clamp(14px, 2.4vw, 18px); }
+  .pet { display:grid; grid-template-columns:60px auto 1fr; gap:14px; align-items:center; padding:8px 20px 8px 8px; border-radius:22px; }
+  .pet .pic { width:60px; height:60px; border-radius:16px; background:radial-gradient(circle at 50% 38%, #fff 0, #FFF4D6 80%); display:flex; justify-content:center; overflow:hidden; }
+  .pet .pic img { height:120%; margin-top:4%; }
+  .pet h1 { margin:0; font:900 24px/1.1 var(--jp); display:flex; align-items:baseline; gap:10px; white-space:nowrap; }
+  .pet h1 small { font:700 13px/1 var(--jp); color:var(--soft); }
+  .pet .meta { margin-top:6px; display:flex; gap:8px; align-items:center; }
+  .badge { display:inline-flex; align-items:center; gap:5px; border-radius:999px; padding:4px 10px 4px 5px; font:700 12px/1 var(--jp); color:#fff; background:var(--c); }
+  .badge::before { content:""; width:11px; height:11px; border-radius:50%; background:#fff; opacity:.85; }
+  .lv { font:600 16px/1 var(--num); } .lv small { font:700 12px/1 var(--jp); color:var(--soft); margin-right:3px; }
+  .sp { justify-self:end; text-align:right; font:700 12px/1.2 var(--jp); color:var(--soft); }
+  .sp b { display:block; font:600 26px/1 var(--num); color:var(--sky); }
+  .tabs { display:flex; gap:8px; margin:12px 0 10px; overflow-x:auto; padding-bottom:4px; }
+  .tabs button { flex:none; border:1.5px solid var(--line); background:rgba(255,255,255,.9); border-radius:999px; padding:8px 16px; font:700 14px/1 var(--jp); }
+  .tabs button[aria-selected="true"] { background:var(--ink); color:#fff; border-color:var(--ink); box-shadow:0 5px 0 rgba(27,35,64,.22); }
+
+  /* 4 本のツリー：職業 1 ＋ サブ 3 */
+  .slots { display:grid; grid-template-columns:repeat(4, minmax(0, 1fr)); gap:8px; margin-bottom:12px; }
+  .slot { text-align:left; border:1.5px solid var(--line); background:#fff; border-radius:16px; padding:8px 10px; display:grid; grid-template-columns:auto 1fr; gap:2px 8px; align-items:center; }
+  .slot i { grid-row:span 2; width:30px; height:30px; border-radius:10px; background:var(--c); display:grid; place-items:center; color:#fff; font:900 12px/1 var(--jp); font-style:normal; }
+  .slot small { font:700 11px/1.2 var(--jp); color:var(--soft); }
+  .slot b { font:900 14px/1.25 var(--jp); }
+  .slot b s { text-decoration:none; font:600 12px/1 var(--num); color:var(--soft); margin-left:6px; }
+  .slot[aria-pressed="true"] { border-color:var(--ink); box-shadow:0 0 0 3px rgba(27,35,64,.12); }
+  .slot.empty { border-style:dashed; background:transparent; }
+  .slot.empty i { background:#E4E8F2; color:var(--soft); }
+  .slot.empty b { color:var(--soft); font-weight:700; font-size:12px; line-height:1.35; }
+  .bar { display:flex; align-items:center; gap:10px; margin-bottom:10px; flex-wrap:wrap; }
+  .bar h2 { font:900 20px/1.3 var(--jp); display:flex; align-items:center; gap:8px; }
+  .bar h2 span { font:700 12px/1 var(--jp); color:var(--soft); }
+  .bar .auto { margin-left:auto; display:inline-flex; align-items:center; gap:8px; font:700 12px/1 var(--jp); color:var(--soft); }
+  .tg { width:38px; height:22px; border-radius:99px; background:#D3DAE8; position:relative; border:0; }
+  .tg::after { content:""; position:absolute; left:3px; top:3px; width:16px; height:16px; border-radius:50%; background:#fff; transition:left .15s; }
+  .tg[aria-pressed="true"] { background:var(--leaf); } .tg[aria-pressed="true"]::after { left:19px; }
+  .slot b s.e { display:block; margin:2px 0 0; font:700 11px/1.2 var(--jp); }
+  .slot.subt { background:linear-gradient(135deg, #fff, #F7F3FF); }
+  .slot.subt i { border-radius:50%; }
+  .origin { display:flex; flex-wrap:wrap; gap:6px; align-items:center; margin:-4px 0 10px; font:700 12px/1.3 var(--jp); color:var(--soft); }
+  .chip { display:inline-flex; align-items:center; gap:5px; padding:3px 9px 3px 6px; border-radius:99px; background:#fff; border:1.5px solid var(--line); font:700 11px/1.2 var(--jp); color:var(--ink); }
+  .chip i { width:9px; height:9px; border-radius:50%; background:var(--c); }
+  .rk { display:inline-block; padding:2px 7px; border-radius:6px; background:var(--ink); color:#fff; font:700 10px/1.25 var(--jp); }
+  .rk.r { background:#7A55E0; } .rk.n { background:#E4E8F2; color:var(--soft); }
+  .linkish { border:0; background:none; font:700 12px/1 var(--jp); color:var(--soft); text-decoration:underline; text-underline-offset:3px; }
+
+  /* ツリー：左から 基礎 → 分岐① → 分岐② → 奥義（スマホは縦） */
+  .tree { display:grid; grid-template-columns:minmax(0, .9fr) minmax(0, 1.55fr) minmax(0, 1.55fr) minmax(0, .9fr); gap:0; }
+  .zone { min-width:0; padding:0 10px; display:flex; flex-direction:column; gap:6px; }
+  .zone + .zone { border-left:2px dashed var(--line); }
+  .zone h3 { font:900 13px/1.2 var(--jp); display:flex; align-items:baseline; gap:6px; margin-bottom:2px; }
+  .zone h3 small { font:700 11px/1.2 var(--jp); color:var(--soft); }
+  .fork { display:grid; grid-template-columns:minmax(0, 1fr) auto minmax(0, 1fr); gap:6px; align-items:stretch; }
+  .fork > div { display:flex; flex-direction:column; gap:6px; min-width:0; }
+  .fork .or { align-self:center; font:900 11px/1 var(--jp); color:var(--soft); writing-mode:vertical-rl; letter-spacing:.2em; }
+  .fork h4 { margin:0; font:700 11px/1.2 var(--jp); color:var(--soft); text-align:center; }
+
+  .node { position:relative; text-align:left; width:100%; border:1.5px solid var(--line); background:#fff; border-radius:12px; padding:6px 8px 6px 6px; display:grid; grid-template-columns:24px minmax(0, 1fr); gap:0 7px; align-items:center; min-height:42px; }
+  .node .ic { width:24px; height:24px; border-radius:8px; display:grid; place-items:center; color:#fff; font:900 11px/1 var(--jp); background:var(--k); }
+  .node .nm { font:700 12.5px/1.25 var(--jp); overflow-wrap:anywhere; }
+  .node .nm small { display:block; font:700 10.5px/1.2 var(--jp); color:var(--soft); }
+  .node .sp2 { position:absolute; right:-5px; top:-8px; padding:2px 6px; border-radius:99px; background:var(--chip, #B4BCCF); color:#fff; font:600 10px/1.3 var(--num); box-shadow:0 0 0 2px #fff; }
+  .k-stat { --k:#9AA4BE; } .k-skill { --k:var(--coral); } .k-passive { --k:var(--amber); } .k-keyword { --k:var(--violet); }
+  .node.k-stat { min-height:34px; background:#FBFCFE; } .node.k-stat .nm { font:600 13px/1 var(--num); }
+  .node.master { box-shadow:inset 0 0 0 1.5px #FFD98A; }
+  .node.master .nm::after { content:" ★ マスター"; font:700 10px/1 var(--jp); color:#C98A00; }
+  /* 状態：取得済み・取れる・SP が足りない・ロック・封鎖 */
+  .node.got { background:linear-gradient(135deg, #EFFBF5, #fff 75%); border-color:#A9E8CC; }
+  .node.got::after { content:"✓"; position:absolute; right:-5px; top:-7px; width:18px; height:18px; border-radius:50%; background:var(--leaf); color:#fff; font:900 11px/18px var(--jp); text-align:center; box-shadow:0 0 0 2px #fff; }
+  .node.can { border-color:var(--sky); box-shadow:0 0 0 3px rgba(46,168,255,.16); --chip:var(--sky); }
+  .node.short { --chip:#B4BCCF; }
+  .node.lock { background:transparent; border-style:dashed; } .node.lock .ic { background:#C9CFDD; } .node.lock .nm { color:#9AA1B6; }
+  .node.block { background:repeating-linear-gradient(-45deg, #F3F5FA 0 6px, #FBFCFE 6px 12px); border-style:dashed; }
+  .node.block .ic { background:#C9CFDD; } .node.block .nm { color:#9AA1B6; text-decoration:line-through; text-decoration-color:#C3C9D8; }
+  .node.sel { border-color:var(--ink); box-shadow:0 0 0 3px rgba(27,35,64,.14); }
+  .blocknote { font:700 10.5px/1.35 var(--jp); color:#9AA1B6; text-align:center; }
+
+  /* 下：えらんだノードと、このツリーで覚えたもの */
+  .below { margin-top:14px; display:grid; grid-template-columns:minmax(0, 1.3fr) minmax(0, 1fr); gap:14px; }
+  .detail { border:1.5px solid var(--line); border-radius:18px; padding:12px 14px; background:#fff; }
+  .detail h3 { font:900 17px/1.3 var(--jp); display:flex; align-items:center; gap:8px; }
+  .detail h3 .ic { width:28px; height:28px; border-radius:9px; display:grid; place-items:center; color:#fff; font:900 12px/1 var(--jp); background:var(--k); }
+  .detail .where { margin-top:4px; font:700 12px/1.3 var(--jp); color:var(--soft); }
+  .detail p { margin-top:6px; font:500 14px/1.6 var(--jp); }
+  .detail .row { margin-top:10px; display:flex; align-items:center; gap:10px; }
+  .detail .row span { font:700 12px/1.3 var(--jp); color:var(--soft); }
+  .take { margin-left:auto; border:0; border-radius:999px; padding:10px 18px; font:900 14px/1 var(--jp); background:var(--sky); color:#fff; box-shadow:0 5px 0 rgba(46,168,255,.3); }
+  .take b { font:600 15px/1 var(--num); }
+  .take:disabled { opacity:.45; }
+  /* 門番に つないだ 分：サブツリーを えらぶ・振り直しの たしかめ・職業を かえる */
+  .node { cursor:pointer; }
+  .fork h4 button { border:1.5px solid var(--line); background:#fff; border-radius:999px; padding:3px 9px; font:700 11px/1.2 var(--jp); color:var(--soft); }
+  .fork h4 button[aria-pressed="true"] { border-color:var(--leaf); color:#13A36A; background:#EFFBF5; }
+  .subpick { display:grid; gap:10px; }
+  .subpick h2 { margin:0; font:900 18px/1.3 var(--jp); }
+  .subpick ul { list-style:none; margin:0; padding:0; display:grid; grid-template-columns:repeat(auto-fill, minmax(220px, 1fr)); gap:8px; }
+  .subpick li button { width:100%; display:grid; grid-template-columns:44px minmax(0, 1fr); gap:10px; align-items:center; text-align:left; border:1.5px solid var(--line); background:#fff; border-radius:16px; padding:8px 10px; }
+  .subpick li img { width:44px; height:44px; image-rendering:pixelated; border-radius:12px; background:color-mix(in srgb, var(--c) 14%, #fff); }
+  .subpick li b { display:block; font:900 14px/1.25 var(--jp); } .subpick li small { font:700 11px/1.3 var(--jp); color:var(--soft); }
+  .subpick p { margin:0; font:700 13px/1.6 var(--jp); color:var(--soft); } .subpick a { color:var(--ink); font-weight:900; }
+  .confirm { margin:0 0 10px; display:flex; align-items:center; gap:8px; flex-wrap:wrap; padding:10px 12px; border-radius:16px; background:#FFF6F0; border:1.5px solid #FFD3BC; font:700 13px/1.5 var(--jp); }
+  .confirm .sp { flex:1; min-width:8px; }
+  .btn2 { border:1.5px solid var(--line); background:#fff; border-radius:999px; padding:9px 14px; font:700 13px/1 var(--jp); }
+  .rejob { margin:0 0 12px; display:grid; gap:8px; padding:12px; border-radius:16px; background:var(--space, #F6F8FC); border:1.5px solid var(--line); }
+  .rejob h3 { margin:0; font:900 15px/1.3 var(--jp); } .rejob .lab2 { font:700 11px/1.2 var(--jp); color:var(--soft); }
+  .rejob .chips { display:flex; flex-wrap:wrap; gap:6px; }
+  .rejob .chips button { border:1.5px solid var(--line); background:#fff; border-radius:999px; padding:7px 12px; font:700 12px/1 var(--jp); display:inline-flex; align-items:center; gap:6px; }
+  .rejob .chips button i { width:10px; height:10px; border-radius:50%; background:var(--c, var(--soft)); }
+  .rejob .chips button[aria-pressed="true"] { border-color:var(--ink); box-shadow:0 0 0 2px rgba(27,35,64,.12); }
+  .rejob .chips button:disabled { opacity:.45; }
+  .rejob .go2 { display:flex; align-items:center; gap:8px; flex-wrap:wrap; font:700 12px/1.4 var(--jp); color:var(--soft); } .rejob .go2 .sp { flex:1; }
+  .sum { border-radius:18px; padding:12px 14px; background:var(--space); }
+  .sum h3 { font:900 13px/1.2 var(--jp); color:var(--soft); margin-bottom:6px; }
+  .sum ul { list-style:none; margin:0; padding:0; display:flex; flex-wrap:wrap; gap:5px; }
+  .sum li { display:inline-flex; align-items:center; gap:5px; padding:4px 9px 4px 6px; border-radius:99px; background:#fff; font:700 12px/1.2 var(--jp); }
+  .sum li i { width:10px; height:10px; border-radius:3px; background:var(--k); }
+  .sum .st { margin-top:8px; font:700 12px/1.6 var(--jp); color:var(--soft); } .sum .st b { font:600 13px/1 var(--num); color:var(--ink); }
+
+  /* ===== 5 つの職業ツリーの一覧 ===== */
+  .all { display:grid; gap:10px; }
+  .job { display:grid; grid-template-columns:120px minmax(0, 1fr); gap:12px; align-items:start; padding:12px; border-radius:20px; background:#fff; border:1.5px solid var(--line); }
+  .job .jn { font:900 16px/1.25 var(--jp); display:flex; flex-direction:column; gap:6px; }
+  .job .jn i { width:100%; height:6px; border-radius:9px; background:var(--c); }
+  .job .jn small { font:700 11px/1.45 var(--jp); color:var(--soft); }
+  .lane { display:grid; grid-template-columns:repeat(3, minmax(0, 1fr)) minmax(0, 1.3fr) minmax(0, 1.3fr) minmax(0, 1fr); gap:6px; }
+  .lane + .lane { margin-top:6px; }
+  .cell { min-width:0; border-radius:10px; padding:5px 7px; background:var(--space); font:700 11.5px/1.3 var(--jp); }
+  .cell em { display:block; font-style:normal; font:600 10px/1.2 var(--num); color:var(--soft); }
+  .cell.sk { box-shadow:inset 3px 0 0 var(--coral); } .cell.ps { box-shadow:inset 3px 0 0 var(--amber); }
+  .pair { display:grid; grid-template-columns:1fr 1fr; gap:4px; }
+  .lanes-h { display:grid; grid-template-columns:120px minmax(0, 1fr); gap:12px; padding:0 12px; }
+  .lanes-h .lane div { font:700 11px/1.2 var(--jp); color:var(--soft); text-align:center; }
+
+  /* ===== 敵ツリーの一覧 ===== */
+  .dg { margin-top:14px; display:flex; align-items:center; gap:8px; font:900 15px/1.2 var(--jp); }
+  .dg::before { content:""; width:14px; height:14px; border-radius:5px; background:var(--dc); }
+  .dg small { font:700 11px/1 var(--jp); color:var(--soft); }
+  .job .jn .who { display:flex; flex-wrap:wrap; gap:4px; align-items:center; font:700 11px/1.3 var(--jp); color:var(--soft); }
+
+  /* ===== 図鑑と研究 ===== */
+  .lab { display:grid; grid-template-columns:minmax(0, 1.55fr) minmax(0, 1fr); gap:14px; align-items:start; }
+  .res { display:flex; align-items:center; gap:10px; margin-bottom:6px; flex-wrap:wrap; }
+  .res .have { margin-left:auto; text-align:right; font:700 12px/1.2 var(--jp); color:var(--soft); } .res .have b { font:600 22px/1 var(--num); color:var(--ink); margin-left:6px; }
+  .legend { display:flex; flex-wrap:wrap; gap:10px; font:700 11px/1.2 var(--jp); color:var(--soft); margin-bottom:4px; }
+  .legend span::before { content:""; display:inline-block; width:10px; height:10px; border-radius:50%; margin-right:4px; vertical-align:-1px; background:var(--c); }
+  .dex { display:grid; grid-template-columns:repeat(5, minmax(0, 1fr)); gap:8px; }
+  .mon { position:relative; border:1.5px solid var(--line); background:#fff; border-radius:16px; padding:10px 6px 8px; text-align:center; display:flex; flex-direction:column; align-items:center; gap:4px; min-width:0; }
+  .mon .orb { width:46px; height:46px; border-radius:50%; display:grid; place-items:center; background:radial-gradient(circle at 35% 30%, #fff 0, var(--c) 78%); color:#fff; font:900 18px/1 var(--jp); text-shadow:0 2px 0 rgba(27,35,64,.25); box-shadow:inset 0 -3px 0 rgba(27,35,64,.12); }
+  .mon b { font:700 11.5px/1.25 var(--jp); overflow-wrap:anywhere; }
+  .mon .st { font:700 10px/1.2 var(--jp); padding:2px 7px; border-radius:99px; background:var(--space); color:var(--soft); }
+  .mon .rk { position:absolute; left:6px; top:6px; font-size:9px; }
+  .mon.done { border-color:#A9E8CC; background:linear-gradient(160deg, #EFFBF5, #fff 70%); } .mon.done .st { background:var(--leaf); color:#fff; }
+  .mon.cap { border-color:#CDB8FF; background:linear-gradient(160deg, #F5F0FF, #fff 70%); } .mon.cap .st { background:#7A55E0; color:#fff; }
+  .mon .orb.spr, .ldetail .orb.spr { background:color-mix(in srgb, var(--c) 14%, #fff); border-radius:30%; box-shadow:none; } .orb.spr img { image-rendering:pixelated; }
+  .mon .orb.spr img { width:48px; height:48px; } .ldetail .orb.spr img { width:48px; height:48px; }
+  .mon.seen .orb { filter:grayscale(1) opacity(.55); }
+  .mon.none .orb.spr { background:#EEF1F7; } .mon.none .orb.spr img { filter:brightness(0) opacity(.18); }   /* まだ会っていない子は、かげだけ */
+  .mon.none { border-style:dashed; background:transparent; } .mon.none .orb { background:#E4E8F2; color:#B4BCCF; text-shadow:none; box-shadow:none; } .mon.none b { color:#9AA1B6; }
+  .mon.sel { border-color:var(--ink); box-shadow:0 0 0 3px rgba(27,35,64,.14); }
+  .ldetail { position:sticky; top:12px; }
+  .ldetail .head { display:grid; grid-template-columns:64px 1fr; gap:12px; align-items:center; }
+  .ldetail .orb { width:64px; height:64px; border-radius:50%; display:grid; place-items:center; background:radial-gradient(circle at 35% 30%, #fff 0, var(--c) 78%); color:#fff; font:900 26px/1 var(--jp); text-shadow:0 2px 0 rgba(27,35,64,.25); }
+  .ldetail h2 { font:900 19px/1.3 var(--jp); } .ldetail .sub2 { font:700 12px/1.45 var(--jp); color:var(--soft); }
+  .ldetail h3 { margin:12px 0 6px; font:900 13px/1.2 var(--jp); color:var(--soft); }
+  .ldetail ol { list-style:none; margin:0; padding:0; display:grid; gap:4px; }
+  .ldetail li { display:grid; grid-template-columns:22px minmax(0, 1fr); gap:6px; align-items:start; font:700 12.5px/1.4 var(--jp); }
+  .ldetail li i { font-style:normal; width:22px; height:22px; border-radius:7px; display:grid; place-items:center; color:#fff; font:900 10px/1 var(--jp); background:var(--k); }
+  .ldetail li small { display:block; font:500 11.5px/1.45 var(--jp); color:var(--soft); }
+  .ldetail .go { margin-top:14px; display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+  .ldetail .go p { font:700 12px/1.45 var(--jp); color:var(--soft); flex:1 1 160px; }
+  .ldetail .take { margin-left:0; background:#7A55E0; box-shadow:0 5px 0 rgba(122,85,224,.3); }
+
+  @media (max-width:820px) {
+    .lab { grid-template-columns:minmax(0, 1fr); } .ldetail { position:static; order:-1; }
+    .dex { gap:5px; } .mon { padding:16px 2px 6px; border-radius:12px; gap:3px; } .mon .orb { width:34px; height:34px; font-size:14px; }
+    .mon b { font-size:9.5px; line-height:1.2; } .mon .st { font-size:8.5px; padding:2px 4px; } .mon .rk { left:3px; top:3px; font-size:8px; padding:1px 4px; }
+    .pet { grid-template-columns:48px 1fr auto; padding:6px 12px 6px 6px; gap:10px; border-radius:18px; }
+    .pet .pic { width:48px; height:48px; border-radius:12px; } .pet h1 { font-size:20px; } .pet h1 small { font-size:12px; }
+    .slots { grid-template-columns:repeat(2, minmax(0, 1fr)); }
+    .tree { grid-template-columns:minmax(0, 1fr); gap:12px; }
+    .zone { padding:0; } .zone + .zone { border-left:0; border-top:2px dashed var(--line); padding-top:10px; }
+    .zone.flow { display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); } .zone.flow h3 { grid-column:1 / -1; }
+    .below { grid-template-columns:minmax(0, 1fr); }
+    .job { grid-template-columns:minmax(0, 1fr); } .lanes-h { display:none; }
+    .lane { grid-template-columns:repeat(3, minmax(0, 1fr)); } .lane .pair { grid-column:span 3; }
+  }
+</style>
+</head>
+<body>
+<header class="top"><a href="/" style="color:inherit;text-decoration:none" aria-label="MONO LINK の サイトへ"><b>MONO LINK<i>://</i></b></a><small><a href="lounge-room.html" style="color:inherit">ラウンジ</a> ／ ペット</small></header>
+<main id="app"></main>
+<script type="module">
+import { nodesOf, stateOf, learned, JOB_TREES, SP_PER_LV, statValue, treeOf } from "./trees.js";
+import { SKILL, TYPES, TREES } from "./skills.js";
+import { ENEMY_TREES } from "./enemy-trees.js";
+import { DUNGEONS, RESEARCH, CAPTURE } from "./dungeons.js";
+import { EFFECTS } from "./effects.js";
+import { spriteURL } from "./sprites.js";
+import { me, act, busy, waitText } from "./lounge-client.js";   // ペットの ツリーは 門番の 記録（見本では ブラウザの 中の ためしの 門番）
+import { petInfo, linkTabs, gateHtml, addGateCss, toast } from "./pet-head.js";
+import { jstDay } from "./lounge-rules.js";
+
+const q = new URLSearchParams(location.search), view = q.get("view") || "tree";
+const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
+const SL = { hp: "HP", mp: "MP", atk: "ATK", def: "DEF", int: "INT", res: "RES", agi: "AGI", dex: "DEX", luk: "LUK" };
+const KIC = { stat: "能", skill: "技", passive: "常", keyword: "鍵" };
+// ペットと ツリーは 門番の 記録。枠 0 は 職業ツリー、1〜3 は サブツリー（研究した 敵の ツリー）
+let ME = await me(), MP = ME.pets && ME.pets[0];
+const UI = { slot: Math.max(0, Math.min(3, +(q.get("slot") || 0))), sel: null, sure: false, rejob: null, carry: null };
+let SLOTS = [], CUR = null, TID = null, TAKEN = new Set(), nodes = [], spLeft = 0, sel = null;
+const spOf = (s) => nodesOf(s.tree).filter((n) => s.taken.has(n.id)).reduce((a, n) => a + n.sp, 0);
+function reload() {
+  if (!MP || !MP.type) return;
+  const t = MP.taken || {};
+  SLOTS = [MP.type, ...(MP.subs || [])].map((id) => ({ tree: id, taken: new Set(t[id] || []) })).concat([null, null, null]).slice(0, 4);
+  CUR = SLOTS[UI.slot]; TID = CUR ? CUR.tree : null; TAKEN = CUR ? CUR.taken : new Set(); nodes = TID ? nodesOf(TID) : [];
+  spLeft = SP_PER_LV * (MP.lv - 1) - SLOTS.filter(Boolean).reduce((a, x) => a + spOf(x), 0);
+  if (!nodes.some((n) => n.id === UI.sel)) UI.sel = (nodes.find((n) => stateOf(TAKEN, n.id, spLeft) === "取れる") || nodes.find((n) => !TAKEN.has(n.id)) || nodes[0] || {}).id || null;
+  sel = UI.sel;
+}
+reload();
+const PET = { get seed() { return MP.seed; } };   // 個体差（statValue）は ペットの 種で
+const label = (n) => n.kind === "stat" ? `${SL[n.key]} +${statValue(n, PET.seed, TID)}` : n.kind === "skill" ? SKILL[n.skill].name : n.kind === "passive" ? SKILL[n.passive].name : "ガンビットの枠 +1";
+const sub = (n) => n.kind === "skill" ? `MP ${SKILL[n.skill].mp}` : n.kind === "passive" ? "パッシブ" : n.kind === "keyword" ? "キーワード" : "";
+const CLS = { "取得済み": "got", "取れる": "can", "SP が足りない": "short", "ロック": "lock", "封鎖": "block" };
+function node(n) {
+  const s = stateOf(TAKEN, n.id, spLeft), c = CLS[s];
+  const chip = s === "取れる" || s === "SP が足りない" ? `<span class="sp2">${n.sp} SP</span>` : "";
+  return `<button class="node k-${n.kind} ${c} ${n.master ? "master" : ""} ${n.id === sel ? "sel" : ""}" data-n="${n.id}" aria-pressed="${n.id === sel}" title="${esc(s)}"><span class="ic">${KIC[n.kind]}</span><span class="nm">${esc(label(n))}${sub(n) ? `<small>${sub(n)}</small>` : ""}</span>${chip}</button>`;
+}
+const N = (id) => node(nodes.find((n) => n.id === id));
+const col = (ids) => ids.map(N).join("");
+const blocked = (ids) => ids.every((id) => stateOf(TAKEN, id, spLeft) === "封鎖");
+const freeReset = () => !MP.reset || MP.reset.day !== jstDay() || MP.reset.n < 1;   // 振り直しと 職業を かえるは 1 日 1 回 無料
+const priceText = () => (freeReset() ? "きょうは 無料" : `玉 ${MP.resetPrice.toLocaleString("ja-JP")}`);
+
+// サブツリーを 付ける：研究ずみの 敵の ツリーから（付けて いる 物は のぞく）
+function subPickHtml(k) {
+  const can = (ME.lab || []).filter((id) => ENEMY_TREES[id] && !(MP.subs || []).includes(id));
+  return `<div class="subpick"><h2>サブツリー ${k} に 付ける</h2>${can.length ? `<ul>${can.map((id) => { const t = ENEMY_TREES[id];
+    return `<li><button data-sub="${id}" style="--c:${TYPES[t.type].color}"><img src="${spriteURL(id)}" alt=""><span><b>${esc(t.name)}</b><small>${esc(t.enemy)}・${TYPES[t.type].label}・テーマ ${EFFECTS[t.theme].label}</small></span></button></li>`; }).join("")}</ul>`
+    : `<p>研究ずみの 敵が まだ いない。派遣で 捕まえた 子を <a href="tame.html">なかまの 画面</a>で 研究すると 付けられる</p>`}</div>`;
+}
+// 職業を かえる：前の 職業で 覚えた 技から 1 つ 持ちこせる
+function rejobHtml() {
+  if (UI.rejob === null) return "";
+  const mine = learned(MP.type, new Set((MP.taken || {})[MP.type] || []), MP.seed).skills;
+  return `<div class="rejob"><h3>職業を かえる<span class="lab2">（${priceText()}。ツリーと 手で 振った ステータスは もどる）</span></h3>
+    <div class="chips" role="group" aria-label="かえる 職業">${Object.keys(TYPES).map((t) => `<button data-job="${t}" aria-pressed="${UI.rejob === t}" style="--c:${TYPES[t].color}" ${t === MP.type ? "disabled" : ""}><i></i>${TYPES[t].label}${t === MP.type ? "（いま）" : ""}</button>`).join("")}</div>
+    <span class="lab2">持ちこす 技（1 つ）</span>
+    <div class="chips" role="group" aria-label="持ちこす 技"><button data-carry="" aria-pressed="${!UI.carry}">持ちこさない</button>${mine.map((id) => `<button data-carry="${id}" aria-pressed="${UI.carry === id}">${esc(SKILL[id].name)}</button>`).join("")}</div>
+    <div class="go2"><span class="sp"></span><button class="btn2" data-do="rejob-no">やめる</button><button class="take" data-do="rejob" ${UI.rejob ? "" : "disabled"}>${UI.rejob ? `${TYPES[UI.rejob].label}に かえる` : "職業を えらんで"}</button></div></div>`;
+}
+
+function renderTree() {
+  const gate = gateHtml(ME, esc); if (gate) return gate;
+  const ty = TYPES[MP.type], info = petInfo(MP), researched = (ME.lab || []).length;
+  const slot = (x, k) => {
+    if (!x) return `<button class="slot empty" data-slot="${k}" aria-pressed="${k === UI.slot}"><i>${k}</i><small>サブツリー ${k}</small><b>あき。研究ずみの敵 ${researched} 体から えらべる</b></button>`;
+    const t = treeOf(x.tree), c = t.job ? ty.color : TYPES[t.type].color;
+    return `<button class="slot ${t.job ? "" : "subt"}" data-slot="${k}" aria-pressed="${k === UI.slot}" style="--c:${c}"><i>${t.job ? "職" : k}</i><small>${t.job ? "職業ツリー" : `サブツリー ${k}`}</small><b>${esc(t.name)}<s>${x.taken.size}/24</s>${t.job ? "" : `<s class="e">${esc(t.enemy)}</s>`}</b></button>`;
+  };
+  const head = `
+  <section class="panel pet" aria-label="ペット">
+    <div class="pic"><img src="${info.img}" alt="${esc(info.label)}の${esc(MP.name)}"></div>
+    <div><h1>${esc(MP.name)}<small>${esc(info.label)} ／ ${esc(ME.name)} の相棒</small></h1><div class="meta"><span class="badge" style="--c:${ty.color}">${ty.label}</span><span class="lv"><small>Lv</small>${MP.lv}</span></div></div>
+    <div class="sp">のこりの SP<b>${spLeft}</b></div>
+  </section>
+  <nav class="tabs" role="tablist"><button role="tab" aria-selected="false">ステータス</button><button role="tab" aria-selected="true">スキルツリー</button><button role="tab" aria-selected="false">ガンビット</button><button role="tab" aria-selected="false">装備</button><button role="tab" aria-selected="false">冒険</button><button role="tab" aria-selected="false">なかま</button></nav>`;
+  const slots = `<div class="slots" role="group" aria-label="ツリー">${SLOTS.map(slot).join("")}</div>`;
+  if (!CUR) return `${head}<section class="panel" aria-label="スキルツリー">${slots}${subPickHtml(UI.slot)}</section>`;
+  const T = treeOf(TID), L = learned(TID, TAKEN, MP.seed), sn = nodes.find((n) => n.id === sel), ss = stateOf(TAKEN, sel, spLeft);
+  const E = T.job ? null : T, D = E && DUNGEONS.find((d) => d.id === E.dungeon), job = !!T.job, auto = job && MP.grow && MP.grow.auto, br = (MP.grow && MP.grow.branch) || {};
+  const side = (k, v, txt) => (auto ? `<button data-branch="${k}" data-v="${v}" aria-pressed="${(br[k] || "L") === v}" title="自動で 進む 道">${txt}</button>` : txt);
+  const fork = (k, lt, l, r, rt) => `<div class="fork"><div><h4>${side(k, "L", lt)}</h4>${col(l)}${blocked(l) ? `<p class="blocknote">反対の道を選んだので取れない（振り直すと選びなおせる）</p>` : ""}</div><span class="or">または</span><div><h4>${side(k, "R", rt)}</h4>${col(r)}${blocked(r) ? `<p class="blocknote">反対の道を選んだので取れない（振り直すと選びなおせる）</p>` : ""}</div></div>`;
+  const sk = sn.kind === "skill" ? SKILL[sn.skill] : sn.kind === "passive" ? SKILL[sn.passive] : null;
+  const text = sk ? sk.text : sn.kind === "keyword" ? "ガンビット（自動で戦うときの指示）の枠が 1 つ増える。もとの表の「アビスキーワード」の場所" : `${SL[sn.key]} が ${statValue(sn, MP.seed, TID)} 増える（この子の個体差こみ）`;
+  const statLine = Object.entries(L.stats).map(([k, v]) => `${SL[k]} <b>+${v}</b>`).join("・");
+  const sure = UI.sure ? `<div class="confirm"><span>ツリーの ノードと 手で 振った ステータスが ぜんぶ もどる（${priceText()}）</span><span class="sp"></span><button class="btn2" data-do="respec-no">やめる</button><button class="take" data-do="respec">振り直す</button></div>` : "";
+  return `${head}
+  <section class="panel" aria-label="スキルツリー">
+    ${slots}
+    <div class="bar"><h2>${esc(T.name)}のツリー<span>主 ${SL[T.main]}・副 ${SL[T.sub]}</span></h2>
+      ${job ? `<span class="auto">自動で振る<button class="tg" data-do="auto" aria-pressed="${!!auto}" aria-label="自動で振る"></button></span>` : `<button class="linkish" data-do="unsub" style="margin-left:auto">このツリーを はずす（SP は もどる）</button>`}
+      ${job ? `<button class="linkish" data-do="rejob-open">職業を かえる</button>` : ""}<button class="linkish" data-do="respec-ask">振り直す（${priceText()}）</button></div>
+    ${sure}${job ? rejobHtml() : ""}
+    ${E ? `<p class="origin">${esc(D.name)}の <span class="chip" style="--c:${TYPES[E.type].color}"><i></i>${esc(E.enemy)}</span> を捕まえて研究した ${E.rank === "通常" ? "" : `<span class="rk ${E.rank === "希少" ? "r" : ""}">${E.rank}</span>`}・テーマ <span class="chip" style="--c:${EFFECTS[E.theme].buff ? "var(--leaf)" : "var(--coral)"}"><i></i>${EFFECTS[E.theme].label}</span>・SP は職業ツリーと同じ入れ物から使う</p>` : ""}
+    <div class="tree">
+      <div class="zone flow"><h3>基礎<small>上から順に</small></h3>${col(["B1", "B2", "B3", "B4", "B5", "B6", "B7", "B8"])}</div>
+      <div class="zone"><h3>分岐①<small>どちらか 1 つの道</small></h3>${N("A1")}${fork(1, "左の道", ["A2", "A3", "A4"], ["A5", "A6", "A7"], "右の道")}${N("A8")}</div>
+      <div class="zone"><h3>分岐②<small>どちらか 1 つの道</small></h3>${fork(2, "左の道", ["A9", "A10", "A11"], ["A12", "A13", "A14"], "右の道")}${N("A15")}</div>
+      <div class="zone flow"><h3>奥義<small>取りきるとマスター</small></h3>${col(["Ab1", "Ab2", "Ab3", "Ab4", "Ab5", "Ab6", "Ab7"])}</div>
+    </div>
+    <div class="below">
+      <div class="detail k-${sn.kind}" id="ndet">
+        <h3><span class="ic">${KIC[sn.kind]}</span>${esc(label(sn))}</h3>
+        <p class="where">${sn.zone}・${sn.kind === "skill" ? `技 ${"①②③④⑤⑥⑦⑧"[sn.n - 1]}・MP ${sk.mp}` : sn.kind === "passive" ? `パッシブ ${"①②③④⑤⑥⑦"[sn.n - 1]}` : sn.kind === "stat" ? "能力上昇" : "キーワード"}</p>
+        <p>${esc(text)}</p>
+        <div class="row"><span>${ss}</span>${ss === "取れる" ? `<button class="take" data-do="take">取る（<b>${sn.sp}</b> SP）</button>` : ""}</div>
+      </div>
+      <div class="sum">
+        <h3>このツリーで覚えたもの</h3>
+        <ul>${[...L.skills.map((id) => `<li class="k-skill"><i></i>${esc(SKILL[id].name)}</li>`), ...L.passives.map((id) => `<li class="k-passive"><i></i>${esc(SKILL[id].name)}</li>`)].join("")}</ul>
+        <p class="st">能力の足し分　${statLine || "まだ ない"}</p>
+      </div>
+    </div>
+  </section>`;
+}
+
+// ---------- 5 つの職業ツリーの中身 ----------
+function renderAll() {
+  const short = (t) => esc(t.split("。")[0].replace(/（[^）]*）/g, ""));
+  const cell = (id, cls) => { const s = SKILL[id]; return `<div class="cell ${cls}">${esc(s.name)}<em>${s.kind === "passive" ? short(s.text) : `MP ${s.mp}`}</em></div>`; };
+  const rows = Object.entries(JOB_TREES).map(([t, T]) => {
+    const sk = (n) => TREES[t].find((s) => s.slot === `S${n}`).id, ps = (n) => TREES[t].find((s) => s.slot === `P${n}`).id;
+    return `<div class="job"><div class="jn" style="--c:${TYPES[t].color}"><i></i>${T.name}<small>主 ${SL[T.main]}・副 ${SL[T.sub]}<br>${esc(TYPES[t].role)}</small></div><div>
+      <div class="lane">${cell(sk(1), "sk")}${cell(sk(2), "sk")}${cell(sk(3), "sk")}<div class="pair">${cell(sk(4), "sk")}${cell(sk(5), "sk")}</div><div class="pair">${cell(sk(6), "sk")}${cell(sk(7), "sk")}</div>${cell(sk(8), "sk")}</div>
+      <div class="lane">${cell(ps(1), "ps")}${cell(ps(2), "ps")}<div></div><div class="pair">${cell(ps(3), "ps")}${cell(ps(4), "ps")}</div><div class="pair">${cell(ps(5), "ps")}${cell(ps(6), "ps")}</div>${cell(ps(7), "ps")}</div>
+    </div></div>`;
+  }).join("");
+  return `<section class="panel"><div class="bar"><h2>5 つの職業ツリーの中身<span>上の段が技、下の段がパッシブ。分岐は左の道・右の道の順</span></h2></div>
+    <div class="lanes-h"><div></div><div class="lane"><div>技 ①</div><div>技 ②</div><div>技 ③</div><div>分岐①（左・右）</div><div>分岐②（左・右）</div><div>奥義</div></div></div>
+    <div class="all">${rows}</div></section>`;
+}
+
+// ---------- 敵ツリー 20 本の中身（行き先ごと）----------
+function renderEnemies() {
+  const short = (t) => esc(t.split("。")[0].replace(/（[^）]*）/g, ""));
+  const cell = (id, cls) => { const s = SKILL[id]; return `<div class="cell ${cls}">${esc(s.name)}<em>${s.kind === "passive" ? short(s.text) : `MP ${s.mp}`}</em></div>`; };
+  const groups = DUNGEONS.map((d) => {
+    const rows = Object.entries(ENEMY_TREES).filter(([, t]) => t.dungeon === d.id).map(([id, t]) => {
+      const sk = (n) => t.list.find((s) => s.slot === `S${n}`).id, ps = (n) => t.list.find((s) => s.slot === `P${n}`).id;
+      return `<div class="job"><div class="jn" style="--c:${TYPES[t.type].color}"><i></i>${esc(t.name)}<span class="who">${esc(t.enemy)}${t.rank === "通常" ? "" : `<span class="rk ${t.rank === "希少" ? "r" : ""}">${t.rank}</span>`}</span><small>テーマ ${EFFECTS[t.theme].label}・主 ${SL[t.main]}・副 ${SL[t.sub]}<br>${TYPES[t.type].label}の伸び方</small></div><div>
+        <div class="lane">${cell(sk(1), "sk")}${cell(sk(2), "sk")}${cell(sk(3), "sk")}<div class="pair">${cell(sk(4), "sk")}${cell(sk(5), "sk")}</div><div class="pair">${cell(sk(6), "sk")}${cell(sk(7), "sk")}</div>${cell(sk(8), "sk")}</div>
+        <div class="lane">${cell(ps(1), "ps")}${cell(ps(2), "ps")}<div></div><div class="pair">${cell(ps(3), "ps")}${cell(ps(4), "ps")}</div><div class="pair">${cell(ps(5), "ps")}${cell(ps(6), "ps")}</div>${cell(ps(7), "ps")}</div>
+      </div></div>`;
+    }).join("");
+    return `<h3 class="dg" style="--dc:${d.color}">${esc(d.name)}<small>おすすめ Lv ${d.lv}・通常 3・希少 1・ボス 1</small></h3><div class="all">${rows}</div>`;
+  }).join("");
+  return `<section class="panel"><div class="bar"><h2>敵のスキルツリー 20 本<span>派遣で捕まえて研究すると、サブツリーに付けられる。上の段が技、下の段がパッシブ。分岐は左の道・右の道の順</span></h2></div>
+    <div class="lanes-h"><div></div><div class="lane"><div>技 ①</div><div>技 ②</div><div>技 ③</div><div>分岐①（左・右）</div><div>分岐②（左・右）</div><div>奥義</div></div></div>${groups}</section>`;
+}
+
+// ---------- 図鑑と研究 ----------
+function labOf() {
+  const L = {}, been = new Set(Object.keys(ME.explore || {}));
+  for (const [id, t] of Object.entries(ENEMY_TREES)) L[id] = (ME.lab || []).includes(id) ? "done" : (ME.tamed || []).some((c) => c.tree === id) ? "cap" : been.has(t.dungeon) ? "seen" : "none";
+  return L;
+}
+function renderLab() {
+  const ST = { done: "研究ずみ", cap: "捕まえた", seen: "出会った", none: "？？？" }, LAB = labOf(), RESOURCE = ME.wallet && ME.wallet.known ? ME.wallet.res : "？";
+  const pick = ENEMY_TREES[UI.e] ? UI.e : ENEMY_TREES[q.get("e")] ? q.get("e") : Object.keys(LAB).find((id) => LAB[id] === "cap") || "e_hare", P = ENEMY_TREES[pick], st = LAB[pick], cost = RESEARCH[P.rank];
+  const mon = ([id, t]) => { const v = LAB[id]; return `<button class="mon ${v} ${id === pick ? "sel" : ""}" data-e="${id}" style="--c:${TYPES[t.type].color}">${t.rank === "通常" ? "" : `<span class="rk ${t.rank === "希少" ? "r" : ""}">${t.rank}</span>`}<span class="orb spr"><img src="${spriteURL(id)}" alt=""></span><b>${v === "none" ? "？？？" : esc(t.enemy)}</b><span class="st">${ST[v]}</span></button>`; };
+  const groups = DUNGEONS.map((d) => `<h3 class="dg" style="--dc:${d.color}">${esc(d.name)}<small>${Object.entries(ENEMY_TREES).filter(([id, t]) => t.dungeon === d.id && (LAB[id] === "done" || LAB[id] === "cap")).length} / 5 捕まえた</small></h3><div class="dex">${Object.entries(ENEMY_TREES).filter(([, t]) => t.dungeon === d.id).map(mon).join("")}</div>`).join("");
+  const KI = { waza: "技", itazura: "技", passive: "常" };
+  const list = P.list.filter((x) => ["S1", "S2", "S4", "P1", "S8"].includes(x.slot)).sort((a, b) => ["S1", "S2", "P1", "S4", "S8"].indexOf(a.slot) - ["S1", "S2", "P1", "S4", "S8"].indexOf(b.slot));
+  const go = st === "cap" ? `<p>研究すると、飼っているペットみんなが このツリーを サブツリーに付けられる</p><button class="take" data-do="lab" data-t="${pick}">研究する（リソース <b>${cost}</b>）</button>`
+    : st === "done" ? `<p>研究ずみ。ペットのスキルツリーの画面で サブツリーに付けられる</p>` : `<p>まだ捕まえていない。派遣で たおすと ${(CAPTURE[P.rank] * 100).toFixed(1)}% で捕まえる（1 体ごと。「指定の敵だけ」で 探しに行ける）</p>`;
+  return `<section class="panel"><div class="res"><div class="bar" style="margin:0"><h2>図鑑と研究<span>派遣で捕まえた敵を研究すると、その敵のスキルツリーが使えるようになる</span></h2></div><span class="have">リソース<b>${RESOURCE}</b></span></div>
+    <div class="lab"><div>
+      <div class="legend"><span style="--c:var(--leaf)">研究ずみ</span><span style="--c:#7A55E0">捕まえた</span><span style="--c:#B4BCCF">出会った</span><span style="--c:#E4E8F2">まだ会っていない</span></div>
+      ${groups}</div>
+      <aside class="ldetail" aria-label="えらんだ敵">
+        <div class="detail" style="border-color:#CDB8FF">
+          <div class="head"><span class="orb spr" style="--c:${TYPES[P.type].color}"><img src="${spriteURL(pick)}" alt=""></span><div><h2>${esc(P.enemy)}</h2><p class="sub2">${esc(DUNGEONS.find((d) => d.id === P.dungeon).name)}・${TYPES[P.type].label}${P.rank === "通常" ? "" : `・${P.rank}`}</p></div></div>
+          <h3>スキルツリー「${esc(P.name)}」</h3>
+          <p class="sub2">テーマ ${EFFECTS[P.theme].label}・主 ${SL[P.main]}・副 ${SL[P.sub]}・技 8・パッシブ 7</p>
+          <ol>${list.map((x) => `<li class="k-${x.kind === "passive" ? "passive" : "skill"}"><i>${KI[x.kind]}</i><span>${esc(x.name)}<small>${esc(x.text)}</small></span></li>`).join("")}</ol>
+          <div class="go">${go}</div>
+        </div>
+      </aside></div></section>`;
+}
+
+addGateCss();
+function paint() {
+  reload();
+  document.getElementById("app").innerHTML = view === "all" ? renderAll() : view === "enemies" ? renderEnemies() : view === "lab" ? renderLab() : renderTree();
+  linkTabs();
+}
+// 門番に 頼んで、記録を 読みなおして 描きなおす
+async function ask(b, a, body, msg) {
+  const r = await busy(b, () => act(a, body));
+  if (!r.ok && !r.wait) { toast(r.why || "できませんでした"); return r; }
+  ME = await me(); MP = ME.pets && ME.pets[0]; paint(); toast(r.ok ? msg(r) : waitText);
+  return r;
+}
+document.getElementById("app").addEventListener("click", async (e) => {
+  const b = e.target.closest("button"); if (!b || b.disabled) return;
+  const d = b.dataset;
+  if (d.n) { UI.sel = d.n; paint(); if (innerWidth <= 820) document.getElementById("ndet")?.scrollIntoView({ behavior: "smooth", block: "nearest" }); return; }
+  if (d.slot) { UI.slot = +d.slot; UI.sel = null; UI.sure = false; UI.rejob = null; return paint(); }
+  if (d.e) { UI.e = d.e; return paint(); }
+  if (d.job) { UI.rejob = d.job; return paint(); }
+  if (d.carry !== undefined) { UI.carry = d.carry || null; return paint(); }
+  if (d.sub) return ask(b, "pet.sub", { slot: UI.slot - 1, tree: d.sub }, () => `サブツリー ${UI.slot} に「${ENEMY_TREES[d.sub].name}」を 付けた`);
+  if (d.branch) return ask(b, "pet.grow", { auto: true, branch: { ...((MP.grow && MP.grow.branch) || {}), [d.branch]: d.v } }, () => `分岐${d.branch === "1" ? "①" : "②"}は ${d.v === "L" ? "左" : "右"}の 道で 自動に 取る${stateOf(TAKEN, d.branch === "1" ? (d.v === "L" ? "A2" : "A5") : d.v === "L" ? "A9" : "A12", spLeft) === "封鎖" ? "（もう 反対の 道を 取って いるので、振り直すと かわる）" : ""}`);
+  const x = d.do;
+  if (x === "take") { const n = nodes.find((y) => y.id === sel); return ask(b, "pet.take", { tree: TID, node: sel }, () => `取った：${label(n)}`); }
+  if (x === "auto") return ask(b, "pet.grow", { auto: !(MP.grow && MP.grow.auto), branch: (MP.grow && MP.grow.branch) || {} }, () => (MP.grow.auto ? "自動で 振る（Lv が 上がる たびに 取る）" : "自動を やめた（自分で 取る）"));
+  if (x === "unsub") { const name = treeOf(TID).name; UI.sel = null; return ask(b, "pet.sub", { slot: UI.slot - 1, tree: null }, () => `「${name}」を はずした（SP が もどった）`).then(() => { UI.slot = Math.min(UI.slot, (MP.subs || []).length + 1); paint(); }); }
+  if (x === "respec-ask") { UI.sure = true; UI.rejob = null; return paint(); }
+  if (x === "respec-no") { UI.sure = false; return paint(); }
+  if (x === "respec") { UI.sure = false; return ask(b, "pet.respec", {}, () => (MP.grow && MP.grow.auto ? "振り直した（自動で 取りなおした）" : "振り直した（SP と ポイントが もどった）")); }
+  if (x === "rejob-open") { UI.rejob = ""; UI.carry = null; UI.sure = false; return paint(); }
+  if (x === "rejob-no") { UI.rejob = null; return paint(); }
+  if (x === "rejob") { const t = UI.rejob; return ask(b, "pet.rejob", { type: t, carry: UI.carry }, () => `${TYPES[t].label}に なった`).then((r) => { if (r && r.ok) { UI.rejob = null; UI.carry = null; paint(); } }); }
+  if (x === "lab") { const c = (ME.tamed || []).find((y) => y.tree === d.t); if (!c) return toast("その 子が いない"); return ask(b, "tame.research", { uid: c.uid }, (r) => `研究した：「${ENEMY_TREES[d.t].name}」（リソース ${r.cost}）`); }
+});
+paint();
+window.ready = true;
+</script>
+</body>
+</html>

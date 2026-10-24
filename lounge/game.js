@@ -1,0 +1,18 @@
+// 見本（lounge-proto）の 計算を 門番から 読む ための 橋。画面と 門番で 同じ 決まりを 使う
+// 本物（shika-profile）に 入れる ときは copy-to.sh が 見本の ファイルを lounge/ に ならべ、ここの「./」を「./」に かえる
+export { PETS, QUIZ, score } from "./quiz.js";
+export { PLANS, petAt, gambitSlots } from "./builds.js";
+export { SHAPE, SP_PER_LV, SET_SLOTS, TREE_SLOTS, FREE_PER_LV, BASE_STATS, canTake, autoTake, learned, growthStats } from "./trees.js";
+export { ENEMY_TREES } from "./enemy-trees.js";
+export { SKILL } from "./skills.js";
+export { EFFECTS } from "./effects.js";
+export { runDungeon, tripInit, tripStep, tripResult, newProgress, diaryOf, dungeonRatio, floorRatio, tamedOf, rankOf } from "./dungeon-sim.js";
+export { rng, COND_TEXT } from "./battle-sim.js";
+export { floorMap, FLOORS } from "./floors.js";
+export { DUNGEONS, RUNS, TICK, TOOLS, PURPOSES, SNACK_NEED, SNACK_PRICE, RESEARCH } from "./dungeons.js";
+export { FACILITIES, STORAGE_CAP } from "./facilities.js";
+export { toStash, BOX_DAYS, MAT_NAME, GATHER, sellPrice } from "./materials.js";
+export { CRAFT, SYNTH, craftOpen, synthOpen, synthBalls, rollCraft, rollSynth } from "./recipes.js";
+export { OPS, baseOf, BASES } from "./equip.js";
+export { TRADERS, SPECIAL, repLv, REQ_FEE, RES_VALUE, NOTE_PRESETS, NOTE_MAX, NOTE_HIDE_AT, noteBlock } from "./deeplink.js";
+export { chainTask, dailyTask, TASK_TIDS } from "./tasks.js";

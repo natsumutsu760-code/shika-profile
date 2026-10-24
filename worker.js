@@ -5,6 +5,10 @@
 // ・いまラウンジ（このサイト）を開いている人を Durable Object（Lounge）で覚える。ページは 1 分ごとに知らせ、3 分来なければいないことにする
 // ・配信ページのボタン（!発射 など）は、同じ Lounge から、OBS の配信オーバーレイ（WebSocket でつながっている）に届ける。
 //   チャットに書かないので、連投でタイムアウトされない。1 人 1 秒に 1 回まで
+import { loungeApi } from "./lounge/lounge-api.js";
+import { lgFetch, lgFromObs } from "./lounge/lounge-ledger.js";
+export { Viewer } from "./lounge/viewer.js";
+export { Market } from "./lounge/market.js";
 const HTML_URL = "https://raw.githubusercontent.com/natsumutsu760-code/shika-profile/main/index.html";
 const MAX_UPLOAD = 20 * 1024 * 1024;
 const HERE_MS = 3 * 60 * 1000; // 最後の知らせからこの時間はラウンジにいることにする
@@ -346,6 +350,18 @@ async function page() {
   return new Response(await r.text(), { headers: { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-cache", ...SEC } });
 }
 
+// ラウンジの 画面（lounge-site/ の HTML・JS・絵）を GitHub から取って出す。HTML には本物の印を入れる（見本では同じファイルが ためしの門番で動く）
+const LOUNGE_TYPE = { html: "text/html; charset=utf-8", js: "text/javascript; charset=utf-8", png: "image/png", jpg: "image/jpeg", webp: "image/webp", svg: "image/svg+xml" };
+async function loungePage(p) {
+  if (p === "/lounge" || p === "/lounge/") return new Response(null, { status: 302, headers: { Location: "/lounge/lounge-room.html" } });
+  const m = /^\/lounge\/((?:img\/)?[a-z0-9][a-z0-9_-]*\.(html|js|png|jpg|webp|svg))$/.exec(p);
+  if (!m) return null;
+  const r = await fetch(HTML_URL.replace(/index\.html$/, "lounge-site/" + m[1]), { cf: { cacheTtl: 300, cacheEverything: true } });
+  if (!r.ok) return new Response("", { status: r.status === 404 ? 404 : 502 });
+  if (m[2] === "html") return new Response((await r.text()).replace("<head>", "<head><script>window.MONO_LINK_REAL = true;</script>"), { headers: { "Content-Type": LOUNGE_TYPE.html, "Cache-Control": "no-cache", ...SEC } });
+  return new Response(r.body, { headers: { "Content-Type": LOUNGE_TYPE[m[2]], "Cache-Control": "public, max-age=300", ...SEC } });
+}
+
 export default {
   async fetch(req, env) {
     try { return await route(req, env); }
@@ -436,9 +452,11 @@ async function route(req, env) {
     if (url.pathname === "/api/ping" && req.method === "GET") return ping(req, env);
     if (url.pathname === "/api/bye" && req.method === "POST") return bye(req, env);
     if (url.pathname === "/api/config" && req.method === "GET") return config(env);
+    const lr = await loungeApi(req, env, url, { enter, enterSoon, displayName }); if (lr) return lr;
     if (url.pathname.startsWith("/api/")) return json({ error: "notfound" }, 404);
     if (url.pathname === "/mx-replay.js" && req.method === "GET") return replayJs();
     if (url.pathname === "/cosme-en.json" && req.method === "GET") return cosmeEn();
+    if (url.pathname === "/lounge" || url.pathname.startsWith("/lounge/")) { const lp = await loungePage(url.pathname); if (lp) return lp; }
     if (url.pathname === "/card.html" && req.method === "GET") return cardPage();
     if (req.method !== "GET" && req.method !== "HEAD") return json({ error: "method" }, 405);
     return page();
@@ -659,6 +677,7 @@ export class Lounge {
       return;
     }
     if (!a.ok) return;
+    if (await lgFromObs(this, ws, m)) return;
     // OBS から：自己診断（オーバーレイ・パネル・鹿物語の分をまとめて）
     if (m.t === "diag" && m.d && typeof m.d === "object") { await this.diagIngest(m.d, "ov", now, m.now); return; }
     // OBS から：確かめたいいねの数・配信のコメント欄に出たシステムログ
@@ -714,6 +733,7 @@ export class Lounge {
   }
   async fetch(req) {
     const url = new URL(req.url), now = Date.now();
+    const lgr = await lgFetch(this, url, req); if (lgr) return lgr;
     if (url.pathname === "/obs" || url.pathname === "/mirror") this.trimPending(url.pathname === "/obs" ? "obs" : "mx", now);
     if (url.pathname === "/obs") {
       const pair = new WebSocketPair(), client = pair[0], server = pair[1];

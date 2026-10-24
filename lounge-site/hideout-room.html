@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Basement Hideout</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600&family=Zen+Maru+Gothic:wght@700;900&display=swap">
+<style>
+  /* MONO LINK のラウンジ：地下の 隠れ家（3D）の見本。鹿さんの決め（2026-10-22）：ななめ見下ろしの 1 部屋・うす暗い 秘密基地
+     施設 7 つの 置き場所は 決まっている。Lv で 見た目が かわる（Lv0 は 空き地）。ふだを 押すと 施設の 画面（hideout.html）へ
+     ?lv=0|1|2|3 で ぜんぶの 施設を その Lv に（見くらべ用）。3D の 作りは hideout3d.js */
+  :root { --ink:#1B2340; --soft:#6A7394; --night:#141022; --amber:#FFB547; --jp:"Zen Maru Gothic", sans-serif; --num:"Fredoka", sans-serif; }
+  * { box-sizing:border-box; }
+  body { margin:0; min-height:100vh; background:radial-gradient(120% 80% at 50% 0%, #FFFFFF 0%, #F6F8FC 55%, #EAF0FA 100%); color:var(--ink); font:500 16px/1.6 var(--jp); }
+  :focus-visible { outline:3px solid #2EA8FF; outline-offset:3px; border-radius:10px; }
+  .top { display:flex; align-items:center; gap:10px; padding:12px clamp(16px, 4vw, 40px); }
+  .top b { font:600 22px/1 var(--num); letter-spacing:.06em; } .top b i { font-style:normal; color:#2EA8FF; }
+  .top small { font:700 13px/1 var(--jp); color:var(--soft); margin-left:6px; }
+  main { max-width:1100px; margin:0 auto; padding:0 clamp(16px, 4vw, 40px) 40px; }
+  .bar { display:flex; align-items:center; gap:10px; margin-bottom:12px; }
+  .bar h1 { font:900 20px/1.2 var(--jp); margin:0 auto 0 0; }
+  .bar a { padding:9px 16px; border-radius:999px; border:1.5px solid #DCE3F0; background:#fff; font:900 13px/1 var(--jp); color:var(--ink); text-decoration:none; }
+  .view { position:relative; border-radius:24px; overflow:hidden; background:var(--night); box-shadow:0 18px 40px -18px rgba(27,35,64,.45); aspect-ratio:16 / 10; }
+  .view canvas { display:block; width:100%; height:100%; }
+  .tag { position:absolute; transform:translate(-50%, -100%); display:inline-flex; align-items:center; gap:6px; padding:5px 10px 5px 8px; border-radius:999px; border:1px solid rgba(255,181,71,.45); background:rgba(20,16,34,.82); color:#FFE3B8; font:900 12.5px/1 var(--jp); text-decoration:none; white-space:nowrap; backdrop-filter:blur(2px); }
+  .tag:hover { background:rgba(40,32,64,.92); }
+  .tag .lvp { display:inline-flex; gap:2px; } .tag .lvp i { width:7px; height:7px; border-radius:50%; background:rgba(255,255,255,.22); } .tag .lvp i.on { background:var(--amber); box-shadow:0 0 6px var(--amber); }
+  .tag.zero { color:#B9B2CC; border-style:dashed; }
+  .list { display:none; }
+  /* スマホ：部屋は 正方形。ふだは 重なるので、部屋の 下に 一覧で ならべる */
+  @media (max-width:640px) { .view { aspect-ratio:1 / 1; } .view .tag { display:none; } .bar h1 { font-size:18px; }
+    .list { display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:8px; margin-top:12px; } .list .tag { position:static; transform:none; justify-content:space-between; padding:10px 12px; font-size:13px; } }
+</style>
+</head>
+<body>
+<header class="top"><a href="/" style="color:inherit;text-decoration:none" aria-label="MONO LINK の サイトへ"><b>MONO LINK<i>://</i></b></a><small><a href="lounge-room.html" style="color:inherit">ラウンジ</a> ／ 地下の 隠れ家</small></header>
+<main>
+  <div class="bar"><h1>地下の 隠れ家</h1><a href="hideout.html">施設の 一覧</a></div>
+  <div class="view" id="view" role="img" aria-label="地下の 隠れ家。施設が 7 つ ならぶ うす暗い 部屋"></div>
+  <nav class="list" id="list" aria-label="施設"></nav>
+</main>
+<script type="importmap">{ "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.169.0/build/three.module.js", "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.169.0/examples/jsm/" } }</script>
+<script type="module">
+import * as THREE from "three";
+import { makeHideout, SPOTS, ROOM } from "./hideout3d.js";
+import { FACILITIES } from "./facilities.js";
+import { me } from "./lounge-client.js";   // 施設の Lv は 門番の 記録（見本では ブラウザの 中の ためしの 門番）
+
+const q = new URLSearchParams(location.search), all = q.get("lv");
+// 施設の Lv は 門番から（?lv=0〜3 は 見た目を ためす とき だけ）
+const ME = all !== null && /^[0-3]$/.test(all) ? null : await me();
+const LV = ME ? Object.fromEntries(Object.keys(SPOTS).map((k) => [k, ((ME.hideout || {})[k]) || 0])) : Object.fromEntries(Object.keys(SPOTS).map((k) => [k, +all]));
+const view = document.getElementById("view");
+const r = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true }); r.setPixelRatio(Math.min(2, devicePixelRatio)); r.outputColorSpace = THREE.SRGBColorSpace; view.appendChild(r.domElement);
+const scene = new THREE.Scene(); scene.background = new THREE.Color("#141022");
+scene.add(new THREE.HemisphereLight("#8A86C8", "#1A1626", 0.8)); const key = new THREE.DirectionalLight("#B8B0FF", 0.5); key.position.set(-6, 10, 8); scene.add(key);
+const room = makeHideout(LV); scene.add(room);
+// ななめ見下ろし（正投影）。部屋の まんなかを 見る
+const cam = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.1, 100), C = new THREE.Vector3(ROOM.w / 2, 0.6, ROOM.d / 2);
+cam.position.copy(C).add(new THREE.Vector3(14, 12, 14)); cam.lookAt(C);
+// ふだ（施設の 名前と Lv）。押すと 施設の 画面へ
+const tags = Object.keys(SPOTS).map((id) => { const f = FACILITIES.find((x) => x.id === id), a = document.createElement("a"), lv = LV[id];
+  a.className = "tag" + (lv ? "" : " zero"); a.href = `hideout.html?f=${id}`; a.innerHTML = `${f.name}<span class="lvp" aria-label="Lv${lv}">${[1, 2, 3].map((k) => `<i class="${k <= lv ? "on" : ""}"></i>`).join("")}</span>`; view.appendChild(a);
+  document.getElementById("list").appendChild(a.cloneNode(true));
+  const sp = SPOTS[id]; return { a, p: new THREE.Vector3(sp.x + (sp.r ? 0.6 : 0), id === "storage" ? 2.6 : 2.35, sp.z + (sp.r ? 0 : 0.6)) }; });
+function size() {
+  const w = view.clientWidth, h = view.clientHeight, s = w < 640 ? 8.8 : 6.9, asp = w / h;
+  cam.left = -s * asp; cam.right = s * asp; cam.top = s; cam.bottom = -s; cam.zoom = 1; cam.updateProjectionMatrix(); cam.updateMatrixWorld(); r.setSize(w, h, false);
+}
+function place() { const w = view.clientWidth, h = view.clientHeight; for (const t of tags) { const v = t.p.clone().project(cam); t.a.style.left = `${((v.x + 1) / 2) * w}px`; t.a.style.top = `${((1 - v.y) / 2) * h}px`; } }
+const calm = matchMedia("(prefers-reduced-motion:reduce)").matches, t0 = performance.now();
+function frame(now) { room.userData.tick?.(calm ? 1 : (now - t0) / 1000); r.render(scene, cam); if (!calm) requestAnimationFrame(frame); }
+addEventListener("resize", () => { size(); place(); r.render(scene, cam); });
+size(); place(); room.userData.tick?.(1); r.render(scene, cam); requestAnimationFrame(frame);
+window.ready = true;
+</script>
+</body>
+</html>

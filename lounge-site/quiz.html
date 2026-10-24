@@ -1,0 +1,233 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>First Pet Quiz</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Zen+Maru+Gothic:wght@500;700;900&display=swap">
+<style>
+  /* MONO LINK のラウンジ：最初の 1 匹（性格診断）の画面の見本。6 問に答えると、はこがとどいて、あけると合う子が出てくる
+     ?view=q&n=3（3 問目）・?view=box・?view=result&pet=nemu・?view=tie&pets=nemu,yura・?answers=0,1,2,3,0,1（答えを入れて、はこまで進む）
+     部品と色はステータス・ガンビット・冒険の画面と同じ */
+  :root {
+    --space:#F6F8FC; --ink:#1B2340; --soft:#6A7394; --line:#DCE3F0;
+    --sky:#2EA8FF; --coral:#FF5A64; --sun:#FFC21A; --leaf:#22CC88; --violet:#8E6CFF;
+    --kraft:#D9A56B; --kraft-dark:#B9844C; --kraft-deep:#8F6234; --tape:#F4E3B8;
+    --jp:"Zen Maru Gothic", "Hiragino Maru Gothic ProN", sans-serif; --num:"Fredoka", "Zen Maru Gothic", sans-serif;
+    --lift:0 18px 40px -18px rgba(27,35,64,.35), 0 2px 0 rgba(27,35,64,.06);
+  }
+  * { box-sizing:border-box; }
+  body { margin:0; min-height:100vh; background:radial-gradient(120% 80% at 50% 0%, #FFFFFF 0%, var(--space) 55%, #EAF0FA 100%); color:var(--ink); font:500 16px/1.7 var(--jp); }
+  button { font:inherit; color:inherit; cursor:pointer; }
+  :focus-visible { outline:3px solid var(--sky); outline-offset:3px; border-radius:14px; }
+  h1, h2, p { margin:0; }
+  h1, h2, p, .answers span { word-break:auto-phrase; text-wrap:pretty; }   /* 日本語を文節で折り返す */
+  .top { display:flex; align-items:center; gap:10px; padding:12px clamp(16px, 4vw, 40px); }
+  .top b { font:700 22px/1 var(--num); letter-spacing:.06em; } .top b i { font-style:normal; color:var(--sky); }
+  .top small { font:700 13px/1 var(--jp); color:var(--soft); margin-left:6px; }
+  main { max-width:560px; margin:0 auto; padding:8px 16px 48px; }
+  .card { background:rgba(255,255,255,.92); border-radius:28px; box-shadow:var(--lift); padding:clamp(20px, 5vw, 32px); }
+  .jelly { border:0; border-radius:999px; padding:14px 26px; font:900 16px/1 var(--jp); background:var(--ink); color:#fff; box-shadow:0 6px 0 rgba(27,35,64,.25); }
+  .jelly:active { transform:translateY(3px); box-shadow:0 3px 0 rgba(27,35,64,.25); }
+  .jelly.sky { background:var(--sky); box-shadow:0 6px 0 rgba(46,168,255,.32); }
+  .jelly.light { background:#fff; color:var(--ink); box-shadow:0 6px 0 var(--line); border:1.5px solid var(--line); }
+  .why { margin:10px 0 0; min-height:1.4em; font:700 13px/1.4 var(--jp); color:#C2364F; text-align:center; } .why:empty { margin:0; min-height:0; }
+  .jelly[aria-busy="true"] { opacity:.7; cursor:progress; }
+  .linkish { border:0; background:none; padding:6px 4px; font:700 14px/1 var(--jp); color:var(--soft); }
+  .linkish:hover { color:var(--ink); }
+
+  /* はじめ */
+  .intro { text-align:center; }
+  .intro .mail { width:120px; height:120px; margin:0 auto 6px; border-radius:50%; background:radial-gradient(circle at 50% 40%, #fff 0, #E6F4FF 80%); display:flex; justify-content:center; overflow:hidden; }
+  .intro .mail img { height:128%; margin-top:6%; }
+  .intro h1 { font:900 clamp(22px, 6vw, 28px)/1.4 var(--jp); margin-top:8px; }
+  .intro p { margin:12px auto 22px; max-width:30em; color:var(--soft); font-weight:700; }
+  .intro .from { margin-top:18px; font:700 12px/1.6 var(--jp); color:var(--soft); }
+
+  /* 進みぐあい：答えるたびに消印が押される（6 問の順番なので番号を付ける） */
+  .stamps { display:flex; gap:8px; justify-content:center; margin-bottom:18px; padding:0; list-style:none; }
+  .stamps li { width:34px; height:34px; border-radius:50%; display:grid; place-items:center; font:600 15px/1 var(--num); color:var(--soft); border:2px dashed var(--line); }
+  .stamps li.now { color:var(--ink); border:2.5px solid var(--ink); }
+  .stamps li.done { color:#fff; border:0; background:var(--coral); box-shadow:inset 0 0 0 3px rgba(255,255,255,.55), inset 0 0 0 5px var(--coral); transform:rotate(-12deg); }
+  .q h2:focus { outline:none; }
+  .q h2 { font:900 clamp(21px, 5.6vw, 26px)/1.45 var(--jp); text-align:center; margin-bottom:20px; }
+  .answers { display:grid; gap:10px; padding:0; margin:0; list-style:none; }
+  .answers button { width:100%; text-align:left; display:grid; grid-template-columns:30px 1fr; gap:12px; align-items:center; padding:14px 16px; border-radius:18px; background:#fff; border:2px solid var(--line); font:700 16px/1.5 var(--jp); box-shadow:0 4px 0 var(--line); }
+  .answers button:hover { border-color:var(--sky); box-shadow:0 4px 0 rgba(46,168,255,.35); }
+  .answers button:active { transform:translateY(2px); box-shadow:0 2px 0 var(--line); }
+  .answers .dot { width:30px; height:30px; border-radius:50%; border:2px solid var(--line); background:var(--space); }
+  .q .foot { display:flex; justify-content:space-between; align-items:center; margin-top:16px; font:700 13px/1 var(--jp); color:var(--soft); }
+
+  /* はこ：とどく → あける → 子が出てくる（この画面でいちばん動くところ） */
+  .arrive { text-align:center; }
+  .arrive h1 { font:900 clamp(24px, 6.4vw, 30px)/1.4 var(--jp); }
+  .arrive .sub { margin-top:6px; color:var(--soft); font-weight:700; }
+  .box { position:relative; width:250px; height:250px; margin:28px auto 14px; }
+  .box .pet { position:absolute; left:50%; bottom:70px; width:170px; translate:-50% 0; transition:translate .9s cubic-bezier(.2, 1.3, .4, 1) .35s, opacity .2s .35s; opacity:0; }
+  .box .face { position:absolute; left:20px; right:20px; bottom:10px; height:130px; border-radius:10px 10px 14px 14px; background:linear-gradient(180deg, var(--kraft) 0%, #CF9A5F 100%); box-shadow:inset 0 -10px 0 rgba(143,98,52,.18), 0 14px 24px -14px rgba(27,35,64,.45); }
+  .box .face::before { content:""; position:absolute; left:50%; top:0; width:44px; height:58px; translate:-50% 0; background:var(--tape); opacity:.9; border-radius:0 0 4px 4px; }
+  .box .label { position:absolute; left:16px; bottom:14px; width:120px; padding:7px 9px; border-radius:6px; background:#fff; text-align:left; font:700 10px/1.45 var(--jp); color:var(--ink); box-shadow:0 2px 0 rgba(143,98,52,.25); rotate:-3deg; }
+  .box .label b { display:block; font:900 13px/1.3 var(--jp); }
+  .box .mark { position:absolute; right:14px; bottom:18px; width:52px; height:52px; border-radius:50%; border:3px solid var(--coral); color:var(--coral); display:grid; place-items:center; font:700 10px/1.15 var(--jp); text-align:center; rotate:14deg; opacity:.85; }
+  .box .flap { position:absolute; bottom:138px; width:105px; height:40px; background:var(--kraft-dark); transition:rotate .5s cubic-bezier(.3, .1, .3, 1); }
+  .box .flap.l { left:20px; transform-origin:0 100%; border-radius:6px 2px 0 0; }
+  .box .flap.r { right:20px; transform-origin:100% 100%; border-radius:2px 6px 0 0; }
+  .box .flap.l::after, .box .flap.r::after { content:""; position:absolute; inset:auto 0 0 0; height:8px; background:var(--kraft-deep); opacity:.35; }
+  .box .tape { position:absolute; left:50%; bottom:134px; width:44px; height:50px; translate:-50% 0; background:var(--tape); border-radius:4px; transition:opacity .2s; }
+  .box.open .flap.l { rotate:-104deg; } .box.open .flap.r { rotate:104deg; }
+  .box.open .tape { opacity:0; }
+  .box.open .pet { translate:-50% -58px; opacity:1; }
+  .box.shake { animation:shake .5s ease-in-out 2; }
+  @keyframes shake { 0%, 100% { rotate:0deg; } 25% { rotate:-3deg; } 75% { rotate:3deg; } }
+
+  /* 出てきた子 */
+  .meet { text-align:center; margin-top:4px; }
+  .meet .trait { margin:0 auto; max-width:28em; font-weight:700; }
+  .diary { position:relative; margin:18px auto 0; max-width:26em; padding:14px 18px 14px 20px; border-radius:6px; text-align:left; background:repeating-linear-gradient(180deg, #fff 0 27px, #E4ECF8 27px 28px) content-box, #fff; border:1.5px solid var(--line); font:700 15px/28px var(--jp); }
+  .diary small { display:block; font:700 11px/28px var(--jp); color:var(--soft); }
+  .jobs { margin-top:16px; display:flex; flex-wrap:wrap; gap:8px; justify-content:center; align-items:center; font:700 13px/1 var(--jp); color:var(--soft); }
+  .jobs span { color:var(--ink); background:#fff; border:1.5px solid var(--line); border-radius:999px; padding:7px 12px; }
+  .meet .btns { margin-top:24px; display:flex; gap:12px; justify-content:center; flex-wrap:wrap; }
+
+  /* 同点：はこが 2〜3 個とどく */
+  .tie h1 { font:900 clamp(21px, 5.6vw, 26px)/1.45 var(--jp); text-align:center; }
+  .tie .sub { text-align:center; margin-top:6px; color:var(--soft); font-weight:700; }
+  .choices { margin-top:20px; display:grid; grid-template-columns:repeat(auto-fit, minmax(140px, 1fr)); gap:12px; }
+  .choices button { border:2px solid var(--line); border-radius:22px; background:#fff; padding:14px 10px 12px; box-shadow:0 5px 0 var(--line); display:grid; justify-items:center; gap:8px; }
+  .choices button:hover { border-color:var(--sky); box-shadow:0 5px 0 rgba(46,168,255,.35); }
+  .mini { position:relative; width:110px; height:96px; }
+  .mini img { position:absolute; left:50%; bottom:30px; width:78px; translate:-50% 0; }
+  .mini::after { content:""; position:absolute; left:6px; right:6px; bottom:0; height:52px; border-radius:6px 6px 10px 10px; background:linear-gradient(180deg, var(--kraft) 0%, #CF9A5F 100%); box-shadow:inset 0 -6px 0 rgba(143,98,52,.18); }
+  .choices b { font:900 18px/1.2 var(--jp); } .choices small { font:700 12px/1.4 var(--jp); color:var(--soft); }
+
+  [hidden] { display:none !important; }
+  @media (prefers-reduced-motion: reduce) { .box .pet, .box .flap, .box .tape { transition:none; } .box.shake { animation:none; } }
+</style>
+</head>
+<body>
+<header class="top"><a href="/" style="color:inherit;text-decoration:none" aria-label="MONO LINK の サイトへ"><b>MONO LINK<i>://</i></b></a><small><a href="lounge-room.html" style="color:inherit">ラウンジ</a> ／ はじめての子</small></header>
+<main aria-live="polite">
+  <section class="card intro" id="intro">
+    <div class="mail"><img src="img/pet-pelican.png" alt=""></div>
+    <h1>あなたに合う子が、<br>1 匹やってきます</h1>
+    <p>6 つの質問に答えてください。正しい答えはありません。思ったとおりに選んでください。</p>
+    <button class="jelly sky" id="start">はじめる</button>
+    <p class="from">とどけるのは郵便屋さんのポスケです</p>
+  </section>
+
+  <section class="card q" id="question" hidden>
+    <ol class="stamps" id="stamps" aria-label="質問の進みぐあい"></ol>
+    <h2 id="qtext" tabindex="-1"></h2>
+    <ul class="answers" id="answers"></ul>
+    <div class="foot"><button class="linkish" id="back">ひとつもどる</button><span id="count"></span></div>
+  </section>
+
+  <section class="card arrive" id="arrive" hidden>
+    <h1 id="arriveTitle">はこがとどきました</h1>
+    <p class="sub" id="arriveSub">中で、なにかが動いています</p>
+    <div class="box" id="box">
+      <img class="pet" id="boxPet" alt="">
+      <div class="flap l"></div><div class="flap r"></div><div class="tape"></div>
+      <div class="face"><div class="label"><b>あなた さま</b>MONO LINK ラウンジ<br>なまもの・やさしく</div><div class="mark">ラウンジ<br>局</div></div>
+    </div>
+    <button class="jelly" id="open">はこをあける</button>
+    <div class="meet" id="meet" hidden>
+      <p class="trait" id="trait"></p>
+      <div class="diary"><small id="diaryHead"></small><span id="diary"></span></div>
+      <p class="jobs">合う職業 <span id="job1"></span><span id="job2"></span></p>
+      <div class="btns"><button class="jelly sky" id="begin">この子とはじめる</button><button class="jelly light" id="again">答えなおす</button></div>
+      <p class="why" id="why" role="status"></p>
+    </div>
+  </section>
+
+  <section class="card tie" id="tie" hidden>
+    <h1 id="tieTitle"></h1>
+    <p class="sub">はこがいくつかとどきました。どの子をむかえますか？</p>
+    <div class="choices" id="choices"></div>
+    <div class="q"><div class="foot"><button class="linkish" id="tieAgain">答えなおす</button><span></span></div></div>
+  </section>
+</main>
+
+<script type="module">
+const { QUIZ, PETS, score } = await import("./quiz.js?v=" + Date.now());
+import { me, act, busy } from "./lounge-client.js";   // 「この子とはじめる」で 門番に 頼む（答えは 門番も 同じ 決まりで 数える）
+const $ = (id) => document.getElementById(id);
+const screens = ["intro", "question", "arrive", "tie"];
+const show = (id) => screens.forEach((s) => ($(s).hidden = s !== id));
+let answers = [], picked = null;
+
+function renderQuestion() {
+  const n = answers.length, Q = QUIZ[n];
+  $("stamps").innerHTML = QUIZ.map((_, i) => `<li class="${i < n ? "done" : i === n ? "now" : ""}" aria-label="${i + 1} 問目${i < n ? "（答えた）" : ""}">${i + 1}</li>`).join("");
+  $("qtext").textContent = Q.q;
+  $("answers").innerHTML = Q.a.map(([t], i) => `<li><button data-i="${i}"><span class="dot" aria-hidden="true"></span><span>${t}</span></button></li>`).join("");
+  $("count").textContent = `${n + 1} / ${QUIZ.length}`;
+  $("back").style.visibility = n ? "visible" : "hidden";
+  show("question");
+  $("qtext").focus({ preventScroll: true });
+}
+function finish() {
+  const { top } = score(answers);
+  if (top.length === 1) { picked = top[0]; renderBox(); } else renderTie(top);
+}
+function renderBox() {
+  const P = PETS[picked];
+  $("boxPet").src = P.img; $("boxPet").alt = P.name;
+  $("box").className = "box shake"; $("open").hidden = false; $("meet").hidden = true;
+  $("arriveTitle").textContent = "はこがとどきました"; $("arriveSub").textContent = "中で、なにかが動いています";
+  show("arrive");
+}
+function openBox() {
+  const P = PETS[picked];
+  $("box").className = "box open"; $("open").hidden = true;
+  $("arriveTitle").textContent = `${P.name}がやってきた！`; $("arriveSub").textContent = P.label;
+  setTimeout(renderMeet, matchMedia("(prefers-reduced-motion: reduce)").matches ? 200 : 1300);
+}
+function renderMeet() {
+  const P = PETS[picked];
+  $("trait").textContent = P.trait;
+  $("diaryHead").textContent = `${P.name}の日記（さいしょの日）`;
+  $("diary").textContent = P.diary;
+  $("job1").textContent = P.jobs[0]; $("job2").textContent = P.jobs[1];
+  $("meet").hidden = false;
+}
+function renderTie(ids) {
+  $("tieTitle").textContent = `${ids.length} 匹が、同じくらい合いそうです`;
+  $("choices").innerHTML = ids.map((id) => `<button data-id="${id}"><span class="mini"><img src="${PETS[id].img}" alt=""></span><b>${PETS[id].name}</b><small>${PETS[id].label}</small></button>`).join("");
+  show("tie");
+}
+const restart = () => { answers = []; picked = null; $("box").className = "box"; renderQuestion(); };
+
+$("start").onclick = () => { answers = []; renderQuestion(); };
+$("answers").onclick = (e) => { const b = e.target.closest("button"); if (!b) return; answers.push(+b.dataset.i); answers.length < QUIZ.length ? renderQuestion() : finish(); };
+$("back").onclick = () => { answers.pop(); renderQuestion(); };
+$("open").onclick = openBox;
+$("again").onclick = restart; $("tieAgain").onclick = restart;
+// この子とはじめる：門番が 答えを 数えなおして 1 匹目を 作る。できたら ラウンジへ
+$("begin").onclick = async () => {
+  if (HAVE) { location.href = "lounge-room.html"; return; }
+  const r = await busy($("begin"), () => act("pet.first", { answers, pick: picked }), "むかえて います…");
+  if (!r.ok) { $("why").textContent = r.why || "むかえられませんでした"; return; }
+  HAVE = r.pet; $("begin").textContent = "ラウンジへ"; $("again").hidden = true; $("why").textContent = "";
+};
+$("choices").onclick = (e) => { const b = e.target.closest("button"); if (!b) return; picked = b.dataset.id; renderBox(); };
+
+// もう 1 匹目が いる 人は、その子を 出す（答えなおせない）
+const M = await me();
+let HAVE = M.pets && M.pets[0] ? M.pets[0] : null;
+// 見本の切りかえ
+const U = new URLSearchParams(location.search), view = U.get("view");
+if (HAVE && !view && !U.get("answers")) {
+  picked = HAVE.qid; renderBox(); $("box").className = "box open"; $("open").hidden = true;
+  $("arriveTitle").textContent = `${PETS[picked].name}が 待って います`; $("arriveSub").textContent = PETS[picked].label;
+  renderMeet(); $("again").hidden = true; $("begin").textContent = "ラウンジへ";
+}
+else if (U.get("answers")) { answers = U.get("answers").split(",").map(Number).slice(0, QUIZ.length); finish(); }
+else if (view === "q") { const n = Math.min(QUIZ.length, Math.max(1, +(U.get("n") || 1))); answers = Array(n - 1).fill(0); renderQuestion(); }
+else if (view === "box") { picked = U.get("pet") || "nemu"; renderBox(); }
+else if (view === "result") { picked = U.get("pet") || "nemu"; renderBox(); $("box").className = "box open"; $("open").hidden = true; $("arriveTitle").textContent = `${PETS[picked].name}がやってきた！`; $("arriveSub").textContent = PETS[picked].label; renderMeet(); }
+else if (view === "tie") renderTie((U.get("pets") || "nemu,yura").split(","));
+window.ready = true;
+</script>
+</body>
+</html>

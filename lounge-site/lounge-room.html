@@ -1,0 +1,422 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Private Lounge</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600&family=Zen+Maru+Gothic:wght@700;900&display=swap">
+<style>
+  /* MONO LINK のプライベートラウンジ：部屋と もようがえ の 見本。部屋の 見た目は 2026-10-18 に 鹿さんの「このままで OK」（6×6・ななめ見下ろし・ローポリ）
+     もようがえ（鹿さんの決め、2026-10-23）：右に 持ち物の パネル（スマホは 部屋の 下）。床も 壁も 動かせる。家具の データと 形は lounge-furniture.js
+     住人：ペット（鹿さんの決め、2026-10-19）。あいて いる マスを 歩いたり 寝たり する。押すと なでる。?pet=種類 で ほかの 子（しか・pelican・mouse・tv・mogura・kurage・saboten・chokin）
+     ?night で 夜から、?edit で もようがえから。押すと 見本の 中だけで 動く（保存しない） */
+  :root { --ink:#1B2340; --soft:#6A7394; --line:#DCE3F0; --space:#F6F8FC; --amber:#FFB547; --sky:#2EA8FF; --leaf:#22CC88; --coral:#FF5A64; --violet:#8E6CFF;
+    --jp:"Zen Maru Gothic", sans-serif; --num:"Fredoka", sans-serif; }
+  * { box-sizing:border-box; }
+  body { margin:0; min-height:100vh; background:radial-gradient(120% 80% at 50% 0%, #FFFFFF 0%, #F6F8FC 55%, #EAF0FA 100%); color:var(--ink); font:500 16px/1.6 var(--jp); }
+  body.night { background:#0F1328; color:#E8ECFF; }
+  :focus-visible { outline:3px solid var(--sky); outline-offset:3px; border-radius:10px; }
+  button { font:inherit; color:inherit; cursor:pointer; }
+  .top { display:flex; align-items:center; gap:10px; padding:12px clamp(16px, 4vw, 40px); }
+  .top b { font:600 22px/1 var(--num); letter-spacing:.06em; } .top b i { font-style:normal; color:var(--sky); }
+  .top small { font:700 13px/1 var(--jp); color:var(--soft); margin-left:6px; }
+  main { max-width:1280px; margin:0 auto; padding:0 clamp(16px, 4vw, 40px) 32px; display:grid; grid-template-columns:minmax(0, 1fr); gap:16px; align-items:start; }
+  main.editing { grid-template-columns:minmax(0, 1fr) 340px; }
+  .bar { display:flex; align-items:center; gap:10px; margin-bottom:10px; min-height:40px; }
+  .bar h1 { font:900 20px/1.2 var(--jp); margin:0 auto 0 0; }
+  .res, .sw, .edit { white-space:nowrap; } a.sw { text-decoration:none; }
+  .res { font:600 15px/1 var(--num); padding:8px 12px; border-radius:999px; background:#fff; border:1.5px solid var(--line); color:var(--ink); }
+  .res i { display:inline-block; width:9px; height:9px; border-radius:50%; background:var(--leaf); margin-right:6px; }
+  .sw, .edit { padding:9px 16px; border-radius:999px; border:1.5px solid var(--line); background:#fff; font:900 13px/1 var(--jp); color:var(--ink); }
+  .edit { background:var(--ink); border-color:var(--ink); color:#fff; }
+  main.editing .edit { display:none; }
+  .view { position:relative; border-radius:24px; overflow:hidden; height:clamp(460px, calc(100vh - 150px), 760px); touch-action:none; }
+  .view canvas { display:block; width:100%; height:100%; }
+  main.editing .view { cursor:pointer; box-shadow:inset 0 0 0 2px rgba(255,181,71,.6); }
+  .tag { position:absolute; transform:translate(-50%, -100%); display:inline-flex; align-items:center; gap:6px; padding:6px 12px; border-radius:999px; background:rgba(27,35,64,.86); color:#FFE3B8; font:900 12.5px/1 var(--jp); text-decoration:none; white-space:nowrap; }
+  .tag:hover { background:rgba(27,35,64,.96); }
+  main.editing .tag { display:none; }
+  .bub { position:absolute; transform:translate(-50%, -100%); padding:6px 10px; border-radius:12px; background:#fff; color:var(--ink); font:700 12.5px/1.3 var(--jp); box-shadow:0 6px 16px -8px rgba(27,35,64,.4); white-space:nowrap; pointer-events:none; }
+  .bub::after { content:""; position:absolute; left:50%; bottom:-5px; width:10px; height:10px; background:#fff; transform:translateX(-50%) rotate(45deg); }
+  .bub.zzz { background:transparent; box-shadow:none; color:#8EA0FF; font:600 16px/1 var(--num); letter-spacing:.1em; } .bub.zzz::after { display:none; }
+  .heart { position:absolute; transform:translate(-50%, -50%); color:#FF5A8A; font-size:18px; pointer-events:none; animation:up 1s ease-out forwards; }
+  @keyframes up { from { opacity:1; margin-top:0; } to { opacity:0; margin-top:-46px; } }
+  main.editing .bub, main.editing .heart { display:none; }
+  .toast { position:absolute; left:50%; bottom:14px; transform:translateX(-50%); padding:8px 14px; border-radius:14px; background:var(--ink); color:#fff; font:700 13px/1.4 var(--jp); opacity:0; transition:opacity .2s; pointer-events:none; white-space:nowrap; }
+  .toast.on { opacity:1; }
+
+  /* もようがえの パネル */
+  .panel { background:#fff; color:var(--ink); border-radius:24px; box-shadow:0 18px 40px -22px rgba(27,35,64,.35); padding:16px; display:flex; flex-direction:column; gap:12px; position:sticky; top:12px; max-height:calc(100vh - 24px); }
+  .panel[hidden] { display:none; }
+  .panel h2 { margin:0; font:900 16px/1.2 var(--jp); display:flex; align-items:center; gap:8px; }
+  .panel h2 small { margin-left:auto; font:700 12px/1 var(--jp); color:var(--soft); }
+  .sel { border:1.5px solid var(--amber); background:#FFF8EA; border-radius:18px; padding:12px; display:grid; gap:8px; }
+  .sel .nm { display:flex; align-items:baseline; gap:8px; } .sel .nm b { font:900 15px/1.3 var(--jp); } .sel .nm span { font:700 12px/1 var(--jp); color:var(--soft); }
+  .sel .acts { display:flex; gap:8px; flex-wrap:wrap; }
+  .sel .acts button { flex:1; padding:9px 10px; border-radius:12px; border:1.5px solid var(--line); background:#fff; font:900 13px/1 var(--jp); }
+  .sel .acts button:disabled { opacity:.45; cursor:default; }
+  .sel .why { margin:0; font:700 12px/1.4 var(--jp); color:var(--coral); }
+  .stars { color:#E0A21C; letter-spacing:-1px; font-size:12px; }
+  .filters { display:grid; gap:6px; padding:10px; border-radius:16px; background:var(--space); }
+  .frow { display:grid; grid-template-columns:52px minmax(0, 1fr); gap:6px; align-items:start; }
+  .frow > span { padding-top:6px; font:900 11px/1.2 var(--jp); color:var(--soft); } .frow > div { display:flex; gap:6px; flex-wrap:wrap; }
+  .chip { border:1.5px solid var(--line); background:#fff; border-radius:999px; padding:5px 10px; font:700 12px/1 var(--jp); display:inline-flex; align-items:center; gap:5px; }
+  .chip small { font:600 11px/1 var(--num); color:var(--soft); }
+  .chip[aria-pressed="true"] { background:var(--ink); border-color:var(--ink); color:#fff; } .chip[aria-pressed="true"] small { color:rgba(255,255,255,.7); }
+  .chip:disabled { opacity:.4; cursor:default; }
+  .list { list-style:none; margin:0; padding:0; display:grid; gap:6px; overflow:auto; min-height:120px; }
+  .list button { width:100%; display:grid; grid-template-columns:14px minmax(0, 1fr) auto; gap:10px; align-items:center; padding:9px 12px; border-radius:14px; border:1.5px solid var(--line); background:#fff; text-align:left; }
+  .list button[aria-pressed="true"] { border-color:var(--amber); background:#FFF8EA; }
+  .list button:disabled { opacity:.45; cursor:default; }
+  .list .dot { width:12px; height:12px; border-radius:4px; }
+  .list b { font:700 13.5px/1.3 var(--jp); display:block; } .list small { font:700 11px/1.3 var(--jp); color:var(--soft); }
+  .list em { font:600 14px/1 var(--num); font-style:normal; color:var(--soft); }
+  .list details summary { cursor:pointer; padding:8px 4px; font:900 12px/1 var(--jp); color:var(--soft); list-style:none; } .list details summary::before { content:"▸ "; } .list details[open] summary::before { content:"▾ "; }
+  .list details summary small { margin-left:6px; font:600 11px/1 var(--num); } .list details .list { margin-top:4px; overflow:visible; }
+  .list .none { padding:10px 4px; font:700 12px/1.4 var(--jp); color:var(--soft); }
+  .tabs { display:flex; gap:6px; }
+  .tab { flex:1; display:inline-flex; align-items:center; justify-content:center; gap:5px; padding:10px 4px; border-radius:12px; border:1.5px solid var(--line); background:#fff; font:900 13px/1 var(--jp); }
+  .tab small { font:600 11px/1 var(--num); color:var(--soft); } .tab[aria-selected="true"] { background:var(--ink); border-color:var(--ink); color:#fff; } .tab[aria-selected="true"] small { color:rgba(255,255,255,.7); }
+  .tab[aria-expanded="true"]::after { content:"▾"; font-size:10px; } .tab[aria-selected="true"][aria-expanded="false"]::after { content:"▴"; font-size:10px; }
+  .tab:disabled { opacity:.4; cursor:default; }
+  .drawer { display:grid; gap:8px; } .drawer[hidden] { display:none; } .drawer .list { max-height:38vh; overflow:auto; }
+  .sorts { display:flex; gap:6px; }
+  .done { padding:13px; border-radius:16px; border:0; background:var(--ink); color:#fff; font:900 15px/1 var(--jp); }
+  @media (max-width:860px) {
+    main.editing { grid-template-columns:minmax(0, 1fr); }
+    .view { height:auto; aspect-ratio:1 / 1; }
+    /* スマホ：パネルは 下の 引き出し。ふだんは タブ と できた だけ、タブを 押すと 持ち物が 開く（もう 一度 押すと しまう） */
+    main.editing { padding-bottom:190px; }
+    .panel { position:fixed; left:0; right:0; bottom:0; top:auto; z-index:5; max-height:74vh; overflow:auto; border-radius:22px 22px 0 0; padding:12px 16px calc(12px + env(safe-area-inset-bottom)); gap:10px; box-shadow:0 -14px 30px -18px rgba(27,35,64,.5); }
+    .panel h2 { display:none; }
+    .done { padding:11px; font-size:14px; }
+    .bar { flex-wrap:wrap; } .bar h1 { font-size:17px; flex:1 0 100%; }
+  }
+</style>
+</head>
+<body>
+<header class="top"><a href="/" style="color:inherit;text-decoration:none" aria-label="MONO LINK の サイトへ"><b>MONO LINK<i>://</i></b></a><small>プライベートラウンジ</small></header>
+<main id="app">
+  <section aria-label="部屋">
+    <div class="bar"><h1 id="title">部屋</h1><span class="res"><i></i>リソース <b id="res">128</b></span><a class="sw" href="lounge-shop.html">家具の お店</a><button class="sw" id="light" aria-pressed="false">☀ 昼</button><button class="edit" id="edit">もようがえ</button></div>
+    <div class="view" id="view" aria-label="6×6 マスの 部屋。ペットを 押すと なでる"><p class="toast" id="toast" role="status"></p></div>
+  </section>
+  <aside class="panel" id="panel" aria-label="もようがえ" hidden></aside>
+</main>
+<script type="importmap">{ "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.169.0/build/three.module.js", "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.169.0/examples/jsm/" } }</script>
+<script type="module">
+import * as THREE from "three";
+import { N, FURN, F, kit, buildHatch, HATCH, dims, cellsOf, fits } from "./lounge-furniture.js";
+import { me, act, busy } from "./lounge-client.js";   // 部屋の 置き方・昼と夜は 門番に しまう（見本では ブラウザの 中の ためしの 門番）
+import { makePet3, SPECIES3 } from "./pets.js";
+
+const q = new URLSearchParams(location.search);
+const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
+// 持ち物（数）と、いま 置いて いる 物は 門番から。床は x・z（左上の マス）と rot（90 度 × n）、かべは wall（back・left）と i（はしの マス）
+const ME = await me();
+// 入れない 人（ログインが 切れた・フォローして いない など）：理由と、ログインの 道だけ 出して ここで とめる
+if (ME.denied || ME.ok === false) {
+  document.querySelector("main").innerHTML = `<section class="panel" style="max-width:520px;margin:24px auto;text-align:center;padding:28px 24px"><h2 style="margin:0 0 8px">入れません</h2><p>${String(ME.why || "もう 1 回 開いて ください").replace(/[&<>"]/g, "")}</p>${ME.login ? `<p><a href="/">MONO LINK で ログイン</a></p>` : ""}</section>`;
+  window.ready = true; await new Promise(() => {});
+}
+const MP = ME.pets && ME.pets[0];   // 1 匹目（まだ いなければ 部屋には いない。ふだは「ペットを むかえる」）
+let OWN = (ME.own && ME.own.furniture) || {};   // お店（lounge-shop.html）で 買うと ふえる
+let uidN = 0;
+const withUid = (list) => list.map((it) => ({ uid: ++uidN, ...it }));
+const S = { night: q.has("night") || (ME.room && ME.room.light === "night"), edit: q.has("edit"), sel: null, hold: null, kind: "all", sort: "star", open: false, items: withUid((ME.room && ME.room.items) || []) };
+let SAVED = JSON.stringify(S.items.map(({ uid, ...x }) => x));   // さいごに しまえた 置き方
+document.getElementById("title").textContent = `${ME.name || ""} の 部屋`;
+
+// ---------- 置き場所の 計算 ----------
+// 置けるか：決まりは lounge-rules.js（門番と 同じ）
+const fitsHere = (it, skip) => fits(S.items, it, skip);
+// のこりの 数（動かして いる 途中の 物は 置いた ことに する）
+const left = (id) => OWN[id] - S.items.filter((o) => o.id === id).length - (S.hold?.from && S.hold.id === id ? 1 : 0);
+
+// ---------- 3D ----------
+const view = document.getElementById("view");
+const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
+renderer.setPixelRatio(Math.min(2, devicePixelRatio)); renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap; renderer.outputColorSpace = THREE.SRGBColorSpace;
+view.prepend(renderer.domElement);
+const scene = new THREE.Scene();
+const cam = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.1, 100); cam.position.set(14, 12, 14); cam.lookAt(0, 1.15, 0);
+let K, room, ghost, mark;
+const groups = new Map();   // uid → 家具の 3D
+
+function place3d(g, it) {
+  if (it.wall === "back") { g.position.set(it.i + F(it.id).size / 2 - N / 2, 0, -N / 2 + 0.06); g.rotation.y = 0; }
+  else if (it.wall === "left") { g.position.set(-N / 2 + 0.06, 0, it.i + F(it.id).size / 2 - N / 2); g.rotation.y = Math.PI / 2; }
+  else { const [w, d] = dims(it); g.position.set(it.x + w / 2 - N / 2, 0, it.z + d / 2 - N / 2); g.rotation.y = it.rot * Math.PI / 2; }
+}
+function make(it, see) {
+  const g = new THREE.Group(); F(it.id).build(K, g); place3d(g, it);
+  g.traverse((m) => { m.userData.uid = it.uid; if (see && m.material) { m.material = m.material.clone(); m.material.transparent = true; m.material.opacity = 0.55; m.castShadow = false; } if (see && m.isLight) m.intensity = 0; });
+  return g;
+}
+// 黄色や 緑・赤の わく（床は マス、かべは 面）
+function footprint(it, color, op) {
+  const g = new THREE.Group(), m = new THREE.MeshBasicMaterial({ color, transparent: true, opacity: op, depthWrite: false });
+  if (it.wall) { const w = F(it.id).size, p = new THREE.Mesh(new THREE.PlaneGeometry(w - 0.06, 3.2), m);
+    if (it.wall === "back") p.position.set(it.i + w / 2 - N / 2, 1.7, -N / 2 + 0.02); else { p.position.set(-N / 2 + 0.02, 1.7, it.i + w / 2 - N / 2); p.rotation.y = Math.PI / 2; }
+    g.add(p); }
+  else for (const [x, z] of cellsOf(it)) { const p = new THREE.Mesh(new THREE.PlaneGeometry(0.94, 0.94), m); p.rotation.x = -Math.PI / 2; p.position.set(x - N / 2 + 0.5, 0.045, z - N / 2 + 0.5); g.add(p); }
+  return g;
+}
+
+function buildRoom() {
+  scene.clear(); groups.clear(); ghost = mark = null;
+  K = kit(S.night); document.body.classList.toggle("night", S.night);
+  scene.background = new THREE.Color(S.night ? "#141A33" : "#F6F8FC");
+  renderer.toneMapping = S.night ? THREE.ACESFilmicToneMapping : THREE.NoToneMapping;
+  scene.add(new THREE.HemisphereLight(S.night ? "#6C7BD9" : "#FFFFFF", S.night ? "#1B2340" : "#C9D3EA", S.night ? 0.6 : 1.6));
+  const sun = new THREE.DirectionalLight(S.night ? "#8EA0FF" : "#FFF4E0", S.night ? 0.5 : 1.3); sun.position.set(6, 12, 4); sun.castShadow = true;
+  sun.shadow.mapSize.set(2048, 2048); Object.assign(sun.shadow.camera, { left: -8, right: 8, top: 8, bottom: -8 }); sun.shadow.bias = -0.0005; scene.add(sun);
+  room = new THREE.Group(); scene.add(room);
+  for (let i = 0; i < N; i++) for (let j = 0; j < N; j++) K.box(room, 1, 0.2, 1, K.mat((i + j) % 2 ? (S.night ? "#2A3157" : "#E4E9F4") : (S.night ? "#252B4E" : "#EDF1F8")), i - N / 2 + 0.5, -0.2, j - N / 2 + 0.5);
+  const wallM = S.night ? K.mat("#20274A") : K.mat("#FFFFFF", { emissive: "#DCE3F0", emissiveIntensity: 0.3 });
+  K.box(room, N + 0.3, 4, 0.3, wallM, -0.15, -0.2, -N / 2 - 0.15); K.box(room, 0.3, 4, N, wallM, -N / 2 - 0.15, -0.2, 0);
+  K.box(room, N, 0.08, 0.04, K.glow("#2EA8FF"), 0, 0.02, -N / 2 + 0.02); K.box(room, 0.04, 0.08, N, K.glow("#8E6CFF"), -N / 2 + 0.02, 0.02, 0);
+  const h = new THREE.Group(); buildHatch(K, h); h.position.set(HATCH.x - N / 2 + 0.5, 0, HATCH.z - N / 2 + 0.5); room.add(h);
+  if (S.night) { const p1 = new THREE.PointLight("#8E6CFF", 5, 6); p1.position.set(1, 2, -1.5); scene.add(p1); }
+  for (const it of S.items) { const g = make(it); groups.set(it.uid, g); scene.add(g); }
+  if (PET_SP) { pet.g = makePet3(PET_SP); pet.g.traverse((m) => { if (m.isMesh) m.castShadow = true; }); pet.g.visible = !S.edit; pet.g.rotation.y = pet.face; scene.add(pet.g); }
+  marks();
+}
+// えらんだ 物の 黄色い わく・もって いる 物の 半とうめいと 緑（置ける）／赤（置けない）
+function marks() {
+  if (mark) scene.remove(mark); if (ghost) scene.remove(ghost); mark = ghost = null;
+  if (S.hold && S.hold.at) { const it = { ...S.hold.at, id: S.hold.id, uid: -1 }, ok = fitsHere(it, -1); ghost = make(it, true); mark = footprint(it, ok ? "#22CC88" : "#FF5A64", 0.45); scene.add(ghost, mark); }
+  else if (S.sel) { const it = S.items.find((o) => o.uid === S.sel); if (it) { mark = footprint(it, "#FFC21A", 0.45); mark.userData.blink = true; scene.add(mark); } }
+}
+
+function size() {
+  const w = view.clientWidth, h = view.clientHeight, asp = w / h, s = Math.max(4.4, 4.65 / asp);
+  Object.assign(cam, { left: -s * asp, right: s * asp, top: s, bottom: -s }); cam.updateProjectionMatrix(); cam.updateMatrixWorld(); renderer.setSize(w, h, false);
+  tags();
+}
+// ふだ（ふつうの とき）：PC → DEEP LINK/:、はしご → 地下の 隠れ家、ペット → ペットの 画面（冒険。まだ いなければ 性格診断）。部屋が まんなか（鹿さんの決め、2026-10-24）
+const tagEls = [["pc", "deeplink.html", "DEEP LINK/:"], ["hatch", "hideout-room.html", "地下へ"], ["pet", MP ? "dungeon.html" : "quiz.html", MP ? "ペット" : "ペットを むかえる"]].map(([k, href, txt]) => { const a = document.createElement("a"); a.className = "tag"; a.href = href; a.textContent = txt; view.appendChild(a); return { k, a }; });
+function tags() {
+  const w = view.clientWidth, h = view.clientHeight;
+  for (const t of tagEls) {
+    if (t.k === "pet") { petTag(); continue; }
+    let p;
+    if (t.k === "hatch") p = new THREE.Vector3(HATCH.x - N / 2 + 0.5, 0.75, HATCH.z - N / 2 + 0.5);
+    else { const it = S.items.find((o) => o.id === "pc"); t.a.hidden = !it; if (!it) continue; const g = groups.get(it.uid); p = g.position.clone().setY(1.6); }
+    const v = p.project(cam); t.a.style.left = `${((v.x + 1) / 2) * w}px`; t.a.style.top = `${((1 - v.y) / 2) * h}px`;
+  }
+}
+
+// ---------- 指で えらぶ ----------
+const ray = new THREE.Raycaster(), ndc = new THREE.Vector2();
+const PL = { floor: new THREE.Plane(new THREE.Vector3(0, 1, 0), 0), back: new THREE.Plane(new THREE.Vector3(0, 0, 1), N / 2), left: new THREE.Plane(new THREE.Vector3(1, 0, 0), N / 2) };
+function aim(e) { const r = renderer.domElement.getBoundingClientRect(); ndc.set(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1); ray.setFromCamera(ndc, cam); }
+// もって いる 物を、指の 下の マス（かべ）に あわせる
+function spot() {
+  const f = F(S.hold.id);
+  if (f.place === "wall") {
+    let best = null;
+    for (const wall of ["back", "left"]) { const p = ray.ray.intersectPlane(PL[wall], new THREE.Vector3()); if (!p || p.y < -0.2 || p.y > 4.2) continue;
+      const c = wall === "back" ? p.x : p.z; if (c < -N / 2 - 0.4 || c > N / 2 + 0.4) continue; const d = ray.ray.origin.distanceTo(p);
+      if (!best || d < best.d) best = { d, wall, i: Math.max(0, Math.min(N - f.size, Math.round(c + N / 2 - f.size / 2))) }; }
+    return best && { wall: best.wall, i: best.i };
+  }
+  const p = ray.ray.intersectPlane(PL.floor, new THREE.Vector3()); if (!p) return null;
+  const rot = S.hold.rot, [w, d] = rot % 2 ? [f.size[1], f.size[0]] : f.size;
+  return { x: Math.max(0, Math.min(N - w, Math.round(p.x + N / 2 - w / 2))), z: Math.max(0, Math.min(N - d, Math.round(p.z + N / 2 - d / 2))), rot };
+}
+view.addEventListener("pointermove", (e) => {
+  if (!S.edit || !S.hold) return; aim(e); const at = spot(); if (!at) return;
+  if (JSON.stringify(at) !== JSON.stringify(S.hold.at)) { S.hold.at = at; marks(); }
+});
+view.addEventListener("click", (e) => {
+  if (e.target.closest(".tag")) return; aim(e);
+  if (!S.edit && pet.g && ray.intersectObject(pet.g, true).length) return pat(performance.now() / 1000);
+  if (!S.edit) { const hit = ray.intersectObjects([...groups.values()], true)[0], it = hit && S.items.find((o) => o.uid === hit.object.userData.uid); if (it && it.id === "pc") location.href = "deeplink.html"; return; }
+  if (S.hold) {
+    const at = spot() || S.hold.at; if (!at) return; const it = { ...at, id: S.hold.id, uid: S.hold.from || ++uidN };
+    if (!fitsHere(it, -1)) return toast(F(it.id).place === "wall" ? "ここは ほかの 物と かさなる" : "ここには 置けない");
+    S.items.push(it); S.hold = null; S.sel = it.uid; return redraw();
+  }
+  const hit = ray.intersectObjects([...groups.values()], true)[0];
+  S.sel = hit ? hit.object.userData.uid : null; panel(); marks();
+});
+
+// ---------- うごかす ----------
+function rotate() {
+  if (S.hold) { if (F(S.hold.id).place === "wall") return; S.hold.rot = (S.hold.rot + 1) % 4; if (S.hold.at) { S.hold.at = { ...S.hold.at, rot: S.hold.rot }; const [w, d] = dims({ id: S.hold.id, rot: S.hold.rot }); S.hold.at.x = Math.min(S.hold.at.x, N - w); S.hold.at.z = Math.min(S.hold.at.z, N - d); } marks(); return panel(); }
+  const it = S.items.find((o) => o.uid === S.sel); if (!it || it.wall) return;
+  const nx = { ...it, rot: (it.rot + 1) % 4 }; const [w, d] = dims(nx); nx.x = Math.min(nx.x, N - w); nx.z = Math.min(nx.z, N - d);
+  if (!fitsHere(nx, it.uid)) return toast("回すと ほかの 物に ぶつかる");
+  Object.assign(it, nx); redraw();
+}
+function pickUp() { const k = S.items.findIndex((o) => o.uid === S.sel); if (k < 0) return; const it = S.items.splice(k, 1)[0];
+  S.hold = { id: it.id, rot: it.rot || 0, from: it.uid, back: it, at: it.wall ? { wall: it.wall, i: it.i } : { x: it.x, z: it.z, rot: it.rot } }; S.sel = null; redraw(); }
+function store() { const it = S.items.find((o) => o.uid === S.sel); if (!it || F(it.id).keep) return; S.items = S.items.filter((o) => o !== it); S.sel = null; toast(`${F(it.id).name}を しまった`); redraw(); }
+function cancel() { if (S.hold) { if (S.hold.back) S.items.push(S.hold.back); S.sel = S.hold.back ? S.hold.back.uid : null; S.hold = null; } else S.sel = null; redraw(); }
+function hold(id) { if (left(id) <= 0) return; if (S.hold?.back) { S.items.push(S.hold.back); buildRoom(); } S.sel = null; S.hold = { id, rot: 0, at: null }; panel(); marks(); }
+function redraw() { buildRoom(); panel(); tags(); }
+
+// ---------- パネル ----------
+const P = document.getElementById("panel"), KINDS = [["all", "すべて"], ["floor", "床"], ["wall", "壁"], ["glow", "光る"]];
+const okKind = (f, k = S.kind) => k === "all" || (k === "glow" ? !!f.glows : k === "wall" ? f.place === "wall" : f.place !== "wall");
+const stars = (n) => (n ? `<span class="stars">${"★".repeat(n)}</span>` : "");
+const STAR_C = { 0: "#6A7394", 1: "#86C25A", 2: "#2EA8FF", 3: "#8E6CFF", 4: "#FF8A3D", 5: "#FF5A64" };
+const sizeText = (f) => (f.place === "wall" ? `壁・はば ${f.size}` : `${f.place === "rug" ? "しく 物" : "床"}・${f.size[0]}×${f.size[1]}`);
+function selHtml() {
+  if (S.hold) { const f = F(S.hold.id);
+    return `<div class="sel"><div class="nm"><b>${esc(f.name)}</b>${stars(f.star)}<span>${sizeText(f)}</span></div>
+      <div class="acts">${f.place === "wall" ? "" : `<button data-act="rot">回す</button>`}<button data-act="cancel">やめる</button></div></div>`; }
+  const it = S.items.find((o) => o.uid === S.sel); if (!it) return "";
+  const f = F(it.id);
+  return `<div class="sel"><div class="nm"><b>${esc(f.name)}</b>${stars(f.star)}<span>${esc(f.kind || sizeText(f))}</span></div>
+    <div class="acts">${it.wall ? "" : `<button data-act="rot">回す</button>`}<button data-act="move">動かす</button><button data-act="store" ${f.keep ? "disabled" : ""}>しまう</button></div>
+    ${f.keep ? `<p class="why">PC は DEEP LINK/: の 入口なので しまえない</p>` : ""}</div>`;
+}
+const small = () => matchMedia("(max-width:860px)").matches;
+function panel() {
+  P.hidden = !S.edit; document.getElementById("app").classList.toggle("editing", S.edit); if (!S.edit) return;
+  const own = FURN.filter((f) => OWN[f.id]);
+  // タブの 数は「いま 置ける しゅるい」の 数。持ち物が ない しゅるいは 押せない
+  const n = (k) => own.filter((f) => okKind(f, k) && left(f.id) > 0).length, has = (k) => own.some((f) => okKind(f, k));
+  const by = S.sort === "star" ? (a, b) => b.star - a.star || a.name.localeCompare(b.name, "ja") : (a, b) => a.name.localeCompare(b.name, "ja");
+  const row = (f) => { const l = left(f.id);
+    return `<li><button data-hold="${f.id}" aria-pressed="${S.hold?.id === f.id && !S.hold.from}" ${l > 0 ? "" : "disabled"}><i class="dot" style="background:${STAR_C[f.star]}"></i><span><b>${esc(f.name)} ${stars(f.star)}</b><small>${esc(f.kind || sizeText(f))}</small></span><em>×${l}</em></button></li>`; };
+  const vis = own.filter((f) => okKind(f)).sort(by), can = vis.filter((f) => left(f.id) > 0), all = vis.filter((f) => left(f.id) <= 0);
+  const rows = (can.length ? can.map(row).join("") : `<li class="none">この しゅるいは ぜんぶ 置いた</li>`) + (all.length ? `<li><details><summary>ぜんぶ 置いた 物<small>${all.length}</small></summary><ul class="list">${all.map(row).join("")}</ul></details></li>` : "");
+  const placed = S.items.length;
+  const sorts = `<button class="chip" data-sort="star" aria-pressed="${S.sort === "star"}">★の 高い順</button><button class="chip" data-sort="name" aria-pressed="${S.sort === "name"}">名前順</button>`;
+  if (small()) {
+    P.innerHTML = `${selHtml()}
+      <div class="tabs" role="tablist" aria-label="しゅるい">${KINDS.map(([k, t]) => `<button class="tab" role="tab" data-tab="${k}" aria-selected="${S.kind === k}" aria-expanded="${S.kind === k && S.open}" ${has(k) ? "" : "disabled"}>${t}<small>${n(k)}</small></button>`).join("")}</div>
+      <div class="drawer" ${S.open ? "" : "hidden"}><div class="sorts">${sorts}</div><ul class="list" aria-label="持ち物">${rows}</ul></div>
+      <button class="done" data-act="done">できた</button>`;
+    return;
+  }
+  P.innerHTML = `<h2>もようがえ<small>置いた ${placed} こ</small></h2>${selHtml()}
+    <div class="filters" role="group" aria-label="分け方">
+      <div class="frow"><span>しゅるい</span><div>${KINDS.map(([k, t]) => `<button class="chip" data-kind="${k}" aria-pressed="${S.kind === k}" ${has(k) ? "" : "disabled"}>${t}<small>${n(k)}</small></button>`).join("")}</div></div>
+      <div class="frow"><span>ならべる</span><div><button class="chip" data-sort="star" aria-pressed="${S.sort === "star"}">★の 高い順</button><button class="chip" data-sort="name" aria-pressed="${S.sort === "name"}">名前順</button></div></div></div>
+    <ul class="list" aria-label="持ち物">${rows}</ul>
+    <button class="done" data-act="done">できた</button>`;
+}
+P.addEventListener("click", (e) => {
+  const b = e.target.closest("button"); if (!b || b.disabled) return;
+  if (b.dataset.kind) { S.kind = b.dataset.kind; return panel(); }
+  if (b.dataset.sort) { S.sort = b.dataset.sort; return panel(); }
+  if (b.dataset.tab) { if (S.kind === b.dataset.tab && S.open) S.open = false; else { S.kind = b.dataset.tab; S.open = true; } return panel(); }
+  if (b.dataset.hold) { S.open = false; hold(b.dataset.hold); return; }   // スマホは 引き出しを しめて、部屋の マスを 押せるように
+  const a = b.dataset.act;
+  if (a === "rot") rotate(); else if (a === "move") pickUp(); else if (a === "store") store(); else if (a === "cancel") cancel();
+  else if (a === "done") { if (S.hold) cancel(); saveRoom(b); }
+});
+addEventListener("keydown", (e) => {
+  if (!S.edit) return;
+  if (e.key === "r" || e.key === "R") rotate(); else if (e.key === "Escape") cancel(); else if ((e.key === "Delete" || e.key === "Backspace") && S.sel) store();
+});
+document.getElementById("edit").addEventListener("click", () => { S.edit = true; redraw(); size(); });
+const lightBtn = document.getElementById("light");
+const lightText = () => { lightBtn.textContent = S.night ? "☾ 夜" : "☀ 昼"; lightBtn.setAttribute("aria-pressed", String(S.night)); lightBtn.setAttribute("aria-label", `照明：${S.night ? "夜" : "昼"}`); };
+lightBtn.addEventListener("click", async () => {
+  S.night = !S.night; lightText(); redraw();
+  const r = await act("room.light", { light: S.night ? "night" : "day" });
+  if (!r.ok) { S.night = !S.night; lightText(); redraw(); toast(r.why); }
+});
+// もようがえを おえる：門番に しまう（決まりに 合わない ときは 理由を 出して、もようがえを つづける）
+async function saveRoom(btn) {
+  const items = S.items.map(({ uid, ...x }) => x), now = JSON.stringify(items);
+  if (now !== SAVED) {
+    const r = await busy(btn, () => act("room.save", { items }), "しまって います…");
+    if (!r.ok) return toast(r.why || "しまえなかった");
+    SAVED = now;
+  }
+  S.edit = false; S.sel = null; petFree(); pet.until = 0; redraw();
+}
+let tid; function toast(t) { const el = document.getElementById("toast"); el.textContent = t; el.classList.add("on"); clearTimeout(tid); tid = setTimeout(() => el.classList.remove("on"), 1800); }
+
+// ---------- 住人（ペット） ----------
+// あいて いる マス（床の 家具と はしごの ない ところ）を 歩く。ときどき 寝る（ネムは 一日 20 時間 ねている）。押すと なでる
+const PET_SP = SPECIES3[q.get("pet")] ? q.get("pet") : MP ? (SPECIES3[MP.species] ? MP.species : "shika") : null;
+const NAME = { shika: "ネム", pelican: "ポスケ", mouse: "カチ", tv: "ザザ", mogura: "ホリ", kurage: "ユラ", saboten: "チク", chokin: "チャリン" };
+const PAT = { shika: "……なでられた。ねる。", pelican: "はいっ！ なでて いただきました！", mouse: "なでた なでた！ はしる はしる！", tv: "（画面に ハート）", mogura: "えへへ。あなを ほって くる",
+  kurage: "なんだっけ… うれしい。ゆらゆら", saboten: "……。（チクッ）", chokin: "チャリン♪ コイン ある？" };
+const SLEEPY = PET_SP === "shika" ? 0.6 : 0.25, SPEED = 0.9, PS = 1.25;   // PS：部屋での 大きさ（家具より 少し 目立つ）
+const pet = { g: null, x: 3, z: 5, pos: null, path: [], mode: "idle", until: 0, face: 0, say: "", sayUntil: 0 };
+const cellPos = (x, z) => new THREE.Vector3(x - N / 2 + 0.5, 0, z - N / 2 + 0.5);
+pet.pos = cellPos(pet.x, pet.z);
+function blocked() { const b = new Set([HATCH.x + "," + HATCH.z]); for (const o of S.items) if (!o.wall && F(o.id).place === "floor") for (const [x, z] of cellsOf(o)) b.add(x + "," + z); return b; }
+// となりの マスを たどって 行ける マス（近い 順）
+function reach(from, b) {
+  const seen = new Map([[from.join(), null]]), order = [from], qq = [from];
+  while (qq.length) { const [x, z] = qq.shift(); for (const [dx, dz] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) { const nx = x + dx, nz = z + dz, k = nx + "," + nz;
+    if (nx < 0 || nz < 0 || nx >= N || nz >= N || b.has(k) || seen.has(k)) continue; seen.set(k, [x, z]); order.push([nx, nz]); qq.push([nx, nz]); } }
+  return { seen, order };
+}
+function pathTo(to, seen) { const out = []; let c = to; while (c && seen.get(c.join())) { out.unshift(c); c = seen.get(c.join()); } return out; }
+function petPlan(t) {
+  const b = blocked(), { seen, order } = reach([pet.x, pet.z], b);
+  if (Math.random() < SLEEPY) { pet.mode = "sleep"; pet.until = t + 7 + Math.random() * 7; return; }
+  const far = order.slice(1); if (calm || !far.length) { pet.mode = "idle"; pet.until = t + 3; return; }
+  pet.path = pathTo(far[Math.floor(Math.random() * far.length)], seen).slice(0, 6); pet.mode = "walk";
+}
+// もようがえで いる マスが ふさがったら、近くの あいた マスへ
+function petFree() { const b = blocked(); if (!b.has(pet.x + "," + pet.z)) return; for (let r = 1; r < N * 2; r++) for (let x = 0; x < N; x++) for (let z = 0; z < N; z++) if (Math.abs(x - pet.x) + Math.abs(z - pet.z) === r && !b.has(x + "," + z)) { pet.x = x; pet.z = z; pet.pos = cellPos(x, z); pet.path = []; pet.mode = "idle"; return; } }
+// ペットの ふだは ペットに ついて 回る（いない ときは 部屋の まんなか）
+function petTag() {
+  const t = tagEls.find((x) => x.k === "pet"); if (!t) return;
+  const v = (pet.g ? pet.pos.clone().setY(1.15) : new THREE.Vector3(0, 0.3, 0.5)).project(cam);
+  t.a.style.left = `${((v.x + 1) / 2) * view.clientWidth}px`; t.a.style.top = `${((1 - v.y) / 2) * view.clientHeight}px`;
+}
+function petStep(t, dt) {
+  const g = pet.g; if (!g) return;
+  if (!S.edit) {
+    if (pet.mode === "walk") {
+      const nx = pet.path[0]; if (!nx) { pet.mode = "idle"; pet.until = t + 1.5 + Math.random() * 2; }
+      else { const to = cellPos(nx[0], nx[1]), d = to.clone().sub(pet.pos), L = d.length();
+        if (L > 0.001) pet.face = Math.atan2(d.x, d.z);
+        if (L <= SPEED * dt) { pet.pos.copy(to); pet.x = nx[0]; pet.z = nx[1]; pet.path.shift(); } else pet.pos.addScaledVector(d, (SPEED * dt) / L); }
+    } else if (t > pet.until) petPlan(t);
+  }
+  g.position.copy(pet.pos); g.position.y = pet.mode === "walk" && !calm ? Math.abs(Math.sin(t * 9)) * 0.04 : 0;
+  petTag();
+  g.rotation.y += (pet.face - g.rotation.y) * Math.min(1, dt * 8);
+  const z = pet.mode === "sleep"; g.scale.set(PS, z ? PS * 0.92 : PS, PS); g.rotation.x = z ? 0.12 : 0;
+  if (!z && !calm) g.userData.tick?.(t);
+}
+const bub = document.createElement("p"); bub.className = "bub"; view.appendChild(bub);
+function petLabel(t) {
+  const talk = t < pet.sayUntil, zz = pet.mode === "sleep" && !talk;
+  bub.hidden = S.edit || (!talk && !zz); if (bub.hidden || !pet.g) return;
+  bub.className = zz ? "bub zzz" : "bub"; bub.textContent = zz ? "Zzz" : pet.say;
+  const v = pet.pos.clone().setY(zz ? 1.75 : 2.1).project(cam);   // ふだ（ペット）の 上に bub.style.left = `${((v.x + 1) / 2) * view.clientWidth}px`; bub.style.top = `${((1 - v.y) / 2) * view.clientHeight}px`;
+}
+function pat(t) {
+  const woke = pet.mode === "sleep"; pet.say = woke && PET_SP === "shika" ? "……ねてた。" : PAT[PET_SP]; pet.sayUntil = t + 2.6;
+  if (woke) { pet.mode = "idle"; pet.until = t + 3; }
+  const v = pet.pos.clone().setY(1.1).project(cam), x = ((v.x + 1) / 2) * view.clientWidth, y = ((1 - v.y) / 2) * view.clientHeight;
+  for (let k = 0; k < 3; k++) { const h = document.createElement("i"); h.className = "heart"; h.textContent = "♥"; h.style.left = `${x + (k - 1) * 16}px`; h.style.top = `${y - k * 6}px`; h.style.animationDelay = `${k * 0.12}s`; view.appendChild(h); setTimeout(() => h.remove(), 1400); }
+}
+
+// ---------- うごき ----------
+const calm = matchMedia("(prefers-reduced-motion:reduce)").matches;
+function tick(t) {
+  if (!calm) scene.traverse((o) => {
+    if (o.userData.pulse) o.children.forEach((m, k) => (m.material.emissiveIntensity = (S.night ? 4 : 1.6) * (0.75 + 0.25 * Math.sin(t / 300 + k))));   // ネオンが ゆらぐ
+    if (o.userData.blink) o.children.forEach((m) => (m.material.opacity = 0.3 + 0.2 * Math.sin(t / 250)));                                         // えらんだ わく
+    if (o.userData.spin) o.rotation.y = t / 1600;                                                                                                   // ホログラム
+  });
+  const sec = t / 1000, dt = Math.min(0.05, sec - (tick.last ?? sec)); tick.last = sec;
+  petStep(sec, dt); petLabel(sec);
+  renderer.render(scene, cam); requestAnimationFrame(tick);
+}
+new ResizeObserver(() => size()).observe(view);
+matchMedia("(max-width:860px)").addEventListener("change", () => panel());
+document.getElementById("res").textContent = ME.wallet && ME.wallet.known ? ME.wallet.res.toLocaleString("ja-JP") : "？";
+lightText(); buildRoom(); panel(); size(); requestAnimationFrame(tick);
+window.ready = true;
+// 確かめ用：部屋の 中の 点 → 画面の 点
+window.proj = (x, y, z) => { const v = new THREE.Vector3(x, y, z).project(cam), r = renderer.domElement.getBoundingClientRect(); return [r.left + ((v.x + 1) / 2) * r.width, r.top + ((1 - v.y) / 2) * r.height]; };
+window.S = S; window.pet = pet;
+</script>
+</body>
+</html>

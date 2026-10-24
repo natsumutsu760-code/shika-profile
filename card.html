@@ -2044,6 +2044,9 @@ if (location.hash === "#lcdcard" || location.hash === "#sitecard" || document.do
     <h3>最近ラウンジに入れなかった人</h3>
     <p class="note">ラウンジに入れなかったとき、視聴者の画面にはコード（例：F01）と理由が出ます。ここには最近の 20 件が出ます（10 分ごとに更新）。</p>
     <ul class="p-board" id="p-denied"></ul>
+    <div id="p-lgdis-box" hidden><h3>同じ 名前で ちがう 人が 話した（ラウンジの 玉）</h3>
+    <p class="note">玉は 名前で しまって いるので、どちらの 人の 玉か えらぶまで、その 名前の 玉は ラウンジで 使えません。</p>
+    <ul class="p-board" id="p-lgdis"></ul></div>
     <h3>掲示板（!けいじばん で書いたもの）</h3>
     <p class="note">書き込みは、ここで「載せる」を押したものだけサイトに出ます。✕ を押すと、次に送ったときにサイトから消えます。</p>
     <ul class="p-board" id="p-board"></ul>
@@ -2112,6 +2115,165 @@ if (location.hash === "#lcdcard" || location.hash === "#sitecard" || document.do
   </section>
 </form>
 
+<script>/* ラウンジの 帳簿：stream-layouts/lounge-server/obs-ledger.js の 写し（直す ときは あちらを 直して ここへ 写す。門番の テストが 同じか たしかめる） */
+// OBS の オーバーレイに 足す 部品：門番から 来る 玉と リソースの 頼み（lg）を、その 人の 玉・リソースに 足す
+// オーバーレイは module では ないので、ふつうの script で 読む（window.ObsLedger）。つなぎ方は README.md
+// - 人は Twitch の id で さがす（チャットの user-id から 覚えた「id → 表示名」）
+//   玉と リソースは 表示名で しまって あるので、表示名は はじめに その 名前で 話した 人の 物に する（own）
+//   ちがう 人が 同じ 名前で 話したら、その 名前の 玉は だれも ラウンジで 使えなく する（dis）。配信者が 持ち主を 決めると（resolve）もどる
+//   名前を かえた 人の 前の 名前も 手ばなさない（ほかの 人が その 名前に して、前の 人の 玉を 使えない ように）
+//   のこる 穴：入れて すぐ、本人より 先に 同じ 名前で 話した 人は、本人が 話すまで 使えて しまう（いまの オーバーレイも 名前で 玉を しまうので、チャットの ゲームでは 前から 同じ）。
+//   ふさぐには オーバーレイの 玉を id で しまう 作りに かえる（オーバーレイ ぜんたいの 直し）
+// - 同じ op は 2 回 足さない（新しい 3,000 こを 覚える）。足すたびに 帳簿の 番号（seq）を 1 つ すすめ、上げる 記録に data.lg として 入れる
+//   seq は 時刻より 小さく ならない ように する（覚えが 消えても、前の 番号より 大きく なる）
+(function (G) {
+  var KEEP = 3000, OPS_KEY = "mono-link-ledger-v1", UID_KEY = "mono-link-uid-v2";
+
+  // o：{ read(key, def), write(key, val), get(name, kind) → いまの 数, add(name, kind, d) → 足した 数（0 より 少なく しない）,
+  //      onCut(name, kind, want, got), onClash(name, ownerId, otherId)（ほかの 人の 名前で 話した。診断に 残して 配信者に 見せる）,
+  //      askBalls(name, d, need, key) → Promise<{ ok, bal, got } | null>（handleAsync の とき。玉を しまう 鹿物語に 頼む。null は 返事が なかった） }
+  // 玉を しまって 書くのは 鹿物語（オーバーレイは 読む だけ）。オーバーレイでは handleAsync を 使い、玉は 鹿物語に 頼んで 返事を 待つ（オーバーレイでは handle を 使わない。handle は 玉も その場で 書ける ときの 道＝門番の テスト用）
+  function ObsLedger(o) {
+    var obj = function (v) { return v && typeof v === "object" && !Array.isArray(v); };
+    var st = o.read(OPS_KEY, null), U = o.read(UID_KEY, null), idx = {};
+    if (!obj(st) || !Array.isArray(st.ops) || !(st.seq >= 0)) st = { seq: 0, ops: [] };   // 形が ちがう 物は 使わない
+    if (!obj(st.back)) st.back = {};   // 玉を 返すと 決めた 仕事（返事が 消えても、聞きなおしで かならず 返して ことわる）
+    if (!obj(U) || !obj(U.ids) || !obj(U.own) || !obj(U.dis) || !obj(U.fix)) U = { ids: {}, own: {}, dis: {}, fix: {} };
+    st.ops.forEach(function (x) { if (Array.isArray(x)) idx[x[0]] = x; });
+    // ids：id → いまの 表示名。own：表示名 → その 名前の 玉の 持ち主の id（いちど 決まったら かえない）
+    // dis：ちがう 人が 同じ 名前で 話した 名前（だれも 使えない）。fix：配信者が 持ち主を 決めた 名前
+    var has = function (m, k) { return Object.prototype.hasOwnProperty.call(m, k); };   // 「constructor」などの 名前でも まちがえない
+    function owner(name) { return has(U.own, name) && !has(U.dis, name) ? U.own[name] : ""; }
+    function nameOf(id) { var u = U.ids[id]; return u && owner(u.n) === id ? u.n : ""; }
+    function uidOf(name) { var id = owner(name); return id && U.ids[id] && U.ids[id].n === name ? id : ""; }
+
+    // チャットの 1 行ごとに（user-id と 表示名）。かわった ときだけ しまう
+    function noteUid(id, name) {
+      id = String(id || ""); name = String(name || "").slice(0, 40);
+      if (!/^\d{1,20}$/.test(id) || !name || name === "__proto__") return;
+      var u = U.ids[id], ch = false, who = has(U.own, name) ? U.own[name] : "";
+      if (!u || u.n !== name) {
+        U.ids[id] = { n: name, at: Date.now() }; ch = true;
+        if (who && who !== id) { if (!has(U.fix, name)) U.dis[name] = Date.now(); if (o.onClash) o.onClash(name, who, id); }
+      }
+      if (!who) { U.own[name] = id; ch = true; }
+      if (ch) o.write(UID_KEY, U);
+    }
+    // 配信者が 名前の 持ち主を 決める（パネルから）。決めた あとは、ほかの 人が その 名前で 話しても 持ち主は かわらない
+    function resolve(name, id) {
+      name = String(name || ""); id = String(id || "");
+      if (!name || name === "__proto__" || !/^\d{1,20}$/.test(id)) return false;
+      U.own[name] = id; U.fix[name] = id; delete U.dis[name]; o.write(UID_KEY, U); return true;
+    }
+    function disputed() { return Object.keys(U.dis).map(function (n) { return { name: n, owner: U.own[n], at: U.dis[n] }; }); }
+    function remember(op, ok, why) {
+      var seq = ok ? (st.seq = Math.max(st.seq + 1, Date.now())) : 0, x = [op, seq, ok ? 1 : 0, why || ""];
+      st.ops.push(x); idx[op] = x;
+      while (st.ops.length > KEEP) delete idx[st.ops.shift()[0]];
+      return seq;
+    }
+
+    // 門番からの { t: "lg", rid, items } に 答える（{ t: "lg-re", rid, res }）。ちがう 物には null
+    // 同じ grp の 物は まとめて 1 つの 仕事（玉と リソースを いっしょに 払う とき）。足りなければ どれも 足さない
+    function handle(m) {
+      if (!m || m.t !== "lg" || !Array.isArray(m.items)) return null;
+      var items = m.items.slice(0, 1000), res = [], i = 0;
+      while (i < items.length) {
+        var g = items[i] && items[i].grp ? String(items[i].grp) : "", j = i + 1;
+        if (g) while (j < items.length && items[j] && String(items[j].grp || "") === g) j++;
+        unit(items.slice(i, j), res); i = j;
+      }
+      o.write(OPS_KEY, st);
+      return { t: "lg-re", rid: String(m.rid || "").slice(0, 80), res: res };
+    }
+    // 1 つの 仕事の 準備：形を そろえ、2 回目なら 1 回目の 答え、知らない 人なら "id"。そのまま すすめる ときだけ { xs, name, sum, need } を 返す
+    function prep(list, res) {
+      var xs = list.map(function (it) {
+        var op = String((it && it.op) || "").slice(0, 100), kind = it && (it.kind === "balls" || it.kind === "res") ? it.kind : "";
+        return op && kind ? { op: op, kind: kind, d: Math.trunc(+it.d) || 0, id: String(it.id || ""), need: !!it.need } : null;
+      }).filter(Boolean);
+      if (!xs.length) return null;
+      if (xs.some(function (x) { return idx[x.op]; })) {   // 2 回目は 1 回目の 答え
+        xs.forEach(function (x) { var had = idx[x.op]; res.push(had && had[2] ? { op: x.op, ok: 1, seq: had[1], again: 1 } : { op: x.op, ok: 0, why: had ? had[3] : "short", again: 1 }); });
+        return null;
+      }
+      var name = nameOf(xs[0].id);
+      if (!name || xs.some(function (x) { return x.id !== xs[0].id; })) { xs.forEach(function (x) { res.push({ op: x.op, ok: 0, why: "id" }); }); return null; }   // 知らない 人・名前の 持ち主で ない 人：覚えない（あとで わかれば 足せる）
+      var sum = {}; xs.forEach(function (x) { sum[x.kind] = (sum[x.kind] || 0) + x.d; });
+      return { xs: xs, name: name, sum: sum, need: xs.some(function (x) { return x.need; }) };
+    }
+    function unit(list, res) {
+      var P = prep(list, res); if (!P) return;
+      var xs = P.xs, name = P.name, sum = P.sum;
+      var short = P.need && Object.keys(sum).some(function (k) { return (+o.get(name, k) || 0) + sum[k] < 0; });
+      if (short) { xs.forEach(function (x) { remember(x.op, false, "short"); res.push({ op: x.op, ok: 0, why: "short", bal: +o.get(name, x.kind) || 0 }); }); return; }
+      xs.forEach(function (x) {
+        var bal = +o.get(name, x.kind) || 0, got = o.add(name, x.kind, x.d);
+        if (got !== x.d && o.onCut) o.onCut(name, x.kind, x.d, got);   // 0 で とめた（診断に 残す）
+        res.push({ op: x.op, ok: 1, seq: remember(x.op, true), bal: bal + got });
+      });
+    }
+
+    // 玉を 鹿物語に 頼む 道。仕事は 1 つずつ じゅんばんに（2 つの 頼みが まざらない ように）
+    // リソースは さきに たしかめて おき、玉の 返事が ok なら 足す（オーバーレイの 中で リソースを へらすのは 帳簿だけ なので、待つ あいだに 足りなく ならない）
+    // 玉の 返事が ない ときは その 仕事に 答えない・覚えない（門番は「わからない」の まま、あとで 同じ op で 聞きなおす。鹿物語は 同じ key に 同じ 答えを 返す）
+    var chain = Promise.resolve();
+    function handleAsync(m) {
+      var run = function () { return doAsync(m); }, p = chain.then(run, run);
+      chain = p.catch(function () {});
+      return p;
+    }
+    function doAsync(m) {
+      if (!m || m.t !== "lg" || !Array.isArray(m.items)) return Promise.resolve(null);
+      var items = m.items.slice(0, 1000), res = [], units = [], i = 0;
+      while (i < items.length) {
+        var g = items[i] && items[i].grp ? String(items[i].grp) : "", j = i + 1;
+        if (g) while (j < items.length && items[j] && String(items[j].grp || "") === g) j++;
+        units.push(items.slice(i, j)); i = j;
+      }
+      return units.reduce(function (p, u) { return p.then(function () { return unitAsync(u, res); }); }, Promise.resolve()).then(function () {
+        o.write(OPS_KEY, st);
+        return { t: "lg-re", rid: String(m.rid || "").slice(0, 80), res: res };
+      });
+    }
+    function unitAsync(list, res) {
+      var P = prep(list, res); if (!P) return Promise.resolve();
+      var xs = P.xs, name = P.name, sb = P.sum.balls || 0, sr = P.sum.res || 0, hasB = xs.some(function (x) { return x.kind === "balls"; });
+      var shortAll = function (bal) { xs.forEach(function (x) { remember(x.op, false, "short"); res.push({ op: x.op, ok: 0, why: "short", bal: x.kind === "balls" ? bal : +o.get(name, "res") || 0 }); }); };
+      if (P.need && sr && (+o.get(name, "res") || 0) + sr < 0) { shortAll(+o.get(name, "balls") || 0); return Promise.resolve(); }
+      var ask = hasB ? o.askBalls(name, sb, P.need, xs[0].op) : { ok: 1, bal: 0, got: 0 };
+      return Promise.resolve(ask).then(function (b) {
+        if (!b) return;   // 返事が ない：答えない
+        if (!b.ok) { shortAll(+b.bal || 0); return; }
+        // 待つ あいだに リソースが へって いたら（パネルの 書きかえ など）、玉を 返して ことわる。返す 頼みも 同じ key なら 1 回だけ
+        // いちど 返すと 決めたら しまって おき、聞きなおしで リソースが もどって いても かならず 返して ことわる（返した うえで 買えた ことに しない）
+        var key = xs[0].op;
+        if (has(st.back, key) || (P.need && sr < 0 && (+o.get(name, "res") || 0) + sr < 0)) {
+          if (!hasB || !b.got) { delete st.back[key]; shortAll(+b.bal || 0); return; }
+          if (!has(st.back, key)) { st.back[key] = Date.now(); o.write(OPS_KEY, st); }
+          return Promise.resolve(o.askBalls(name, -b.got, false, key + ":back")).then(function (k) { if (k && k.ok) { delete st.back[key]; shortAll(+k.bal || 0); } }, function () {});   // 返せなければ 答えない（聞きなおしで また 返す）
+        }
+        if (hasB && b.got !== sb && o.onCut) o.onCut(name, "balls", sb, b.got);
+        xs.forEach(function (x) {
+          if (x.kind === "balls") { res.push({ op: x.op, ok: 1, seq: remember(x.op, true), bal: +b.bal || 0 }); return; }
+          var bal = +o.get(name, "res") || 0, got = o.add(name, "res", x.d);
+          if (got !== x.d && o.onCut) o.onCut(name, "res", x.d, got);
+          res.push({ op: x.op, ok: 1, seq: remember(x.op, true), bal: bal + got });
+        });
+      }, function () {});   // 頼めなかった：答えない
+    }
+
+    // 上げる 記録（siteData() の 結果）に 入れる：data.lg と、1 人ずつの uid
+    function stamp(d) {
+      d.lg = st.seq;
+      (d.viewers || []).forEach(function (v) { var id = uidOf(v.name); if (id) v.uid = id; });
+      return d;
+    }
+    return { handle: handle, handleAsync: handleAsync, stamp: stamp, noteUid: noteUid, resolve: resolve, disputed: disputed, hi: function () { return { t: "lg-hi" }; }, seq: function () { return st.seq; } };
+  }
+  G.ObsLedger = ObsLedger;
+})(typeof window !== "undefined" ? window : globalThis);
+</script>
 <script>
 (function () {
   "use strict";
@@ -11178,7 +11340,8 @@ if (location.hash === "#lcdcard" || location.hash === "#sitecard" || document.do
     siteBusy = true; siteState = "busy"; pushStatus();
     gateLists().then(function (gate) {
       if (!gate) throw new Error("login");
-      var d = siteData(), cmp = JSON.stringify(d.viewers) + JSON.stringify(d.board) + JSON.stringify(gate);
+      var d = siteData(); if (LG) LG.stamp(d);   // ラウンジの 帳簿の 番号（d.lg）と 1 人ずつの uid
+      var cmp = JSON.stringify(d.viewers) + JSON.stringify(d.board) + JSON.stringify(gate) + (d.lg || "");
       if (!force && cmp === siteLast) return "same";
       d.at = Date.now();
       return fetch(url + "/api/upload", { method: "POST", headers: { Authorization: "Bearer " + key, "Content-Type": "application/json" }, body: JSON.stringify({ data: d, gate: gate }) }).then(function (r) {
@@ -11453,7 +11616,7 @@ if (location.hash === "#lcdcard" || location.hash === "#sitecard" || document.do
         if (m[3] === "PRIVMSG") {
           var text = m[4] || "";
           if (/^\u0001ACTION /.test(text)) text = text.replace(/^\u0001ACTION |\u0001$/g, "");
-          noteViewer(name); noteMsg(tags.id, name, tags["user-id"], !fan);
+          noteViewer(name); noteMsg(tags.id, name, tags["user-id"], !fan); lgNote(tags["user-id"], name, m[2] || tags.login);
           // テキスト入力ありのチャンネルポイント（EventSub で受け取っているときは二重にしない）
           if (tags["custom-reward-id"] && ptState !== "on") onRedeem({ id: tags["custom-reward-id"], title: "", user: name, input: text });
           addChat(name, text, { color: tags.color, badges: tags.badges, emotes: tags.emotes, guest: !fan, id: tags.id });
@@ -11850,6 +12013,33 @@ if (location.hash === "#lcdcard" || location.hash === "#sitecard" || document.do
     // MONO LINK のコメント欄のログにも出す（玉は、ゲストと今日の上限に届いた人には出ない）
     remoteSay((m.by ? String(m.by).slice(0, 40) + " さんが " : "") + msg.name + " さんのコメントにいいね" + (n > 0 ? "（+" + n + "玉）" : ""));
   }
+  // ---------- ラウンジの 帳簿：門番から 来る 玉と リソースの 頼み（lg）。OBS の 画面だけ（門番が ラウンジを まだ 持って いなければ 頼みは 来ない） ----------
+  // 玉は 鹿物語に 頼む（shika-lg-req-v1 → shika-lg-res-v1。玉を 書くのは 鹿物語だけ）。リソースは ここ（shika-gacha-v1 の res）
+  // 同じ 名前で ちがう 人が 話したら mono-link-lg-dis-v1 に 出し、パネルで 配信者が 持ち主を えらぶ（mono-link-lg-fix-v1 で ここへ）
+  var LG = null, lgSeq = 0, lgWait = {}, lgLogin = {}, lgClash = read("mono-link-lg-clash-v1", {}) || {};
+  function lgAsk(name, d, need, key) {
+    return new Promise(function (ok) {
+      var q = read("shika-lg-req-v1", null), list = q && Array.isArray(q.list) ? q.list.slice(-29) : [];
+      list.push({ n: Date.now() * 100 + (lgSeq++ % 100), key: key, name: name, d: d, need: need ? 1 : 0, t: Date.now() });
+      lgWait[key] = ok; write("shika-lg-req-v1", { list: list });
+      setTimeout(function () { if (lgWait[key] === ok) { delete lgWait[key]; ok(null); } }, 8000);   // 鹿物語が 開いて いない：答えない（門番が あとで 聞きなおす）
+    });
+  }
+  function lgDisOut() { if (LG) write("mono-link-lg-dis-v1", { list: LG.disputed().map(function (x) { return { name: x.name, ids: (lgClash[x.name] || { ids: [{ id: x.owner, login: lgLogin[x.owner] || "" }] }).ids }; }), at: Date.now() }); }
+  function lgNote(id, name, login) { if (!LG) return; if (login && /^\d{1,20}$/.test(String(id || ""))) lgLogin[id] = String(login).slice(0, 40); LG.noteUid(id, name); }
+  addEventListener("storage", function (e) {
+    if (e.key === "shika-lg-res-v1") { var r = read("shika-lg-res-v1", null); (r && Array.isArray(r.list) ? r.list : []).forEach(function (x) { var w = x && lgWait[x.key]; if (w) { delete lgWait[x.key]; w({ ok: x.ok ? 1 : 0, bal: +x.bal || 0, got: +x.got || 0 }); } }); }
+    if (e.key === "mono-link-lg-fix-v1" && LG) { var f = read("mono-link-lg-fix-v1", null); if (f && typeof f.name === "string" && LG.resolve(f.name, f.id)) { delete lgClash[f.name]; write("mono-link-lg-clash-v1", lgClash); lgDisOut(); } }
+  });
+  if (obs && window.ObsLedger) LG = ObsLedger({ read: read, write: write,
+    get: function (name, kind) { return kind === "balls" ? Math.max(0, Math.floor(+((read("pachinko-wallet-v1", {}) || {})[name]) || 0)) : resOf(name); },
+    add: function (name, kind, d) { if (kind !== "res") return 0; var o = gachaCopy(gachaOf(name)), b = o.res; o.res = Math.max(0, Math.min(1e9, b + d)); gacha[name] = o; write(GACHA, gacha); return o.res - b; },
+    askBalls: lgAsk,
+    onClash: function (name, ownerId, otherId) {
+      var c = lgClash[name] || { ids: [] };
+      [ownerId, otherId].forEach(function (id) { if (!c.ids.some(function (x) { return x.id === id; })) c.ids.push({ id: id, login: lgLogin[id] || "" }); });
+      c.ids = c.ids.slice(-4); lgClash[name] = c; write("mono-link-lg-clash-v1", lgClash); lgDisOut();
+    } });
   function remoteConnect() {
     clearTimeout(remoteTimer);
     var url = siteUrl(), key = siteKey();
@@ -11862,7 +12052,8 @@ if (location.hash === "#lcdcard" || location.hash === "#sitecard" || document.do
     ws.onmessage = function (ev) {
       if (ev.data === "pong") return;
       var m; try { m = JSON.parse(ev.data); } catch (e) { return; }
-      if (m.t === "auth") { remoteState = m.ok ? "on" : "badkey"; if (m.ok) { remoteRetry = 0; setTimeout(bugsOut, 1000); } pushStatus(); return; }
+      if (m.t === "auth") { remoteState = m.ok ? "on" : "badkey"; if (m.ok) { remoteRetry = 0; setTimeout(bugsOut, 1000); if (LG) ws.send(JSON.stringify(LG.hi())); } pushStatus(); return; }
+      if (m.t === "lg") { if (LG) LG.handleAsync(m).then(function (r) { if (r && ws.readyState === 1) ws.send(JSON.stringify(r)); }); return; }   // ラウンジの 玉と リソース
       if (m.t === "bugok" && typeof m.id === "string") { bugSent(m.id); return; }
       if (m.t === "cmd" && typeof m.n === "string" && typeof m.text === "string" && m.n) remoteCmd(m.n.slice(0, 40), m.text.slice(0, 320));
       if (m.t === "like" && typeof m.id === "string" && m.byId) onLike(m);
@@ -12207,6 +12398,15 @@ if (location.hash === "#lcdcard" || location.hash === "#sitecard" || document.do
         b.textContent = (x.login || "（ログイン前）"); li.style.gridTemplateColumns = "auto 1fr";
         sp.textContent = x.code + "　" + (x.why || "") + (x.why2 ? "：" + x.why2 : "") + (x.live ? "（Twitch に直接確認）" : "") + (x.listN != null ? "（一覧 " + x.listN + " 人・" + new Date(+x.listAt || 0).toLocaleTimeString("ja-JP", { hour: "2-digit", minute: "2-digit" }) + " 更新）" : "") + "　" + (d.getMonth() + 1) + "/" + d.getDate() + " " + d.toLocaleTimeString("ja-JP", { hour: "2-digit", minute: "2-digit" });
         li.appendChild(b); li.appendChild(sp); dl.appendChild(li);
+      });
+      // ラウンジの 玉：同じ 名前で ちがう 人が 話した 名前。押した 人を 持ち主に する（OBS の 画面の 帳簿へ mono-link-lg-fix-v1 で 頼む）
+      var lgd = read("mono-link-lg-dis-v1", null), lgl = lgd && Array.isArray(lgd.list) ? lgd.list : [], lgu = $("p-lgdis");
+      $("p-lgdis-box").hidden = !lgl.length; lgu.innerHTML = "";
+      lgl.forEach(function (x) {
+        var li = document.createElement("li"), b = document.createElement("b"), sp = document.createElement("span");
+        b.textContent = String(x.name || ""); li.style.gridTemplateColumns = "auto 1fr"; sp.textContent = "どちらの 人の 玉？ ";
+        (Array.isArray(x.ids) ? x.ids : []).forEach(function (c) { var k = document.createElement("button"); k.type = "button"; k.textContent = c.login ? "@" + c.login : "id " + c.id; k.addEventListener("click", function () { write("mono-link-lg-fix-v1", { name: x.name, id: String(c.id), at: Date.now() }); }); sp.appendChild(k); });
+        li.appendChild(b); li.appendChild(sp); lgu.appendChild(li);
       });
       var bl = $("p-board"), posts = alive && Array.isArray(s.board) ? s.board.slice().reverse() : [];
       bl.innerHTML = posts.length ? "" : "<li>まだありません</li>";

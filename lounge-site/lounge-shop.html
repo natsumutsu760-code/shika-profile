@@ -1,0 +1,242 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lounge Furniture Shop</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600&family=Zen+Maru+Gothic:wght@700;900&display=swap">
+<style>
+  /* MONO LINK のプライベートラウンジ：家具の お店の 見本（鹿さんの決め、2026-10-23：部屋とは べつの ページ。左に 商品、右で 家具が まわって 買う）
+     タブ：日替わり（3 品・2 割引き・0 時に かわる）／カタログ（★1〜5 ぜんぶ）／ガチャ（1 回 10 リソース）。支払いは リソースだけ
+     買った 家具は 部屋（lounge-room.html）の もようがえの 持ち物に 入る（見本では ブラウザに しまう）。?t=daily|catalog|gacha */
+  :root { --ink:#1B2340; --soft:#6A7394; --line:#DCE3F0; --space:#F6F8FC; --amber:#FFB547; --sky:#2EA8FF; --leaf:#22CC88; --coral:#FF5A64; --violet:#8E6CFF;
+    --jp:"Zen Maru Gothic", sans-serif; --num:"Fredoka", sans-serif; }
+  * { box-sizing:border-box; }
+  body { margin:0; min-height:100vh; background:radial-gradient(120% 80% at 50% 0%, #FFFFFF 0%, #F6F8FC 55%, #EAF0FA 100%); color:var(--ink); font:500 16px/1.6 var(--jp); }
+  :focus-visible { outline:3px solid var(--sky); outline-offset:3px; border-radius:10px; }
+  button { font:inherit; color:inherit; cursor:pointer; }
+  .top { display:flex; align-items:center; gap:10px; padding:12px clamp(16px, 4vw, 40px); }
+  .top b { font:600 22px/1 var(--num); letter-spacing:.06em; } .top b i { font-style:normal; color:var(--sky); }
+  .top small { font:700 13px/1 var(--jp); color:var(--soft); margin-left:6px; }
+  main { max-width:1180px; margin:0 auto; padding:0 clamp(16px, 4vw, 40px) 40px; }
+  .bar { display:flex; align-items:center; gap:10px; margin-bottom:12px; flex-wrap:wrap; }
+  .bar h1 { font:900 20px/1.2 var(--jp); margin:0 auto 0 0; }
+  .res { font:600 15px/1 var(--num); padding:8px 12px; border-radius:999px; background:#fff; border:1.5px solid var(--line); white-space:nowrap; }
+  .res i { display:inline-block; width:9px; height:9px; border-radius:50%; background:var(--violet); margin-right:6px; }
+  .pend { font:700 12px/1 var(--jp); padding:7px 10px; border-radius:999px; background:#FFF6D8; border:1.5px solid #F0D27A; color:#7A5A00; white-space:nowrap; }
+  .buy[aria-busy="true"] { opacity:.7; cursor:progress; }
+  .back { padding:9px 16px; border-radius:999px; border:1.5px solid var(--line); background:#fff; font:900 13px/1 var(--jp); color:var(--ink); text-decoration:none; white-space:nowrap; }
+  .tabs { display:flex; gap:8px; margin-bottom:14px; }
+  .tab { padding:11px 18px; border-radius:999px; border:1.5px solid var(--line); background:#fff; font:900 14px/1 var(--jp); display:inline-flex; align-items:center; gap:8px; }
+  .tab small { font:600 12px/1 var(--num); color:var(--soft); } .tab[aria-selected="true"] { background:var(--ink); border-color:var(--ink); color:#fff; } .tab[aria-selected="true"] small { color:rgba(255,255,255,.7); }
+  .shop { display:grid; grid-template-columns:minmax(0, 1fr) 360px; gap:16px; align-items:start; }
+  .panel { background:rgba(255,255,255,.94); border-radius:24px; box-shadow:0 18px 40px -24px rgba(27,35,64,.35); padding:16px; }
+  .head { display:flex; align-items:center; gap:10px; margin-bottom:12px; } .head h2 { margin:0; font:900 16px/1.2 var(--jp); } .head small { margin-left:auto; font:700 12px/1 var(--jp); color:var(--soft); }
+  .filters { display:grid; gap:6px; padding:10px; border-radius:16px; background:var(--space); margin-bottom:12px; }
+  .frow { display:grid; grid-template-columns:56px minmax(0, 1fr); gap:6px; align-items:start; }
+  .frow > span { padding-top:6px; font:900 11px/1.2 var(--jp); color:var(--soft); } .frow > div { display:flex; gap:6px; flex-wrap:wrap; }
+  .chip { border:1.5px solid var(--line); background:#fff; border-radius:999px; padding:5px 10px; font:700 12px/1 var(--jp); display:inline-flex; align-items:center; gap:5px; }
+  .chip small { font:600 11px/1 var(--num); color:var(--soft); } .chip[aria-pressed="true"] { background:var(--ink); border-color:var(--ink); color:#fff; } .chip[aria-pressed="true"] small { color:rgba(255,255,255,.7); }
+  .chip:disabled { opacity:.4; cursor:default; }
+  .grid { list-style:none; margin:0; padding:0; display:grid; grid-template-columns:repeat(auto-fill, minmax(150px, 1fr)); gap:10px; }
+  .card { width:100%; display:grid; gap:4px; padding:10px; border-radius:18px; border:1.5px solid var(--line); background:#fff; text-align:left; position:relative; }
+  .card[aria-pressed="true"] { border-color:var(--amber); background:#FFF8EA; box-shadow:0 0 0 2px rgba(255,181,71,.35); }
+  .card img { width:100%; aspect-ratio:1 / 1; border-radius:12px; background:var(--space); }
+  .card b { font:700 13.5px/1.3 var(--jp); } .stars { color:#E0A21C; letter-spacing:-1px; font-size:11px; }
+  .card .pr { display:flex; align-items:baseline; gap:6px; font:600 15px/1 var(--num); color:var(--violet); } .card .pr s { font-size:12px; color:var(--soft); }
+  .card .have { position:absolute; top:14px; right:14px; padding:3px 7px; border-radius:999px; background:rgba(27,35,64,.78); color:#fff; font:700 10.5px/1 var(--jp); }
+  .grp { display:flex; align-items:center; gap:8px; margin:14px 0 8px; font:900 13px/1.2 var(--jp); } .grp:first-child { margin-top:0; }
+  .grp::after { content:""; flex:1; height:1.5px; background:var(--line); } .grp small { font:700 11px/1 var(--jp); color:var(--soft); }
+  /* 右：くわしく・買う */
+  .detail { position:sticky; top:12px; display:grid; gap:10px; }
+  .stage { position:relative; border-radius:18px; overflow:hidden; background:linear-gradient(160deg, #FFFFFF, #EEF2FA); aspect-ratio:1 / 0.82; }
+  .stage canvas { display:block; width:100%; height:100%; }
+  .stage .off { position:absolute; top:10px; left:10px; padding:4px 10px; border-radius:999px; background:var(--coral); color:#fff; font:900 12px/1 var(--jp); }
+  .nm { display:flex; align-items:baseline; gap:8px; flex-wrap:wrap; } .nm b { font:900 18px/1.25 var(--jp); } .nm span { font:700 12px/1 var(--jp); color:var(--soft); }
+  .price { display:flex; align-items:baseline; gap:8px; font:600 26px/1 var(--num); color:var(--violet); } .price small { font:700 12px/1 var(--jp); color:var(--soft); } .price s { font-size:15px; color:var(--soft); }
+  .buy { padding:14px; border-radius:16px; border:0; background:var(--ink); color:#fff; font:900 15px/1 var(--jp); }
+  .buy:disabled { background:#C9D0E0; cursor:default; }
+  .why { margin:0; font:700 12.5px/1.4 var(--jp); color:var(--coral); text-align:center; }
+  .goroom { text-align:center; font:900 13px/1 var(--jp); color:var(--ink); }
+  /* ガチャ */
+  .rates { display:grid; grid-template-columns:repeat(5, 1fr); gap:6px; }
+  .rates span { display:grid; gap:2px; justify-items:center; padding:8px 4px; border-radius:12px; background:var(--space); font:600 15px/1 var(--num); } .rates small { font:700 11px/1 var(--jp); color:#E0A21C; }
+  .inside { display:grid; gap:8px; } .inside .frow { grid-template-columns:64px minmax(0, 1fr); } .inside .frow > span { line-height:1.4; }
+  .buy small { display:block; margin-top:4px; font:600 12px/1 var(--num); opacity:.75; }
+  .gbtns { display:grid; grid-template-columns:1fr 1fr; gap:8px; } .gbtns .buy:last-child:not(:disabled) { background:var(--violet); }
+  .got { list-style:none; margin:0; padding:0; display:grid; grid-template-columns:repeat(5, 1fr); gap:6px; }
+  .got li { display:grid; justify-items:center; gap:2px; padding:4px; border-radius:12px; background:#fff; border:1.5px solid var(--line); animation:pop .35s ease-out backwards; }
+  .got li.r4 { border-color:#FF8A3D; background:#FFF4EA; } .got li.r5 { border-color:var(--coral); background:linear-gradient(135deg, #FFF0F4, #F2EEFF); }
+  .got img { width:100%; aspect-ratio:1 / 1; } .got b { font:700 10px/1.2 var(--jp); text-align:center; }
+  @keyframes pop { from { transform:scale(.6); opacity:0; } to { transform:none; opacity:1; } }
+  .toast { position:fixed; left:50%; bottom:24px; transform:translateX(-50%) translateY(14px); max-width:calc(100vw - 32px); padding:10px 18px; border-radius:18px; background:var(--ink); color:#fff; font:700 14px/1.4 var(--jp); opacity:0; transition:opacity .2s, transform .2s; pointer-events:none; text-align:center; z-index:9; }
+  .toast.on { opacity:1; transform:translateX(-50%); }
+  @media (max-width:860px) {
+    /* スマホ：買う 所を 上に（えらぶと すぐ 変わる）、商品は 下に 3 つずつ */
+    .shop { grid-template-columns:minmax(0, 1fr); }
+    .detail { order:-1; position:sticky; top:0; z-index:4; grid-template-columns:120px minmax(0, 1fr); gap:6px 12px; padding:12px; border-radius:0 0 20px 20px; margin:0 calc(-1 * clamp(16px, 4vw, 40px)); }
+    .detail .stage { grid-row:1 / span 3; aspect-ratio:1 / 1; }
+    .detail.nostage { grid-template-columns:minmax(0, 1fr); }
+    .detail .buy, .detail .why, .detail .goroom, .detail .rates, .detail .gbtns, .detail .got { grid-column:1 / -1; }
+    .nm b { font-size:16px; } .price { font-size:22px; }
+    .buy { padding:12px; }
+    .grid { grid-template-columns:repeat(3, minmax(0, 1fr)); gap:8px; } .card { padding:6px; border-radius:14px; } .card b { font-size:12px; } .card .pr { font-size:13px; } .card .have { top:9px; right:9px; }
+    .tab { padding:10px 12px; flex:1; justify-content:center; }
+    .bar h1 { font-size:17px; }
+  }
+  @media (prefers-reduced-motion:reduce) { .got li { animation:none; } }
+</style>
+</head>
+<body>
+<header class="top"><a href="/" style="color:inherit;text-decoration:none" aria-label="MONO LINK の サイトへ"><b>MONO LINK<i>://</i></b></a><small><a href="lounge-room.html" style="color:inherit">プライベートラウンジ</a> ／ 家具の お店</small></header>
+<main>
+  <div class="bar"><h1>家具の お店</h1><span class="pend" id="pend" hidden title="配信の 画面の 返事を 待って いる 買い物。つぎに 開いた ときに 決まります"></span><span class="res"><i></i>リソース <b id="res"></b></span><a class="back" href="lounge-room.html?edit">部屋に もどる</a></div>
+  <div class="tabs" role="tablist" aria-label="売り場" id="tabs"></div>
+  <div class="shop">
+    <section class="panel" id="left" aria-live="polite"></section>
+    <aside class="panel detail" id="detail" aria-label="くわしく"></aside>
+  </div>
+</main>
+<p class="toast" id="toast" role="status"></p>
+<script type="importmap">{ "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.169.0/build/three.module.js" } }</script>
+<script type="module">
+import * as THREE from "three";
+import { F, kit, PRICE, SALE, DAILY_OFF, GACHA_COST, GACHA_RATE, salePrice, jstDay, dailyOf } from "./lounge-furniture.js";
+import { me, act, busy, waitText } from "./lounge-client.js";   // 買う・ガチャは 門番に 頼む（見本では ブラウザの 中の ためしの 門番）
+
+const q = new URLSearchParams(location.search);
+const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
+const fmt = (n) => n.toLocaleString("ja-JP");
+const stars = (n) => `<span class="stars">${"★".repeat(n)}</span>`;
+const sizeText = (f) => (f.place === "wall" ? `壁・はば ${f.size}` : `${f.place === "rug" ? "しく 物" : "床"}・${f.size[0]}×${f.size[1]}`);
+// 持ち物と リソースは 門番から（known：OBS の 記録で まだ わからない 人は 買えない・waiting：返事を 待って いる 買い物）
+const W = { res: 0, own: {}, known: true, waiting: 0 };
+async function refresh() { const m = await me(); if (m.denied || !m.wallet) { W.known = false; return m; } W.res = m.wallet.res; W.known = m.wallet.known; W.own = m.own.furniture; W.waiting = m.waiting || 0; return m; }
+const ME = await refresh();
+// 入れない 人（ログインが 切れた・フォローして いない など）：理由と、ログインの 道だけ 出して ここで とめる
+if (ME.denied || ME.ok === false) {
+  document.querySelector("main").innerHTML = `<section class="panel" style="max-width:520px;margin:24px auto;text-align:center;padding:28px 24px"><h2 style="margin:0 0 8px">入れません</h2><p>${String(ME.why || "もう 1 回 開いて ください").replace(/[&<>"]/g, "")}</p>${ME.login ? `<p><a href="/">MONO LINK で ログイン</a></p>` : ""}</section>`;
+  window.ready = true; await new Promise(() => {});
+}
+const TODAY = dailyOf(jstDay()), isDaily = (f) => TODAY.includes(f);
+const S = { t: ["daily", "catalog", "gacha"].includes(q.get("t")) ? q.get("t") : "daily", sel: null, kind: "all", star: 0, sort: "cheap", got: [] };
+const priceOf = (f) => (S.t === "daily" && isDaily(f) ? salePrice(f) : PRICE[f.star]);
+
+// ---------- 3D：商品の 絵（いちどに 作って 画像に）と、右で まわる 家具 ----------
+function stageOf(f, r) {
+  const sc = new THREE.Scene(), K = kit(false), g = new THREE.Group();
+  sc.add(new THREE.HemisphereLight("#FFFFFF", "#C9D3EA", 1.6)); const sun = new THREE.DirectionalLight("#FFF4E0", 1.2); sun.position.set(4, 8, 5); sc.add(sun);
+  f.build(K, g); g.traverse((m) => { if (m.isLight) m.intensity = 0; });
+  if (f.place === "wall") { const wall = new THREE.Mesh(new THREE.BoxGeometry(f.size + 0.6, 3.4, 0.1), K.mat("#FFFFFF", { emissive: "#DCE3F0", emissiveIntensity: 0.3 })); wall.position.set(0, 1.7, -0.07); g.add(wall); }
+  const box = new THREE.Box3().setFromObject(g), c = box.getCenter(new THREE.Vector3()), sz = box.getSize(new THREE.Vector3());
+  g.position.sub(new THREE.Vector3(c.x, 0, c.z)); const pivot = new THREE.Group(); pivot.add(g); sc.add(pivot);
+  const s = Math.max(sz.x, sz.z, sz.y * 1.15) * 0.68, cam = new THREE.OrthographicCamera(-s * r, s * r, s, -s, 0.1, 100);
+  const dir = f.place === "wall" ? new THREE.Vector3(0.7, 0.45, 1) : new THREE.Vector3(1, 0.85, 1);
+  cam.position.copy(new THREE.Vector3(0, c.y, 0)).addScaledVector(dir.normalize(), 20); cam.lookAt(0, c.y, 0);
+  return { sc, cam, pivot, wall: f.place === "wall" };
+}
+const shotR = new THREE.WebGLRenderer({ antialias: true, alpha: true, preserveDrawingBuffer: true }); shotR.setPixelRatio(1); shotR.setSize(200, 200); shotR.outputColorSpace = THREE.SRGBColorSpace;
+const IMG = {}; for (const f of SALE) { const st = stageOf(f, 1); if (!st.wall) st.pivot.rotation.y = 0; shotR.render(st.sc, st.cam); IMG[f.id] = shotR.domElement.toDataURL(); }
+shotR.dispose();
+const live = new THREE.WebGLRenderer({ antialias: true, alpha: true }); live.setPixelRatio(Math.min(2, devicePixelRatio)); live.outputColorSpace = THREE.SRGBColorSpace;
+let LV = null;
+function mountStage(f) {
+  const host = document.querySelector("#detail .stage"); if (!host) { LV = null; return; }
+  host.prepend(live.domElement); const w = host.clientWidth, h = host.clientHeight; live.setSize(w, h, false); LV = stageOf(f, w / h);
+}
+
+// ---------- 左：商品 ----------
+const KINDS = [["all", "すべて"], ["floor", "床"], ["wall", "壁"], ["glow", "光る"]];
+const okKind = (f, k = S.kind) => k === "all" || (k === "glow" ? !!f.glows : k === "wall" ? f.place === "wall" : f.place !== "wall");
+const okStar = (f, s = S.star) => !s || f.star === s;
+const card = (f) => { const have = W.own[f.id] || 0, sale = S.t === "daily";
+  return `<li><button class="card" data-sel="${f.id}" aria-pressed="${S.sel === f}"><img src="${IMG[f.id]}" alt="">${have ? `<span class="have">×${have}</span>` : ""}
+    <b>${esc(f.name)}</b>${stars(f.star)}<span class="pr">${fmt(priceOf(f))}${sale ? `<s>${fmt(PRICE[f.star])}</s>` : ""}</span></button></li>`; };
+function leftHtml() {
+  if (S.t === "daily") return `<div class="head"><h2>きょうの 3 品</h2><small id="cd"></small></div><ul class="grid">${TODAY.map(card).join("")}</ul>`;
+  // ガチャの 中身：★ごとに 名前だけ（押すと 右で 見られる）。仕事は「まわす」なので 短く
+  if (S.t === "gacha") return `<div class="head"><h2>ガチャの 中身</h2><small>${SALE.length} しゅるい</small></div><div class="inside">${[5, 4, 3, 2, 1].map((s) => { const l = SALE.filter((f) => f.star === s);
+    return `<div class="frow"><span>${stars(s)}<br>${GACHA_RATE[s]}%</span><div>${l.map((f) => `<button class="chip" data-sel="${f.id}" aria-pressed="${S.sel === f}">${esc(f.name)}${W.own[f.id] ? `<small>×${W.own[f.id]}</small>` : ""}</button>`).join("")}</div></div>`; }).join("")}</div>`;
+  const n = (k, s) => SALE.filter((f) => okKind(f, k) && okStar(f, s)).length;
+  const by = { cheap: (a, b) => a.star - b.star || a.name.localeCompare(b.name, "ja"), star: (a, b) => b.star - a.star || a.name.localeCompare(b.name, "ja"), name: (a, b) => a.name.localeCompare(b.name, "ja") }[S.sort];
+  const vis = SALE.filter((f) => okKind(f) && okStar(f)).sort(by);
+  const chip = (k, v, t, c) => `<button class="chip" data-${k}="${v}" aria-pressed="${S[k] === v}" ${c === 0 && S[k] !== v ? "disabled" : ""}>${t}${c === null ? "" : `<small>${c}</small>`}</button>`;
+  return `<div class="head"><h2>カタログ</h2><small>${vis.length} こ</small></div>
+    <div class="filters" role="group" aria-label="分け方">
+      <div class="frow"><span>しゅるい</span><div>${KINDS.map(([k, t]) => chip("kind", k, t, n(k, S.star))).join("")}</div></div>
+      <div class="frow"><span>レア</span><div>${chip("star", 0, "すべて", n(S.kind, 0))}${[1, 2, 3, 4, 5].map((s) => chip("star", s, "★" + s, n(S.kind, s))).join("")}</div></div>
+      <div class="frow"><span>ならべる</span><div>${chip("sort", "cheap", "安い順", null)}${chip("sort", "star", "★の 高い順", null)}${chip("sort", "name", "名前順", null)}</div></div></div>
+    <ul class="grid">${vis.map(card).join("")}</ul>`;
+}
+
+// ---------- 右：くわしく・買う（ガチャは まわす）----------
+function detailHtml() {
+  if (S.t === "gacha" && !S.sel) {
+    const can1 = W.res >= GACHA_COST, can10 = W.res >= GACHA_COST * 10;
+    return `<div class="nm"><b>インテリアガチャ</b><span>かぶったら 2 こ目</span></div>
+      <div class="rates">${[1, 2, 3, 4, 5].map((s) => `<span><small>★${s}</small>${GACHA_RATE[s]}%</span>`).join("")}</div>
+      <div class="gbtns"><button class="buy" data-pull="1" ${can1 ? "" : "disabled"}>1 回 まわす<small>${GACHA_COST}</small></button><button class="buy" data-pull="10" ${can10 ? "" : "disabled"}>10 回 まわす<small>${GACHA_COST * 10}</small></button></div>
+      ${can1 ? "" : `<p class="why">${W.known ? `リソースが 足りない：あと ${GACHA_COST - W.res}` : "リソースが まだ わかりません（配信で 1 回 チャットすると わかります）"}</p>`}
+      ${S.got.length ? `<ul class="got">${S.got.map((f, k) => `<li class="r${f.star}" style="animation-delay:${k * 0.06}s"><img src="${IMG[f.id]}" alt=""><b>${esc(f.name)}</b>${stars(f.star)}</li>`).join("")}</ul><a class="goroom" href="lounge-room.html?edit">部屋に 置く</a>` : ""}`;
+  }
+  const f = S.sel; if (!f) return "";
+  const p = priceOf(f), have = W.own[f.id] || 0, sale = S.t === "daily" && isDaily(f), lack = p - W.res;
+  if (S.t === "gacha") return `<div class="stage"></div><div class="nm"><b>${esc(f.name)}</b>${stars(f.star)}<span>${sizeText(f)}</span></div><div class="price"><small>ガチャの ${GACHA_RATE[f.star]}% の 中の 1 つ</small></div><button class="buy" data-act="back">ガチャへ もどる</button>`;
+  return `<div class="stage">${sale ? `<span class="off">2 割引き</span>` : ""}</div>
+    <div class="nm"><b>${esc(f.name)}</b>${stars(f.star)}<span>${sizeText(f)}${have ? `・持っている ×${have}` : ""}</span></div>
+    <div class="price">${fmt(p)}${sale ? `<s>${fmt(PRICE[f.star])}</s>` : ""}<small>リソース</small></div>
+    <button class="buy" data-buy="${f.id}" ${lack > 0 ? "disabled" : ""}>買う</button>
+    ${lack > 0 ? `<p class="why">${W.known ? `リソースが 足りない：あと ${fmt(lack)}` : "リソースが まだ わかりません（配信で 1 回 チャットすると わかります）"}</p>` : have ? `<a class="goroom" href="lounge-room.html?edit">部屋に 置く</a>` : ""}`;
+}
+
+function render() {
+  document.getElementById("res").textContent = W.known ? fmt(W.res) : "？";
+  const pend = document.getElementById("pend"); pend.hidden = !W.waiting; pend.textContent = `返事まち ${W.waiting}`;
+  document.getElementById("tabs").innerHTML = [["daily", "日替わり", TODAY.length], ["catalog", "カタログ", SALE.length], ["gacha", "ガチャ", null]].map(([k, t, n]) =>
+    `<button class="tab" role="tab" data-t="${k}" aria-selected="${S.t === k}">${t}${n === null ? "" : `<small>${n}</small>`}</button>`).join("");
+  document.getElementById("left").innerHTML = leftHtml();
+  const D = document.getElementById("detail"); D.innerHTML = detailHtml(); D.classList.toggle("nostage", !D.querySelector(".stage"));
+  if (S.sel) mountStage(S.sel); else LV = null;
+  countdown();
+}
+// 日替わりが かわるまで（日本時間の 0 時）
+function countdown() { const el = document.getElementById("cd"); if (!el) return; const ms = (jstDay() + 1) * 86400e3 - 9 * 3600e3 - Date.now(), h = Math.floor(ms / 3600e3), m = Math.floor((ms % 3600e3) / 60e3); el.textContent = `あと ${h}:${String(m).padStart(2, "0")} で 入れかわる`; }
+setInterval(countdown, 30000);
+
+let tid; const toast = (t) => { const el = document.getElementById("toast"); el.textContent = t; el.classList.add("on"); clearTimeout(tid); tid = setTimeout(() => el.classList.remove("on"), 2400); };
+document.querySelector("main").addEventListener("click", (e) => {
+  const b = e.target.closest("button"); if (!b || b.disabled) return;
+  if (b.dataset.t) { S.t = b.dataset.t; S.sel = S.t === "gacha" ? null : S.t === "daily" ? TODAY[0] : (S.sel && !isDaily(S.sel) ? S.sel : SALE[0]); return render(); }
+  if (b.dataset.kind) { S.kind = b.dataset.kind; return render(); }
+  if (b.dataset.star !== undefined) { S.star = +b.dataset.star; return render(); }
+  if (b.dataset.sort) { S.sort = b.dataset.sort; return render(); }
+  if (b.dataset.sel) { S.sel = F(b.dataset.sel); render(); return; }
+  if (b.dataset.act === "back") { S.sel = null; return render(); }
+  if (b.dataset.buy) buy(b, F(b.dataset.buy));
+  if (b.dataset.pull) gacha(b, +b.dataset.pull);
+});
+// 門番の 答え：ok なら 数を なおす・wait なら「返事まち」・だめなら 理由（門番の ことば）
+async function done(r) { if (r.wait) W.waiting++; await refresh(); render(); return r; }
+async function buy(b, f) {
+  const r = await busy(b, () => act("shop.buy", { id: f.id }));
+  await done(r);
+  toast(r.ok ? `買った：${f.name}（もようがえの 持ち物に 入った）` : r.wait ? waitText : r.why);
+}
+async function gacha(b, n) {
+  const r = await busy(b, () => act("shop.gacha", { n }), "まわして います…");
+  if (r.ok) S.got = r.got.map(F);   // 中身は 門番が 引く
+  await done(r);
+  if (!r.ok) return toast(r.wait ? waitText : r.why);
+  const top = S.got.reduce((a, f) => (f.star > a.star ? f : a));
+  toast(n === 1 ? `出た：${top.name}（★${top.star}）` : `${n} こ 出た。いちばん いいのは ${top.name}（★${top.star}）`);
+}
+
+const calm = matchMedia("(prefers-reduced-motion:reduce)").matches;
+function tick(t) { if (LV) { if (!LV.wall && !calm) LV.pivot.rotation.y = t / 2200; live.render(LV.sc, LV.cam); } requestAnimationFrame(tick); }
+addEventListener("resize", () => { if (S.sel) mountStage(S.sel); });
+S.sel = S.t === "daily" ? TODAY[0] : S.t === "catalog" ? SALE[0] : null;
+render(); requestAnimationFrame(tick);
+window.ready = true; window.S = S;
+</script>
+</body>
+</html>

@@ -1,0 +1,368 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DEEP LINK</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DotGothic16&display=swap">
+<style>
+  /* DEEP LINK/:（ラウンジの PC から入る、MONO LINK:// の「裏側」のサイト）の見本。鹿さんの決め、2026-10-22：あやしい端末（黒い画面に光る文字）
+     商人 5 人 ＋ リソースの特別ショップ ＋ みんなの依頼（ユーザーどうし）。友好度はタスクで大きく、売り買いで少しずつ上がる
+     データは deeplink.js。?go=商人の id・special・board で開く（&tab=shop で ショップから）。&boot=0 で起動の文字を飛ばす。押すと見本の中だけで動く（保存しない） */
+  :root {
+    --bg:#0B0816; --bg2:#120D22; --line:rgba(255,181,71,.26); --line2:rgba(255,181,71,.5);
+    --amber:#FFB547; --dim:#B98A4E; --text:#FFE4B8; --cyan:#46D4FF; --violet:#B79BFF; --ok:#7CF0B0; --ng:#FF6B78;
+    --glow:0 0 6px rgba(255,181,71,.45); --f:"DotGothic16", "Hiragino Kaku Gothic ProN", monospace;
+  }
+  * { box-sizing:border-box; }
+  html { background:var(--bg); }
+  body { margin:0; min-height:100vh; background:radial-gradient(120% 90% at 50% 0%, #1A1230 0%, var(--bg) 60%); color:var(--text); font:400 16px/1.75 var(--f); word-break:auto-phrase; text-wrap:pretty; }
+  body::after { content:""; position:fixed; inset:0; pointer-events:none; z-index:9; background:repeating-linear-gradient(0deg, rgba(0,0,0,.18) 0 1px, transparent 1px 3px), radial-gradient(130% 100% at 50% 50%, transparent 60%, rgba(0,0,0,.55) 100%); }
+  button { font:inherit; color:inherit; cursor:pointer; background:none; border:0; padding:0; }
+  button:disabled { cursor:not-allowed; }
+  :focus-visible { outline:2px solid var(--cyan); outline-offset:2px; }
+  h1, h2, h3, p, ul { margin:0; padding:0; } ul { list-style:none; }
+  .crt { max-width:1100px; margin:0 auto; padding:18px clamp(14px, 3vw, 28px) 40px; }
+
+  /* 上：ロゴとさいふ。ロゴの文字が、このサイトでいちばん目立つ所 */
+  .bar { display:grid; grid-template-columns:auto 1fr auto; gap:6px 18px; align-items:end; padding-bottom:12px; border-bottom:1px solid var(--line2); }
+  .logo { font:400 clamp(30px, 5vw, 46px)/1 var(--f); color:var(--amber); letter-spacing:.04em; text-shadow:var(--glow), 2px 0 0 rgba(70,212,255,.35), -2px 0 0 rgba(255,107,120,.3); white-space:nowrap; }
+  .logo span { color:var(--violet); }
+  .logo i { display:inline-block; width:.5em; height:.9em; margin-left:6px; vertical-align:-.08em; background:var(--amber); box-shadow:var(--glow); animation:blink 1s steps(1) infinite; }
+  .from { grid-column:2; grid-row:1; color:var(--dim); font-size:13px; align-self:center; }
+  .wallet { grid-column:3; grid-row:1; display:flex; gap:16px; font-size:13px; color:var(--dim); white-space:nowrap; }
+  .wallet b { font-weight:400; font-size:22px; margin-left:4px; text-shadow:0 0 6px currentColor; }
+  .wallet .b b { color:var(--cyan); } .wallet .r b { color:var(--violet); }
+
+  /* 起動の文字（いちどだけ） */
+  .boot { padding:22px 2px; color:var(--amber); text-shadow:var(--glow); min-height:140px; }
+  .boot p { white-space:pre; } .boot p.ok { color:var(--ok); }
+  .ready .boot { display:none; }
+  .term { display:none; grid-template-columns:240px minmax(0, 1fr); margin-top:14px; border:1px solid var(--line2); background:rgba(18,13,34,.72); }
+  .ready .term { display:grid; animation:on .35s steps(4); }
+
+  /* 左：商人の一覧（えらんでいる所は、文字と背景が入れかわる） */
+  .dir { border-right:1px solid var(--line); padding:12px 0; }
+  .dir .pr { padding:4px 14px; color:var(--dim); font-size:13px; }
+  .dir button { width:100%; display:grid; grid-template-columns:28px minmax(0, 1fr) auto; gap:8px; align-items:center; padding:6px 14px; text-align:left; }
+  .dir button .mk { color:var(--amber); } .dir button .mk img { display:block; width:28px; height:28px; object-fit:cover; object-position:50% 18%; border-radius:6px; background:rgba(255,181,71,.12); } .dir button small { font-size:12px; color:var(--dim); }
+  .dir button .new { color:var(--ok); font-size:12px; }
+  .dir button[aria-current="true"] { background:var(--amber); color:var(--bg); text-shadow:none; }
+  .dir button[aria-current="true"] .mk, .dir button[aria-current="true"] small, .dir button[aria-current="true"] .new { color:var(--bg); }
+  .dir button:hover:not([aria-current="true"]) { background:rgba(255,181,71,.1); }
+  .dir .sp .mk, .dir .sp .nm { color:var(--violet); } .dir button[aria-current="true"] .nm { color:var(--bg); }
+  .pips { letter-spacing:-1px; }
+
+  /* 右：えらんだ商人 */
+  .pane { padding:16px 20px 22px; min-width:0; }
+  .who { display:grid; grid-template-columns:auto minmax(0, 1fr) auto; gap:14px; align-items:center; }
+  .who .mk { width:56px; height:56px; display:grid; place-items:center; border:1px solid var(--line2); font-size:28px; color:var(--amber); text-shadow:var(--glow); background:repeating-linear-gradient(45deg, rgba(255,181,71,.06) 0 4px, transparent 4px 8px); }
+  .who.sp .mk { color:var(--violet); border-color:rgba(183,155,255,.5); }
+  /* 商人の 顔：通話の 画面のように（くらい背景に 横じま） */
+  .cam { position:relative; width:76px; height:76px; border:1px solid var(--line2); background:radial-gradient(circle at 50% 35%, #2A2140 0, #120D22 75%); overflow:hidden; }
+  .cam img { width:100%; height:100%; object-fit:cover; object-position:50% 20%; transform:scale(1.25); transform-origin:50% 20%; }
+  .cam::after { content:""; position:absolute; inset:0; background:repeating-linear-gradient(0deg, rgba(0,0,0,.18) 0 1px, transparent 1px 3px); pointer-events:none; }
+  .who.sp .cam { border-color:rgba(183,155,255,.5); }
+  .who h2 { font:400 24px/1.2 var(--f); color:var(--amber); text-shadow:var(--glow); } .who.sp h2 { color:var(--violet); }
+  .who p { color:var(--dim); font-size:13px; }
+  .rep { text-align:right; font-size:13px; color:var(--dim); white-space:nowrap; }
+  .rep b { font-weight:400; color:var(--text); font-size:16px; }
+  .meter { display:block; width:150px; height:8px; margin-top:4px; margin-left:auto; border:1px solid var(--line2); }
+  .meter i { display:block; height:100%; background:var(--amber); box-shadow:var(--glow); transition:width .4s steps(6); }
+  .say { margin:12px 0 14px; color:var(--text); }
+  .say::before { content:"＞ "; color:var(--dim); }
+  .tabs { display:flex; gap:0; border-bottom:1px solid var(--line); }
+  .tabs button { padding:6px 16px; border:1px solid transparent; border-bottom:0; color:var(--dim); }
+  .tabs button[aria-selected="true"] { color:var(--amber); border-color:var(--line); background:var(--bg2); margin-bottom:-1px; text-shadow:var(--glow); }
+
+  .rows > li { display:grid; grid-template-columns:minmax(0, 1fr) auto; gap:4px 16px; align-items:center; padding:12px 2px; border-bottom:1px dashed var(--line); }
+  .rows .t { min-width:0; }
+  .rows .kd { display:inline-block; margin-right:8px; padding:0 6px; border:1px solid var(--line2); font-size:12px; color:var(--amber); }
+  .rows .sub { display:block; font-size:13px; color:var(--dim); }
+  .rows .prog { display:flex; align-items:center; gap:8px; margin-top:4px; font-size:13px; color:var(--dim); }
+  .rows .prog i { flex:0 0 120px; height:6px; border:1px solid var(--line); } .rows .prog i b { display:block; height:100%; background:var(--dim); }
+  .rows .prog.full { color:var(--ok); } .rows .prog.full i b { background:var(--ok); box-shadow:0 0 6px var(--ok); }
+  .rw { color:var(--text); font-size:13px; } .rw .c { color:var(--cyan); } .rw .v { color:var(--violet); } .rw .g { color:var(--ok); }
+  .rows li.done { opacity:.5; } .rows li.done .kd { border-style:dashed; }
+  .price .stock { display:block; margin-top:2px; font-size:11px; color:var(--dim); text-shadow:none; } .price .stock.out { color:var(--warn, #FF8A7A); }
+  .rows .no { display:block; margin-bottom:3px; font-size:11px; color:var(--dim); letter-spacing:.04em; }
+  .rows .kd.found { margin:0 0 0 8px; color:var(--dim); border-style:dashed; vertical-align:1px; }
+  .rows .cond { display:block; margin-top:3px; font-size:12px; color:var(--warn, #FF8A7A); }
+  .rows .kd.tool { margin:0 0 0 8px; color:var(--cyan); border-color:rgba(70,212,255,.45); vertical-align:1px; }
+  .price { white-space:nowrap; text-align:right; } .price .c { color:var(--cyan); text-shadow:0 0 6px rgba(70,212,255,.5); } .price .v { color:var(--violet); text-shadow:0 0 6px rgba(183,155,255,.5); }
+  .lock { color:var(--ng); font-size:12px; }
+  .act { justify-self:end; display:flex; align-items:center; gap:10px; }
+  .btn { padding:4px 12px; border:1px solid var(--amber); color:var(--amber); white-space:nowrap; }
+  .btn::before { content:"[ "; } .btn::after { content:" ]"; }
+  .btn:hover:not(:disabled), .btn:focus-visible { background:var(--amber); color:var(--bg); }
+  .btn:disabled { border-color:var(--line); color:var(--dim); }
+  .note { margin-top:14px; font-size:13px; color:var(--dim); }
+
+  /* みんなの依頼 */
+  .post { margin-top:16px; padding:12px 14px; border:1px dashed var(--line2); display:grid; gap:8px; }
+  .post h3 { font:400 15px/1.4 var(--f); color:var(--amber); }
+  .post .f { display:flex; flex-wrap:wrap; gap:8px; align-items:center; font-size:13px; color:var(--dim); }
+  .post select, .post input { font:inherit; font-size:14px; color:var(--text); background:var(--bg); border:1px solid var(--line2); padding:3px 6px; }
+  .post input { width:64px; }
+  .post .c { color:var(--cyan); } .post.mine { border-style:solid; } .post .mrow { font-size:14px; color:var(--text); }
+  .post input.free { width:min(100%, 16em); }
+  /* 門番に つないだ 分：えらんで 買う・売る・交換の パネル */
+  .rows li.pnl { display:block; } .rows li.pnl .post { margin-top:0; }
+  .sellrow { display:grid; grid-template-columns:minmax(0, 1fr) auto auto auto auto; gap:6px; align-items:center; font-size:13px; color:var(--text); }
+  .sellrow small { color:var(--dim); } .sellrow b { min-width:2.4em; text-align:center; color:var(--amber); font-weight:400; }
+  .sellrow .btn { padding:1px 8px; }
+  .sells { display:grid; gap:4px; max-height:280px; overflow:auto; } .post .why { color:var(--warn, #FF8A7A); } .post [hidden] { display:none !important; }
+  /* ひとこと：「」で うすく。自由に 書いた 文だけ 通報できる（?admin=1 は 鹿さんの 見え方で 消せる） */
+  .rows .nt { display:block; margin-top:3px; font-size:13px; color:var(--dim); } .rows .nt.gone { text-decoration:line-through; opacity:.6; }
+  .flag { margin-left:8px; font-size:11px; color:var(--dim); border-bottom:1px dotted var(--line2); } .flag:hover:not(:disabled) { color:var(--warn, #FF8A7A); } .flag:disabled { border:0; }
+
+  .toast { position:fixed; left:50%; bottom:24px; transform:translateX(-50%); z-index:10; padding:8px 16px; border:1px solid var(--ok); background:var(--bg); color:var(--ok); text-shadow:0 0 6px var(--ok); opacity:0; pointer-events:none; white-space:nowrap; }
+  .toast.on { opacity:1; }
+
+  @keyframes blink { 50% { opacity:0; } }
+  @keyframes on { from { opacity:0; filter:brightness(2.2); } to { opacity:1; filter:none; } }
+  @media (max-width:760px) {
+    .bar { grid-template-columns:minmax(0, 1fr); } .wallet { grid-column:1; grid-row:2; } .from { grid-column:1; grid-row:3; } .wallet b { font-size:19px; }
+    .term { grid-template-columns:minmax(0, 1fr); }
+    .dir { border-right:0; border-bottom:1px solid var(--line); padding:6px 0; display:flex; overflow-x:auto; }
+    .dir .pr { display:none; } .dir ul { display:flex; } .dir button { width:auto; white-space:nowrap; grid-template-columns:auto auto; } .dir button small { display:none; }
+    .who { grid-template-columns:auto minmax(0, 1fr); } .rep { grid-column:1 / -1; text-align:left; } .meter { margin-left:0; }
+    .rows > li { grid-template-columns:minmax(0, 1fr); } .act { justify-self:start; }
+    .pane { padding:14px; }
+  }
+  @media (prefers-reduced-motion:reduce) { .logo i { animation:none; } .ready .term { animation:none; } .meter i { transition:none; } }
+  .bye { color:var(--dim); font-size:13px; text-decoration:none; white-space:nowrap; } .bye:hover, .bye:focus-visible { color:var(--amber); }
+</style>
+</head>
+<body>
+<div class="crt" id="crt">
+  <header class="bar">
+    <h1 class="logo" aria-label="DEEP LINK/:">DEEP LINK<span>/:</span><i aria-hidden="true"></i></h1>
+    <div class="wallet"><span class="b">玉<b id="balls"></b></span><span class="r">リソース<b id="res"></b></span></div>
+    <a class="bye" href="lounge-room.html">&lt; ラウンジに もどる</a>
+    <p class="from" id="from">もみじ の ラウンジ PC から 接続中</p>
+  </header>
+  <div class="boot" id="boot" aria-hidden="true"></div>
+  <main class="term" id="term">
+    <nav class="dir" id="dir" aria-label="商人"></nav>
+    <section class="pane" id="pane" aria-live="polite"></section>
+  </main>
+  <p class="toast" id="toast" role="status"></p>
+</div>
+<script type="module">
+import { TRADERS, SPECIAL, REP_LV, repLv, REQ_FEE, REQ_MAX, REQ_LIMITS, NOTE_PRESETS, NOTE_MAX, NOTE_HIDE_AT, noteBlock, RES_VALUE } from "./deeplink.js";
+import { MAT_NAME, GATHER, sellPrice } from "./materials.js";
+import { BASES, OPS, baseOf } from "./equip.js";
+import { CRAFT, SYNTH } from "./recipes.js";
+import { DUNGEONS, TOOLS } from "./dungeons.js";
+import { me, act, busy, waitText, board, report, notedel } from "./lounge-client.js";   // 商人・タスク・お店・依頼の 板は 門番（見本では ブラウザの 中の ためしの 門番）
+
+const q = new URLSearchParams(location.search);
+const fmt = (n) => n.toLocaleString("ja-JP");
+const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
+const META = Object.fromEntries([...TRADERS, SPECIAL].map((t) => [t.id, t]));
+const S = { go: q.get("go") || "junk", tab: q.get("tab") === "shop" ? "shop" : "tasks", open: null, pick: {}, pickOp: {}, sell: {}, want: null };
+let ME = null, D = null, B = { list: [], staff: false };
+async function load() {
+  ME = await me(); D = ME.deeplink || { traders: [], perks: {}, items: {}, recipes: [] };
+  const b = ME.denied ? null : await board(); B = b && Array.isArray(b.list) ? b : { list: [], staff: false };
+}
+await load();
+const W = () => (ME.wallet && ME.wallet.known ? ME.wallet : null);
+const view = (id) => D.traders.find((x) => x.id === id) || { shop: [] };
+const cur = (c, n) => (c === "res" ? `<span class="v">リソース ${fmt(n)}</span>` : `<span class="c">玉 ${fmt(n)}</span>`);
+const pips = (lv) => `<span class="pips" aria-label="友好度 Lv${lv}">${"▮".repeat(lv)}${"▯".repeat(4 - lv)}</span>`;
+const ITEM = { map: "かくし通路の地図", collar: "なかよしの首輪", snack3: "とくべつおやつ", recipe: "作るの レシピ", charm: "くじの お守り" };
+const getText = (g) => !g ? [] : [g.acc && `アクセサリー ★${g.acc}`, g.snacks && `おやつ ${g.snacks}`, ...Object.entries(g.items || {}).map(([k, n]) => `${ITEM[k] || k}${n > 1 ? ` ×${n}` : ""}`), ...Object.entries(g.tools || {}).map(([k, n]) => `${TOOLS[k] ? TOOLS[k].name : k}${n > 1 ? ` ×${n}` : ""}`), ...(g.mats || []).map(([id, n]) => `${MAT_NAME[id] || id} ×${n}`)];
+const rewardText = (r) => [r.balls && `<span class="c">玉 ${fmt(r.balls)}</span>`, r.res && `<span class="v">リソース ${r.res}</span>`, ...getText(r.get).map(esc), r.rep && `<span class="g">友好 ＋${r.rep}</span>`].filter(Boolean).join("・");
+const tasksOf = (v) => (v.chain ? [{ ...v.chain, which: "chain" }, { ...v.daily, which: "daily", daily: true }] : []);
+const ready = (v) => tasksOf(v).filter((k) => !k.done && k.have >= k.need).length;
+// 持って いる 素材（id と 品質ごとに まとめる）
+const matsBy = () => { const m = new Map(); for (const x of ME.own.mats || []) { const k = `${x.id}:${x.q || 0}`; m.set(k, { id: x.id, q: x.q || 0, n: (m.get(k)?.n || 0) + x.n }); } return [...m.values()]; };
+const haveMat = (id, q = 0) => (ME.own.mats || []).filter((x) => x.id === id && (x.q || 0) >= q).reduce((a, x) => a + x.n, 0);
+
+function dirHtml() {
+  const row = (t, sp) => { const v = view(t.id); return `<button data-go="${t.id}" class="${sp ? "sp" : ""}" aria-current="${S.go === t.id}"><span class="mk"><img src="img/trader-${t.id}.png" alt=""></span><span class="nm">${t.dir || t.name}</span>${sp ? `<small>リソース</small>` : `<small>${pips(v.lv || 1)}${ready(v) ? ` <span class="new">!</span>` : ""}</small>`}</button>`; };
+  return `<p class="pr">&gt; 商人</p><ul>${TRADERS.map((t) => `<li>${row(t)}</li>`).join("")}</ul>
+    <p class="pr">&gt; ほか</p><ul><li>${row(SPECIAL, true)}</li><li><button data-go="board" aria-current="${S.go === "board"}"><span class="mk">✉</span><span class="nm">みんなの依頼</span><small>${B.list.length}</small></button></li></ul>`;
+}
+function traderHtml(t) {
+  const v = view(t.id), lv = v.lv || 1, rep = v.rep || 0, next = REP_LV[lv] ?? null, base = REP_LV[lv - 1], list = tasksOf(v);
+  const tasks = list.map((k) => { const full = k.have >= k.need, u = k.unit ? (k.unit === "%" ? "%" : ` ${k.unit}`) : "";
+    return `<li class="${k.done ? "done" : ""}"><div class="t"><span class="no">${k.daily ? "きょう" : `つながり #${k.n}`}</span><span class="kd">${esc(k.kind || "")}</span>${esc(k.text)}${k.found ? `<span class="kd found">拾った物</span>` : ""}${k.cond ? `<span class="cond">じょうけん：${esc(k.cond)}</span>` : ""}
+      <span class="prog ${full ? "full" : ""}"><i><b style="width:${Math.min(100, (k.have / k.need) * 100)}%"></b></i>${k.done ? "おわった" : `${Math.min(k.have, k.need)}${u} / ${k.need}${u}`}</span>
+      <span class="sub">ごほうび　<span class="rw">${rewardText(k.reward)}</span></span></div>
+      <div class="act">${k.done ? "" : `<button class="btn" data-task="${k.which}" ${full ? "" : "disabled"}>${k.kind === "納める" ? "納める" : "報告する"}</button>`}</div></li>`; }).join("");
+  return `<header class="who"><span class="cam" aria-hidden="true"><img src="img/trader-${t.id}.png" alt=""></span><div><h2>${t.name}</h2><p>${t.animal}・${t.role}</p></div>
+      <div class="rep">友好度 <b>Lv${lv}</b>${next ? `　${rep} / ${next}` : "　いちばん上"}<span class="meter"><i style="width:${next ? ((rep - base) / (next - base)) * 100 : 100}%"></i></span></div></header>
+    <p class="say">${esc(t.say)}</p>
+    <div class="tabs" role="tablist"><button role="tab" data-tab="tasks" aria-selected="${S.tab === "tasks"}">タスク ${list.filter((k) => !k.done).length}</button><button role="tab" data-tab="shop" aria-selected="${S.tab === "shop"}">ショップ ${t.shop.length}</button></div>
+    ${S.tab === "tasks" ? `<ul class="rows">${tasks}</ul>` : shopHtml(t)}`;
+}
+// のこりの数（left は 門番の 数。null は かぎり なし）
+const stockText = (it, st) => (it.sell || it.trade ? "" : it.once ? (st.done ? "" : "1 回だけ") : st.left == null ? "" : st.left ? `${it.week ? "今週" : "きょう"} のこり ${st.left}` : `${it.week ? "来週" : "あした"} もどる`);
+const choices = (it) => (it.get && it.get.recipe ? it.pick.filter((id) => !(D.recipes || []).includes(id)) : it.pick || []);
+const choiceName = (it, id) => (it.get.mat ? MAT_NAME[id] : it.get.acc ? baseOf(id).name : it.get.recipe === "craft" ? `${baseOf(CRAFT.find((r) => r.base === id).base).name}（作る）` : `${baseOf(id).name}（合成）`);
+function shopHtml(t) {
+  const v = view(t.id), w = W();
+  return `<ul class="rows">${t.shop.map((it) => { const st = v.shop.find((x) => x.id === it.id) || {}, locked = st.open === false, out = it.once ? st.done : !it.sell && !it.trade && st.left === 0;
+    const poor = w && !it.sell && !it.trade && (it.cur === "res" ? w.res < it.price : w.balls < it.price), cant = out || poor;
+    const label = it.sell ? "売る" : it.trade ? "交換する" : out ? (it.once ? "買った" : "売り切れ") : it.pick ? "えらぶ" : "買う";
+    return `<li><div class="t">${esc(it.name)}${it.tool ? `<span class="kd tool">持ち物</span>` : ""}<span class="sub">${esc(it.note)}</span></div>
+      <div class="act">${it.sell || it.trade ? "" : `<span class="price">${cur(it.cur, it.price)}<small class="stock ${out && !it.once ? "out" : ""}">${stockText(it, st)}</small></span>`}${locked ? `<span class="lock">友好度 Lv${it.lv} で 買える</span>` : `<button class="btn" data-item="${it.id}" aria-expanded="${S.open === it.id}" ${cant ? "disabled" : ""}>${label}</button>`}</div></li>
+      ${S.open === it.id && !locked ? `<li class="pnl">${it.sell ? sellHtml() : it.trade ? tradeHtml() : pickHtml(t, it)}</li>` : ""}`; }).join("")}</ul>`;
+}
+// えらんで 買う：素材・アクセサリーの もと・レシピ（★3 の OP えらびも）
+function pickHtml(t, it) {
+  const list = choices(it), sel = S.pick[it.id] && list.includes(S.pick[it.id]) ? S.pick[it.id] : list[0], ops = it.get.op ? Object.keys(OPS).filter((k) => (OPS[k].from || 1) <= it.get.acc) : [];
+  if (!list.length) return `<div class="post"><p class="f">えらべる 物が ない（レシピは もう ぜんぶ 出て いる）</p></div>`;
+  return `<div class="post"><div class="f">えらぶ <select data-pick="${it.id}">${list.map((id) => `<option value="${id}" ${id === sel ? "selected" : ""}>${esc(choiceName(it, id))}</option>`).join("")}</select>
+      ${ops.length ? `OP <select data-pickop="${it.id}">${ops.map((k) => `<option value="${k}" ${k === S.pickOp[it.id] ? "selected" : ""}>${esc(OPS[k].label)}</option>`).join("")}</select>` : ""}</div>
+    <div class="f"><button class="btn" data-buy="${it.id}">買う（${it.cur === "res" ? "リソース" : "玉"} ${fmt(it.price)}）</button></div></div>`;
+}
+// 売る：素材を えらんで 玉に（買い取りの 上乗せこみ）
+const sellMult = () => 1 + (D.perks.sell20 ? 0.2 : D.perks.sell10 ? 0.1 : 0);
+function sellHtml() {
+  const list = matsBy().sort((a, b) => sellPrice(b) - sellPrice(a)), tot = Math.round(list.reduce((a, m) => a + sellPrice(m) * (S.sell[`${m.id}:${m.q}`] || 0), 0) * sellMult()), n = Object.values(S.sell).reduce((a, v) => a + v, 0);
+  if (!list.length) return `<div class="post"><p class="f">売れる 素材が ない</p></div>`;
+  return `<div class="post"><h3>売る 素材を えらぶ${sellMult() > 1 ? `（買い取り ＋${Math.round((sellMult() - 1) * 100)}%）` : ""}</h3><div class="sells">${list.map((m) => { const k = `${m.id}:${m.q}`, x = S.sell[k] || 0;
+      return `<div class="sellrow"><span>${esc(MAT_NAME[m.id] || m.id)}${m.q ? ` <small>品質${m.q}</small>` : ""} <small>×${m.n}・1 こ 玉 ${sellPrice(m)}</small></span><button class="btn" data-sk="${k}" data-d="-1" ${x ? "" : "disabled"}>−</button><b>${x}</b><button class="btn" data-sk="${k}" data-d="1" ${x < m.n ? "" : "disabled"}>＋</button><button class="btn" data-sk="${k}" data-d="all">ぜんぶ</button></div>`; }).join("")}</div>
+    <div class="f"><button class="btn" data-sell="1" ${n ? "" : "disabled"}>売る（玉 ${fmt(tot)}）</button><span>店で 買った 物から 先に 売る（拾った 物は タスクに のこる）</span></div></div>`;
+}
+// 交換：同じ 行き先の 採取の 素材 3 こ → ほしい 1 こ（あげる 物は 多く 持って いる 物から えらぶ）
+function giveFor(want) {
+  const d = Object.keys(GATHER).find((k) => GATHER[k].mats.some(([id]) => id === want)), q0 = (id) => (ME.own.mats || []).filter((x) => x.id === id && !x.q).reduce((a, x) => a + x.n, 0), out = [];
+  let left = 3;
+  for (const id of GATHER[d].mats.map(([id]) => id).filter((id) => id !== want).sort((a, b) => q0(b) - q0(a))) { const n = Math.min(left, q0(id)); if (n) { out.push({ id, n }); left -= n; } if (!left) break; }
+  return left ? null : out;
+}
+function tradeHtml() {
+  const all = DUNGEONS.flatMap((d) => GATHER[d.id].mats.map(([id]) => id)), want = S.want && all.includes(S.want) ? S.want : all[0], give = giveFor(want);
+  return `<div class="post"><div class="f">ほしい 物 <select data-want="1">${DUNGEONS.map((d) => `<optgroup label="${esc(d.name)}">${GATHER[d.id].mats.map(([id, n]) => `<option value="${id}" ${id === want ? "selected" : ""}>${esc(n)}</option>`).join("")}</optgroup>`).join("")}</select></div>
+    <div class="f">${give ? `あげる：${give.map((g) => `${esc(MAT_NAME[g.id])} ×${g.n}`).join("・")}` : `<span class="why">同じ 行き先の 採取の 素材が 3 こ ない</span>`}</div>
+    <div class="f"><button class="btn" data-trade="${want}" ${give ? "" : "disabled"}>交換する</button></div></div>`;
+}
+function specialHtml() {
+  return `<header class="who sp"><span class="cam" aria-hidden="true"><img src="img/trader-special.png" alt=""></span><div><h2>${SPECIAL.name}の ${SPECIAL.dir}</h2><p>${SPECIAL.animal}・${SPECIAL.role}</p></div><div class="rep">支払いは <b style="color:var(--violet)">リソース</b> だけ</div></header>
+    <p class="say">${esc(SPECIAL.say)}</p>${shopHtml(SPECIAL)}<p class="note">リソースは コスメの かぶりで もらえる（玉 1,000 → 1 にも かえられる）</p>`;
+}
+// ---------- みんなの依頼（門番の 板）----------
+const wantText = (w) => (w.mat ? `${esc(MAT_NAME[w.mat] || w.mat)}${w.q ? `（品質 ${w.q} 以上）` : ""}を ${w.n} こ` : `${esc(baseOf(w.equip).name)} ★${w.star} 以上を 1 つ`);
+const haveFor = (w) => (w.mat ? haveMat(w.mat, w.q) : (ME.own.equip || []).filter((e) => e.base === w.equip && e.star >= w.star && !Object.values((ME.pets[0] || {}).equip || {}).includes(e.uid)).length);
+const leftText = (t) => { const h = Math.max(0, (t - Date.now()) / 3600e3); return h >= 48 ? `あと ${Math.floor(h / 24)} 日` : h >= 1 ? `あと ${Math.floor(h)} 時間` : "もうすぐ おわる"; };
+const reqReward = (r) => [r.balls && `<span class="c">玉 ${fmt(r.balls)}</span>`, r.res && `<span class="v">リソース ${r.res}</span>`, ...(r.mats || []).map((m) => esc(`${MAT_NAME[m.id] || m.id}${m.q ? `（品質${m.q}）` : ""} ×${m.n}`)), ...(r.equip || []).map((e) => esc(`${baseOf(e.base).name} ★${e.star}`))].filter(Boolean).join("・");
+const feeOf = (rw) => Math.max(10, Math.round((((rw.balls || 0) + (rw.res || 0) * RES_VALUE) * REQ_FEE) / 10) * 10);
+function noteHtml(r) {
+  if (!r.note) return "";
+  if (B.staff) return `<span class="nt ${r.hidden ? "gone" : ""}">「${esc(r.note.text)}」${r.reports ? `　通報 ${r.reports}` : ""}${r.note.free ? `<button class="flag" data-erase="${esc(r.rid)}">消す</button>` : ""}</span>`;
+  return `<span class="nt">「${esc(r.note.text)}」${r.note.free && !r.mine ? `<button class="flag" data-flag="${esc(r.rid)}">通報</button>` : ""}</span>`;
+}
+function checkNote() {
+  const sel = document.getElementById("rq-note"); if (!sel) return;
+  const free = sel.value === "free", inp = document.getElementById("rq-free"), cnt = document.getElementById("rq-cnt"), why = document.getElementById("rq-why");
+  inp.hidden = cnt.hidden = !free;
+  const reason = free ? noteBlock(inp.value) : "";
+  cnt.textContent = `${[...inp.value].length} / ${NOTE_MAX}`;
+  why.hidden = !reason; why.textContent = reason && `出せない：${reason}`;
+  document.querySelector("[data-post]").disabled = !!reason;
+}
+const fee0 = () => { const b = +(document.getElementById("rq-b")?.value || 0), r = +(document.getElementById("rq-r")?.value || 0); return feeOf({ balls: b, res: r }); };
+function boardHtml() {
+  const others = B.list.filter((r) => !r.mine), mineP = B.list.find((r) => r.mine);
+  const rows = others.map((r) => { const have = haveFor(r.want), need = r.want.n || 1, full = have >= need;
+    return `<li><div class="t"><span class="kd">${esc(r.name)}</span>${wantText(r.want)}${noteHtml(r)}
+      <span class="prog ${full ? "full" : ""}"><i><b style="width:${Math.min(100, (have / need) * 100)}%"></b></i>持っている ${have} / ${need}　${leftText(r.until)}</span>
+      <span class="sub">お礼　<span class="rw">${reqReward(r.reward)}</span></span></div>
+      <div class="act"><button class="btn" data-req="${esc(r.rid)}" ${full ? "" : "disabled"}>届ける</button></div></li>`; }).join("");
+  const mats = Object.entries(MAT_NAME), sending = ME.req && ME.req.mine && !mineP;
+  const mine = mineP ? `<div class="post mine"><h3>いま 出している 依頼</h3>
+      <p class="mrow">${wantText(mineP.want)}　お礼 <span class="rw">${reqReward(mineP.reward)}</span>　${leftText(mineP.until)}</p>${mineP.note ? `<p class="mrow">「${esc(mineP.note.text)}」</p>` : ""}
+      <div class="f"><button class="btn" data-cancel="1">取り下げる</button><span>依頼は 1 人 ${REQ_MAX} つまで</span></div></div>`
+    : sending ? `<div class="post mine"><h3>依頼を 板に 送って います</h3><p class="mrow">つぎに 開いた ときに 板に 出ます</p></div>`
+    : `<div class="post"><h3>依頼を 出す</h3>
+      <div class="f">ほしい物 <select id="rq-want" aria-label="ほしい物"><optgroup label="素材">${mats.map(([id, n]) => `<option value="m:${id}">${esc(n)}</option>`).join("")}</optgroup><optgroup label="装備">${BASES.map((b) => `<option value="e:${b.id}">${esc(b.name)}</option>`).join("")}</optgroup></select>
+        品質 <select id="rq-q" aria-label="品質">${[0, 1, 2, 3, 4, 5].map((k) => `<option value="${k}">${k ? `${k} 以上` : "なんでも"}</option>`).join("")}</select>
+        数 <input id="rq-n" type="number" min="1" max="99" value="5" aria-label="数"></div>
+      <div class="f">お礼 玉 <input id="rq-b" type="number" min="0" step="10" value="300" aria-label="お礼の 玉"> リソース <input id="rq-r" type="number" min="0" value="0" aria-label="お礼の リソース">
+        期限 <select id="rq-lim" aria-label="期限">${REQ_LIMITS.map((x, k) => `<option value="${k}" ${k === 1 ? "selected" : ""}>${x}</option>`).join("")}</select></div>
+      <div class="f">ひとこと <select id="rq-note" aria-label="ひとこと"><option value="">なし</option>${NOTE_PRESETS.map((x, k) => `<option value="${k}">${esc(x)}</option>`).join("")}<option value="free">じぶんで 書く</option></select>
+        <input id="rq-free" class="free" maxlength="${NOTE_MAX}" aria-label="ひとこと（${NOTE_MAX} 字まで）" hidden><span id="rq-cnt" hidden>0 / ${NOTE_MAX}</span></div>
+      <div class="f"><button class="btn" data-post="1">依頼を 出す</button><span>手数料 <span class="c" id="rq-fee">玉 ${fmt(feeOf({ balls: 300 }))}</span>（お礼の 1 割・出す人が はらう）</span></div>
+      <p class="f why" id="rq-why" hidden></p></div>`;
+  return `<header class="who"><span class="mk" aria-hidden="true">✉</span><div><h2>みんなの依頼</h2><p>ほしい物を 届けると、預けてある お礼が もらえる</p></div></header>
+    ${rows ? `<ul class="rows" style="margin-top:10px">${rows}</ul>` : `<p class="note">いまは ほかの 人の 依頼が ない</p>`}${mine}`;
+}
+
+function render() {
+  const w = W();
+  document.getElementById("balls").textContent = w ? fmt(w.balls) : "？";
+  document.getElementById("res").textContent = w ? fmt(w.res) : "？";
+  if (ME.denied || ME.ok === false) { document.getElementById("dir").innerHTML = ""; document.getElementById("pane").innerHTML = `<p class="say">入れません：${esc(ME.why || "")}</p>${ME.login ? `<p class="say"><a href="/" style="color:var(--amber)">&gt; MONO LINK で ログイン</a></p>` : ""}`; return; }
+  document.getElementById("dir").innerHTML = dirHtml();
+  document.getElementById("pane").innerHTML = S.go === "special" ? specialHtml() : S.go === "board" ? boardHtml() : traderHtml(META[S.go] || META.junk);
+}
+let tid;
+const toast = (s) => { const el = document.getElementById("toast"); el.textContent = s; el.classList.add("on"); clearTimeout(tid); tid = setTimeout(() => el.classList.remove("on"), 3200); };
+// 門番に 頼んで、記録と 板を 読みなおして 描きなおす
+async function ask(b, a, body, msg) {
+  const r = await busy(b, () => act(a, body), "…");
+  if (!r.ok && !r.wait) { toast(r.why || "できませんでした"); return r; }
+  await load(); if (r.ok) toast(msg(r)); else toast(waitText);
+  render(); return r;
+}
+document.getElementById("term").addEventListener("change", (e) => {
+  const d = e.target.dataset;
+  if (d.pick) S.pick[d.pick] = e.target.value;
+  if (d.pickop) S.pickOp[d.pickop] = e.target.value;
+  if (d.want) { S.want = e.target.value; render(); }
+  if (e.target.id === "rq-want") document.getElementById("rq-q").disabled = e.target.value.startsWith("e:");
+  if (e.target.id === "rq-b" || e.target.id === "rq-r") document.getElementById("rq-fee").textContent = `玉 ${fmt(fee0())}`;
+  if (e.target.id === "rq-note") { checkNote(); if (e.target.value === "free") document.getElementById("rq-free").focus(); }
+});
+document.getElementById("term").addEventListener("input", (e) => { if (e.target.id === "rq-free") checkNote(); if (e.target.id === "rq-b" || e.target.id === "rq-r") document.getElementById("rq-fee").textContent = `玉 ${fmt(fee0())}`; });
+document.getElementById("term").addEventListener("click", async (e) => {
+  const b = e.target.closest("button"); if (!b || b.disabled) return;
+  const d = b.dataset, t = META[S.go];
+  if (d.go) { S.go = d.go; S.tab = "tasks"; S.open = null; render(); return document.querySelector(`[data-go="${d.go}"]`)?.focus(); }
+  if (d.tab) { S.tab = d.tab; S.open = null; render(); return document.querySelector(`[data-tab="${d.tab}"]`)?.focus(); }
+  // 報告・納める：つながりは 次の タスクが 出る（終わりは ない）、きょうの タスクは あした 新しく なる
+  if (d.task) { const before = view(t.id).lv; return ask(b, "task.done", { tid: t.id, which: d.task }, () => `受けとった！${view(t.id).lv > before ? `　友好度 Lv${view(t.id).lv} に なった` : ""}${d.task === "chain" ? `　次の タスク（#${view(t.id).chain.n}）が 出た` : ""}`); }
+  if (d.item) { const sh = S.go === "special" ? SPECIAL : t, it = sh.shop.find((x) => x.id === d.item);
+    if (it.sell || it.trade || it.pick) { S.open = S.open === it.id ? null : it.id; S.sell = {}; return render(); }
+    return ask(b, "trader.buy", { tid: sh.id, item: it.id }, () => `買った：${it.name}${it.tool ? "（冒険の じゅんびで 持っていける）" : ""}`); }
+  if (d.buy) { const sh = S.go === "special" ? SPECIAL : t, it = sh.shop.find((x) => x.id === d.buy), list = choices(it), pick = S.pick[it.id] && list.includes(S.pick[it.id]) ? S.pick[it.id] : list[0];
+    const ops = it.get.op ? Object.keys(OPS).filter((k) => (OPS[k].from || 1) <= it.get.acc) : [], pickOp = it.get.op ? S.pickOp[it.id] || ops[0] : undefined;
+    return ask(b, "trader.buy", { tid: sh.id, item: it.id, pick, pickOp }, () => `買った：${choiceName(it, pick)}${it.get.acc ? " → 装備に 入った" : it.get.recipe ? " → 作業台に レシピが 出た" : ""}`); }
+  if (d.sk) { const m = matsBy().find((x) => `${x.id}:${x.q}` === d.sk), x = S.sell[d.sk] || 0; S.sell[d.sk] = d.d === "all" ? m.n : Math.max(0, Math.min(m.n, x + +d.d)); return render(); }
+  if (d.sell) { const mats = Object.entries(S.sell).filter(([, n]) => n > 0).map(([k, n]) => { const [id, q] = k.split(":"); return { id, q: +q, n }; });
+    return ask(b, "trader.sell", { tid: "junk", mats }, (r) => `売った：玉 ${fmt(r.balls)}`).then((r) => { if (r.ok) { S.sell = {}; render(); } }); }
+  if (d.trade) { const give = giveFor(d.trade); return ask(b, "trader.trade", { tid: "junk", want: d.trade, give }, () => `交換した：${MAT_NAME[d.trade]} が 1 こ 倉庫に 入った`); }
+  if (d.req) return ask(b, "req.deliver", { rid: d.req }, (r) => `届けた：お礼 ${reqReward(r.reward || {}).replace(/<[^>]+>/g, "")} を もらった`);
+  if (d.post) {
+    const wv = document.getElementById("rq-want").value, n = Math.max(1, Math.min(99, +document.getElementById("rq-n").value || 1)), qv = +document.getElementById("rq-q").value;
+    const want = wv.startsWith("m:") ? { mat: wv.slice(2), q: qv, n } : { equip: wv.slice(2), star: 1, n: 1 };
+    const reward = { balls: Math.max(0, Math.floor(+document.getElementById("rq-b").value || 0)), res: Math.max(0, Math.floor(+document.getElementById("rq-r").value || 0)) };
+    const ns = document.getElementById("rq-note").value, note = ns === "" ? null : ns === "free" ? { text: document.getElementById("rq-free").value } : { preset: +ns };
+    return ask(b, "req.post", { want, reward, limit: +document.getElementById("rq-lim").value, note }, (r) => `依頼を 出した：お礼と 手数料 玉 ${fmt(r.fee)} を 預けた${r.sending ? "（板に 送って います）" : ""}`);
+  }
+  if (d.cancel) return ask(b, "req.cancel", {}, () => "取り下げた：お礼は もどる（手数料は もどらない）");
+  // 通報：1 人 1 回。3 回で かくれる（門番の 板が 数える）。配信者と モデレーターは 消せる
+  if (d.flag) { const r = await busy(b, () => report(d.flag), "…"); await load(); render(); return toast(r.ok ? (r.hidden ? "通報した：ひとことを かくした" : "通報した") : r.why || "通報できませんでした"); }
+  if (d.erase) { const r = await busy(b, () => notedel(d.erase), "…"); await load(); render(); return toast(r.ok ? "ひとことを 消した" : r.why || "消せませんでした"); }
+});
+
+// 起動の文字（いちどだけ。動きをへらす設定のときと、&boot=0 のときは飛ばす）
+document.getElementById("from").textContent = B.staff ? `${ME.name || ""}（管理）で 接続中` : `${ME.name || ""} の ラウンジ PC から 接続中`;
+const LINES = ["MONO LINK:// を うらがえしています …", "DEEP LINK/: に つないでいます …", `${ME.name || "あなた"} の ラウンジ PC を 確認しました`, "ようこそ。"];
+const start = () => { const el = document.getElementById("crt"); if (el.classList.contains("ready")) return; el.classList.add("ready"); render(); window.ready = true; };
+if (q.get("boot") === "0" || matchMedia("(prefers-reduced-motion: reduce)").matches) start();
+else {
+  const box = document.getElementById("boot"); let i = 0;
+  const step = () => { if (i >= LINES.length) return setTimeout(start, 300); const p = document.createElement("p"); if (i === LINES.length - 1) p.className = "ok"; box.appendChild(p); const s = LINES[i++]; let k = 0;
+    const type = () => { p.textContent = s.slice(0, ++k); if (k < s.length) setTimeout(type, 22); else setTimeout(step, 140); }; type(); };
+  step();
+  document.addEventListener("click", start, { once: true });
+}
+</script>
+</body>
+</html>

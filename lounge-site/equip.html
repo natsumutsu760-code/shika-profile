@@ -1,0 +1,250 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pet Equipment</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Zen+Maru+Gothic:wght@500;700;900&display=swap">
+<style>
+  /* MONO LINK のラウンジ：ペットの装備の画面の見本。?view=gousei で合成（OP うつし）。部品と色はガンビット・スキルツリーの画面と同じ */
+  :root {
+    --space:#F6F8FC; --ink:#1B2340; --soft:#6A7394; --line:#DCE3F0;
+    --sky:#2EA8FF; --coral:#FF5A64; --sun:#FFC21A; --leaf:#22CC88; --violet:#8E6CFF;
+    --r1:#9AA0B8; --r2:#2F7BFF; --r3:#9B4DFF; --r4:#FFB300; --r5:#FF2E4D;
+    --jp:"Zen Maru Gothic", "Hiragino Maru Gothic ProN", sans-serif; --num:"Fredoka", "Zen Maru Gothic", sans-serif;
+    --lift:0 18px 40px -18px rgba(27,35,64,.35), 0 2px 0 rgba(27,35,64,.06);
+  }
+  * { box-sizing:border-box; }
+  body { margin:0; min-height:100vh; background:radial-gradient(120% 80% at 50% 0%, #FFFFFF 0%, var(--space) 55%, #EAF0FA 100%); color:var(--ink); font:500 16px/1.65 var(--jp); }
+  button { font:inherit; color:inherit; cursor:pointer; }
+  :focus-visible { outline:3px solid var(--sky); outline-offset:3px; border-radius:12px; }
+  .top { display:flex; align-items:center; gap:10px; padding:12px clamp(16px, 4vw, 40px); }
+  .top b { font:700 22px/1 var(--num); letter-spacing:.06em; } .top b i { font-style:normal; color:var(--sky); }
+  .top small { font:700 13px/1 var(--jp); color:var(--soft); margin-left:6px; }
+  main { max-width:1100px; margin:0 auto; padding:0 clamp(16px, 4vw, 40px) 40px; }
+  .panel { background:rgba(255,255,255,.9); border-radius:26px; box-shadow:var(--lift); padding:clamp(14px, 2.4vw, 18px); }
+  .pet { display:grid; grid-template-columns:60px auto 1fr; gap:14px; align-items:center; padding:8px 20px 8px 8px; border-radius:22px; }
+  .pet .pic { width:60px; height:60px; border-radius:16px; background:radial-gradient(circle at 50% 38%, #fff 0, #E4F7EE 80%); display:flex; justify-content:center; overflow:hidden; }
+  .pet .pic img { height:150%; margin-top:-4%; }
+  .pet h1 { margin:0; font:900 24px/1.1 var(--jp); display:flex; align-items:baseline; gap:10px; white-space:nowrap; }
+  .pet h1 small { font:700 13px/1 var(--jp); color:var(--soft); }
+  .pet .meta { margin-top:6px; display:flex; gap:8px; align-items:center; }
+  .badge { display:inline-flex; align-items:center; gap:5px; border-radius:999px; padding:4px 10px 4px 5px; font:700 12px/1 var(--jp); color:#fff; background:var(--c); }
+  .badge::before { content:""; width:11px; height:11px; border-radius:50%; background:#fff; opacity:.85; }
+  .lv { font:600 16px/1 var(--num); } .lv small { font:700 12px/1 var(--jp); color:var(--soft); margin-right:3px; }
+  .res { justify-self:end; text-align:right; font:700 12px/1.2 var(--jp); color:var(--soft); }
+  .res b { display:block; font:600 24px/1 var(--num); color:var(--ink); }
+  .tabs { display:flex; gap:8px; margin:12px 0 10px; overflow-x:auto; padding-bottom:4px; }
+  .tabs button { flex:none; border:1.5px solid var(--line); background:rgba(255,255,255,.9); border-radius:999px; padding:8px 16px; font:700 14px/1 var(--jp); }
+  .tabs button[aria-selected="true"] { background:var(--ink); color:#fff; border-color:var(--ink); box-shadow:0 5px 0 rgba(27,35,64,.22); }
+  .seg { display:inline-grid; grid-auto-flow:column; gap:3px; padding:3px; border-radius:13px; background:#fff; border:1.5px solid var(--line); }
+  .seg button { border:0; background:none; border-radius:10px; padding:6px 14px; font:700 13px/1.2 var(--jp); color:var(--soft); white-space:nowrap; }
+  .seg button[aria-pressed="true"] { background:var(--sky); color:#fff; box-shadow:0 4px 0 rgba(46,168,255,.28); }
+  .head { display:flex; align-items:center; gap:10px; margin-bottom:10px; flex-wrap:wrap; }
+  .head h2 { margin:0; font:900 20px/1.3 var(--jp); }
+  .head .cnt { margin-left:auto; font:700 12px/1 var(--jp); color:var(--soft); } .head .cnt b { font:600 14px/1 var(--num); color:var(--ink); }
+  .stars { display:inline-flex; gap:1px; font-size:13px; line-height:1; color:var(--rc); letter-spacing:-1px; }
+  .r1 { --rc:var(--r1); } .r2 { --rc:var(--r2); } .r3 { --rc:var(--r3); } .r4 { --rc:var(--r4); } .r5 { --rc:var(--r5); }
+  .ico { display:grid; place-items:center; border-radius:14px; background:radial-gradient(circle at 50% 40%, #fff 0, color-mix(in srgb, var(--rc) 16%, #fff) 85%); }
+  .ico img { width:86%; height:86%; object-fit:contain; }
+  .r5 .ico { background:radial-gradient(circle at 50% 40%, #fff 0, #FFE9EC 60%, #FFF5D6 100%); box-shadow:inset 0 0 0 2px #FFD0D8; }
+
+  .cols { display:grid; grid-template-columns:250px minmax(0, 1fr) 290px; gap:16px; align-items:start; }
+  /* 左：着ているところと 3 つの枠 */
+  .wear .stage { height:236px; border-radius:20px; background:radial-gradient(circle at 50% 36%, #fff 0, #E4F7EE 82%); display:flex; justify-content:center; overflow:hidden; }
+  .wear .stage img { height:118%; margin-top:-2%; }
+  .slots { margin-top:10px; display:grid; gap:6px; }
+  .slot { display:grid; grid-template-columns:44px minmax(0, 1fr); gap:8px; align-items:center; text-align:left; border:1.5px solid var(--line); background:#fff; border-radius:14px; padding:5px 8px 5px 5px; }
+  .slot .ico { width:44px; height:44px; border-radius:11px; }
+  .slot small { display:block; font:700 11px/1.2 var(--jp); color:var(--soft); }
+  .slot b { display:block; font:700 13px/1.3 var(--jp); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .slot.on { border-color:var(--sky); box-shadow:0 0 0 3px rgba(46,168,255,.16); }
+  .sum { margin-top:10px; padding:8px 10px; border-radius:14px; background:var(--space); font:700 12px/1.6 var(--jp); color:var(--soft); }
+  .sum b { font:600 13px/1 var(--num); color:var(--ink); }
+  /* まん中：持っている装備 */
+  .filters { display:flex; gap:6px; margin-bottom:10px; flex-wrap:wrap; }
+  .filters button { border:1.5px solid var(--line); background:#fff; border-radius:999px; padding:5px 12px; font:700 12px/1 var(--jp); color:var(--soft); }
+  .filters button[aria-pressed="true"] { background:var(--ink); color:#fff; border-color:var(--ink); }
+  .filters .sort { margin-left:auto; }
+  .grid { display:grid; grid-template-columns:repeat(4, minmax(0, 1fr)); gap:8px; }
+  .card { position:relative; text-align:left; border:1.5px solid var(--line); background:#fff; border-radius:16px; padding:6px 6px 8px; display:grid; gap:3px; }
+  .card .ico { aspect-ratio:1; width:100%; border-radius:12px; }
+  .card b { font:700 12px/1.25 var(--jp); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .card .st { font:600 11px/1 var(--num); color:var(--soft); }
+  .card .eq { position:absolute; left:6px; top:6px; padding:3px 6px; border-radius:7px; background:var(--leaf); color:#fff; font:700 10px/1 var(--jp); }
+  .card.sel { border-color:var(--ink); box-shadow:0 0 0 3px rgba(27,35,64,.14); }
+  .card.new::after { content:"NEW"; position:absolute; right:6px; top:6px; padding:3px 5px; border-radius:7px; background:var(--coral); color:#fff; font:600 10px/1 var(--num); }
+  /* 右：えらんだ装備 */
+  .detail .top2 { display:grid; grid-template-columns:76px 1fr; gap:10px; align-items:center; }
+  .detail .ico { width:76px; height:76px; }
+  .detail h2 { margin:0; font:900 18px/1.25 var(--jp); }
+  .detail .stars { font-size:16px; margin-top:4px; }
+  .detail .slotname { display:inline-block; margin-left:6px; font:700 11px/1 var(--jp); color:var(--soft); border:1.5px solid var(--line); border-radius:99px; padding:3px 7px; vertical-align:2px; }
+  .main { margin-top:10px; padding:7px 10px; border-radius:12px; background:var(--space); font:700 13px/1.4 var(--jp); display:flex; justify-content:space-between; }
+  .main b { font:600 15px/1 var(--num); }
+  .ops { list-style:none; margin:8px 0 0; padding:0; display:grid; gap:4px; }
+  .ops li { display:flex; align-items:center; gap:7px; font:700 13px/1.35 var(--jp); padding:4px 8px; border-radius:10px; border:1.5px solid var(--line); background:#fff; }
+  .ops li::before { content:""; width:8px; height:8px; border-radius:50%; background:var(--rc, var(--soft)); flex:none; }
+  .ops li.sp { border-color:#FFD98A; background:#FFF8E6; }
+  .ops li.sp::after { content:"★3〜"; margin-left:auto; font:600 10px/1 var(--num); color:#C98A00; }
+  .cmp { margin-top:10px; padding:8px 10px; border-radius:14px; border:1.5px dashed var(--line); }
+  .cmp h3 { margin:0 0 4px; font:900 12px/1.3 var(--jp); color:var(--soft); }
+  .cmp div { display:flex; justify-content:space-between; font:700 13px/1.6 var(--jp); }
+  .cmp .up { color:#13A36A; } .cmp .dn { color:var(--coral); } .cmp .eq0 { color:var(--soft); }
+  .cmp b { font:600 13px/1 var(--num); }
+  .btns { margin-top:12px; display:grid; gap:8px; }
+  .jelly { border:0; border-radius:999px; padding:11px 16px; font:900 14px/1 var(--jp); background:var(--ink); color:#fff; box-shadow:0 5px 0 rgba(27,35,64,.25); }
+  .jelly.light { background:#fff; color:var(--ink); box-shadow:0 5px 0 var(--line); border:1.5px solid var(--line); }
+  .jelly.sky { background:var(--sky); box-shadow:0 5px 0 rgba(46,168,255,.3); }
+  .linkish { border:0; background:none; font:700 12px/1.2 var(--jp); color:var(--soft); text-decoration:underline; text-underline-offset:3px; }
+  .linkish b { font:600 13px/1 var(--num); color:var(--ink); }
+
+  /* 合成（OP うつし） */
+  .dim { position:fixed; inset:0; background:rgba(27,35,64,.38); display:none; z-index:10; }
+  .mix { display:grid; grid-template-columns:minmax(0, 1fr) 40px minmax(0, 1fr); gap:10px; align-items:start; }
+  .pick { border:1.5px solid var(--line); border-radius:18px; padding:10px; background:#fff; }
+  .pick h3 { margin:0 0 6px; font:900 13px/1.2 var(--jp); color:var(--soft); }
+  .pick .row { display:grid; grid-template-columns:56px 1fr; gap:8px; align-items:center; }
+  .pick .ico { width:56px; height:56px; }
+  .pick b { font:700 14px/1.3 var(--jp); }
+  .pick .ops li { cursor:pointer; }
+  .pick .ops li.out { border-color:var(--coral); background:#FFF0F1; text-decoration:line-through; text-decoration-color:var(--coral); }
+  .pick .ops li.take { border-color:var(--sky); background:#E8F5FF; box-shadow:inset 0 0 0 1.5px var(--sky); }
+  .pick .ops li em { margin-left:auto; font:700 10px/1 var(--jp); font-style:normal; color:#fff; background:var(--coral); border-radius:6px; padding:3px 5px; }
+  .pick .ops li.take em { background:var(--sky); }
+  .arrow { align-self:center; height:40px; display:grid; place-items:center; font:900 22px/1 var(--jp); color:var(--sky); }
+  .result { margin-top:12px; padding:10px 12px; border-radius:18px; background:linear-gradient(135deg, #EEF6FF, #F6F2FF); border:1.5px solid #D7E4FA; }
+  .result h3 { margin:0 0 6px; font:900 13px/1.2 var(--jp); }
+  .result .ops li.newop { border-color:var(--sky); background:#fff; }
+  .result .note { margin:6px 0 0; font:700 11px/1.5 var(--jp); color:var(--soft); }
+  .cost { margin-top:12px; display:flex; align-items:center; gap:10px; }
+  .cost span { font:700 13px/1.3 var(--jp); color:var(--soft); } .cost b { font:600 16px/1 var(--num); color:var(--ink); }
+  .cost .jelly { margin-left:auto; }
+
+  .note { margin:6px 0; font:700 12px/1.5 var(--jp); color:var(--soft); } .note a { color:var(--ink); font-weight:900; }
+  .grid .note { grid-column:1 / -1; }
+  .slot .ico:empty { background:#F1F3F9; border:1.5px dashed var(--line); }
+  a.linkish { align-self:center; }
+  @media (max-width:820px) {
+    .pet { grid-template-columns:48px 1fr auto; padding:6px 12px 6px 6px; gap:10px; border-radius:18px; }
+    .pet .pic { width:48px; height:48px; border-radius:12px; } .pet h1 { font-size:20px; } .pet h1 small { font-size:12px; }
+    .cols { grid-template-columns:minmax(0, 1fr); } .cols > * { min-width:0; }
+    .wear { display:grid; grid-template-columns:120px minmax(0, 1fr); gap:10px; }
+    .wear .stage { height:150px; } .slots { margin-top:0; } .sum { display:none; }
+    .grid { grid-template-columns:repeat(4, minmax(0, 1fr)); gap:6px; }
+    .card b, .card .st { display:none; } .card { padding:4px; }
+    .detail .btns { grid-template-columns:1fr 1fr; } .detail .btns .linkish { grid-column:1 / -1; }
+    /* スマホ：えらんだ装備は、カードを押すと下から出るシート */
+    .detail { display:none; }
+    body.sheet-on .detail { display:block; background:#fff; position:fixed; left:0; right:0; bottom:0; z-index:11; border-radius:26px 26px 0 0; max-height:82vh; overflow:auto; box-shadow:0 -18px 40px -18px rgba(27,35,64,.4); }
+    body.sheet-on .detail::before { content:""; display:block; width:44px; height:5px; border-radius:9px; background:var(--line); margin:0 auto 10px; }
+    body.sheet-on .dim { display:block; }
+    .mix { grid-template-columns:minmax(0, 1fr); } .arrow { transform:rotate(90deg); height:24px; }
+    .cost { flex-direction:column; align-items:stretch; } .cost .jelly { margin-left:0; }
+  }
+</style>
+</head>
+<body>
+<header class="top"><a href="/" style="color:inherit;text-decoration:none" aria-label="MONO LINK の サイトへ"><b>MONO LINK<i>://</i></b></a><small><a href="lounge-room.html" style="color:inherit">ラウンジ</a> ／ ペット</small></header>
+<main id="app"></main>
+<div class="dim" id="dim"></div>
+<script type="module">
+import { me, act, busy, waitText } from "./lounge-client.js";   // 持って いる 装備・付ける／はずすは 門番の 記録（見本では ブラウザの 中の ためしの 門番）
+import { petInfo, linkTabs, gateHtml, addGateCss, toast } from "./pet-head.js";
+import { TYPES } from "./skills.js";
+import { SLOTS, MAIN, OPS, baseOf, itemStats, hasFx } from "./equip.js";
+import { SYNTH } from "./recipes.js";
+
+const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
+const SL = { hp: "HP", mp: "MP", atk: "ATK", def: "DEF", int: "INT", res: "RES", agi: "AGI", dex: "DEX", luk: "LUK" };
+const EQUIP_MAX = 200;
+const stars = (n) => `<span class="stars">${"★".repeat(n)}</span>`;
+const icon = (id) => `img/icon-${baseOf(id).look || id}.png`;
+const sign = (v) => (v < 0 ? `−${Math.abs(v)}` : `+${v}`);
+const SPECIAL = new Set(["mpRegen", "firstStrike", "endure", "focusStart"]);
+const opLine = (it, o) => esc(OPS[o].fmt(OPS[o].v[it.star - 1]));
+const mainLine = (it) => Object.entries(baseOf(it.base).main).map(([k, w]) => `${SL[k]} ${sign(Math.round(MAIN[it.star] * w * (k === "hp" ? 4 : k === "mp" ? 2 : 1)))}`).join("・");
+// 数の ちがい（ステータスと % の OP。とくべつな OP は 一覧で 見る）
+const diffOf = (a, b) => { const x = a ? itemStats(a) : {}, y = b ? itemStats(b) : {}, out = [];
+  for (const k of new Set([...Object.keys(x), ...Object.keys(y)])) { if (SPECIAL.has(k)) continue; const d = (x[k] || 0) - (y[k] || 0); if (d) out.push([k, d]); }
+  return out; };
+const nameOf = (k) => SL[k] || OPS[k].label, unit = (k) => (SL[k] ? "" : "%");
+const val = (k, v) => `${sign(k === "dmgCut" ? -v : v)}${unit(k)}`;   // 受けるダメージは へる ほど いい（−で 出す）
+
+let ME = await me(), MP = ME.pets && ME.pets[0];
+const V = { f: "all", sort: "star", sel: null };
+const wornBy = () => { const m = {}; for (const [s, u] of Object.entries((MP && MP.equip) || {})) if (u) m[u] = { pet: true, slot: s }; for (const c of ME.tamed || []) for (const u of Object.values(c.equip || {})) if (u) m[u] = { mate: c.name }; return m; };
+
+function render() {
+  const gate = gateHtml(ME, esc); if (gate) return gate;
+  const info = petInfo(MP), ty = TYPES[MP.type], own = ME.own.equip || [], W = wornBy(), cur = (s) => own.find((e) => e.uid === (MP.equip || {})[s]);
+  const total = {}; for (const s of Object.keys(SLOTS)) { const it = cur(s); if (it) for (const [k, v] of Object.entries(itemStats(it))) total[k] = (total[k] || 0) + v; }
+  const sum = Object.entries(total).filter(([k]) => !SPECIAL.has(k)).map(([k, v]) => `${nameOf(k)} <b>${val(k, v)}</b>`).join("・");
+  const vis = own.map((e, i) => ({ e, i })).filter(({ e }) => V.f === "all" || baseOf(e.base).slot === V.f).sort((a, b) => (V.sort === "star" ? b.e.star - a.e.star || b.i - a.i : b.i - a.i));
+  if (!own.some((e) => e.uid === V.sel)) V.sel = (cur("head") || cur("neck") || cur("hand") || own[0] || {}).uid || null;
+  const n = (f) => own.filter((e) => f === "all" || baseOf(e.base).slot === f).length;
+  const card = ({ e }) => { const w = W[e.uid];
+    return `<button class="card r${e.star} ${e.uid === V.sel ? "sel" : ""}" data-u="${e.uid}">${w ? `<span class="eq">${w.pet ? "そうび中" : "なかま"}</span>` : ""}<span class="ico"><img src="${icon(e.base)}" alt=""></span><b>${esc(baseOf(e.base).name)}</b>${stars(e.star)}<span class="st">${esc(mainLine(e))}</span></button>`; };
+  const it = own.find((e) => e.uid === V.sel);
+  let det = `<p class="note">まだ 装備が ない。<a href="dungeon.html">冒険</a>の 宝箱か <a href="bench.html">作業台</a>で 手に 入る</p>`;
+  if (it) {
+    const b = baseOf(it.base), w = W[it.uid], now = cur(b.slot), cmp = now && now.uid !== it.uid ? diffOf(it, now) : null, sy = SYNTH.find((r) => r.main === it.base);
+    const btn = w && w.pet ? `<button class="jelly light" data-off="${b.slot}">はずす</button>` : w ? `<p class="note">${esc(w.mate)}が 付けて いる（なかまの 装備は まだ 画面が ない）</p>` : `<button class="jelly" data-on="${it.uid}">つける</button>`;
+    det = `<div class="top2"><span class="ico"><img src="${icon(it.base)}" alt=""></span>
+        <div><h2>${esc(b.name)}<span class="slotname">${SLOTS[b.slot].label}</span></h2>${stars(it.star)}</div></div>
+      <div class="main"><span>もとの強さ</span><b>${esc(mainLine(it))}</b></div>
+      ${it.ops.length ? `<ul class="ops">${it.ops.map((o) => `<li class="${SPECIAL.has(o) ? "sp" : ""}">${opLine(it, o)}</li>`).join("")}</ul>` : ""}
+      ${hasFx(it) ? `<p class="note">とくべつな効果：${esc(b.fx || b.text || "")}</p>` : ""}
+      ${cmp ? `<div class="cmp"><h3>いまの ${esc(baseOf(now.base).name)} ★${now.star} とくらべると</h3>${cmp.length ? cmp.map(([k, d]) => `<div class="${d > 0 ? "up" : "dn"}"><span>${nameOf(k)}</span><b>${val(k, d)}</b></div>`).join("") : `<p class="note">数は おなじ</p>`}</div>` : ""}
+      <div class="btns">${btn}${sy ? `<a class="linkish" href="bench.html?k=s:${sy.out}">作業台で 合成する</a>` : ""}</div>`;
+  }
+  return `
+  <section class="panel pet" aria-label="ペット">
+    <div class="pic"><img src="${info.img}" alt="${esc(info.label)}の${esc(MP.name)}"></div>
+    <div><h1>${esc(MP.name)}<small>${esc(info.label)} ／ ${esc(ME.name)} の相棒</small></h1><div class="meta"><span class="badge" style="--c:${ty.color}">${ty.label}</span><span class="lv"><small>Lv</small>${MP.lv}</span></div></div>
+    <div class="res">リソース<b>${ME.wallet && ME.wallet.known ? ME.wallet.res : "？"}</b></div>
+  </section>
+  <nav class="tabs" role="tablist"><button role="tab" aria-selected="false">ステータス</button><button role="tab" aria-selected="false">スキルツリー</button><button role="tab" aria-selected="false">ガンビット</button><button role="tab" aria-selected="true">装備</button><button role="tab" aria-selected="false">冒険</button><button role="tab" aria-selected="false">なかま</button></nav>
+  <div class="cols equip-view">
+    <section class="panel wear" aria-label="着ているもの">
+      <div class="stage"><img src="${MP.qid === "nemu" ? "img/nemu-wear.png" : info.img}" alt="${esc(MP.name)}"></div>
+      <div>
+        <div class="slots">${Object.entries(SLOTS).map(([s, x]) => { const e = cur(s);
+          return e ? `<button class="slot r${e.star} ${V.f === s ? "on" : ""}" data-slot="${s}"><span class="ico"><img src="${icon(e.base)}" alt=""></span><span><small>${x.label}</small><b>${esc(baseOf(e.base).name)}</b>${stars(e.star)}</span></button>`
+            : `<button class="slot ${V.f === s ? "on" : ""}" data-slot="${s}"><span class="ico"></span><span><small>${x.label}</small><b>なし</b></span></button>`; }).join("")}</div>
+        ${sum ? `<div class="sum">装備でふえる分　${sum}</div>` : ""}
+      </div>
+    </section>
+    <section class="panel" aria-label="持っている装備">
+      <div class="head"><h2>持っている装備</h2><span class="cnt"><b>${own.length}</b> / ${EQUIP_MAX}</span></div>
+      <div class="filters" role="group" aria-label="しぼりこみ">${[["all", "すべて"], ...Object.entries(SLOTS).map(([s, x]) => [s, x.label])].map(([f, l]) => `<button data-f="${f}" aria-pressed="${V.f === f}" ${n(f) || V.f === f ? "" : "disabled"}>${l}</button>`).join("")}
+        <button class="sort" data-sort="1" aria-pressed="${V.sort === "star"}">★の多い順</button></div>
+      <div class="grid">${vis.map(card).join("") || `<p class="note">この 枠の 装備は ない</p>`}</div>
+    </section>
+    <aside class="panel detail ${it ? `r${it.star}` : ""}" aria-label="えらんだ装備" id="det">${det}</aside>
+  </div>`;
+}
+function paint() { document.getElementById("app").innerHTML = render(); linkTabs(); }
+addGateCss();
+const small = () => matchMedia("(max-width:820px)").matches;
+document.body.addEventListener("click", async (e) => {
+  if (e.target.id === "dim") { document.body.classList.remove("sheet-on"); return; }
+  const b = e.target.closest("button"); if (!b || b.disabled) return;
+  const d = b.dataset;
+  if (d.u) { V.sel = d.u; paint(); if (small()) document.body.classList.add("sheet-on"); return; }
+  if (d.f) { V.f = d.f; return paint(); }
+  if (d.slot) { V.f = V.f === d.slot ? "all" : d.slot; const e2 = (ME.own.equip || []).find((x) => x.uid === (MP.equip || {})[d.slot]); if (e2) V.sel = e2.uid; return paint(); }
+  if (d.sort) { V.sort = V.sort === "star" ? "new" : "star"; return paint(); }
+  if (d.on || d.off) {
+    const it = (ME.own.equip || []).find((x) => x.uid === (d.on || V.sel)), slot = d.off || baseOf(it.base).slot;
+    const r = await busy(b, () => act("pet.equip", { slot, uid: d.on || null }));
+    if (!r.ok) return toast(r.wait ? waitText : r.why || "できませんでした");
+    ME = await me(); MP = ME.pets[0]; document.body.classList.remove("sheet-on"); paint();
+    toast(d.on ? `${baseOf(it.base).name}を つけた` : `${SLOTS[slot].label}を はずした`);
+  }
+});
+paint();
+window.ready = true;
+</script>
+</body>
+</html>

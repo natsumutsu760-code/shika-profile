@@ -1,0 +1,310 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pet Friends</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DotGothic16&family=Fredoka:wght@500;600;700&family=Zen+Maru+Gothic:wght@500;700;900&display=swap">
+<style>
+  /* MONO LINK のラウンジ：なかま（懐柔）の画面の見本。捕まえた子は、ラウンジのとなりの部屋で待っている
+     おやつをあげる数は自分で決めて、その数だけなかよしゲージが増える。いっぱいになったらパーティ（ペット＋2 体）に入れる
+     決まりは docs/mono-link-pet-battle.md の「パーティ（捕まえた敵を懐柔する）」。?pick=番号 でえらんだ子から開く。押すと見本の中だけで動く（保存しない） */
+  :root {
+    --space:#F6F8FC; --ink:#1B2340; --soft:#6A7394; --line:#DCE3F0;
+    --sky:#2EA8FF; --coral:#FF5A64; --sun:#FFC21A; --leaf:#22CC88; --violet:#8E6CFF;
+    --cookie:#E9B26A; --cookie-dk:#9A5B2C; --floor:#F3E9DA;
+    --jp:"Zen Maru Gothic", "Hiragino Maru Gothic ProN", sans-serif; --num:"Fredoka", "Zen Maru Gothic", sans-serif;
+    --lift:0 18px 40px -18px rgba(27,35,64,.35), 0 2px 0 rgba(27,35,64,.06);
+  }
+  * { box-sizing:border-box; }
+  body { margin:0; min-height:100vh; background:radial-gradient(120% 80% at 50% 0%, #FFFFFF 0%, var(--space) 55%, #EAF0FA 100%); color:var(--ink); font:500 16px/1.65 var(--jp); word-break:auto-phrase; text-wrap:pretty; }
+  button { font:inherit; color:inherit; cursor:pointer; }
+  button:disabled { cursor:not-allowed; }
+  :focus-visible { outline:3px solid var(--sky); outline-offset:3px; border-radius:12px; }
+  h2, h3, p { margin:0; }
+  .top { display:flex; align-items:center; gap:10px; padding:12px clamp(16px, 4vw, 40px); }
+  .top b { font:700 22px/1 var(--num); letter-spacing:.06em; } .top b i { font-style:normal; color:var(--sky); }
+  .top small { font:700 13px/1 var(--jp); color:var(--soft); margin-left:6px; }
+  main { max-width:1100px; margin:0 auto; padding:0 clamp(16px, 4vw, 40px) 40px; }
+  .panel { background:rgba(255,255,255,.9); border-radius:26px; box-shadow:var(--lift); padding:clamp(14px, 2.4vw, 18px); }
+  .pet { display:grid; grid-template-columns:60px auto 1fr; gap:14px; align-items:center; padding:8px 20px 8px 8px; border-radius:22px; }
+  .pet .pic { width:60px; height:60px; border-radius:16px; background:radial-gradient(circle at 50% 38%, #fff 0, #E4F7EE 80%); display:flex; justify-content:center; overflow:hidden; }
+  .pet .pic img { height:150%; margin-top:-4%; }
+  .pet h1 { margin:0; font:900 24px/1.1 var(--jp); display:flex; align-items:baseline; gap:10px; white-space:nowrap; }
+  .pet h1 small { font:700 13px/1 var(--jp); color:var(--soft); }
+  .pet .meta { margin-top:6px; display:flex; gap:8px; align-items:center; }
+  .badge { display:inline-flex; align-items:center; gap:5px; border-radius:999px; padding:4px 10px 4px 5px; font:700 12px/1 var(--jp); color:#fff; background:var(--c); white-space:nowrap; }
+  .badge::before { content:""; width:11px; height:11px; border-radius:50%; background:#fff; opacity:.85; }
+  .lv { font:600 16px/1 var(--num); white-space:nowrap; } .lv small { font:700 12px/1 var(--jp); color:var(--soft); margin-right:3px; }
+  .wallet { justify-self:end; display:flex; gap:18px; text-align:right; font:700 12px/1.2 var(--jp); color:var(--soft); }
+  .wallet b { display:block; font:600 24px/1 var(--num); color:var(--ink); }
+  .tabs { display:flex; gap:8px; margin:12px 0 10px; overflow-x:auto; padding-bottom:4px; }
+  .tabs button { flex:none; border:1.5px solid var(--line); background:rgba(255,255,255,.9); border-radius:999px; padding:8px 16px; font:700 14px/1 var(--jp); }
+  .tabs button[aria-selected="true"] { background:var(--ink); color:#fff; border-color:var(--ink); box-shadow:0 5px 0 rgba(27,35,64,.22); }
+  .jelly { border:0; border-radius:999px; padding:11px 16px; font:900 14px/1 var(--jp); background:var(--ink); color:#fff; box-shadow:0 5px 0 rgba(27,35,64,.25); }
+  .jelly.light { background:#fff; color:var(--ink); box-shadow:0 5px 0 var(--line); border:1.5px solid var(--line); }
+  .jelly.sky { background:var(--sky); box-shadow:0 5px 0 rgba(46,168,255,.3); }
+  .jelly:disabled { background:#C9D1E2; box-shadow:0 5px 0 #E3E8F2; color:#fff; }
+  .sub { font:900 12px/1.2 var(--jp); color:var(--soft); margin:0 0 8px; }
+  /* 捕まえた子：ドット絵（sprites.js）。うしろにタイプの色のうすい台。なかよしになると、ハートが出る */
+  .orb { --s:52px; position:relative; flex:none; width:var(--s); height:var(--s); border-radius:50%; display:grid; place-items:center; background:radial-gradient(circle at 35% 30%, #fff 0, var(--c) 75%); box-shadow:inset 0 -4px 0 rgba(27,35,64,.12); font:900 calc(var(--s) * .4)/1 var(--jp); color:#fff; text-shadow:0 2px 0 rgba(27,35,64,.25); }
+  .spr { --s:52px; position:relative; flex:none; width:var(--s); height:var(--s); display:grid; place-items:center; border-radius:30%; background:radial-gradient(ellipse 34% 9% at 50% 86%, rgba(27,35,64,.18), transparent), color-mix(in srgb, var(--c) 13%, #fff); }
+  .spr img { width:var(--px); height:var(--px); image-rendering:pixelated; margin-top:-6%; }
+  .spr.happy::after { content:""; position:absolute; right:-3px; top:-3px; width:14px; height:12px; background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 7 6' shape-rendering='crispEdges'%3E%3Cpath fill='%23FF5A8A' d='M1 0h2v1h1V0h2v1h1v2H6v1H5v1H4v1H3V5H2V4H1V3H0V1h1z'/%3E%3C/svg%3E") center / contain no-repeat; filter:drop-shadow(0 0 0 #fff) drop-shadow(1px 1px 0 #fff) drop-shadow(-1px -1px 0 #fff); }
+  .rk { display:inline-block; padding:2px 7px; border-radius:6px; background:var(--ink); color:#fff; font:700 10px/1.3 var(--jp); vertical-align:2px; }
+  .rk.r希少 { background:var(--violet); } .rk.rボス { background:#E59A00; }
+
+  /* パーティ（ペット＋2 体） */
+  .party { display:grid; grid-template-columns:auto repeat(3, minmax(0, 1fr)); gap:12px; align-items:stretch; margin-bottom:16px; }
+  .party > h2 { align-self:center; font:900 15px/1.3 var(--jp); writing-mode:horizontal-tb; padding:0 4px; }
+  .party > h2 small { display:block; font:700 11px/1.3 var(--jp); color:var(--soft); }
+  .mem { display:grid; grid-template-columns:auto minmax(0, 1fr); gap:10px; align-items:center; padding:10px 12px; border-radius:18px; background:var(--space); }
+  .mem .pic { width:52px; height:52px; border-radius:14px; background:radial-gradient(circle at 50% 38%, #fff 0, #E4F7EE 80%); display:flex; justify-content:center; overflow:hidden; }
+  .mem .pic img { height:150%; margin-top:-4%; }
+  .mem b { display:block; font:700 14px/1.3 var(--jp); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .mem small { display:block; font:700 11px/1.45 var(--jp); color:var(--soft); } .mem .lv small { display:inline; font-size:12px; }
+  .mem .row { display:flex; align-items:center; gap:6px; margin-top:3px; flex-wrap:wrap; }
+  .mem .back { border:0; background:none; padding:0; font:700 11px/1.4 var(--jp); color:var(--sky); text-decoration:underline; text-underline-offset:2px; }
+  .mem.empty { grid-template-columns:1fr; place-items:center; text-align:center; border:2px dashed var(--line); background:transparent; color:var(--soft); }
+  .mem.empty b { color:var(--soft); }
+  .mem.new { animation:join .5s ease-out; }
+  @keyframes join { from { transform:scale(.92); box-shadow:0 0 0 6px rgba(46,168,255,.35); } to { transform:none; box-shadow:0 0 0 0 rgba(46,168,255,0); } }
+
+  /* となりの部屋：捕まえた子の一覧 */
+  .room { display:grid; grid-template-columns:minmax(0, 1fr) 420px; gap:16px; align-items:start; }
+  .waiting { position:relative; overflow:hidden; padding-bottom:60px; }
+  .waiting::after { content:""; position:absolute; left:0; right:0; bottom:0; height:48px; background:repeating-linear-gradient(90deg, var(--floor) 0 58px, #EADCC6 58px 60px); border-top:2px solid #E4D3B8; }
+  .waiting h2 { font:900 18px/1.3 var(--jp); } .waiting h2 small { font:700 12px/1 var(--jp); color:var(--soft); margin-left:8px; }
+  .waiting .lead { margin:4px 0 12px; font:700 12px/1.6 var(--jp); color:var(--soft); }
+  .list { list-style:none; margin:0; padding:0; display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:10px; }
+  /* 分け方：レア度・Lv でしぼって、ならべかたをえらぶ。一覧はレア度ごとにまとめる */
+  .filters { display:grid; gap:6px; margin:10px 0 12px; padding:10px 12px; border-radius:16px; background:var(--space); position:relative; z-index:1; }
+  .frow { display:flex; align-items:center; gap:6px; flex-wrap:wrap; }
+  .frow > span { width:64px; flex:none; font:900 11px/1.2 var(--jp); color:var(--soft); }
+  .chip { border:1.5px solid var(--line); background:#fff; border-radius:999px; padding:5px 10px; font:700 12px/1 var(--jp); display:inline-flex; align-items:center; gap:5px; }
+  .chip small { font:600 11px/1 var(--num); color:var(--soft); }
+  .chip[aria-pressed="true"] { background:var(--ink); border-color:var(--ink); color:#fff; } .chip[aria-pressed="true"] small { color:rgba(255,255,255,.7); }
+  .chip:disabled { opacity:.4; }
+  .grp { display:flex; align-items:center; gap:8px; margin:14px 0 8px; font:900 13px/1.2 var(--jp); position:relative; z-index:1; } .grp:first-of-type { margin-top:0; }
+  .grp small { font:700 11px/1 var(--jp); color:var(--soft); } .grp::after { content:""; flex:1; height:1.5px; background:var(--line); }
+  .pick { width:100%; display:grid; grid-template-columns:auto minmax(0, 1fr); gap:10px; align-items:center; text-align:left; padding:10px 12px 10px 10px; border-radius:18px; border:2px solid var(--line); background:#fff; }
+  .pick[aria-pressed="true"] { border-color:var(--sky); box-shadow:0 0 0 3px rgba(46,168,255,.16); background:#F4FAFF; }
+  .pick b { font:700 14px/1.3 var(--jp); } .pick .rk { margin-left:4px; }
+  .pick small { display:block; font:700 11px/1.45 var(--jp); color:var(--soft); }
+  .mini { display:flex; align-items:center; gap:8px; margin-top:5px; }
+  .mini i { flex:1; height:7px; border-radius:9px; background:#EDF1F8; overflow:hidden; } .mini i b { display:block; height:100%; border-radius:9px; background:var(--cookie); }
+  .mini span { font:600 12px/1 var(--num); color:var(--soft); white-space:nowrap; } .mini span.full { color:#13A36A; }
+  .note { margin-top:12px; font:700 11px/1.6 var(--jp); color:var(--soft); position:relative; z-index:1; }
+
+  /* えらんだ子：おやつをあげる */
+  .feed { display:grid; gap:14px; }
+  .who { display:grid; grid-template-columns:auto minmax(0, 1fr); gap:14px; align-items:center; }
+  .who h2 { font:900 22px/1.25 var(--jp); } .who h2 .rk { margin-left:8px; font-size:11px; }
+  .who p { margin-top:4px; display:flex; flex-wrap:wrap; gap:6px 8px; align-items:center; font:700 12px/1.4 var(--jp); color:var(--soft); }
+  .say { position:relative; padding:10px 14px; border-radius:16px; background:var(--space); font:700 14px/1.55 var(--jp); }
+  .say::before { content:""; position:absolute; left:28px; top:-8px; border:8px solid transparent; border-top:0; border-bottom-color:var(--space); }
+  .gauge h3 { display:flex; align-items:baseline; justify-content:space-between; font:900 12px/1.2 var(--jp); color:var(--soft); }
+  .gauge h3 b { font:600 26px/1 var(--num); color:var(--ink); } .gauge h3 b small { font:600 15px/1 var(--num); color:var(--soft); }
+  .gauge h3 em { font-style:normal; font:600 15px/1 var(--num); color:var(--sky); margin-left:6px; }
+  .pips { margin-top:8px; display:grid; grid-template-columns:repeat(var(--n), minmax(0, var(--p))); gap:var(--g); justify-content:start; }
+  .pip { width:100%; aspect-ratio:1; border-radius:50%; background:#EDF1F8; box-shadow:inset 0 0 0 1.5px #E1E7F1; }
+  .pip.on { background:radial-gradient(circle at 30% 30%, rgba(154,91,44,.85) 0 9%, transparent 10%), radial-gradient(circle at 68% 42%, rgba(154,91,44,.85) 0 8%, transparent 9%), radial-gradient(circle at 45% 72%, rgba(154,91,44,.85) 0 8%, transparent 9%), var(--cookie); box-shadow:inset 0 -2px 0 rgba(154,91,44,.35); }
+  .pip.next { background:color-mix(in srgb, var(--cookie) 30%, #fff); box-shadow:inset 0 0 0 2px var(--cookie); }
+  .pip.pop { animation:pop .38s cubic-bezier(.3, 1.6, .5, 1) both; animation-delay:calc(var(--k) * 45ms); }
+  @keyframes pop { from { transform:scale(.2); } to { transform:none; } }
+  .give { display:grid; gap:10px; padding:12px; border-radius:18px; border:1.5px solid var(--line); }
+  .have { display:flex; justify-content:space-between; align-items:center; font:700 12px/1.3 var(--jp); color:var(--soft); }
+  .have b { font:600 16px/1 var(--num); color:var(--ink); margin-left:4px; }
+  .stepper { display:grid; grid-template-columns:44px auto 44px 1fr; gap:8px; align-items:center; }
+  .stepper button.sq { width:44px; height:44px; border-radius:14px; border:1.5px solid var(--line); background:#fff; font:600 22px/1 var(--num); box-shadow:0 3px 0 var(--line); }
+  .stepper button.sq:disabled { opacity:.4; }
+  .stepper output { min-width:64px; text-align:center; font:600 30px/1 var(--num); } .stepper output small { font:700 13px/1 var(--jp); color:var(--soft); margin-left:2px; }
+  .stepper .all { justify-self:end; border:1.5px solid var(--line); background:#fff; border-radius:999px; padding:8px 12px; font:700 12px/1 var(--jp); white-space:nowrap; }
+  .cost { font:700 12px/1.5 var(--jp); color:var(--soft); } .cost b { color:var(--ink); font-family:var(--num); font-weight:600; } .cost.short { color:var(--coral); }
+  .go { width:100%; padding:15px 16px; font-size:16px; display:flex; align-items:center; justify-content:center; gap:10px; }
+  .go svg { width:22px; height:22px; }
+  .lab { display:grid; grid-template-columns:auto minmax(0, 1fr) auto; gap:10px; align-items:center; padding:10px 12px; border-radius:16px; background:#F7F2FF; font:700 12px/1.5 var(--jp); color:#5B3FC4; }
+  .lab b { display:block; font:700 13px/1.3 var(--jp); color:var(--ink); }
+  .lab .done { font:700 12px/1 var(--jp); color:#13A36A; white-space:nowrap; }
+  .lab .jelly { padding:8px 12px; font-size:12px; white-space:nowrap; }
+
+  @media (max-width:820px) {
+    .pet { grid-template-columns:48px minmax(0, 1fr); padding-right:12px; } .wallet { grid-column:1 / -1; justify-self:stretch; justify-content:flex-end; }
+    .pet .pic { width:48px; height:48px; border-radius:12px; } .pet h1 { font-size:20px; } .pet h1 small { font-size:12px; }
+    .party { grid-template-columns:repeat(3, minmax(0, 1fr)); gap:8px; } .party > h2 { grid-column:1 / -1; }
+    .mem { grid-template-columns:1fr; justify-items:center; text-align:center; padding:10px 8px; } .mem .row { justify-content:center; } .mem b { white-space:normal; }
+    .room { grid-template-columns:minmax(0, 1fr); } .room > .feed { order:-1; }   /* 決める パネルを 一覧の 上に（えらぶと ここへ 動く） */ .list { grid-template-columns:minmax(0, 1fr); } .frow > span { width:100%; }
+    .stepper { grid-template-columns:44px auto 44px; } .stepper .all { grid-column:1 / -1; justify-self:start; }
+    .lab { grid-template-columns:auto minmax(0, 1fr); } .lab > :last-child { grid-column:1 / -1; justify-self:end; }
+  }
+  [hidden] { display:none !important; }
+  .gate { max-width:520px; margin:24px auto 0; text-align:center; display:grid; justify-items:center; gap:10px; padding:28px 24px; }
+  .gate h2 { font:900 22px/1.3 var(--jp); } .gate p { margin:0; font:700 13px/1.6 var(--jp); color:var(--soft); } .gate .go { max-width:320px; text-decoration:none; }
+  .toast { position:fixed; left:50%; bottom:24px; z-index:20; transform:translate(-50%, 16px); opacity:0; pointer-events:none; max-width:calc(100vw - 32px); padding:12px 18px; border-radius:16px; background:var(--ink); color:#fff; font:700 14px/1.4 var(--jp); box-shadow:var(--lift); transition:opacity .2s, transform .2s; }
+  .toast.on { opacity:1; transform:translate(-50%, 0); }
+  @media (prefers-reduced-motion:reduce) { .pip.pop, .mem.new { animation:none; } .toast { transition:none; } }
+</style>
+</head>
+<body>
+<header class="top"><a href="/" style="color:inherit;text-decoration:none" aria-label="MONO LINK の サイトへ"><b>MONO LINK<i>://</i></b></a><small><a href="lounge-room.html" style="color:inherit">ラウンジ</a> ／ ペット</small></header>
+<main>
+  <section class="panel pet" aria-label="ペット">
+    <div class="pic"><img id="petImg" src="img/nemu.png" alt=""></div>
+    <div><h1><span id="petName">ペット</span><small id="petSub"></small></h1><div class="meta" id="petMeta"></div></div>
+    <div class="wallet" id="wallet"></div>
+  </section>
+  <nav class="tabs" role="tablist">
+    <button role="tab" aria-selected="false">ステータス</button><button role="tab" aria-selected="false">スキルツリー</button><button role="tab" aria-selected="false">ガンビット</button><button role="tab" aria-selected="false">装備</button><button role="tab" aria-selected="false">冒険</button><button role="tab" aria-selected="true">なかま</button>
+  </nav>
+  <div id="app"></div>
+</main>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+<script type="module">
+import { DUNGEONS, SNACK_NEED, SNACK_PRICE, RESEARCH } from "./dungeons.js";
+import { rankOf } from "./dungeon-sim.js";
+import { ENEMY_TREES } from "./enemy-trees.js";
+import { TYPES } from "./skills.js";
+import { spriteURL } from "./sprites.js";
+import { me, act, busy, waitText } from "./lounge-client.js";   // なかま・おやつ・研究・パーティは 門番から（見本では ブラウザの 中の ためしの 門番）
+import { fillPet, petInfo, linkTabs, gateHtml } from "./pet-head.js";
+
+const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
+const fmt = (n) => n.toLocaleString("ja-JP");
+// 捕まえた 場所：その 子の ツリーが 出る 行き先（門番は ツリーだけ おぼえて いる）
+const fromOf = (tree) => (DUNGEONS.find((d) => [...d.foes, d.rare, d.boss].some((f) => f.tree === tree)) || { name: "？" }).name;
+
+let ME = null;
+const S = { snacks: 0, balls: 0, res: 0, known: false, party: [null, null], room: [], sel: null, give: 1, say: null, popFrom: -1, joined: -1,
+  fr: "all", fl: "all", sort: "lv" };                 // 分け方：レア度・Lv の帯・ならべかた
+// 門番の 記録を 画面の 形に（パーティの 子は となりの部屋に 出さない）
+function load(m) {
+  ME = m;
+  const tamed = (m.tamed || []).map((c) => ({ ...c, from: fromOf(c.tree), lab: (m.lab || []).includes(c.tree), acc: Object.values(c.equip || {}).filter(Boolean).length }));
+  S.snacks = m.snacks || 0; S.known = !!(m.wallet && m.wallet.known); S.balls = S.known ? m.wallet.balls : 0; S.res = S.known ? m.wallet.res : 0;
+  S.party = [0, 1].map((i) => tamed.find((c) => c.uid === (m.party || [])[i]) || null);
+  S.room = tamed.filter((c) => !(m.party || []).includes(c.uid));
+  if (!S.room.some((c) => c.uid === S.sel)) S.sel = S.room[0] ? S.room[0].uid : null;
+}
+const cur = () => S.room.find((c) => c.uid === S.sel) || null;
+const need = (c) => SNACK_NEED[rankOf(c)];
+const left = (c) => Math.max(0, need(c) - c.gauge);
+const fitGive = () => { const c = cur(); S.give = c ? Math.max(1, Math.min(left(c), Math.max(S.snacks, 1))) : 1; };
+
+// ドット絵は 24px の整数倍で出す（にじまないように）
+const orb = (c, s = 52) => `<span class="spr ${c.gauge >= need(c) ? "happy" : ""}" style="--c:${TYPES[c.type].color};--s:${s}px;--px:${Math.max(1, Math.floor((s * 0.96) / 24)) * 24}px" aria-hidden="true"><img src="${spriteURL(c.tree)}" alt=""></span>`;
+const RANKS = ["ボス", "希少", "通常"], BANDS = [[1, 9], [10, 19], [20, 29], [30, 99]];
+const bandOf = (c) => BANDS.findIndex(([a, b]) => c.lv >= a && c.lv <= b);
+const inR = (c, r = S.fr) => r === "all" || rankOf(c) === r, inL = (c, l = S.fl) => l === "all" || bandOf(c) === +l;
+const rk = (c) => (rankOf(c) === "通常" ? "" : `<span class="rk r${rankOf(c)}">${rankOf(c)}</span>`);
+const typeBadge = (c) => `<span class="badge" style="--c:${TYPES[c.type].color}">${TYPES[c.type].label}</span>`;
+const COOKIE = `<svg viewBox="0 0 22 22" aria-hidden="true"><circle cx="11" cy="11" r="9.5" fill="#E9B26A" stroke="#fff" stroke-width="1.5"/><circle cx="8" cy="8" r="1.5" fill="#9A5B2C"/><circle cx="14" cy="9.5" r="1.4" fill="#9A5B2C"/><circle cx="10" cy="14.5" r="1.4" fill="#9A5B2C"/></svg>`;
+
+function line(c) {
+  const r = c.gauge / need(c);
+  if (r >= 1) return "（すっかり なかよし。いっしょに 行きたそうに こっちを 見ている）";
+  if (r >= 0.5) return "もぐもぐ！（すこし 近くに すわった）";
+  if (r > 0) return "……もぐ。（まだ 少し はなれて 見ている）";
+  return "（部屋の すみで じっと している）";
+}
+
+function partyHtml() {
+  const slots = S.party.map((m, i) => m ? `<div class="mem ${S.joined === i ? "new" : ""}">${orb(m)}<div><b>${esc(m.name)}</b><div class="row">${typeBadge(m)}<span class="lv"><small>Lv</small>${m.lv}</span></div>
+      <small>アクセサリー ${m.acc} / 3 ・ <button class="back" data-act="back" data-u="${m.uid}">部屋に もどす</button></small></div></div>`
+    : `<div class="mem empty"><div><b>あいている</b><small>なかよし いっぱいの子を 入れる</small></div></div>`).join("");
+  return `<section class="panel party" aria-label="パーティ"><h2>パーティ<small>ペット＋2 体</small></h2>
+    <div class="mem"><span class="pic"><img src="${petInfo(MP).img}" alt=""></span><div><b>${esc(MP.name)}</b><div class="row">${MP.type ? `<span class="badge" style="--c:${TYPES[MP.type].color}">${TYPES[MP.type].label}</span>` : ""}<span class="lv"><small>Lv</small>${MP.lv}</span></div><small>相棒（いつも いっしょ）</small></div></div>${slots}</section>`;
+}
+
+function listHtml() {
+  const item = ({ c, i }) => { const n = need(c);
+    return `<li><button class="pick" data-act="pick" data-u="${c.uid}" aria-pressed="${c.uid === S.sel}">${orb(c)}<span><b>${esc(c.name)}</b>${rk(c)}<small>Lv${c.lv} ${TYPES[c.type].label} ・ ${esc(c.from)}</small>
+      <span class="mini"><i><b style="width:${Math.min(100, (c.gauge / n) * 100)}%"></b></i><span class="${c.gauge >= n ? "full" : ""}">${c.gauge >= n ? "なかよし！" : `${c.gauge} / ${n}`}</span></span></span></button></li>`; };
+  const vis = S.room.map((c, i) => ({ c, i })).filter(({ c }) => inR(c) && inL(c));
+  const by = S.sort === "lv" ? (a, b) => b.c.lv - a.c.lv || a.i - b.i : (a, b) => b.c.gauge / need(b.c) - a.c.gauge / need(a.c) || b.c.lv - a.c.lv;
+  // 数は、もう一方のしぼりこみをかけたあとの数（えらぶと何体になるかがわかる）
+  const chip = (k, v, label, n) => `<button class="chip" data-act="${k}" data-v="${v}" aria-pressed="${String(S[k]) === String(v)}" ${n === 0 && String(S[k]) !== String(v) ? "disabled" : ""}>${label}${n === null ? "" : `<small>${n}</small>`}</button>`;
+  const nR = (r) => S.room.filter((c) => inR(c, r) && inL(c)).length, nL = (l) => S.room.filter((c) => inR(c) && inL(c, l)).length;
+  const filters = `<div class="filters" role="group" aria-label="分け方">
+      <div class="frow"><span>レア度</span>${chip("fr", "all", "すべて", nR("all"))}${RANKS.map((r) => chip("fr", r, r, nR(r))).join("")}</div>
+      <div class="frow"><span>Lv</span>${chip("fl", "all", "すべて", nL("all"))}${BANDS.map(([a, b], k) => chip("fl", k, b > 90 ? `${a}〜` : `${a}〜${b}`, nL(k))).join("")}</div>
+      <div class="frow"><span>ならべる</span>${chip("sort", "lv", "Lv の 高い順", null)}${chip("sort", "gauge", "なかよし順", null)}</div></div>`;
+  const groups = RANKS.map((r) => { const g = vis.filter(({ c }) => rankOf(c) === r).sort(by);
+    return g.length ? `<h3 class="grp">${r}<small>${g.length} 体</small></h3><ul class="list">${g.map(item).join("")}</ul>` : ""; }).join("");
+  return `<section class="panel waiting" aria-label="となりの部屋"><h2>となりの部屋<small>捕まえた子 ${S.room.length} 体</small></h2>
+    ${S.room.length ? filters + (groups || `<p class="lead">この分け方の子は いない</p>`) : `<p class="lead">いまは だれも いない。派遣で 勝つと、ときどき 敵を 捕まえる</p>`}
+    </section>`;
+}
+
+function feedHtml() {
+  const c = cur();
+  if (!c) return `<aside class="panel feed"><p class="say">となりの部屋に だれも いない</p></aside>`;
+  const n = need(c), full = c.gauge >= n, T = ENEMY_TREES[c.tree], buy = Math.max(0, S.give - S.snacks), cost = buy * SNACK_PRICE, poor = cost > 0 && (!S.known || cost > S.balls);
+  const [cols, size, gap] = n <= 10 ? [10, 30, 7] : n <= 30 ? [15, 21, 4] : [20, 15, 4];
+  const pips = Array.from({ length: n }, (_, k) => { const on = k < c.gauge, nx = !full && !on && k < c.gauge + S.give, pop = on && k >= S.popFrom && S.popFrom >= 0;
+    return `<i class="pip ${on ? "on" : nx ? "next" : ""} ${pop ? "pop" : ""}" style="--k:${k - S.popFrom}"></i>`; }).join("");
+  const slot = S.party.indexOf(null);
+  const action = full
+    ? `<button class="jelly go" data-act="join" ${slot < 0 ? "disabled" : ""}>パーティに 入れる</button>${slot < 0 ? `<p class="cost">パーティが いっぱい。だれかを 部屋に もどすと 入れられる</p>` : ""}`
+    : `<div class="give"><div class="have"><span>持っている おやつ<b>${S.snacks}</b> こ</span><span>玉<b>${S.known ? fmt(S.balls) : "？"}</b></span></div>
+        ${S.known ? "" : `<p class="cost">玉が まだ わからない（配信で 1 回 チャットすると わかる）。持って いる おやつだけ あげられる</p>`}
+        <div class="stepper"><button class="sq" data-act="dec" aria-label="1 こ へらす" ${S.give <= 1 ? "disabled" : ""}>−</button><output aria-live="polite">${S.give}<small>こ</small></output><button class="sq" data-act="inc" aria-label="1 こ ふやす" ${S.give >= left(c) ? "disabled" : ""}>＋</button><button class="all" data-act="all">いっぱいまで（${left(c)} こ）</button></div>
+        <p class="cost ${poor ? "short" : ""}">${buy ? `足りない ${buy} こは 玉で 買う（<b>${fmt(cost)}</b> 玉）${poor ? "。玉が 足りない" : ""}` : "おやつは 派遣で 拾える（足りない分は 玉で 買う）"}</p>
+        <button class="jelly sky go" data-act="feed" ${poor ? "disabled" : ""}>${COOKIE}おやつを ${S.give} こ あげる</button></div>`;
+  return `<aside class="panel feed" aria-label="えらんだ子">
+    <div class="who">${orb(c, 84)}<div><h2>${esc(c.name)}${rk(c)}</h2><p>${typeBadge(c)}<span class="lv"><small>Lv</small>${c.lv}</span><span>${esc(c.from)}で 捕まえた</span></p></div></div>
+    <p class="say" aria-live="polite">${esc(S.say || line(c))}</p>
+    <div class="gauge"><h3><span>なかよしゲージ</span><span><b>${Math.min(c.gauge, n)}<small> / ${n}</small></b>${!full && S.give ? `<em>＋${Math.min(S.give, left(c))}</em>` : ""}</span></h3>
+      <div class="pips" style="--n:${cols};--p:${size}px;--g:${gap}px" role="img" aria-label="なかよしゲージ ${c.gauge} / ${n}">${pips}</div></div>
+    ${action}
+    <div class="lab"><span class="orb" style="--c:#B49BEA;--s:34px" aria-hidden="true">研</span><div><b>研究する（スキルツリー「${esc(T.name)}」）</b>リソース ${RESEARCH[rankOf(c)]} で サブツリーに つけられる（この子は のこる）</div>
+      ${c.lab ? `<span class="done">✓ 研究ずみ</span>` : `<button class="jelly light" data-act="lab" ${S.known && S.res < RESEARCH[rankOf(c)] ? "disabled" : ""}>研究する</button>`}</div>
+  </aside>`;
+}
+
+let MP = null;
+function render() {
+  document.getElementById("wallet").innerHTML = `<span>おやつ<b>${S.snacks}</b></span><span>玉<b>${S.known ? fmt(S.balls) : "？"}</b></span><span>リソース<b>${S.known ? S.res : "？"}</b></span>`;
+  document.getElementById("app").innerHTML = MP ? partyHtml() + `<div class="room">${listHtml()}${feedHtml()}</div>`
+    : ME.denied || ME.ok === false ? gateHtml(ME, esc)
+    : `<section class="panel gate"><h2>まず 1 匹目を むかえる</h2><p>なかまは 派遣で 捕まえた 子が 来ます</p><a class="jelly sky go" href="quiz.html">性格診断へ</a></section>`;
+  S.popFrom = -1; S.joined = -1;
+}
+let toastT = 0;
+const toast = (t) => { const el = document.getElementById("toast"); el.textContent = t; el.classList.add("on"); clearTimeout(toastT); toastT = setTimeout(() => el.classList.remove("on"), 4200); };
+// 門番に 頼んで、記録を 読みなおして 描きなおす
+async function ask(b, a, body, ok) {
+  const r = await busy(b, () => act(a, body));
+  if (!r.ok) { toast(r.wait ? waitText : r.why || "できませんでした"); if (!r.wait) return; }
+  load(await me()); if (r.ok) ok(r);
+  render();
+}
+
+document.getElementById("app").addEventListener("click", async (e) => {
+  const b = e.target.closest("[data-act]"); if (!b || b.disabled) return;
+  const c = cur(), act0 = b.dataset.act;
+  if (act0 === "pick") { S.sel = b.dataset.u; S.say = null; fitGive(); if (innerWidth <= 820) { render(); return document.querySelector(".feed").scrollIntoView({ behavior: "smooth", block: "start" }); } }
+  if (act0 === "fr" || act0 === "fl" || act0 === "sort") S[act0] = b.dataset.v;
+  if (act0 === "dec") S.give = Math.max(1, S.give - 1);
+  if (act0 === "inc") S.give = Math.min(left(c), S.give + 1);
+  if (act0 === "all") S.give = left(c);
+  // おやつ：持って いる 分から あげて、足りない 分は 玉で 買う（門番が 払う）
+  if (act0 === "feed") { const was = c.gauge; return ask(b, "tame.feed", { uid: c.uid, n: Math.min(S.give, left(c)) }, () => { S.popFrom = was; S.say = line(cur() || c); fitGive(); }); }
+  if (act0 === "join") return ask(b, "tame.join", { uid: c.uid }, () => { S.joined = S.party.findIndex((m) => m && m.uid === c.uid); S.say = null; fitGive(); });
+  if (act0 === "back") return ask(b, "tame.back", { uid: b.dataset.u }, () => {});
+  if (act0 === "lab") return ask(b, "tame.research", { uid: c.uid }, (r) => toast(`研究した：スキルツリー「${ENEMY_TREES[c.tree].name}」（リソース ${r.cost}）`));
+  render();
+  const again = document.querySelector(`[data-act="${act0}"]${act0 === "pick" ? `[data-u="${S.sel}"]` : ""}${b.dataset.v !== undefined ? `[data-v="${b.dataset.v}"]` : ""}`); if (again) again.focus();
+});
+load(await me());
+MP = fillPet(ME);
+linkTabs();
+document.querySelector(".tabs").hidden = !MP;
+S.sel = new URLSearchParams(location.search).get("pick") || S.sel;
+if (!cur()) S.sel = S.room[0] ? S.room[0].uid : null;
+fitGive();
+render();
+document.querySelector(".tabs").scrollLeft = 9999;
+window.ready = true;
+</script>
+</body>
+</html>
