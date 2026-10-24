@@ -11847,6 +11847,8 @@ if (location.hash === "#lcdcard" || location.hash === "#sitecard" || document.do
     write(LIKE_KEY, d);
     likeBadge(m.id, r.c);
     remoteSend({ t: "likes", id: m.id, c: r.c, byId: by });
+    // MONO LINK のコメント欄のログにも出す（玉は、ゲストと今日の上限に届いた人には出ない）
+    remoteSay((m.by ? String(m.by).slice(0, 40) + " さんが " : "") + msg.name + " さんのコメントにいいね" + (n > 0 ? "（+" + n + "玉）" : ""));
   }
   function remoteConnect() {
     clearTimeout(remoteTimer);
@@ -12241,6 +12243,7 @@ if (location.hash === "#lcdcard" || location.hash === "#sitecard" || document.do
   }
 })();
 </script>
+
 
 
 
