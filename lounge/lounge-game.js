@@ -72,14 +72,29 @@ export function boxTake(rec, now) {
   return { ok: true, took, left: rec.own.box.length };
 }
 // 素材を 取る 計算（品質の 低い 物から。同じ 品質なら 買った 物から＝拾った 物を タスクに のこす）。need：[[id, 数, 品質の 下限]]。足りなければ why
-export function takeMats(rec, need) {
-  const mats = rec.own.mats.map((m) => ({ ...m })), taken = [], short = [];
+// box：あずかり箱の 素材も 使う（施設の 強化。鹿さんの決め、2026-10-25）。同じ 品質なら 箱の 物から（7 日で なくなる ので）。期限の すぎた 物は 使わない。かえす 物に box が つく
+export function takeMats(rec, need, { box = false, now = Date.now() } = {}) {
+  const mats = rec.own.mats.map((m) => ({ ...m })), bx = box ? rec.own.box.map((x) => ({ ...x })) : [], taken = [], picks = [], short = [];
+  const pool = [...mats.map((m) => ({ m, inBox: 0 })), ...bx.filter((x) => !x.equip && x.until > now).map((m) => ({ m, inBox: 1 }))];
   for (const [id, n, qMin = 0] of need) {
     let left = n;
-    for (const m of mats.filter((x) => x.id === id && x.q >= qMin).sort((a, b) => a.q - b.q || (b.b ? 1 : 0) - (a.b ? 1 : 0))) { const k = Math.min(left, m.n); if (!k) continue; m.n -= k; left -= k; taken.push({ id, q: m.q, n: k, ...(m.b ? { b: 1 } : {}) }); if (!left) break; }
+    for (const { m } of pool.filter(({ m }) => m.id === id && (m.q || 0) >= qMin).sort((a, b) => (a.m.q || 0) - (b.m.q || 0) || b.inBox - a.inBox || (b.m.b ? 1 : 0) - (a.m.b ? 1 : 0))) {
+      const k = Math.min(left, m.n); if (!k) continue; m.n -= k; left -= k; taken.push({ id, q: m.q || 0, n: k, ...(m.b ? { b: 1 } : {}) });
+      picks.push({ id, q: m.q || 0, n: k, b: m.b ? 1 : 0, ...(m.until ? { box: 1, until: m.until } : {}) }); if (!left) break;
+    }
     if (left) short.push(`${matName(id)}${qMin > 1 ? `（品質 ${qMin} 以上）` : ""} あと ${left}`);
   }
-  return short.length ? { why: "素材が 足りない：" + short.join("・") } : { mats: mats.filter((m) => m.n > 0), taken };
+  return short.length ? { why: "素材が 足りない：" + short.join("・") } : { mats: mats.filter((m) => m.n > 0), ...(box ? { box: bx.filter((x) => x.equip || x.n > 0) } : {}), taken, picks };
+}
+// 取ると 決めた 物（takeMats の picks）を、その ときの 記録から 引く。写しを 書き戻さない
+//   払う 処理は OBS の 返事を 待つ あいだに 前の 分の もどし（素材が 倉庫や 箱に もどる）が 入る ことが ある。写しを 書き戻すと それが 消える
+export function applyTake(rec, picks) {
+  for (const p of picks) {
+    const list = p.box ? rec.own.box : rec.own.mats;
+    const x = list.find((m) => !m.equip && m.id === p.id && (m.q || 0) === p.q && (m.b ? 1 : 0) === p.b && (!p.box || m.until === p.until) && m.n > 0);
+    if (x) x.n -= Math.min(x.n, p.n);
+  }
+  rec.own.mats = rec.own.mats.filter((m) => m.n > 0); rec.own.box = rec.own.box.filter((x) => x.equip || x.n > 0);
 }
 
 // 渡す 物（grant・refund の データ）を 記録に 入れる
@@ -276,10 +291,10 @@ export function hideoutPlan(rec, b, unknown = []) {
   for (const [fid, flv] of need.fac || []) if ((rec.hideout[fid] || 0) < flv) return { ok: false, why: `${facName(fid)} Lv${flv} が いる` };
   const cr = need.credits || 0;
   if (cr > rec.credits) return { ok: false, why: "クレジットが 足りない：あと " + (cr - rec.credits) };
-  const t = takeMats(rec, need.mats || []);
+  const t = takeMats(rec, need.mats || [], { box: true });   // あずかり箱の 素材も 使える
   if (t.why) return { ok: false, why: t.why };
   return { costs: [["balls", need.balls], ["res", need.res]].filter(([, v]) => v > 0).map(([kind, v]) => ({ kind, d: -v })), why: `hideout:${f.id}:${lv + 1}`,
-    take: () => { rec.own.mats = t.mats; rec.credits -= cr; }, grant: { hideout: f.id }, refund: { mats: t.taken, credits: cr } };
+    take: () => { applyTake(rec, t.picks); rec.credits -= cr; }, grant: { hideout: f.id }, refund: { mats: t.taken, credits: cr } };
 }
 
 // ---------- 作業台 ----------
