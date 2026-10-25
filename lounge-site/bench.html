@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Lounge Workbench</title>
+<script type="importmap">{ "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.169.0/build/three.module.js", "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.169.0/examples/jsm/" } }</script>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Zen+Maru+Gothic:wght@500;700;900&display=swap">
 <style>
   /* MONO LINK のラウンジ：作業台の画面の見本（鹿さんの決め、2026-10-22。形は「装備の木」）
@@ -44,11 +45,17 @@
   .key span { display:inline-flex; align-items:center; gap:6px; } .key b { font:600 13px/1 var(--num); color:var(--ink); }
   .key i { width:12px; height:12px; border-radius:4px; }
   .key .k-can i { background:var(--ink); } .key .k-short i { background:#fff; border:2px solid #B9C3D8; } .key .k-lock i { background:repeating-linear-gradient(45deg, #E3E8F2 0 3px, #fff 3px 6px); border:1.5px dashed #B9C3D8; }
-  .cols { display:grid; grid-template-columns:repeat(3, minmax(0, 1fr)); gap:18px; }
+  /* 部位の まとまりで タブ（身につける・手に持つ・アクセサリー）。丸の 数は 作れる・合成できる 数 */
+  .gtabs { display:flex; flex-wrap:wrap; gap:6px; margin-bottom:12px; }
+  .gtabs button { display:inline-flex; align-items:center; gap:6px; border:1.5px solid var(--line); background:#fff; border-radius:999px; padding:7px 14px; font:700 13px/1 var(--jp); color:var(--soft); }
+  .gtabs button[aria-selected="true"] { background:var(--ink); color:#fff; border-color:var(--ink); }
+  .gtabs em { font-style:normal; min-width:18px; padding:0 5px; border-radius:99px; background:var(--leaf); color:#fff; font:600 11px/18px var(--num); text-align:center; }
+  .cols { display:grid; grid-template-columns:repeat(var(--n, 2), minmax(0, 1fr)); gap:18px; }
   .col h2 { display:flex; align-items:baseline; gap:8px; font:900 15px/1.2 var(--jp); margin-bottom:8px; }
   .col h2 small { font:700 11px/1 var(--jp); color:var(--soft); }
   .rows { display:grid; gap:8px; }
   .row { display:grid; grid-template-columns:minmax(0, 1fr) 22px minmax(0, 1.1fr); align-items:center; }
+  .row .solo { grid-column:1 / 2; display:grid; }
   .link { height:2px; background:#D3DAE8; position:relative; }
   .link::after { content:""; position:absolute; right:-1px; top:-4px; border:5px solid transparent; border-left:6px solid #D3DAE8; border-right:0; }
   .link.on { background:var(--ink); } .link.on::after { border-left-color:var(--ink); }
@@ -118,22 +125,22 @@
 <header class="top"><a href="/" style="color:inherit;text-decoration:none" aria-label="MONO LINK の サイトへ"><b>MONO LINK<i>://</i></b></a><small><a href="lounge-room.html" style="color:inherit">ラウンジ</a> ／ <a href="hideout.html?f=bench" style="color:inherit">地下の 隠れ家</a> ／ 作業台</small></header>
 <main>
   <section class="panel wallet" aria-label="作業台"><h1>作業台 <small id="lv"></small></h1><span>玉<b id="balls"></b></span></section>
-  <section class="panel" aria-label="装備の木"><p class="key" id="key"></p><div class="cols" id="cols"></div></section>
+  <section class="panel" aria-label="装備の木"><div class="gtabs" role="tablist" id="gtabs"></div><p class="key" id="key"></p><div class="cols" id="cols"></div></section>
   <section class="panel detail" id="detail" aria-live="polite"></section>
 </main>
 <p class="toast" id="toast" role="status"></p>
 <script type="module">
-import { BASES, UPPER, SLOTS, OPS, baseOf } from "./equip.js";
+import { BASES, KINDS, FORMS, MATS, OPS, baseOf, comboOf, matsOf } from "./equip.js";
 import { CRAFT, SYNTH, MAT_OP, CRAFT_STAR, SYNTH_STAR, BOSS_FX, craftOpen, synthOpen, synthBalls } from "./recipes.js";
 import { MAT_NAME, MAT_FROM, HIDDEN_MAT, GATHER, ENEMY_MAT } from "./materials.js";
 import { DUNGEONS } from "./dungeons.js";
 import { spriteURL } from "./sprites.js";
 import { me, act, busy, waitText } from "./lounge-client.js";   // 作業台の Lv・素材・装備・作る・合成は 門番から（くじも 門番が 引く）
+import { gearImg, watchIcons } from "./gear-icon.js";
 
 const q = new URLSearchParams(location.search);
 const fmt = (n) => n.toLocaleString("ja-JP");
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
-const icon = (id) => `img/icon-${baseOf(id).look || id}.png`;
 const stars = (n) => `<span class="stars" aria-label="★${n}">${"★".repeat(n)}<s>${"★".repeat(5 - n)}</s></span>`;
 // 素材の 手に入る所（「まだ」の レシピに 出す）
 const WHERE = {}, FOE = {};
@@ -153,6 +160,14 @@ function load(m) {
 load(await me());
 const R = (k) => (k.startsWith("c:") ? CRAFT.find((r) => r.base === k.slice(2)) : SYNTH.find((r) => r.out === k.slice(2)));
 S.sel = R(q.get("k") || "") ? q.get("k") : "c:helmet";
+// タブ：部位の まとまり。形の レシピ（tier が ある 物）は 素材と 色が くじ なので、名前は 形だけ
+const GROUPS = [["wear", "身につける", ["head", "neck", "arm", "leg"]], ["hold", "手に持つ", ["weapon", "off"]], ["acc", "アクセサリー", ["acc"]]];
+const idOf = (k) => (k.startsWith("c:") ? R(k).base : R(k).out), formOf = (k) => (k.startsWith("c:") && R(k).tier != null ? comboOf(R(k).base) : null);
+const titleOf = (k) => { const f = formOf(k); return f ? FORMS[f.form].name : baseOf(idOf(k)).name; };
+const groupOf = (k) => GROUPS.find((g) => g[2].includes(baseOf(idOf(k)).slot))[0];
+const keysOf = (kind) => [...BASES.filter((b) => b.slot === kind).map((b) => "c:" + b.id), ...CRAFT.filter((r) => r.tier != null && comboOf(r.base).slot === kind).map((r) => "c:" + r.base)];
+const matsText = (tier) => { const name = (t) => matsOf(t).map((m) => MATS[m].name).join("・"); return tier > 0 ? `${name(tier)}（ときどき ${name(tier - 1)}）` : name(0); };
+S.tab = groupOf(S.sel);
 
 const owned = (id) => S.eq.filter((e) => e.base === id).sort((a, b) => a.star - b.star);
 // 使う物の 行：装備（合成だけ）・素材・玉
@@ -175,12 +190,19 @@ const WORD = { can: (k) => (k.startsWith("c:") ? "作れる" : "合成できる"
 
 function node(k) {
   const r = R(k), id = k.startsWith("c:") ? r.base : r.out, st = stateOf(k), up = k.startsWith("s:");
-  return `<button class="node ${st} ${up ? "up" : ""} ${up && r.boss ? "boss" : ""}" data-k="${k}" aria-pressed="${S.sel === k}"><span class="ic"><img src="${icon(id)}" alt=""></span><span><b>${esc(baseOf(id).name)}</b><small>${WORD[st](k)}</small></span></button>`;
+  return `<button class="node ${st} ${up ? "up" : ""} ${up && r.boss ? "boss" : ""}" data-k="${k}" aria-pressed="${S.sel === k}"><span class="ic">${gearImg(id)}</span><span><b>${esc(titleOf(k))}</b><small>${WORD[st](k)}</small></span></button>`;
 }
+// 1 行が もとの装備 → 上の装備。形の レシピは 合成が ないので 1 つ だけ
 function treeHtml() {
-  return Object.entries(SLOTS).map(([slot, s]) => `<section class="col" aria-label="${s.label}"><h2>${s.label}<small>${s.role}</small></h2><div class="rows">${
-    BASES.filter((b) => b.slot === slot).map((b) => { const sy = SYNTH.find((x) => x.main === b.id);
-      return `<div class="row">${node("c:" + b.id)}<i class="link ${stateOf("s:" + sy.out) === "can" ? "on" : ""}" aria-hidden="true"></i>${node("s:" + sy.out)}</div>`; }).join("")}</div></section>`).join("");
+  const kinds = GROUPS.find((g) => g[0] === S.tab)[2];
+  document.getElementById("cols").style.setProperty("--n", Math.min(2, kinds.length));
+  return kinds.map((kind) => `<section class="col" aria-label="${KINDS[kind].label}"><h2>${KINDS[kind].label}<small>${KINDS[kind].role}</small></h2><div class="rows">${
+    keysOf(kind).map((k) => { const sy = SYNTH.find((x) => x.main === idOf(k));
+      return sy ? `<div class="row">${node(k)}<i class="link ${stateOf("s:" + sy.out) === "can" ? "on" : ""}" aria-hidden="true"></i>${node("s:" + sy.out)}</div>` : `<div class="row"><span class="solo">${node(k)}</span></div>`; }).join("")}</div></section>`).join("");
+}
+function tabsHtml() {
+  return GROUPS.map(([g, label, kinds]) => { const n = kinds.flatMap(keysOf).flatMap((k) => { const sy = SYNTH.find((x) => x.main === idOf(k)); return sy ? [k, "s:" + sy.out] : [k]; }).filter((k) => stateOf(k) === "can").length;
+    return `<button role="tab" data-tab="${g}" aria-selected="${S.tab === g}">${label}${n ? `<em>${n}</em>` : ""}</button>`; }).join("");
 }
 function keyHtml() {
   const all = [...CRAFT.map((r) => "c:" + r.base), ...SYNTH.map((r) => "s:" + r.out)].map(stateOf), n = (s) => all.filter((x) => x === s).length;
@@ -189,23 +211,24 @@ function keyHtml() {
 function rowHtml(x) {
   let pic = `<i class="dot b"></i>`, name = "玉", sub = "";
   if (x.kind === "mat") { const en = MAT_FROM[x.id]; pic = en ? `<img class="px" src="${spriteURL(en)}" alt="">` : `<i class="dot ${HIDDEN_MAT.has(x.id) ? "hd" : ""}"></i>`; name = MAT_NAME[x.id]; }
-  if (x.kind === "eq") { const o = owned(x.id); pic = `<img src="${icon(x.id)}" alt="">`; name = baseOf(x.id).name; sub = o.length ? `★${o[0].star} を 使う（★の 低い物から）` : "持っていない"; }
+  if (x.kind === "eq") { const o = owned(x.id); pic = gearImg(x.id); name = baseOf(x.id).name; sub = o.length ? `★${o[0].star} を 使う（★の 低い物から）` : "持っていない"; }
   return `<li class="${x.have < x.need ? "ng" : ""}">${pic}<span>${esc(name)}${sub ? `<small>${sub}</small>` : ""}</span><span class="n">${x.kind === "eq" ? `${x.have} こ` : x.unknown ? `？ / ${fmt(x.need)}` : `${fmt(x.have)} / ${fmt(x.need)}`}</span></li>`;
 }
 const oddsHtml = (t) => `<span class="odds">${Object.entries(t).map(([s, p]) => `<em><i>★${s}</i> ${p}%</em>`).join("")}</span>`;
 function madeHtml() {
   if (!S.made) return "";
   const it = S.made, b = baseOf(it.base), likes = R(S.sel).mats.map(([id]) => MAT_OP[id]);
-  return `<div class="made"><span class="ic"><img src="${icon(it.base)}" alt=""></span><div><h3><small>できた！</small>${esc(b.name)} ${stars(it.star)}</h3>
+  return `<div class="made"><span class="ic">${gearImg(it.base)}</span><div><h3><small>できた！</small>${esc(b.name)} ${stars(it.star)}</h3>
     <ul>${it.ops.map((o) => `<li class="${likes.includes(o) ? "like-op" : ""}">${esc(OPS[o].fmt(OPS[o].v[it.star - 1]))}</li>`).join("")}</ul>${it.fx ? `<p class="fx">とくべつな効果：${esc(b.fx)}</p>` : ""}</div></div>`;
 }
 function detailHtml() {
-  const k = S.sel, r = R(k), up = k.startsWith("s:"), id = up ? r.out : r.base, b = baseOf(id), st = stateOf(k);
+  const k = S.sel, r = R(k), up = k.startsWith("s:"), id = up ? r.out : r.base, b = baseOf(id), st = stateOf(k), fm = formOf(k);
   const likes = r.mats.map(([m]) => MAT_OP[m]).filter(Boolean);
-  const head = `<div><header><span class="ic"><img src="${icon(id)}" alt=""></span><div><span class="tag ${up ? (r.boss ? "boss" : "up") : ""}">${up ? (r.boss ? "合成・ボスの素材" : "合成") : "作る"}</span><h2>${esc(b.name)}</h2></div></header>
+  const head = `<div><header><span class="ic">${gearImg(id)}</span><div><span class="tag ${up ? (r.boss ? "boss" : "up") : ""}">${up ? (r.boss ? "合成・ボスの素材" : "合成") : "作る"}</span><span class="tag">${KINDS[b.slot].label}</span><h2>${esc(titleOf(k))}</h2></div></header>
     <div class="facts">${st === "wait" ? "" : `<div><span class="l">★ くじ</span>${oddsHtml(up ? SYNTH_STAR[S.lv] : CRAFT_STAR[S.lv])}</div>`}
       <div><span class="l">付きやすい OP</span><span>${likes.map((o) => `<span class="like">${esc(OPS[o].label)}${OPS[o].from > 1 ? `（★${OPS[o].from} から）` : ""}</span>`).join(" ")}</span></div>
       ${up ? `<div><span class="l">もとの強さ</span><span>${esc(baseOf(r.main).name)}の 1.5 倍</span></div>` : ""}
+      ${fm ? `<div><span class="l">素材（くじ）</span><span>${esc(matsText(r.tier))}</span></div><div><span class="l">色（くじ）</span><span>8 色の どれか</span></div>` : ""}
       ${up && r.boss ? `<div><span class="l">とくべつ</span><span class="fx">${Math.round(BOSS_FX * 100)}% で「${esc(b.fx)}」</span></div>` : ""}</div></div>`;
   let act;
   if (st === "wait") act = S.lv < 1 ? `<div class="lockbox wait"><p>作業台が まだ ない</p><a href="hideout.html?f=bench">隠れ家で 作業台を 作る</a></div>`
@@ -224,7 +247,7 @@ function detailHtml() {
 }
 function render() {
   document.getElementById("lv").textContent = S.lv ? `Lv${S.lv}` : "まだ ない"; document.getElementById("balls").textContent = S.known ? fmt(S.balls) : "？";
-  document.getElementById("key").innerHTML = keyHtml(); document.getElementById("cols").innerHTML = treeHtml(); document.getElementById("detail").innerHTML = detailHtml();
+  document.getElementById("gtabs").innerHTML = tabsHtml(); document.getElementById("key").innerHTML = keyHtml(); document.getElementById("cols").innerHTML = treeHtml(); document.getElementById("detail").innerHTML = detailHtml();
 }
 // 作る・合成する：門番が 使う物を へらして くじを 引く（合成は ★の 低い装備から 使う）
 async function make(b, k) {
@@ -239,12 +262,13 @@ let tid;
 const toast = (t) => { const el = document.getElementById("toast"); el.textContent = t; el.classList.add("on"); clearTimeout(tid); tid = setTimeout(() => el.classList.remove("on"), 4200); };
 document.querySelector("main").addEventListener("click", async (e) => {
   const b = e.target.closest("button"); if (!b || b.disabled) return;
+  if (b.dataset.tab) { S.tab = b.dataset.tab; return render(); }
   if (b.dataset.k) { if (S.sel !== b.dataset.k) S.made = null; S.sel = b.dataset.k; render(); document.querySelector(`[data-k="${S.sel}"]`)?.focus({ preventScroll: true });
     document.getElementById("detail").scrollIntoView({ block: "nearest", behavior: matchMedia("(prefers-reduced-motion:reduce)").matches ? "auto" : "smooth" }); return; }
   if (b.dataset.do) await make(b, b.dataset.do);
 });
 if (ME.denied || ME.ok === false) document.querySelector("main").innerHTML = `<section class="panel wallet"><h1>入れません</h1><span>${esc(ME.why || "もう 1 回 開いて ください")}</span>${ME.login ? `<a href="/">MONO LINK で ログイン</a>` : ""}</section>`;
-else render();
+else { render(); watchIcons(); }
 window.ready = true;
 </script>
 </body>

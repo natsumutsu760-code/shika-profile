@@ -4,7 +4,8 @@
 // OP は ★の数だけ くじ。レシピの 敵の素材ごとに 付きやすい OP がある（くじの 重さ ×8）
 // 合成：ヴェルヴェット（白騎士物語）の形。もとの装備 ＋ 決まった もう 1 つの装備 ＋ 素材 ＋ 玉 → 名前のちがう 上の装備（equip.js の UPPER）
 //   ★と OP は くじ（もとの装備の ★・OP は のこらない）。ボスの素材の レシピは 25% で とくべつな効果。前の「★上げ（同じ★を 3 つ）」は やめた
-import { OPS } from "./equip.js";
+// 形の レシピ（tier が ある 物。鹿さんの決め、2026-10-25）：新しい 部位の 形を 作る。素材と 色は くじ（その tier の 素材）。base は 見本に 出す 1 つ
+import { OPS, baseOf, comboOf, comboId, pickMat, opCount, COLS } from "./equip.js";
 
 // 敵の素材 → 付きやすい OP（ボスの素材は ★3 から付く とくべつな OP）
 export const MAT_OP = {
@@ -29,6 +30,23 @@ export const CRAFT = [
   { base: "pikopiko", mats: [["oldnail", 3], ["candle", 2], ["wolf_fang", 1]], balls: 220 },
   { base: "mizudeppo", mats: [["wellwater", 4], ["sleepmoss", 2], ["light_drop", 1]], balls: 220 },
   { base: "kamifusen", mats: [["stardust", 3], ["deepwater", 3], ["crystal_scale", 1]], balls: 300 },
+  // 形の レシピ（うで・あし・オフハンド・アクセサリー と、あたま・くびの 新しい 形）
+  { base: "glove.cloth.0", tier: 0, mats: [["herb", 3], ["straw", 3], ["hare_horn", 1]], balls: 120 },
+  { base: "socks.cloth.0", tier: 0, mats: [["berry", 3], ["straw", 3], ["kobold_fur", 1]], balls: 120 },
+  { base: "brooch.cloth.0", tier: 0, mats: [["pebble", 4], ["berry", 2], ["old_score", 1]], balls: 150 },
+  { base: "hood.cloth.0", tier: 0, mats: [["herb", 3], ["pebble", 2], ["kobold_fur", 1]], balls: 150 },
+  { base: "band.leather.0", tier: 1, mats: [["oldcloth", 3], ["sleepmoss", 2], ["ghost_cloth", 1]], balls: 200 },
+  { base: "sneakers.leather.0", tier: 1, mats: [["brick", 3], ["oldcloth", 3], ["golem_stone", 1]], balls: 220 },
+  { base: "scarf.leather.0", tier: 1, mats: [["oldcloth", 4], ["stardust", 2], ["dream_feather", 1]], balls: 200 },
+  { base: "book.leather.0", tier: 1, mats: [["stardust", 3], ["sleepmoss", 3], ["mimic_tooth", 1]], balls: 220 },
+  { base: "gauntlet.iron.0", tier: 2, mats: [["oldnail", 4], ["candle", 2], ["wolf_fang", 1]], balls: 260 },
+  { base: "boots.iron.0", tier: 2, mats: [["wellwater", 3], ["oldnail", 3], ["poison_vial", 1]], balls: 250 },
+  { base: "lantern.iron.0", tier: 2, mats: [["candle", 3], ["nightbloom", 3], ["light_drop", 1]], balls: 260 },
+  { base: "ring.iron.0", tier: 2, mats: [["nightbloom", 3], ["wellwater", 2], ["shadow_shard", 1]], balls: 250 },
+  { base: "bangle.crystal.0", tier: 3, mats: [["crystalbit", 3], ["glowstone", 2], ["crystal_scale", 1]], balls: 300 },
+  { base: "geta.crystal.0", tier: 3, mats: [["ironore", 3], ["deepwater", 3], ["rainbow_shell", 1]], balls: 300 },
+  { base: "fan.crystal.0", tier: 3, mats: [["deepwater", 3], ["crystalbit", 3], ["bat_wing", 1]], balls: 300 },
+  { base: "keychain.crystal.0", tier: 3, mats: [["glowstone", 3], ["ironore", 2], ["slime_core", 1]], balls: 300 },
 ];
 // 合成：main ＋ sub（どちらも 装備。★は なんでも）＋ mats ＋ 玉 → out。boss は ボスの素材の レシピ
 export const SYNTH = [
@@ -59,11 +77,15 @@ export const synthBalls = (r, benchLv) => (benchLv >= SYNTH_HALF ? Math.round(r.
 
 const pickW = (R, w) => { const t = Object.values(w).reduce((a, b) => a + b, 0); let x = R() * t; for (const [k, v] of Object.entries(w)) if ((x -= v) < 0) return +k; return +Object.keys(w)[0]; };
 // OP の くじ：付きやすい OP は 重さ ×OP_BIAS（その★で 付かない OP は 入らない）
-function rollOps(R, star, likes) {
+function rollOps(R, star, likes, n = star) {
   const pool = Object.keys(OPS).filter((k) => (OPS[k].from || 1) <= star).map((k) => [k, likes.includes(k) ? OP_BIAS : 1]), ops = [];
-  while (ops.length < star && pool.length) { const t = pool.reduce((a, [, w]) => a + w, 0); let x = R() * t, i = 0; while ((x -= pool[i][1]) >= 0) i++; ops.push(pool.splice(i, 1)[0][0]); }
+  while (ops.length < n && pool.length) { const t = pool.reduce((a, [, w]) => a + w, 0); let x = R() * t, i = 0; while ((x -= pool[i][1]) >= 0) i++; ops.push(pool.splice(i, 1)[0][0]); }
   return ops;
 }
 const likesOf = (mats) => mats.map(([id]) => MAT_OP[id]).filter(Boolean);
-export function rollCraft(R, r, benchLv) { const star = pickW(R, CRAFT_STAR[benchLv]); return { base: r.base, star, ops: rollOps(R, star, likesOf(r.mats)) }; }
-export function rollSynth(R, r, benchLv) { const star = pickW(R, SYNTH_STAR[benchLv]); return { base: r.out, star, ops: rollOps(R, star, likesOf(r.mats)), fx: r.boss && R() < BOSS_FX }; }
+// OP の 数は ★ × 枠の 重み（equip.js の opCount）。形の レシピは 素材と 色も くじ
+export function rollCraft(R, r, benchLv) {
+  const star = pickW(R, CRAFT_STAR[benchLv]), base = r.tier == null ? r.base : comboId(comboOf(r.base).form, pickMat(R, r.tier), Math.floor(R() * COLS.length));
+  return { base, star, ops: rollOps(R, star, likesOf(r.mats), opCount(baseOf(base).slot, star)) };
+}
+export function rollSynth(R, r, benchLv) { const star = pickW(R, SYNTH_STAR[benchLv]); return { base: r.out, star, ops: rollOps(R, star, likesOf(r.mats), opCount(baseOf(r.out).slot, star)), fx: r.boss && R() < BOSS_FX }; }

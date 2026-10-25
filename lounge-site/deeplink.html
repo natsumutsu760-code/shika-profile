@@ -173,7 +173,7 @@ const view = (id) => D.traders.find((x) => x.id === id) || { shop: [] };
 const cur = (c, n) => (c === "res" ? `<span class="v">リソース ${fmt(n)}</span>` : `<span class="c">玉 ${fmt(n)}</span>`);
 const pips = (lv) => `<span class="pips" aria-label="友好度 Lv${lv}">${"▮".repeat(lv)}${"▯".repeat(4 - lv)}</span>`;
 const ITEM = { map: "かくし通路の地図", collar: "なかよしの首輪", snack3: "とくべつおやつ", recipe: "作るの レシピ", charm: "くじの お守り" };
-const getText = (g) => !g ? [] : [g.acc && `アクセサリー ★${g.acc}`, g.snacks && `おやつ ${g.snacks}`, ...Object.entries(g.items || {}).map(([k, n]) => `${ITEM[k] || k}${n > 1 ? ` ×${n}` : ""}`), ...Object.entries(g.tools || {}).map(([k, n]) => `${TOOLS[k] ? TOOLS[k].name : k}${n > 1 ? ` ×${n}` : ""}`), ...(g.mats || []).map(([id, n]) => `${MAT_NAME[id] || id} ×${n}`)];
+const getText = (g) => !g ? [] : [g.acc && `装備 ★${g.acc}`, g.snacks && `おやつ ${g.snacks}`, ...Object.entries(g.items || {}).map(([k, n]) => `${ITEM[k] || k}${n > 1 ? ` ×${n}` : ""}`), ...Object.entries(g.tools || {}).map(([k, n]) => `${TOOLS[k] ? TOOLS[k].name : k}${n > 1 ? ` ×${n}` : ""}`), ...(g.mats || []).map(([id, n]) => `${MAT_NAME[id] || id} ×${n}`)];
 const rewardText = (r) => [r.balls && `<span class="c">玉 ${fmt(r.balls)}</span>`, r.res && `<span class="v">リソース ${r.res}</span>`, ...getText(r.get).map(esc), r.rep && `<span class="g">友好 ＋${r.rep}</span>`].filter(Boolean).join("・");
 const tasksOf = (v) => (v.chain ? [{ ...v.chain, which: "chain" }, { ...v.daily, which: "daily", daily: true }] : []);
 const ready = (v) => tasksOf(v).filter((k) => !k.done && k.have >= k.need).length;
@@ -212,7 +212,7 @@ function shopHtml(t) {
       <div class="act">${it.sell || it.trade ? "" : `<span class="price">${cur(it.cur, it.price)}<small class="stock ${out && !it.once ? "out" : ""}">${stockText(it, st)}</small></span>`}${locked ? `<span class="lock">友好度 Lv${it.lv} で 買える</span>` : `<button class="btn" data-item="${it.id}" aria-expanded="${S.open === it.id}" ${cant ? "disabled" : ""}>${label}</button>`}</div></li>
       ${S.open === it.id && !locked ? `<li class="pnl">${it.sell ? sellHtml() : it.trade ? tradeHtml() : pickHtml(t, it)}</li>` : ""}`; }).join("")}</ul>`;
 }
-// えらんで 買う：素材・アクセサリーの もと・レシピ（★3 の OP えらびも）
+// えらんで 買う：素材・装備の もと・レシピ（★3 の OP えらびも）
 function pickHtml(t, it) {
   const list = choices(it), sel = S.pick[it.id] && list.includes(S.pick[it.id]) ? S.pick[it.id] : list[0], ops = it.get.op ? Object.keys(OPS).filter((k) => (OPS[k].from || 1) <= it.get.acc) : [];
   if (!list.length) return `<div class="post"><p class="f">えらべる 物が ない（レシピは もう ぜんぶ 出て いる）</p></div>`;

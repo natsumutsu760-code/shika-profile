@@ -3,13 +3,13 @@
 // - ペット 1 匹は 職業ツリー 1 本 ＋ サブツリー 3 本（研究した 敵の ツリー）。SP は Lv ごとに 10 で、4 本で 同じ 入れ物から 使う
 // - ノードは 自分で 取る か、自動（ふつうは 左の 道。分岐は えらべる）。自動に して おくと Lv が 上がる たびに 取る
 // - 職業を かえると 前の 職業の 技から 1 つだけ 持ちこせる。振り直しと 職業を かえるのは 1 日 1 回 無料、2 回目から 玉（鹿さんの決め、2026-10-24。値段は 案）
-// - 装備は あたま・くび・おまけ の 3 枠。なかまも 付けられる。付けて いる 装備は 合成・納める・依頼の お礼に 使えない
-import { PETS, PLANS, gambitSlots, SHAPE, SP_PER_LV, SET_SLOTS, TREE_SLOTS, FREE_PER_LV, BASE_STATS, canTake, autoTake, learned, growthStats, ENEMY_TREES, SKILL, EFFECTS, COND_TEXT, baseOf, tamedOf } from "./game.js";
+// - 装備は あたま・くび・うで・あし・武器・オフハンド・アクセサリー ×3 の 9 枠（鹿さんの決め、2026-10-25。前の「おまけ」は 武器）。なかまも 付けられる。付けて いる 装備は 合成・納める・依頼の お礼に 使えない
+import { PETS, PLANS, gambitSlots, SHAPE, SP_PER_LV, SET_SLOTS, TREE_SLOTS, FREE_PER_LV, BASE_STATS, canTake, autoTake, learned, growthStats, ENEMY_TREES, SKILL, EFFECTS, COND_TEXT, baseOf, tamedOf, SLOTS, OLD_SLOT } from "./game.js";
 
 export const RESET_PRICE = (lv) => lv * 100;   // 2 回目からの 振り直し・職業を かえる 玉（案）
 export const STYLES = ["attack", "defense", "balance", "mp"];   // オートの 作戦：こうげき重視・防御重視・バランス・MP を大事に
 const SP_OF = Object.fromEntries(SHAPE.map((n) => [n.id, n.sp]));
-const SLOTS3 = ["head", "neck", "hand"];
+const SLOT_KEYS = Object.keys(SLOTS);   // 9 枠
 const NUM_COND = new Set(["hpBelow", "hpAbove", "mpAtLeast", "mpBelow", "foeHpBelow", "foeHpAbove", "foeMpBelow", "foeDebuffs", "every", "after"]);
 const FX_COND = new Set(["foeHas", "foeNotHas", "selfHas", "selfNotHas"]);
 const has = (m, k) => typeof k === "string" && Object.prototype.hasOwnProperty.call(m, k);
@@ -41,9 +41,18 @@ export function autoFill(pet) {
   }
   pet.taken[pet.type] = [...t];
 }
-const equippedOf = (x, rec) => SLOTS3.map((s) => x.equip && x.equip[s]).filter(Boolean).map((u) => rec.own.equip.find((e) => e.uid === u)).filter(Boolean);
+// 前の 枠（hand ＝ おまけ）に 付けて いた 物を うつす：ふつうは 武器、ランタン（オフハンドの ミシック）は オフハンド
+export function moveOldSlots(x, rec) {
+  for (const [old, to] of Object.entries(OLD_SLOT)) {
+    const u = x.equip && x.equip[old]; if (!u) continue;
+    const e = rec.own.equip.find((y) => y.uid === u), kind = e && baseOf(e.base) && baseOf(e.base).slot, slot = kind === "off" ? "off" : to;
+    if (e && !x.equip[slot]) x.equip[slot] = u;
+    delete x.equip[old];
+  }
+}
+const equippedOf = (x, rec) => SLOT_KEYS.map((s) => x.equip && x.equip[s]).filter(Boolean).map((u) => rec.own.equip.find((e) => e.uid === u)).filter(Boolean);
 // 付けて いる 装備（ペットと なかま ぜんぶ）
-export const equippedUids = (rec) => new Set([...rec.pets, ...rec.tamed].flatMap((x) => SLOTS3.map((s) => x.equip && x.equip[s]).filter(Boolean)));
+export const equippedUids = (rec) => new Set([...rec.pets, ...rec.tamed].flatMap((x) => SLOT_KEYS.map((s) => x.equip && x.equip[s]).filter(Boolean)));
 
 // 戦う ときの ペット（battle-sim.js の 形。お手本の ままなら builds.js の petAt と 同じに なる）
 export function fighterOf(pet, rec) {
@@ -148,12 +157,14 @@ export function equipSet(rec, b) {
   if (!x) return { ok: false, why: "その 子は いない" };
   x.equip ||= {};
   if (onTrip(rec, x.uid)) return { ok: false, why: "いまは 出かけて いる" };
-  if (!SLOTS3.includes(b.slot)) return { ok: false, why: "枠を えらんで" };
+  if (!has(SLOTS, b.slot)) return { ok: false, why: "枠を えらんで" };
   if (b.uid == null) { delete x.equip[b.slot]; return { ok: true }; }
   const e = rec.own.equip.find((y) => y.uid === b.uid), base = e && baseOf(e.base);
   if (!e || !base) return { ok: false, why: "その 装備は ない" };
-  if (base.slot !== b.slot) return { ok: false, why: "その 枠には 付けられない" };
-  if (equippedUids(rec).has(e.uid) && x.equip[b.slot] !== e.uid) return { ok: false, why: "ほかの 子が 付けて いる" };
+  if (base.slot !== SLOTS[b.slot].kind) return { ok: false, why: "その 枠には 付けられない" };
+  const mine = Object.keys(x.equip).find((s) => x.equip[s] === e.uid);   // 同じ 子の ほかの 枠（アクセサリー 1 → 2 など）からは うつす
+  if (equippedUids(rec).has(e.uid) && !mine) return { ok: false, why: "ほかの 子が 付けて いる" };
+  if (mine) delete x.equip[mine];
   x.equip[b.slot] = e.uid;
   return { ok: true };
 }

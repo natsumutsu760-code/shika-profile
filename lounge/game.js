@@ -13,6 +13,6 @@ export { DUNGEONS, RUNS, TICK, TOOLS, PURPOSES, SNACK_NEED, SNACK_PRICE, RESEARC
 export { FACILITIES, STORAGE_CAP } from "./facilities.js";
 export { toStash, BOX_DAYS, MAT_NAME, GATHER, sellPrice } from "./materials.js";
 export { CRAFT, SYNTH, craftOpen, synthOpen, synthBalls, rollCraft, rollSynth } from "./recipes.js";
-export { OPS, baseOf, BASES } from "./equip.js";
+export { OPS, baseOf, BASES, SLOTS, KINDS, FORMS, MATS, COLS, OLD_SLOT, comboOf, opCount } from "./equip.js";
 export { TRADERS, SPECIAL, repLv, REQ_FEE, RES_VALUE, NOTE_PRESETS, NOTE_MAX, NOTE_HIDE_AT, noteBlock } from "./deeplink.js";
 export { chainTask, dailyTask, TASK_TIDS } from "./tasks.js";

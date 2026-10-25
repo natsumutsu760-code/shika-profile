@@ -68,7 +68,7 @@ const T = {
 };
 // ごほうびの 物（3 こ目ごと）。GET は 門番が 渡す 中身（ITEM は 見せる 文）
 const ITEM = {
-  junk: (n) => `採取の素材 ×${5 + Math.floor(n / 5)}`, doc: (n) => `懐柔のおやつ ×${3 + Math.floor(n / 8)}`, hanger: (n) => `アクセサリー ★${Math.min(4, 1 + Math.floor(n / 8))}`,
+  junk: (n) => `採取の素材 ×${5 + Math.floor(n / 5)}`, doc: (n) => `懐柔のおやつ ×${3 + Math.floor(n / 8)}`, hanger: (n) => `装備 ★${Math.min(4, 1 + Math.floor(n / 8))}`,
   mecha: () => "作るの レシピ", hunter: (n) => (n % 2 ? TOOLS.lure.name : TOOLS.net.name),
 };
 

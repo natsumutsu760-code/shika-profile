@@ -7,7 +7,7 @@
 // 勝った敵は 1 体ずつ、一定の確率で捕まえる（研究するとサブツリー、懐柔するとパーティに入れられる）。戦いに勝つと、ときどき懐柔のおやつを拾う
 import { simulateTeams, rngIn, vitalsOf } from "./battle-sim.js";
 import { petAt } from "./builds.js";
-import { OPS } from "./equip.js";
+import { OPS, rollCombo, comboOf, opCount } from "./equip.js";
 import { DUNGEONS, RUNS, RARE_RATE, CAPTURE, GROUP, SNACK_DROP, TICK, ENCOUNTER, REST, TRAP, FLOOR_LV, BATTLE_TICKS, PURPOSES, CHEST_STAR, BOSS_STAR, MYTHIC, BOSS_RESOURCE, EXP_PER_LV, CREDIT, TOOLS, LURE_SHARE, NET_MULT } from "./dungeons.js";
 import { ENEMY_TREES } from "./enemy-trees.js";
 import { floorMap, reachOf, exploredRatio, keyOf, DIRS, GW, GH, FLOORS, T, isPass } from "./floors.js";
@@ -33,10 +33,11 @@ export const foeOf = (f, pow = 1) => {
 export const tamedOf = (f, lv = f.lv, equip = [], pow = 1) => { const p = petAt(f.type, lv, { main: f.tree }), st = { ...p.stats }; for (const k in st) st[k] = Math.round(st[k] * pow); return { ...p, name: f.name, owner: "VR", lv, stats: st, species: null, equip, tree: f.tree }; };
 
 const pickW = (R, w) => { const t = Object.values(w).reduce((a, b) => a + b, 0); let x = R() * t; for (const [k, v] of Object.entries(w)) if ((x -= v) < 0) return +k; return +Object.keys(w)[0]; };
+// 宝箱の 装備：形 × 素材（行き先で 出る 素材）× 色 の 組み合わせ（鹿さんの決め、2026-10-25）。OP の 数は ★ × 枠の 重み
 function rollItem(R, d, star) {
-  const base = d.drops[Math.floor(R() * d.drops.length)];
+  const base = rollCombo(R, Math.max(0, DUNGEONS.indexOf(d))), n = opCount(comboOf(base).slot, star);
   const pool = Object.keys(OPS).filter((k) => (OPS[k].from || 1) <= star), ops = [];
-  while (ops.length < star && pool.length) ops.push(pool.splice(Math.floor(R() * pool.length), 1)[0]);
+  while (ops.length < n && pool.length) ops.push(pool.splice(Math.floor(R() * pool.length), 1)[0]);
   return { base, star, ops };
 }
 

@@ -5,11 +5,11 @@
 //   grant：払えたら 渡す 物。refund：返事を 待った すえに 払えなかったら もどす 物（どちらも しまえる 形の データ）
 // 数は すべて 案（鹿さんと これから 決める）
 import { PETS, QUIZ, score, PLANS, petAt, tripInit, tripStep, tripResult, floorsOpen, newProgress, diaryOf, dungeonRatio, tamedOf, rankOf, rng, DUNGEONS, RUNS, TICK, TOOLS, PURPOSES, SNACK_NEED, SNACK_PRICE, RESEARCH,
-  FACILITIES, STORAGE_CAP, toStash, BOX_DAYS, MAT_NAME, CRAFT, SYNTH, craftOpen, synthOpen, synthBalls, rollCraft, rollSynth, OPS } from "./game.js";
+  FACILITIES, STORAGE_CAP, toStash, BOX_DAYS, MAT_NAME, CRAFT, SYNTH, craftOpen, synthOpen, synthBalls, rollCraft, rollSynth, OPS, baseOf, comboOf, opCount } from "./game.js";
 import { jstDay } from "./lounge-rules.js";
 import { ensureTrade, giveTrade, bump, tripEvents } from "./lounge-trade.js";
 import { ensureReq, giveReq } from "./lounge-req.js";
-import { ensurePet, autoFill, fighterOf, mateOf, givePet, equippedUids } from "./lounge-pet.js";
+import { ensurePet, autoFill, fighterOf, mateOf, givePet, equippedUids, moveOldSlots } from "./lounge-pet.js";
 
 export const LV_MAX = 40;                                  // ペットの Lv の 上限（案）
 // つぎの Lv までの 経験値（案）：Lv×Lv÷2。Lv10 までは 半分（はじめは ひとりなので。鹿さんの決め、2026-10-24）
@@ -29,6 +29,7 @@ export function ensure(rec) {
   rec.explore ||= {}; rec.trips ||= []; rec.seen ||= []; rec.uidN ||= 0; rec.party ||= []; rec.lab ||= [];
   rec.own.mats ||= []; rec.own.box ||= []; rec.own.equip ||= [];
   rec.pets.forEach(ensurePet); rec.tamed.forEach((c) => (c.equip ||= {}));
+  for (const x of [...rec.pets, ...rec.tamed]) moveOldSlots(x, rec);   // 前の 枠（おまけ）→ 武器
   return ensureReq(ensureTrade(rec));
 }
 const newUid = (rec, p) => p + (++rec.uidN).toString(36);
@@ -55,7 +56,7 @@ export function putEquip(rec, items, now) {
     const x = { uid: it.uid || newUid(rec, "e"), base: it.base, star: it.star, ops: [...(it.ops || [])], ...(it.fx ? { fx: true } : {}), ...(it.b ? { b: 1 } : {}) };
     if (rec.own.equip.length < EQUIP_MAX) rec.own.equip.push(x); else rec.own.box.push({ equip: x, until: now + BOX_DAYS * DAY });
   }
-  see(rec, items.map((it) => it.base));
+  see(rec, items.map((it) => { const c = comboOf(it.base); return c ? "f:" + c.form : it.base; }));   // 組み合わせの 装備は 形だけ おぼえる（しゅるいが 何千も あるので）
 }
 export const dropOld = (rec, now) => { rec.own.box = rec.own.box.filter((x) => x.until > now); };
 // あずかり箱から うけとる（入るだけ。いい物から）
@@ -163,9 +164,10 @@ export function researchPlan(rec, b, unknown = []) {
 
 // ---------- 派遣 ----------
 // ミシック：★5 と 同じ もとの 強さ ＋ OP 5 つ（案）
+// ミシック：★5・OP は ★5 の 数 ＋1（ふつうより 1 つ 多い）
 function mythicItem(m, R) {
-  const pool = Object.keys(OPS), ops = [];
-  while (ops.length < 5 && pool.length) ops.push(pool.splice(Math.floor(R() * pool.length), 1)[0]);
+  const pool = Object.keys(OPS), ops = [], n = opCount(m.slot, 5) + 1;
+  while (ops.length < n && pool.length) ops.push(pool.splice(Math.floor(R() * pool.length), 1)[0]);
   return { base: m.id, star: 5, ops };
 }
 // 出かける。同じ 種なら 同じ 結果。早く 終わったら（目的を はたした・力つきた）その ぶん 早く 帰る
@@ -308,6 +310,6 @@ export function synthPlan(rec, b, R) {
 // くじの お守り（ヨルの 店）を 持って いれば、作る・合成の ★が ＋1（OP も 1 つ ふえる）
 function charm(rec, item, R) {
   if (!(rec.items.charm > 0) || item.star >= 5) return { item, take: () => {}, refund: {} };
-  const star = item.star + 1, pool = Object.keys(OPS).filter((k) => (OPS[k].from || 1) <= star && !item.ops.includes(k));
-  return { item: { ...item, star, ops: pool.length ? [...item.ops, pool[Math.floor(R() * pool.length)]] : item.ops }, take: () => { rec.items.charm--; }, refund: { items: { charm: 1 } } };
+  const star = item.star + 1, pool = Object.keys(OPS).filter((k) => (OPS[k].from || 1) <= star && !item.ops.includes(k)), more = opCount(baseOf(item.base).slot, star) > item.ops.length;   // ★が 上がって OP の 数が ふえる ときだけ 1 つ 足す
+  return { item: { ...item, star, ops: more && pool.length ? [...item.ops, pool[Math.floor(R() * pool.length)]] : item.ops }, take: () => { rec.items.charm--; }, refund: { items: { charm: 1 } } };
 }

@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Pet Adventure</title>
+<script type="importmap">{ "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.169.0/build/three.module.js", "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.169.0/examples/jsm/" } }</script>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DotGothic16&family=Fredoka:wght@500;600;700&family=Zen+Maru+Gothic:wght@500;700;900&display=swap">
 <style>
   /* MONO LINK のラウンジ：冒険（VR ゲームの行き先）の画面。門番の 記録で 動く：ペットが いない → 性格診断へ、職業が まだ → えらぶ、出かけて いる → ようす、帰って きた → 結果と日記
@@ -108,8 +109,6 @@
   .foes li.boss.off { opacity:.45; }
   .foes li.rare { border-color:#D9C8FF; background:#F7F2FF; }
   .foes li .tg { font:700 10px/1 var(--jp); color:#7A55E0; }
-  .drops { display:flex; gap:6px; align-items:center; flex-wrap:wrap; }
-  .drops .ico { width:38px; height:38px; }
   .myth { margin-top:8px; display:grid; grid-template-columns:46px 1fr; gap:10px; align-items:center; padding:6px 10px 6px 6px; border-radius:16px; border:2px solid transparent; background:linear-gradient(#fff, #fff) padding-box, var(--myth) border-box; }
   .myth .ico { width:46px; height:46px; background:#F1F3F9; }
   .myth .ico img { filter:brightness(0) opacity(.28); }
@@ -305,6 +304,8 @@
   .mats img { width:24px; height:24px; image-rendering:pixelated; } .mats li i { width:14px; height:14px; margin:5px; border-radius:4px; background:#86C25A; }
   .mats li.hd { border-color:#D9C8FF; background:#F7F2FF; } .mats li.hd i { background:linear-gradient(135deg, #FF8FC4, #8FC8FF); }
   .mats.bx li { border-style:dashed; background:transparent; opacity:.85; }
+  .mats.eqm li.more { border-style:dashed; color:var(--soft); padding-left:10px; }
+  .eqnote { margin:4px 0 0; font:700 11px/1.4 var(--jp); color:var(--soft); }
   .boxgo { display:inline-block; margin-top:8px; font:900 12px/1 var(--jp); color:var(--ink); text-decoration:none; border-bottom:2px solid var(--sky); padding-bottom:2px; }
   .full { margin:10px 0 0; font:700 12px/1.4 var(--jp); color:#C2410C; }
   .mats .q { font-size:9px; letter-spacing:-1px; color:#E0A21C; } .mats em { font:600 12px/1 var(--num); font-style:normal; color:var(--soft); }
@@ -380,7 +381,8 @@ import { runDungeon, diaryOf, rankOf, tamedOf, newProgress, floorRatio, dungeonR
 import { floorMap, exploredRatio, keyOf, DIRS, GW, GH, FLOORS, T } from "./floors.js";
 import { petAt } from "./builds.js";
 import { ENEMY_TREES } from "./enemy-trees.js";
-import { BASES, OPS } from "./equip.js";
+import { OPS, SLOTS, MATS, baseOf, matsOf } from "./equip.js";
+import { gearImg, watchIcons } from "./gear-icon.js";
 import { TYPES } from "./skills.js";
 import { spriteURL } from "./sprites.js";
 import { GATHER, MAT_FROM, MAT_NAME, HIDDEN_MAT, sellPrice, toStash, BOX_DAYS } from "./materials.js";
@@ -391,7 +393,7 @@ const IMG = "img/";
 const q = new URLSearchParams(location.search);
 // ペットと パーティ・探索の 進み・道具・倉庫は 門番から（戦う 形は 門番が 作った 物：ME.pets[0].build）
 const ME = await me(), MP = ME.pets && ME.pets[0], NOW = Date.now();
-const eqOf = (x) => ["head", "neck", "hand"].map((k) => x.equip && x.equip[k]).filter(Boolean).map((u) => (ME.own.equip || []).find((e) => e.uid === u)).filter(Boolean);
+const eqOf = (x) => Object.keys(SLOTS).map((k) => x.equip && x.equip[k]).filter(Boolean).map((u) => (ME.own.equip || []).find((e) => e.uid === u)).filter(Boolean);
 const PET = MP && MP.build ? { ...MP.build, owner: ME.name } : null;
 const mateOf = (u) => { const c = (ME.tamed || []).find((x) => x.uid === u); return c ? { ...tamedOf(c, c.lv, eqOf(c)), owner: "" } : null; };   // 門番の mateOf と 同じ 形
 const PARTY = PET ? [PET, ...(ME.party || []).map(mateOf).filter(Boolean)] : [];
@@ -402,7 +404,7 @@ const VR_IMG = MP && MP.qid === "nemu" ? IMG + "nemu-vr.png" : PET_IMG;   // ゴ
 const LAST = (ME.trips || []).at(-1) || null;   // 前の 冒険の 行き先・時間を はじめに えらんで おく
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
 const stars = (n) => `<span class="stars r${n}" aria-label="★${n}">${"★".repeat(n)}</span>`;
-const baseName = (id) => BASES.find((b) => b.id === id)?.name || id;
+const baseName = (id) => baseOf(id)?.name || id;
 const mm = (sec) => `${Math.floor(sec / 60)}:${String(Math.floor(sec % 60)).padStart(2, "0")}`;
 
 // ---------- 行き先の絵（ゴーグルの中のゲーム画面）。320×180 ----------
@@ -518,10 +520,11 @@ function renderPick() {
         <li class="rare"><img class="fs" src="${spriteURL(d.rare.tree)}" alt=""><span class="tg">希少</span>${esc(d.rare.name)}<small>Lv${d.rare.lv}</small></li>
         <li class="boss"><img class="fs" src="${spriteURL(d.boss.tree)}" alt="">ボス ${esc(d.boss.name)}<small>Lv${d.boss.lv}</small></li></ul>
       <h3 class="sub">宝箱の 装備</h3>
-      <div class="drops">${d.drops.slice(0, 7).map((b) => `<span class="ico" title="${esc(baseName(b))}"><img src="${IMG}icon-${b}.png" alt="${esc(baseName(b))}"></span>`).join("")}${d.drops.length > 7 ? `<span class="starline">ほか ${d.drops.length - 7} 種類</span>` : ""}</div>
+      <ul class="mats eqm">${matsOf(Math.min(3, DUNGEONS.indexOf(d))).map((m) => `<li><i style="background:${MATS[m].c}"></i><b>${esc(MATS[m].name)}</b></li>`).join("")}${DUNGEONS.indexOf(d) > 0 ? `<li class="more">ときどき 前の 素材</li>` : ""}</ul>
+      <p class="eqnote">この 素材で できた 装備（形と 色は くじ）</p>
       <h3 class="sub">採取の 素材</h3>
       <ul class="mats">${GATHER[did].mats.map(([, n]) => `<li><i></i><b>${esc(n)}</b></li>`).join("")}<li class="hd"><i></i><b>${esc(GATHER[did].hidden[1])}</b><em>かくし通路</em></li></ul>
-      <div class="myth"><span class="ico"><img src="${IMG}icon-${d.mythic.id}.png" alt=""></span><div><b>？？？</b><small>ボスから ごくまれに。ここだけの ミシック装備</small></div></div>
+      <div class="myth"><span class="ico">${gearImg(d.mythic.id, { dir: IMG })}</span><div><b>？？？</b><small>ボスから ごくまれに。ここだけの ミシック装備</small></div></div>
       <button class="jelly sky go" data-step="prep">じゅんびへ</button>
     </aside></div>`;
 }
@@ -622,8 +625,8 @@ function renderDone() {
   for (const it of eq) text = hl(text, `${baseName(it.base)}（★${it.star}）`);
   if (myth) text = hl(text, `★ミシック★ ${myth.name}を 手に入れた！`);
   for (const f of g.captured) text = hl(text, `${f.name}を 捕まえた！`);
-  const items = eq.map((it) => `<li class="r${it.star}"><span class="ico"><img src="${IMG}icon-${it.base}.png" alt=""></span><div><b>${esc(baseName(it.base))}</b>${stars(it.star)}<span class="ops">${it.ops.map((o) => esc(OPS[o].fmt(OPS[o].v[it.star - 1]))).join("・")}</span></div></li>`).join("");
-  const mythLi = myth ? `<li class="mythic"><span class="ico"><img src="${IMG}icon-${myth.id}.png" alt=""></span><div><span class="tag">ミシック</span><b>${esc(myth.name)}</b><span class="fx">${esc(myth.text)}</span></div></li>` : "";
+  const items = eq.map((it) => `<li class="r${it.star}"><span class="ico">${gearImg(it.base, { dir: IMG })}</span><div><b>${esc(baseName(it.base))}</b>${stars(it.star)}<span class="ops">${it.ops.map((o) => esc(OPS[o].fmt(OPS[o].v[it.star - 1]))).join("・")}</span></div></li>`).join("");
+  const mythLi = myth ? `<li class="mythic"><span class="ico">${gearImg(myth.id, { dir: IMG })}</span><div><span class="tag">ミシック</span><b>${esc(myth.name)}</b><span class="fx">${esc(myth.text)}</span></div></li>` : "";
   const title = g.reason === "wipe" ? "力つきて 帰ってきた" : g.boss ? "ボスを たおした！" : g.reason === "done" ? "目的を はたして 帰ってきた" : "時間に なって 帰ってきた";
   const [r0, r1] = g.ratio, date = new Date(t.end), wd = "日月火水木金土"[date.getDay()];
   const mats = g.materials.map((m) => ({ ...m, name: MAT_NAME[m.id] || m.id }));
@@ -728,7 +731,7 @@ function bind() {
 
 fillHead();
 linkTabs();
-paint();
+paint(); watchIcons();
 document.querySelector(".tabs").scrollLeft = 9999;   // スマホ：えらんでいるタブ（冒険）を見えるところに
 // 出かけて いる あいだは 2 秒ごとに ようすを 進める。帰る 時間を すぎたら 門番に 聞きなおす（ごほうびは 帰って から 見える）
 if (MP && MP.type && TRIP && !TRIP.got) setInterval(() => { if (Date.now() >= TRIP.end + (TRIP.calc ? 4000 : 1500)) location.reload(); else paint(); }, 2000);

@@ -78,7 +78,7 @@ export const DUNGEONS = [
     rare: { name: "ウィスプ", type: "healer", lv: 21, tree: "e_lantern" },
     boss: { name: "村長の影", type: "healer", lv: 24, tree: "e_boss_mayor" },
     drops: ["nabe", "knit", "gold", "omamori", "kamifusen", "mizudeppo"],
-    mythic: { id: "kuraiLantern", slot: "hand", name: "暗い村のランタン", text: "影の明かり：イタズラのダメージ +10%、相手の命中 −5%", main: { int: 1 }, fxp: { itazuraDmg: 10, foeAcc: 0.05 } },
+    mythic: { id: "kuraiLantern", slot: "off", name: "暗い村のランタン", text: "影の明かり：イタズラのダメージ +10%、相手の命中 −5%", main: { int: 1 }, fxp: { itazuraDmg: 10, foeAcc: 0.05 } },
   },
   {
     id: "crystal", name: "水晶洞窟", lv: 30, color: "#5CC9E8", text: "光る水晶でできた洞窟。奥に大きな何かがいる",
