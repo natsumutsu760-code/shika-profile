@@ -365,17 +365,18 @@ async function cardPage() {
 //   前は ファイルごとに 5 分 ためていて、公開の 直後に 新しい 部品と 古い 部品が 混ざり、ない 物を 読もうとした ページが まるごと 止まった
 //   版は git の 入口（info/refs）で 20 秒ごとに たしかめる。JS の import には ?v=版 を つけて、1 ページの 部品を ぜんぶ 同じ 版に そろえる
 //   版が わからない ときは 前と 同じ main から 取る
+//   ?v= は この worker が main の 先頭で 見た コミットだけ 使う（GitHub は fork に 積んだ コミットも 同じ URL で 出すので、知らない 番号を 通すと よその 中身を この サイトから 出して しまう）
 const REPO_RAW = "https://raw.githubusercontent.com/natsumutsu760-code/shika-profile/";
 const REPO_REFS = "https://github.com/natsumutsu760-code/shika-profile.git/info/refs?service=git-upload-pack";
 const SHA_RX = /^[0-9a-f]{40}$/;
-let head = { v: "", at: 0 };
+let head = { v: "", at: 0 }, seenHeads = [];   // seenHeads：main の 先頭だった コミット（新しい 順・5 こまで）
 async function headSha() {
   if (Date.now() - head.at < 20000) return head.v || "main";
   head.at = Date.now();
   try {
     const r = await fetch(REPO_REFS, { headers: { "User-Agent": "git/2.45 mono-link" }, cf: { cacheTtl: 20, cacheEverything: true } });
     const m = r.ok && /([0-9a-f]{40}) refs\/heads\/main\b/.exec(await r.text());
-    if (m) head.v = m[1];
+    if (m) { head.v = m[1]; seenHeads = [m[1], ...seenHeads.filter((s) => s !== m[1])].slice(0, 5); }
   } catch (e) {}
   return head.v || "main";
 }
@@ -395,13 +396,14 @@ async function loungePage(p, ver) {
   if (p === "/lounge" || p === "/lounge/") return new Response(null, { status: 302, headers: { Location: "/lounge/lounge-room.html" } });
   const m = /^\/lounge\/((?:img\/)?[a-z0-9][a-z0-9_-]*\.(html|js|png|jpg|webp|svg))$/.exec(p);
   if (!m) return null;
-  const pinned = SHA_RX.test(ver || ""), v = pinned ? ver : await headSha();   // ?v=版 つきは その 版の まま（中身が かわらないので ずっと ためて よい）
+  // ?v=版 は JS だけ・見た ことの ある 版だけ その 版の まま（中身が かわらないので ずっと ためて よい）。HTML と 絵は いつも いまの 版
+  const now = await headSha(), pinned = m[2] === "js" && SHA_RX.test(ver || "") && seenHeads.includes(ver), v = pinned ? ver : now;
   const r = await fetch(REPO_RAW + v + "/lounge-site/" + m[1], { cf: { cacheTtl: SHA_RX.test(v) ? 86400 : 300, cacheEverything: true } });
   if (!r.ok) return new Response("", { status: r.status === 404 ? 404 : 502 });
   // HTML は MONO LINK の配信ページの枠（ラウンジのタブ）からだけ読み込める（ほかのサイトには埋め込ませない）
   if (m[2] === "html") return new Response(withVer((await r.text()).replace("<head>", "<head><script>window.MONO_LINK_REAL = true;</script>"), v), { headers: { "Content-Type": LOUNGE_TYPE.html, "Cache-Control": "no-cache", ...SEC, "X-Frame-Options": "SAMEORIGIN", "Content-Security-Policy": "frame-ancestors 'self'" } });
   // JS は OBS の 鹿物語（http://absolute）からも 読む（配信の 中継で 派遣を 計算しなおす）。中身は GitHub に 公開して いる 物
-  if (m[2] === "js") return new Response(withVer(await r.text(), v), { headers: { "Content-Type": LOUNGE_TYPE.js, "Cache-Control": pinned ? "public, max-age=31536000, immutable" : "public, max-age=300", ...SEC, "Access-Control-Allow-Origin": "*" } });
+  if (m[2] === "js") return new Response(withVer(await r.text(), v), { headers: { "Content-Type": LOUNGE_TYPE.js, "Cache-Control": pinned ? "public, max-age=31536000, immutable" : ver ? "public, max-age=60" : "public, max-age=300", ...SEC, "Access-Control-Allow-Origin": "*" } });
   return new Response(r.body, { headers: { "Content-Type": LOUNGE_TYPE[m[2]], "Cache-Control": "public, max-age=300", ...SEC } });
 }
 
