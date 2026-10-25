@@ -47,6 +47,13 @@ export const floorRatio = (did, prog, n) => (prog.floors[n] ? exploredRatio(did,
 // 行き先ぜんたいの探索率：5 階の平均（行っていない階は 0%）
 export const dungeonRatio = (did, prog) => Array.from({ length: FLOORS }, (_, i) => floorRatio(did, prog, i + 1)).reduce((a, b) => a + b, 0) / FLOORS;
 const hiddenLeft = (did, prog, n) => { const f = prog.floors[n], m = floorMap(did, n); return !!f?.hidden && m.hidden.some(([x, y]) => !f.seen.includes(keyOf(x, y))); };
+// 出発する階：探索は まだ 100% でない（かくし通路が のこる）一番浅い階から。行った 階が ぜんぶ 100% なら、つぎの 階へ 直行（鹿さんの決め、2026-10-25）
+// ほかの目的は、行ったことのある一番深い階から。準備の 画面の「N 階から」も これ
+export function startFloor(did, prog, purpose) {
+  if (purpose !== "explore") return prog.maxFloor;
+  for (let n = 1; n <= prog.maxFloor; n++) if (floorRatio(did, prog, n) < 1 || hiddenLeft(did, prog, n)) return n;
+  return Math.min(FLOORS, prog.maxFloor + 1);
+}
 
 // ---------- 1 回の 派遣 ----------
 // runDungeon は 1 回で 終わりまで 計算する。門番は tripInit → tripStep（戦い 数回ずつ）→ tripResult で 少しずつ 計算する（Cloudflare の 無料の プランは 1 回 10 ミリ秒まで）
@@ -197,10 +204,8 @@ function machine(S) {
       if (R() < rate) fight(group(), false);
     }
   }
-  // 出発する階：探索はまだ 100% でない一番浅い階から。ほかの目的は、行ったことのある一番深い階から
   function begin() {
-    let start = prog.maxFloor;
-    if (purpose === "explore") for (let n = 1; n <= prog.maxFloor; n++) if (floorRatio(dungeonId, prog, n) < 1 || hiddenLeft(dungeonId, prog, n)) { start = n; break; }
+    const start = startFloor(dungeonId, prog, purpose);
     S.start = start; load(start);
     say(`${team[0].c.name}${team.length > 1 ? `たち ${team.length} 体` : ""}で 出発した。目的：${P.name}${target ? `（${target.name}）` : ""}${tool ? `。${TOOLS[tool].name}を 持っていく` : ""}`);
     pack();

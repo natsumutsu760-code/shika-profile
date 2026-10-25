@@ -368,7 +368,7 @@
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 <script type="module">
 import { DUNGEONS, RUNS, RESEARCH, PURPOSES, TICK, TOOLS } from "./dungeons.js";
-import { runDungeon, diaryOf, rankOf, tamedOf, newProgress, floorRatio, dungeonRatio } from "./dungeon-sim.js";
+import { runDungeon, diaryOf, rankOf, tamedOf, newProgress, floorRatio, dungeonRatio, startFloor } from "./dungeon-sim.js";
 import { floorMap, exploredRatio, keyOf, DIRS, GW, GH, FLOORS, T } from "./floors.js";
 import { petAt } from "./builds.js";
 import { ENEMY_TREES } from "./enemy-trees.js";
@@ -473,7 +473,7 @@ function outlook(did, rk, pu, tg, tool, n = 24) {
   for (let s = 0; s < n; s++) { const r = runDungeon(PARTY, did, rk, 5000 + s, { purpose: pu, target: tg, tool, progress: PROG[did] }); gain += dungeonRatio(did, r.progress) - b0; wipe += r.reason === "wipe"; boss += r.bossDefeated; gat += r.gathered.length; meet += r.battles.length; mat += r.materials.reduce((a, m) => a + m.n, 0); }
   return { gain: gain / n, wipe: wipe / n, boss: boss / n, gat: gat / n, meet: meet / n, mat: mat / n };
 }
-const startFloorOf = (did, pu) => { const p = PROG[did]; if (pu !== "explore") return p.maxFloor; for (let n = 1; n <= p.maxFloor; n++) if (floorRatio(did, p, n) < 1) return n; return p.maxFloor; };
+const startFloorOf = (did, pu) => startFloor(did, PROG[did], pu);   // 門番と 同じ 決め方（行った 階が ぜんぶ 100% なら つぎの 階へ 直行）
 const opts = () => { const did = DUNGEONS.some((x) => x.id === q.get("d")) ? q.get("d") : LAST ? LAST.did : DUNGEONS[0].id, d = DUNGEONS.find((x) => x.id === did), pu = PURPOSES[q.get("pu")] ? q.get("pu") : "explore";
   return { did, d, rk: RUNS[q.get("run")] ? q.get("run") : LAST ? LAST.run : "mid", pu, tg: [...d.foes, d.rare].some((f) => f.tree === q.get("tg")) ? q.get("tg") : d.foes[0].tree, tool: TOOLS[q.get("tool")] && TOOL_HAVE[q.get("tool")] ? q.get("tool") : null }; };
 const TOOL_HAVE = ME.tools || {};   // 持って いる 道具の 数（DEEP LINK/: の 商人の 店で 買う）
