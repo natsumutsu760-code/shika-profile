@@ -42,11 +42,12 @@ export const report = (rid) => call("/api/board/report", { rid });
 export const notedel = (rid) => call("/api/board/notedel", { rid });
 
 // 返事を 待つ あいだ ボタンを 押せなく して、文字を かえる（返事が 来たら もどす）
+// 中に 絵や 字の 組み立てが ある ボタン（カードなど）は 中身を かえずに うすく する（字だけに すると 形が くずれる。2026-10-25 サブツリーの カードで 起きた）
 export async function busy(btn, run, text = "たしかめて います…") {
-  const was = btn ? btn.textContent : "";
-  if (btn) { btn.disabled = true; btn.setAttribute("aria-busy", "true"); btn.textContent = text; }
+  const was = btn ? [...btn.childNodes] : [], card = !!(btn && btn.children.length);
+  if (btn) { btn.disabled = true; btn.setAttribute("aria-busy", "true"); if (card) btn.style.opacity = "0.55"; else btn.textContent = text; }
   try { return await run(); }
-  finally { if (btn && btn.isConnected) { btn.disabled = false; btn.removeAttribute("aria-busy"); btn.textContent = was; } }
+  finally { if (btn && btn.isConnected) { btn.disabled = false; btn.removeAttribute("aria-busy"); if (card) btn.style.opacity = ""; else btn.replaceChildren(...was); } }
 }
 // 返事の ことば：ok は 呼んだ 画面が 出す。wait は「配信の 画面の 返事を 待って いる」
 export const waitText = "配信の 画面の 返事を 待って います。つぎに 開いた ときに 決まります";
