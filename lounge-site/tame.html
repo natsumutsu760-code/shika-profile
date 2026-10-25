@@ -64,6 +64,8 @@
   .mem b { display:block; font:700 14px/1.3 var(--jp); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
   .mem small { display:block; font:700 11px/1.45 var(--jp); color:var(--soft); } .mem .lv small { display:inline; font-size:12px; }
   .mem .row { display:flex; align-items:center; gap:6px; margin-top:3px; flex-wrap:wrap; }
+  .mem .acts { display:flex; gap:5px; margin-top:4px; flex-wrap:wrap; }
+  .mem .mb { display:inline-block; border:1.5px solid var(--line); background:#fff; border-radius:99px; padding:4px 10px; font:900 11px/1.2 var(--jp); color:var(--ink); text-decoration:none; }
   .mem .back { border:0; background:none; padding:0; font:700 11px/1.4 var(--jp); color:var(--sky); text-decoration:underline; text-underline-offset:2px; }
   .mem.empty { grid-template-columns:1fr; place-items:center; text-align:center; border:2px dashed var(--line); background:transparent; color:var(--soft); }
   .mem.empty b { color:var(--soft); }
@@ -91,6 +93,25 @@
   .pick[aria-pressed="true"] { border-color:var(--sky); box-shadow:0 0 0 3px rgba(46,168,255,.16); background:#F4FAFF; }
   .pick b { font:700 14px/1.3 var(--jp); } .pick .rk { margin-left:4px; }
   .pick small { display:block; font:700 11px/1.45 var(--jp); color:var(--soft); }
+  /* となりの部屋：丸い アイコンの 図鑑（鹿さんの決め、2026-10-25）。見出しは 職業、まわりの 輪は なかよしゲージ（いっぱいで 緑） */
+  .dex { list-style:none; margin:0; padding:0; display:grid; grid-template-columns:repeat(auto-fill, minmax(84px, 1fr)); gap:8px 4px; position:relative; z-index:1; }
+  .dx { width:100%; display:grid; justify-items:center; gap:2px; padding:6px 2px 8px; border:0; background:none; border-radius:16px; text-align:center; }
+  .dx[aria-pressed="true"] { background:#EAF5FF; box-shadow:inset 0 0 0 2px var(--sky); }
+  .dx .ring { position:relative; width:66px; height:66px; padding:4px; border-radius:50%; background:conic-gradient(var(--cookie) calc(var(--p) * 1%), #E3E8F2 0); }
+  .dx .ring.full { background:#22CC88; }
+  .dx .face { width:100%; height:100%; border-radius:50%; display:grid; place-items:center; background:radial-gradient(ellipse 34% 9% at 50% 84%, rgba(27,35,64,.16), transparent), color-mix(in srgb, var(--c) 16%, #fff); box-shadow:0 0 0 2px #fff; }
+  .dx .face img { width:48px; height:48px; image-rendering:pixelated; margin-top:-6%; }
+  .dx .ring .rk { position:absolute; right:-8px; top:-4px; margin:0; }
+  .dx .ring.full::after { content:""; position:absolute; right:-2px; bottom:-1px; width:16px; height:14px; background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 7 6' shape-rendering='crispEdges'%3E%3Cpath fill='%23FF5A8A' d='M1 0h2v1h1V0h2v1h1v2H6v1H5v1H4v1H3V5H2V4H1V3H0V1h1z'/%3E%3C/svg%3E") center / contain no-repeat; filter:drop-shadow(1px 1px 0 #fff) drop-shadow(-1px -1px 0 #fff); }
+  .dx b { max-width:100%; font:700 12px/1.25 var(--jp); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .dx small { font:600 11px/1 var(--num); color:var(--soft); }
+  .grp i { width:10px; height:10px; border-radius:3px; background:var(--c); flex:none; }
+  /* おやつを 作る（おやつ工房と 同じ 部品）・とくべつおやつ */
+  .mk { margin-top:12px; padding-top:10px; border-top:1.5px dashed var(--line); }
+  .mk > button.tg { width:100%; display:flex; align-items:center; gap:8px; border:0; background:none; padding:2px 0; font:900 13px/1.3 var(--jp); color:var(--ink); text-align:left; }
+  .mk > button.tg span { margin-left:auto; font:700 12px/1 var(--jp); color:var(--soft); }
+  .mk .sk { margin-top:8px; } .mk p { margin:6px 0 0; font:700 12px/1.5 var(--jp); color:var(--soft); } .mk p a { color:#1E6FB0; font-weight:900; }
+  .go3 { margin-top:8px; width:100%; }
   .mini { display:flex; align-items:center; gap:8px; margin-top:5px; }
   .mini i { flex:1; height:7px; border-radius:9px; background:#EDF1F8; overflow:hidden; } .mini i b { display:block; height:100%; border-radius:9px; background:var(--cookie); }
   .mini span { font:600 12px/1 var(--num); color:var(--soft); white-space:nowrap; } .mini span.full { color:#13A36A; }
@@ -122,7 +143,7 @@
   .stepper .all { justify-self:end; border:1.5px solid var(--line); background:#fff; border-radius:999px; padding:8px 12px; font:700 12px/1 var(--jp); white-space:nowrap; }
   .cost { font:700 12px/1.5 var(--jp); color:var(--soft); } .cost b { color:var(--ink); font-family:var(--num); font-weight:600; } .cost.short { color:var(--coral); }
   .go { width:100%; padding:15px 16px; font-size:16px; display:flex; align-items:center; justify-content:center; gap:10px; }
-  .go svg { width:22px; height:22px; }
+  .go svg { width:22px; height:22px; } .go3 svg, .mk .tg svg { width:20px; height:20px; flex:none; } .go3 { display:inline-flex; align-items:center; justify-content:center; gap:8px; }
   .lab { display:grid; grid-template-columns:auto minmax(0, 1fr) auto; gap:10px; align-items:center; padding:10px 12px; border-radius:16px; background:#F7F2FF; font:700 12px/1.5 var(--jp); color:#5B3FC4; }
   .lab b { display:block; font:700 13px/1.3 var(--jp); color:var(--ink); }
   .lab .done { font:700 12px/1 var(--jp); color:#13A36A; white-space:nowrap; }
@@ -132,7 +153,7 @@
     .pet { grid-template-columns:48px minmax(0, 1fr); padding-right:12px; } .wallet { grid-column:1 / -1; justify-self:stretch; justify-content:flex-end; }
     .pet .pic { width:48px; height:48px; border-radius:12px; } .pet h1 { font-size:20px; } .pet h1 small { font-size:12px; }
     .party { grid-template-columns:repeat(3, minmax(0, 1fr)); gap:8px; } .party > h2 { grid-column:1 / -1; }
-    .mem { grid-template-columns:1fr; justify-items:center; text-align:center; padding:10px 8px; } .mem .row { justify-content:center; } .mem b { white-space:normal; }
+    .mem { grid-template-columns:1fr; justify-items:center; text-align:center; padding:10px 8px; } .mem .row, .mem .acts { justify-content:center; } .mem b { white-space:normal; }
     .room { grid-template-columns:minmax(0, 1fr); } .room > .feed { order:-1; }   /* 決める パネルを 一覧の 上に（えらぶと ここへ 動く） */ .list { grid-template-columns:minmax(0, 1fr); } .frow > span { width:100%; }
     .stepper { grid-template-columns:44px auto 44px; } .stepper .all { grid-column:1 / -1; justify-self:start; }
     .lab { grid-template-columns:auto minmax(0, 1fr); } .lab > :last-child { grid-column:1 / -1; justify-self:end; }
@@ -167,6 +188,8 @@ import { TYPES } from "./skills.js";
 import { spriteURL } from "./sprites.js";
 import { me, act, busy, waitText } from "./lounge-client.js";   // なかま・おやつ・研究・パーティは 門番から（見本では ブラウザの 中の ためしの 門番）
 import { fillPet, petInfo, linkTabs, gateHtml } from "./pet-head.js";
+import { SNACK_RECIPES } from "./facilities.js";
+import { snackCraftHtml, addSnackCss, SNACK_ICON } from "./snack-craft.js";
 
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
 const fmt = (n) => n.toLocaleString("ja-JP");
@@ -174,13 +197,13 @@ const fmt = (n) => n.toLocaleString("ja-JP");
 const fromOf = (tree) => (DUNGEONS.find((d) => [...d.foes, d.rare, d.boss].some((f) => f.tree === tree)) || { name: "？" }).name;
 
 let ME = null;
-const S = { snacks: 0, balls: 0, res: 0, known: false, party: [null, null], room: [], sel: null, give: 1, say: null, popFrom: -1, joined: -1,
+const S = { snacks: 0, s3: 0, balls: 0, res: 0, known: false, party: [null, null], room: [], sel: null, give: 1, say: null, popFrom: -1, joined: -1, craft: false,
   fr: "all", fl: "all", sort: "lv" };                 // 分け方：レア度・Lv の帯・ならべかた
 // 門番の 記録を 画面の 形に（パーティの 子は となりの部屋に 出さない）
 function load(m) {
   ME = m;
-  const tamed = (m.tamed || []).map((c) => ({ ...c, from: fromOf(c.tree), lab: (m.lab || []).includes(c.tree), acc: Object.values(c.equip || {}).filter(Boolean).length }));
-  S.snacks = m.snacks || 0; S.known = !!(m.wallet && m.wallet.known); S.balls = S.known ? m.wallet.balls : 0; S.res = S.known ? m.wallet.res : 0;
+  const tamed = (m.tamed || []).map((c) => ({ ...c, from: fromOf(c.tree), lab: (m.lab || []).includes(c.tree), eq: Object.values(c.equip || {}).filter(Boolean).length }));
+  S.snacks = m.snacks || 0; S.s3 = ((m.deeplink && m.deeplink.items) || {}).snack3 || 0; S.known = !!(m.wallet && m.wallet.known); S.balls = S.known ? m.wallet.balls : 0; S.res = S.known ? m.wallet.res : 0;
   S.party = [0, 1].map((i) => tamed.find((c) => c.uid === (m.party || [])[i]) || null);
   S.room = tamed.filter((c) => !(m.party || []).includes(c.uid));
   if (!S.room.some((c) => c.uid === S.sel)) S.sel = S.room[0] ? S.room[0].uid : null;
@@ -209,16 +232,16 @@ function line(c) {
 
 function partyHtml() {
   const slots = S.party.map((m, i) => m ? `<div class="mem ${S.joined === i ? "new" : ""}">${orb(m)}<div><b>${esc(m.name)}</b><div class="row">${typeBadge(m)}<span class="lv"><small>Lv</small>${m.lv}</span></div>
-      <small>アクセサリー ${m.acc} / 3 ・ <button class="back" data-act="back" data-u="${m.uid}">部屋に もどす</button></small></div></div>`
+      <small>装備 ${m.eq} / 9</small><div class="acts"><a class="mb" href="equip.html?who=${encodeURIComponent(m.uid)}">装備</a><button class="mb" data-act="back" data-u="${m.uid}" aria-label="部屋に もどす">もどす</button></div></div></div>`
     : `<div class="mem empty"><div><b>あいている</b><small>なかよし いっぱいの子を 入れる</small></div></div>`).join("");
   return `<section class="panel party" aria-label="パーティ"><h2>パーティ<small>ペット＋2 体</small></h2>
     <div class="mem"><span class="pic"><img src="${petInfo(MP).img}" alt=""></span><div><b>${esc(MP.name)}</b><div class="row">${MP.type ? `<span class="badge" style="--c:${TYPES[MP.type].color}">${TYPES[MP.type].label}</span>` : ""}<span class="lv"><small>Lv</small>${MP.lv}</span></div><small>相棒（いつも いっしょ）</small></div></div>${slots}</section>`;
 }
 
 function listHtml() {
-  const item = ({ c, i }) => { const n = need(c);
-    return `<li><button class="pick" data-act="pick" data-u="${c.uid}" aria-pressed="${c.uid === S.sel}">${orb(c)}<span><b>${esc(c.name)}</b>${rk(c)}<small>Lv${c.lv} ${TYPES[c.type].label} ・ ${esc(c.from)}</small>
-      <span class="mini"><i><b style="width:${Math.min(100, (c.gauge / n) * 100)}%"></b></i><span class="${c.gauge >= n ? "full" : ""}">${c.gauge >= n ? "なかよし！" : `${c.gauge} / ${n}`}</span></span></span></button></li>`; };
+  const item = ({ c }) => { const n = need(c), p = Math.min(100, Math.round((c.gauge / n) * 100));
+    return `<li><button class="dx" data-act="pick" data-u="${c.uid}" aria-pressed="${c.uid === S.sel}" aria-label="${esc(c.name)} Lv${c.lv}・なかよし ${Math.min(c.gauge, n)} / ${n}" title="${esc(c.name)}（${esc(c.from)}）">
+      <span class="ring ${c.gauge >= n ? "full" : ""}" style="--p:${p}"><span class="face" style="--c:${TYPES[c.type].color}"><img src="${spriteURL(c.tree)}" alt=""></span>${rk(c)}</span><b>${esc(c.name)}</b><small>Lv${c.lv}</small></button></li>`; };
   const vis = S.room.map((c, i) => ({ c, i })).filter(({ c }) => inR(c) && inL(c));
   const by = S.sort === "lv" ? (a, b) => b.c.lv - a.c.lv || a.i - b.i : (a, b) => b.c.gauge / need(b.c) - a.c.gauge / need(a.c) || b.c.lv - a.c.lv;
   // 数は、もう一方のしぼりこみをかけたあとの数（えらぶと何体になるかがわかる）
@@ -228,8 +251,8 @@ function listHtml() {
       <div class="frow"><span>レア度</span>${chip("fr", "all", "すべて", nR("all"))}${RANKS.map((r) => chip("fr", r, r, nR(r))).join("")}</div>
       <div class="frow"><span>Lv</span>${chip("fl", "all", "すべて", nL("all"))}${BANDS.map(([a, b], k) => chip("fl", k, b > 90 ? `${a}〜` : `${a}〜${b}`, nL(k))).join("")}</div>
       <div class="frow"><span>ならべる</span>${chip("sort", "lv", "Lv の 高い順", null)}${chip("sort", "gauge", "なかよし順", null)}</div></div>`;
-  const groups = RANKS.map((r) => { const g = vis.filter(({ c }) => rankOf(c) === r).sort(by);
-    return g.length ? `<h3 class="grp">${r}<small>${g.length} 体</small></h3><ul class="list">${g.map(item).join("")}</ul>` : ""; }).join("");
+  const groups = Object.entries(TYPES).map(([t, T]) => { const g = vis.filter(({ c }) => c.type === t).sort(by);   // 見出しは 職業（鹿さんの決め）
+    return g.length ? `<h3 class="grp"><i style="--c:${T.color}"></i>${T.label}<small>${g.length} 体</small></h3><ul class="dex">${g.map(item).join("")}</ul>` : ""; }).join("");
   return `<section class="panel waiting" aria-label="となりの部屋"><h2>となりの部屋<small>捕まえた子 ${S.room.length} 体</small></h2>
     ${S.room.length ? filters + (groups || `<p class="lead">この分け方の子は いない</p>`) : `<p class="lead">いまは だれも いない。派遣で 勝つと、ときどき 敵を 捕まえる</p>`}
     </section>`;
@@ -249,13 +272,17 @@ function feedHtml() {
         ${S.known ? "" : `<p class="cost">玉が まだ わからない（配信で 1 回 チャットすると わかる）。持って いる おやつだけ あげられる</p>`}
         <div class="stepper"><button class="sq" data-act="dec" aria-label="1 こ へらす" ${S.give <= 1 ? "disabled" : ""}>−</button><output aria-live="polite">${S.give}<small>こ</small></output><button class="sq" data-act="inc" aria-label="1 こ ふやす" ${S.give >= left(c) ? "disabled" : ""}>＋</button><button class="all" data-act="all">いっぱいまで（${left(c)} こ）</button></div>
         <p class="cost ${poor ? "short" : ""}">${buy ? `足りない ${buy} こは 玉で 買う（<b>${fmt(cost)}</b> 玉）${poor ? "。玉が 足りない" : ""}` : "おやつは 派遣で 拾える（足りない分は 玉で 買う）"}</p>
-        <button class="jelly sky go" data-act="feed" ${poor ? "disabled" : ""}>${COOKIE}おやつを ${S.give} こ あげる</button></div>`;
+        <button class="jelly sky go" data-act="feed" ${poor ? "disabled" : ""}>${COOKIE}おやつを ${S.give} こ あげる</button>
+        ${S.s3 ? `<button class="jelly light go3" data-act="feed3">${SNACK_ICON.snack3}とくべつおやつを あげる（＋3・のこり ${S.s3} こ）</button>` : ""}</div>`;
+  const lv = (ME.hideout || {}).snack || 0;   // おやつ工房（作る ところは 隠れ家と 同じ 部品）
+  const make = `<div class="mk"><button class="tg" data-act="craft" aria-expanded="${S.craft}">${COOKIE}おやつを 作る<span>${lv ? `おやつ工房 Lv${lv}` : "工房が まだ ない"} ${S.craft ? "▴" : "▾"}</span></button>
+      ${S.craft ? (lv ? snackCraftHtml(lv, (ME.own && ME.own.mats) || []) : `<p>隠れ家に おやつ工房を 作ると、ここでも 作れる <a href="hideout.html?f=snack">隠れ家へ</a></p>`) : ""}</div>`;
   return `<aside class="panel feed" aria-label="えらんだ子">
     <div class="who">${orb(c, 84)}<div><h2>${esc(c.name)}${rk(c)}</h2><p>${typeBadge(c)}<span class="lv"><small>Lv</small>${c.lv}</span><span>${esc(c.from)}で 捕まえた</span></p></div></div>
     <p class="say" aria-live="polite">${esc(S.say || line(c))}</p>
     <div class="gauge"><h3><span>なかよしゲージ</span><span><b>${Math.min(c.gauge, n)}<small> / ${n}</small></b>${!full && S.give ? `<em>＋${Math.min(S.give, left(c))}</em>` : ""}</span></h3>
       <div class="pips" style="--n:${cols};--p:${size}px;--g:${gap}px" role="img" aria-label="なかよしゲージ ${c.gauge} / ${n}">${pips}</div></div>
-    ${action}
+    ${action}${make}
     <div class="lab"><span class="orb" style="--c:#B49BEA;--s:34px" aria-hidden="true">研</span><div><b>研究する（スキルツリー「${esc(T.name)}」）</b>リソース ${RESEARCH[rankOf(c)]} で サブツリーに つけられる（この子は のこる）</div>
       ${c.lab ? `<span class="done">✓ 研究ずみ</span>` : `<button class="jelly light" data-act="lab" ${S.known && S.res < RESEARCH[rankOf(c)] ? "disabled" : ""}>研究する</button>`}</div>
   </aside>`;
@@ -263,7 +290,7 @@ function feedHtml() {
 
 let MP = null;
 function render() {
-  document.getElementById("wallet").innerHTML = `<span>おやつ<b>${S.snacks}</b></span><span>玉<b>${S.known ? fmt(S.balls) : "？"}</b></span><span>リソース<b>${S.known ? S.res : "？"}</b></span>`;
+  document.getElementById("wallet").innerHTML = `<span>おやつ<b>${S.snacks}</b></span>${S.s3 ? `<span>とくべつ<b>${S.s3}</b></span>` : ""}<span>玉<b>${S.known ? fmt(S.balls) : "？"}</b></span><span>リソース<b>${S.known ? S.res : "？"}</b></span>`;
   document.getElementById("app").innerHTML = MP ? partyHtml() + `<div class="room">${listHtml()}${feedHtml()}</div>`
     : ME.denied || ME.ok === false ? gateHtml(ME, esc)
     : `<section class="panel gate"><h2>まず 1 匹目を むかえる</h2><p>なかまは 派遣で 捕まえた 子が 来ます</p><a class="jelly sky go" href="quiz.html">性格診断へ</a></section>`;
@@ -280,6 +307,8 @@ async function ask(b, a, body, ok) {
 }
 
 document.getElementById("app").addEventListener("click", async (e) => {
+  const sb = e.target.closest("[data-snack]");
+  if (sb && !sb.disabled) { const r0 = SNACK_RECIPES.find((x) => x.id === sb.dataset.snack); return ask(sb, "snack.craft", { id: r0.id, n: +sb.dataset.n }, (r) => { toast(`${r0.name}を ${r.n} こ 作った`); fitGive(); }); }
   const b = e.target.closest("[data-act]"); if (!b || b.disabled) return;
   const c = cur(), act0 = b.dataset.act;
   if (act0 === "pick") { S.sel = b.dataset.u; S.say = null; fitGive(); if (innerWidth <= 820) { render(); return document.querySelector(".feed").scrollIntoView({ behavior: "smooth", block: "start" }); } }
@@ -289,12 +318,15 @@ document.getElementById("app").addEventListener("click", async (e) => {
   if (act0 === "all") S.give = left(c);
   // おやつ：持って いる 分から あげて、足りない 分は 玉で 買う（門番が 払う）
   if (act0 === "feed") { const was = c.gauge; return ask(b, "tame.feed", { uid: c.uid, n: Math.min(S.give, left(c)) }, () => { S.popFrom = was; S.say = line(cur() || c); fitGive(); }); }
+  if (act0 === "craft") S.craft = !S.craft;
+  if (act0 === "feed3") { const was = c.gauge; return ask(b, "item.snack3", { uid: c.uid }, () => { S.popFrom = was; S.say = line(cur() || c); fitGive(); }); }
   if (act0 === "join") return ask(b, "tame.join", { uid: c.uid }, () => { S.joined = S.party.findIndex((m) => m && m.uid === c.uid); S.say = null; fitGive(); });
   if (act0 === "back") return ask(b, "tame.back", { uid: b.dataset.u }, () => {});
   if (act0 === "lab") return ask(b, "tame.research", { uid: c.uid }, (r) => toast(`研究した：スキルツリー「${ENEMY_TREES[c.tree].name}」（リソース ${r.cost}）`));
   render();
   const again = document.querySelector(`[data-act="${act0}"]${act0 === "pick" ? `[data-u="${S.sel}"]` : ""}${b.dataset.v !== undefined ? `[data-v="${b.dataset.v}"]` : ""}`); if (again) again.focus();
 });
+addSnackCss();
 load(await me());
 MP = fillPet(ME);
 linkTabs();

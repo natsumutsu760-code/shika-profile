@@ -10,7 +10,7 @@ export { runDungeon, tripInit, tripStep, tripResult, startFloor, floorsOpen, new
 export { rng, COND_TEXT } from "./battle-sim.js";
 export { floorMap, FLOORS } from "./floors.js";
 export { DUNGEONS, RUNS, TICK, TOOLS, PURPOSES, SNACK_NEED, SNACK_PRICE, RESEARCH } from "./dungeons.js";
-export { FACILITIES, STORAGE_CAP } from "./facilities.js";
+export { FACILITIES, STORAGE_CAP, SNACK_RECIPES, snackMats, SNACK_CRAFT_MAX } from "./facilities.js";
 export { toStash, BOX_DAYS, MAT_NAME, GATHER, sellPrice } from "./materials.js";
 export { CRAFT, SYNTH, craftOpen, synthOpen, synthBalls, rollCraft, rollSynth } from "./recipes.js";
 export { OPS, baseOf, BASES, SLOTS, KINDS, FORMS, MATS, COLS, OLD_SLOT, comboOf, opCount } from "./equip.js";

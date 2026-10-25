@@ -5,7 +5,7 @@
 //   grant：払えたら 渡す 物。refund：返事を 待った すえに 払えなかったら もどす 物（どちらも しまえる 形の データ）
 // 数は すべて 案（鹿さんと これから 決める）
 import { PETS, QUIZ, score, PLANS, petAt, tripInit, tripStep, tripResult, floorsOpen, newProgress, diaryOf, dungeonRatio, tamedOf, rankOf, rng, DUNGEONS, RUNS, TICK, TOOLS, PURPOSES, SNACK_NEED, SNACK_PRICE, RESEARCH,
-  FACILITIES, STORAGE_CAP, toStash, BOX_DAYS, MAT_NAME, CRAFT, SYNTH, craftOpen, synthOpen, synthBalls, rollCraft, rollSynth, OPS, baseOf, comboOf, opCount } from "./game.js";
+  FACILITIES, STORAGE_CAP, SNACK_RECIPES, snackMats, SNACK_CRAFT_MAX, toStash, BOX_DAYS, MAT_NAME, CRAFT, SYNTH, craftOpen, synthOpen, synthBalls, rollCraft, rollSynth, OPS, baseOf, comboOf, opCount } from "./game.js";
 import { jstDay } from "./lounge-rules.js";
 import { ensureTrade, giveTrade, bump, tripEvents } from "./lounge-trade.js";
 import { ensureReq, giveReq } from "./lounge-req.js";
@@ -151,6 +151,19 @@ export function tameFeedPlan(rec, b, unknown = []) {
   if (!n) return { ok: false, why: "あげる 数を えらんで" };
   const use = Math.min(n, rec.snacks), buy = n - use;
   return { costs: buy ? [{ kind: "balls", d: -buy * SNACK_PRICE }] : [], why: "tame:" + c.uid, take: () => { rec.snacks -= use; }, grant: { tame: [c.uid, n], ev: { type: "feed", n } }, refund: use ? { snacks: use } : null, info: { n, buy } };
+}
+// おやつ工房：素材から おやつを 作る（鹿さんの決め、2026-10-25）。ふつうの おやつは rec.snacks、とくべつおやつは 品（rec.items.snack3）に
+export function snackCraft(rec, b) {
+  const r = SNACK_RECIPES.find((x) => x.id === b.id), lv = rec.hideout.snack || 0;
+  if (!r) return { ok: false, why: "作る 物を えらんで" };
+  if (lv < r.lv) return { ok: false, why: lv ? `おやつ工房 Lv${r.lv} から 作れる` : "おやつ工房が まだ ない（隠れ家で 作る）" };
+  const n = Number.isInteger(b.n) && b.n >= 1 && b.n <= SNACK_CRAFT_MAX ? b.n : 0;
+  if (!n) return { ok: false, why: "作る 数を えらんで" };
+  const t = takeMats(rec, snackMats(r, lv).map(([id, k]) => [id, k * n]));
+  if (t.why) return { ok: false, why: t.why };
+  applyTake(rec, t.picks);
+  if (r.id === "snack") rec.snacks += n; else { rec.items ||= {}; rec.items[r.id] = (rec.items[r.id] || 0) + n; }
+  return { ok: true, id: r.id, n };
 }
 export function tameJoin(rec, b) {
   const c = rec.tamed.find((x) => x.uid === b.uid);

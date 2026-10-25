@@ -42,4 +42,11 @@ export const FACILITIES = [
   ] },
 ];
 export const STORAGE_CAP = [100, 200, 400, 800];
+// おやつ工房で 作る 物（鹿さんの決め、2026-10-25）。Lv2 から ふつうの おやつの 素材が 3 こ → 2 こ。とくべつおやつ（なかよし ＋3）は Lv3 から
+export const SNACK_RECIPES = [
+  { id: "snack", name: "懐柔のおやつ", gauge: 1, lv: 1, mats: [["herb", 2], ["berry", 1]], lv2: [["herb", 1], ["berry", 1]] },
+  { id: "snack3", name: "とくべつおやつ", gauge: 3, lv: 3, mats: [["berry", 3], ["clover", 1]] },
+];
+export const snackMats = (r, lv) => (lv >= 2 && r.lv2 ? r.lv2 : r.mats);
+export const SNACK_CRAFT_MAX = 50;   // 1 回に 作れる 数
 export const PC = { id: "pc", name: "PC", text: "DEEP LINK/: に 入れる。置くだけ（Lv なし）" };
