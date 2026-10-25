@@ -27,6 +27,10 @@
   .tag .lvp { display:inline-flex; gap:2px; } .tag .lvp i { width:7px; height:7px; border-radius:50%; background:rgba(255,255,255,.22); } .tag .lvp i.on { background:var(--amber); box-shadow:0 0 6px var(--amber); }
   .tag.zero { color:#B9B2CC; border-style:dashed; }
   .list { display:none; }
+  .view { touch-action:none; cursor:grab; } .view:active { cursor:grabbing; }
+  .zoom { position:absolute; right:12px; top:12px; z-index:3; display:flex; gap:6px; }
+  .zoom button { min-width:40px; height:40px; padding:0 12px; border-radius:999px; border:1px solid rgba(255,181,71,.45); background:rgba(28,22,46,.82); color:#FFE6B0; font:900 15px/1 var(--jp); cursor:pointer; }
+  .zoom button:hover { background:rgba(40,32,64,.95); }
   /* スマホ：部屋は 正方形。ふだは 重なるので、部屋の 下に 一覧で ならべる */
   @media (max-width:640px) { .view { aspect-ratio:1 / 1; } .view .tag { display:none; } .bar h1 { font-size:18px; }
     .list { display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:8px; margin-top:12px; } .list .tag { position:static; transform:none; justify-content:space-between; padding:10px 12px; font-size:13px; } }
@@ -36,13 +40,13 @@
 <header class="top"><a href="/" style="color:inherit;text-decoration:none" aria-label="MONO LINK の サイトへ"><b>MONO LINK<i>://</i></b></a><small><a href="lounge-room.html" style="color:inherit">ラウンジ</a> ／ 地下の 隠れ家</small></header>
 <main>
   <div class="bar"><h1>地下の 隠れ家</h1><a href="hideout.html">施設の 一覧</a></div>
-  <div class="view" id="view" role="img" aria-label="地下の 隠れ家。施設が 7 つ ならぶ うす暗い 部屋"></div>
+  <div class="view" id="view" role="img" aria-label="地下の 隠れ家。施設が ならぶ うす暗い 部屋（ドラッグで 動かす・ホイールで 寄る／引く）"><div class="zoom" id="zoom" role="group" aria-label="見る 広さ" hidden><button type="button" data-z="in" aria-label="寄る">＋</button><button type="button" data-z="out" aria-label="引く">－</button><button type="button" data-z="room">部屋</button><button type="button" data-z="all">全体</button></div></div>
   <nav class="list" id="list" aria-label="施設"></nav>
 </main>
 <script type="importmap">{ "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.169.0/build/three.module.js", "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.169.0/examples/jsm/" } }</script>
 <script type="module">
 import * as THREE from "three";
-import { makeHideout, SPOTS, ROOM } from "./hideout3d.js";
+import { makeHideout, SPOTS, ROOM, areaOf } from "./hideout3d.js";
 import { FACILITIES } from "./facilities.js";
 import { me } from "./lounge-client.js";   // 施設の Lv は 門番の 記録（見本では ブラウザの 中の ためしの 門番）
 import { mountWallet } from "./wallet-bar.js"; mountWallet();   // 上の 通貨の 札（玉・リソース・クレジット）と 両替
@@ -50,29 +54,55 @@ import { mountWallet } from "./wallet-bar.js"; mountWallet();   // 上の 通貨
 const q = new URLSearchParams(location.search), all = q.get("lv");
 // 施設の Lv は 門番から（?lv=0〜3 は 見た目を ためす とき だけ）
 const ME = all !== null && /^[0-3]$/.test(all) ? null : await me();
-const LV = ME ? Object.fromEntries(Object.keys(SPOTS).map((k) => [k, ((ME.hideout || {})[k]) || 0])) : Object.fromEntries(Object.keys(SPOTS).map((k) => [k, +all]));
+const LV = ME ? Object.fromEntries([...Object.keys(SPOTS), "dig"].map((k) => [k, ((ME.hideout || {})[k]) || 0])) : Object.fromEntries([...Object.keys(SPOTS), "dig"].map((k) => [k, +all]));
+const AREA = areaOf(LV.dig), HERE = Object.keys(SPOTS).filter((id) => (SPOTS[id].dig || 0) <= (LV.dig || 0));   // 掘った 区画の 施設だけ
 const view = document.getElementById("view");
 const r = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true }); r.setPixelRatio(Math.min(2, devicePixelRatio)); r.outputColorSpace = THREE.SRGBColorSpace; view.appendChild(r.domElement);
 const scene = new THREE.Scene(); scene.background = new THREE.Color("#141022");
 scene.add(new THREE.HemisphereLight("#8A86C8", "#1A1626", 0.8)); const key = new THREE.DirectionalLight("#B8B0FF", 0.5); key.position.set(-6, 10, 8); scene.add(key);
 const room = makeHideout(LV); scene.add(room);
-// ななめ見下ろし（正投影）。部屋の まんなかを 見る
-const cam = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.1, 100), C = new THREE.Vector3(ROOM.w / 2, 0.6, ROOM.d / 2);
-cam.position.copy(C).add(new THREE.Vector3(14, 12, 14)); cam.lookAt(C);
+// ななめ見下ろし（正投影）。はじめは いまの 部屋の まんなか。拡張した 人は 引いて（ズームアウト）全体を 見られる。ドラッグで 動かす
+const cam = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.1, 200), C = new THREE.Vector3(ROOM.w / 2, 0.6, ROOM.d / 2), OFF = new THREE.Vector3(14, 12, 14);
+const FIT = { room: { c: new THREE.Vector3(ROOM.w / 2, 0.6, ROOM.d / 2), z: 1 }, all: { c: new THREE.Vector3((AREA.x0 + AREA.x1) / 2, 0.6, (AREA.z0 + AREA.z1) / 2), z: 1 } };
+let ZOOM = 1;
+// 全体：広がった 地下の すみ 8 つが 画面に 入る いちばん 大きい 寄り（size() の あとに 決める）
+function fitAll() { if (!LV.dig) return; look(FIT.all.c, 1); let m = 0; for (const x of [AREA.x0, AREA.x1]) for (const z of [AREA.z0, AREA.z1]) for (const y of [0, ROOM.h]) { const v = new THREE.Vector3(x, y, z).project(cam); m = Math.max(m, Math.abs(v.x), Math.abs(v.y)); } FIT.all.z = Math.min(1, 0.94 / m); }
+function look(c, z) { C.copy(c); ZOOM = Math.max(FIT.all.z * 0.8, Math.min(2.2, z)); cam.position.copy(C).add(OFF); cam.lookAt(C); cam.zoom = ZOOM; cam.updateProjectionMatrix(); cam.updateMatrixWorld(); }
+
 // ふだ（施設の 名前と Lv）。押すと 施設の 画面へ
-const tags = Object.keys(SPOTS).map((id) => { const f = FACILITIES.find((x) => x.id === id), a = document.createElement("a"), lv = LV[id];
+const tags = HERE.map((id) => { const f = FACILITIES.find((x) => x.id === id), a = document.createElement("a"), lv = LV[id];
   a.className = "tag" + (lv ? "" : " zero"); a.href = `hideout.html?f=${id}`; a.innerHTML = `${f.name}<span class="lvp" aria-label="Lv${lv}">${[1, 2, 3].map((k) => `<i class="${k <= lv ? "on" : ""}"></i>`).join("")}</span>`; view.appendChild(a);
   document.getElementById("list").appendChild(a.cloneNode(true));
   const sp = SPOTS[id]; return { a, p: new THREE.Vector3(sp.x + (sp.r ? 0.6 : 0), id === "storage" ? 2.6 : 2.35, sp.z + (sp.r ? 0 : 0.6)) }; });
 function size() {
   const w = view.clientWidth, h = view.clientHeight, s = w < 640 ? 8.8 : 6.9, asp = w / h;
-  cam.left = -s * asp; cam.right = s * asp; cam.top = s; cam.bottom = -s; cam.zoom = 1; cam.updateProjectionMatrix(); cam.updateMatrixWorld(); r.setSize(w, h, false);
+  cam.left = -s * asp; cam.right = s * asp; cam.top = s; cam.bottom = -s; cam.zoom = ZOOM; cam.updateProjectionMatrix(); cam.updateMatrixWorld(); r.setSize(w, h, false);
 }
 function place() { const w = view.clientWidth, h = view.clientHeight; for (const t of tags) { const v = t.p.clone().project(cam); t.a.style.left = `${((v.x + 1) / 2) * w}px`; t.a.style.top = `${((1 - v.y) / 2) * h}px`; } }
 const calm = matchMedia("(prefers-reduced-motion:reduce)").matches, t0 = performance.now();
 function frame(now) { room.userData.tick?.(calm ? 1 : (now - t0) / 1000); r.render(scene, cam); if (!calm) requestAnimationFrame(frame); }
-addEventListener("resize", () => { size(); place(); r.render(scene, cam); });
-size(); place(); room.userData.tick?.(1); r.render(scene, cam); requestAnimationFrame(frame);
+addEventListener("resize", () => { size(); const z = ZOOM, c = C.clone(); fitAll(); look(c, z); size(); place(); r.render(scene, cam); });
+// 引く・寄る・動かす（ボタン・ホイール・ドラッグ・2 本指）
+const redraw = () => { place(); r.render(scene, cam); };
+const zoomBy = (k) => { look(C, ZOOM * k); redraw(); };
+function pan(dx, dy) {   // 画面の ずれ（px）→ 床の 上の ずれ
+  const h = view.clientHeight, u = (cam.top - cam.bottom) / ZOOM / h, right = new THREE.Vector3(1, 0, -1).normalize(), fwd = new THREE.Vector3(-1, 0, -1).normalize();
+  const c = C.clone().addScaledVector(right, -dx * u).addScaledVector(fwd, dy * u * 1.9);   // ななめ（約 31°）から 見て いる ぶん 床の 奥行きは 縮んで 見える
+  c.x = Math.max(AREA.x0, Math.min(AREA.x1, c.x)); c.z = Math.max(AREA.z0, Math.min(AREA.z1, c.z)); look(c, ZOOM); redraw();
+}
+const zb = document.getElementById("zoom");
+if (zb) { zb.hidden = false; if (!LV.dig) zb.querySelectorAll("[data-z=room],[data-z=all]").forEach((x) => x.remove()); zb.addEventListener("click", (e) => { const b = e.target.closest("button"); if (!b) return; if (b.dataset.z === "in") zoomBy(1.25); else if (b.dataset.z === "out") zoomBy(0.8); else { const f = b.dataset.z === "all" ? FIT.all : FIT.room; look(f.c, f.z); redraw(); } }); }
+view.addEventListener("wheel", (e) => { e.preventDefault(); zoomBy(e.deltaY < 0 ? 1.1 : 0.9); }, { passive: false });
+const pts = new Map(); let pinch = 0;
+view.addEventListener("pointerdown", (e) => { if (e.target.closest(".tag")) return; pts.set(e.pointerId, { x: e.clientX, y: e.clientY }); view.setPointerCapture(e.pointerId); });
+view.addEventListener("pointermove", (e) => {
+  const p = pts.get(e.pointerId); if (!p) return;
+  if (pts.size === 2) { const [a, b] = [...pts.values()], d0 = Math.hypot(a.x - b.x, a.y - b.y); p.x = e.clientX; p.y = e.clientY; const [c, d] = [...pts.values()], d1 = Math.hypot(c.x - d.x, c.y - d.y); if (d0 > 0) { look(C, ZOOM * (d1 / d0)); redraw(); } pinch = 1; return; }
+  const dx = e.clientX - p.x, dy = e.clientY - p.y; p.x = e.clientX; p.y = e.clientY; if (!pinch) pan(dx, dy);
+});
+const up = (e) => { pts.delete(e.pointerId); if (!pts.size) pinch = 0; };
+view.addEventListener("pointerup", up); view.addEventListener("pointercancel", up);
+size(); fitAll(); size(); { const f = q.get("all") === "1" && LV.dig ? FIT.all : FIT.room; look(f.c, f.z); } size(); place(); room.userData.tick?.(1); r.render(scene, cam); requestAnimationFrame(frame);
 window.ready = true;
 </script>
 </body>

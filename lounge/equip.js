@@ -173,6 +173,7 @@ export function mainStats(it) {
 export function itemStats(it) {
   const out = mainStats(it);
   for (const op of it.ops) out[op] = (out[op] || 0) + OPS[op].v[it.star - 1];
+  for (const a of Array.isArray(it.att) ? it.att : []) for (const op of a.ops || []) if (OPS[op]) out[op] = (out[op] || 0) + OPS[op].v[a.star - 1];   // 武器の アタッチメント（workshop.js の withAtt で 入れた 写し）
   return out;
 }
 // 強さの目安（下克上の判定）に足す点：ステータスはそのまま、% の OP は 1% ＝ 0.5 点、特別な OP は 4 点

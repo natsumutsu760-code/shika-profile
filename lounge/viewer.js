@@ -12,6 +12,7 @@ import { petTake, petGrow, petSub, petStat, petGambits, petStyle, equipSet, resp
 import "./warm.js";   // 派遣の 計算を 温めて おく（はじめの 1 回が おそく ならない ように）
 import { relayEntry } from "./lounge-relay.js";   // 配信の 中継（鹿物語の ランキングの 窓）に あずける 派遣の 材料
 import { swapPlan } from "./lounge-money.js";   // 両替（玉・クレジット・リソース）
+import { wsMake, wsAtt, attSet, attOff, attDrop } from "./lounge-workshop.js";   // 工房（道具・アタッチメント）
 import { ensure, give, FURN_MAX, petFirst, petJob, tripStart, tripCalc, tripDone, tripCollect, tripView, hideoutPlan, craftPlan, synthPlan, boxTake, dropOld, stashCap, tameFeedPlan, tameJoin, tameBack, researchPlan, snackCraft, loopNew, loopSet, loopSeen, loopAfter, loopStep } from "./lounge-game.js";
 
 const OPS_KEEP = 200;            // おぼえて おく op（2 回 来たら 1 回目の 答えを 返す）
@@ -263,6 +264,11 @@ export class Viewer {
     else if (body.a === "tame.join") r = tameJoin(rec, body);
     else if (body.a === "tame.back") r = tameBack(rec, body);
     else if (body.a === "snack.craft") r = snackCraft(rec, body);
+    else if (body.a === "ws.make") r = wsMake(rec, body, now);
+    else if (body.a === "ws.att") r = wsAtt(rec, body, rand, now);
+    else if (body.a === "att.set") r = attSet(rec, body);
+    else if (body.a === "att.off") r = attOff(rec, body);
+    else if (body.a === "att.drop") r = attDrop(rec, body);
     else if (typeof body.a === "string" && Object.prototype.hasOwnProperty.call(PLANS, body.a)) {   // お金が いる やること：計画を 作って 帳簿で 払う（「constructor」などは 通さない）
       const plan = PLANS[body.a](rec, body, this.env);
       r = plan.costs ? await this.charge(rec, plan, wallet) : plan;

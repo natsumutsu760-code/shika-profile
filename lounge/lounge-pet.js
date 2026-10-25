@@ -4,7 +4,7 @@
 // - ノードは 自分で 取る か、自動（ふつうは 左の 道。分岐は えらべる）。自動に して おくと Lv が 上がる たびに 取る
 // - 職業を かえると 前の 職業の 技から 1 つだけ 持ちこせる。振り直しと 職業を かえるのは 1 日 1 回 無料、2 回目から 玉（鹿さんの決め、2026-10-24。値段は 案）
 // - 装備は あたま・くび・うで・あし・武器・オフハンド・アクセサリー ×3 の 9 枠（鹿さんの決め、2026-10-25。前の「おまけ」は 武器）。なかまも 付けられる。付けて いる 装備は 合成・納める・依頼の お礼に 使えない
-import { PETS, PLANS, gambitSlots, SHAPE, SP_PER_LV, SET_SLOTS, TREE_SLOTS, FREE_PER_LV, BASE_STATS, canTake, autoTake, learned, growthStats, ENEMY_TREES, SKILL, EFFECTS, COND_TEXT, baseOf, tamedOf, SLOTS, OLD_SLOT } from "./game.js";
+import { PETS, PLANS, gambitSlots, SHAPE, SP_PER_LV, SET_SLOTS, TREE_SLOTS, FREE_PER_LV, BASE_STATS, canTake, autoTake, learned, growthStats, ENEMY_TREES, SKILL, EFFECTS, COND_TEXT, baseOf, tamedOf, SLOTS, OLD_SLOT, withAtt } from "./game.js";
 
 export const RESET_PRICE = (lv) => lv * 100;   // 2 回目からの 振り直し・職業を かえる 玉（案）
 export const STYLES = ["attack", "defense", "balance", "mp"];   // オートの 作戦：こうげき重視・防御重視・バランス・MP を大事に
@@ -50,7 +50,7 @@ export function moveOldSlots(x, rec) {
     delete x.equip[old];
   }
 }
-const equippedOf = (x, rec) => SLOT_KEYS.map((s) => x.equip && x.equip[s]).filter(Boolean).map((u) => rec.own.equip.find((e) => e.uid === u)).filter(Boolean);
+const equippedOf = (x, rec) => SLOT_KEYS.map((s) => x.equip && x.equip[s]).filter(Boolean).map((u) => rec.own.equip.find((e) => e.uid === u)).filter(Boolean).map((e) => withAtt(e, rec.own.att));   // 武器の アタッチメントも 入れる
 // 付けて いる 装備（ペットと なかま ぜんぶ）
 export const equippedUids = (rec) => new Set([...rec.pets, ...rec.tamed].flatMap((x) => SLOT_KEYS.map((s) => x.equip && x.equip[s]).filter(Boolean)));
 

@@ -1,0 +1,188 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lounge Workshop</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Zen+Maru+Gothic:wght@500;700;900&display=swap">
+<style>
+  /* MONO LINK のラウンジ：工房（鹿さんの頼み、2026-10-25）。地下の 拡張 Lv1 の あとに 作れる 設備
+     素材から 道具・スプリンクラー と、武器の アタッチメントを 作る。アタッチメントは 作る たびに ★と OP が くじ
+     作業台の 画面と 同じ 形：タブ（道具・アタッチメント）で えらび、下（スマホ）／右で 使う物と「作る」。データは workshop.js */
+  :root {
+    --space:#F6F8FC; --ink:#1B2340; --soft:#6A7394; --line:#DCE3F0;
+    --sky:#2EA8FF; --coral:#FF5A64; --sun:#FFC21A; --leaf:#22CC88; --violet:#8E6CFF; --gold:#E0A21C; --ws:#E0662E;
+    --jp:"Zen Maru Gothic", "Hiragino Maru Gothic ProN", sans-serif; --num:"Fredoka", "Zen Maru Gothic", sans-serif;
+    --lift:0 18px 40px -18px rgba(27,35,64,.35), 0 2px 0 rgba(27,35,64,.06);
+  }
+  * { box-sizing:border-box; }
+  body { margin:0; min-height:100vh; background:radial-gradient(120% 80% at 50% 0%, #FFFFFF 0%, var(--space) 55%, #EAF0FA 100%); color:var(--ink); font:500 16px/1.65 var(--jp); word-break:auto-phrase; text-wrap:pretty; }
+  button { font:inherit; color:inherit; cursor:pointer; }
+  button:disabled { cursor:not-allowed; }
+  :focus-visible { outline:3px solid var(--sky); outline-offset:3px; border-radius:12px; }
+  h1, h2, h3, p, ul { margin:0; padding:0; } ul { list-style:none; }
+  .top { display:flex; align-items:center; gap:10px; padding:12px clamp(16px, 4vw, 40px); }
+  .top b { font:700 22px/1 var(--num); letter-spacing:.06em; } .top b i { font-style:normal; color:var(--sky); }
+  .top small { font:700 13px/1 var(--jp); color:var(--soft); margin-left:6px; } .top small a { color:inherit; }
+  main { max-width:1060px; margin:0 auto; padding:0 clamp(16px, 4vw, 40px) 48px; display:grid; grid-template-columns:minmax(0, 1.15fr) minmax(0, 1fr); gap:14px; align-items:start; }
+  .panel { background:rgba(255,255,255,.92); border-radius:26px; box-shadow:var(--lift); padding:clamp(14px, 2.4vw, 20px); }
+  .head { grid-column:1 / -1; display:flex; flex-wrap:wrap; gap:8px 16px; align-items:center; padding:12px 20px; }
+  .head h1 { font:900 20px/1.2 var(--jp); display:flex; align-items:center; gap:10px; margin-right:auto; }
+  .head h1 small { font:600 13px/1 var(--num); color:#A8461A; background:#FFE9DE; padding:4px 9px; border-radius:99px; }
+  .head a { font:900 13px/1 var(--jp); color:#1E6FB0; text-decoration:none; padding:9px 14px; border-radius:999px; background:#E9F6FF; }
+  .jelly { border:0; border-radius:999px; padding:14px 18px; font:900 16px/1 var(--jp); background:var(--ws); color:#fff; box-shadow:0 5px 0 rgba(224,102,46,.3); width:100%; }
+  .jelly:disabled { background:#C9D1E2; box-shadow:0 5px 0 #E3E8F2; }
+
+  .gtabs { display:flex; flex-wrap:wrap; gap:6px; margin-bottom:12px; }
+  .gtabs button { display:inline-flex; align-items:center; gap:6px; border:1.5px solid var(--line); background:#fff; border-radius:999px; padding:8px 16px; font:800 14px/1 var(--jp); color:var(--soft); }
+  .gtabs button[aria-selected="true"] { background:var(--ink); color:#fff; border-color:var(--ink); }
+  .gtabs em { font-style:normal; min-width:18px; padding:0 5px; border-radius:99px; background:var(--leaf); color:#fff; font:600 11px/18px var(--num); text-align:center; }
+  .grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(180px, 1fr)); gap:8px; }
+  .node { display:grid; grid-template-columns:40px minmax(0, 1fr); gap:9px; align-items:center; min-height:58px; padding:8px 10px 8px 8px; text-align:left; border-radius:16px; border:2px solid #CCD4E4; background:#fff; }
+  .node .ic { width:40px; height:40px; border-radius:12px; display:grid; place-items:center; background:var(--space); }
+  .node .ic svg { width:32px; height:32px; }
+  .node b { display:block; font:800 13.5px/1.3 var(--jp); }
+  .node small { display:block; font:700 11px/1.25 var(--jp); color:var(--soft); }
+  .node.can { border-color:var(--ink); } .node.can small { color:#0E8F5A; }
+  .node.wait { border-style:dashed; background:repeating-linear-gradient(45deg, #F8FAFD 0 6px, #fff 6px 12px); } .node.wait b { color:#8C94AE; } .node.wait .ic svg { filter:grayscale(1) opacity(.45); }
+  .node[aria-pressed="true"] { box-shadow:0 0 0 3px var(--sky); }
+  .sec { margin:12px 2px 8px; font:900 12px/1.2 var(--jp); color:var(--soft); } .sec:first-of-type { margin-top:0; }
+
+  .detail { display:grid; gap:12px; scroll-margin:12px; }
+  .detail header { display:grid; grid-template-columns:58px minmax(0, 1fr); gap:12px; align-items:center; }
+  .detail header .ic { width:58px; height:58px; border-radius:16px; display:grid; place-items:center; background:var(--space); }
+  .detail header .ic svg { width:46px; height:46px; }
+  .detail h2 { font:900 21px/1.25 var(--jp); } .detail header p { font:700 12.5px/1.5 var(--jp); color:var(--soft); }
+  .tag { display:inline-block; margin-right:6px; padding:3px 9px; border-radius:99px; font:900 11px/1.2 var(--jp); background:#FFE9DE; color:#A8461A; }
+  .facts { display:grid; gap:7px; }
+  .facts div { display:grid; grid-template-columns:76px minmax(0, 1fr); gap:8px; align-items:baseline; font:700 13px/1.5 var(--jp); }
+  .facts .l { font:900 11.5px/1.4 var(--jp); color:var(--soft); }
+  .odds { display:flex; flex-wrap:wrap; gap:4px; } .odds em { font-style:normal; padding:2px 8px; border-radius:99px; background:var(--space); font:600 12px/1.4 var(--num); } .odds em i { font-style:normal; color:var(--gold); }
+  .chips { display:flex; flex-wrap:wrap; gap:4px; } .chips span { padding:2px 9px; border-radius:99px; background:#E9F6FF; color:#1E6FB0; font:900 12px/1.4 var(--jp); }
+  .need-h { display:block; font:900 12px/1.3 var(--jp); color:var(--soft); margin-bottom:2px; }
+  .need li { display:grid; grid-template-columns:28px minmax(0, 1fr) auto; gap:8px; align-items:center; padding:5px 0; font:700 14px/1.35 var(--jp); }
+  .need img { width:24px; height:24px; object-fit:contain; image-rendering:pixelated; }
+  .dot { width:14px; height:14px; margin:5px; border-radius:4px; background:#86C25A; } .dot.hd { background:linear-gradient(135deg, #FF8FC4, #8FC8FF); } .dot.c { border-radius:50%; background:#13A36A; }
+  .need small { display:block; font:700 11px/1.3 var(--jp); color:var(--soft); }
+  .need .n { font:600 15px/1 var(--num); white-space:nowrap; color:#0E8F5A; } .need .ng .n { color:var(--coral); }
+  .qty { display:flex; flex-wrap:wrap; gap:6px; align-items:center; }
+  .qty span { font:900 12px/1 var(--jp); color:var(--soft); margin-right:4px; }
+  .qty button { min-width:44px; padding:8px 12px; border-radius:999px; border:1.5px solid var(--line); background:#fff; font:700 13px/1 var(--num); }
+  .qty button[aria-pressed="true"] { background:var(--ink); color:#fff; border-color:var(--ink); }
+  .why { font:700 13px/1.5 var(--jp); color:var(--coral); text-align:center; }
+  .lockbox { font:700 14px/1.6 var(--jp); } .lockbox a { display:inline-block; margin-top:8px; font:900 14px/1 var(--jp); color:#1E6FB0; }
+  .made { display:grid; grid-template-columns:58px minmax(0, 1fr); gap:12px; align-items:center; padding:14px 16px; border-radius:20px; background:linear-gradient(135deg, #FFF4EC, #F2F8FF); box-shadow:inset 0 0 0 2px #FFC9A8; }
+  .made .ic { width:58px; height:58px; border-radius:16px; display:grid; place-items:center; background:#fff; animation:pop .5s ease-out; } .made .ic svg { width:46px; height:46px; }
+  .made h3 { font:900 16px/1.3 var(--jp); } .made h3 small { font:900 12px/1 var(--jp); color:#A8461A; margin-right:8px; }
+  .stars { color:var(--gold); letter-spacing:1px; } .stars s { text-decoration:none; color:#E3E8F2; }
+  .made ul { margin-top:2px; font:800 13px/1.5 var(--jp); color:#1E6FB0; } .made a { display:inline-block; margin-top:6px; font:900 13px/1 var(--jp); color:#A8461A; }
+  @keyframes pop { 30% { transform:scale(1.18) rotate(-6deg); } 100% { transform:none; } }
+  @media (max-width:860px) { main { grid-template-columns:minmax(0, 1fr); } }
+  @media (max-width:520px) { .grid { grid-template-columns:minmax(0, 1fr) minmax(0, 1fr); } .node { grid-template-columns:34px minmax(0, 1fr); padding:7px; } .node .ic { width:34px; height:34px; } .node .ic svg { width:28px; height:28px; } }
+  @media (prefers-reduced-motion:reduce) { .made .ic { animation:none; } }
+  .toast { position:fixed; left:50%; bottom:24px; transform:translateX(-50%) translateY(16px); max-width:calc(100vw - 32px); padding:10px 18px; border-radius:20px; background:var(--ink); color:#fff; font:700 14px/1.4 var(--jp); opacity:0; transition:opacity .2s, transform .2s; pointer-events:none; text-align:center; z-index:5; }
+  .toast.on { opacity:1; transform:translateX(-50%); }
+  @media (prefers-reduced-motion:reduce) { .toast { transition:none; } }
+</style>
+</head>
+<body>
+<header class="top"><a href="/" style="color:inherit;text-decoration:none" aria-label="MONO LINK の サイトへ"><b>MONO LINK<i>://</i></b></a><small><a href="lounge-room.html">ラウンジ</a> ／ <a href="hideout.html?f=workshop">地下の 隠れ家</a> ／ 工房</small></header>
+<main>
+  <section class="panel head" aria-label="工房"><h1>工房 <small id="lv"></small></h1><a id="mine" href="equip.html"></a></section>
+  <section class="panel" aria-label="作る 物"><div class="gtabs" role="tablist" id="gtabs"></div><div id="list"></div></section>
+  <section class="panel detail" id="detail" aria-live="polite"></section>
+</main>
+<p class="toast" id="toast" role="status"></p>
+<script type="module">
+import { WS_ITEMS, WS_MAX, ATT_BASES, ATT_KINDS, ATT_STAR, attOpN } from "./workshop.js";
+import { OPS } from "./equip.js";
+import { MAT_NAME, MAT_FROM, HIDDEN_MAT } from "./materials.js";
+import { spriteURL } from "./sprites.js";
+import { matPic } from "./mat-icons.js";
+import { wsIcon } from "./ws-icons.js";
+import { me, act, busy } from "./lounge-client.js";   // 工房の Lv・素材・クレジット・作る は 門番から（くじも 門番が 引く）
+import { mountWallet } from "./wallet-bar.js"; mountWallet();   // 上の 通貨の 札（玉・リソース・クレジット）と 両替
+
+const q = new URLSearchParams(location.search);
+const fmt = (n) => Number(n).toLocaleString("ja-JP");
+const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
+const stars = (n) => `<span class="stars" aria-label="★${n}">${"★".repeat(n)}<s>${"★".repeat(4 - n)}</s></span>`;
+const TABS = [["item", "道具・品"], ["att", "アタッチメント"]];
+const S = { lv: 0, cr: 0, mats: [], loose: 0, tab: q.get("t") === "att" ? "att" : "item", sel: null, n: 1, made: null };
+let ME = null;
+function load(m) {
+  ME = m; S.lv = (m.hideout || {}).workshop || 0; S.cr = m.credits || 0; S.mats = (m.own && m.own.mats) || [];
+  const eq = new Set(((m.own && m.own.equip) || []).map((e) => e.uid));
+  S.loose = ((m.own && m.own.att) || []).filter((a) => !a.on || !eq.has(a.on)).length;
+}
+load(await me());
+const have = (id, qMin = 0) => S.mats.filter((m) => m.id === id && (m.q || 0) >= qMin).reduce((a, m) => a + m.n, 0);
+const R = (k) => (k.startsWith("i:") ? WS_ITEMS.find((x) => x.id === k.slice(2)) : ATT_BASES.find((x) => x.id === k.slice(2)));
+const keysOf = (tab) => (tab === "item" ? WS_ITEMS.map((x) => "i:" + x.id) : ATT_BASES.map((x) => "a:" + x.id));
+S.sel = R(q.get("k") || "") ? q.get("k") : keysOf(S.tab)[0];
+// 作れる 数（素材・クレジット・1 回の 上限）
+const canN = (k) => { const r = R(k); let n = k.startsWith("i:") ? WS_MAX : 1; for (const [id, k2, qm] of r.mats) n = Math.min(n, Math.floor(have(id, qm || 0) / k2)); return Math.max(0, Math.min(n, Math.floor(S.cr / r.credits))); };
+const stateOf = (k) => (!S.lv || (k.startsWith("i:") && R(k).lv > S.lv) ? "wait" : canN(k) > 0 ? "can" : "short");
+const WORD = { can: (k) => (k.startsWith("i:") ? `作れる ${canN(k)}` : "作れる"), short: () => "足りない", wait: (k) => (S.lv ? `Lv${R(k).lv} から` : "") };
+
+function node(k) {
+  const r = R(k), st = stateOf(k);
+  return `<button class="node ${st}" data-k="${k}" aria-pressed="${S.sel === k}"><span class="ic">${wsIcon(r.id)}</span><span><b>${esc(r.name)}</b><small>${WORD[st](k)}</small></span></button>`;
+}
+function listHtml() {
+  if (S.tab === "item") return `<div class="grid">${keysOf("item").map(node).join("")}</div>`;
+  return Object.entries(ATT_KINDS).map(([kind, K]) => `<p class="sec">${K.label}</p><div class="grid">${ATT_BASES.filter((b) => b.kind === kind).map((b) => node("a:" + b.id)).join("")}</div>`).join("");
+}
+const tabsHtml = () => TABS.map(([t, label]) => { const n = keysOf(t).filter((k) => stateOf(k) === "can").length; return `<button role="tab" data-tab="${t}" aria-selected="${S.tab === t}">${label}${n ? `<em>${n}</em>` : ""}</button>`; }).join("");
+function rowHtml(x) {
+  const pic = x.c ? `<i class="dot c"></i>` : MAT_FROM[x.id] ? `<img src="${spriteURL(MAT_FROM[x.id])}" alt="">` : HIDDEN_MAT.has(x.id) ? `<i class="dot hd"></i>` : `<img src="${matPic(x.id)}" alt="">`;
+  return `<li class="${x.have < x.need ? "ng" : ""}">${pic}<span>${x.c ? "クレジット" : esc(MAT_NAME[x.id])}${x.q > 1 ? `<small>品質 ${x.q} 以上</small>` : ""}</span><span class="n">${fmt(x.have)} / ${fmt(x.need)}</span></li>`;
+}
+function madeHtml() {
+  if (!S.made) return "";
+  const a = S.made, b = ATT_BASES.find((x) => x.id === a.base);
+  return `<div class="made"><span class="ic">${wsIcon(a.base)}</span><div><h3><small>できた！</small>${esc(b.name)} ${stars(a.star)}</h3><ul>${a.ops.map((o) => `<li>${esc(OPS[o].fmt(OPS[o].v[a.star - 1]))}</li>`).join("")}</ul><a href="equip.html">武器に 付ける ›</a></div></div>`;
+}
+function detailHtml() {
+  const k = S.sel, r = R(k), st = stateOf(k), isItem = k.startsWith("i:");
+  const head = `<header><span class="ic">${wsIcon(r.id)}</span><div><span class="tag">${isItem ? (r.to.tools ? "派遣の 道具" : "品") : `武器の ${ATT_KINDS[r.kind].label}`}</span><h2>${esc(r.name)}</h2>${isItem ? `<p>${esc(r.note)}</p>` : ""}</div></header>`;
+  const facts = isItem ? "" : `<div class="facts"><div><span class="l">付く OP</span><span class="chips">${r.pool.map((o) => `<span>${esc(OPS[o].label)}${(OPS[o].from || 1) > 1 ? `（★${OPS[o].from} から）` : ""}</span>`).join("")}</span></div>
+    ${S.lv ? `<div><span class="l">★ くじ</span><span class="odds">${Object.entries(ATT_STAR[S.lv]).map(([s, p]) => `<em><i>★${s}</i> ${p}%</em>`).join("")}</span></div>` : ""}<div><span class="l">OP の 数</span><span>★1〜3 は 1 つ・★4 は 2 つ（作る たびに くじ）</span></div></div>`;
+  if (st === "wait") return madeHtml() + head + facts + (S.lv ? `<div class="lockbox"><p>工房 Lv${r.lv} から 作れる</p><a href="hideout.html?f=workshop">工房を Lv${r.lv} に する</a></div>` : `<div class="lockbox"><p>工房が まだ ない</p><a href="hideout.html?f=workshop">隠れ家で 工房を 作る</a></div>`);
+  const n = isItem ? Math.max(1, Math.min(S.n, WS_MAX)) : 1, max = canN(k);
+  const rows = [...r.mats.map(([id, c, qm]) => ({ id, q: qm || 0, need: c * n, have: have(id, qm || 0) })), { c: 1, need: r.credits * n, have: S.cr }];
+  const lack = rows.filter((x) => x.have < x.need), sorted = [...lack, ...rows.filter((x) => x.have >= x.need)];
+  const why = lack.slice(0, 2).map((x) => `${x.c ? "クレジット" : MAT_NAME[x.id]} あと ${fmt(x.need - x.have)}`).join("、") + (lack.length > 2 ? `、ほか ${lack.length - 2} こ` : "");
+  const qty = isItem ? `<div class="qty" role="group" aria-label="作る 数"><span>作る 数</span>${[1, 5, 10].map((v) => `<button data-n="${v}" aria-pressed="${n === v}">${v}</button>`).join("")}<button data-n="max" aria-pressed="${max > 1 && n === max && ![1, 5, 10].includes(n)}" ${max > 1 ? "" : "disabled"}>作れるだけ${max > 1 ? `（${max}）` : ""}</button></div>` : "";
+  return madeHtml() + head + facts + qty + `<div><span class="need-h">使う物</span><ul class="need">${sorted.map(rowHtml).join("")}</ul></div>
+    <button class="jelly" data-do="${k}" ${lack.length ? "disabled" : ""}>${isItem && n > 1 ? `${n} こ 作る` : "作る"}</button>${lack.length ? `<p class="why">足りない：${esc(why)}</p>` : ""}`;
+}
+function render() {
+  document.getElementById("lv").textContent = S.lv ? `Lv${S.lv}` : "まだ ない";
+  document.getElementById("mine").textContent = `アタッチメント ${S.loose} こ・武器に 付ける ›`;
+  document.getElementById("gtabs").innerHTML = tabsHtml(); document.getElementById("list").innerHTML = listHtml(); document.getElementById("detail").innerHTML = detailHtml();
+}
+let tid;
+const toast = (t) => { const el = document.getElementById("toast"); el.textContent = t; el.classList.add("on"); clearTimeout(tid); tid = setTimeout(() => el.classList.remove("on"), 4200); };
+async function make(b, k) {
+  const isItem = k.startsWith("i:"), r = R(k), n = isItem ? Math.max(1, Math.min(S.n, WS_MAX)) : 1;
+  const res = await busy(b, () => (isItem ? act("ws.make", { id: r.id, n }) : act("ws.att", { base: r.id })), "作って います…");
+  if (!res.ok) return toast(res.why || "できませんでした");
+  load(await me());
+  if (isItem) { S.made = null; toast(`${r.name}を ${n} こ 作った`); } else S.made = res.att;
+  render();
+}
+document.querySelector("main").addEventListener("click", async (e) => {
+  const b = e.target.closest("button"); if (!b || b.disabled) return;
+  if (b.dataset.tab) { S.tab = b.dataset.tab; S.sel = keysOf(S.tab)[0]; S.made = null; S.n = 1; return render(); }
+  if (b.dataset.k) { if (S.sel !== b.dataset.k) { S.made = null; S.n = 1; } S.sel = b.dataset.k; render(); document.querySelector(`[data-k="${S.sel}"]`)?.focus({ preventScroll: true });
+    if (matchMedia("(max-width:860px)").matches) document.getElementById("detail").scrollIntoView({ block: "start", behavior: matchMedia("(prefers-reduced-motion:reduce)").matches ? "auto" : "smooth" }); return; }
+  if (b.dataset.n) { S.n = b.dataset.n === "max" ? canN(S.sel) : +b.dataset.n; return render(); }
+  if (b.dataset.do) await make(b, b.dataset.do);
+});
+if (ME.denied || ME.ok === false) document.querySelector("main").innerHTML = `<section class="panel head"><h1>入れません</h1><span>${esc(ME.why || "もう 1 回 開いて ください")}</span>${ME.login ? `<a href="/">MONO LINK で ログイン</a>` : ""}</section>`;
+else render();
+window.ready = true;
+</script>
+</body>
+</html>

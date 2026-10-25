@@ -164,6 +164,7 @@
 <div class="dim" id="dim"></div>
 <script type="module">
 import { me, act, busy, waitText } from "./lounge-client.js";   // 持って いる 装備・付ける／はずすは 門番の 記録（見本では ブラウザの 中の ためしの 門番）
+import { mergeAtt, attHtml, attClick } from "./att-panel.js";   // 武器の アタッチメント（先っぽ・持ち手）
 import { mountWallet } from "./wallet-bar.js"; mountWallet();   // 上の 通貨の 札（玉・リソース・クレジット）と 両替
 import { petInfo, linkTabs, gateHtml, addGateCss, toast } from "./pet-head.js";
 import { TYPES } from "./skills.js";
@@ -195,7 +196,7 @@ const inF = (e, f) => kindOf(e) === f;
 const DOLL = ["head", "weapon", "off", "arm", "neck", "leg"], ACCS = ["acc1", "acc2", "acc3"];
 const EMPTY = { off: "オフ\nハンド" };
 
-let ME = await me(), MP = ME.pets && ME.pets[0];
+let ME = mergeAtt(await me()), MP = ME.pets && ME.pets[0];
 const V = { f: null, sort: "star", sel: null, slot: null, who: new URLSearchParams(location.search).get("who") || "pet" };
 // だれの 装備（鹿さんの決め、2026-10-25）：ペットと パーティの 2 体。部屋に いる 子でも 何か 付けて いれば 出す（はずせる ように）
 const mates = () => (ME.tamed || []).filter((c) => (ME.party || []).includes(c.uid) || Object.values(c.equip || {}).some(Boolean));
@@ -245,6 +246,7 @@ function render() {
       ${it.ops.length ? `<ul class="ops">${it.ops.map((o) => `<li class="${SPECIAL.has(o) ? "sp" : ""}">${opLine(it, o)}</li>`).join("")}</ul>` : ""}
       ${hasFx(it) ? `<p class="note">とくべつな効果：${esc(b.fx || b.text || "")}</p>` : ""}
       ${cmp ? `<div class="cmp"><h3>いまの ${esc(baseOf(now.base).name)} ★${now.star} とくらべると</h3>${cmp.length ? cmp.map(([k, d]) => `<div class="${d > 0 ? "up" : "dn"}"><span>${nameOf(k)}</span><b>${val(k, d)}</b></div>`).join("") : `<p class="note">数は おなじ</p>`}</div>` : ""}
+      ${b.slot === "weapon" ? attHtml(ME, it, { away: !!busyAway }) : ""}
       <div class="btns">${btn}${sy ? `<a class="linkish" href="bench.html?k=s:${sy.out}">作業台で 合成する</a>` : ""}</div>`;
   }
   return `
@@ -284,6 +286,7 @@ document.body.addEventListener("click", async (e) => {
   if (e.target.id === "dim") { document.body.classList.remove("sheet-on"); return; }
   const b = e.target.closest("button"); if (!b || b.disabled) return;
   const d = b.dataset;
+  if (await attClick(b, ME, async (fresh) => { if (fresh) { ME = mergeAtt(await me()); MP = ME.pets[0]; } paint(); }, toast)) return;   // アタッチメント
   if (d.u) { V.sel = d.u; paint(); if (small()) document.body.classList.add("sheet-on"); return; }
   if (d.f) { V.f = d.f; V.slot = null; V.sel = null; return paint(); }
   if (d.slot) {   // 枠を 押す：一覧が その 部位 だけに（もう 一度 押すと もどる）
@@ -301,7 +304,7 @@ document.body.addEventListener("click", async (e) => {
       return equipAct(here, slot, d.off ? null : it.uid);
     });
     if (!r.ok) return toast(r.wait ? waitText : r.why || "できませんでした");
-    ME = await me(); MP = ME.pets[0]; document.body.classList.remove("sheet-on"); paint();
+    ME = mergeAtt(await me()); MP = ME.pets[0]; document.body.classList.remove("sheet-on"); paint();
     toast(d.off ? `${SLOTS[slot].label}を はずした` : `${holder().name}に ${baseOf(it.base).name}を つけた`);
   }
 });

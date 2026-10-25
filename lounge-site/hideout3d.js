@@ -1,6 +1,6 @@
 // 地下の 隠れ家（鹿さんの決め、2026-10-22）。ななめ見下ろしの 1 部屋、うす暗い 秘密基地（ランプ・ネオン・画面が 光る）
 // makeHideout(lv) が THREE.Group を返す。lv は { bench: 0〜3, ... }。施設の Lv で 見た目が かわる（Lv0 は 箱と 設計図だけの 空き地）
-// ラウンジと 同じ ローポリ（箱と 筒の 組み合わせ）。1 マス ＝ 1。部屋は 12 × 10
+// ラウンジと 同じ ローポリ（箱と 筒の 組み合わせ）。1 マス ＝ 1。部屋は 12 × 10。地下の 拡張（lv.dig）で 奥の かべの 向こうへ 6・12・18 マス 広がる
 import * as THREE from "three";
 
 const M = {}, mat = (c, o = {}) => (M[c + JSON.stringify(o)] ||= new THREE.MeshStandardMaterial({ color: c, roughness: 0.7, metalness: 0, flatShading: true, ...o }));
@@ -85,6 +85,25 @@ const ST = {
     }
     lamp(g, "#E6ECFF", [0, 0.6, 0.9, 1.1][lv], 0, 2.4, 1);
   },
+  workshop(g, lv, fx) {   // 工房：つくえと 歯車の 板・部品の 箱 → ボール盤と 火花 → 光る 3D プリンター（鹿さんの頼み、2026-10-25）
+    if (!lv) return empty(g);
+    legs(g, 2.2, 1, 0.9, "#4A3A2E"); box(g, 2.2, 0.12, 1, "#8A6A4A", 0, 0.9, 0);
+    box(g, 2.1, 1.05, 0.06, "#4B4560", 0, 1.25, -0.47);   // かべの 板
+    [[-0.65, 0.2, "#E0662E"], [-0.15, 0.14, "#C9CED8"], [0.4, 0.18, "#FFB547"]].forEach(([x, r, c], i) => { const m = cyl(g, r, r, 0.05, c, x, 1.65, -0.42, 10); m.rotation.x = Math.PI / 2; m.position.y = 1.7 - (i % 2) * 0.25; if (lv >= 2) fx.push({ gear: m, s: i % 2 ? -1 : 1 }); });
+    [["#E0662E", -0.75], ["#2EA8FF", -0.45], ["#22CC88", -0.15]].forEach(([c, x]) => box(g, 0.24, 0.12, 0.3, c, x, 1.02, 0.15));   // 部品の 箱
+    box(g, 0.25, 0.18, 0.22, "#6A7088", 0.75, 1.02, 0.2);   // 万力
+    if (lv >= 2) {   // ボール盤：柱と 頭、下で 火花
+      const D = new THREE.Group(); D.position.set(1.45, 0, -0.1); g.add(D);
+      box(D, 0.5, 0.08, 0.5, "#3E4658"); cyl(D, 0.05, 0.05, 1.6, "#9AA3B8", 0, 0.08, -0.12); box(D, 0.32, 0.3, 0.42, "#E0662E", 0, 1.35, 0); cyl(D, 0.02, 0.02, 0.3, "#C9CED8", 0, 1.05, 0.08);
+      const sp = ball(D, 0.06, glow("#FFD38A", 2.5), 0, 0.95, 0.08, 6); fx.push({ flicker: sp });
+    }
+    if (lv >= 3) {   // 3D プリンター：わくと 光る ノズル
+      const P = new THREE.Group(); P.position.set(-0.6, 0.96, -0.1); g.add(P);
+      [[-0.25, -0.2], [0.25, -0.2], [-0.25, 0.2], [0.25, 0.2]].forEach(([x, z]) => box(P, 0.04, 0.7, 0.04, "#2B3040", x, 0, z)); box(P, 0.58, 0.04, 0.48, "#2B3040", 0, 0.7, 0);
+      const nz = box(P, 0.1, 0.1, 0.1, glow("#FF8A3D", 2.2), 0, 0.45, 0); box(P, 0.24, 0.12, 0.24, glow("#FFB547", 0.8), 0, 0.02, 0); fx.push({ bob: nz });
+    }
+    lamp(g, "#FFB561", [0, 0.7, 1.1, 1.6][lv], 0, 2.2, 0.8);
+  },
 };
 
 // 置き場所：左の かべ（作業台・おやつ工房）、奥の かべ（研究所・地図室・救護室）、右（トレーニング室・倉庫）。はしごは 手前
@@ -92,16 +111,39 @@ export const SPOTS = {
   bench: { x: 0.9, z: 3.2, r: Math.PI / 2 }, snack: { x: 0.9, z: 7.2, r: Math.PI / 2 },
   lab: { x: 3.3, z: 0.9, r: 0 }, maproom: { x: 6.6, z: 1, r: 0 }, medic: { x: 9.9, z: 0.9, r: 0 },
   gym: { x: 10.3, z: 4.6, r: 0 }, storage: { x: 9.8, z: 8.2, r: 0 },
+  workshop: { x: 0.9, z: -3, r: Math.PI / 2, dig: 1 },   // dig：その 場所が 掘れる 地下の 拡張の Lv（奥の かべの 向こう）
 };
 export const ROOM = { w: 12, d: 10, h: 3.4 };
+// 地下の 拡張（鹿さんの決め、2026-10-25：いまの 部屋を 奥へ 広げる）。奥の かべ（z = 0）の 向こうへ Lv ごとに 6 マス
+export const EXT = [0, 6, 12, 18];
+export const DOOR = { x0: 4.4, x1: 5.5 };   // いまの 部屋から 奥への 入口（研究所と 地図室の あいだ）
+export const areaOf = (dig = 0) => ({ x0: 0, x1: ROOM.w, z0: -EXT[Math.max(0, Math.min(3, dig))], z1: ROOM.d });
 
 export function makeHideout(lv) {
-  const g = new THREE.Group(), fx = [];
+  const g = new THREE.Group(), fx = [], dig = Math.max(0, Math.min(3, lv.dig || 0)), ext = EXT[dig];
   // ゆか（タイルの すじ）・かべ・はば木・パイプ
   box(g, ROOM.w, 0.2, ROOM.d, "#2B2838", ROOM.w / 2, -0.2, ROOM.d / 2);
   const lines = []; for (let i = 1; i < ROOM.w; i++) lines.push(i, 0.005, 0, i, 0.005, ROOM.d); for (let j = 1; j < ROOM.d; j++) lines.push(0, 0.005, j, ROOM.w, 0.005, j);
   const lg = new THREE.BufferGeometry(); lg.setAttribute("position", new THREE.Float32BufferAttribute(lines, 3)); g.add(new THREE.LineSegments(lg, new THREE.LineBasicMaterial({ color: "#3A3650" })));
-  box(g, ROOM.w, ROOM.h, 0.25, "#363049", ROOM.w / 2, 0, -0.125); box(g, 0.25, ROOM.h, ROOM.d, "#2F2A42", -0.125, 0, ROOM.d / 2);
+  if (!dig) box(g, ROOM.w, ROOM.h, 0.25, "#363049", ROOM.w / 2, 0, -0.125);
+  else {   // 奥の かべに 入口（木の わく）
+    box(g, DOOR.x0, ROOM.h, 0.25, "#363049", DOOR.x0 / 2, 0, -0.125); box(g, ROOM.w - DOOR.x1, ROOM.h, 0.25, "#363049", (ROOM.w + DOOR.x1) / 2, 0, -0.125);
+    box(g, DOOR.x1 - DOOR.x0, ROOM.h - 2.4, 0.25, "#363049", (DOOR.x0 + DOOR.x1) / 2, 2.4, -0.125);
+    [DOOR.x0 + 0.06, DOOR.x1 - 0.06].forEach((x) => box(g, 0.14, 2.4, 0.34, "#7A5636", x, 0, -0.125)); box(g, DOOR.x1 - DOOR.x0 + 0.1, 0.14, 0.34, "#7A5636", (DOOR.x0 + DOOR.x1) / 2, 2.32, -0.125);
+    // 掘った 地面（土の 色）・岩の かべ・木の はり・あかり
+    box(g, ROOM.w, 0.2, ext, "#2E2630", ROOM.w / 2, -0.2, -ext / 2);
+    const dl = []; for (let i = 1; i < ROOM.w; i++) dl.push(i, 0.005, -ext, i, 0.005, 0); for (let j = 1; j < ext; j++) dl.push(0, 0.005, -j, ROOM.w, 0.005, -j);
+    const dg = new THREE.BufferGeometry(); dg.setAttribute("position", new THREE.Float32BufferAttribute(dl, 3)); g.add(new THREE.LineSegments(dg, new THREE.LineBasicMaterial({ color: "#3E3442" })));
+    box(g, ROOM.w, ROOM.h, 0.3, "#3B3240", ROOM.w / 2, 0, -ext - 0.15); box(g, 0.3, ROOM.h, ext, "#352C3C", -0.15, 0, -ext / 2);
+    for (let z = -6; z >= -ext; z -= 6) { box(g, 0.22, ROOM.h, 0.22, "#6B4A2E", 0.15, 0, z + 0.2); rod(g, 0.09, ROOM.w, "#6B4A2E", ROOM.w / 2, ROOM.h - 0.25, z + 0.2, "x"); }
+    for (let k = 1; k <= dig; k++) lamp(g, "#FFC98A", 1.1, 6, 2.8, -6 * k + 3, 6.5);
+    // まだ 設備の ない 区画：テープの わくと 段ボール（ここに 作れる）。畑・坑道は つぎの 作業で 作る
+    const mark = (x, z, w, d) => { const M = new THREE.Group(); M.position.set(x, 0, z); g.add(M); empty(M, w, d); };
+    mark(8, -3, 4.6, 3.6);                    // 畑（拡張 Lv1）
+    if (dig >= 2) mark(6, -10.4, 3.2, 2);     // 坑道（拡張 Lv2）
+    if (dig >= 3) mark(6, -15, 6, 3.6);        // 畑を 広げる（拡張 Lv3）
+  }
+  box(g, 0.25, ROOM.h, ROOM.d, "#2F2A42", -0.125, 0, ROOM.d / 2);
   box(g, ROOM.w, 0.18, 0.06, "#4A4466", ROOM.w / 2, 0, 0.03); box(g, 0.06, 0.18, ROOM.d, "#4A4466", 0.03, 0, ROOM.d / 2);
   [[2.9, "#5A5470"], [3.12, "#6A6488"]].forEach(([y, c]) => { rod(g, 0.07, ROOM.w, c, ROOM.w / 2, y, 0.2, "x"); rod(g, 0.07, ROOM.d, c, 0.2, y, ROOM.d / 2, "z"); });
   // 部屋の まんなか：ケーブルと 箱、手前に はしご（上の ラウンジから 光が さす）
@@ -111,9 +153,10 @@ export function makeHideout(lv) {
   cyl(g, 0.7, 0.9, 2.8, mat("#FFE6B0", { transparent: true, opacity: 0.08, emissive: "#FFE6B0", emissiveIntensity: 0.6, depthWrite: false }), 6.6, 0.2, 8.9, 16);
   lamp(g, "#FFE6B0", 1.4, 6.6, 3, 8.9, 5);
   // 施設
-  for (const [id, sp] of Object.entries(SPOTS)) { const S = new THREE.Group(); S.position.set(sp.x + (sp.r ? 0.15 : 0), 0, sp.z + (sp.r ? 0 : 0.15)); S.rotation.y = sp.r; S.userData.id = id; g.add(S); ST[id](S, lv[id] || 0, fx); }
+  for (const [id, sp] of Object.entries(SPOTS)) { if ((sp.dig || 0) > dig) continue; const S = new THREE.Group(); S.position.set(sp.x + (sp.r ? 0.15 : 0), 0, sp.z + (sp.r ? 0 : 0.15)); S.rotation.y = sp.r; S.userData.id = id; g.add(S); ST[id](S, lv[id] || 0, fx); }
   g.userData.tick = (t) => fx.forEach((f) => {
     if (f.spin) f.spin.rotation.y = t * 0.8;
+    if (f.gear) f.gear.rotation.y = t * 0.9 * f.s;
     if (f.bob) f.bob.scale.y = 1 + 0.03 * Math.sin(t * 2);
     if (f.swing) f.swing.rotation.z = 0.06 * Math.sin(t * 1.7);
     if (f.flicker) f.flicker.material.emissiveIntensity = 2 + 0.4 * Math.sin(t * 9) * Math.sin(t * 2.3);

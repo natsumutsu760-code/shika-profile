@@ -40,6 +40,17 @@ export const FACILITIES = [
     { fx: "1 しゅるい 200 こ まで 置ける", need: { mats: [["oldnail", 10], ["oldcloth", 6]], credits: 1500, balls: 1000 } },
     { fx: "1 しゅるい 400 こ まで 置ける", need: { mats: [["ironore", 10], ["crystalbit", 8]], credits: 6000, balls: 4000, res: 2, fac: [["bench", 2]] } },
   ] },
+  // 地下の 拡張と 新しい 設備（鹿さんの頼み、2026-10-25。いまの 部屋を 奥へ 広げる 形。スタック数を 増やした ぶん 素材を たくさん 使う）
+  { id: "dig", name: "地下の 拡張", text: "地下を 奥へ 広げて、新しい 設備を 置く", lv: [
+    { fx: "奥に 広がる（工房・畑を 置ける）", need: { mats: [["pebble", 40], ["brick", 30], ["oldnail", 20]], credits: 3000, balls: 2000 } },
+    { fx: "もっと 奥へ（坑道を 掘れる）", need: { mats: [["brick", 80], ["ironore", 40], ["oldcloth", 40], ["golem_stone", 6, 2]], credits: 10000, balls: 6000, res: 2, fac: [["bench", 1]] } },
+    { fx: "いちばん 奥まで（畑の マス・坑道の 枠が ふえる）", need: { mats: [["ironore", 120], ["crystalbit", 60], ["glowstone", 60], ["dragon_crystal", 1, 5]], credits: 30000, balls: 15000, res: 6, fac: [["storage", 2]] } },
+  ] },
+  { id: "workshop", name: "工房", text: "素材から 道具と 武器の アタッチメントを 作る", lv: [
+    { fx: "道具・スプリンクラー・アタッチメント（★1〜2）を 作れる", need: { mats: [["oldnail", 20], ["brick", 20], ["candle", 10], ["goblin_knife", 3]], credits: 1500, balls: 1000, fac: [["dig", 1]] } },
+    { fx: "アタッチメント ★3 も 出る・元気のお茶・上の スプリンクラー", need: { mats: [["ironore", 40], ["oldcloth", 30], ["wolf_fang", 4, 2], ["light_drop", 2, 2]], credits: 6000, balls: 4000, res: 2, fac: [["bench", 2]] } },
+    { fx: "アタッチメント ★4 も 出る（OP 2 つ）・星の スプリンクラー", need: { mats: [["crystalbit", 60], ["glowstone", 40], ["crystal_scale", 4, 4], ["midnight_bell", 1, 5]], credits: 18000, balls: 10000, res: 5, fac: [["dig", 2]] } },
+  ] },
 ];
 export const STORAGE_CAP = [50, 100, 200, 400];   // 1 しゅるい（素材の id）ごとの 上限。どの しゅるいも 置ける（鹿さんの決め、2026-10-25：前は ぜんぶの 合計で 100・200・400・800）
 // おやつ工房で 作る 物（鹿さんの決め、2026-10-25）。Lv2 から ふつうの おやつの 素材が 3 こ → 2 こ。とくべつおやつ（なかよし ＋3）は Lv3 から
