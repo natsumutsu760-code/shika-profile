@@ -14,6 +14,10 @@ export function rngIn(o, k) { o[k] >>>= 0; return () => { const s = (o[k] = (o[k
 // 計算で進めるのは SIM_TURN まで。それでも決着しなければ、そのときだけ HP の割合で決める
 export const MAX_TURN = 8, SIM_TURN = 30;
 const STATS = ["atk", "def", "int", "res", "agi", "dex", "luk"];
+// 命中：DEX（当てる）と AGI（よける）の 比で きまる（鹿さんの決め、2026-10-25。Lv の 上限を なくしたので、差では なく 比に した。数が 大きく なっても 同じ 比なら 同じ）
+// 同じ なら 92%、DEX が AGI の 2 倍で 97%（上限）、半分で 82%、4 分の 1 で 72%。下限は つけない（鹿さんの決め、2026-10-25。0% より 下には ならない だけ）
+// 0 に 近い ときに 大きく ぶれない ように 両方に 10 を 足す
+export const hitRate = (dex, agi) => Math.max(0, Math.min(0.97, 0.92 + 0.1 * Math.log2((Math.max(0, dex) + 10) / (Math.max(0, agi) + 10))));
 export const powerOf = (s) => s.hp / 4 + s.mp / 2 + STATS.reduce((a, k) => a + s[k], 0);   // 強さの目安（下克上の判定用）
 
 // パッシブの 中身を 足す（一覧は つなぐ・表は まぜる・Mul は かける・数は 足す）
@@ -223,7 +227,7 @@ export function simulateTeams(SA, SB, seed, opts = {}) {
   // 直接攻撃 1 回：命中 → 幻影 → バリア → ダメージ → 防御 → 装甲・障壁 → 貫通 → オーバーヒール → シールド → HP（輪廻）→ カウンター・棘
   function strike(i, me, foe, sk, x, pow, e, charged) {
     const waza = sk.kind === "waza";
-    const acc = x.sure ? 1 : Math.min(0.97, Math.max(0.75, 0.92 + (st(me, "dex") - st(foe, "agi")) * 0.005)) * (waza && me.fx.blind ? 0.5 : 1) * (1 - (foe.P.foeAcc || 0));   // foeAcc：暗い村のランタン
+    const acc = x.sure ? 1 : hitRate(st(me, "dex"), st(foe, "agi")) * (waza && me.fx.blind ? 0.5 : 1) * (1 - (foe.P.foeAcc || 0));   // foeAcc：暗い村のランタン
     if (R() > acc) { e.hits.push({ miss: true, dmg: 0 }); return false; }
     const ev = Math.min(0.75, amt(foe, "mirage") / 100 + (foe.P.evade || 0) + (foe.P.lowHpEvade && foe.hp <= foe.maxHp * 0.3 ? foe.P.lowHpEvade : 0));
     if (R() < ev) { e.hits.push({ miss: true, dmg: 0 }); if (foe.fx.mirage) { halve(foe, "mirage"); e.notes.push(`${foe.name} は幻影でかわした`); } return false; }
@@ -328,7 +332,7 @@ export function simulateTeams(SA, SB, seed, opts = {}) {
         if (self) e.notes.push(`${me.name} は混乱して自分に使った`);
         let landed = true;
         if (!hasT(id, "dmg") && giveFoe(id)) {                                                    // ダメージのないイタズラも当たるか決める
-          const acc = Math.min(0.97, Math.max(0.75, 0.92 + (st(me, "dex") - st(tgt, "agi")) * 0.005)) * (1 - (tgt.P.foeAcc || 0));
+          const acc = hitRate(st(me, "dex"), st(tgt, "agi")) * (1 - (tgt.P.foeAcc || 0));
           landed = R() < acc; if (!landed) e.notes.push(`${tgt.name} はよけた`);
         }
         let dealt = false;
