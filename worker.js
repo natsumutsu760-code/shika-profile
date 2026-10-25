@@ -370,15 +370,19 @@ async function cardPage() {
 const REPO_RAW = "https://raw.githubusercontent.com/natsumutsu760-code/shika-profile/";
 const REPO_REFS = "https://github.com/natsumutsu760-code/shika-profile.git/info/refs?service=git-upload-pack";
 const SHA_RX = /^[0-9a-f]{40}$/;
-let head = { v: "", at: 0 }, seenHeads = [];   // seenHeads：main の 先頭だった コミット（新しい 順・5 こまで）
+let head = { v: "", at: 0, p: null }, seenHeads = [];   // seenHeads：main の 先頭だった コミット（新しい 順・5 こまで）
+// たしかめて いる あいだに 来た 頼みも 同じ 答えを 待つ（起きた ばかりの worker に 1 ページ 分の 部品が いっせいに 来ても main に しない）
 async function headSha() {
-  if (Date.now() - head.at < 20000) return head.v || "main";
-  head.at = Date.now();
-  try {
-    const r = await fetch(REPO_REFS, { headers: { "User-Agent": "git/2.45 mono-link" }, cf: { cacheTtl: 20, cacheEverything: true } });
-    const m = r.ok && /([0-9a-f]{40}) refs\/heads\/main\b/.exec(await r.text());
-    if (m) { head.v = m[1]; seenHeads = [m[1], ...seenHeads.filter((s) => s !== m[1])].slice(0, 5); }
-  } catch (e) {}
+  if (Date.now() - head.at < (head.v ? 20000 : 5000)) return head.v || "main";   // わからなかった ときは 5 秒 あけて もう一度
+  head.p ||= (async () => {
+    try {
+      const r = await fetch(REPO_REFS, { headers: { "User-Agent": "git/2.45 mono-link" }, cf: { cacheTtl: 20, cacheEverything: true } });
+      const m = r.ok && /([0-9a-f]{40}) refs\/heads\/main\b/.exec(await r.text());
+      if (m) { head.v = m[1]; seenHeads = [m[1], ...seenHeads.filter((s) => s !== m[1])].slice(0, 5); }
+    } catch (e) {}
+    head.at = Date.now(); head.p = null;
+  })();
+  await head.p;
   return head.v || "main";
 }
 // 中の "./x.js"・"/lounge/x.js" に ?v=版 を つける（読みこまれた 先でも また つけるので、下の 部品まで 同じ 版に なる）
