@@ -294,17 +294,23 @@
   /* ゴーグルの中：いまの階の地図。見たマスだけ見える（行き先ごとに色がちがう） */
   .th-hals { --fl:#D9C48E; --rm:#A9CC74; --wl:#3F5E38; --fog:#141C2A; } .th-morph { --fl:#BDB0E2; --rm:#D9CEF6; --wl:#3B305F; --fog:#151428; }
   .th-kurai { --fl:#6D729C; --rm:#8A90BC; --wl:#1F2340; --fog:#0C0E1A; } .th-crystal { --fl:#93CDE0; --rm:#BDEAF6; --wl:#1F3C4C; --fog:#0A1820; }
+  /* ニライ諸島の 階の 地図の 色（島の 絵と そろえる。床 fl・部屋 rm・かべ wl・まだ 見て いない 所 fog） */
+  .th-inoh { --fl:#E6DAB2; --rm:#9FDCCB; --wl:#2E6B6A; --fog:#0E1C22; } .th-gama { --fl:#C9A97C; --rm:#E0C394; --wl:#4A3426; --fog:#160F0C; }
+  .th-tida { --fl:#D8D2B8; --rm:#F0E2A4; --wl:#4E5A52; --fog:#151A1C; } .th-atui { --fl:#A88A64; --rm:#7DBCCB; --wl:#233E52; --fog:#0A1622; }
+  .th-zan { --fl:#86A9C8; --rm:#B0CDEE; --wl:#22324E; --fog:#0B1222; } .th-ufu { --fl:#9A766A; --rm:#D07A56; --wl:#2E2026; --fog:#160C0C; }
+  .th-kaji { --fl:#A8B0BC; --rm:#CDD6E2; --wl:#343C50; --fog:#0E121C; } .th-nirai { --fl:#E6E0D0; --rm:#B8E0D8; --wl:#3E5A66; --fog:#10181E; }
+  .th-mabui { --fl:#8E98AC; --rm:#ADC8D0; --wl:#262C3E; --fog:#0C0F18; } .th-kanai { --fl:#5A6A9C; --rm:#7E92C8; --wl:#141A36; --fog:#070A16; }
   .inside.ex { display:flex; flex-direction:column; gap:10px; padding:14px; min-height:470px; }
   .inside.ex .shade { background:linear-gradient(180deg, rgba(14,18,32,.55), rgba(14,18,32,.82)); }
   .inside.ex .hud { position:relative; left:auto; right:auto; top:auto; }
   .inside.ex .hud span.ex { margin-left:auto; color:#fff; } .inside.ex .hud span.act { color:var(--visor); background:var(--led); } .inside.ex .hud span.act.b { background:#FF7A86; } .inside.ex .hud span.act.r { background:var(--sun); }
   .pgrid { position:relative; z-index:3; display:grid; grid-template-columns:auto minmax(0, 1fr); gap:14px; align-items:start; }
-  .dmap { --c:20px; display:grid; grid-template-columns:repeat(15, var(--c)); grid-auto-rows:var(--c); border-radius:8px; overflow:hidden; box-shadow:0 0 0 2px rgba(255,255,255,.14); background:var(--fog); }
+  .dmap { --c:20px; display:grid; grid-template-columns:repeat(15, var(--c)); grid-auto-rows:var(--c); border-radius:8px; overflow:hidden; box-shadow:0 0 0 2px rgba(255,255,255,.14); background:var(--fog, #121826); }
   .dmap i { position:relative; display:block; background-position:center; background-size:70%; background-repeat:no-repeat; image-rendering:pixelated; }
-  .dmap .fog { background-color:var(--fog); }
-  .dmap .c0 { background-color:var(--wl); }
-  .dmap .c1, .dmap .c3, .dmap .c4, .dmap .c5, .dmap .c6, .dmap .c8 { background-color:var(--fl); }
-  .dmap .c2, .dmap .c7 { background-color:var(--rm); }
+  .dmap .fog { background-color:var(--fog, #121826); }   /* 色の 決まりが まだ ない 行き先でも 透明に しない */
+  .dmap .c0 { background-color:var(--wl, #3A3F55); }
+  .dmap .c1, .dmap .c3, .dmap .c4, .dmap .c5, .dmap .c6, .dmap .c8 { background-color:var(--fl, #C9C2A8); }
+  .dmap .c2, .dmap .c7 { background-color:var(--rm, #E0D9C0); }
   .dmap .c3 { background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8' shape-rendering='crispEdges'%3E%3Cpath fill='%2346D4FF' d='M2 1h4v1h1v6H1V2h1z'/%3E%3Cpath fill='%231B2340' d='M3 3h2v5H3z'/%3E%3C/svg%3E"); }
   .dmap .c4 { background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8' shape-rendering='crispEdges'%3E%3Cg fill='%23FF5A64'%3E%3Crect x='1' y='1' width='2' height='2'/%3E%3Crect x='5' y='1' width='2' height='2'/%3E%3Crect x='3' y='3' width='2' height='2'/%3E%3Crect x='1' y='5' width='2' height='2'/%3E%3Crect x='5' y='5' width='2' height='2'/%3E%3C/g%3E%3C/svg%3E"); }
   .dmap .c5 { background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8' shape-rendering='crispEdges'%3E%3Cpath fill='%237CE05A' d='M3 0h2v3h3v2H5v3H3V5H0V3h3z'/%3E%3Crect x='3' y='3' width='2' height='2' fill='%23E8FFD8'/%3E%3C/svg%3E"); }
@@ -312,7 +318,7 @@
   .dmap .c7 { background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8' shape-rendering='crispEdges'%3E%3Cpath fill='%23FFD24A' d='M0 2h2v1h1V1h2v2h1V2h2v5H0z'/%3E%3Crect x='3' y='4' width='2' height='1' fill='%23FF5A64'/%3E%3C/svg%3E"); }
   .dmap .c8 { background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8' shape-rendering='crispEdges'%3E%3Cpath fill='%23F3E2B8' d='M0 6h2V4h2V2h2V0h2v8H0z'/%3E%3Cpath fill='%231B2340' d='M2 6h6v1H2zM4 4h4v1H4zM6 2h2v1H6z' opacity='.25'/%3E%3C/svg%3E"); }
   .dmap .hid { box-shadow:inset 0 0 0 1px rgba(255,255,255,.5); }
-  .dmap i.op::after { content:""; position:absolute; inset:0; background:var(--fl); opacity:.6; }
+  .dmap i.op::after { content:""; position:absolute; inset:0; background:var(--fl, #C9C2A8); opacity:.6; }
   .dmap .me::before { content:""; position:absolute; inset:3px; z-index:2; border-radius:50%; background:var(--cyan); box-shadow:0 0 0 2px #fff, 0 0 10px var(--cyan); }
   .dmap .me::after { content:""; position:absolute; inset:-6px; z-index:2; border-radius:50%; border:2px solid var(--cyan); animation:ping 1.4s ease-out infinite; opacity:1; background:none; }
   .side { display:grid; gap:10px; align-content:start; min-width:0; }
