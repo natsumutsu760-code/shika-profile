@@ -100,6 +100,7 @@
 <p class="toast" id="toast" role="status"></p>
 <script type="importmap">{ "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.169.0/build/three.module.js" } }</script>
 <script type="module">
+import "./lounge-en.js";   // 英語の 画面（MONO LINK の サイトの EN／日本語 と 同じ 決まり。英語の ときだけ 辞書を 読む）
 import * as THREE from "three";
 import { F, kit, PRICE, SALE, DAILY_OFF, GACHA_COST, GACHA_RATE, salePrice, jstDay, dailyOf } from "./lounge-furniture.js";
 import { me, act, busy, waitText } from "./lounge-client.js";   // 買う・ガチャは 門番に 頼む（見本では ブラウザの 中の ためしの 門番）

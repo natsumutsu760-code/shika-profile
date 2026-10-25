@@ -5,7 +5,7 @@
 //   grant：払えたら 渡す 物。refund：返事を 待った すえに 払えなかったら もどす 物（どちらも しまえる 形の データ）
 // 数は すべて 案（鹿さんと これから 決める）
 import { PETS, QUIZ, score, PLANS, petAt, tripInit, tripStep, tripResult, floorsOpen, newProgress, diaryOf, dungeonRatio, tamedOf, rankOf, rng, DUNGEONS, RUNS, TICK, TOOLS, PURPOSES, SNACK_NEED, SNACK_PRICE, RESEARCH,
-  FACILITIES, STORAGE_CAP, EQUIP_CAP, SNACK_RECIPES, snackMats, SNACK_CRAFT_MAX, toStash, stashHave, BOX_DAYS, MAT_NAME, CRAFT, SYNTH, craftOpen, synthOpen, synthBalls, rollCraft, rollSynth, OPS, BOSS_CORE, baseOf, comboOf, opCount, SCRAP_BALLS, SCRAP_CREDITS, recycleOf, AUTO_SELL_STARS, AUTO_SELL_HOW, autoSellOf, GATHER } from "./game.js";
+  FACILITIES, STORAGE_CAP, EQUIP_CAP, SNACK_RECIPES, snackMats, snackMade, SNACK_CRAFT_MAX, facCap, toStash, stashHave, BOX_DAYS, MAT_NAME, CRAFT, SYNTH, craftOpen, synthOpen, synthBalls, rollCraft, rollSynth, OPS, BOSS_CORE, baseOf, comboOf, opCount, SCRAP_BALLS, SCRAP_CREDITS, recycleOf, AUTO_SELL_STARS, AUTO_SELL_HOW, autoSellOf, GATHER, mapExtra } from "./game.js";
 import { jstDay } from "./lounge-rules.js";
 import { ensureTrade, giveTrade, bump, tripEvents } from "./lounge-trade.js";
 import { ensureReq, giveReq } from "./lounge-req.js";
@@ -20,7 +20,7 @@ export const EQUIP_MAX = EQUIP_CAP[0];                     // 装備を 持て�
 export const FURN_MAX = 99;                                // 同じ 家具を 持てる 数
 export const TRIP_KEEP = 10;                               // 終わった 派遣を のこす 数（結果を 見る ため）
 export const PARTY_MAX = 2;                                // パーティは ペット ＋ なかま 2 体
-export const LAB_OFF = [0, 0.2, 0.35, 0.5];                // 研究所の Lv で 研究の リソースが 安く なる
+export const LAB_OFF = [0, 0.2, 0.35, 0.5, 0.65];          // 研究所の Lv で 研究の リソースが 安く なる（Lv4 は ニライ諸島が 開いてから）
 const DAY = 864e5;
 
 // 前の 記録に ない 入れ物を 足す
@@ -52,7 +52,7 @@ export function putMats(rec, mats, now) {
   return { stash, box };
 }
 // 装備を 持てる 数：武器庫の Lv（鹿さんの頼み、2026-10-25）
-export const equipCap = (rec) => EQUIP_CAP[Math.max(0, Math.min(3, rec.hideout.armory || 0))];
+export const equipCap = (rec) => EQUIP_CAP[Math.max(0, Math.min(EQUIP_CAP.length - 1, rec.hideout.armory || 0))];
 // 装備を 持ち物へ。持てる 数を こえた 分は あずかり箱へ
 export function putEquip(rec, items, now) {
   const cap = equipCap(rec);
@@ -167,8 +167,9 @@ export function snackCraft(rec, b) {
   const t = takeMats(rec, snackMats(r, lv).map(([id, k]) => [id, k * n]));
   if (t.why) return { ok: false, why: t.why };
   applyTake(rec, t.picks);
-  if (r.id === "snack") rec.snacks += n; else { rec.items ||= {}; rec.items[r.id] = (rec.items[r.id] || 0) + n; }
-  return { ok: true, id: r.id, n };
+  const made = snackMade(r, lv, n);   // Lv4 から ふつうの おやつは 2 倍
+  if (r.id === "snack") rec.snacks += made; else { rec.items ||= {}; rec.items[r.id] = (rec.items[r.id] || 0) + made; }
+  return { ok: true, id: r.id, n: made };
 }
 export function tameJoin(rec, b) {
   const c = rec.tamed.find((x) => x.uid === b.uid);
@@ -228,7 +229,7 @@ export function tripStart(rec, b, now, seed) {
   const team = [fighterOf(pet, rec), ...mates.map((c) => mateOf(c, rec))];
   const S = tripInit(team, d.id, run, seed, { purpose, target, tool, floor, progress: prog, lite: true });   // 出かけた ときの ようすで 計算する
   if (tool) rec.tools[tool]--;   // 道具は 持って いく ときに あずかる（お茶は 使わなかったら 帰りに もどす）
-  const t = { uid: newUid(rec, "r"), did: d.id, run, purpose, target, tool, ...(floor ? { floor } : {}), party: [pet.uid, ...mates.map((c) => c.uid)], team, seed, start: now, end: now + S.budget * TICK * 1000, done: false, calc: true };   // floor は えらんだ ときだけ（画面も 同じ 階で 計算しなおす）
+  const t = { uid: newUid(rec, "r"), did: d.id, run, purpose, target, tool, ...(floor ? { floor } : {}), party: [pet.uid, ...mates.map((c) => c.uid)], team, seed, ...(rec.hideout.maproom ? { map: rec.hideout.maproom } : {}), start: now, end: now + S.budget * TICK * 1000, done: false, calc: true };   // floor は えらんだ ときだけ（画面も 同じ 階で 計算しなおす）
   // team：出かけた ときの 戦う 形。出かけて いる あいだも スキルツリー・振り分け・ガンビットは かえられるので、画面と 中継は これで 計算しなおす（いまの 形だと 門番と ずれる）
   rec.trips.push(t);
   return { ok: true, trip: tripView(t, now), sim: { uid: t.uid, r0: dungeonRatio(d.id, prog), S } };
@@ -250,6 +251,9 @@ export function tripDone(rec, sim) {
     ratio: [sim.r0, dungeonRatio(d.id, res.progress)], diary: diaryOf(pet ? pet.species : "shika", res), progress: res.progress,
     stats: tripStats(res, run, tool),   // タスクに 数える できごと
   };
+  // 地図室（出かけた ときの Lv）：Lv2 から 採取の 素材、Lv3 から ふつうの 敵の 素材が ふえる。派遣の くじとは べつの 種（画面の 計算しなおしが ずれない）
+  const mx = t.map >= 2 ? mapExtra(t.map, t.got.materials, d.id, rng((seed ^ 0x2545f491) >>> 0)) : null;
+  if (mx && mx.gather + mx.drop) { t.got.materials = mx.mats; t.got.map = { gather: mx.gather, drop: mx.drop }; }
   t.end = t.start + res.ticks * TICK * 1000;
   delete t.calc;
   return true;
@@ -268,7 +272,7 @@ export function tripCollect(rec, b, now) {
   if (now < t.end) return { ok: false, why: "まだ 帰って いない（あと " + Math.ceil((t.end - now) / 1000) + " 秒）" };
   if (t.calc) return { ok: false, why: "まだ 帰って いない（もう 少し）" };
   const g = t.got, pet = rec.pets.find((p) => p.uid === t.party[0]);
-  const exp = Math.round(g.exp * (1 + 0.1 * (rec.hideout.gym || 0)));   // トレーニング室：＋10%・20%・30%。なかまも ペットと 同じだけ もらう
+  const exp = Math.round(g.exp * (1 + 0.1 * (rec.hideout.gym || 0)));   // トレーニング室：＋10%・20%・30%（Lv4 は 40%）。なかまも ペットと 同じだけ もらう
   const ups = t.party.map((u) => rec.pets.find((p) => p.uid === u) || rec.tamed.find((c) => c.uid === u)).filter(Boolean).map((x) => ({ uid: x.uid, up: levelUp(x, exp), lv: x.lv }));
   for (const p of rec.pets) if (p.type && p.grow && p.grow.auto) autoFill(p);   // 自動なら ふえた SP で ノードを 取る
   const up = ups.length && pet && ups[0].uid === pet.uid ? ups[0].up : 0;
@@ -389,7 +393,7 @@ export function hideoutPlan(rec, b, unknown = []) {
   const f = FACILITIES.find((x) => x.id === b.id);
   if (!f) return { ok: false, why: "知らない 施設" };
   const lv = rec.hideout[f.id] || 0;
-  if (lv >= f.lv.length) return { ok: false, why: "もう いちばん 上の Lv" };
+  if (lv >= facCap(f, rec.hideout)) return { ok: false, why: lv < f.lv.length ? `Lv${lv + 1} は 無線機を 作って から（ニライ諸島が 開くと 上げられる）` : "もう いちばん 上の Lv" };
   if (unknown.some((u) => u.grant && u.grant.hideout === f.id)) return { ok: false, why: "前の 強化が まだ 決まって いない（配信の 画面の 返事を 待って いる）" };
   const need = f.lv[lv].need;
   for (const [fid, flv] of need.fac || []) if ((rec.hideout[fid] || 0) < flv) return { ok: false, why: `${facName(fid)} Lv${flv} が いる` };

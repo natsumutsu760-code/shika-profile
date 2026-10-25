@@ -12,7 +12,7 @@ export { REC_MODES, REC_SCOPES, recommend } from "./recommend.js";   // おす�
 export { DUEL, duelPay, pickFoes, TOUR, TOUR_PAY, tourDay, tourAt, bracketOf, bandMatches, matchSeed, ENC } from "./arena.js";   // 闘技場・派遣先の 戦い
 export { floorMap, FLOORS } from "./floors.js";
 export { DUNGEONS, RUNS, TICK, TOOLS, PURPOSES, SNACK_NEED, SNACK_PRICE, RESEARCH } from "./dungeons.js";
-export { FACILITIES, STORAGE_CAP, EQUIP_CAP, SNACK_RECIPES, snackMats, SNACK_CRAFT_MAX } from "./facilities.js";
+export { FACILITIES, STORAGE_CAP, EQUIP_CAP, SNACK_RECIPES, snackMats, snackMade, SNACK_CRAFT_MAX, mapExtra, facCap } from "./facilities.js";
 export { toStash, stashHave, BOX_DAYS, MAT_NAME, GATHER, sellPrice } from "./materials.js";
 export { CRAFT, SYNTH, craftOpen, synthOpen, synthBalls, rollCraft, rollSynth } from "./recipes.js";
 export { OPS, baseOf, BASES, SLOTS, KINDS, FORMS, MATS, COLS, OLD_SLOT, comboOf, opCount, SCRAP_BALLS, SCRAP_CREDITS, recycleOf, AUTO_SELL_STARS, AUTO_SELL_HOW, autoSellOf, BOSS_CORE, CORE_MAX, opStarOf } from "./equip.js";

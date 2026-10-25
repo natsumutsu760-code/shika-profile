@@ -134,7 +134,9 @@
 </main>
 <p class="toast" id="toast" role="status"></p>
 <script type="module">
-import { CROPS, cropOf, ROW, FARM, growMs, SPRINKLERS, CROP_Q, MINE_FIND, MINE_CAP_H, mineRate } from "./farm.js";
+import "./lounge-en.js";   // 英語の 画面（MONO LINK の サイトの EN／日本語 と 同じ 決まり。英語の ときだけ 辞書を 読む）
+import { CROPS, cropOf, ROW, FARM, growMs, SPRINKLERS, CROP_Q, MINE_FIND, MINE_CAP_H, mineRate, DIG_MORE } from "./farm.js";
+import { FACILITIES, facCap } from "./facilities.js";
 import { WS_ITEMS } from "./workshop.js";
 import { MAT_NAME, GATHER } from "./materials.js";
 import { DUNGEONS } from "./dungeons.js";
@@ -166,6 +168,9 @@ function load(m) {
   if (!S.crop || !have(S.crop)) S.crop = (CROPS.find((c) => have(c.id)) || CROPS[0]).id;
 }
 const HV = () => ME.hideout || {};
+const capOf = (id) => facCap(FACILITIES.find((f) => f.id === id), HV());   // その人が 上げられる Lv の 上限（ニライ諸島が 開くと 4）
+// 地下の 拡張で 次に 畑の 列・坑道の 枠が ふえる Lv（もう ないときは 0）
+const digNext = () => { const d = HV().dig || 0; for (let L = d + 1; L <= capOf("dig"); L++) if ((DIG_MORE[L] || 0) > (DIG_MORE[d] || 0)) return L; return 0; };
 const have = (id) => ((ME.own && ME.own.mats) || []).filter((m) => m.id === id).reduce((a, m) => a + m.n, 0);
 const items = () => (ME.deeplink && ME.deeplink.items) || {};
 const stOf = (p) => (!p ? "empty" : now() >= p.end ? "ready" : "grow");
@@ -194,7 +199,7 @@ function farmLeft() {
     const k = FV.spr[r];
     rows.push(`<div class="row"><button class="spr ${k ? "has" : ""}" data-row="${r}" aria-pressed="${S.side === r}" aria-label="${r + 1} 列目の スプリンクラー（${k ? SPR_NAME[k] : "なし"}）">${k ? wsIcon(k) : NOSPR}<small>${qRange(k)}</small></button>${FV.plots.slice(r * ROW, r * ROW + ROW).map((p, j) => plotHtml(p, r * ROW + j)).join("")}</div>`);
   }
-  const nx = lv < 3 ? `<a class="more" href="hideout.html?f=farm">＋ 畑 Lv${lv + 1} で ${FARM.plots[lv + 1] - FARM.plots[lv]} マス ふえる</a>` : (HV().dig || 0) < 3 ? `<a class="more" href="hideout.html?f=dig">＋ 地下の 拡張 Lv3 で もう 1 列</a>` : "";
+  const dn = digNext(), nx = lv < capOf("farm") ? `<a class="more" href="hideout.html?f=farm">＋ 畑 Lv${lv + 1} で ${FARM.plots[lv + 1] - FARM.plots[lv]} マス ふえる</a>` : dn ? `<a class="more" href="hideout.html?f=dig">＋ 地下の 拡張 Lv${dn} で もう 1 列</a>` : "";
   return `<div class="bar">${bar}</div><div class="field">${rows.join("")}</div>${nx}`;
 }
 function plantSide() {
@@ -229,8 +234,8 @@ function mineLeft() {
     const h = mineH(w), full = h >= MINE_CAP_H;
     slots.push(`<li class="slot">${orb(c)}<div><b>${esc(c.name)}</b><small>Lv${c.lv}・1 時間 ${w.rate} こ</small><div class="pg ${full ? "full" : ""}"><i style="width:${Math.round((h / MINE_CAP_H) * 100)}%"></i></div><small>${full ? `いっぱい（${fmt(h * w.rate)} こ）・うけとると また 掘る` : `${fmt(h * w.rate)} こ たまった・いっぱい まで あと ${left(w.at + MINE_CAP_H * H - now())}`}</small></div><button class="mini" data-stop="${w.uid}">やめる</button></li>`);
   }
-  const nx = lv < 3 ? `<a class="more" href="hideout.html?f=mine">＋ 坑道 Lv${lv + 1} で もう 1 体</a>` : (HV().dig || 0) < 3 ? `<a class="more" href="hideout.html?f=dig">＋ 地下の 拡張 Lv3 で もう 1 体</a>` : "";
-  const finds = Object.keys(MINE_FIND[Math.max(1, Math.min(3, lv))]);
+  const dn = digNext(), nx = lv < capOf("mine") ? `<a class="more" href="hideout.html?f=mine">＋ 坑道 Lv${lv + 1} で もう 1 体</a>` : dn ? `<a class="more" href="hideout.html?f=dig">＋ 地下の 拡張 Lv${dn} で もう 1 体</a>` : "";
+  const finds = Object.keys(MINE_FIND[Math.max(1, Math.min(4, lv))]);
   return `<div class="bar">${bar}</div><ul class="slots">${slots.join("")}</ul>${nx}<div class="finds"><span class="need-h">掘れる 物</span><ul>${finds.map((id) => `<li><img src="${matPic(id)}" alt="">${esc(MAT_NAME[id])}</li>`).join("")}</ul></div>`;
 }
 const BANDS = [[1, 9], [10, 19], [20, 29], [30, 99]];

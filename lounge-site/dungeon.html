@@ -397,6 +397,7 @@
 </main>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 <script type="module">
+import "./lounge-en.js";   // 英語の 画面（MONO LINK の サイトの EN／日本語 と 同じ 決まり。英語の ときだけ 辞書を 読む）
 import { DUNGEONS, RUNS, RESEARCH, PURPOSES, TICK, TOOLS } from "./dungeons.js";
 import { runDungeon, diaryOf, rankOf, tamedOf, newProgress, floorRatio, dungeonRatio, startFloor, floorsOpen } from "./dungeon-sim.js";
 import { floorMap, exploredRatio, keyOf, DIRS, GW, GH, FLOORS, T } from "./floors.js";
@@ -693,7 +694,7 @@ function renderDone() {
       <h2 class="${g.reason === "wipe" ? "lose" : ""}">${title}</h2>
       <p class="sum">${g.wins} 戦 勝った・${g.kills} たい たおした・休憩 ${(g.stats && g.stats.rests) || 0} 回</p>
       <div class="exbox"><span>探索率</span><b>${Math.round(r0 * 100)}%<i>→</i>${Math.round(r1 * 100)}%</b><small>+${Math.max(0, Math.round((r1 - r0) * 100))}%</small></div>
-      <div class="gain"><span>経験値<b>+${GOT ? GOT.exp : g.exp}</b></span><span>クレジット<b>+${g.credits.toLocaleString("ja-JP")}</b></span>${g.snacks ? `<span>おやつ<b>+${g.snacks}</b></span>` : ""}${g.resource ? `<span>リソース<b>+${g.resource}</b></span>` : ""}${g.stats && g.stats.gather ? `<span>採取<b>${g.stats.gather}</b> か所</span>` : ""}</div>
+      <div class="gain"><span>経験値<b>+${GOT ? GOT.exp : g.exp}</b></span><span>クレジット<b>+${g.credits.toLocaleString("ja-JP")}</b></span>${g.snacks ? `<span>おやつ<b>+${g.snacks}</b></span>` : ""}${g.resource ? `<span>リソース<b>+${g.resource}</b></span>` : ""}${g.stats && g.stats.gather ? `<span>採取<b>${g.stats.gather}</b> か所</span>` : ""}${g.map ? `<span>地図室で 素材<b>+${g.map.gather + g.map.drop}</b></span>` : ""}</div>
       ${g.captured.length ? `<h3 class="sub">捕まえた</h3><ul class="caught">${g.captured.map((f) => { const TR = ENEMY_TREES[f.tree], rk2 = rankOf(f); return `<li><span class="orb spr" style="--c:${TYPES[f.type].color}"><img src="${spriteURL(f.tree)}" alt=""></span><div><b>${esc(f.name)}</b><span class="lvb">Lv${f.lv}</span>${rk2 === "通常" ? "" : `<span class="rk">${rk2}</span>`}<span class="tr">スキルツリー「${esc(TR.name)}」</span><span class="lab">なかまの画面で 研究（リソース ${RESEARCH[rk2]}）・懐柔できる</span></div></li>`; }).join("")}</ul>` : ""}
       <h3 class="sub">宝箱から 届いた装備</h3>
       ${mythLi || items ? `<ul class="got">${mythLi}${items}</ul>` : `<p class="none">今回は 宝箱を 見つけられなかった。地図が うまるほど 見つけやすい</p>`}

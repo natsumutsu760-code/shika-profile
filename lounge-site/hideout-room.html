@@ -45,6 +45,7 @@
 </main>
 <script type="importmap">{ "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.169.0/build/three.module.js", "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.169.0/examples/jsm/" } }</script>
 <script type="module">
+import "./lounge-en.js";   // 英語の 画面（MONO LINK の サイトの EN／日本語 と 同じ 決まり。英語の ときだけ 辞書を 読む）
 import * as THREE from "three";
 import { makeHideout, SPOTS, ROOM, areaOf } from "./hideout3d.js";
 import { FACILITIES } from "./facilities.js";
@@ -71,7 +72,7 @@ function look(c, z) { C.copy(c); ZOOM = Math.max(FIT.all.z * 0.8, Math.min(2.2, 
 
 // ふだ（施設の 名前と Lv）。押すと 施設の 画面へ
 const tags = HERE.map((id) => { const f = FACILITIES.find((x) => x.id === id), a = document.createElement("a"), lv = LV[id];
-  a.className = "tag" + (lv ? "" : " zero"); a.href = `hideout.html?f=${id}`; a.innerHTML = `${f.name}<span class="lvp" aria-label="Lv${lv}">${[1, 2, 3].map((k) => `<i class="${k <= lv ? "on" : ""}"></i>`).join("")}</span>`; view.appendChild(a);
+  a.className = "tag" + (lv ? "" : " zero"); a.href = `hideout.html?f=${id}`; a.innerHTML = `${f.name}<span class="lvp" aria-label="Lv${lv}">${f.lv.map((_, k) => `<i class="${k < lv ? "on" : ""}"></i>`).join("")}</span>`; view.appendChild(a);
   document.getElementById("list").appendChild(a.cloneNode(true));
   const sp = SPOTS[id]; return { a, p: new THREE.Vector3(sp.x + (sp.r ? 0.6 : 0), id === "storage" ? 2.6 : 2.35, sp.z + (sp.r ? 0 : 0.6)) }; });
 function size() {

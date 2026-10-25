@@ -16,8 +16,9 @@ const nm = (s) => String(s || "").replace(/[\u0000-\u001f\u007f]/g, "").slice(0,
 
 const JOB_IDS = Object.keys(PLANS);                                              // attacker・caster・technician・healer・defender
 const MASTER = (SHAPE.find((n) => n.master) || { id: "Ab7" }).id;                // 奥義の さいごの ノード（ここまで 取ると マスター）
-const HIDE_MAX = Object.fromEntries(FACILITIES.map((f) => [f.id, f.lv.length])); // 施設の 最大 Lv（どれも 3）
+const HIDE_MAX = Object.fromEntries(FACILITIES.map((f) => [f.id, f.lv.length])); // 施設の 最大 Lv（はじめの 島は 3。ニライ諸島が 開くと 4）
 const HIDE7 = ["bench", "lab", "snack", "maproom", "medic", "gym", "storage"];    // hide3 で 数える 7 つ（あとから 足した 地下の 拡張・工房は 入れない）
+const HIDE3 = 3;   // hide3 は「Lv3 以上の 数」のまま（Lv4 が できても 前の 記録が 減らない ように）
 const DUNGEON_IDS = DUNGEONS.map((d) => d.id);                                   // hals・morph・kurai・crystal
 const MYTHIC_IDS = DUNGEONS.map((d) => d.mythic && d.mythic.id).filter(Boolean); // halsCloak・morphMask・kuraiLantern・crystalCrown
 const TRADER_IDS = TRADERS.map((t) => t.id), REP_TOP = repLv(Infinity);         // 友好度の いちばん 上の Lv（4）。ヨル（special）は Lv が ないので repMax に 入れない
@@ -31,7 +32,7 @@ function derive(b) {
     pets: b.pets, petMax: Math.max(0, ...v(b.pets)), petKinds: Object.keys(b.pets).length, master: b.master,
     boss: b.boss, bossKinds: v(b.boss).filter((n) => n > 0).length, bossTotal: v(b.boss).reduce((a, n) => a + n, 0),
     floor: b.floor, floor5: v(b.floor).filter((n) => n >= FLOORS).length, tamed: b.tamed, lab: b.lab,
-    hide: b.hide, hide3: HIDE7.filter((id) => (b.hide[id] || 0) >= HIDE_MAX[id]).length, furnKinds: b.furnKinds, furn5: b.furn5,
+    hide: b.hide, hide3: HIDE7.filter((id) => (b.hide[id] || 0) >= HIDE3).length, furnKinds: b.furnKinds, furn5: b.furn5,
     rep: b.rep, repMax: TRADER_IDS.filter((id) => repLv(b.rep[id] || 0) >= REP_TOP).length,
     mythic: b.mythic, mythicN: b.mythic.length, recipes: b.recipes, credits: b.credits,
   };

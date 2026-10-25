@@ -208,6 +208,7 @@
 <main id="app"></main>
 <div class="dim" id="dim"></div>
 <script type="module">
+import "./lounge-en.js";   // 英語の 画面（MONO LINK の サイトの EN／日本語 と 同じ 決まり。英語の ときだけ 辞書を 読む）
 import { me, act, busy, waitText } from "./lounge-client.js";   // 持って いる 装備・付ける／はずすは 門番の 記録（見本では ブラウザの 中の ためしの 門番）
 import { mergeAtt, attHtml, attClick } from "./att-panel.js";   // 武器の アタッチメント（先っぽ・持ち手）
 import { mountWallet } from "./wallet-bar.js"; mountWallet();   // 上の 通貨の 札（玉・リソース・クレジット）と 両替

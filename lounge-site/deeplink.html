@@ -158,12 +158,13 @@
   <p class="toast" id="toast" role="status"></p>
 </div>
 <script type="module">
+import { t, enReady } from "./lounge-en.js";   // 英語の 画面（MONO LINK の サイトの EN／日本語 と 同じ 決まり。英語の ときだけ 辞書を 読む）。起動の 文字送りは 訳してから 打つ
 import { TRADERS, SPECIAL, REP_LV, repLv, REQ_FEE, REQ_MAX, REQ_LIMITS, NOTE_PRESETS, NOTE_MAX, NOTE_HIDE_AT, noteBlock, RES_VALUE } from "./deeplink.js";
-import { MAT_NAME, GATHER, sellPrice, MAT_FROM, HIDDEN_MAT } from "./materials.js";
+import { MAT_NAME, GATHER, sellPrice, MAT_FROM, HIDDEN_MAT, matIsle } from "./materials.js";
 import { matPic } from "./mat-icons.js";
 import { BASES, OPS, baseOf } from "./equip.js";
 import { CRAFT, SYNTH } from "./recipes.js";
-import { DUNGEONS, TOOLS } from "./dungeons.js";
+import { DUNGEONS, TOOLS, ISLAND_OPEN } from "./dungeons.js";
 import { me, act, busy, waitText, board, report, notedel } from "./lounge-client.js";   // 商人・タスク・お店・依頼の 板は 門番（見本では ブラウザの 中の ためしの 門番）
 import { mountWallet } from "./wallet-bar.js"; mountWallet({ host: document.getElementById("wallet"), theme: "dark" });   // 通貨の 札（玉・リソース・クレジット）と 両替
 
@@ -293,7 +294,7 @@ function boardHtml() {
       <span class="prog ${full ? "full" : ""}"><i><b style="width:${Math.min(100, (have / need) * 100)}%"></b></i>持っている ${have} / ${need}　${leftText(r.until)}</span>
       <span class="sub">お礼　<span class="rw">${reqReward(r.reward)}</span></span></div>
       <div class="act"><button class="btn" data-req="${esc(r.rid)}" ${full ? "" : "disabled"}>届ける</button></div></li>`; }).join("");
-  const mats = Object.entries(MAT_NAME), sending = ME.req && ME.req.mine && !mineP;
+  const mats = Object.entries(MAT_NAME).filter(([id]) => matIsle(id) <= ISLAND_OPEN), sending = ME.req && ME.req.mine && !mineP;   // まだ 開いて いない 島の 素材は 出さない
   const mine = mineP ? `<div class="post mine"><h3>いま 出している 依頼</h3>
       <p class="mrow">${wantText(mineP.want)}　お礼 <span class="rw">${reqReward(mineP.reward)}</span>　${leftText(mineP.until)}</p>${mineP.note ? `<p class="mrow">「${esc(mineP.note.text)}」</p>` : ""}
       <div class="f"><button class="btn" data-cancel="1">取り下げる</button><span>依頼は 1 人 ${REQ_MAX} つまで</span></div></div>`
@@ -382,9 +383,9 @@ const start = () => { const el = document.getElementById("crt"); if (el.classLis
 if (q.get("boot") === "0" || matchMedia("(prefers-reduced-motion: reduce)").matches) start();
 else {
   const box = document.getElementById("boot"); let i = 0;
-  const step = () => { if (i >= LINES.length) return setTimeout(start, 300); const p = document.createElement("p"); if (i === LINES.length - 1) p.className = "ok"; box.appendChild(p); const s = LINES[i++]; let k = 0;
+  const step = () => { if (i >= LINES.length) return setTimeout(start, 300); const p = document.createElement("p"); if (i === LINES.length - 1) p.className = "ok"; p.setAttribute("data-notr", ""); box.appendChild(p); const s = t(LINES[i++]); let k = 0;
     const type = () => { p.textContent = s.slice(0, ++k); if (k < s.length) setTimeout(type, 22); else setTimeout(step, 140); }; type(); };
-  step();
+  enReady.then(step);
   document.addEventListener("click", start, { once: true });
 }
 </script>

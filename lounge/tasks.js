@@ -56,7 +56,7 @@ const T = {
     (R, n, d) => { const metal = [["pebble", "きれいな小石"], ["brick", "古いレンガ"], ["oldnail", "古い釘"], ["ironore", "鉄鉱石"]][Math.min(tierOf(n), 4) - 1 - (R() < 0.4 && tierOf(n) > 1 ? 1 : 0)]; return { kind: "納める", text: `${metal[1]}を 納める`, need: Math.round(6 * grow(n)), unit: "こ", found: true, mat: metal[0], goal: { type: "deliver", mat: metal[0], q: 0 } }; },
     (R, n) => ({ kind: "作る", text: "作業台で 装備を 作る", need: Math.round(2 * grow(n)), unit: "回", goal: { type: "craft", star: 1 } }),
     (R, n) => n >= 6 ? { kind: "作る", text: "作業台で 合成する", need: 1 + Math.floor(n / 10), unit: "回", goal: { type: "synth" } } : null,
-    (R, n) => { if (n > 18) return null; const f = pick(R, FACILITIES), lv = Math.min(3, 1 + Math.floor(n / 7)); return { kind: "施設", text: `${f.name}を Lv${lv} に する`, need: 1, unit: "", goal: { type: "fac", fac: f.id, lv } }; },
+    (R, n) => { if (n > 18) return null; const lv = Math.min(3, 1 + Math.floor(n / 7)), f = pick(R, FACILITIES.filter((x) => x.lv.length >= lv)); return { kind: "施設", text: `${f.name}を Lv${lv} に する`, need: 1, unit: "", goal: { type: "fac", fac: f.id, lv } }; },
     (R, n, d) => { const fl = Math.min(5, 1 + Math.floor(R() * Math.min(5, 1 + n / 4))); return { kind: "探索", text: `${d.name}の ${fl} 階を 100% に する`, need: 100, unit: "%", goal: { type: "floor", did: d.id, floor: fl } }; },
   ],
   hunter: [

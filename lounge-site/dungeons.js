@@ -55,6 +55,9 @@ export const SNACK_DROP = 0.08, SNACK_PRICE = 50;
 export const SNACK_NEED = { 通常: 10, 希少: 30, ボス: 100 };
 export const CAPTURE = { 通常: 0.012, 希少: 0.012, ボス: 0.004 };   // たおした敵 1 体ごと（探索にして、1 分あたりは前とだいたい同じ 2% くらい）
 export const RESEARCH = { 通常: 10, 希少: 30, ボス: 100 };
+// ゲームに 出て いる 島の 数。2 つめの 島（ニライ諸島。docs/mono-link-island2.md）の 行き先が できたら 2 に する
+// 2 に すると：隠れ家に 無線機（作ると その人は ニライ諸島へ 行ける）・無線機の ある 人は 各施設の Lv4（島の 素材を 使う）が 出る（facilities.js）
+export const ISLAND_OPEN = 1;
 export const DUNGEONS = [
   {
     id: "hals", name: "ハルス街道", lv: 3, color: "#7BC96F", text: "草原をぬける古い街道。はじめての冒険に",

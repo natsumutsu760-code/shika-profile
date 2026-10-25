@@ -149,6 +149,7 @@
 </main>
 
 <script type="module">
+import "./lounge-en.js";   // 英語の 画面（MONO LINK の サイトの EN／日本語 と 同じ 決まり。英語の ときだけ 辞書を 読む）
 const { QUIZ, PETS, score } = await import("./quiz.js?v=" + Date.now());
 import { me, act, busy } from "./lounge-client.js";   // 「この子とはじめる」で 門番に 頼む（答えは 門番も 同じ 決まりで 数える）
 import { mountWallet } from "./wallet-bar.js"; mountWallet();   // 上の 通貨の 札（玉・リソース・クレジット）と 両替

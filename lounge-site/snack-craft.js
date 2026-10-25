@@ -1,6 +1,6 @@
 // おやつ工房で 作る ところ（隠れ家の おやつ工房と なかまの 画面で 同じ 物。鹿さんの決め、2026-10-25）
 // snackCraftHtml(工房の Lv, 持って いる 素材) を ページに 入れる。ボタンは data-snack="id" data-n="数"。ページが act("snack.craft", { id, n }) を 頼む
-import { SNACK_RECIPES, snackMats, SNACK_CRAFT_MAX } from "./facilities.js";
+import { SNACK_RECIPES, snackMats, snackMade, SNACK_CRAFT_MAX } from "./facilities.js";
 import { MAT_NAME } from "./materials.js";
 import { matPic } from "./mat-icons.js";
 
@@ -35,7 +35,7 @@ export function snackCraftHtml(lv, inv) {
     const mats = snackMats(r, lv), max = Math.min(SNACK_CRAFT_MAX, ...mats.map(([id, k]) => Math.floor(have(id) / k)));
     const lack = mats.filter(([id, k]) => have(id) < k).map(([id, k]) => `${MAT_NAME[id]} あと ${k - have(id)}`);
     return `<div class="sk-r">${head}<ul class="sk-m">${mats.map(([id, k]) => `<li class="${have(id) < k ? "ng" : ""}"><img src="${matPic(id)}" alt="">${esc(MAT_NAME[id])}<b>${have(id)} / ${k}</b></li>`).join("")}</ul>
-      <div class="sk-b"><button class="lt" data-snack="${r.id}" data-n="1" ${max ? "" : "disabled"}>1 こ 作る</button><button data-snack="${r.id}" data-n="${max}" ${max > 1 ? "" : "disabled"}>作れるだけ（${max} こ）</button></div>
+      <div class="sk-b"><button class="lt" data-snack="${r.id}" data-n="1" ${max ? "" : "disabled"}>${snackMade(r, lv, 1)} こ 作る</button><button data-snack="${r.id}" data-n="${max}" ${max > 1 ? "" : "disabled"}>作れるだけ（${snackMade(r, lv, max)} こ）</button></div>
       ${max ? "" : `<p class="sk-why">足りない：${esc(lack.slice(0, 2).join("、"))}</p>`}</div>`;
   }).join("")}</div>`;
 }

@@ -32,14 +32,14 @@ export const ATT_BASES = [
 ];
 export const attBase = (id) => ATT_BASES.find((b) => b.id === id) || null;
 // ★の くじ（工房の Lv ごと）。★4 だけ OP が 2 つ
-export const ATT_STAR = { 1: { 1: 70, 2: 30 }, 2: { 1: 35, 2: 45, 3: 20 }, 3: { 2: 40, 3: 40, 4: 20 } };
-export const attOpN = (star) => (star >= 4 ? 2 : 1);
+export const ATT_STAR = { 1: { 1: 70, 2: 30 }, 2: { 1: 35, 2: 45, 3: 20 }, 3: { 2: 40, 3: 40, 4: 20 }, 4: { 3: 35, 4: 45, 5: 20 } };   // Lv4 は ニライ諸島が 開いてから
+export const attOpN = (star) => (star >= 5 ? 3 : star >= 4 ? 2 : 1);
 export const ATT_MAX = 60;   // 武器に 付けて いない アタッチメントを 持てる 数
 
 const pickW = (R, w) => { const t = Object.values(w).reduce((a, b) => a + b, 0); let x = R() * t; for (const [k, v] of Object.entries(w)) if ((x -= v) < 0) return +k; return +Object.keys(w)[0]; };
 // アタッチメントを 1 つ 引く（uid は 呼ぶ 側が つける）
 export function rollAtt(R, base, wsLv) {
-  const star = pickW(R, ATT_STAR[Math.max(1, Math.min(3, wsLv))]), ops = [];
+  const star = pickW(R, ATT_STAR[Math.max(1, Math.min(4, wsLv))]), ops = [];
   const pool = base.pool.filter((k) => (OPS[k].from || 1) <= star && OPS[k].v[star - 1] > 0);
   for (let i = 0; i < attOpN(star) && pool.length; i++) { const k = pool.splice(Math.floor(R() * pool.length), 1)[0]; ops.push(k); }
   return { base: base.id, star, ops };
