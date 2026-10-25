@@ -12,6 +12,7 @@ export const WS_ITEMS = [
   { id: "tea", name: "元気のお茶", note: "派遣の 道具：力つきても 1 回だけ 全回復", lv: 2, to: { tools: { tea: 1 } }, mats: [["herb", 20], ["nightbloom", 10], ["deepwater", 10], ["dream_feather", 1, 2]], credits: 600 },
   { id: "sprinkler2", name: "上の スプリンクラー", note: "品質が もっと 上がる・とどく 広さも 広い", lv: 2, to: { items: { sprinkler2: 1 } }, mats: [["ironore", 15], ["oldnail", 20], ["deepwater", 10]], credits: 900 },
   { id: "sprinkler3", name: "星の スプリンクラー", note: "いちばん 品質が 上がる", lv: 3, to: { items: { sprinkler3: 1 } }, mats: [["crystalbit", 20], ["glowstone", 15], ["rainbow_shell", 1, 3]], credits: 3000 },
+  { id: "blankcore", name: "ブランクコア", note: "装備から OP を 1 つ 抜き出す（抜いた 装備は なくなる。コアは 別の 装備に 付ける）", lv: 2, to: { items: { blankcore: 1 } }, mats: [["crystalbit", 8], ["glowstone", 8], ["slime_core", 1, 2]], credits: 1500 },   // 鹿さんの決め、2026-10-25
 ];
 export const WS_MAX = 20;   // 道具・品を 1 回に 作れる 数
 

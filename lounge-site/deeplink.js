@@ -69,6 +69,7 @@ export const SPECIAL = { id: "special", name: "ヨル", animal: "黒ネコ", dir
   shop: [
     { id: "y-map", name: "かくし通路の地図", note: "1 階ぶん、100% に しなくても 開く", price: 3, cur: "res", lv: 1, stock: 1, left: 1, get: { items: { map: 1 } } },
     { id: "y-collar", name: "なかよしの首輪", note: "なかよしゲージ ＋5", price: 4, cur: "res", lv: 1, stock: 1, left: 1, get: { items: { collar: 1 } } },
+    { id: "y-core", name: "ブランクコア", note: "装備から OP を 1 つ 抜き出す（抜いた 装備は なくなる）", price: 5, cur: "res", lv: 1, stock: 2, left: 2, week: true, get: { items: { blankcore: 1 } } },   // 1 週に 2 こまで（鹿さんの決め、2026-10-25）
     { id: "y-charm", name: "くじの お守り", note: "次の 作る・合成で ★ ＋1", price: 8, cur: "res", lv: 1, stock: 1, left: 1, get: { items: { charm: 1 } } },
   ] };
 // みんなの依頼（ユーザーから ユーザーへ。鹿さんの決め、2026-10-22）。見本の 名前は 仮

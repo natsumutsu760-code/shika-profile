@@ -772,7 +772,7 @@ function bind() {
     if (!r.ok) { document.getElementById("cWhy").textContent = r.why || "うけとれませんでした"; return; }
     if (r.next) { location.reload(); return; }   // 周回中：つぎの 派遣が もう 出発した（まとめに 入る）
     GOT = r; MP.lv = r.lv || MP.lv; fillHead(); paint();
-    toast(`経験値 <b>+${r.exp}</b>${r.up ? `・Lv <b>${r.lv}</b> に 上がった` : ""}${r.sold ? `・装備 ${r.sold.n} こ 売った（${soldGain(r.sold)}）` : ""}${r.boxed ? `・${r.boxed} こ あずかり箱へ` : ""}`);
+    toast(`経験値 <b>+${r.exp}</b>${r.up ? `・Lv <b>${r.lv}</b> に 上がった` : ""}${r.sold ? `・装備 ${r.sold.n} こ 売った（${soldGain(r.sold)}）` : ""}${r.cores ? `・ボスから ブランクコア ×${r.cores}` : ""}${r.boxed ? `・${r.boxed} こ あずかり箱へ` : ""}`);
   });
   // 周回：じゅんびでは アドレスに のこす（ほかの えらびと 同じ）。出かけて いる あいだは 門番に 頼む
   on("[data-loop-sw]", async (b) => {

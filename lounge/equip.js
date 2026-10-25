@@ -183,9 +183,15 @@ export function mainStats(it) {
   for (const [k, w] of Object.entries(base.main)) { const v = MAIN[it.star] * w * sw * (k === "hp" ? 4 : k === "mp" ? 2 : 1), r = Math.round(v); if (r || k === top) out[k] = r || Math.sign(v); }
   return out;
 }
+// ---------- ブランクコア（鹿さんの決め、2026-10-25）----------
+// 装備から OP を 1 つ 抜き出して「コア」に する（ブランクコアを 1 つ 使い、装備は なくなる）。コアは 別の 装備に 付ける
+// 付けた OP の 強さは 抜いた 装備の ★の まま（it.opStar = { 何番めの OP: ★ }）。あいて いる 枠へ。いっぱいなら えらんだ OP と 入れかえ（はずれた OP は 消える）
+// 手に 入れ方：工房で 作る（workshop.js）・ボスから まれに（BOSS_CORE）・ヨルの 店（deeplink.js）
+export const BOSS_CORE = 0.05, CORE_MAX = 100;
+export const opStarOf = (it, i) => (it.opStar && it.opStar[i]) || it.star;
 export function itemStats(it) {
   const out = mainStats(it);
-  for (const op of it.ops) out[op] = (out[op] || 0) + OPS[op].v[it.star - 1];
+  it.ops.forEach((op, i) => { out[op] = (out[op] || 0) + OPS[op].v[opStarOf(it, i) - 1]; });   // コアで 付けた OP は 抜いた 装備の ★の 強さ
   for (const a of Array.isArray(it.att) ? it.att : []) for (const op of a.ops || []) if (OPS[op]) out[op] = (out[op] || 0) + OPS[op].v[a.star - 1];   // 武器の アタッチメント（workshop.js の withAtt で 入れた 写し）
   return out;
 }

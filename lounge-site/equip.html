@@ -98,6 +98,14 @@
   .ops li::before { content:""; width:8px; height:8px; border-radius:50%; background:var(--rc, var(--soft)); flex:none; }
   .ops li.sp { border-color:#FFD98A; background:#FFF8E6; }
   .ops li.sp::after { content:"★3〜"; margin-left:auto; font:600 10px/1 var(--num); color:#C98A00; }
+  .ops li .cst { margin-left:auto; padding:2px 6px; border-radius:99px; background:#EEE8FF; font:700 10.5px/1 var(--jp); color:#6B4FD8; }
+  /* ブランクコア（鹿さんの決め、2026-10-25）：ふだんは 1 行。押すと 抜く／付ける を 開く */
+  .core { margin-top:14px; padding-top:10px; border-top:1.5px dashed var(--line); display:grid; gap:8px; }
+  .core .crow { display:flex; flex-wrap:wrap; align-items:center; gap:6px; } .core .sh { font:900 12px/1 var(--jp); color:var(--soft); margin-right:2px; }
+  .core .cn { font:700 11.5px/1 var(--jp); color:var(--soft); margin-right:auto; } .core .cn b { font:600 13px/1 var(--num); color:#6B4FD8; }
+  .core button { border:1.5px solid var(--line); background:#fff; border-radius:99px; padding:6px 10px; font:700 12px/1 var(--jp); color:var(--ink); }
+  .core button[aria-pressed="true"] { background:#6B4FD8; border-color:#6B4FD8; color:#fff; } .core button.go { background:var(--coral); border-color:var(--coral); color:#fff; }
+  .core button:disabled { opacity:.45; } .core small { font:700 11px/1.4 var(--jp); color:var(--soft); }
   .cmp { margin-top:10px; padding:8px 10px; border-radius:14px; border:1.5px dashed var(--line); }
   .cmp h3 { margin:0 0 4px; font:900 12px/1.3 var(--jp); color:var(--soft); }
   .cmp div { display:flex; justify-content:space-between; font:700 13px/1.6 var(--jp); }
@@ -205,7 +213,7 @@ import { mergeAtt, attHtml, attClick } from "./att-panel.js";   // 武器の ア
 import { mountWallet } from "./wallet-bar.js"; mountWallet();   // 上の 通貨の 札（玉・リソース・クレジット）と 両替
 import { petInfo, linkTabs, gateHtml, addGateCss, toast } from "./pet-head.js";
 import { TYPES } from "./skills.js";
-import { SLOTS, KINDS, OPS, baseOf, itemStats, itemPower, mainStats, hasFx, SCRAP_BALLS, SCRAP_CREDITS, recycleOf, keepInBulk, AUTO_SELL_STARS } from "./equip.js";
+import { SLOTS, KINDS, OPS, baseOf, itemStats, itemPower, mainStats, hasFx, SCRAP_BALLS, SCRAP_CREDITS, recycleOf, keepInBulk, AUTO_SELL_STARS, opStarOf, opCount } from "./equip.js";
 import { DUNGEONS } from "./dungeons.js";
 import { SYNTH } from "./recipes.js";
 import { gearImg, watchIcons } from "./gear-icon.js";
@@ -221,7 +229,7 @@ const EQUIP_MAX = 200;   // 武器庫 Lv0 の 数（門番の equipCap が 来�
 const stars = (n) => `<span class="stars">${"★".repeat(n)}</span>`;
 const sign = (v) => (v < 0 ? `−${Math.abs(v)}` : `+${v}`);
 const SPECIAL = new Set(["mpRegen", "firstStrike", "endure", "focusStart"]);
-const opLine = (it, o) => esc(OPS[o].fmt(OPS[o].v[it.star - 1]));
+const opLine = (it, o, i) => { const st = opStarOf(it, i); return esc(OPS[o].fmt(OPS[o].v[st - 1])) + (st !== it.star ? `<small class="cst">コア ★${st}</small>` : ""); };
 const mainLine = (it) => Object.entries(mainStats(it)).map(([k, v]) => `${SL[k]} ${sign(v)}`).join("・");
 // 数の ちがい（ステータスと % の OP。とくべつな OP は 一覧で 見る）
 const diffOf = (a, b) => { const x = a ? itemStats(a) : {}, y = b ? itemStats(b) : {}, out = [];
@@ -284,11 +292,11 @@ function render() {
     det = `<div class="top2"><span class="ico">${gearImg(it.base)}</span>
         <div><h2>${esc(b.name)}<span class="slotname">${KINDS[b.slot].label}</span></h2>${stars(it.star)}</div></div>
       <div class="main"><span>もとの強さ</span><b>${esc(mainLine(it))}</b></div>
-      ${it.ops.length ? `<ul class="ops">${it.ops.map((o) => `<li class="${SPECIAL.has(o) ? "sp" : ""}">${opLine(it, o)}</li>`).join("")}</ul>` : ""}
+      ${it.ops.length ? `<ul class="ops">${it.ops.map((o, i) => `<li class="${SPECIAL.has(o) ? "sp" : ""}">${opLine(it, o, i)}</li>`).join("")}</ul>` : ""}
       ${hasFx(it) ? `<p class="note">とくべつな効果：${esc(b.fx || b.text || "")}</p>` : ""}
       ${cmp ? `<div class="cmp"><h3>いまの ${esc(baseOf(now.base).name)} ★${now.star} とくらべると</h3>${cmp.length ? cmp.map(([k, d]) => `<div class="${d > 0 ? "up" : "dn"}"><span>${nameOf(k)}</span><b>${val(k, d)}</b></div>`).join("") : `<p class="note">数は おなじ</p>`}</div>` : ""}
       ${b.slot === "weapon" ? attHtml(ME, it, { away: !!busyAway }) : ""}
-      <div class="btns">${btn}${sy ? `<a class="linkish" href="bench.html?k=s:${sy.out}">作業台で 合成する</a>` : ""}</div>${w ? "" : scrapHtml(it)}`;
+      <div class="btns">${btn}${sy ? `<a class="linkish" href="bench.html?k=s:${sy.out}">作業台で 合成する</a>` : ""}</div>${coreHtml(it, w, busyAway)}${w ? "" : scrapHtml(it)}`;
   }
   if (V.rec) det = recHtml();
   return `
@@ -362,6 +370,35 @@ async function recGo(b) {
   ME = mergeAtt(await me()); MP = ME.pets[0]; V.rec = null; document.body.classList.remove("sheet-on"); paint();
   toast(`${r.n} 枠 かえた・${r.power.map((x) => `${x.name} 強さ ${x.before} → ${x.after}`).join("・")}`);
 }
+// ---------- ブランクコア（鹿さんの決め、2026-10-25）：OP を 抜く（装備は なくなる）・コアを 付ける（あいて いる 枠へ・いっぱいなら 入れかえ） ----------
+const blankN = () => ((ME.deeplink && ME.deeplink.items) || {}).blankcore || 0, coresOf = () => (ME.own && ME.own.cores) || [];
+const coreName = (c) => `${OPS[c.op].label} ★${c.star}（${OPS[c.op].fmt(OPS[c.op].v[c.star - 1])}）`;
+function coreHtml(it, w, busyAway) {
+  const bn = blankN(), cs = coresOf(), b = baseOf(it.base), n = opCount(b.slot, it.star);
+  if (!bn && !cs.length) return "";   // まだ 持って いない ときは 出さない（工房・ヨルの 店・ボスで 手に 入る）
+  const mode = V.core && V.core.uid === it.uid ? V.core.mode : null, key = (x) => `${it.uid}:core:${x}`;
+  let body = "";
+  if (mode === "take") body = w ? `<small>付けて いる 装備からは 抜けない（はずして から）</small>` : !it.ops.length ? `<small>この 装備には OP が ない</small>`
+    : `<div class="crow">${it.ops.map((o, i) => `<button class="${V.conf === key(i) ? "go" : ""}" data-ctake="${i}">${V.conf === key(i) ? "もう一度 押すと 抜く（装備は なくなる）" : `${esc(OPS[o].label)} ★${opStarOf(it, i)} を 抜く`}</button>`).join("")}</div><small>ブランクコアを 1 つ 使う。抜いた OP は コアに なり、別の 装備に 付けられる</small>`;
+  if (mode === "set") {
+    const c = cs.find((x) => x.uid === V.core.csel);
+    body = busyAway ? `<small>出かけて いる あいだは かえられない</small>` : `<div class="crow">${cs.map((x) => `<button data-csel="${x.uid}" aria-pressed="${!!c && c.uid === x.uid}">${esc(coreName(x))}</button>`).join("")}</div>`;
+    if (c && !busyAway) {
+      const free = it.ops.length < n, dupAt = it.ops.indexOf(c.op);
+      body += free && dupAt < 0 ? `<div class="crow"><button data-cset="free">あいて いる 枠に 付ける</button></div>`
+        : `<div class="crow">${it.ops.map((o, i) => { const ng = dupAt >= 0 && dupAt !== i; return `<button class="${V.conf === key("s" + i) ? "go" : ""}" data-cset="${i}" ${ng ? "disabled" : ""}>${V.conf === key("s" + i) ? "もう一度 押すと 入れかえ" : `${esc(OPS[o].label)} と 入れかえ`}</button>`; }).join("")}</div>
+          <small>${n ? (dupAt >= 0 ? `${esc(OPS[c.op].label)}は もう 付いて いる（同じ OP と 入れかえ）` : "OP の 枠が いっぱい。はずれた OP は 消える") : "この 装備には OP の 枠が ない"}</small>`;
+    }
+  }
+  return `<div class="core"><div class="crow"><span class="sh">コア</span><span class="cn">ブランクコア <b>${bn}</b>・コア <b>${cs.length}</b></span>
+      <button data-cmode="take" aria-pressed="${mode === "take"}" ${bn ? "" : "disabled"}>OP を 抜く</button><button data-cmode="set" aria-pressed="${mode === "set"}" ${cs.length ? "" : "disabled"}>コアを 付ける</button></div>${body}</div>`;
+}
+async function doCore(b, a, body, done) {
+  const r = await busy(b, () => act(a, body));
+  V.conf = null;
+  if (!r.ok) { paint(); return toast(r.wait ? waitText : r.why || "できませんでした"); }
+  ME = mergeAtt(await me()); MP = ME.pets[0]; done(r); paint();
+}
 // ---------- 手放す（鹿さんの決め、2026-10-25）：玉・クレジットで 売る・リサイクルで 素材に。押し まちがえない ように 2 回 押す ----------
 const HOW = { balls: "玉で 売る", credits: "クレジットで 売る", recycle: "リサイクル" };
 const dName = (did) => (DUNGEONS.find((d) => d.id === did) || { name: "" }).name;
@@ -421,7 +458,7 @@ document.body.addEventListener("click", async (e) => {
   const b = e.target.closest("button"); if (!b || b.disabled) return;
   const d = b.dataset;
   if (await attClick(b, ME, async (fresh) => { if (fresh) { ME = mergeAtt(await me()); MP = ME.pets[0]; } paint(); }, toast)) return;   // アタッチメント
-  if (!d.scrap && !d.bulkgo && V.conf) V.conf = null;   // ほかを 押したら 2 回めの 待ちを やめる
+  if (!d.scrap && !d.bulkgo && d.ctake == null && d.cset == null && V.conf) V.conf = null;   // ほかを 押したら 2 回めの 待ちを やめる
   if (d.scrap) { const k = `${d.su}:${d.scrap}`; if (V.conf !== k) { V.conf = k; return paint(); } return doScrap(b, [d.su], d.scrap); }
   if (d.rec) { V.rec = V.rec ? null : { mode: recMode(), scope: "one" }; paint(); if (V.rec && small()) document.body.classList.add("sheet-on"); return; }   // おすすめ装備
   if (d.rk) { V.rec[d.rk] = d.rv; if (d.rk === "mode") try { localStorage.setItem("ml-rec-mode", d.rv); } catch (x) {} return paint(); }
@@ -435,7 +472,14 @@ document.body.addEventListener("click", async (e) => {
   if (d.bhow) { V.bhow = d.bhow; return paint(); }
   if (d.bulkgo) { if (V.conf !== "bulk") { V.conf = "bulk"; return paint(); } return doScrap(b, bulkPick(ME.own.equip || [], wornBy()).pick.map((e) => e.uid), V.bhow); }
   if (d.u || d.slot) V.rec = null;
-  if (d.u) { V.sel = d.u; paint(); if (small()) document.body.classList.add("sheet-on"); return; }
+  if (d.cmode) { V.core = V.core && V.core.uid === V.sel && V.core.mode === d.cmode ? null : { uid: V.sel, mode: d.cmode, csel: (coresOf()[0] || {}).uid }; V.conf = null; return paint(); }
+  if (d.csel) { V.core.csel = d.csel; V.conf = null; return paint(); }
+  if (d.ctake != null) { const k = `${V.sel}:core:${d.ctake}`; if (V.conf !== k) { V.conf = k; return paint(); }
+    return doCore(b, "core.take", { uid: V.sel, i: +d.ctake }, (r) => { V.sel = null; V.core = null; document.body.classList.remove("sheet-on"); toast(`${OPS[r.core.op].label} ★${r.core.star} の コアが できた`); }); }
+  if (d.cset != null) { const c = V.core.csel, i = d.cset === "free" ? null : +d.cset, k = `${V.sel}:core:s${d.cset}`;
+    if (i != null && V.conf !== k) { V.conf = k; return paint(); }
+    return doCore(b, "core.set", { core: c, uid: V.sel, ...(i == null ? {} : { i }) }, (r) => { V.core = null; toast(`${OPS[r.op].label} ★${r.star} を 付けた`); }); }
+  if (d.u) { V.sel = d.u; V.core = null; paint(); if (small()) document.body.classList.add("sheet-on"); return; }
   if (d.f) { V.f = d.f; V.slot = null; V.sel = null; return paint(); }
   if (d.slot) {   // 枠を 押す：一覧が その 部位 だけに（もう 一度 押すと もどる）
     if (V.slot === d.slot) { V.slot = null; return paint(); }

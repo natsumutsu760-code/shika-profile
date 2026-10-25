@@ -130,7 +130,7 @@
 </main>
 <p class="toast" id="toast" role="status"></p>
 <script type="module">
-import { BASES, KINDS, FORMS, MATS, OPS, baseOf, comboOf, matsOf } from "./equip.js";
+import { BASES, KINDS, FORMS, MATS, OPS, baseOf, comboOf, matsOf, opStarOf } from "./equip.js";
 import { CRAFT, SYNTH, MAT_OP, CRAFT_STAR, SYNTH_STAR, BOSS_FX, craftOpen, synthOpen, synthBalls } from "./recipes.js";
 import { MAT_NAME, MAT_FROM, HIDDEN_MAT, GATHER, ENEMY_MAT } from "./materials.js";
 import { DUNGEONS } from "./dungeons.js";
@@ -220,7 +220,7 @@ function madeHtml() {
   if (!S.made) return "";
   const it = S.made, b = baseOf(it.base), likes = R(S.sel).mats.map(([id]) => MAT_OP[id]);
   return `<div class="made"><span class="ic">${gearImg(it.base)}</span><div><h3><small>できた！</small>${esc(b.name)} ${stars(it.star)}</h3>
-    <ul>${it.ops.map((o) => `<li class="${likes.includes(o) ? "like-op" : ""}">${esc(OPS[o].fmt(OPS[o].v[it.star - 1]))}</li>`).join("")}</ul>${it.fx ? `<p class="fx">とくべつな効果：${esc(b.fx)}</p>` : ""}</div></div>`;
+    <ul>${it.ops.map((o, i) => `<li class="${likes.includes(o) ? "like-op" : ""}">${esc(OPS[o].fmt(OPS[o].v[opStarOf(it, i) - 1]))}</li>`).join("")}</ul>${it.fx ? `<p class="fx">とくべつな効果：${esc(b.fx)}</p>` : ""}</div></div>`;
 }
 function detailHtml() {
   const k = S.sel, r = R(k), up = k.startsWith("s:"), id = up ? r.out : r.base, b = baseOf(id), st = stateOf(k), fm = formOf(k);

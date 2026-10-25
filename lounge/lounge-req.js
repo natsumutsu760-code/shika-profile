@@ -41,7 +41,7 @@ export function fits(want, items) {
   return Array.isArray(items.equip) && items.equip.length === 1 && items.equip[0].base === want.equip && items.equip[0].star >= want.star && !(items.mats || []).length;
 }
 // 預ける・わたす 物の 形。装備の 番号は 落とす（受けとる 人の 番号を つけなおす）。買った 印（b）は のこす（もどす とき 拾った 物に ならない ように）
-const strip = (e) => ({ base: e.base, star: e.star, ops: [...(e.ops || [])], ...(e.fx ? { fx: true } : {}), ...(e.b ? { b: 1 } : {}) });
+const strip = (e) => ({ base: e.base, star: e.star, ops: [...(e.ops || [])], ...(e.opStar ? { opStar: { ...e.opStar } } : {}), ...(e.fx ? { fx: true } : {}), ...(e.b ? { b: 1 } : {}) });
 export const items = (x) => ({ mats: (x.mats || []).map((m) => ({ id: m.id, q: m.q || 0, n: m.n, ...(m.b ? { b: 1 } : {}) })), equip: (x.equip || []).map(strip) });
 
 // 渡す 物の データ（lounge-game.js の give から 呼ぶ）

@@ -15,5 +15,6 @@ const ICONS = {
   strap: W(`<path d="M9 4c-3 6-3 12 4 16" fill="none" stroke="#B197FC" stroke-width="3.2"/><path d="M15 4c3 6 3 12-2 16" fill="none" stroke="#8E6CFF" stroke-width="3.2"/><circle cx="13" cy="24" r="4.5" fill="#FFD43B" stroke="#B88A00" stroke-width="1.5"/><path d="M13 22v4M11 24h4" stroke="#B88A00" stroke-width="1.3"/>`),
   weight: W(`<path d="M11 10a5 5 0 0 1 10 0" fill="none" stroke="#3E4658" stroke-width="3"/><path d="M7 14h18l2 10a3 3 0 0 1-3 3H8a3 3 0 0 1-3-3z" fill="#6A7088" stroke="#2B3040" stroke-width="1.6"/><path d="M10 18h6" stroke="#9AA3B8" stroke-width="1.8"/>`),
   bell: W(`<path d="M16 4a2 2 0 0 1 2 2v1a7 7 0 0 1 5 6.7V20l2.5 3H6.5L9 20v-6.3A7 7 0 0 1 14 7V6a2 2 0 0 1 2-2z" fill="#F3C24F" stroke="#9A6A12" stroke-width="1.6"/><circle cx="16" cy="25.5" r="2.4" fill="#9A6A12"/><path d="M12 13a4 4 0 0 1 3-3" fill="none" stroke="#FFF2C2" stroke-width="1.8"/>`),
+  blankcore: W(`<path d="M16 3l11 6.5v13L16 29 5 22.5v-13z" fill="#EEE8FF" stroke="#6B4FD8" stroke-width="1.8"/><path d="M16 9l6 3.5v7L16 23l-6-3.5v-7z" fill="#fff" stroke="#B197FC" stroke-width="1.4" stroke-dasharray="2 1.6"/><path d="M8 10.5l3 1.8" stroke="#fff" stroke-width="1.6"/>`),   // ブランクコア（中が 空いた 結晶）
 };
 export const wsIcon = (id) => ICONS[id] || W(`<circle cx="16" cy="16" r="10" fill="#DCE3F0"/>`);
