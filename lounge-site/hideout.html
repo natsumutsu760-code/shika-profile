@@ -280,7 +280,7 @@ function stashHtml() {
   return `<section class="panel stash" aria-label="倉庫の中"><header><h2>倉庫の 中</h2><span class="cap">1 しゅるい <b>${cap}</b> こ まで${all.filter((e) => e.n >= cap).length ? `<span class="fl">いっぱい ${all.filter((e) => e.n >= cap).length}</span>` : ""}</span></header>
     <div class="ktabs" role="tablist" aria-label="しゅるい">${KINDS.map(([k, name]) => `<button role="tab" data-act="sk" data-v="${k}" aria-selected="${S.sk === k}" class="${nK(k) ? "" : "zero"}">${name}<small>${nK(k)}</small></button>`).join("")}</div>
     <div class="filters" role="group" aria-label="分け方">
-      ${ISLAND_OPEN >= 2 ? `<div class="frow"><span>島</span><div>${chip("si", "all", "すべて", nI("all"))}${chip("si", "1", "はじまりの島", nI("1"))}${chip("si", "2", "ニライ諸島", nI("2"))}</div></div>` : ""}
+      ${ISLAND_OPEN >= 2 ? `<div class="frow"><span>島</span><div>${chip("si", "all", "すべて", nI("all"))}${chip("si", "1", "マッサラ島", nI("1"))}${chip("si", "2", "ニライ諸島", nI("2"))}</div></div>` : ""}
       ${ISLAND_OPEN < 2 || S.si !== "all" ? `<div class="frow"><span>行き先</span><div>${chip("sw", "all", "すべて", nW("all"))}${DUNGEONS.filter((d) => ISLAND_OPEN < 2 || (d.isle || 1) === +S.si).map((d) => chip("sw", d.id, d.name, nW(d.id))).join("")}</div></div>` : ""}
       <div class="frow"><span>ならべる</span><div>${SORTS.map(([k, name]) => chip("sort", k, name, null)).join("")}</div></div></div>
     ${groups ? `<div class="tk">${groups}</div>${info}` : `<p class="empty">${KIND_NOTE[S.sk]}。いまは ない</p>`}</section>`;

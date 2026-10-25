@@ -271,11 +271,14 @@ function tripStats(res, run, tool) {
   return { kills, caught, gather: res.gathered.length, chests: ch.length, hchests: ch.filter((c) => c.hidden).length, rests: res.rests, wipe: res.reason === "wipe", boss: res.bossDefeated ? 1 : 0, run, tool };
 }
 // 帰って きた 派遣の ごほうびを うけとる。リソース（ボス）は earn で 帳簿へ
+// 玉の 支払いの 返事を まだ 待って いる 派遣か（返事が おくれて 出発した とき。帳簿の unknown に その 派遣の voidTrip が ある）
+export const payWaiting = (rec, t) => ((rec.ledger && rec.ledger.unknown) || []).some((x) => x.refund && x.refund.voidTrip === t.uid);
 export function tripCollect(rec, b, now) {
   const t = rec.trips.find((x) => !x.done && (!b.uid || x.uid === b.uid));
   if (!t) return { ok: false, why: "出かけて いない" };
   if (now < t.end) return { ok: false, why: "まだ 帰って いない（あと " + Math.ceil((t.end - now) / 1000) + " 秒）" };
   if (t.calc) return { ok: false, why: "まだ 帰って いない（もう 少し）" };
+  if (payWaiting(rec, t)) return { ok: false, wait: true, why: "派遣の 玉の 支払いを たしかめて います（配信の 画面が こたえたら 受けとれます）" };   // 払えなかったと あとで わかったら 収穫は なし（voidTrip）。受けとった あとでは 取り消せないので 待つ
   const g = t.got, pet = rec.pets.find((p) => p.uid === t.party[0]);
   if (t.void) Object.assign(g, { exp: 0, credits: 0, snacks: 0, resource: 0, materials: [], equip: [], captured: [], mythic: null, stats: null });   // 玉が 払えなかった 派遣：収穫は なし（探索の 進みは のこす）
   const exp = Math.round(g.exp * (1 + 0.1 * (rec.hideout.gym || 0)));   // トレーニング室：＋10%・20%・30%（Lv4 は 40%）。なかまも ペットと 同じだけ もらう

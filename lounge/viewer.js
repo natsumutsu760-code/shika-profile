@@ -16,7 +16,7 @@ import { coreTake, coreSet } from "./lounge-core.js";   // ブランクコア（
 import { wsMake, wsAtt, attSet, attOff, attDrop } from "./lounge-workshop.js";   // 工房（道具・アタッチメント）
 import { farmPlant, farmHarvest, farmSpr, mineSet, mineCollect, mineLeave, farmView } from "./lounge-farm.js";   // 畑と 坑道
 import { statPut } from "./lounge-stats.js";   // 記録の まとめ（OBS の コスメの 条件。かわった ときだけ Lounge へ）
-import { ensure, give, FURN_MAX, petFirst, petJob, tripStart, tripCalc, tripDone, tripCollect, tripView, hideoutPlan, craftPlan, synthPlan, boxTake, dropOld, stashCap, tameFeedPlan, tameJoin, tameBack, researchPlan, snackCraft, autoSellSet, equipCap, loopNew, loopSet, loopSeen, loopAfter, loopStep, equipScrap } from "./lounge-game.js";
+import { ensure, give, FURN_MAX, petFirst, petJob, tripStart, tripCalc, tripDone, tripCollect, payWaiting, tripView, hideoutPlan, craftPlan, synthPlan, boxTake, dropOld, stashCap, tameFeedPlan, tameJoin, tameBack, researchPlan, snackCraft, autoSellSet, equipCap, loopNew, loopSet, loopSeen, loopAfter, loopStep, equipScrap } from "./lounge-game.js";
 import { arenaFighter, ensureArena, duelCheck, duelDone, arenaMine, encReady, encPick, encDone } from "./lounge-arena.js";   // 闘技場・派遣先の 戦い
 import { hidden } from "./lounge-gate.js";
 
@@ -90,7 +90,8 @@ export class Viewer {
     const rec = await this.load(), now = Date.now(); if (!rec || !rec.loop || !rec.loop.on) return;
     const t = rec.trips.find((x) => !x.done); if (!t || t.calc) return;
     if (now < t.end) { await this.state.storage.setAlarm(t.end); return; }   // 早く 鳴った
-    const s = loopStep(rec, now, Math.floor(rand() * 2 ** 31)); if (!s) return;
+    const s = loopStep(rec, now, Math.floor(rand() * 2 ** 31));
+    if (!s) { if (payWaiting(rec, t)) await this.state.storage.setAlarm(Date.now() + 5 * 60 * 1000); return; }   // 玉の 支払いの 返事待ち：あとで もう 1 回（返事が 来たら /acked からも 起こす）
     await this.relay("del", { id: rec.id, uid: s.uid });
     for (const e of s.r.earn || []) await this.earn(rec, e.kind, e.d, "trip.loop");   // ボスの リソースは 帳簿へ
     let next = s.next;
@@ -417,6 +418,7 @@ export class Viewer {
           const rec = await this.load(); if (!rec) return { left: 0 };
           const left = settle(rec.ledger, b.res, (g) => this.give(rec, g));
           await this.save(rec);
+          if (rec.loop && rec.loop.on) await this.state.storage.setAlarm(Date.now());   // 周回：支払いが 決まったら つづきへ（返事待ちで 止まって いた ぶん）
           return { left };
         }));
       }

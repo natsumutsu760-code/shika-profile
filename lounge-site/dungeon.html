@@ -518,8 +518,8 @@ const ROUTE2 = [
   { hide: "mabui", sea: true, d: "M152 388 C147 391 128 413 121 406 C114 399 110 364 111 345 C112 326 122 299 124 290" },
   { hide: "kanai", sea: true, d: "M709 670 C720 678 750 703 773 715 C796 727 825 737 848 743 C871 749 901 750 912 752" },
 ];
-// 最初の 島には まだ 名前が ない（タブの 呼び名は 仮）
-const ISLES = { 1: { name: "はじまりの島", home: HOME, homeName: "スタート", pos: MAP_POS }, 2: { name: "ニライ諸島", home: HOME2, homeName: "ニライ村", pos: POS2 } };
+// 最初の 島の 名前は「マッサラ島」（鹿さんの決め、2026-10-25）
+const ISLES = { 1: { name: "マッサラ島", home: HOME, homeName: "スタート", pos: MAP_POS }, 2: { name: "ニライ諸島", home: HOME2, homeName: "ニライ村", pos: POS2 } };
 const isleOf = (d) => d.isle || 1;
 // その人が 行けるか（門番と 同じ canGo）。島 2 は 無線機、かくしは 商人の つながった タスクの 先
 const chainN = (tid) => (((ME.deeplink && ME.deeplink.traders) || []).find((t) => t.id === tid) || { chain: { n: 1 } }).chain?.n || 1;
