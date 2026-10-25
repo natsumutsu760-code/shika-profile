@@ -79,16 +79,10 @@
   .waiting h2 { font:900 18px/1.3 var(--jp); } .waiting h2 small { font:700 12px/1 var(--jp); color:var(--soft); margin-left:8px; }
   .waiting .lead { margin:4px 0 12px; font:700 12px/1.6 var(--jp); color:var(--soft); }
   .list { list-style:none; margin:0; padding:0; display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:10px; }
-  /* 分け方：レア度・Lv でしぼって、ならべかたをえらぶ。一覧はレア度ごとにまとめる */
-  .filters { display:grid; gap:6px; margin:10px 0 12px; padding:10px 12px; border-radius:16px; background:var(--space); position:relative; z-index:1; }
-  .frow { display:flex; align-items:center; gap:6px; flex-wrap:wrap; }
-  .frow > span { width:64px; flex:none; font:900 11px/1.2 var(--jp); color:var(--soft); }
   .chip { border:1.5px solid var(--line); background:#fff; border-radius:999px; padding:5px 10px; font:700 12px/1 var(--jp); display:inline-flex; align-items:center; gap:5px; }
   .chip small { font:600 11px/1 var(--num); color:var(--soft); }
   .chip[aria-pressed="true"] { background:var(--ink); border-color:var(--ink); color:#fff; } .chip[aria-pressed="true"] small { color:rgba(255,255,255,.7); }
   .chip:disabled { opacity:.4; }
-  .grp { display:flex; align-items:center; gap:8px; margin:14px 0 8px; font:900 13px/1.2 var(--jp); position:relative; z-index:1; } .grp:first-of-type { margin-top:0; }
-  .grp small { font:700 11px/1 var(--jp); color:var(--soft); } .grp::after { content:""; flex:1; height:1.5px; background:var(--line); }
   .pick { width:100%; display:grid; grid-template-columns:auto minmax(0, 1fr); gap:10px; align-items:center; text-align:left; padding:10px 12px 10px 10px; border-radius:18px; border:2px solid var(--line); background:#fff; }
   .pick[aria-pressed="true"] { border-color:var(--sky); box-shadow:0 0 0 3px rgba(46,168,255,.16); background:#F4FAFF; }
   .pick b { font:700 14px/1.3 var(--jp); } .pick .rk { margin-left:4px; }
@@ -105,12 +99,18 @@
   .dx .ring.full::after { content:""; position:absolute; right:-2px; bottom:-1px; width:16px; height:14px; background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 7 6' shape-rendering='crispEdges'%3E%3Cpath fill='%23FF5A8A' d='M1 0h2v1h1V0h2v1h1v2H6v1H5v1H4v1H3V5H2V4H1V3H0V1h1z'/%3E%3C/svg%3E") center / contain no-repeat; filter:drop-shadow(1px 1px 0 #fff) drop-shadow(-1px -1px 0 #fff); }
   .dx b { max-width:100%; font:700 12px/1.25 var(--jp); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
   .dx small { font:600 11px/1 var(--num); color:var(--soft); }
-  .grp i { width:10px; height:10px; border-radius:3px; background:var(--c); flex:none; }
-  /* おやつを 作る（おやつ工房と 同じ 部品）・とくべつおやつ */
-  .mk { margin-top:12px; padding-top:10px; border-top:1.5px dashed var(--line); }
-  .mk > button.tg { width:100%; display:flex; align-items:center; gap:8px; border:0; background:none; padding:2px 0; font:900 13px/1.3 var(--jp); color:var(--ink); text-align:left; }
-  .mk > button.tg span { margin-left:auto; font:700 12px/1 var(--jp); color:var(--soft); }
-  .mk .sk { margin-top:8px; } .mk p { margin:6px 0 0; font:700 12px/1.5 var(--jp); color:var(--soft); } .mk p a { color:#1E6FB0; font-weight:900; }
+  /* タブ（鹿さんの決め、2026-10-25）：となりの部屋は えらんだ 職業だけ・えらんだ子は おやつ／作る／研究の 1 つだけ */
+  .jtabs { display:flex; flex-wrap:wrap; gap:5px; margin:10px 0 8px; position:relative; z-index:1; } .jtabs button { flex:1 1 auto; padding:8px 10px; }
+  .ftabs { display:grid; grid-template-columns:repeat(3, minmax(0, 1fr)); gap:5px; }
+  .jtabs button, .ftabs button { display:flex; align-items:center; justify-content:center; gap:5px; min-width:0; border:1.5px solid var(--line); background:#fff; border-radius:12px; padding:8px 4px; font:700 12.5px/1 var(--jp); color:var(--ink); white-space:nowrap; }
+  .jtabs i { width:9px; height:9px; border-radius:3px; background:var(--c); flex:none; }
+  .jtabs small, .ftabs small { font:600 11px/1 var(--num); color:var(--soft); }
+  .jtabs button[aria-selected="true"], .ftabs button[aria-selected="true"] { background:var(--ink); border-color:var(--ink); color:#fff; box-shadow:0 4px 0 rgba(27,35,64,.2); }
+  .jtabs button[aria-selected="true"] small, .ftabs button[aria-selected="true"] small { color:rgba(255,255,255,.7); }
+  .jtabs button:disabled { color:#A9B0C6; border-style:dashed; }
+  .fline { display:flex; align-items:center; gap:5px; flex-wrap:wrap; margin:0 0 12px; position:relative; z-index:1; } .fline .gap { flex:1; } .fline .chip { padding:5px 8px; }
+  .fpane .sk { margin:0; } .fpane > p { margin:0; font:700 12px/1.6 var(--jp); color:var(--soft); } .fpane > p a { color:#1E6FB0; font-weight:900; }
+  /* とくべつおやつ */
   .go3 { margin-top:8px; width:100%; }
   .mini { display:flex; align-items:center; gap:8px; margin-top:5px; }
   .mini i { flex:1; height:7px; border-radius:9px; background:#EDF1F8; overflow:hidden; } .mini i b { display:block; height:100%; border-radius:9px; background:var(--cookie); }
@@ -118,7 +118,7 @@
   .note { margin-top:12px; font:700 11px/1.6 var(--jp); color:var(--soft); position:relative; z-index:1; }
 
   /* えらんだ子：おやつをあげる */
-  .feed { display:grid; gap:14px; }
+  .feed { display:grid; gap:10px; }
   .who { display:grid; grid-template-columns:auto minmax(0, 1fr); gap:14px; align-items:center; }
   .who h2 { font:900 22px/1.25 var(--jp); } .who h2 .rk { margin-left:8px; font-size:11px; }
   .who p { margin-top:4px; display:flex; flex-wrap:wrap; gap:6px 8px; align-items:center; font:700 12px/1.4 var(--jp); color:var(--soft); }
@@ -143,18 +143,20 @@
   .stepper .all { justify-self:end; border:1.5px solid var(--line); background:#fff; border-radius:999px; padding:8px 12px; font:700 12px/1 var(--jp); white-space:nowrap; }
   .cost { font:700 12px/1.5 var(--jp); color:var(--soft); } .cost b { color:var(--ink); font-family:var(--num); font-weight:600; } .cost.short { color:var(--coral); }
   .go { width:100%; padding:15px 16px; font-size:16px; display:flex; align-items:center; justify-content:center; gap:10px; }
-  .go svg { width:22px; height:22px; } .go3 svg, .mk .tg svg { width:20px; height:20px; flex:none; } .go3 { display:inline-flex; align-items:center; justify-content:center; gap:8px; }
+  .go svg { width:22px; height:22px; } .go3 svg { width:20px; height:20px; flex:none; } .go3 { display:inline-flex; align-items:center; justify-content:center; gap:8px; }
   .lab { display:grid; grid-template-columns:auto minmax(0, 1fr) auto; gap:10px; align-items:center; padding:10px 12px; border-radius:16px; background:#F7F2FF; font:700 12px/1.5 var(--jp); color:#5B3FC4; }
   .lab b { display:block; font:700 13px/1.3 var(--jp); color:var(--ink); }
   .lab .done { font:700 12px/1 var(--jp); color:#13A36A; white-space:nowrap; }
   .lab .jelly { padding:8px 12px; font-size:12px; white-space:nowrap; }
 
   @media (max-width:820px) {
-    .pet { grid-template-columns:48px minmax(0, 1fr); padding-right:12px; } .wallet { grid-column:1 / -1; justify-self:stretch; justify-content:flex-end; }
+    .pet { grid-template-columns:48px minmax(0, 1fr) auto; padding-right:12px; } .wallet { justify-self:end; }   /* おやつの 数は 名前の 右に（1 行 まるごと 使わない） */
     .pet .pic { width:48px; height:48px; border-radius:12px; } .pet h1 { font-size:20px; } .pet h1 small { font-size:12px; }
     .party { grid-template-columns:repeat(3, minmax(0, 1fr)); gap:8px; } .party > h2 { grid-column:1 / -1; }
-    .mem { grid-template-columns:1fr; justify-items:center; text-align:center; padding:10px 8px; } .mem .row, .mem .acts { justify-content:center; } .mem b { white-space:normal; }
-    .room { grid-template-columns:minmax(0, 1fr); } .room > .feed { order:-1; }   /* 決める パネルを 一覧の 上に（えらぶと ここへ 動く） */ .list { grid-template-columns:minmax(0, 1fr); } .frow > span { width:100%; }
+    .mem { grid-template-columns:1fr; justify-items:center; text-align:center; padding:8px 6px; gap:6px; } .mem .row, .mem .acts { justify-content:center; } .mem b { white-space:normal; }
+    .mem > div > small, .mem.empty small { display:none; } .mem .acts { flex-wrap:nowrap; gap:4px; } .mem .mb { padding:4px 7px; white-space:nowrap; }   /* 説明の 字は 隠す（ボタンで わかる） */
+    .party > h2 small { display:inline; margin-left:6px; }
+    .room { grid-template-columns:minmax(0, 1fr); } .room > .feed { order:-1; }   /* 決める パネルを 一覧の 上に（えらぶと ここへ 動く） */ .list { grid-template-columns:minmax(0, 1fr); }
     .stepper { grid-template-columns:44px auto 44px; } .stepper .all { grid-column:1 / -1; justify-self:start; }
     .lab { grid-template-columns:auto minmax(0, 1fr); } .lab > :last-child { grid-column:1 / -1; justify-self:end; }
   }
@@ -198,8 +200,8 @@ const fmt = (n) => n.toLocaleString("ja-JP");
 const fromOf = (tree) => (DUNGEONS.find((d) => [...d.foes, d.rare, d.boss].some((f) => f.tree === tree)) || { name: "？" }).name;
 
 let ME = null;
-const S = { snacks: 0, s3: 0, balls: 0, res: 0, known: false, party: [null, null], room: [], sel: null, give: 1, say: null, popFrom: -1, joined: -1, craft: false,
-  fr: "all", fl: "all", sort: "lv" };                 // 分け方：レア度・Lv の帯・ならべかた
+const S = { snacks: 0, s3: 0, balls: 0, res: 0, known: false, party: [null, null], room: [], sel: null, give: 1, say: null, popFrom: -1, joined: -1,
+  job: null, fr: "all", sort: "lv", ft: "feed" };     // タブ：職業・えらんだ子（feed おやつ／make 作る／lab 研究）。しぼりこみ：レア度・ならべかた
 // 門番の 記録を 画面の 形に（パーティの 子は となりの部屋に 出さない）
 function load(m) {
   ME = m;
@@ -208,6 +210,7 @@ function load(m) {
   S.party = [0, 1].map((i) => tamed.find((c) => c.uid === (m.party || [])[i]) || null);
   S.room = tamed.filter((c) => !(m.party || []).includes(c.uid));
   if (!S.room.some((c) => c.uid === S.sel)) S.sel = S.room[0] ? S.room[0].uid : null;
+  fitJob();
 }
 const cur = () => S.room.find((c) => c.uid === S.sel) || null;
 const need = (c) => SNACK_NEED[rankOf(c)];
@@ -216,9 +219,12 @@ const fitGive = () => { const c = cur(); S.give = c ? Math.max(1, Math.min(left(
 
 // ドット絵は 24px の整数倍で出す（にじまないように）
 const orb = (c, s = 52) => `<span class="spr ${c.gauge >= need(c) ? "happy" : ""}" style="--c:${TYPES[c.type].color};--s:${s}px;--px:${Math.max(1, Math.floor((s * 0.96) / 24)) * 24}px" aria-hidden="true"><img src="${spriteURL(c.tree)}" alt=""></span>`;
-const RANKS = ["ボス", "希少", "通常"], BANDS = [[1, 9], [10, 19], [20, 29], [30, 99]];
-const bandOf = (c) => BANDS.findIndex(([a, b]) => c.lv >= a && c.lv <= b);
-const inR = (c, r = S.fr) => r === "all" || rankOf(c) === r, inL = (c, l = S.fl) => l === "all" || bandOf(c) === +l;
+const RANKS = ["ボス", "希少", "通常"];
+const inR = (c, r = S.fr) => r === "all" || rankOf(c) === r, inJ = (c, j = S.job) => c.type === j;
+const byNow = () => (S.sort === "lv" ? (a, b) => b.lv - a.lv : (a, b) => b.gauge / need(b) - a.gauge / need(a) || b.lv - a.lv);
+const shown = () => S.room.filter((c) => inJ(c) && inR(c)).sort(byNow());
+// 職業の タブ：えらんだ子の 職業。いなければ 子が いる はじめの 職業
+const fitJob = () => { const c = cur(); if (c) S.job = c.type; else if (!S.room.some((x) => x.type === S.job)) S.job = (Object.keys(TYPES).find((t) => S.room.some((x) => x.type === t))) || null; };
 const rk = (c) => (rankOf(c) === "通常" ? "" : `<span class="rk r${rankOf(c)}">${rankOf(c)}</span>`);
 const typeBadge = (c) => `<span class="badge" style="--c:${TYPES[c.type].color}">${TYPES[c.type].label}</span>`;
 const COOKIE = `<svg viewBox="0 0 22 22" aria-hidden="true"><circle cx="11" cy="11" r="9.5" fill="#E9B26A" stroke="#fff" stroke-width="1.5"/><circle cx="8" cy="8" r="1.5" fill="#9A5B2C"/><circle cx="14" cy="9.5" r="1.4" fill="#9A5B2C"/><circle cx="10" cy="14.5" r="1.4" fill="#9A5B2C"/></svg>`;
@@ -240,22 +246,18 @@ function partyHtml() {
 }
 
 function listHtml() {
-  const item = ({ c }) => { const n = need(c), p = Math.min(100, Math.round((c.gauge / n) * 100));
+  const item = (c) => { const n = need(c), p = Math.min(100, Math.round((c.gauge / n) * 100));
     return `<li><button class="dx" data-act="pick" data-u="${c.uid}" aria-pressed="${c.uid === S.sel}" aria-label="${esc(c.name)} Lv${c.lv}・なかよし ${Math.min(c.gauge, n)} / ${n}" title="${esc(c.name)}（${esc(c.from)}）">
       <span class="ring ${c.gauge >= n ? "full" : ""}" style="--p:${p}"><span class="face" style="--c:${TYPES[c.type].color}"><img src="${spriteURL(c.tree)}" alt=""></span>${rk(c)}</span><b>${esc(c.name)}</b><small>Lv${c.lv}</small></button></li>`; };
-  const vis = S.room.map((c, i) => ({ c, i })).filter(({ c }) => inR(c) && inL(c));
-  const by = S.sort === "lv" ? (a, b) => b.c.lv - a.c.lv || a.i - b.i : (a, b) => b.c.gauge / need(b.c) - a.c.gauge / need(a.c) || b.c.lv - a.c.lv;
-  // 数は、もう一方のしぼりこみをかけたあとの数（えらぶと何体になるかがわかる）
-  const chip = (k, v, label, n) => `<button class="chip" data-act="${k}" data-v="${v}" aria-pressed="${String(S[k]) === String(v)}" ${n === 0 && String(S[k]) !== String(v) ? "disabled" : ""}>${label}${n === null ? "" : `<small>${n}</small>`}</button>`;
-  const nR = (r) => S.room.filter((c) => inR(c, r) && inL(c)).length, nL = (l) => S.room.filter((c) => inR(c) && inL(c, l)).length;
-  const filters = `<div class="filters" role="group" aria-label="分け方">
-      <div class="frow"><span>レア度</span>${chip("fr", "all", "すべて", nR("all"))}${RANKS.map((r) => chip("fr", r, r, nR(r))).join("")}</div>
-      <div class="frow"><span>Lv</span>${chip("fl", "all", "すべて", nL("all"))}${BANDS.map(([a, b], k) => chip("fl", k, b > 90 ? `${a}〜` : `${a}〜${b}`, nL(k))).join("")}</div>
-      <div class="frow"><span>ならべる</span>${chip("sort", "lv", "Lv の 高い順", null)}${chip("sort", "gauge", "なかよし順", null)}</div></div>`;
-  const groups = Object.entries(TYPES).map(([t, T]) => { const g = vis.filter(({ c }) => c.type === t).sort(by);   // 見出しは 職業（鹿さんの決め）
-    return g.length ? `<h3 class="grp"><i style="--c:${T.color}"></i>${T.label}<small>${g.length} 体</small></h3><ul class="dex">${g.map(item).join("")}</ul>` : ""; }).join("");
+  // タブの 数は レア度で しぼった あとの 数（0 の 職業は うすく して 押せない）。チップの 数は いまの 職業の 中で
+  const nJ = (t) => S.room.filter((c) => inJ(c, t) && inR(c)).length, nR = (r) => S.room.filter((c) => inJ(c) && inR(c, r)).length;
+  const tabs = `<div class="jtabs" role="tablist" aria-label="職業">${Object.entries(TYPES).map(([t, T]) => { const n = nJ(t), on = S.job === t;
+    return `<button role="tab" data-act="job" data-v="${t}" aria-selected="${on}" ${n || on ? "" : "disabled"}><i style="--c:${T.color}"></i>${T.label}<small>${n}</small></button>`; }).join("")}</div>`;
+  const chip = (k, v, label, n) => `<button class="chip" data-act="${k}" data-v="${v}" aria-pressed="${String(S[k]) === String(v)}" ${n === 0 && String(S[k]) !== String(v) ? "disabled" : ""}>${label}${n == null ? "" : `<small>${n}</small>`}</button>`;
+  const line1 = `<div class="fline" role="group" aria-label="しぼりこみと ならべかた">${chip("fr", "all", "すべて", nR("all"))}${RANKS.map((r) => chip("fr", r, r, nR(r))).join("")}<span class="gap"></span><button class="chip" data-act="sort" aria-label="ならべかた：${S.sort === "lv" ? "Lv の 高い順（押すと なかよし順）" : "なかよし順（押すと Lv の 高い順）"}">⇅ ${S.sort === "lv" ? "Lv順" : "なかよし順"}</button></div>`;
+  const list = shown();
   return `<section class="panel waiting" aria-label="となりの部屋"><h2>となりの部屋<small>捕まえた子 ${S.room.length} 体</small></h2>
-    ${S.room.length ? filters + (groups || `<p class="lead">この分け方の子は いない</p>`) : `<p class="lead">いまは だれも いない。派遣で 勝つと、ときどき 敵を 捕まえる</p>`}
+    ${S.room.length ? tabs + line1 + (list.length ? `<ul class="dex">${list.map(item).join("")}</ul>` : `<p class="lead">この 職業・レア度の 子は いない</p>`) : `<p class="lead">いまは だれも いない。派遣で 勝つと、ときどき 敵を 捕まえる</p>`}
     </section>`;
 }
 
@@ -276,16 +278,17 @@ function feedHtml() {
         <button class="jelly sky go" data-act="feed" ${poor ? "disabled" : ""}>${COOKIE}おやつを ${S.give} こ あげる</button>
         ${S.s3 ? `<button class="jelly light go3" data-act="feed3">${SNACK_ICON.snack3}とくべつおやつを あげる（＋3・のこり ${S.s3} こ）</button>` : ""}</div>`;
   const lv = (ME.hideout || {}).snack || 0;   // おやつ工房（作る ところは 隠れ家と 同じ 部品）
-  const make = `<div class="mk"><button class="tg" data-act="craft" aria-expanded="${S.craft}">${COOKIE}おやつを 作る<span>${lv ? `おやつ工房 Lv${lv}` : "工房が まだ ない"} ${S.craft ? "▴" : "▾"}</span></button>
-      ${S.craft ? (lv ? snackCraftHtml(lv, (ME.own && ME.own.mats) || []) : `<p>隠れ家に おやつ工房を 作ると、ここでも 作れる <a href="hideout.html?f=snack">隠れ家へ</a></p>`) : ""}</div>`;
+  const make = lv ? snackCraftHtml(lv, (ME.own && ME.own.mats) || []) : `<p>隠れ家に おやつ工房を 作ると、ここでも 作れる <a href="hideout.html?f=snack">隠れ家へ</a></p>`;
+  const lab = `<div class="lab"><span class="orb" style="--c:#B49BEA;--s:34px" aria-hidden="true">研</span><div><b>研究する（スキルツリー「${esc(T.name)}」）</b>リソース ${RESEARCH[rankOf(c)]} で サブツリーに つけられる（この子は のこる）</div>
+      ${c.lab ? `<span class="done">✓ 研究ずみ</span>` : `<button class="jelly light" data-act="lab" ${S.known && S.res < RESEARCH[rankOf(c)] ? "disabled" : ""}>研究する</button>`}</div>`;
+  const FT = [["feed", full ? "なかまに" : "おやつ", ""], ["make", "作る", lv ? `Lv${lv}` : ""], ["lab", "研究", c.lab ? "✓" : ""]];
+  const tabs = `<div class="ftabs" role="tablist" aria-label="${esc(c.name)}に すること">${FT.map(([k, l, sm]) => `<button role="tab" data-act="ft" data-v="${k}" aria-selected="${S.ft === k}">${l}${sm ? `<small>${sm}</small>` : ""}</button>`).join("")}</div>`;
   return `<aside class="panel feed" aria-label="えらんだ子">
-    <div class="who">${orb(c, 84)}<div><h2>${esc(c.name)}${rk(c)}</h2><p>${typeBadge(c)}<span class="lv"><small>Lv</small>${c.lv}</span><span>${esc(c.from)}で 捕まえた</span></p></div></div>
+    <div class="who">${orb(c, 64)}<div><h2>${esc(c.name)}${rk(c)}</h2><p>${typeBadge(c)}<span class="lv"><small>Lv</small>${c.lv}</span><span>${esc(c.from)}で 捕まえた</span></p></div></div>
     <p class="say" aria-live="polite">${esc(S.say || line(c))}</p>
     <div class="gauge"><h3><span>なかよしゲージ</span><span><b>${Math.min(c.gauge, n)}<small> / ${n}</small></b>${!full && S.give ? `<em>＋${Math.min(S.give, left(c))}</em>` : ""}</span></h3>
       <div class="pips" style="--n:${cols};--p:${size}px;--g:${gap}px" role="img" aria-label="なかよしゲージ ${c.gauge} / ${n}">${pips}</div></div>
-    ${action}${make}
-    <div class="lab"><span class="orb" style="--c:#B49BEA;--s:34px" aria-hidden="true">研</span><div><b>研究する（スキルツリー「${esc(T.name)}」）</b>リソース ${RESEARCH[rankOf(c)]} で サブツリーに つけられる（この子は のこる）</div>
-      ${c.lab ? `<span class="done">✓ 研究ずみ</span>` : `<button class="jelly light" data-act="lab" ${S.known && S.res < RESEARCH[rankOf(c)] ? "disabled" : ""}>研究する</button>`}</div>
+    ${tabs}<div class="fpane" role="tabpanel">${S.ft === "make" ? make : S.ft === "lab" ? lab : action}</div>
   </aside>`;
 }
 
@@ -313,13 +316,15 @@ document.getElementById("app").addEventListener("click", async (e) => {
   const b = e.target.closest("[data-act]"); if (!b || b.disabled) return;
   const c = cur(), act0 = b.dataset.act;
   if (act0 === "pick") { S.sel = b.dataset.u; S.say = null; fitGive(); if (innerWidth <= 820) { render(); return document.querySelector(".feed").scrollIntoView({ behavior: "smooth", block: "start" }); } }
-  if (act0 === "fr" || act0 === "fl" || act0 === "sort") S[act0] = b.dataset.v;
+  if (act0 === "fr") S.fr = b.dataset.v;
+  if (act0 === "sort") S.sort = S.sort === "lv" ? "gauge" : "lv";
+  if (act0 === "job") { S.job = b.dataset.v; const f = shown()[0]; if (f) { S.sel = f.uid; S.say = null; fitGive(); } }   // 職業を かえたら その はじめの 子を えらぶ
+  if (act0 === "ft") S.ft = b.dataset.v;
   if (act0 === "dec") S.give = Math.max(1, S.give - 1);
   if (act0 === "inc") S.give = Math.min(left(c), S.give + 1);
   if (act0 === "all") S.give = left(c);
   // おやつ：持って いる 分から あげて、足りない 分は 玉で 買う（門番が 払う）
   if (act0 === "feed") { const was = c.gauge; return ask(b, "tame.feed", { uid: c.uid, n: Math.min(S.give, left(c)) }, () => { S.popFrom = was; S.say = line(cur() || c); fitGive(); }); }
-  if (act0 === "craft") S.craft = !S.craft;
   if (act0 === "feed3") { const was = c.gauge; return ask(b, "item.snack3", { uid: c.uid }, () => { S.popFrom = was; S.say = line(cur() || c); fitGive(); }); }
   if (act0 === "join") return ask(b, "tame.join", { uid: c.uid }, () => { S.joined = S.party.findIndex((m) => m && m.uid === c.uid); S.say = null; fitGive(); });
   if (act0 === "back") return ask(b, "tame.back", { uid: b.dataset.u }, () => {});
@@ -334,7 +339,7 @@ linkTabs();
 document.querySelector(".tabs").hidden = !MP;
 S.sel = new URLSearchParams(location.search).get("pick") || S.sel;
 if (!cur()) S.sel = S.room[0] ? S.room[0].uid : null;
-fitGive();
+fitJob(); fitGive();
 render();
 document.querySelector(".tabs").scrollLeft = 9999;
 window.ready = true;
