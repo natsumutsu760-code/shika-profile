@@ -164,6 +164,7 @@
 <div class="dim" id="dim"></div>
 <script type="module">
 import { me, act, busy, waitText } from "./lounge-client.js";   // 持って いる 装備・付ける／はずすは 門番の 記録（見本では ブラウザの 中の ためしの 門番）
+import { mountWallet } from "./wallet-bar.js"; mountWallet();   // 上の 通貨の 札（玉・リソース・クレジット）と 両替
 import { petInfo, linkTabs, gateHtml, addGateCss, toast } from "./pet-head.js";
 import { TYPES } from "./skills.js";
 import { SLOTS, KINDS, OPS, baseOf, itemStats, mainStats, hasFx } from "./equip.js";
@@ -250,7 +251,6 @@ function render() {
   <section class="panel pet" aria-label="ペット">
     <div class="pic"><img src="${info.img}" alt="${esc(info.label)}の${esc(MP.name)}"></div>
     <div><h1>${esc(MP.name)}<small>${esc(info.label)} ／ ${esc(ME.name)} の相棒</small></h1><div class="meta"><span class="badge" style="--c:${ty.color}">${ty.label}</span><span class="lv"><small>Lv</small>${MP.lv}</span></div></div>
-    <div class="res">リソース<b>${ME.wallet && ME.wallet.known ? ME.wallet.res : "？"}</b></div>
   </section>
   <nav class="tabs" role="tablist"><button role="tab" aria-selected="false">ステータス</button><button role="tab" aria-selected="false">スキルツリー</button><button role="tab" aria-selected="false">ガンビット</button><button role="tab" aria-selected="true">装備</button><button role="tab" aria-selected="false">冒険</button><button role="tab" aria-selected="false">なかま</button></nav>
   ${whoHtml()}

@@ -1998,7 +1998,7 @@ if (location.hash === "#lcdcard" || location.hash === "#sitecard" || document.do
 
   <section>
     <h2>持ち物（スキン・アイコン・二つ名）</h2>
-    <p>条件を満たすと手に入り、コメント欄でお知らせします。視聴者はコメントで切り替えます。<br>!スキン 名前　!アイコン 絵文字か名前　!二つ名 名前　!フォント 名前　（名前なしで持っている物の一覧、「自動」でもとにもどす）　!持ち物 で集めた数　!リソース で被りでもらったリソース　!リソース交換 数 で持ち玉 1,000 をリソース 1 に<br>ガチャ・お店で被ると進化（被り 1 でⅠ 色違い・3 でⅡ 光る・6 でⅢ 演出が増える）。段階は名前の後ろに 0〜3（!スキン 名前 2。0 はふつう、言わなければいちばん上）。フォントとⅢの物の被りはリソース</p>
+    <p>条件を満たすと手に入り、コメント欄でお知らせします。視聴者はコメントで切り替えます。<br>!スキン 名前　!アイコン 絵文字か名前　!二つ名 名前　!フォント 名前　（名前なしで持っている物の一覧、「自動」でもとにもどす）　!持ち物 で集めた数　!リソース で被りでもらったリソース　!リソース交換 数 で持ち玉 5,000 をリソース 1 に<br>ガチャ・お店で被ると進化（被り 1 でⅠ 色違い・3 でⅡ 光る・6 でⅢ 演出が増える）。段階は名前の後ろに 0〜3（!スキン 名前 2。0 はふつう、言わなければいちばん上）。フォントとⅢの物の被りはリソース</p>
     <h3>試着（配信画面にカードとコメントを出して確かめる）</h3>
     <div class="try-row">
       <label for="p-try-skin">スキン<select id="p-try-skin"></select></label>
@@ -11153,7 +11153,7 @@ if (location.hash === "#lcdcard" || location.hash === "#sitecard" || document.do
     if (!res.ok) addSys(q.name + " さん、" + res.msg + "。玉は返しました");
     write("shika-shop-res-v1", res);
   }
-  // ---------- リソース交換（鹿物語の !リソース交換。持ち玉 1,000 で 1 を鹿物語が引いてから shika-res-req-v1 で頼んでくる）----------
+  // ---------- リソース交換（鹿物語の !リソース交換。持ち玉 5,000 で 1 を鹿物語が引いてから shika-res-req-v1 で頼んでくる）----------
   // リソースは shika-gacha-v1 の res（ガチャの被りと同じ置き場所）。足したら shika-res-res-v1 で返事（だめなら鹿物語が玉を返す）
   var lastResReq = (read("shika-res-req-v1", {}) || {}).id || "";
   function resBuy(q) {
@@ -11583,7 +11583,7 @@ if (location.hash === "#lcdcard" || location.hash === "#sitecard" || document.do
     if (/^!(モノリンク|ものりんく|monolink|mono-link|サイト|さいと|site)(\s|$)/i.test(text.normalize ? text.normalize("NFKC") : text)) linkCmd(name, msgId);
     if (/^!(プロフィール|ぷろふぃーる|プロフ|profile)(\s|$)/i.test(text.normalize ? text.normalize("NFKC") : text)) { showCard(name); remoteSay(name + " さんのプロフィールカードを配信に出しました（" + (prOf(name) ? "P" + prOf(name) + "・" : "") + "Lv." + lvOf(curXp(name)) + "）"); }
     if (/^!(お店|おみせ|ショップ|しょっぷ|shop|ラインナップ)(\s|$)/i.test(text.normalize ? text.normalize("NFKC") : text)) addSys(shopText());
-    if (/^!(リソース|りそーす|resource|res)(\s|$)/i.test(text.normalize ? text.normalize("NFKC") : text)) addSys(name + " さんのリソース：" + resOf(name).toLocaleString("ja-JP") + "（ガチャでフォントやⅢの物が被るともらえます。!リソース交換 数 で持ち玉 1,000 をリソース 1 に。使い道はこれから）");
+    if (/^!(リソース|りそーす|resource|res)(\s|$)/i.test(text.normalize ? text.normalize("NFKC") : text)) addSys(name + " さんのリソース：" + resOf(name).toLocaleString("ja-JP") + "（ガチャでフォントやⅢの物が被るともらえます。!リソース交換 数 で持ち玉 5,000 をリソース 1 に。MONO LINK の両替でも交換できます）");
     if (/^!(レベル|れべる|lv|level)(\s|$)/i.test(text.normalize ? text.normalize("NFKC") : text)) {
       var X = curXp(name), LL = lvOf(X), tt = titleOf(support[name]), pn = prOf(name);
       addSys(name + " さん " + (pn ? "P" + pn + "・" : "") + "Lv." + LL + (tt ? "（" + tt[0] + "）" : "") + "　次のレベルまで " + Math.ceil(lvNeed(LL) - X) + (LL >= PR_LV ? "　!プレステージ できます" : ""));

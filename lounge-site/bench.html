@@ -124,7 +124,7 @@
 <body>
 <header class="top"><a href="/" style="color:inherit;text-decoration:none" aria-label="MONO LINK の サイトへ"><b>MONO LINK<i>://</i></b></a><small><a href="lounge-room.html" style="color:inherit">ラウンジ</a> ／ <a href="hideout.html?f=bench" style="color:inherit">地下の 隠れ家</a> ／ 作業台</small></header>
 <main>
-  <section class="panel wallet" aria-label="作業台"><h1>作業台 <small id="lv"></small></h1><span>玉<b id="balls"></b></span></section>
+  <section class="panel wallet" aria-label="作業台"><h1>作業台 <small id="lv"></small></h1></section>
   <section class="panel" aria-label="装備の木"><div class="gtabs" role="tablist" id="gtabs"></div><p class="key" id="key"></p><div class="cols" id="cols"></div></section>
   <section class="panel detail" id="detail" aria-live="polite"></section>
 </main>
@@ -136,6 +136,7 @@ import { MAT_NAME, MAT_FROM, HIDDEN_MAT, GATHER, ENEMY_MAT } from "./materials.j
 import { DUNGEONS } from "./dungeons.js";
 import { spriteURL } from "./sprites.js";
 import { me, act, busy, waitText } from "./lounge-client.js";   // 作業台の Lv・素材・装備・作る・合成は 門番から（くじも 門番が 引く）
+import { mountWallet } from "./wallet-bar.js"; mountWallet();   // 上の 通貨の 札（玉・リソース・クレジット）と 両替
 import { gearImg, watchIcons } from "./gear-icon.js";
 
 const q = new URLSearchParams(location.search);
@@ -246,7 +247,7 @@ function detailHtml() {
   return madeHtml() + head + act;
 }
 function render() {
-  document.getElementById("lv").textContent = S.lv ? `Lv${S.lv}` : "まだ ない"; document.getElementById("balls").textContent = S.known ? fmt(S.balls) : "？";
+  document.getElementById("lv").textContent = S.lv ? `Lv${S.lv}` : "まだ ない";
   document.getElementById("gtabs").innerHTML = tabsHtml(); document.getElementById("key").innerHTML = keyHtml(); document.getElementById("cols").innerHTML = treeHtml(); document.getElementById("detail").innerHTML = detailHtml();
 }
 // 作る・合成する：門番が 使う物を へらして くじを 引く（合成は ★の 低い装備から 使う）

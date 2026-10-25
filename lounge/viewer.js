@@ -11,12 +11,13 @@ import { reqPostPlan, takeFor, items } from "./lounge-req.js";
 import { petTake, petGrow, petSub, petStat, petGambits, petStyle, equipSet, respecPlan, fighterOf, spTotal, spUsed, freeTotal, RESET_PRICE } from "./lounge-pet.js";
 import "./warm.js";   // 派遣の 計算を 温めて おく（はじめの 1 回が おそく ならない ように）
 import { relayEntry } from "./lounge-relay.js";   // 配信の 中継（鹿物語の ランキングの 窓）に あずける 派遣の 材料
+import { swapPlan } from "./lounge-money.js";   // 両替（玉・クレジット・リソース）
 import { ensure, give, FURN_MAX, petFirst, petJob, tripStart, tripCalc, tripDone, tripCollect, tripView, hideoutPlan, craftPlan, synthPlan, boxTake, dropOld, stashCap, tameFeedPlan, tameJoin, tameBack, researchPlan, snackCraft, loopNew, loopSet, loopSeen, loopAfter, loopStep } from "./lounge-game.js";
 
 const OPS_KEEP = 200;            // おぼえて おく op（2 回 来たら 1 回目の 答えを 返す）
 const RATE = { n: 5, ms: 1000 }; // 1 人 1 秒に 5 回まで
 const LABEL = { balls: "玉", res: "リソース" };
-export const MONEY = /^(shop\.|hideout\.up$|bench\.|trip\.collect$|tame\.feed$|tame\.research$|trader\.|task\.|req\.|pet\.respec$|pet\.rejob$)/;   // 玉か リソースが うごく やること（答えに いまの 数を つける）
+export const MONEY = /^(shop\.|hideout\.up$|bench\.|trip\.collect$|tame\.feed$|tame\.research$|trader\.|task\.|req\.|pet\.respec$|pet\.rejob$|money\.)/;   // 玉か リソースが うごく やること（答えに いまの 数を つける）
 const PLANS = {
   "hideout.up": (rec, b) => hideoutPlan(rec, b, rec.ledger.unknown),
   "bench.craft": (rec, b) => craftPlan(rec, b, rand),
@@ -24,6 +25,7 @@ const PLANS = {
   "tame.feed": (rec, b) => tameFeedPlan(rec, b, rec.ledger.unknown),
   "tame.research": (rec, b) => researchPlan(rec, b, rec.ledger.unknown),
   "trader.buy": (rec, b) => buyPlan(rec, b, jstDay(), rand),
+  "money.swap": (rec, b) => swapPlan(rec, b),
   "pet.respec": (rec, b) => respecPlan(rec, b, jstDay()),
   "pet.rejob": (rec, b) => respecPlan(rec, b, jstDay()),
   "req.post": (rec, b, env) => reqPostPlan(rec, b, String((env && env.NG_WORDS) || "").split(",").map((w) => w.trim()).filter(Boolean)),   // 門番だけが 持つ NG ことば
@@ -204,7 +206,7 @@ export class Viewer {
     const rec = await this.load(); if (!rec) return { ok: false, why: "記録が ない" };
     const op = typeof body.op === "string" && /^[\w-]{8,64}$/.test(body.op) ? body.op : "";
     if (!op) return { ok: false, why: "op が ない" };
-    const money = MONEY.test(String(body.a)), out = (r) => (money && wallet ? { ...r, wallet: this.purse(rec, wallet) } : r), now = Date.now();
+    const money = MONEY.test(String(body.a)), out = (r) => ({ ...(money && wallet ? { ...r, wallet: this.purse(rec, wallet) } : r), credits: rec.credits }), now = Date.now();   // クレジットは いつも つける（上の 通貨の 札）
     if (wallet) trimSent(rec.ledger, wallet);
     const done = rec.ops.find((x) => x.op === op); if (done) return out(done.r);   // 2 回目は 1 回目の 答え
     let r;

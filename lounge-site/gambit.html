@@ -149,6 +149,7 @@
 <section class="sheet" id="sheet" aria-label="えらぶ"></section>
 <script type="module">
 import { me, act, busy, waitText } from "./lounge-client.js";   // ガンビットと 作戦は 門番の 記録（見本では ブラウザの 中の ためしの 門番）
+import { mountWallet } from "./wallet-bar.js"; mountWallet();   // 上の 通貨の 札（玉・リソース・クレジット）と 両替
 import { petInfo, linkTabs, gateHtml, addGateCss, toast } from "./pet-head.js";
 import { SKILL, TYPES } from "./skills.js";
 import { EFFECTS } from "./effects.js";

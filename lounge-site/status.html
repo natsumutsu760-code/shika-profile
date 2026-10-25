@@ -121,6 +121,7 @@ import { TYPES } from "./skills.js";
 import { itemStats } from "./equip.js";
 
 import { me, act, busy, waitText } from "./lounge-client.js";   // ペットの 記録と ステータスを 振るのは 門番（見本では ブラウザの 中の ためしの 門番）
+import { mountWallet } from "./wallet-bar.js"; mountWallet();   // 上の 通貨の 札（玉・リソース・クレジット）と 両替
 import { petInfo, linkTabs, gateHtml, addGateCss, toast } from "./pet-head.js";
 
 const q = new URLSearchParams(location.search), view = q.get("view") || "pet";

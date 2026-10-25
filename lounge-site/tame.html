@@ -187,6 +187,7 @@ import { ENEMY_TREES } from "./enemy-trees.js";
 import { TYPES } from "./skills.js";
 import { spriteURL } from "./sprites.js";
 import { me, act, busy, waitText } from "./lounge-client.js";   // なかま・おやつ・研究・パーティは 門番から（見本では ブラウザの 中の ためしの 門番）
+import { mountWallet } from "./wallet-bar.js"; mountWallet();   // 上の 通貨の 札（玉・リソース・クレジット）と 両替
 import { fillPet, petInfo, linkTabs, gateHtml } from "./pet-head.js";
 import { SNACK_RECIPES } from "./facilities.js";
 import { snackCraftHtml, addSnackCss, SNACK_ICON } from "./snack-craft.js";
@@ -290,7 +291,7 @@ function feedHtml() {
 
 let MP = null;
 function render() {
-  document.getElementById("wallet").innerHTML = `<span>おやつ<b>${S.snacks}</b></span>${S.s3 ? `<span>とくべつ<b>${S.s3}</b></span>` : ""}<span>玉<b>${S.known ? fmt(S.balls) : "？"}</b></span><span>リソース<b>${S.known ? S.res : "？"}</b></span>`;
+  document.getElementById("wallet").innerHTML = `<span>おやつ<b>${S.snacks}</b></span>${S.s3 ? `<span>とくべつ<b>${S.s3}</b></span>` : ""}`;
   document.getElementById("app").innerHTML = MP ? partyHtml() + `<div class="room">${listHtml()}${feedHtml()}</div>`
     : ME.denied || ME.ok === false ? gateHtml(ME, esc)
     : `<section class="panel gate"><h2>まず 1 匹目を むかえる</h2><p>なかまは 派遣で 捕まえた 子が 来ます</p><a class="jelly sky go" href="quiz.html">性格診断へ</a></section>`;

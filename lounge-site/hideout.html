@@ -149,7 +149,7 @@
 <body>
 <header class="top"><a href="/" style="color:inherit;text-decoration:none" aria-label="MONO LINK の サイトへ"><b>MONO LINK<i>://</i></b></a><small><a href="lounge-room.html" style="color:inherit">ラウンジ</a> ／ 地下の 隠れ家</small></header>
 <main>
-  <section class="panel wallet" aria-label="持っている物"><h1>地下の 隠れ家 <a class="roomlink" href="hideout-room.html">部屋を 見る</a></h1><span>玉<b id="balls"></b></span><span class="rs">リソース<b id="res"></b></span><span class="cr">クレジット<b id="cr"></b></span></section>
+  <section class="panel wallet" aria-label="持っている物"><h1>地下の 隠れ家 <a class="roomlink" href="hideout-room.html">部屋を 見る</a></h1></section>
   <nav class="tabs" id="tabs"></nav>
   <div class="room" id="room" role="tabpanel"><div id="left"></div><aside class="panel detail" id="detail" aria-live="polite"></aside></div>
 </main>
@@ -164,6 +164,7 @@ import { gearImg, watchIcons } from "./gear-icon.js";
 import { matPic } from "./mat-icons.js";
 import { addTkCss, padGrids, watchPad } from "./stash-grid.js";
 import { me, act, busy, waitText } from "./lounge-client.js";   // 施設の Lv・倉庫・あずかり箱・さいふは 門番から（見本では ブラウザの 中の ためしの 門番）
+import { mountWallet } from "./wallet-bar.js"; mountWallet();   // 上の 通貨の 札（玉・リソース・クレジットは ここだけに 出す）
 
 const q = new URLSearchParams(location.search);
 const fmt = (n) => n.toLocaleString("ja-JP");
@@ -303,7 +304,6 @@ function detailHtml() {
     <button class="jelly sky go" data-up="${f.id}" ${c.ok ? "" : "disabled"}>Lv${lv + 1} に する</button>${c.ok ? "" : `<p class="why">足りない：${esc(why)}</p>`}${all}`;
 }
 function render() {
-  document.getElementById("balls").textContent = S.known ? fmt(S.balls) : "？"; document.getElementById("res").textContent = S.known ? fmt(S.res) : "？"; document.getElementById("cr").textContent = fmt(S.cr);
   const t = TABS.find((x) => x.id === S.tab);
   document.getElementById("tabs").innerHTML = tabsHtml();
   document.getElementById("room").setAttribute("aria-label", t.name); document.getElementById("room").classList.toggle("store", t.id === "store");

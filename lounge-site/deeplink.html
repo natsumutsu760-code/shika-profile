@@ -144,7 +144,7 @@
 <div class="crt" id="crt">
   <header class="bar">
     <h1 class="logo" aria-label="DEEP LINK/:">DEEP LINK<span>/:</span><i aria-hidden="true"></i></h1>
-    <div class="wallet"><span class="b">玉<b id="balls"></b></span><span class="r">リソース<b id="res"></b></span></div>
+    <div class="wallet" id="wallet"></div>
     <a class="bye" href="lounge-room.html">&lt; ラウンジに もどる</a>
     <p class="from" id="from">もみじ の ラウンジ PC から 接続中</p>
   </header>
@@ -163,6 +163,7 @@ import { BASES, OPS, baseOf } from "./equip.js";
 import { CRAFT, SYNTH } from "./recipes.js";
 import { DUNGEONS, TOOLS } from "./dungeons.js";
 import { me, act, busy, waitText, board, report, notedel } from "./lounge-client.js";   // 商人・タスク・お店・依頼の 板は 門番（見本では ブラウザの 中の ためしの 門番）
+import { mountWallet } from "./wallet-bar.js"; mountWallet({ host: document.getElementById("wallet"), theme: "dark" });   // 通貨の 札（玉・リソース・クレジット）と 両替
 
 const q = new URLSearchParams(location.search);
 const fmt = (n) => n.toLocaleString("ja-JP");
@@ -314,8 +315,6 @@ function keepPlace(...sels) {
 }
 function render() {
   const w = W();
-  document.getElementById("balls").textContent = w ? fmt(w.balls) : "？";
-  document.getElementById("res").textContent = w ? fmt(w.res) : "？";
   if (ME.denied || ME.ok === false) { document.getElementById("dir").innerHTML = ""; document.getElementById("pane").innerHTML = `<p class="say">入れません：${esc(ME.why || "")}</p>${ME.login ? `<p class="say"><a href="/" style="color:var(--amber)">&gt; MONO LINK で ログイン</a></p>` : ""}`; return; }
   document.getElementById("dir").innerHTML = dirHtml();
   document.getElementById("pane").innerHTML = S.go === "special" ? specialHtml() : S.go === "board" ? boardHtml() : traderHtml(META[S.go] || META.junk);

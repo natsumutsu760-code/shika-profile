@@ -98,7 +98,7 @@
 <header class="top"><a href="/" style="color:inherit;text-decoration:none" aria-label="MONO LINK の サイトへ"><b>MONO LINK<i>://</i></b></a><small>プライベートラウンジ</small></header>
 <main id="app">
   <section aria-label="部屋">
-    <div class="bar"><h1 id="title">部屋</h1><span class="res"><i></i>リソース <b id="res">128</b></span><a class="sw" href="lounge-shop.html">家具の お店</a><button class="sw" id="light" aria-pressed="false">☀ 昼</button><button class="edit" id="edit">もようがえ</button></div>
+    <div class="bar"><h1 id="title">部屋</h1><a class="sw" href="lounge-shop.html">家具の お店</a><button class="sw" id="light" aria-pressed="false">☀ 昼</button><button class="edit" id="edit">もようがえ</button></div>
     <div class="view" id="view" aria-label="6×6 マスの 部屋。ペットを 押すと なでる"><p class="toast" id="toast" role="status"></p></div>
   </section>
   <aside class="panel" id="panel" aria-label="もようがえ" hidden></aside>
@@ -108,6 +108,7 @@
 import * as THREE from "three";
 import { N, FURN, F, kit, buildHatch, HATCH, dims, cellsOf, fits } from "./lounge-furniture.js";
 import { me, act, busy } from "./lounge-client.js";   // 部屋の 置き方・昼と夜は 門番に しまう（見本では ブラウザの 中の ためしの 門番）
+import { mountWallet } from "./wallet-bar.js"; mountWallet();   // 上の 通貨の 札（玉・リソース・クレジット）と 両替
 import { makePet3, SPECIES3 } from "./pets.js";
 
 const q = new URLSearchParams(location.search);
@@ -411,7 +412,6 @@ function tick(t) {
 }
 new ResizeObserver(() => size()).observe(view);
 matchMedia("(max-width:860px)").addEventListener("change", () => panel());
-document.getElementById("res").textContent = ME.wallet && ME.wallet.known ? ME.wallet.res.toLocaleString("ja-JP") : "？";
 lightText(); buildRoom(); panel(); size(); requestAnimationFrame(tick);
 window.ready = true;
 // 確かめ用：部屋の 中の 点 → 画面の 点

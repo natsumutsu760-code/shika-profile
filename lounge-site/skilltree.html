@@ -236,6 +236,7 @@ import { DUNGEONS, RESEARCH, CAPTURE } from "./dungeons.js";
 import { EFFECTS } from "./effects.js";
 import { spriteURL } from "./sprites.js";
 import { me, act, busy, waitText } from "./lounge-client.js";   // ペットの ツリーは 門番の 記録（見本では ブラウザの 中の ためしの 門番）
+import { mountWallet } from "./wallet-bar.js"; mountWallet();   // 上の 通貨の 札（玉・リソース・クレジット）と 両替
 import { petInfo, linkTabs, gateHtml, addGateCss, toast } from "./pet-head.js";
 import { jstDay } from "./lounge-rules.js";
 
@@ -409,7 +410,7 @@ function labOf() {
   return L;
 }
 function renderLab() {
-  const ST = { done: "研究ずみ", cap: "捕まえた", seen: "出会った", none: "？？？" }, LAB = labOf(), RESOURCE = ME.wallet && ME.wallet.known ? ME.wallet.res : "？";
+  const ST = { done: "研究ずみ", cap: "捕まえた", seen: "出会った", none: "？？？" }, LAB = labOf();
   const pick = ENEMY_TREES[UI.e] ? UI.e : ENEMY_TREES[q.get("e")] ? q.get("e") : Object.keys(LAB).find((id) => LAB[id] === "cap") || "e_hare", P = ENEMY_TREES[pick], st = LAB[pick], cost = RESEARCH[P.rank];
   const mon = ([id, t]) => { const v = LAB[id]; return `<button class="mon ${v} ${id === pick ? "sel" : ""}" data-e="${id}" style="--c:${TYPES[t.type].color}">${t.rank === "通常" ? "" : `<span class="rk ${t.rank === "希少" ? "r" : ""}">${t.rank}</span>`}<span class="orb spr"><img src="${spriteURL(id)}" alt=""></span><b>${v === "none" ? "？？？" : esc(t.enemy)}</b><span class="st">${ST[v]}</span></button>`; };
   const groups = DUNGEONS.map((d) => `<h3 class="dg" style="--dc:${d.color}">${esc(d.name)}<small>${Object.entries(ENEMY_TREES).filter(([id, t]) => t.dungeon === d.id && (LAB[id] === "done" || LAB[id] === "cap")).length} / 5 捕まえた</small></h3><div class="dex">${Object.entries(ENEMY_TREES).filter(([, t]) => t.dungeon === d.id).map(mon).join("")}</div>`).join("");
@@ -417,7 +418,7 @@ function renderLab() {
   const list = P.list.filter((x) => ["S1", "S2", "S4", "P1", "S8"].includes(x.slot)).sort((a, b) => ["S1", "S2", "P1", "S4", "S8"].indexOf(a.slot) - ["S1", "S2", "P1", "S4", "S8"].indexOf(b.slot));
   const go = st === "cap" ? `<p>研究すると、飼っているペットみんなが このツリーを サブツリーに付けられる</p><button class="take" data-do="lab" data-t="${pick}">研究する（リソース <b>${cost}</b>）</button>`
     : st === "done" ? `<p>研究ずみ。ペットのスキルツリーの画面で サブツリーに付けられる</p>` : `<p>まだ捕まえていない。派遣で たおすと ${(CAPTURE[P.rank] * 100).toFixed(1)}% で捕まえる（1 体ごと。「指定の敵だけ」で 探しに行ける）</p>`;
-  return `<section class="panel"><div class="res"><div class="bar" style="margin:0"><h2>図鑑と研究<span>派遣で捕まえた敵を研究すると、その敵のスキルツリーが使えるようになる</span></h2></div><span class="have">リソース<b>${RESOURCE}</b></span></div>
+  return `<section class="panel"><div class="res"><div class="bar" style="margin:0"><h2>図鑑と研究<span>派遣で捕まえた敵を研究すると、その敵のスキルツリーが使えるようになる</span></h2></div></div>
     <div class="lab"><div>
       <div class="legend"><span style="--c:var(--leaf)">研究ずみ</span><span style="--c:#7A55E0">捕まえた</span><span style="--c:#B4BCCF">出会った</span><span style="--c:#E4E8F2">まだ会っていない</span></div>
       ${groups}</div>

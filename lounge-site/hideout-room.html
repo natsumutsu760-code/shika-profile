@@ -45,6 +45,7 @@ import * as THREE from "three";
 import { makeHideout, SPOTS, ROOM } from "./hideout3d.js";
 import { FACILITIES } from "./facilities.js";
 import { me } from "./lounge-client.js";   // 施設の Lv は 門番の 記録（見本では ブラウザの 中の ためしの 門番）
+import { mountWallet } from "./wallet-bar.js"; mountWallet();   // 上の 通貨の 札（玉・リソース・クレジット）と 両替
 
 const q = new URLSearchParams(location.search), all = q.get("lv");
 // 施設の Lv は 門番から（?lv=0〜3 は 見た目を ためす とき だけ）

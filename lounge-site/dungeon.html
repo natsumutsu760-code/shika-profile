@@ -388,7 +388,6 @@
   <section class="panel pet" aria-label="ペット">
     <div class="pic"><img id="petImg" src="img/nemu.png" alt=""></div>
     <div><h1><span id="petName">ペット</span><small id="petSub"></small></h1><div class="meta" id="petMeta"></div></div>
-    <div class="res">リソース<b id="petRes">？</b></div>
   </section>
   <nav class="tabs" role="tablist">
     <button role="tab" aria-selected="false">ステータス</button><button role="tab" aria-selected="false">スキルツリー</button><button role="tab" aria-selected="false">ガンビット</button><button role="tab" aria-selected="false">装備</button><button role="tab" aria-selected="true" id="tab-bouken">冒険</button><button role="tab" aria-selected="false">なかま</button>
@@ -408,6 +407,7 @@ import { TYPES } from "./skills.js";
 import { spriteURL } from "./sprites.js";
 import { GATHER, ENEMY_MAT, MAT_FROM, MAT_NAME, HIDDEN_MAT, sellPrice, toStash, stashHave, BOX_DAYS } from "./materials.js";
 import { me, act, busy } from "./lounge-client.js";
+import { mountWallet } from "./wallet-bar.js"; mountWallet();   // 上の 通貨の 札（玉・リソース・クレジット）と 両替
 import { fillPet, petInfo, linkTabs, gateHtml } from "./pet-head.js";   // ペット・探索の 進み・道具・出発・うけとるは 門番から（見本では ブラウザの 中の ためしの 門番）
 
 const IMG = "img/";
@@ -733,7 +733,6 @@ function fillHead() {
   document.querySelector(".pet").hidden = document.querySelector(".tabs").hidden = !MP;
   if (!MP) return;
   fillPet(ME);
-  document.getElementById("petRes").textContent = ME.wallet && ME.wallet.known ? ME.wallet.res.toLocaleString("ja-JP") : "？";
 }
 let toastT = 0;
 function toast(html) { const el = document.getElementById("toast"); el.innerHTML = html; el.classList.add("on"); clearTimeout(toastT); toastT = setTimeout(() => el.classList.remove("on"), 4200); }

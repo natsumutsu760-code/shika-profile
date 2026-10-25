@@ -21,11 +21,19 @@ async function call(path, body) {
 const newOp = () => "op-" + (crypto.randomUUID ? crypto.randomUUID().replace(/-/g, "") : Date.now().toString(36) + Math.random().toString(36).slice(2)).slice(0, 30);
 
 export const demoMode = !REAL;
-export const me = () => call("/api/me");
+// いまの 玉・リソース・クレジット（上の 通貨の 札 wallet-bar.js が 読む）。門番の 答えが 来る たびに 知らせる（"ml-purse"）
+let PURSE = null;
+export const lastPurse = () => PURSE;
+function notePurse(j) {
+  if (!j || typeof j !== "object" || (!j.wallet && j.credits == null)) return;
+  PURSE = { ...(PURSE || { known: false, balls: 0, res: 0, credits: 0 }), ...(j.wallet || {}), ...(j.credits != null ? { credits: j.credits } : {}) };
+  try { dispatchEvent(new CustomEvent("ml-purse", { detail: PURSE })); } catch (e) {}
+}
+export const me = async () => { const j = await call("/api/me"); notePurse(j); return j; };
 export async function act(a, body = {}) {
   const op = newOp();
   for (let i = 0; i < 2; i++) {
-    try { return await call("/api/act", { ...body, op, a }); }
+    try { const j = await call("/api/act", { ...body, op, a }); notePurse(j); return j; }
     catch (e) { if (i) return { ok: false, net: true, why: "門番に つながりません。もう 1 回 押して ください" }; }
   }
 }

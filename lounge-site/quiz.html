@@ -151,6 +151,7 @@
 <script type="module">
 const { QUIZ, PETS, score } = await import("./quiz.js?v=" + Date.now());
 import { me, act, busy } from "./lounge-client.js";   // 「この子とはじめる」で 門番に 頼む（答えは 門番も 同じ 決まりで 数える）
+import { mountWallet } from "./wallet-bar.js"; mountWallet();   // 上の 通貨の 札（玉・リソース・クレジット）と 両替
 const $ = (id) => document.getElementById(id);
 const screens = ["intro", "question", "arrive", "tie"];
 const show = (id) => screens.forEach((s) => ($(s).hidden = s !== id));

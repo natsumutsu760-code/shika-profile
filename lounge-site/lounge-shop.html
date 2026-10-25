@@ -90,7 +90,7 @@
 <body>
 <header class="top"><a href="/" style="color:inherit;text-decoration:none" aria-label="MONO LINK の サイトへ"><b>MONO LINK<i>://</i></b></a><small><a href="lounge-room.html" style="color:inherit">プライベートラウンジ</a> ／ 家具の お店</small></header>
 <main>
-  <div class="bar"><h1>家具の お店</h1><span class="pend" id="pend" hidden title="配信の 画面の 返事を 待って いる 買い物。つぎに 開いた ときに 決まります"></span><span class="res"><i></i>リソース <b id="res"></b></span><a class="back" href="lounge-room.html?edit">部屋に もどる</a></div>
+  <div class="bar"><h1>家具の お店</h1><span class="pend" id="pend" hidden title="配信の 画面の 返事を 待って いる 買い物。つぎに 開いた ときに 決まります"></span><a class="back" href="lounge-room.html?edit">部屋に もどる</a></div>
   <div class="tabs" role="tablist" aria-label="売り場" id="tabs"></div>
   <div class="shop">
     <section class="panel" id="left" aria-live="polite"></section>
@@ -103,6 +103,7 @@
 import * as THREE from "three";
 import { F, kit, PRICE, SALE, DAILY_OFF, GACHA_COST, GACHA_RATE, salePrice, jstDay, dailyOf } from "./lounge-furniture.js";
 import { me, act, busy, waitText } from "./lounge-client.js";   // 買う・ガチャは 門番に 頼む（見本では ブラウザの 中の ためしの 門番）
+import { mountWallet } from "./wallet-bar.js"; mountWallet();   // 上の 通貨の 札（玉・リソース・クレジット）と 両替
 
 const q = new URLSearchParams(location.search);
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
@@ -190,7 +191,6 @@ function detailHtml() {
 }
 
 function render() {
-  document.getElementById("res").textContent = W.known ? fmt(W.res) : "？";
   const pend = document.getElementById("pend"); pend.hidden = !W.waiting; pend.textContent = `返事まち ${W.waiting}`;
   document.getElementById("tabs").innerHTML = [["daily", "日替わり", TODAY.length], ["catalog", "カタログ", SALE.length], ["gacha", "ガチャ", null]].map(([k, t, n]) =>
     `<button class="tab" role="tab" data-t="${k}" aria-selected="${S.t === k}">${t}${n === null ? "" : `<small>${n}</small>`}</button>`).join("");
