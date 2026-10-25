@@ -8,7 +8,7 @@ import { cleanRoom, STARTER_OWN, STARTER_ROOM, N, SALE_IDS, priceOn, jstDay, pul
 import { emptyLedger, balanceOf, trimSent, toObs, settle } from "./ledger.js";
 import { buyPlan, sellAct, tradeAct, taskDone, useItem, deeplinkView } from "./lounge-trade.js";
 import { reqPostPlan, takeFor, items } from "./lounge-req.js";
-import { petTake, petGrow, petSub, petStat, petGambits, petStyle, equipSet, respecPlan, fighterOf, spTotal, spUsed, freeTotal, RESET_PRICE } from "./lounge-pet.js";
+import { petTake, petGrow, petSub, petStat, petGambits, petStyle, equipSet, equipBest, respecPlan, fighterOf, spTotal, spUsed, freeTotal, RESET_PRICE } from "./lounge-pet.js";
 import "./warm.js";   // 派遣の 計算を 温めて おく（はじめの 1 回が おそく ならない ように）
 import { relayEntry } from "./lounge-relay.js";   // 配信の 中継（鹿物語の ランキングの 窓）に あずける 派遣の 材料
 import { swapPlan } from "./lounge-money.js";   // 両替（玉・クレジット・リソース）
@@ -288,6 +288,7 @@ export class Viewer {
     else if (body.a === "pet.gambits") r = petGambits(rec, body);
     else if (body.a === "pet.style") r = petStyle(rec, body);
     else if (body.a === "pet.equip") r = equipSet(rec, { ...body, who: null });
+    else if (body.a === "equip.best") r = equipBest(rec, body);   // おすすめ装備（えらび方・だれ）
     else if (body.a === "tame.equip") r = equipSet(rec, body.who ? body : { ...body, who: "-" });
     else if (body.a === "trip.start") {
       r = tripStart(rec, body, now, Math.floor(rand() * 2 ** 31));

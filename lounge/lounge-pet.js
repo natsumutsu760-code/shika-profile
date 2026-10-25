@@ -4,7 +4,7 @@
 // - ノードは 自分で 取る か、自動（ふつうは 左の 道。分岐は えらべる）。自動に して おくと Lv が 上がる たびに 取る
 // - 職業を かえると 前の 職業の 技から 1 つだけ 持ちこせる。振り直しと 職業を かえるのは 1 日 1 回 無料、2 回目から 玉（鹿さんの決め、2026-10-24。値段は 案）
 // - 装備は あたま・くび・うで・あし・武器・オフハンド・アクセサリー ×3 の 9 枠（鹿さんの決め、2026-10-25。前の「おまけ」は 武器）。なかまも 付けられる。付けて いる 装備は 合成・納める・依頼の お礼に 使えない
-import { PETS, PLANS, gambitSlots, SHAPE, SP_PER_LV, SET_SLOTS, TREE_SLOTS, FREE_PER_LV, BASE_STATS, canTake, autoTake, learned, growthStats, ENEMY_TREES, SKILL, EFFECTS, COND_TEXT, baseOf, tamedOf, SLOTS, OLD_SLOT, withAtt } from "./game.js";
+import { PETS, PLANS, gambitSlots, SHAPE, SP_PER_LV, SET_SLOTS, TREE_SLOTS, FREE_PER_LV, BASE_STATS, canTake, autoTake, learned, growthStats, ENEMY_TREES, SKILL, EFFECTS, COND_TEXT, baseOf, tamedOf, SLOTS, OLD_SLOT, withAtt, fighterPower, REC_MODES, REC_SCOPES, recommend } from "./game.js";
 
 export const RESET_PRICE = (lv) => lv * 100;   // 2 回目からの 振り直し・職業を かえる 玉（案）
 export const STYLES = ["attack", "defense", "balance", "mp"];   // オートの 作戦：こうげき重視・防御重視・バランス・MP を大事に
@@ -167,6 +167,31 @@ export function equipSet(rec, b) {
   if (mine) delete x.equip[mine];
   x.equip[b.slot] = e.uid;
   return { ok: true };
+}
+
+// ---------- おすすめ装備（鹿さんの頼み、2026-10-25。えらび方は recommend.js）----------
+// mode：job（職業に 合う）・power（強さ）・weak（弱点を 補う）。scope：one（who の 子だけ）・party（ペット → パーティの なかまの 順）
+// ほかの 子が 付けて いる 物も 外して 使う（出かけて いる 子の 物は 使わない）。画面と 同じ 計算を ここで しなおして 付ける
+const powerNow = (x, rec) => fighterPower(x === rec.pets[0] ? fighterOf(x, rec) : mateOf(x, rec));
+export function equipBest(rec, b) {
+  if (!REC_MODES.some(([k]) => k === b.mode) || !REC_SCOPES.some(([k]) => k === b.scope)) return { ok: false, why: "えらび方を えらんで" };
+  const pet = petOf(rec); if (!pet || !pet.type) return { ok: false, why: "さきに 職業を えらんで" };
+  const one = b.scope === "one" ? (b.who && b.who !== "pet" ? rec.tamed.find((c) => c.uid === b.who) : pet) : null;
+  if (b.scope === "one" && !one) return { ok: false, why: "その 子は いない" };
+  const targets = one ? [one] : [pet, ...(rec.party || []).map((u) => rec.tamed.find((c) => c.uid === u)).filter(Boolean)];
+  if (targets.some((x) => onTrip(rec, x.uid))) return { ok: false, why: "出かけて いる あいだは かえられない" };
+  const all = [pet, ...rec.tamed], whoOf = (x) => (x === pet ? "pet" : x.uid);
+  const locked = new Set(all.filter((x) => onTrip(rec, x.uid)).flatMap((x) => Object.values(x.equip || {}).filter(Boolean)));
+  const chars = targets.map((x) => ({ who: whoOf(x), type: x.type, stats: (x === pet ? fighterOf(pet, null) : tamedOf(x, x.lv)).stats, equip: { ...(x.equip || {}) } }));
+  const before = targets.map((x) => powerNow(x, rec)), plan = recommend(chars, rec.own.equip.map((e) => withAtt(e, rec.own.att)), b.mode, locked);
+  const take = new Set(plan.flatMap((p) => Object.values(p.set).filter(Boolean)));
+  let n = 0, took = 0;
+  for (const x of all) if (!targets.includes(x)) for (const s of SLOT_KEYS) if (x.equip && take.has(x.equip[s])) { delete x.equip[s]; took++; }   // ほかの 子から 外す
+  for (const p of plan) {
+    const x = targets.find((t) => whoOf(t) === p.who); x.equip ||= {};
+    for (const s of SLOT_KEYS) { if ((x.equip[s] || null) !== p.set[s]) n++; if (p.set[s]) x.equip[s] = p.set[s]; else delete x.equip[s]; }
+  }
+  return { ok: true, n, took, power: targets.map((x, i) => ({ who: whoOf(x), name: x.name, before: before[i], after: powerNow(x, rec) })) };
 }
 
 // ---------- 振り直し・職業を かえる（1 日 1 回 無料。2 回目から 玉。お金の 計画） ----------

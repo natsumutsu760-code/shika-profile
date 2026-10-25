@@ -111,6 +111,24 @@
   .scrap .sc.go { background:var(--coral); border-color:var(--coral); color:#fff; }
   .scrap small { flex-basis:100%; font:700 11px/1.4 var(--jp); color:var(--soft); }
   /* まとめて 手放す */
+  /* おすすめ装備 */
+  .recbtn { margin-top:10px; width:100%; border:1.5px solid #FFD38A; background:#FFF8EA; color:#9A5B00; border-radius:14px; padding:10px 12px; font:900 13px/1 var(--jp); }
+  .recbtn[aria-pressed="true"] { background:#9A5B00; border-color:#9A5B00; color:#fff; }
+  .rec h2 { margin:0 0 10px; font:900 18px/1.25 var(--jp); }
+  .rec .brow { display:flex; flex-wrap:wrap; align-items:center; gap:5px; margin-bottom:6px; } .rec .brow > span { width:56px; font:900 11px/1.2 var(--jp); color:var(--soft); }
+  .rec .brow button { border:1.5px solid var(--line); background:#fff; border-radius:99px; padding:6px 10px; font:700 12px/1 var(--jp); color:var(--soft); }
+  .rec .brow button[aria-pressed="true"] { background:var(--ink); border-color:var(--ink); color:#fff; }
+  .rwho { margin-top:10px; padding:10px 12px; border-radius:16px; border:1.5px solid var(--line); }
+  .rh { display:flex; justify-content:space-between; align-items:baseline; gap:8px; font:900 14px/1.3 var(--jp); } .rh span { font:700 12px/1.3 var(--jp); color:var(--soft); white-space:nowrap; } .rh span b { font:600 15px/1 var(--num); color:var(--ink); } .rh b.up { color:#13A36A; } .rh b.dn { color:var(--coral); }
+  .rwhy { margin:2px 0 4px; font:700 11px/1.4 var(--jp); color:var(--soft); }
+  .rrows { list-style:none; margin:0; padding:0; }
+  .rrows li { display:grid; grid-template-columns:62px 30px 12px minmax(0, 1fr); gap:6px; align-items:center; padding:6px 0; border-top:1px dashed var(--line); }
+  .rmore summary { margin-top:4px; padding:6px 0 2px; font:900 12px/1.2 var(--jp); color:var(--soft); cursor:pointer; }
+  .rrows .rs { font:900 11px/1.2 var(--jp); color:var(--soft); white-space:nowrap; } .rrows .ar { color:var(--soft); font-weight:900; text-align:center; }
+  .rrows .rf, .rrows .rt { display:flex; align-items:center; gap:5px; min-width:0; } .rrows .rf { opacity:.6; }
+  .rrows .gi { flex:none; width:30px; height:30px; border-radius:8px; background:var(--space); display:grid; place-items:center; } .rrows .gi img { width:26px; height:26px; }
+  .rrows .gn { min-width:0; font:700 12px/1.25 var(--jp); overflow:hidden; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; }   /* PC の せまい 列でも 名前が 読める ように 2 行まで */ .rrows .gn i { font-style:normal; margin-left:3px; color:#C98A00; font-size:11px; } .rrows .gn.none { color:var(--soft); }
+  .rrows small { grid-column:2 / -1; font:700 11px/1.2 var(--jp); color:var(--coral); }
   .bulkbtn { border:1.5px solid var(--line); background:#fff; border-radius:99px; padding:5px 12px; font:900 12px/1 var(--jp); color:var(--ink); }
   .bulkbtn[aria-expanded="true"] { background:var(--ink); border-color:var(--ink); color:#fff; }
   .bulkbtn.on small { margin-left:5px; padding:2px 6px; border-radius:99px; background:#E5F7EE; color:#13A36A; font:900 11px/1 var(--jp); } .bulkbtn.on[aria-expanded="true"] small { background:rgba(255,255,255,.18); color:#fff; }
@@ -187,12 +205,15 @@ import { mergeAtt, attHtml, attClick } from "./att-panel.js";   // 武器の ア
 import { mountWallet } from "./wallet-bar.js"; mountWallet();   // 上の 通貨の 札（玉・リソース・クレジット）と 両替
 import { petInfo, linkTabs, gateHtml, addGateCss, toast } from "./pet-head.js";
 import { TYPES } from "./skills.js";
-import { SLOTS, KINDS, OPS, baseOf, itemStats, mainStats, hasFx, SCRAP_BALLS, SCRAP_CREDITS, recycleOf, keepInBulk, AUTO_SELL_STARS } from "./equip.js";
+import { SLOTS, KINDS, OPS, baseOf, itemStats, itemPower, mainStats, hasFx, SCRAP_BALLS, SCRAP_CREDITS, recycleOf, keepInBulk, AUTO_SELL_STARS } from "./equip.js";
 import { DUNGEONS } from "./dungeons.js";
 import { SYNTH } from "./recipes.js";
 import { gearImg, watchIcons } from "./gear-icon.js";
 import { addTkCss, padGrids, watchPad } from "./stash-grid.js";
 import { spriteURL } from "./sprites.js";
+import { REC_MODES, recommend, recWeights, recDiff } from "./recommend.js";   // おすすめ装備
+import { petAt } from "./builds.js";
+import { fighterPower } from "./battle-sim.js";
 
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
 const SL = { hp: "HP", mp: "MP", atk: "ATK", def: "DEF", int: "INT", res: "RES", agi: "AGI", dex: "DEX", luk: "LUK" };
@@ -217,7 +238,7 @@ const DOLL = ["head", "weapon", "off", "arm", "neck", "leg"], ACCS = ["acc1", "a
 const EMPTY = { off: "オフ\nハンド" };
 
 let ME = mergeAtt(await me()), MP = ME.pets && ME.pets[0];
-const V = { f: null, sort: "star", sel: null, slot: null, conf: null, bulk: false, bstar: 2, bhow: "balls", auto: false, ahow: null, who: new URLSearchParams(location.search).get("who") || "pet" };
+const V = { f: null, sort: "star", sel: null, slot: null, conf: null, bulk: false, bstar: 2, bhow: "balls", auto: false, ahow: null, rec: null, who: new URLSearchParams(location.search).get("who") || "pet" };
 // だれの 装備（鹿さんの決め、2026-10-25）：ペットと パーティの 2 体。部屋に いる 子でも 何か 付けて いれば 出す（はずせる ように）
 const mates = () => (ME.tamed || []).filter((c) => (ME.party || []).includes(c.uid) || Object.values(c.equip || {}).some(Boolean));
 const holder = () => (V.who !== "pet" && mates().find((c) => c.uid === V.who)) || MP;
@@ -269,6 +290,7 @@ function render() {
       ${b.slot === "weapon" ? attHtml(ME, it, { away: !!busyAway }) : ""}
       <div class="btns">${btn}${sy ? `<a class="linkish" href="bench.html?k=s:${sy.out}">作業台で 合成する</a>` : ""}</div>${w ? "" : scrapHtml(it)}`;
   }
+  if (V.rec) det = recHtml();
   return `
   <section class="panel pet" aria-label="ペット">
     <div class="pic"><img src="${info.img}" alt="${esc(info.label)}の${esc(MP.name)}"></div>
@@ -282,6 +304,7 @@ function render() {
       <div class="side">
         <div class="accs"><small>アクセサリー</small>${ACCS.map(tile).join("")}</div>
         ${sum ? `<div class="sum">装備でふえる分　${sum}</div>` : ""}
+        <button class="recbtn" data-rec="1" aria-pressed="${!!V.rec}">✦ おすすめ装備</button>
       </div>
     </section>
     <section class="panel" aria-label="持っている装備" id="list">
@@ -291,8 +314,53 @@ function render() {
       <div class="filters sorts" role="group" aria-label="ならべる"><span>ならべる</span>${SORTS.map(([k, l]) => `<button data-sort="${k}" aria-pressed="${V.sort === k}">${l}</button>`).join("")}</div>
       ${listHtml}
     </section>
-    <aside class="panel detail ${it ? `r${it.star}` : ""}" aria-label="えらんだ装備" id="det">${det}</aside>
+    <aside class="panel detail ${it && !V.rec ? `r${it.star}` : ""}" aria-label="${V.rec ? "おすすめ装備" : "えらんだ装備"}" id="det">${det}</aside>
   </div>`;
+}
+// ---------- おすすめ装備（鹿さんの頼み、2026-10-25）：えらび方 3 つ・この 子／パーティ 全員。ほかの 子の 物も 外して 使う。くらべて から 付ける ----------
+// 計算は recommend.js（門番の equip.best も 同じ）。強さは 闘技場と 同じ fighterPower
+const whoKey = (x) => (x === MP ? "pet" : x.uid);
+const formOf = (x) => (x === MP ? MP.build : petAt(x.type, x.lv, { main: x.tree }));   // 装備なしの 戦う 形（なかまは 門番の tamedOf と 同じ）
+const itemsOf = (set) => Object.values(set || {}).filter(Boolean).map((u) => (ME.own.equip || []).find((e) => e.uid === u)).filter(Boolean);
+const powerWith = (x, set) => fighterPower({ ...formOf(x), equip: itemsOf(set) });
+const RS = { off: "オフハンド", acc1: "アクセ 1", acc2: "アクセ 2", acc3: "アクセ 3" };   // くらべる 一覧の 枠の 名前（短く）
+const recMode = () => { try { const m = localStorage.getItem("ml-rec-mode"); return REC_MODES.some(([k]) => k === m) ? m : "job"; } catch (e) { return "job"; } };
+function recPlan() {
+  const R = V.rec, all = [MP, ...(ME.tamed || [])], party = [MP, ...(ME.party || []).map((u) => (ME.tamed || []).find((c) => c.uid === u)).filter(Boolean)];
+  const targets = R.scope === "party" ? party : [holder()], gone = (x) => away(x.uid);
+  if (targets.some(gone)) return { targets, away: true };
+  const locked = new Set(all.filter(gone).flatMap((x) => Object.values(x.equip || {}).filter(Boolean)));
+  const chars = targets.map((x) => ({ who: whoKey(x), type: x.type, stats: formOf(x).stats, equip: { ...(x.equip || {}) } }));
+  const W = {}; for (const x of all) for (const [s, u] of Object.entries(x.equip || {})) if (u) W[u] = { who: whoKey(x), name: x.name };
+  const plan = recommend(chars, ME.own.equip || [], R.mode, locked);
+  return { targets, chars, plan, rows: recDiff(plan, chars, W), W };
+}
+// どこを 重く 見たか（1 行）：職業は 伸び方の 上位、弱点は 重みの 上位
+const recWhy = (R, ch) => { if (R.mode === "power") return "強さの 数字が いちばん 上がる 組み合わせ"; const w = recWeights(R.mode, ch), top = Object.entries(w).sort((a, b) => b[1] - a[1]).slice(0, 2).map(([k]) => SL[k]).join("・");
+  return R.mode === "job" ? `${TYPES[ch.type] ? TYPES[ch.type].label : ""}は ${top} を 重く` : `低い 能力（${top}）を 重く`; };
+function recHtml() {
+  const R = V.rec, P = recPlan(), many = (ME.party || []).length > 0;
+  const chip = (k, v, label) => `<button data-rk="${k}" data-rv="${v}" aria-pressed="${R[k] === v}">${label}</button>`;
+  const head = `<div class="rec"><h2>おすすめ装備</h2>
+    <div class="brow"><span>えらび方</span>${REC_MODES.map(([k, l]) => chip("mode", k, l)).join("")}</div>
+    ${many ? `<div class="brow"><span>だれ</span>${chip("scope", "one", esc(holder().name))}${chip("scope", "party", "パーティ 全員")}</div>` : ""}`;
+  const close = `<button class="jelly light" data-recx="1">とじる</button>`;
+  if (P.away) return `${head}<p class="note">出かけて いる あいだは かえられない</p><div class="btns">${close}</div></div>`;
+  // かわる 枠：外す 物は 絵だけ（うすく）、付ける 物は 名前も。上がり幅の 大きい 4 枠を 出して、のこりは たたむ（情報を 出しすぎない）
+  const eq = (u) => (ME.own.equip || []).find((x) => x.uid === u), gain = (r) => (r.to ? itemPower(eq(r.to)) : 0) - (r.from ? itemPower(eq(r.from)) : 0);
+  const pic = (u) => { const e = eq(u); return e ? `<span class="gi r${e.star}" title="${esc(baseOf(e.base).name)} ★${e.star}">${gearImg(e.base)}</span>` : `<span class="gn none">なし</span>`; };
+  const row = (r) => { const e = r.to && eq(r.to);
+    return `<li><span class="rs">${RS[r.slot] || SLOTS[r.slot].label}</span><span class="rf">${pic(r.from)}</span><span class="ar" aria-label="から">→</span><span class="rt">${e ? `${pic(r.to)}<span class="gn">${esc(baseOf(e.base).name)}<i>★${e.star}</i></span>` : `<span class="gn none">はずす</span>`}</span>${r.took ? `<small>${esc(P.W[r.to].name)}から 外す</small>` : ""}</li>`; };
+  const blocks = P.targets.map((x, i) => { const p = P.plan[i], rows = P.rows.filter((r) => r.who === p.who).sort((m, n) => gain(n) - gain(m)), b = powerWith(x, x.equip), a = powerWith(x, p.set), top = rows.slice(0, 4), more = rows.slice(4);
+    return `<div class="rwho"><div class="rh"><b>${esc(x.name)}</b><span>強さ ${b} → <b class="${a > b ? "up" : a < b ? "dn" : ""}">${a}</b>${a !== b ? `（${sign(a - b)}）` : ""}</span></div>
+      <p class="rwhy">${esc(recWhy(R, P.chars[i]))}</p>${rows.length ? `<ul class="rrows">${top.map(row).join("")}</ul>${more.length ? `<details class="rmore"><summary>ほか ${more.length} 枠</summary><ul class="rrows">${more.map(row).join("")}</ul></details>` : ""}` : `<p class="note">いまが いちばん</p>`}</div>`; }).join("");
+  return `${head}${blocks}<div class="btns"><button class="jelly" data-recgo="1" ${P.rows.length ? "" : "disabled"}>この 装備に する</button>${close}</div></div>`;
+}
+async function recGo(b) {
+  const R = V.rec, r = await busy(b, () => act("equip.best", { mode: R.mode, scope: R.scope, who: R.scope === "one" ? whoKey(holder()) : undefined }));
+  if (!r.ok) { paint(); return toast(r.wait ? waitText : r.why || "できませんでした"); }
+  ME = mergeAtt(await me()); MP = ME.pets[0]; V.rec = null; document.body.classList.remove("sheet-on"); paint();
+  toast(`${r.n} 枠 かえた・${r.power.map((x) => `${x.name} 強さ ${x.before} → ${x.after}`).join("・")}`);
 }
 // ---------- 手放す（鹿さんの決め、2026-10-25）：玉・クレジットで 売る・リサイクルで 素材に。押し まちがえない ように 2 回 押す ----------
 const HOW = { balls: "玉で 売る", credits: "クレジットで 売る", recycle: "リサイクル" };
@@ -349,12 +417,16 @@ function paint() { document.getElementById("app").innerHTML = render(); linkTabs
 addGateCss(); addTkCss(); watchPad(() => document.querySelector("#list .tk"));
 const small = () => matchMedia("(max-width:820px)").matches;
 document.body.addEventListener("click", async (e) => {
-  if (e.target.id === "dim") { document.body.classList.remove("sheet-on"); return; }
+  if (e.target.id === "dim") { V.rec = null; document.body.classList.remove("sheet-on"); return paint(); }
   const b = e.target.closest("button"); if (!b || b.disabled) return;
   const d = b.dataset;
   if (await attClick(b, ME, async (fresh) => { if (fresh) { ME = mergeAtt(await me()); MP = ME.pets[0]; } paint(); }, toast)) return;   // アタッチメント
   if (!d.scrap && !d.bulkgo && V.conf) V.conf = null;   // ほかを 押したら 2 回めの 待ちを やめる
   if (d.scrap) { const k = `${d.su}:${d.scrap}`; if (V.conf !== k) { V.conf = k; return paint(); } return doScrap(b, [d.su], d.scrap); }
+  if (d.rec) { V.rec = V.rec ? null : { mode: recMode(), scope: "one" }; paint(); if (V.rec && small()) document.body.classList.add("sheet-on"); return; }   // おすすめ装備
+  if (d.rk) { V.rec[d.rk] = d.rv; if (d.rk === "mode") try { localStorage.setItem("ml-rec-mode", d.rv); } catch (x) {} return paint(); }
+  if (d.recx) { V.rec = null; document.body.classList.remove("sheet-on"); return paint(); }
+  if (d.recgo) return recGo(b);
   if (d.bulk) { V.bulk = !V.bulk; V.auto = false; return paint(); }
   if (d.auto) { V.auto = !V.auto; V.bulk = false; return paint(); }
   if (d.astar) return setAuto(b, +d.astar, V.ahow || (ME.autoSell && ME.autoSell.how) || "credits");
@@ -362,6 +434,7 @@ document.body.addEventListener("click", async (e) => {
   if (d.bstar) { V.bstar = +d.bstar; return paint(); }
   if (d.bhow) { V.bhow = d.bhow; return paint(); }
   if (d.bulkgo) { if (V.conf !== "bulk") { V.conf = "bulk"; return paint(); } return doScrap(b, bulkPick(ME.own.equip || [], wornBy()).pick.map((e) => e.uid), V.bhow); }
+  if (d.u || d.slot) V.rec = null;
   if (d.u) { V.sel = d.u; paint(); if (small()) document.body.classList.add("sheet-on"); return; }
   if (d.f) { V.f = d.f; V.slot = null; V.sel = null; return paint(); }
   if (d.slot) {   // 枠を 押す：一覧が その 部位 だけに（もう 一度 押すと もどる）

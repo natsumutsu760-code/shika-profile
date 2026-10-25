@@ -8,6 +8,7 @@ export { SKILL } from "./skills.js";
 export { EFFECTS } from "./effects.js";
 export { runDungeon, tripInit, tripStep, tripResult, startFloor, floorsOpen, newProgress, diaryOf, dungeonRatio, floorRatio, tamedOf, rankOf } from "./dungeon-sim.js";
 export { rng, COND_TEXT, simulate, fighterPower } from "./battle-sim.js";
+export { REC_MODES, REC_SCOPES, recommend } from "./recommend.js";   // おすすめ装備
 export { DUEL, duelPay, pickFoes, TOUR, TOUR_PAY, tourDay, tourAt, bracketOf, bandMatches, matchSeed, ENC } from "./arena.js";   // 闘技場・派遣先の 戦い
 export { floorMap, FLOORS } from "./floors.js";
 export { DUNGEONS, RUNS, TICK, TOOLS, PURPOSES, SNACK_NEED, SNACK_PRICE, RESEARCH } from "./dungeons.js";
