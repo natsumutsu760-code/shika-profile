@@ -5,7 +5,8 @@
 // ・いまラウンジ（このサイト）を開いている人を Durable Object（Lounge）で覚える。ページは 1 分ごとに知らせ、3 分来なければいないことにする
 // ・配信ページのボタン（!発射 など）は、同じ Lounge から、OBS の配信オーバーレイ（WebSocket でつながっている）に届ける。
 //   チャットに書かないので、連投でタイムアウトされない。1 人 1 秒に 1 回まで
-import { loungeApi } from "./lounge/lounge-api.js";
+import { loungeApi, relayList } from "./lounge/lounge-api.js";
+import { relayFetch } from "./lounge/lounge-relay.js";
 import { lgFetch, lgFromObs } from "./lounge/lounge-ledger.js";
 export { Viewer } from "./lounge/viewer.js";
 export { Market } from "./lounge/market.js";
@@ -360,7 +361,8 @@ async function loungePage(p) {
   if (!r.ok) return new Response("", { status: r.status === 404 ? 404 : 502 });
   // HTML は MONO LINK の配信ページの枠（ラウンジのタブ）からだけ読み込める（ほかのサイトには埋め込ませない）
   if (m[2] === "html") return new Response((await r.text()).replace("<head>", "<head><script>window.MONO_LINK_REAL = true;</script>"), { headers: { "Content-Type": LOUNGE_TYPE.html, "Cache-Control": "no-cache", ...SEC, "X-Frame-Options": "SAMEORIGIN", "Content-Security-Policy": "frame-ancestors 'self'" } });
-  return new Response(r.body, { headers: { "Content-Type": LOUNGE_TYPE[m[2]], "Cache-Control": "public, max-age=300", ...SEC } });
+  // JS は OBS の 鹿物語（http://absolute）からも 読む（配信の 中継で 派遣を 計算しなおす）。中身は GitHub に 公開して いる 物
+  return new Response(r.body, { headers: { "Content-Type": LOUNGE_TYPE[m[2]], "Cache-Control": "public, max-age=300", ...SEC, ...(m[2] === "js" ? { "Access-Control-Allow-Origin": "*" } : {}) } });
 }
 
 export default {
@@ -453,6 +455,12 @@ async function route(req, env) {
     if (url.pathname === "/api/ping" && req.method === "GET") return ping(req, env);
     if (url.pathname === "/api/bye" && req.method === "POST") return bye(req, env);
     if (url.pathname === "/api/config" && req.method === "GET") return config(env);
+    // 配信の 中継（鹿物語の 持ち玉ランキングの 窓）：いま 派遣中の ペットの 材料。OBS の 鹿物語が 上げる 鍵で 読む
+    if (url.pathname === "/api/relay") {
+      if (req.method === "OPTIONS") return new Response(null, { status: 204, headers: UP_CORS });
+      if (!env.UPLOAD_KEY || !(await sameKey(bearer(req), env.UPLOAD_KEY))) return json({ error: "key" }, 401, UP_CORS);
+      return json(await relayList(env), 200, UP_CORS);
+    }
     const lr = await loungeApi(req, env, url, { enter, enterSoon, displayName }); if (lr) return lr;
     if (url.pathname.startsWith("/api/")) return json({ error: "notfound" }, 404);
     if (url.pathname === "/mx-replay.js" && req.method === "GET") return replayJs();
@@ -735,6 +743,7 @@ export class Lounge {
   async fetch(req) {
     const url = new URL(req.url), now = Date.now();
     const lgr = await lgFetch(this, url, req); if (lgr) return lgr;
+    const rlr = await relayFetch(this, url, req); if (rlr) return rlr;
     if (url.pathname === "/obs" || url.pathname === "/mirror") this.trimPending(url.pathname === "/obs" ? "obs" : "mx", now);
     if (url.pathname === "/obs") {
       const pair = new WebSocketPair(), client = pair[0], server = pair[1];

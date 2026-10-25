@@ -23,6 +23,14 @@ function hidden(gate, id) {
   return !!gate.follow && !gate.follow[id];
 }
 
+// 配信の 中継（鹿物語の ランキングの 窓）：門番の /api/relay（OBS の 鍵で 入る。たしかめるのは worker.js）から。
+// いま 派遣中の 材料（lounge-relay.js）。入れない 人の 分は 出さない。Twitch の id は 出さない
+export async function relayList(env) {
+  const r = await env.LOUNGE.get(env.LOUNGE.idFromName("lounge")).fetch("https://lounge/relay");
+  const j = await r.json().catch(() => ({ list: [] })), gate = await env.DB.get("gate", "json");
+  return { now: j.now || Date.now(), list: (j.list || []).filter((e) => !hidden(gate, e.id)).map(({ id, ...e }) => e) };
+}
+
 const staff = (gate, id) => !!gate && (id === gate.owner || !!(gate.mods && gate.mods[id]));   // 配信者と モデレーター
 const market = (env) => env.MARKET.get(env.MARKET.idFromName("market"));
 

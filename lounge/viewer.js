@@ -10,6 +10,7 @@ import { buyPlan, sellAct, tradeAct, taskDone, useItem, deeplinkView } from "./l
 import { reqPostPlan, takeFor, items } from "./lounge-req.js";
 import { petTake, petGrow, petSub, petStat, petGambits, petStyle, equipSet, respecPlan, fighterOf, spTotal, spUsed, freeTotal, RESET_PRICE } from "./lounge-pet.js";
 import "./warm.js";   // 派遣の 計算を 温めて おく（はじめの 1 回が おそく ならない ように）
+import { relayEntry } from "./lounge-relay.js";   // 配信の 中継（鹿物語の ランキングの 窓）に あずける 派遣の 材料
 import { ensure, give, FURN_MAX, petFirst, petJob, tripStart, tripCalc, tripDone, tripCollect, tripView, hideoutPlan, craftPlan, synthPlan, boxTake, dropOld, stashCap, tameFeedPlan, tameJoin, tameBack, researchPlan } from "./lounge-game.js";
 
 const OPS_KEEP = 200;            // おぼえて おく op（2 回 来たら 1 回目の 答えを 返す）
@@ -37,6 +38,8 @@ export class Viewer {
   async load() { const rec = (await this.state.storage.get("rec")) || null; if (rec) { rec.ledger ||= emptyLedger(); ensure(rec); } return rec; }
   async save(rec) { await this.state.storage.put("rec", rec); }
   lounge() { return this.env.LOUNGE.get(this.env.LOUNGE.idFromName("lounge")); }
+  // 配信の 中継：出かけた 派遣を Lounge に あずける（put）・本当の 帰る 時間（end）・うけとった（del）。つながらなくても 派遣は そのまま
+  async relay(kind, body) { try { await this.lounge().fetch("https://lounge/relay-" + kind, { method: "POST", body: JSON.stringify(body) }); } catch (e) {} }
   // 帳簿の op（OBS が 2 回 足さない ための 番号）は 門番が 作る。ブラウザの op は 使わない
   //   ブラウザの op を 使うと、ほかの 人の op を まねたり、古い op を 送りなおしたり して、払わずに 品を もらえて しまう
   nextLop(rec) { rec.lgN = (rec.lgN || 0) + 1; return rec.id + ":" + rec.at.toString(36) + ":" + rec.lgN; }
@@ -65,7 +68,7 @@ export class Viewer {
     const sim = await this.state.storage.get("sim"); if (!sim) return;
     if (!tripCalc(sim, 1)) { await this.state.storage.put("sim", sim); await this.state.storage.setAlarm(Date.now()); return; }
     const rec = await this.load();   // 記録を 読むのは 終わった ときだけ
-    if (rec && tripDone(rec, sim)) await this.save(rec);
+    if (rec && tripDone(rec, sim)) { await this.save(rec); const t = rec.trips.find((x) => x.uid === sim.uid); if (t) await this.relay("end", { id: rec.id, uid: t.uid, end: t.end }); }
     await this.state.storage.delete("sim");
   }
 
@@ -216,8 +219,12 @@ export class Viewer {
     else if (body.a === "trip.start") {
       r = tripStart(rec, body, now, Math.floor(rand() * 2 ** 31));
       if (r.sim) { await this.state.storage.put("sim", r.sim); await this.state.storage.setAlarm(Date.now()); delete r.sim; }   // 計算は アラームで 少しずつ
+      if (r.ok) await this.relay("put", relayEntry(rec, rec.trips[rec.trips.length - 1]));
     }
-    else if (body.a === "trip.collect") r = tripCollect(rec, body, now); else if (body.a === "box.take") r = boxTake(rec, now);
+    else if (body.a === "trip.collect") {
+      const t = rec.trips.find((x) => !x.done && (!body.uid || x.uid === body.uid));   // tripCollect と 同じ さがし方
+      r = tripCollect(rec, body, now); if (r.ok && t) await this.relay("del", { id: rec.id, uid: t.uid });
+    } else if (body.a === "box.take") r = boxTake(rec, now);
     else if (body.a === "trader.sell") r = sellAct(rec, body, jstDay());
     else if (body.a === "trader.trade") r = tradeAct(rec, body, jstDay());
     else if (body.a === "task.done") r = taskDone(rec, body, jstDay(), rand);
