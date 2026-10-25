@@ -116,6 +116,14 @@
   .myth b { font:900 14px/1.2 var(--jp); letter-spacing:.1em; }
   .myth small { display:block; font:700 11px/1.45 var(--jp); color:var(--soft); }
   .runs { display:grid; grid-template-columns:repeat(3, minmax(0, 1fr)); gap:6px; }
+  .fls { display:grid; grid-template-columns:repeat(5, minmax(0, 1fr)); gap:6px; }
+  .fls button { position:relative; border:1.5px solid var(--line); background:#fff; border-radius:14px; padding:9px 2px 7px; text-align:center; }
+  .fls button b { display:block; font:600 18px/1 var(--num); } .fls button b small { font:700 11px/1 var(--jp); margin-left:1px; }
+  .fls button span { display:block; margin-top:4px; font:700 10.5px/1.25 var(--jp); color:var(--soft); }
+  .fls button[aria-pressed="true"] { border-color:var(--sky); background:#EAF6FF; box-shadow:0 0 0 3px rgba(46,168,255,.16); }
+  .fls button[aria-pressed="true"] span { color:var(--ink); }
+  .fls button:disabled { opacity:.45; cursor:default; }
+  .fls .rec { position:absolute; left:50%; top:-8px; transform:translateX(-50%); padding:2px 6px; border-radius:99px; background:var(--leaf); color:#fff; font:700 9.5px/1.3 var(--jp); font-style:normal; white-space:nowrap; }
   .runs button { border:1.5px solid var(--line); background:#fff; border-radius:16px; padding:8px 6px 7px; text-align:center; }
   .runs button b { display:block; font:600 20px/1 var(--num); } .runs button b small { font:700 12px/1 var(--jp); margin-left:1px; }
   .runs button span { display:block; margin-top:4px; font:700 11px/1.3 var(--jp); color:var(--soft); }
@@ -368,7 +376,7 @@
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 <script type="module">
 import { DUNGEONS, RUNS, RESEARCH, PURPOSES, TICK, TOOLS } from "./dungeons.js";
-import { runDungeon, diaryOf, rankOf, tamedOf, newProgress, floorRatio, dungeonRatio, startFloor } from "./dungeon-sim.js";
+import { runDungeon, diaryOf, rankOf, tamedOf, newProgress, floorRatio, dungeonRatio, startFloor, floorsOpen } from "./dungeon-sim.js";
 import { floorMap, exploredRatio, keyOf, DIRS, GW, GH, FLOORS, T } from "./floors.js";
 import { petAt } from "./builds.js";
 import { ENEMY_TREES } from "./enemy-trees.js";
@@ -468,14 +476,18 @@ function worldMap(did) {
 const STEPS = (k) => Math.round(RUNS[k].sec / TICK);   // 歩ける数
 const wipeWord = (w) => (w < 0.25 ? ["あんしん", "var(--leaf)"] : w < 0.5 ? ["ちょうどいい", "var(--sky)"] : w < 0.75 ? ["きびしい", "var(--sun)"] : ["むずかしい", "var(--coral)"]);
 // 見通し：いまのパーティと探索の進みで 24 回ためした平均
-function outlook(did, rk, pu, tg, tool, n = 24) {
+function outlook(did, rk, pu, tg, tool, floor, n = 24) {
   const b0 = dungeonRatio(did, PROG[did]); let gain = 0, wipe = 0, boss = 0, gat = 0, meet = 0, mat = 0;
-  for (let s = 0; s < n; s++) { const r = runDungeon(PARTY, did, rk, 5000 + s, { purpose: pu, target: tg, tool, progress: PROG[did] }); gain += dungeonRatio(did, r.progress) - b0; wipe += r.reason === "wipe"; boss += r.bossDefeated; gat += r.gathered.length; meet += r.battles.length; mat += r.materials.reduce((a, m) => a + m.n, 0); }
+  for (let s = 0; s < n; s++) { const r = runDungeon(PARTY, did, rk, 5000 + s, { purpose: pu, target: tg, tool, floor, progress: PROG[did] }); gain += dungeonRatio(did, r.progress) - b0; wipe += r.reason === "wipe"; boss += r.bossDefeated; gat += r.gathered.length; meet += r.battles.length; mat += r.materials.reduce((a, m) => a + m.n, 0); }
   return { gain: gain / n, wipe: wipe / n, boss: boss / n, gat: gat / n, meet: meet / n, mat: mat / n };
 }
 const startFloorOf = (did, pu) => startFloor(did, PROG[did], pu);   // 門番と 同じ 決め方（行った 階が ぜんぶ 100% なら つぎの 階へ 直行）
+// 出発する 階：行った 階まで（そこまで ぜんぶ 100% なら つぎの 階も）。おすすめは 目的ごとの ふつうの 決め方
+const floorChips = (did, prog, pu, fl) => { const open = floorsOpen(did, prog), rec = startFloorOf(did, pu);
+  return Array.from({ length: FLOORS }, (_, i) => { const n = i + 1, ok = n <= open, r = floorRatio(did, prog, n);
+    return `<button data-fl="${n}" aria-pressed="${(fl || rec) === n}" ${ok ? "" : "disabled"}>${n === rec ? `<i class="rec">おすすめ</i>` : ""}<b>${n}<small>階</small></b><span>${!ok ? "まだ" : prog.floors[n] ? `${Math.round(r * 100)}%` : "はじめて"}</span></button>`; }).join(""); };
 const opts = () => { const did = DUNGEONS.some((x) => x.id === q.get("d")) ? q.get("d") : LAST ? LAST.did : DUNGEONS[0].id, d = DUNGEONS.find((x) => x.id === did), pu = PURPOSES[q.get("pu")] ? q.get("pu") : "explore";
-  return { did, d, rk: RUNS[q.get("run")] ? q.get("run") : LAST ? LAST.run : "mid", pu, tg: [...d.foes, d.rare].some((f) => f.tree === q.get("tg")) ? q.get("tg") : d.foes[0].tree, tool: TOOLS[q.get("tool")] && TOOL_HAVE[q.get("tool")] ? q.get("tool") : null }; };
+  return { did, d, rk: RUNS[q.get("run")] ? q.get("run") : LAST ? LAST.run : "mid", pu, tg: [...d.foes, d.rare].some((f) => f.tree === q.get("tg")) ? q.get("tg") : d.foes[0].tree, tool: TOOLS[q.get("tool")] && TOOL_HAVE[q.get("tool")] ? q.get("tool") : null, fl: Math.min(+q.get("fl") || 0, floorsOpen(did, PROG[did])) }; };   // fl：えらんだ 階（0 は おすすめ。まだ 行けない 階は えらべない）
 const TOOL_HAVE = ME.tools || {};   // 持って いる 道具の 数（DEEP LINK/: の 商人の 店で 買う）
 const STASH = { have: (ME.own && ME.own.mats || []).reduce((a, m) => a + m.n, 0), cap: (ME.stash && ME.stash.cap) || 100 };   // 倉庫（入らない 分は あずかり箱へ）
 const face = (c) => (c.species ? `<img class="pf" src="${PET_IMG}" alt="">` : `<img class="ps" src="${spriteURL(c.tree)}" alt="">`);
@@ -516,15 +528,17 @@ function renderPick() {
 // ---------- じゅんび（2 だんめ：目的・時間をえらんで、出発）----------
 const PU_SHORT = { explore: "まだ 見ていない マスを うめる", boss: "ボスの 部屋へ まっすぐ", gather: "採取ポイントを 回る", target: "えらんだ 敵とだけ 戦う" };
 function renderPrep() {
-  const { did, d, rk, pu, tg, tool } = opts(), prog = PROG[did], o = outlook(did, rk, pu, tg, tool), [word, ec] = wipeWord(o.wipe), tgF = [...d.foes, d.rare].find((f) => f.tree === tg);
+  const { did, d, rk, pu, tg, tool, fl } = opts(), prog = PROG[did], o = outlook(did, rk, pu, tg, tool, fl || undefined), [word, ec] = wipeWord(o.wipe), tgF = [...d.foes, d.rare].find((f) => f.tree === tg);
   const foeChips = `<h3 class="sub">${pu === "target" ? "戦う敵" : "笛で よぶ敵"}</h3><div class="tgts" role="group" aria-label="${pu === "target" ? "戦う敵" : "笛で よぶ敵"}">${[...d.foes, d.rare].map((f) => `<button data-tg="${f.tree}" aria-pressed="${f.tree === tg}"><img src="${spriteURL(f.tree)}" alt="">${esc(f.name)}${f === d.rare ? `<span class="tg">希少</span>` : ""}</button>`).join("")}</div>`;
   const metric = pu === "boss" ? `ボスを たおせそう <b>${Math.round(o.boss * 100)}%</b>` : pu === "gather" ? `採取ポイント <b>${o.gat.toFixed(1)}</b> か所くらい` : pu === "target" ? `${esc(tgF.name)}と <b>${o.meet.toFixed(1)}</b> 回 出会えそう` : `探索率 <b>+${Math.round(o.gain * 100)}%</b> くらい`;
   return `<section class="panel prephead" style="--dc:${d.color}"><button class="back" data-step="" aria-label="行き先を えらびなおす">←<span class="lbl"> 行き先を えらびなおす</span></button><h2>${esc(d.name)} へ</h2><span class="pexp"><span class="lbl">探索率</span><b>${Math.round(dungeonRatio(did, prog) * 100)}%</b></span></section>
     <div class="prep">
     <section class="panel" aria-label="目的と時間">
       <h3 class="sub">目的</h3>
-      <div class="pcards" role="group" aria-label="目的">${Object.entries(PURPOSES).map(([k, p]) => `<button data-pu="${k}" aria-pressed="${k === pu}"><b>${p.name}</b><span>${PU_SHORT[k]}</span><em>${startFloorOf(did, k)} 階から</em></button>`).join("")}</div>
+      <div class="pcards" role="group" aria-label="目的">${Object.entries(PURPOSES).map(([k, p]) => `<button data-pu="${k}" aria-pressed="${k === pu}"><b>${p.name}</b><span>${PU_SHORT[k]}</span></button>`).join("")}</div>
       ${pu === "target" ? foeChips : ""}
+      <h3 class="sub">出発する 階</h3>
+      <div class="fls" role="group" aria-label="出発する 階">${floorChips(did, prog, pu, fl)}</div>
       <h3 class="sub">時間</h3>
       <div class="runs" role="group" aria-label="時間">${Object.entries(RUNS).map(([k, r]) => `<button data-run="${k}" aria-pressed="${k === rk}"><b>${r.sec / 60}<small>分</small></b><span>${STEPS(k)} 歩</span></button>`).join("")}</div>
       <h3 class="sub">持っていく 道具<small>1 つ</small></h3>
@@ -560,7 +574,7 @@ function mapHtml(did, f, seen, opened, hidOpen, me) {
 let PLAY = null;   // 出かけた ときと 同じ 種・行き先・パーティで、この ブラウザでも 1 回 計算する（ごほうびは 門番が 出かける ときに 決めて いる）
 function renderPlay() {
   const t = TRIP, did = t.did, d = DUNGEONS.find((x) => x.id === did), run = RUNS[t.run], pu = t.purpose;
-  if (!PLAY) { const party = [PET, ...t.party.slice(1).map(mateOf).filter(Boolean)]; PLAY = { party, res: runDungeon(party, did, t.run, t.seed, { purpose: pu, target: t.target, tool: t.tool, progress: PROG[did] }) }; }
+  if (!PLAY) { const party = [PET, ...t.party.slice(1).map(mateOf).filter(Boolean)]; PLAY = { party, res: runDungeon(party, did, t.run, t.seed, { purpose: pu, target: t.target, tool: t.tool, floor: t.floor, progress: PROG[did] }) }; }
   const { party: TP, res } = PLAY, now = Date.now();
   if (t.calc) t.end = t.start + Math.min(res.budget, res.track.length) * TICK * 1000;   // 門番が まだ 計算中：帰る 時間は この ブラウザの 計算で（同じ 種なので 同じ）
   const at = Math.max(0, Math.min(res.track.length - 1, Math.floor((now - t.start) / (TICK * 1000))));
@@ -682,6 +696,7 @@ function bind() {
   on("[data-d]", (b) => reopen("d", b.dataset.d));
   on("[data-run]", (b) => reopen("run", b.dataset.run));
   on("[data-pu]", (b) => reopen("pu", b.dataset.pu));
+  on("[data-fl]", (b) => reopen("fl", b.dataset.fl));
   on("[data-tg]", (b) => reopen("tg", b.dataset.tg));
   on("[data-tool]", (b) => { if (b.dataset.tool) q.set("tool", b.dataset.tool); else q.delete("tool"); location.search = q.toString(); });
   on("[data-step]", (b) => { if (b.dataset.step) q.set("step", b.dataset.step); else q.delete("step"); location.search = q.toString(); });
@@ -693,8 +708,8 @@ function bind() {
   });
   // 出発：門番が 行き先・時間・目的・道具を たしかめて、道のりを 1 回 計算する
   on("[data-go]", async (b) => {
-    const { did, rk, pu, tg, tool } = opts(), html = b.innerHTML;
-    const r = await busy(b, () => act("trip.start", { did, run: rk, purpose: pu, target: tg, tool }), "出発して います…");
+    const { did, rk, pu, tg, tool, fl } = opts(), html = b.innerHTML;
+    const r = await busy(b, () => act("trip.start", { did, run: rk, purpose: pu, target: tg, tool, floor: fl || undefined }), "出発して います…");
     if (r.ok) { location.href = location.pathname; return; }
     b.innerHTML = html; document.getElementById("goWhy").textContent = r.why || "出発できませんでした";
   });
@@ -705,7 +720,7 @@ function bind() {
     GOT = r; MP.lv = r.lv || MP.lv; fillHead(); paint();
     toast(`経験値 <b>+${r.exp}</b>${r.up ? `・Lv <b>${r.lv}</b> に 上がった` : ""}${r.boxed ? `・${r.boxed} こ あずかり箱へ` : ""}`);
   });
-  on("#again", () => { const t = TRIP, p = new URLSearchParams({ step: "prep", d: t.did, run: t.run, pu: t.purpose }); if (t.target) p.set("tg", t.target); if (t.tool) p.set("tool", t.tool); location.search = p.toString(); });
+  on("#again", () => { const t = TRIP, p = new URLSearchParams({ step: "prep", d: t.did, run: t.run, pu: t.purpose }); if (t.target) p.set("tg", t.target); if (t.tool) p.set("tool", t.tool); if (t.floor) p.set("fl", t.floor); location.search = p.toString(); });
   // スマホ：地図は えらんだ 行き先の まわりから 見せる
   const ws = document.querySelector(".wscroll"), pin = document.querySelector('.wpin[aria-pressed="true"]');
   if (ws && pin) { ws.scrollLeft = pin.offsetLeft - ws.clientWidth / 2; ws.scrollTop = pin.offsetTop - ws.clientHeight / 2; }

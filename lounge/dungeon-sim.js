@@ -54,6 +54,8 @@ export function startFloor(did, prog, purpose) {
   for (let n = 1; n <= prog.maxFloor; n++) if (floorRatio(did, prog, n) < 1 || hiddenLeft(did, prog, n)) return n;
   return Math.min(FLOORS, prog.maxFloor + 1);
 }
+// 出発に えらべる 階は 1 〜 これ（行った ことの ある 階。そこまで ぜんぶ 100% なら つぎの 階も。鹿さんの決め、2026-10-25）
+export const floorsOpen = (did, prog) => Math.min(FLOORS, Math.max(prog.maxFloor, startFloor(did, prog, "explore")));
 
 // ---------- 1 回の 派遣 ----------
 // runDungeon は 1 回で 終わりまで 計算する。門番は tripInit → tripStep（戦い 数回ずつ）→ tripResult で 少しずつ 計算する（Cloudflare の 無料の プランは 1 回 10 ミリ秒まで）
@@ -64,12 +66,13 @@ export function runDungeon(party, dungeonId, runKey, seed, opts = {}) {
   tripStep(S);
   return tripResult(S);
 }
+// opts.floor：出発する 階（えらべない 階なら ふつうの 決め方。0・なしも ふつう）
 export function tripInit(party, dungeonId, runKey, seed, opts = {}) {
   const d = DUNGEONS.find((x) => x.id === dungeonId), purpose = PURPOSES[opts.purpose] ? opts.purpose : "explore", tool = TOOLS[opts.tool] ? opts.tool : null;
   const pick = () => Math.max(0, [...d.foes, d.rare].findIndex((f) => f.tree === opts.target));   // えらんだ 敵（いなければ 1 体目）。S には 番号で しまう
   const prog = JSON.parse(JSON.stringify(opts.progress || newProgress()));
   const S = {
-    lite: !!opts.lite, did: dungeonId, runKey, purpose, tool, ti: purpose === "target" ? pick() : -1, li: tool === "lure" ? pick() : -1,
+    lite: !!opts.lite, did: dungeonId, runKey, purpose, tool, fl: Number.isInteger(opts.floor) && opts.floor >= 1 && opts.floor <= floorsOpen(dungeonId, prog) ? opts.floor : 0, ti: purpose === "target" ? pick() : -1, li: tool === "lure" ? pick() : -1,
     r: { R: seed * 2654435761 >>> 0, C: seed * 40503 + 7 >>> 0, M: seed * 69069 + 13 >>> 0 },   // C は希少な敵・捕獲・おやつ、M は素材（ほかの結果が変わらないように）
     prog, before: Array.from({ length: FLOORS }, (_, i) => floorRatio(dungeonId, prog, i + 1)), budget: Math.round(RUNS[runKey].sec / TICK),
     team: (Array.isArray(party) ? party : [party]).map((c) => { const v = vitalsOf(c); return { c, maxHp: v.maxHp, maxMp: v.maxMp, hp: v.maxHp, mp: v.maxMp, down: false }; }),
@@ -205,7 +208,7 @@ function machine(S) {
     }
   }
   function begin() {
-    const start = startFloor(dungeonId, prog, purpose);
+    const start = S.fl || startFloor(dungeonId, prog, purpose);
     S.start = start; load(start);
     say(`${team[0].c.name}${team.length > 1 ? `たち ${team.length} 体` : ""}で 出発した。目的：${P.name}${target ? `（${target.name}）` : ""}${tool ? `。${TOOLS[tool].name}を 持っていく` : ""}`);
     pack();

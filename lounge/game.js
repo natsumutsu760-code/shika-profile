@@ -6,7 +6,7 @@ export { SHAPE, SP_PER_LV, SET_SLOTS, TREE_SLOTS, FREE_PER_LV, BASE_STATS, canTa
 export { ENEMY_TREES } from "./enemy-trees.js";
 export { SKILL } from "./skills.js";
 export { EFFECTS } from "./effects.js";
-export { runDungeon, tripInit, tripStep, tripResult, newProgress, diaryOf, dungeonRatio, floorRatio, tamedOf, rankOf } from "./dungeon-sim.js";
+export { runDungeon, tripInit, tripStep, tripResult, startFloor, floorsOpen, newProgress, diaryOf, dungeonRatio, floorRatio, tamedOf, rankOf } from "./dungeon-sim.js";
 export { rng, COND_TEXT } from "./battle-sim.js";
 export { floorMap, FLOORS } from "./floors.js";
 export { DUNGEONS, RUNS, TICK, TOOLS, PURPOSES, SNACK_NEED, SNACK_PRICE, RESEARCH } from "./dungeons.js";

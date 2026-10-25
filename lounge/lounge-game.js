@@ -4,7 +4,7 @@
 //   take：いま 取る 物（素材・クレジット・装備）。払えた とき・返事を 待つ ときに 取る（待つ あいだに ほかで 使われない ように）
 //   grant：払えたら 渡す 物。refund：返事を 待った すえに 払えなかったら もどす 物（どちらも しまえる 形の データ）
 // 数は すべて 案（鹿さんと これから 決める）
-import { PETS, QUIZ, score, PLANS, petAt, tripInit, tripStep, tripResult, newProgress, diaryOf, dungeonRatio, tamedOf, rankOf, rng, DUNGEONS, RUNS, TICK, TOOLS, PURPOSES, SNACK_NEED, SNACK_PRICE, RESEARCH,
+import { PETS, QUIZ, score, PLANS, petAt, tripInit, tripStep, tripResult, floorsOpen, newProgress, diaryOf, dungeonRatio, tamedOf, rankOf, rng, DUNGEONS, RUNS, TICK, TOOLS, PURPOSES, SNACK_NEED, SNACK_PRICE, RESEARCH,
   FACILITIES, STORAGE_CAP, toStash, BOX_DAYS, MAT_NAME, CRAFT, SYNTH, craftOpen, synthOpen, synthBalls, rollCraft, rollSynth, OPS } from "./game.js";
 import { jstDay } from "./lounge-rules.js";
 import { ensureTrade, giveTrade, bump, tripEvents } from "./lounge-trade.js";
@@ -188,9 +188,11 @@ export function tripStart(rec, b, now, seed) {
   const target = wantFoe && trees.includes(b.target) ? b.target : null;
   if (wantFoe && !target) return { ok: false, why: "敵を えらんで" };
   const prog = rec.explore[d.id] || newProgress(), mates = rec.party.map((u) => rec.tamed.find((c) => c.uid === u)).filter(Boolean);
-  const S = tripInit([fighterOf(pet, rec), ...mates.map((c) => mateOf(c, rec))], d.id, run, seed, { purpose, target, tool, progress: prog, lite: true });   // 出かけた ときの ようすで 計算する
+  const floor = b.floor == null || b.floor === "" || b.floor === 0 ? 0 : b.floor;   // 出発する 階（なしは ふつうの 決め方）
+  if (floor && !(Number.isInteger(floor) && floor >= 1 && floor <= floorsOpen(d.id, prog))) return { ok: false, why: "その 階には まだ 行けない" };
+  const S = tripInit([fighterOf(pet, rec), ...mates.map((c) => mateOf(c, rec))], d.id, run, seed, { purpose, target, tool, floor, progress: prog, lite: true });   // 出かけた ときの ようすで 計算する
   if (tool) rec.tools[tool]--;   // 道具は 持って いく ときに あずかる（お茶は 使わなかったら 帰りに もどす）
-  const t = { uid: newUid(rec, "r"), did: d.id, run, purpose, target, tool, party: [pet.uid, ...mates.map((c) => c.uid)], seed, start: now, end: now + S.budget * TICK * 1000, done: false, calc: true };
+  const t = { uid: newUid(rec, "r"), did: d.id, run, purpose, target, tool, ...(floor ? { floor } : {}), party: [pet.uid, ...mates.map((c) => c.uid)], seed, start: now, end: now + S.budget * TICK * 1000, done: false, calc: true };   // floor は えらんだ ときだけ（画面も 同じ 階で 計算しなおす）
   rec.trips.push(t);
   return { ok: true, trip: tripView(t, now), sim: { uid: t.uid, r0: dungeonRatio(d.id, prog), S } };
 }
