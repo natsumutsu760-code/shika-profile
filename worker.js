@@ -358,7 +358,8 @@ async function loungePage(p) {
   if (!m) return null;
   const r = await fetch(HTML_URL.replace(/index\.html$/, "lounge-site/" + m[1]), { cf: { cacheTtl: 300, cacheEverything: true } });
   if (!r.ok) return new Response("", { status: r.status === 404 ? 404 : 502 });
-  if (m[2] === "html") return new Response((await r.text()).replace("<head>", "<head><script>window.MONO_LINK_REAL = true;</script>"), { headers: { "Content-Type": LOUNGE_TYPE.html, "Cache-Control": "no-cache", ...SEC } });
+  // HTML は MONO LINK の配信ページの枠（ラウンジのタブ）からだけ読み込める（ほかのサイトには埋め込ませない）
+  if (m[2] === "html") return new Response((await r.text()).replace("<head>", "<head><script>window.MONO_LINK_REAL = true;</script>"), { headers: { "Content-Type": LOUNGE_TYPE.html, "Cache-Control": "no-cache", ...SEC, "X-Frame-Options": "SAMEORIGIN", "Content-Security-Policy": "frame-ancestors 'self'" } });
   return new Response(r.body, { headers: { "Content-Type": LOUNGE_TYPE[m[2]], "Cache-Control": "public, max-age=300", ...SEC } });
 }
 

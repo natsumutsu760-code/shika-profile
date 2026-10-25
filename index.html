@@ -485,6 +485,29 @@ html:not([lang="en"]) .en-only { display: none !important; }
 .chat li.sys { display: block; color: var(--soft); font-size: 12px; text-align: center; }
 .newer { position: absolute; left: 50%; bottom: 10px; transform: translateX(-50%); border: 0; border-radius: 999px; padding: 8px 14px; background: var(--ink); color: #fff; font: 700 13px/1 var(--jp); box-shadow: var(--lift); }
 .newer[hidden] { display: none; }
+/* コメント ↔ ラウンジのスイッチ（コメントの行の左）。右に倒すと、コメントを書く欄から下がラウンジの画面になる（下の .live.hk） */
+.sayrow { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.sayrow .say-form input { width: 0; } /* スイッチを足しても、コメントの行が画面の幅を押し広げない */
+.sayrow > .say-form, .sayrow > .ask { flex: 1; min-width: 0; }
+.swap { position: relative; flex: none; display: flex; align-items: center; justify-content: space-around; width: 74px; height: 40px; padding: 0 4px; border: 0; border-radius: 999px; background: #fff; box-shadow: inset 0 0 0 1.5px var(--line); -webkit-tap-highlight-color: transparent; }
+.swap svg { position: relative; z-index: 1; width: 20px; height: 20px; fill: var(--soft); transition: fill .25s; }
+.swap .sw-knob { position: absolute; left: 4px; top: 4px; width: 32px; height: 32px; border-radius: 50%; background: var(--sky); box-shadow: 0 3px 8px -2px rgba(46,168,255,.55); transition: transform .35s var(--spring), background .25s; }
+.swap .sw-c { fill: #fff; }
+.swap[aria-checked="true"] .sw-knob { transform: translateX(34px); background: var(--leaf); box-shadow: 0 3px 8px -2px rgba(34,204,136,.55); }
+.swap[aria-checked="true"] .sw-c { fill: var(--soft); }
+.swap[aria-checked="true"] .sw-h { fill: #fff; }
+.sw-dot { position: absolute; right: 2px; top: 0; z-index: 2; width: 11px; height: 11px; border-radius: 50%; background: var(--coral); box-shadow: 0 0 0 2px #fff; }
+.sw-dot[hidden] { display: none; }
+/* ラウンジに切り替えたとき（.live.hk）：コメントを書く欄から下（打つ欄・タブ・操作パネル・コメント欄）をしまい、
+   スイッチの横にラウンジのタブ、その下にラウンジの画面（/lounge/ の本物の画面をそのまま。中で押した先もこの枠の中） */
+#htabs, .live.hk .sayrow > .say-form, .live.hk .sayrow > .ask, .live.hk #ltabs, .live.hk .lpanel, .live.hk .chatwrap { display: none !important; }
+.live.hk #htabs { display: flex !important; flex: 1; min-width: 0; }
+.tnum { display: inline-grid; place-items: center; min-width: 17px; height: 17px; margin-left: 5px; padding: 0 4px; border-radius: 999px; background: var(--coral); color: #fff; font: 800 11px/1 var(--num); font-style: normal; vertical-align: 1px; }
+.tnum[hidden] { display: none; }
+.ltabs [aria-selected="true"] .tnum { background: #fff; color: var(--coral); }
+.hkframe { position: relative; margin-top: 8px; height: 70vh; border-radius: 16px; overflow: hidden; background: #fff; box-shadow: inset 0 0 0 1.5px var(--line); }
+.hkframe[hidden] { display: none; }
+.hkframe iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; display: block; }
 /* 配信者用の隠しページ：配信の映像のかわりに、OBS の鹿物語とレイアウトを、このページの中でそのまま動かす（ミラー）。
    1920×1080 の画面の左上 (24, 24) に鹿物語を 0.75 倍、その上にオーバーレイ（OBS と同じ重ね方）。枠の大きさに合わせて縮める */
 .mx { position: absolute; inset: 0; overflow: hidden; background: #000; }
@@ -520,6 +543,7 @@ html:not([lang="en"]) .en-only { display: none !important; }
   .lpanel { max-height: 30vh; overflow-y: auto; overscroll-behavior: contain; }
   .chatwrap { flex: 1 1 0; min-height: 170px; }
   .chat { height: 100%; }
+  .hkframe { flex: 1 1 0; min-height: 320px; height: auto; }
 }
 /* PC：左に映像・打つ欄・タブ・操作パネル（上から順に）、右はコメント欄だけ（左の列と同じ高さ） */
 @media (min-width: 900px) and (min-height: 501px) {
@@ -531,6 +555,7 @@ html:not([lang="en"]) .en-only { display: none !important; }
   /* コメントが増えても左の列の高さに合わせる（中身で列を伸ばさない） */
   .chatwrap { grid-area: chat; margin-top: 0; align-self: stretch; contain: size; min-height: 420px; display: flex; flex-direction: column; }
   .chat { flex: 1; height: auto; min-height: 0; }
+  .hkframe { grid-area: chat; margin-top: 0; align-self: stretch; contain: size; min-height: 420px; height: auto; }
   .screen { border-radius: 22px; }
   /* 配信を見ているあいだ：ページの横幅の上限を外し、映像を左の端から。上の見出しと下の文字は隠す。
      映像は 16:9 のまま、打つ欄・タブ・操作パネル・下のボタンまでスクロールなしで 1 画面に収まる大きさ（--under がその下の分）。あまった横幅はコメント欄へ */
@@ -540,7 +565,8 @@ html:not([lang="en"]) .en-only { display: none !important; }
   body.live-on .screen { border-radius: 0 0 22px 0; box-shadow: none; }
   body.live-on .stage > :not(.screen), body.live-on .ltabs, body.live-on .lpanel { margin-left: 12px; }
   body.live-on .lpanel { max-height: 176px; overflow-y: auto; overscroll-behavior: contain; }
-  body.live-on .chatwrap { margin-top: 12px; }
+  body.live-on .chatwrap, body.live-on .hkframe { margin-top: 12px; }
+  body.live-on .live.hk .hkframe { height: calc(100vh - 134px); } /* ラウンジのときは左の列が映像だけになるので、右の枠は画面の下まで */
   /* 配信者用の隠しページ：映像を端から端まで大きく（ボタンは下へスクロール）。右の列の上に鹿物語のいま */
   body.studio .live { grid-template-columns: minmax(0, 1fr) 340px; }
   body.studio .screen { border-radius: 0; max-height: 100vh; }
@@ -721,8 +747,16 @@ body.live-on .floor::before, body.live-on .isle { animation: none; }
       <div class="stick" id="stick">
         <div class="stage">
           <div class="screen" id="screen"><p>配信の映像</p></div>
-          <form class="say-form" id="say-form" autocomplete="off"><label class="sr" for="say-in">コメント</label><input id="say-in" maxlength="300" placeholder="コメントする（! でコマンド）" enterkeyhint="send"><button class="jelly sky" type="submit">送る</button></form>
-          <div class="ask" id="say-ask" hidden><p>コメントには Twitch の許可がいります</p><button type="button" class="jelly sky" id="say-login">許可する</button></div>
+          <div class="sayrow">
+            <button type="button" class="swap" id="swap" role="switch" aria-checked="false" aria-label="ラウンジ（派遣・ペット）に切り替える"><span class="sw-knob" aria-hidden="true"></span><svg class="sw-c" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6.5A2.5 2.5 0 0 1 6.5 4h11A2.5 2.5 0 0 1 20 6.5v7a2.5 2.5 0 0 1-2.5 2.5H10l-4.5 3.6V16A2.5 2.5 0 0 1 4 13.5z"/></svg><svg class="sw-h" viewBox="0 0 24 24" aria-hidden="true"><ellipse cx="12" cy="15.5" rx="4.6" ry="3.8"/><circle cx="6" cy="10.5" r="1.9"/><circle cx="9.6" cy="6.6" r="1.9"/><circle cx="14.4" cy="6.6" r="1.9"/><circle cx="18" cy="10.5" r="1.9"/></svg><i class="sw-dot" id="swap-dot" hidden></i></button>
+            <form class="say-form" id="say-form" autocomplete="off"><label class="sr" for="say-in">コメント</label><input id="say-in" maxlength="300" placeholder="コメントする（! でコマンド）" enterkeyhint="send"><button class="jelly sky" type="submit">送る</button></form>
+            <div class="ask" id="say-ask" hidden><p>コメントには Twitch の許可がいります</p><button type="button" class="jelly sky" id="say-login">許可する</button></div>
+            <div class="ltabs" id="htabs" role="tablist" aria-label="ラウンジ（選んでいるタブをもう一度押すと、その画面のはじめに戻る）">
+              <button type="button" role="tab" id="ht-trip" data-hp="trip" aria-controls="haken" aria-selected="true" style="--c:var(--leaf)">派遣<i class="tnum" hidden></i></button>
+              <button type="button" role="tab" id="ht-pet" data-hp="pet" aria-controls="haken" aria-selected="false" tabindex="-1" style="--c:var(--violet)">ペット<i class="tnum" hidden></i></button>
+              <button type="button" role="tab" id="ht-room" data-hp="room" aria-controls="haken" aria-selected="false" tabindex="-1" style="--c:var(--sky)">ラウンジ</button>
+            </div>
+          </div>
           <p class="hint" id="say-hint" aria-live="polite"></p>
         </div>
         <div class="ltabs" id="ltabs" role="tablist" aria-label="配信のメニュー（選んでいるタブをもう一度押すとたたむ）">
@@ -755,6 +789,7 @@ body.live-on .floor::before, body.live-on .isle { animation: none; }
         <div role="tabpanel" id="lp-misc" aria-labelledby="lt-misc" hidden></div>
       </div>
       <div class="chatwrap"><ol class="chat" id="chat" aria-label="配信のコメント"></ol><button type="button" class="newer" id="newer" hidden>新しいコメントへ</button></div>
+      <div class="hkframe" id="haken" role="tabpanel" aria-label="ラウンジの画面" hidden><iframe id="hk-if" title="ラウンジ" src="about:blank"></iframe></div>
     </div>
   </section>
 
@@ -925,6 +960,7 @@ body.live-on .floor::before, body.live-on .isle { animation: none; }
     ["そのほか", "#22CC88", [["!けいじばん こんにちは", "ラウンジの掲示板に書く（1 分に 1 回・120 字まで）"], ["!バグ報告 ガチャのあと画面が止まった", "不具合を配信者に知らせる（30 秒に 1 回・300 字まで）"], ["!花火", "画面に花火（!ハート でハート）"], [null, "888 で拍手、草 で草が生える"], ["!モノリンク", "MONO LINK の URL をチャットで受け取る（!サイト でも）"]]]
   ];
   var NOTES = [
+    ["MONO LINK", "2026-10-25", ["配信ページから、配信を見たままラウンジで遊べるようにしました。コメントを書く欄の左のスイッチを押すと、その下がラウンジの画面に切りかわります", "上のタブで「派遣」（出かけているあいだは探索中の画面）・「ペット」・「ラウンジ」（自分の部屋）へ。もう一度スイッチを押すと、いつものボタンとコメント欄に戻ります", "派遣が帰ってきたら、スイッチに赤い点が付きます。ペットのタブには、使えるスキルポイントの数が出ます"]],
     ["build 100", "2026-10-25", ["鹿物語 Ver.1.8.37：新しく足した曲や声（ハイアンドローの Afterglow など）が、配信画面で鳴らずに仮の音になることがあったのを直しました", "新しい曲や声は、配信画面が開いてから少しあとで届きます。これまでは届く前に一度だけ探して「ない」と決めていたので、次に開き直すまで仮の音のままでした。届いたらすぐに読み直して、その曲に切り替わります"]],
     ["build 99", "2026-10-25", ["プライベートラウンジ（自分の部屋）ができました。ロビーのまんなかのロゴ（いまラウンジにいる人の数）を押すと入れます", "部屋：家具を置いてもようがえ。家具はリソースで買うか、家具ガチャで", "ペット：6 つの質問の性格診断で 1 匹目をむかえます。職業を選んで、VR ダンジョンへ派遣（1・3・10 分）。素材・装備・クレジットを持って帰ります", "なかま：派遣で捕まえた敵は、おやつで仲間に（ペットと 3 体で出かけられます）。隠れ家（部屋のはしごから地下へ）で施設を強くしたり、作業台で装備を作ったり", "DEEP LINK/:（部屋の PC）：トレーダーのタスク・買い物・売り買い・みんなの依頼の板", "玉とリソースは配信と同じ物です。配信していないときに使った分は、次の配信のはじめにまとめて反映されます"]],
     ["build 98", "2026-10-25", ["鹿物語 Ver.1.8.36：ハイアンドローにダブルアップと BGM（Afterglow）を足しました", "勝ち残った人と、途中で降りた人は、最後に賞金を賭けてダブルアップに挑戦できます。伏せたカード 2 枚から「!左」か「!右」。鹿なら賞金 ×2、ドクロなら没収。3 回まで（最大 ×8）", "「!やめ」か、答えなければ、そこで受け取って終わり。途中で降りた人の賞金も、受け取りはハイアンドローの最後になりました", "配信ページの「ゲーム」タブに、左・右のボタンを足しました"]],
@@ -2294,6 +2330,66 @@ var ShikaWheel = (function () {
     var j = e.key === "ArrowRight" ? i + 1 : e.key === "ArrowLeft" ? i - 1 : e.key === "Home" ? 0 : e.key === "End" ? ts.length - 1 : null;
     if (j == null) return; e.preventDefault(); showPane(ts[(j + ts.length) % ts.length].dataset.pane, true);
   });
+
+  // ---- ラウンジ：コメントの行の左のスイッチで、コメントを書く欄から下をラウンジの画面にする ----
+  // タブは配信のタブと同じ形（派遣・ペット・ラウンジ）。押すと下の枠に、その本物の画面（/lounge/）が出る。派遣中なら探索中の画面
+  // しるし（開かなくても分かる）：帰ってきた派遣はスイッチの赤い点と派遣のタブの 1、使えるスキルポイントはペットのタブの数。門番の /api/me から
+  var LG = "/lounge/", HK_PAGE = { trip: "dungeon.html", pet: "status.html", room: "lounge-room.html" };
+  var HK_OF = { "dungeon.html": "trip", "status.html": "pet", "skilltree.html": "pet", "gambit.html": "pet", "equip.html": "pet", "tame.html": "pet", "quiz.html": "pet" }; // ほかはラウンジ
+  var hk = { on: false, tab: "trip", me: null, at: 0, busy: false, endT: 0 };
+  function hkLoad() {
+    var tok = ss(TOK); if (!tok || hk.busy) return; hk.busy = true;
+    fetch("/api/me", { headers: { Authorization: "Bearer " + tok }, cache: "no-store" }).then(function (r) { return r.json(); })
+      .then(function (j) { if (j && !j.code) hk.me = j; }, function () {})
+      .then(function () { hk.busy = false; hk.at = Date.now(); hkMarks(); });
+  }
+  function hkMarks() {
+    var m = hk.me, t = m && (m.trips || []).filter(function (x) { return !x.done; })[0], mp = m && m.pets && m.pets[0], ready = !!(t && t.got), sp = mp && mp.sp ? mp.sp.left : 0;
+    $("swap-dot").hidden = !ready;
+    [["ht-trip", ready ? 1 : 0], ["ht-pet", sp]].forEach(function (x) { var b = $(x[0]).querySelector(".tnum"); b.hidden = !(x[1] > 0); b.textContent = x[1] > 0 ? String(x[1]) : ""; });
+    // 出かけているあいだは、帰ってくる時間に読み直す（スイッチの点のため）
+    clearTimeout(hk.endT);
+    if (t && !t.got && liveOpen) hk.endT = setTimeout(hkLoad, t.end > Date.now() ? t.end - Date.now() + 2000 : 15000);
+  }
+  function hkSel(name) {
+    hk.tab = name; lsSet("ml-hk-tab", name);
+    $("htabs").querySelectorAll("[role=tab]").forEach(function (b) { var on = b.dataset.hp === name; b.setAttribute("aria-selected", String(on)); b.tabIndex = on ? 0 : -1; });
+  }
+  function hkTab(name, focus) {
+    if (!HK_PAGE[name]) name = "trip";
+    hkSel(name); $("hk-if").src = LG + HK_PAGE[name];
+    if (focus) $("ht-" + name).focus();
+  }
+  // 枠の中で別の画面へ行ったら、タブもそれに合わせる。中で何かしたかもしれないので、しるしも読み直す（10 秒に 1 回まで）
+  $("hk-if").addEventListener("load", function () {
+    if (!hk.on) return;
+    var w = $("hk-if").contentWindow, path = "", doc = null;
+    try { path = w.location.pathname; doc = w.document; } catch (e) {}
+    if (!/^\/lounge\//.test(path)) { if (path && path !== "blank") location.href = w.location.href; return; } // ラウンジの外（MONO LINK のサイトなど）へは、枠ではなくページごと行く
+    hkSel(HK_OF[path.replace(/^.*\//, "")] || "room");
+    // 枠の中では、ラウンジの画面の上の見出し（MONO LINK:// ラウンジ ／ ペット）を出さない（上のタブが同じ役目。その分、探索中の画面を広く）
+    if (doc && doc.head && !doc.getElementById("in-live")) { var st = doc.createElement("style"); st.id = "in-live"; st.textContent = "body > header.top { display: none !important; }"; doc.head.appendChild(st); }
+    if (Date.now() - hk.at > 10000) hkLoad();
+  });
+  function hkShow(on) {
+    hk.on = on; lsSet("ml-hk", on ? "1" : "0");
+    $("swap").setAttribute("aria-checked", String(on)); $("haken").hidden = !on; $("haken").parentNode.classList.toggle("hk", on);
+    if (on) hkTab(hk.tab);
+    else { $("hk-if").src = "about:blank"; requestAnimationFrame(function () { chat.scrollTop = chat.scrollHeight; }); } // しまったら止める（スマホが熱くならないように）
+  }
+  // 配信のページを開いたとき・閉じたとき（liveView から）
+  function hkLive(on) {
+    if (on) { hk.tab = HK_PAGE[lsGet("ml-hk-tab")] ? lsGet("ml-hk-tab") : "trip"; hkSel(hk.tab); hkShow(lsGet("ml-hk") === "1"); hkLoad(); }
+    else { clearTimeout(hk.endT); $("hk-if").src = "about:blank"; }
+  }
+  $("swap").addEventListener("click", function () { hkShow(!hk.on); });
+  // タブを押すと、その画面のはじめへ（選んでいるタブをもう一度押しても、はじめに戻る）
+  $("htabs").addEventListener("click", function (e) { var b = e.target.closest("[role=tab]"); if (b) hkTab(b.dataset.hp); });
+  $("htabs").addEventListener("keydown", function (e) {
+    var bs = Array.prototype.slice.call($("htabs").querySelectorAll("[role=tab]")), i = Math.max(0, bs.findIndex(function (b) { return b.dataset.hp === hk.tab; }));
+    var j = e.key === "ArrowRight" ? i + 1 : e.key === "ArrowLeft" ? i - 1 : e.key === "Home" ? 0 : e.key === "End" ? bs.length - 1 : null;
+    if (j == null) return; e.preventDefault(); hkTab(bs[(j + bs.length) % bs.length].dataset.hp, true);
+  });
   function drawWear() {
     var box = $("wear"); if (!box) return;
     var v = me(), own = v ? ((v.own || {})[wearKind] || []) : [], used = v && v.eq ? v.eq[wearKind] : null;
@@ -2435,7 +2531,7 @@ var ShikaWheel = (function () {
     "」さんの記録は、まだありません。": "\" has no record yet.",
     "配信でコメントすると、次の更新でここに出ます。": "Comment on the stream and it'll show up here after the next update.",
     // 配信ページ
-    "配信の映像": "Stream video", "コメント": "Comment", "コメントする（! でコマンド）": "Comment (start with ! for commands)",
+    "配信の映像": "Stream video", "派遣": "Expedition", "ペット": "Pet", "ラウンジ": "Lounge", "コメント": "Comment", "コメントする（! でコマンド）": "Comment (start with ! for commands)",
     "送る": "Send", "コメントには Twitch の許可がいります": "Commenting needs permission from Twitch", "許可する": "Allow",
     "配信のメニュー（選んでいるタブをもう一度押すとたたむ）": "Stream menu (tap the open tab again to fold it)",
     "打つ": "Fire", "ゲーム": "Game", "ガチャ": "Gacha", "くじ": "Lottery", "つけかえ": "Wear", "ほか": "More",
@@ -2834,10 +2930,11 @@ var ShikaWheel = (function () {
       player(canSound());
       document.body.classList.add("live-on"); setTimeout(vidFull, 0);
       hint(""); drawPanes(); showPane(lsGet("ml-live-tab") || "fire"); ircOpen(); lwsOpen(); pingNow();
+      hkLive(true);
       setTimeout(function () { chat.scrollTop = chat.scrollHeight; }, 50);
       if (!canWrite()) needScope();
       if (LANG === "en" && !studioOn && !lsGet("ml-tut")) setTimeout(function () { if (view === "live" && liveOpen && !studioOn && !tut) tutStart(); }, 1200);
-    } else { document.body.classList.remove("live-on", "vid-full"); clearTimeout(iosT); mxUnmount(); $("screen").innerHTML = "<p>配信の映像</p>"; ircClose(); lwsClose(); }
+    } else { document.body.classList.remove("live-on", "vid-full"); clearTimeout(iosT); mxUnmount(); $("screen").innerHTML = "<p>配信の映像</p>"; ircClose(); lwsClose(); hkLive(false); }
   }
 
   function route() {
