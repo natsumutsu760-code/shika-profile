@@ -7,6 +7,7 @@
 // 勝った敵は 1 体ずつ、一定の確率で捕まえる（研究するとサブツリー、懐柔するとパーティに入れられる）。戦いに勝つと、ときどき懐柔のおやつを拾う
 import { simulateTeams, rngIn, vitalsOf } from "./battle-sim.js";
 import { petAt } from "./builds.js";
+import { growOf, PLUS_RATE } from "./monster.js";
 import { OPS, rollCombo, comboOf, opCount, baseOf } from "./equip.js";
 import { DUNGEONS, RUNS, RARE_RATE, CAPTURE, GROUP, SNACK_DROP, TICK, ENCOUNTER, REST, TRAP, FLOOR_LV, BATTLE_TICKS, PURPOSES, CHEST_STAR, BOSS_STAR, MYTHIC, BOSS_RESOURCE, EXP_PER_LV, CREDIT, TOOLS, LURE_SHARE, NET_MULT } from "./dungeons.js";
 import { ENEMY_TREES } from "./enemy-trees.js";
@@ -30,7 +31,12 @@ export const foeOf = (f, pow = 1) => {
   return out;
 };
 // 懐柔した子：捕まえた敵のタイプの伸び方 ＋ 自分のツリー（敵のときの SP の上乗せはない）。アクセサリーも付けられる
-export const tamedOf = (f, lv = f.lv, equip = [], pow = 1) => { const p = petAt(f.type, lv, { main: f.tree }), st = { ...p.stats }; for (const k in st) st[k] = Math.round(st[k] * pow); return { ...p, name: f.name, owner: "VR", lv, stats: st, species: null, equip, tree: f.tree }; };
+// 配合した 子（monster.js）：サブスキル 2 つ・受けついだ スキルポイント・＋値（＋1 ごとに ＋2%）・受けついだ 力（両親の 合計 ÷ 4 から 足した 分 inh）も 入れる
+export const tamedOf = (f, lv = f.lv, equip = [], pow = 1) => {
+  const g = growOf(f, lv), p = petAt(f.type, lv, g ? { main: f.tree, subs: g.subs, bonusSp: g.bonusSp } : { main: f.tree }), st = { ...p.stats }, mul = pow * (1 + PLUS_RATE * (f.plus || 0));
+  for (const k in st) st[k] = Math.round((st[k] + ((f.inh && f.inh[k]) || 0)) * mul);
+  return { ...p, name: f.name, owner: "VR", lv, stats: st, species: null, equip, tree: f.tree };
+};
 
 const pickW = (R, w) => { const t = Object.values(w).reduce((a, b) => a + b, 0); let x = R() * t; for (const [k, v] of Object.entries(w)) if ((x -= v) < 0) return +k; return +Object.keys(w)[0]; };
 // 宝箱の 装備：形 × 素材（行き先で 出る 素材）× 色 の 組み合わせ（鹿さんの決め、2026-10-25）。OP の 数は ★ × 枠の 重み

@@ -1473,3 +1473,17 @@ export const ENEMY_TREES = {
     ],
     plan: [G("first", undefined, "e_kn_monbankamae"), G("foeHas", "freeze", "e_kn_saihyo"), G("every", 4, "e_kn_monnotojiru"), G("every", 3, "e_kn_itetsukushinen"), G("every", 2, "e_kn_itetsukumon"), G("always", undefined, "e_kn_monkobushi")] },
 };
+
+// スキルツリーの 進化（配合。docs/mono-link-haigou.md・イルルカ／ジョーカー3 の スキルの 派生）：最大まで 振った ツリーは 配合で「＋」が 受けつぐ 候補に 出る
+// 「＋」は 同じ 技で 威力 1.3 倍（技の 名前にも ＋）。id は もとの id ＋ EVO。行き先は なし（図鑑には 出ない・捕まえられない）
+export const EVO = "_ev", EVO_POW = 1.3;
+export const evoOf = (id) => (ENEMY_TREES[id + EVO] ? id + EVO : null);
+for (const [id, t] of Object.entries(ENEMY_TREES)) {
+  if (t.evo) continue;
+  const list = t.list.map((s) => {
+    if (s.kind === "passive") return { ...s, id: s.id + EVO };
+    const fx = s.fx.map((x) => (x.t === "dmg" ? { ...x, pow: Math.round(x.pow * EVO_POW) } : x));
+    return { ...s, id: s.id + EVO, name: s.name + "＋", fx, text: describe(fx) };
+  });
+  ENEMY_TREES[id + EVO] = { ...t, name: t.name + "＋", dungeon: null, evo: id, list, plan: t.plan.map((g) => ({ ...g, do: g.do + EVO })) };
+}

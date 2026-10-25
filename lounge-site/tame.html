@@ -101,7 +101,7 @@
   .dx small { font:600 11px/1 var(--num); color:var(--soft); }
   /* タブ（鹿さんの決め、2026-10-25）：となりの部屋は えらんだ 職業だけ・えらんだ子は おやつ／作る／研究の 1 つだけ */
   .jtabs { display:flex; flex-wrap:wrap; gap:5px; margin:10px 0 8px; position:relative; z-index:1; } .jtabs button { flex:1 1 auto; padding:8px 10px; }
-  .ftabs { display:grid; grid-template-columns:repeat(3, minmax(0, 1fr)); gap:5px; }
+  .ftabs { display:grid; grid-template-columns:repeat(4, minmax(0, 1fr)); gap:5px; }
   .jtabs button, .ftabs button { display:flex; align-items:center; justify-content:center; gap:5px; min-width:0; border:1.5px solid var(--line); background:#fff; border-radius:12px; padding:8px 4px; font:700 12.5px/1 var(--jp); color:var(--ink); white-space:nowrap; }
   .jtabs i { width:9px; height:9px; border-radius:3px; background:var(--c); flex:none; }
   .jtabs small, .ftabs small { font:600 11px/1 var(--num); color:var(--soft); }
@@ -154,12 +154,54 @@
     .pet .pic { width:48px; height:48px; border-radius:12px; } .pet h1 { font-size:20px; } .pet h1 small { font-size:12px; }
     .party { grid-template-columns:repeat(3, minmax(0, 1fr)); gap:8px; } .party > h2 { grid-column:1 / -1; }
     .mem { grid-template-columns:1fr; justify-items:center; text-align:center; padding:8px 6px; gap:6px; } .mem .row, .mem .acts { justify-content:center; } .mem b { white-space:normal; }
-    .mem > div > small, .mem.empty small { display:none; } .mem .acts { flex-wrap:nowrap; gap:4px; } .mem .mb { padding:4px 7px; white-space:nowrap; }   /* 説明の 字は 隠す（ボタンで わかる） */
+    .mem > div > small, .mem.empty small { display:none; } .mem .acts { gap:4px; } .mem .mb { padding:4px 7px; white-space:nowrap; }   /* 説明の 字は 隠す（ボタンで わかる） */
     .party > h2 small { display:inline; margin-left:6px; }
     .room { grid-template-columns:minmax(0, 1fr); } .room > .feed { order:-1; }   /* 決める パネルを 一覧の 上に（えらぶと ここへ 動く） */ .list { grid-template-columns:minmax(0, 1fr); }
     .stepper { grid-template-columns:44px auto 44px; } .stepper .all { grid-column:1 / -1; justify-self:start; }
     .lab { grid-template-columns:auto minmax(0, 1fr); } .lab > :last-child { grid-column:1 / -1; justify-self:end; }
+    .vtabs button { flex:1; justify-content:center; }
   }
+  /* 配合と サブスキル（鹿さんの決め、2026-10-25。docs/mono-link-haigou.md）：となりの部屋／配合の タブ・えらんだ子の スキル・♂♀と ＋値 */
+  .vtabs { display:flex; gap:6px; margin:0 0 12px; }
+  .vtabs button { flex:none; display:flex; align-items:center; gap:7px; border:1.5px solid var(--line); background:#fff; border-radius:14px; padding:10px 18px; font:900 14px/1 var(--jp); }
+  .vtabs button[aria-selected="true"] { background:var(--ink); border-color:var(--ink); color:#fff; box-shadow:0 4px 0 rgba(27,35,64,.2); }
+  .vtabs small { min-width:20px; height:20px; padding:0 6px; border-radius:99px; background:var(--coral); color:#fff; font:600 12px/20px var(--num); text-align:center; }
+  .sx { font:700 13px/1 var(--jp); } .sx.m { color:#2D7FF0; } .sx.f { color:#EC4C8A; } .sx.b { color:var(--violet); }
+  .plus { margin-left:5px; font:600 .8em/1 var(--num); color:#D38A00; }
+  .sphead { display:flex; justify-content:space-between; align-items:center; gap:8px; font:700 12px/1.2 var(--jp); color:var(--soft); }
+  .sphead b { font:600 24px/1 var(--num); color:var(--ink); margin:0 3px; }
+  .tog { display:inline-flex; align-items:center; gap:8px; border:1.5px solid var(--line); background:#fff; border-radius:99px; padding:6px 7px 6px 12px; font:700 12px/1 var(--jp); }
+  .tog i { width:34px; height:20px; border-radius:99px; background:#C9D1E2; position:relative; transition:background .15s; }
+  .tog i::after { content:""; position:absolute; left:2px; top:2px; width:16px; height:16px; border-radius:50%; background:#fff; transition:transform .15s; }
+  .tog[aria-pressed="true"] i { background:var(--leaf); } .tog[aria-pressed="true"] i::after { transform:translateX(14px); }
+  .trees { list-style:none; margin:10px 0 8px; padding:0; display:grid; gap:7px; }
+  .trow { display:grid; grid-template-columns:minmax(0, 1fr) auto; grid-template-areas:"n v" "b b" "k a"; gap:5px 10px; align-items:center; padding:9px 12px; border-radius:14px; background:var(--space); }
+  .trow .tn { grid-area:n; min-width:0; } .trow .tn small { display:block; font:700 10.5px/1.3 var(--jp); color:var(--soft); } .trow .tn b { font:700 14px/1.3 var(--jp); }
+  .trow .tv { grid-area:v; font:600 15px/1 var(--num); } .trow .tv small { font-size:12px; color:var(--soft); }
+  .trow .tbar { grid-area:b; height:8px; border-radius:9px; background:#E3E8F2; overflow:hidden; } .trow .tbar i { display:block; height:100%; border-radius:9px; background:var(--sky); }
+  .trow .tk { grid-area:k; font:700 11px/1.3 var(--jp); color:var(--soft); } .trow .tadd { grid-area:a; display:flex; gap:5px; }
+  .trow .mb { border:1.5px solid var(--line); background:#fff; border-radius:99px; padding:4px 10px; font:600 12px/1.2 var(--num); }
+  .trow.ev { background:#FFF5DE; } .trow.ev .tbar i { background:#E59A00; }
+  .trow.empty { grid-template-areas:"n k"; background:none; border:2px dashed var(--line); } .trow.empty .tn b { color:var(--soft); }
+  .pair { display:grid; grid-template-columns:minmax(0, 1fr) auto minmax(0, 1fr); gap:8px; align-items:center; }
+  .pslot { display:grid; justify-items:center; align-content:center; gap:4px; min-height:124px; padding:10px 6px; border-radius:18px; border:2px solid var(--line); background:#fff; text-align:center; }
+  .pslot.empty { border-style:dashed; background:transparent; color:var(--soft); }
+  .pslot .q { width:56px; height:56px; border-radius:30%; display:grid; place-items:center; background:#EDF1F8; font:600 24px/1 var(--num); color:#A9B0C6; }
+  .pslot b { max-width:100%; font:700 13px/1.3 var(--jp); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; } .pslot small { font:700 11px/1.3 var(--jp); color:var(--soft); }
+  .pair .x { font:600 22px/1 var(--num); color:var(--soft); }
+  .cands { display:grid; grid-template-columns:repeat(auto-fill, minmax(108px, 1fr)); gap:8px; }
+  .cand { display:grid; justify-items:center; gap:4px; padding:10px 6px; border-radius:16px; border:2px solid var(--line); background:#fff; text-align:center; }
+  .cand[aria-pressed="true"] { border-color:var(--sky); background:#F4FAFF; box-shadow:0 0 0 3px rgba(46,168,255,.16); }
+  .cand b { font:700 13px/1.3 var(--jp); } .cand small { display:flex; gap:4px; justify-content:center; flex-wrap:wrap; }
+  .rkl { display:inline-block; min-width:22px; padding:2px 6px; border-radius:6px; background:var(--ink); color:#fff; font:600 11px/1.2 var(--num); text-align:center; }
+  .dx .ring .rkl { position:absolute; right:-6px; top:-4px; } .dx:disabled { opacity:.35; }
+  .how { display:inline-block; padding:2px 7px; border-radius:6px; background:#E59A00; color:#fff; font:700 10px/1.3 var(--jp); }
+  .subs { display:flex; flex-wrap:wrap; gap:6px; }
+  .chip.evo { border-color:#F2C46B; background:#FFF5DE; } .chip.evo small { color:#B57500; } .chip.evo[aria-pressed="true"] { background:#E59A00; border-color:#E59A00; color:#fff; } .chip.evo[aria-pressed="true"] small { color:#fff; }
+  .kid { display:flex; flex-wrap:wrap; gap:6px 14px; padding:10px 12px; border-radius:14px; background:var(--space); font:700 12px/1.3 var(--jp); color:var(--soft); }
+  .kid b { font:600 17px/1 var(--num); color:var(--ink); margin-left:3px; }
+  .jelly.warn { background:var(--coral); box-shadow:0 5px 0 rgba(255,90,100,.3); }
+  .sub small { font:600 12px/1 var(--num); margin-left:4px; }
   [hidden] { display:none !important; }
   .gate { max-width:520px; margin:24px auto 0; text-align:center; display:grid; justify-items:center; gap:10px; padding:28px 24px; }
   .gate h2 { font:900 22px/1.3 var(--jp); } .gate p { margin:0; font:700 13px/1.6 var(--jp); color:var(--soft); } .gate .go { max-width:320px; text-decoration:none; }
@@ -185,7 +227,7 @@
 <script type="module">
 import "./lounge-en.js";   // 英語の 画面（MONO LINK の サイトの EN／日本語 と 同じ 決まり。英語の ときだけ 辞書を 読む）
 import { DUNGEONS, SNACK_NEED, SNACK_PRICE, RESEARCH } from "./dungeons.js";
-import { rankOf } from "./dungeon-sim.js";
+import { rankOf, tamedOf } from "./dungeon-sim.js";
 import { ENEMY_TREES } from "./enemy-trees.js";
 import { TYPES } from "./skills.js";
 import { spriteURL } from "./sprites.js";
@@ -194,6 +236,9 @@ import { mountWallet } from "./wallet-bar.js"; mountWallet();   // 上の 通貨
 import { fillPet, petInfo, linkTabs, gateHtml } from "./pet-head.js";
 import { SNACK_RECIPES } from "./facilities.js";
 import { snackCraftHtml, addSnackCss, SNACK_ICON } from "./snack-craft.js";
+import { candidates, skillOptions, makeChild, speciesOf, RANKS as FRANK } from "./fusion.js";   // 配合（門番と 同じ 計算で 候補を 出す）
+import { spSplit, treesOf, TREE_FULL, SUB_MAX, FUSE_LV, sexOk, SEXES } from "./monster.js";   // なかまの スキルポイント・性別
+import { autoTake, nodesOf, learned } from "./trees.js";
 
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
 const fmt = (n) => n.toLocaleString("ja-JP");
@@ -202,18 +247,23 @@ const fromOf = (tree) => (DUNGEONS.find((d) => [...d.foes, d.rare, d.boss].some(
 
 let ME = null;
 const S = { snacks: 0, s3: 0, balls: 0, res: 0, known: false, party: [null, null], room: [], sel: null, give: 1, say: null, popFrom: -1, joined: -1,
-  job: null, fr: "all", sort: "lv", ft: "feed" };     // タブ：職業・えらんだ子（feed おやつ／make 作る／lab 研究）。しぼりこみ：レア度・ならべかた
+  job: null, fr: "all", sort: "lv", ft: "feed",     // タブ：職業・えらんだ子（feed おやつ／skill スキル／make 作る／lab 研究）。しぼりこみ：レア度・ならべかた
+  view: "room", all: [], fz: null };                // view：となりの部屋（room）／配合（fuse）。all：パーティの 子も 入れた なかま 全員。fz：配合で えらんで いる もの
+const FZ0 = () => ({ pa: null, pb: null, child: null, subs: null, sx: "all", sort: "lv", sure: false });   // subs：null の あいだは おすすめ（進化した ツリーから）
+S.fz = FZ0();
 // 門番の 記録を 画面の 形に（パーティの 子は となりの部屋に 出さない）
 function load(m) {
   ME = m;
-  const tamed = (m.tamed || []).map((c) => ({ ...c, from: fromOf(c.tree), lab: (m.lab || []).includes(c.tree), eq: Object.values(c.equip || {}).filter(Boolean).length }));
+  const away = new Set((m.trips || []).filter((t) => !t.done).flatMap((t) => t.party || []));   // 出かけて いる 子（配合・スキルは 帰ってから）
+  const tamed = (m.tamed || []).map((c) => ({ ...c, from: fromOf(c.tree), lab: (m.lab || []).includes(c.tree), eq: Object.values(c.equip || {}).filter(Boolean).length, away: away.has(c.uid), inParty: (m.party || []).includes(c.uid) }));
   S.snacks = m.snacks || 0; S.s3 = ((m.deeplink && m.deeplink.items) || {}).snack3 || 0; S.known = !!(m.wallet && m.wallet.known); S.balls = S.known ? m.wallet.balls : 0; S.res = S.known ? m.wallet.res : 0;
   S.party = [0, 1].map((i) => tamed.find((c) => c.uid === (m.party || [])[i]) || null);
-  S.room = tamed.filter((c) => !(m.party || []).includes(c.uid));
-  if (!S.room.some((c) => c.uid === S.sel)) S.sel = S.room[0] ? S.room[0].uid : null;
+  S.all = tamed; S.room = tamed.filter((c) => !c.inParty);
+  if (!S.all.some((c) => c.uid === S.sel)) S.sel = S.room[0] ? S.room[0].uid : null;   // パーティの 子も えらべる（スキルを 見る）
+  for (const k of ["pa", "pb"]) if (S.fz[k] && !tamed.some((c) => c.uid === S.fz[k])) S.fz[k] = null;
   fitJob();
 }
-const cur = () => S.room.find((c) => c.uid === S.sel) || null;
+const cur = () => S.all.find((c) => c.uid === S.sel) || null;
 const need = (c) => SNACK_NEED[rankOf(c)];
 const left = (c) => Math.max(0, need(c) - c.gauge);
 const fitGive = () => { const c = cur(); S.give = c ? Math.max(1, Math.min(left(c), Math.max(S.snacks, 1))) : 1; };
@@ -227,6 +277,8 @@ const shown = () => S.room.filter((c) => inJ(c) && inR(c)).sort(byNow());
 // 職業の タブ：えらんだ子の 職業。いなければ 子が いる はじめの 職業
 const fitJob = () => { const c = cur(); if (c) S.job = c.type; else if (!S.room.some((x) => x.type === S.job)) S.job = (Object.keys(TYPES).find((t) => S.room.some((x) => x.type === t))) || null; };
 const rk = (c) => (rankOf(c) === "通常" ? "" : `<span class="rk r${rankOf(c)}">${rankOf(c)}</span>`);
+const sexTag = (c) => (c.sex ? `<span class="sx ${c.sex}" title="${SEXES[c.sex]}" aria-label="${SEXES[c.sex]}">${c.sex === "b" ? "⚥" : SEXES[c.sex]}</span>` : "");
+const plusTag = (c) => (c.plus ? `<span class="plus">＋${c.plus}</span>` : "");
 const typeBadge = (c) => `<span class="badge" style="--c:${TYPES[c.type].color}">${TYPES[c.type].label}</span>`;
 const COOKIE = `<svg viewBox="0 0 22 22" aria-hidden="true"><circle cx="11" cy="11" r="9.5" fill="#E9B26A" stroke="#fff" stroke-width="1.5"/><circle cx="8" cy="8" r="1.5" fill="#9A5B2C"/><circle cx="14" cy="9.5" r="1.4" fill="#9A5B2C"/><circle cx="10" cy="14.5" r="1.4" fill="#9A5B2C"/></svg>`;
 
@@ -239,8 +291,8 @@ function line(c) {
 }
 
 function partyHtml() {
-  const slots = S.party.map((m, i) => m ? `<div class="mem ${S.joined === i ? "new" : ""}">${orb(m)}<div><b>${esc(m.name)}</b><div class="row">${typeBadge(m)}<span class="lv"><small>Lv</small>${m.lv}</span></div>
-      <small>装備 ${m.eq} / 9</small><div class="acts"><a class="mb" href="equip.html?who=${encodeURIComponent(m.uid)}">装備</a><button class="mb" data-act="back" data-u="${m.uid}" aria-label="部屋に もどす">もどす</button></div></div></div>`
+  const slots = S.party.map((m, i) => m ? `<div class="mem ${S.joined === i ? "new" : ""}">${orb(m)}<div><b>${esc(m.name)}${plusTag(m)}</b><div class="row">${typeBadge(m)}<span class="lv"><small>Lv</small>${m.lv}</span>${sexTag(m)}</div>
+      <small>装備 ${m.eq} / 9</small><div class="acts"><a class="mb" href="equip.html?who=${encodeURIComponent(m.uid)}">装備</a><button class="mb" data-act="skill" data-u="${m.uid}">スキル</button><button class="mb" data-act="back" data-u="${m.uid}" aria-label="部屋に もどす">もどす</button></div></div></div>`
     : `<div class="mem empty"><div><b>あいている</b><small>なかよし いっぱいの子を 入れる</small></div></div>`).join("");
   return `<section class="panel party" aria-label="パーティ"><h2>パーティ<small>ペット＋2 体</small></h2>
     <div class="mem"><span class="pic"><img src="${petInfo(MP).img}" alt=""></span><div><b>${esc(MP.name)}</b><div class="row">${MP.type ? `<span class="badge" style="--c:${TYPES[MP.type].color}">${TYPES[MP.type].label}</span>` : ""}<span class="lv"><small>Lv</small>${MP.lv}</span></div><small>相棒（いつも いっしょ）</small></div></div>${slots}</section>`;
@@ -249,7 +301,7 @@ function partyHtml() {
 function listHtml() {
   const item = (c) => { const n = need(c), p = Math.min(100, Math.round((c.gauge / n) * 100));
     return `<li><button class="dx" data-act="pick" data-u="${c.uid}" aria-pressed="${c.uid === S.sel}" aria-label="${esc(c.name)} Lv${c.lv}・なかよし ${Math.min(c.gauge, n)} / ${n}" title="${esc(c.name)}（${esc(c.from)}）">
-      <span class="ring ${c.gauge >= n ? "full" : ""}" style="--p:${p}"><span class="face" style="--c:${TYPES[c.type].color}"><img src="${spriteURL(c.tree)}" alt=""></span>${rk(c)}</span><b>${esc(c.name)}</b><small>Lv${c.lv}</small></button></li>`; };
+      <span class="ring ${c.gauge >= n ? "full" : ""}" style="--p:${p}"><span class="face" style="--c:${TYPES[c.type].color}"><img src="${spriteURL(c.tree)}" alt=""></span>${rk(c)}</span><b>${esc(c.name)}</b><small>Lv${c.lv} ${sexTag(c)}${plusTag(c)}</small></button></li>`; };
   // タブの 数は レア度で しぼった あとの 数（0 の 職業は うすく して 押せない）。チップの 数は いまの 職業の 中で
   const nJ = (t) => S.room.filter((c) => inJ(c, t) && inR(c)).length, nR = (r) => S.room.filter((c) => inJ(c) && inR(c, r)).length;
   const tabs = `<div class="jtabs" role="tablist" aria-label="職業">${Object.entries(TYPES).map(([t, T]) => { const n = nJ(t), on = S.job === t;
@@ -257,7 +309,7 @@ function listHtml() {
   const chip = (k, v, label, n) => `<button class="chip" data-act="${k}" data-v="${v}" aria-pressed="${String(S[k]) === String(v)}" ${n === 0 && String(S[k]) !== String(v) ? "disabled" : ""}>${label}${n == null ? "" : `<small>${n}</small>`}</button>`;
   const line1 = `<div class="fline" role="group" aria-label="しぼりこみと ならべかた">${chip("fr", "all", "すべて", nR("all"))}${RANKS.map((r) => chip("fr", r, r, nR(r))).join("")}<span class="gap"></span><button class="chip" data-act="sort" aria-label="ならべかた：${S.sort === "lv" ? "Lv の 高い順（押すと なかよし順）" : "なかよし順（押すと Lv の 高い順）"}">⇅ ${S.sort === "lv" ? "Lv順" : "なかよし順"}</button></div>`;
   const list = shown();
-  return `<section class="panel waiting" aria-label="となりの部屋"><h2>となりの部屋<small>捕まえた子 ${S.room.length} 体</small></h2>
+  return `<section class="panel waiting" aria-label="となりの部屋"><h2>捕まえた子<small>${S.room.length} 体</small></h2>
     ${S.room.length ? tabs + line1 + (list.length ? `<ul class="dex">${list.map(item).join("")}</ul>` : `<p class="lead">この 職業・レア度の 子は いない</p>`) : `<p class="lead">いまは だれも いない。派遣で 勝つと、ときどき 敵を 捕まえる</p>`}
     </section>`;
 }
@@ -270,7 +322,9 @@ function feedHtml() {
   const pips = Array.from({ length: n }, (_, k) => { const on = k < c.gauge, nx = !full && !on && k < c.gauge + S.give, pop = on && k >= S.popFrom && S.popFrom >= 0;
     return `<i class="pip ${on ? "on" : nx ? "next" : ""} ${pop ? "pop" : ""}" style="--k:${k - S.popFrom}"></i>`; }).join("");
   const slot = S.party.indexOf(null);
-  const action = full
+  const action = c.inParty   // パーティの 子（スキルを 見に 来た とき）：もどすだけ
+    ? `<button class="jelly light go" data-act="back" data-u="${c.uid}" ${c.away ? "disabled" : ""}>部屋に もどす</button>${c.away ? `<p class="cost">出かけて いる あいだは もどせない</p>` : ""}`
+    : full
     ? `<button class="jelly go" data-act="join" ${slot < 0 ? "disabled" : ""}>パーティに 入れる</button>${slot < 0 ? `<p class="cost">パーティが いっぱい。だれかを 部屋に もどすと 入れられる</p>` : ""}`
     : `<div class="give"><div class="have"><span>持っている おやつ<b>${S.snacks}</b> こ</span><span>玉<b>${S.known ? fmt(S.balls) : "？"}</b></span></div>
         ${S.known ? "" : `<p class="cost">玉が まだ わからない（配信で 1 回 チャットすると わかる）。持って いる おやつだけ あげられる</p>`}
@@ -282,21 +336,85 @@ function feedHtml() {
   const make = lv ? snackCraftHtml(lv, (ME.own && ME.own.mats) || []) : `<p>隠れ家に おやつ工房を 作ると、ここでも 作れる <a href="hideout.html?f=snack">隠れ家へ</a></p>`;
   const lab = `<div class="lab"><span class="orb" style="--c:#B49BEA;--s:34px" aria-hidden="true">研</span><div><b>研究する（スキルツリー「${esc(T.name)}」）</b>リソース ${RESEARCH[rankOf(c)]} で サブツリーに つけられる（この子は のこる）</div>
       ${c.lab ? `<span class="done">✓ 研究ずみ</span>` : `<button class="jelly light" data-act="lab" ${S.known && S.res < RESEARCH[rankOf(c)] ? "disabled" : ""}>研究する</button>`}</div>`;
-  const FT = [["feed", full ? "なかまに" : "おやつ", ""], ["make", "作る", lv ? `Lv${lv}` : ""], ["lab", "研究", c.lab ? "✓" : ""]];
+  const sp = spSplit(c), manual = c.auto === false;
+  const FT = [["feed", c.inParty ? "パーティ" : full ? "なかまに" : "おやつ", ""], ["skill", "スキル", manual && sp.free ? sp.free : ""], ["make", "作る", lv ? `Lv${lv}` : ""], ["lab", "研究", c.lab ? "✓" : ""]];
   const tabs = `<div class="ftabs" role="tablist" aria-label="${esc(c.name)}に すること">${FT.map(([k, l, sm]) => `<button role="tab" data-act="ft" data-v="${k}" aria-selected="${S.ft === k}">${l}${sm ? `<small>${sm}</small>` : ""}</button>`).join("")}</div>`;
   return `<aside class="panel feed" aria-label="えらんだ子">
-    <div class="who">${orb(c, 64)}<div><h2>${esc(c.name)}${rk(c)}</h2><p>${typeBadge(c)}<span class="lv"><small>Lv</small>${c.lv}</span><span>${esc(c.from)}で 捕まえた</span></p></div></div>
+    <div class="who">${orb(c, 64)}<div><h2>${esc(c.name)}${plusTag(c)}${rk(c)}</h2><p>${typeBadge(c)}<span class="lv"><small>Lv</small>${c.lv}</span>${sexTag(c)}<span>${c.gen ? `配合で 生まれた（${c.gen} 代目）` : `${esc(c.from)}で 捕まえた`}</span></p></div></div>
     <p class="say" aria-live="polite">${esc(S.say || line(c))}</p>
     <div class="gauge"><h3><span>なかよしゲージ</span><span><b>${Math.min(c.gauge, n)}<small> / ${n}</small></b>${!full && S.give ? `<em>＋${Math.min(S.give, left(c))}</em>` : ""}</span></h3>
       <div class="pips" style="--n:${cols};--p:${size}px;--g:${gap}px" role="img" aria-label="なかよしゲージ ${c.gauge} / ${n}">${pips}</div></div>
-    ${tabs}<div class="fpane" role="tabpanel">${S.ft === "make" ? make : S.ft === "lab" ? lab : action}</div>
+    ${tabs}<div class="fpane" role="tabpanel">${S.ft === "make" ? make : S.ft === "lab" ? lab : S.ft === "skill" ? skillHtml(c, sp) : action}</div>
+  </aside>`;
+}
+
+// えらんだ子の スキル：自分の ツリー ＋ サブスキル 2 つ（配合で 受けつぐ）。ふだん 自動、切ると ＋ボタンで 手で 振る（もどせない）
+function skillHtml(c, { sp, free }) {
+  const auto = c.auto !== false, ids = treesOf(c), lock = c.away;
+  const row = (id, i) => { const T = ENEMY_TREES[id], v = sp[id] || 0, all = nodesOf(id).filter((n) => n.kind === "skill" && n.skill).length, got = learned(id, autoTake(v).taken).skills.length, room = Math.min(free, TREE_FULL - v);
+    const add = (n) => `<button class="mb" data-act="spadd" data-t="${id}" data-n="${n}" aria-label="${esc(T.name)}に ${n} 振る" ${lock ? "disabled" : ""}>＋${n}</button>`;
+    return `<li class="trow${T.evo ? " ev" : ""}"><div class="tn"><small>${i ? `サブスキル ${i}` : "自分の ツリー"}${T.evo ? "・進化" : ""}</small><b>${esc(T.name)}</b></div><span class="tv">${v}<small> / ${TREE_FULL}</small></span>
+      <div class="tbar" role="img" aria-label="${v} / ${TREE_FULL}"><i style="width:${(v / TREE_FULL) * 100}%"></i></div><span class="tk">技 ${got} / ${all}</span>
+      ${!auto && room > 0 ? `<span class="tadd">${add(Math.min(10, room))}${room > 10 ? add(room) : ""}</span>` : ""}</li>`; };
+  const empty = Array.from({ length: 1 + SUB_MAX - ids.length }, (_, k) => `<li class="trow empty"><div class="tn"><small>サブスキル ${ids.length + k}</small><b>あいている</b></div><span class="tk">配合で 受けつぐ</span></li>`).join("");
+  return `<div class="sphead"><span>のこり<b>${free}</b>ポイント</span><button class="tog" data-act="auto" aria-pressed="${auto}" ${lock ? "disabled" : ""}>自動で 振る<i></i></button></div>
+    <ul class="trees">${ids.map(row).join("")}${empty}</ul>
+    <p class="cost">${lock ? "出かけて いる あいだは 振れない（帰って から）" : auto ? "自分の ツリーから 最大まで → サブスキル 1 → 2 の 順に 振る" : "振った ポイントは もどせない"}</p>`;
+}
+
+// ---------- 配合（鹿さんの決め、2026-10-25：なかまの 画面に「配合」の タブ。決まりは docs/mono-link-haigou.md） ----------
+// 親：なかよしで Lv10 から（出かけて いない 子）。♂ × ♀、両性は どちらとも。左で 親を えらび、右で 子と 受けつぐ スキルを 決める
+const ready = (c) => c.lv >= FUSE_LV && c.gauge >= need(c) && !c.away;
+const pick2 = () => [S.all.find((c) => c.uid === S.fz.pa) || null, S.all.find((c) => c.uid === S.fz.pb) || null];
+// 受けつぐ スキル（2 つまで）。まだ えらんで いなければ おすすめ（進化した「＋」から）
+const subsOf = (A, B) => { const opts = skillOptions(A, B, S.fz.child); return { opts, subs: (S.fz.subs || [...opts].sort((x, y) => y.evo - x.evo).map((o) => o.id)).filter((id) => opts.some((o) => o.id === id)).slice(0, SUB_MAX) }; };
+const sexOkTo = (c) => { const [A, B] = pick2(), o = A || B; return !o || c.uid === S.fz.pa || c.uid === S.fz.pb || sexOk(o.sex, c.sex); };
+function viewTabs() {
+  const n = S.all.filter(ready).length;
+  return `<div class="vtabs" role="tablist" aria-label="なかまの 画面">${[["room", "となりの部屋", 0], ["fuse", "配合", n >= 2 ? n : 0]]
+    .map(([k, l, c]) => `<button role="tab" data-act="view" data-v="${k}" aria-selected="${S.view === k}">${l}${c ? `<small aria-label="配合できる 子 ${c} 体">${c}</small>` : ""}</button>`).join("")}</div>`;
+}
+function fuseListHtml() {
+  const F = S.fz, ok = S.all.filter(ready), wait = S.all.length - ok.length, inS = (c, x = F.sx) => x === "all" || c.sex === x;
+  const list = ok.filter((c) => inS(c)).sort(F.sort === "lv" ? (a, b) => b.lv - a.lv : (a, b) => (speciesOf(b.tree) || {}).pos - (speciesOf(a.tree) || {}).pos || b.lv - a.lv);
+  const chip = (x, label) => { const n = ok.filter((c) => inS(c, x)).length; return `<button class="chip" data-act="fsx" data-v="${x}" aria-pressed="${F.sx === x}" ${n === 0 && F.sx !== x ? "disabled" : ""}>${label}<small>${n}</small></button>`; };
+  const item = (c) => { const sp = speciesOf(c.tree), on = c.uid === F.pa || c.uid === F.pb, fit = sexOkTo(c);
+    return `<li><button class="dx" data-act="fpick" data-u="${c.uid}" aria-pressed="${on}" ${fit ? "" : "disabled"} aria-label="${esc(c.name)} Lv${c.lv} ${SEXES[c.sex] || ""}${on ? "（えらんで いる）" : ""}" title="${fit ? esc(c.name) : "♂ と ♀ で 配合する"}">
+      <span class="ring full" style="--p:100"><span class="face" style="--c:${TYPES[c.type].color}"><img src="${spriteURL(c.tree)}" alt=""></span>${sp ? `<span class="rkl">${FRANK[sp.rank]}</span>` : ""}</span><b>${esc(c.name)}</b><small>Lv${c.lv} ${sexTag(c)}${plusTag(c)}</small></button></li>`; };
+  return `<section class="panel waiting" aria-label="親を えらぶ"><h2>親を えらぶ</h2>
+    ${ok.length ? `<div class="fline" role="group" aria-label="しぼりこみと ならべかた">${chip("all", "すべて")}${chip("m", "♂")}${chip("f", "♀")}${chip("b", "両性")}<span class="gap"></span><button class="chip" data-act="fsort" aria-label="ならべかた：${F.sort === "lv" ? "Lv の 高い順（押すと ランク順）" : "ランク順（押すと Lv の 高い順）"}">⇅ ${F.sort === "lv" ? "Lv順" : "ランク順"}</button></div>
+      <ul class="dex">${list.map(item).join("")}</ul>` : ""}
+    ${wait ? `<p class="lead">まだ 配合できない 子 ${wait} 体（なかよしで Lv${FUSE_LV} から・出かけて いる 子は 帰って から）</p>` : ""}
+    </section>`;
+}
+function fuseHtml() {
+  const F = S.fz, [A, B] = pick2();
+  const slot = (c, k) => c ? `<button class="pslot" data-act="funpick" data-k="${k}" aria-label="${esc(c.name)}を はずす">${orb(c, 56)}<b>${esc(c.name)}${plusTag(c)}</b><small>Lv${c.lv} ${sexTag(c)}</small></button>`
+    : `<div class="pslot empty"><span class="q">?</span><small>${k === "pa" ? "親 1" : "親 2"}</small></div>`;
+  const pair = `<div class="pair">${slot(A, "pa")}<span class="x" aria-hidden="true">×</span>${slot(B, "pb")}</div>`;
+  if (!A || !B) return `<aside class="panel feed" aria-label="配合">${pair}<p class="say">一覧から 親を 2 体 えらぶ（♂ と ♀。両性は どちらとも）</p></aside>`;
+  const cand = candidates(A, B);
+  if (!cand.some((x) => x.tree === F.child)) F.child = cand[0] ? cand[0].tree : null;
+  if (!F.child) return `<aside class="panel feed" aria-label="配合">${pair}<p class="say">この 2 体からは 生まれない</p></aside>`;
+  const { opts, subs } = subsOf(A, B);
+  const cands = cand.map((x) => { const sp = speciesOf(x.tree);
+    return `<button class="cand" data-act="fchild" data-v="${x.tree}" aria-pressed="${x.tree === F.child}">${orb({ tree: x.tree, type: sp.type, gauge: 0 }, 52)}<b>${esc(sp.name)}</b><small><span class="rkl">${FRANK[sp.rank]}</span>${x.how === "位階配合" ? "" : `<span class="how">${x.how}</span>`}</small></button>`; }).join("");
+  const chips = opts.map((o) => { const on = subs.includes(o.id), T = ENEMY_TREES[o.id];
+    return `<button class="chip ${o.evo ? "evo" : ""}" data-act="fsub" data-v="${o.id}" aria-pressed="${on}" ${!on && subs.length >= SUB_MAX ? "disabled" : ""}>${esc(T.name)}${o.evo ? "<small>進化</small>" : ""}</button>`; }).join("");
+  const kid = makeChild(A, B, F.child, subs, () => 0, "-"), st = tamedOf(kid, 1).stats, wild = tamedOf({ tree: F.child, type: kid.type, name: kid.name }, 1).stats;
+  return `<aside class="panel feed" aria-label="配合">${pair}
+    <div><p class="sub">生まれる 子</p><div class="cands">${cands}</div></div>
+    <div><p class="sub">受けつぐ スキル<small>${subs.length} / ${SUB_MAX}</small></p><div class="subs">${chips || `<p class="cost">受けつげる スキルが ない</p>`}</div></div>
+    <div class="kid"><span>＋値<b>${kid.plus}</b></span><span>受けつぐ ポイント<b>${kid.carry}</b></span><span>Lv1 の HP<b>${st.hp}</b>（ふつう ${wild.hp}）</span></div>
+    <p class="cost short">${esc(A.name)}と ${esc(B.name)}は いなく なる（付けて いた 装備は 持ち物に もどる）</p>
+    <button class="jelly ${F.sure ? "warn" : "sky"} go" data-act="fuse">${F.sure ? "もう 一度 押すと 配合する" : "配合する"}</button>
   </aside>`;
 }
 
 let MP = null;
 function render() {
   document.getElementById("wallet").innerHTML = `<span>おやつ<b>${S.snacks}</b></span>${S.s3 ? `<span>とくべつ<b>${S.s3}</b></span>` : ""}`;
-  document.getElementById("app").innerHTML = MP ? partyHtml() + `<div class="room">${listHtml()}${feedHtml()}</div>`
+  document.getElementById("app").innerHTML = MP ? partyHtml() + viewTabs() + (S.view === "fuse" ? `<div class="room">${fuseListHtml()}${fuseHtml()}</div>` : `<div class="room">${listHtml()}${feedHtml()}</div>`)
     : ME.denied || ME.ok === false ? gateHtml(ME, esc)
     : `<section class="panel gate"><h2>まず 1 匹目を むかえる</h2><p>なかまは 派遣で 捕まえた 子が 来ます</p><a class="jelly sky go" href="quiz.html">性格診断へ</a></section>`;
   S.popFrom = -1; S.joined = -1;
@@ -330,6 +448,28 @@ document.getElementById("app").addEventListener("click", async (e) => {
   if (act0 === "join") return ask(b, "tame.join", { uid: c.uid }, () => { S.joined = S.party.findIndex((m) => m && m.uid === c.uid); S.say = null; fitGive(); });
   if (act0 === "back") return ask(b, "tame.back", { uid: b.dataset.u }, () => {});
   if (act0 === "lab") return ask(b, "tame.research", { uid: c.uid }, (r) => toast(`研究した：スキルツリー「${ENEMY_TREES[c.tree].name}」（リソース ${r.cost}）`));
+  // スキル：パーティの 子も えらべる。自動の 入り切り・手で 振る（門番が たしかめる）
+  if (act0 === "skill") { S.sel = b.dataset.u; S.ft = "skill"; S.view = "room"; S.say = null; fitJob(); if (innerWidth <= 820) { render(); return document.querySelector(".feed").scrollIntoView({ behavior: "smooth", block: "start" }); } }
+  if (act0 === "auto") { const on = c.auto === false; return ask(b, "tame.sp", { uid: c.uid, auto: on }, () => toast(on ? "自動で 振る（のこりを 自分の ツリーから）" : "手で 振る（いまの 振り方は そのまま）")); }
+  if (act0 === "spadd") return ask(b, "tame.sp", { uid: c.uid, add: { [b.dataset.t]: +b.dataset.n } }, () => {});
+  // 配合
+  if (act0 === "view") { S.view = b.dataset.v; S.fz.sure = false; }
+  if (act0 === "fsx") S.fz.sx = b.dataset.v;
+  if (act0 === "fsort") S.fz.sort = S.fz.sort === "lv" ? "rank" : "lv";
+  if (act0 === "fpick" || act0 === "funpick") {
+    const F = S.fz, u = b.dataset.u; F.sure = false; F.child = null; F.subs = null;
+    if (act0 === "funpick") F[b.dataset.k] = null;
+    else if (u === F.pa) F.pa = null; else if (u === F.pb) F.pb = null;
+    else if (!F.pa) F.pa = u; else F.pb = u;   // 2 体 えらんで いたら 親 2 を かえる
+    if (act0 === "fpick" && F.pa && F.pb && innerWidth <= 820) { render(); return document.querySelector(".feed").scrollIntoView({ behavior: "smooth", block: "start" }); }
+  }
+  if (act0 === "fchild") { S.fz.child = b.dataset.v; S.fz.subs = null; S.fz.sure = false; }
+  if (act0 === "fsub") { const now = subsOf(...pick2()).subs, v = b.dataset.v; S.fz.subs = now.includes(v) ? now.filter((x) => x !== v) : [...now, v].slice(0, SUB_MAX); S.fz.sure = false; }
+  if (act0 === "fuse") {
+    if (!S.fz.sure) S.fz.sure = true;   // 親とは おわかれ なので 2 回 押して 決める
+    else { const F = S.fz, { subs } = subsOf(...pick2());
+      return ask(b, "tame.fuse", { pa: F.pa, pb: F.pb, child: F.child, subs }, (r) => { toast(`${r.child.name}${r.child.plus ? "＋" + r.child.plus : ""}が 生まれた（${r.how}）`); S.fz = FZ0(); S.view = "room"; S.sel = r.child.uid; S.ft = "skill"; S.say = null; fitJob(); }); }
+  }
   render();
   const again = document.querySelector(`[data-act="${act0}"]${act0 === "pick" ? `[data-u="${S.sel}"]` : ""}${b.dataset.v !== undefined ? `[data-v="${b.dataset.v}"]` : ""}`); if (again) again.focus();
 });

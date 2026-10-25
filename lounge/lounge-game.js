@@ -5,7 +5,7 @@
 //   grant：払えたら 渡す 物。refund：返事を 待った すえに 払えなかったら もどす 物（どちらも しまえる 形の データ）
 // 数は すべて 案（鹿さんと これから 決める）
 import { PETS, QUIZ, score, PLANS, petAt, tripInit, tripStep, tripResult, floorsOpen, newProgress, diaryOf, dungeonRatio, tamedOf, rankOf, rng, DUNGEONS, canGo, tripCost, RUNS, TICK, TOOLS, PURPOSES, SNACK_NEED, SNACK_PRICE, RESEARCH,
-  FACILITIES, STORAGE_CAP, EQUIP_CAP, SNACK_RECIPES, snackMats, snackMade, SNACK_CRAFT_MAX, facCap, toStash, stashHave, BOX_DAYS, MAT_NAME, CRAFT, SYNTH, craftOpen, synthOpen, synthBalls, rollCraft, rollSynth, OPS, BOSS_CORE, baseOf, comboOf, opCount, SCRAP_BALLS, SCRAP_CREDITS, recycleOf, AUTO_SELL_STARS, AUTO_SELL_HOW, autoSellOf, GATHER, mapExtra } from "./game.js";
+  FACILITIES, STORAGE_CAP, EQUIP_CAP, SNACK_RECIPES, snackMats, snackMade, SNACK_CRAFT_MAX, facCap, toStash, stashHave, BOX_DAYS, MAT_NAME, CRAFT, SYNTH, craftOpen, synthOpen, synthBalls, rollCraft, rollSynth, sexOf, sexByUid, OPS, BOSS_CORE, baseOf, comboOf, opCount, SCRAP_BALLS, SCRAP_CREDITS, recycleOf, AUTO_SELL_STARS, AUTO_SELL_HOW, autoSellOf, GATHER, mapExtra } from "./game.js";
 import { jstDay } from "./lounge-rules.js";
 import { ensureTrade, giveTrade, bump, tripEvents } from "./lounge-trade.js";
 import { ensureReq, giveReq } from "./lounge-req.js";
@@ -27,6 +27,7 @@ const DAY = 864e5;
 export function ensure(rec) {
   rec.pets ||= []; rec.tamed ||= []; rec.hideout ||= {}; rec.credits ||= 0; rec.snacks ||= 0; rec.tools ||= { lure: 0, net: 0, tea: 0 };
   rec.explore ||= {}; rec.trips ||= []; rec.seen ||= []; rec.uidN ||= 0; rec.party ||= []; rec.lab ||= [];
+  for (const c of rec.tamed || []) c.sex ||= sexByUid(c.uid);   // 配合の 性別（前から いる 子は uid で 決まった くじ）
   rec.own.mats ||= []; rec.own.box ||= []; rec.own.equip ||= [];
   rec.pets.forEach(ensurePet); rec.tamed.forEach((c) => (c.equip ||= {}));
   for (const x of [...rec.pets, ...rec.tamed]) moveOldSlots(x, rec);   // 前の 枠（おまけ）→ 武器
@@ -300,7 +301,7 @@ export function tripCollect(rec, b, now) {
   putEquip(rec, g.equip, now);
   const cores = g.stats && g.stats.boss && rng((t.seed || 1) + 91)() < BOSS_CORE ? 1 : 0;   // ボスから まれに ブランクコア（派遣の くじとは べつの 種。画面の 計算しなおしが ずれない）
   if (cores) { rec.items ||= {}; rec.items.blankcore = (rec.items.blankcore || 0) + cores; t.cores = cores; }
-  for (const f of g.captured) rec.tamed.push({ uid: newUid(rec, "t"), ...f, exp: 0, gauge: 0 });   // となりの 部屋で 待つ（おやつで 懐柔する）
+  g.captured.forEach((f, i) => rec.tamed.push({ uid: newUid(rec, "t"), ...f, exp: 0, gauge: 0, sex: sexOf(rng((t.seed || 1) + 131 + i)()) }));   // となりの 部屋で 待つ（おやつで 懐柔する）。性別は くじ（♂ 48%・♀ 48%・両性 4%。配合で 使う）
   rec.explore[t.did] = g.progress;
   delete g.progress;   // 進みは explore に うつした（記録を 小さく）
   if (g.stats) tripEvents(rec, t.did, g.stats, jstDay(now));   // DEEP LINK/: の タスクに 数える

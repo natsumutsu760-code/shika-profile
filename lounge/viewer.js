@@ -13,6 +13,7 @@ import "./warm.js";   // 派遣の 計算を 温めて おく（はじめの 1 �
 import { relayEntry } from "./lounge-relay.js";   // 配信の 中継（鹿物語の ランキングの 窓）に あずける 派遣の 材料
 import { swapPlan } from "./lounge-money.js";   // 両替（玉・クレジット・リソース）
 import { coreTake, coreSet } from "./lounge-core.js";   // ブランクコア（OP を 抜く・付ける）
+import { tameFuse, tameSp } from "./lounge-fuse.js";   // モンスターの 配合・なかまの スキルポイント
 import { wsMake, wsAtt, attSet, attOff, attDrop } from "./lounge-workshop.js";   // 工房（道具・アタッチメント）
 import { farmPlant, farmHarvest, farmSpr, mineSet, mineCollect, mineLeave, farmView } from "./lounge-farm.js";   // 畑と 坑道
 import { statPut } from "./lounge-stats.js";   // 記録の まとめ（OBS の コスメの 条件。かわった ときだけ Lounge へ）
@@ -343,6 +344,8 @@ export class Viewer {
     else if (body.a === "mine.set") r = mineSet(rec, body, rand, now);
     else if (body.a === "mine.collect") r = mineCollect(rec, rand, now);
     else if (body.a === "equip.scrap") r = equipScrap(rec, body, now, rand);   // 装備を 手放す（玉は 下の earn で 帳簿へ）
+    else if (body.a === "tame.fuse") r = tameFuse(rec, body, rand, (uid) => mineLeave(rec, uid, rand, now));   // モンスターの 配合（親 2 体 → 子 1 体。坑道で 掘って いた 親は 掘った 分を 渡す）
+    else if (body.a === "tame.sp") r = tameSp(rec, body);   // なかまの スキルポイント（手で 振る・自動の 入り切り）
     else if (body.a === "core.take") r = coreTake(rec, body);   // ブランクコア：装備から OP を 抜く（装備は なくなる）
     else if (body.a === "core.set") r = coreSet(rec, body);     // コアを 別の 装備に 付ける
     else if (body.a === "equip.auto") r = autoSellSet(rec, body);   // 派遣で 拾った ★N 以下の 装備を 自動で 売る 設定

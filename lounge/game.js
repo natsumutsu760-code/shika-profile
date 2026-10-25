@@ -20,3 +20,5 @@ export { TRADERS, SPECIAL, repLv, REQ_FEE, RES_VALUE, NOTE_PRESETS, NOTE_MAX, NO
 export { chainTask, dailyTask, TASK_TIDS } from "./tasks.js";
 export { WS_ITEMS, WS_MAX, ATT_BASES, ATT_KINDS, ATT_MAX, attBase, rollAtt, withAtt, attName } from "./workshop.js";   // 工房（道具・アタッチメント）
 export { CROPS, cropOf, ROW, plotCount, growMs, SPRINKLERS, harvestPlot, mineSlots, mineHours, mineRate, mineDig } from "./farm.js";   // 畑と 坑道
+export { RANKS, FAMILIES, SPECIES, speciesOf, famOf, candidates, skillOptions, makeChild, canFuse } from "./fusion.js";   // モンスターの 配合
+export { SUB_MAX, TREE_FULL, PLUS_RATE, FUSE_LV, treesOf, spTotal, spSplit, sexOf, sexByUid, sexOk } from "./monster.js";   // なかまの スキルポイント・性別

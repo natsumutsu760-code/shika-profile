@@ -78,9 +78,34 @@ export const WORDS = {
   "#〜# 番は Lv#・#・# で開く": "Rows #–# unlock at Lv#, #, #", "# 番で する ことを えらぶ": "Choose what row # does", "覚えて いる 技と、こうげき・ぼうぎょ": "Learned moves, plus Attack and Guard", "状態": "Status",
   "# 番の条件をえらぶ": "Choose the condition for row #", "◯ の数字と ◯◯ の状態は、えらんだあとに変えられます": "You can change the ◯ numbers and ◯◯ statuses after choosing", "決める": "Confirm",
   "かえられませんでした": "Couldn't change it", "保存できませんでした": "Couldn't save", "ガンビットを 保存した": "Gambits saved", "お手本に もどした": "Reset to example", "（動けない）": "(can't move)",
+  // ---- 配合と サブスキル（tame.html。鹿さんの決め、2026-10-25） ----
+  "スキル": "Skills", "配合": "Fusion", "配合できる 子 # 体": "Ready to fuse: #", "捕まえた子": "Captured", "# 体": "#", "両性": "Both",
+  "ポイント": "points", "自動で 振る": "Auto-assign", "自分の ツリー": "Own tree", "サブスキル #": "Sub skill #", "サブスキル #・進化": "Sub skill # · Evolved", "配合で 受けつぐ": "Inherited through fusion",
+  "技 # / #": "Skills # / #", "自分の ツリーから 最大まで → サブスキル # → # の 順に 振る": "Fills its own tree first, then sub skill #1 → #2",
+  "振った ポイントは もどせない": "Assigned points can't be refunded", "出かけて いる あいだは 振れない（帰って から）": "Can't assign while away (after it returns)",
+  "手で 振る（いまの 振り方は そのまま）": "Manual (current points stay as they are)", "自動で 振る（のこりを 自分の ツリーから）": "Auto (the rest go to its own tree first)",
+  "配合で 生まれた（# 代目）": "Born from fusion (gen #)", "パーティ": "Party",
+  "親を えらぶ": "Choose parents", "親 #": "Parent #", "一覧から 親を # 体 えらぶ（♂ と ♀。両性は どちらとも）": "Pick # parents from the list (♂ and ♀; Both pairs with either)",
+  "まだ 配合できない 子 # 体（なかよしで Lv# から・出かけて いる 子は 帰って から）": "Not ready yet: #1 (full friendship and Lv#2 needed; away companions after they return)",
+  "ならべかた：Lv の 高い順（押すと ランク順）": "Sort: highest Lv (tap for rank)", "ならべかた：ランク順（押すと Lv の 高い順）": "Sort: rank (tap for highest Lv)", "ランク順": "By rank", "⇅ ランク順": "⇅ By rank",
+  "♂ と ♀ で 配合する": "Fusion needs ♂ and ♀", "生まれる 子": "Offspring", "受けつぐ スキル": "Inherited skills", "受けつぐ ポイント": "Inherited points", "進化": "Evolved", "＋値": "Plus", "Lv# の HP": "HP at Lv#", "（ふつう #）": "(usually #)",
+  "受けつげる スキルが ない": "No skills to inherit", "この # 体からは 生まれない": "These # can't produce offspring", "配合する": "Fuse", "もう 一度 押すと 配合する": "Tap again to fuse",
+  "位階配合": "Rank fusion", "特殊配合": "Special fusion", "4体配合": "Quad fusion",
+  // 門番の 答え（lounge-fuse.js・fusion.js）
+  "# 体 えらんで": "Choose #", "♂ と ♀ で 配合する（両性は どちらとも）": "Fusion needs ♂ and ♀ (Both pairs with either)", "出かけて いる 子は 配合できない（帰って から）": "Companions who are away can't fuse (after they return)",
+  "生まれる 子を 候補から えらんで": "Choose the offspring from the candidates", "受けつぐ スキルは 親の スキルから # つまで": "Inherit up to # skills from the parents", "その 子は 生まれない": "That offspring can't be born",
+  "自動を 切ってから 手で 振る": "Turn off auto to assign manually", "振る ポイントを えらんで": "Choose points to assign", "その ツリーは 持って いない": "It doesn't have that tree",
+  "ポイントが 足りない（のこり #）": "Not enough points (# left)", "その ツリーは # まで": "That tree caps at #",
 };
 
 export const RULES = [
+  // 配合と サブスキル（名前が 入る 文）
+  [/^(.+)＋$/, (m, p) => p(m[1]) && `${p(m[1])}+`],   // 進化した ツリー・技（「草原の跳ね足＋」）
+  [/^(.+)を はずす$/, (m, p) => `Remove ${P(p, m[1])}`], [/^(.+)に (\d+) 振る$/, (m, p) => `Add ${m[2]} to ${P(p, m[1])}`],
+  [/^(.+)と (.+)は いなく なる（付けて いた 装備は 持ち物に もどる）$/, (m, p) => `${P(p, m[1])} and ${P(p, m[2])} will be gone (their equipment returns to your items)`],
+  [/^(.+?)(?:＋(\d+))?が 生まれた（(.+)）$/, (m, p) => `${P(p, m[1])}${m[2] ? "+" + m[2] : ""} was born (${P(p, m[3])})`],
+  [/^(.+) Lv(\d+) (♂|♀|両性)?(（えらんで いる）)?$/, (m, p) => `${P(p, m[1])} Lv${m[2]}${m[3] ? " " + (m[3] === "両性" ? "Both" : m[3]) : ""}${m[4] ? " (selected)" : ""}`],
+  [/^(.+)は まだ なかよしで ない$/, (m, p) => `${P(p, m[1])} isn't a full friend yet`], [/^(.+)は Lv(\d+) から 配合できる$/, (m, p) => `${P(p, m[1])} can fuse from Lv${m[2]}`],
   // なかま
   [/^(.+) Lv(\d+)・なかよし (\d+) \/ (\d+)$/, (m, p) => `${P(p, m[1])} Lv${m[2]} · Friendship ${m[3]} / ${m[4]}`],
   [/^(.+)で 捕まえた$/, (m, p) => p(m[1]) && `Caught in ${p(m[1])}`], [/^(.+)に すること$/, (m, p) => `What to do with ${P(p, m[1])}`],
