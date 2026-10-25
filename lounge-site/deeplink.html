@@ -108,10 +108,16 @@
   .post input.free { width:min(100%, 16em); }
   /* 門番に つないだ 分：えらんで 買う・売る・交換の パネル */
   .rows li.pnl { display:block; } .rows li.pnl .post { margin-top:0; }
-  .sellrow { display:grid; grid-template-columns:minmax(0, 1fr) auto auto auto auto; gap:6px; align-items:center; font-size:13px; color:var(--text); }
-  .sellrow small { color:var(--dim); } .sellrow b { min-width:2.4em; text-align:center; color:var(--amber); font-weight:400; }
-  .sellrow .btn { padding:1px 8px; }
-  .sells { display:grid; gap:4px; max-height:280px; overflow:auto; } .post .why { color:var(--warn, #FF8A7A); } .post [hidden] { display:none !important; }
+  /* 売る：しゅるいの タブ ＋ 1 行ずつ（絵・名前・持って いる 数と 値段・− 数 ＋ 全）。中で スクロール しない */
+  .stabs { margin:2px 0 4px; } .stabs button { padding:5px 12px; font-size:14px; } .stabs button:disabled { opacity:.35; } .stabs em { font-style:normal; color:var(--cyan); }
+  .sellrow { display:grid; grid-template-columns:22px minmax(0, 1fr) auto; gap:8px; align-items:center; padding:3px 6px; font-size:14px; color:var(--text); border-left:2px solid transparent; }
+  .sellrow.on { border-left-color:var(--amber); background:rgba(255,190,90,.06); }
+  .sellrow img { width:22px; height:22px; image-rendering:pixelated; }
+  .sellrow .nm { min-width:0; display:flex; flex-wrap:wrap; align-items:baseline; gap:2px 8px; } .sellrow small { color:var(--dim); font-size:12px; }
+  .sellrow .st { display:flex; align-items:center; gap:4px; } .sellrow b { min-width:2em; text-align:center; color:var(--amber); font-weight:400; }
+  .sellrow .btn { padding:3px 0; width:30px; text-align:center; } .sellrow .btn::before, .sellrow .btn::after { content:none; }   /* 数の ボタンは かっこ なしで 小さく（名前が つぶれない ように） */
+  .sellrow .nm { line-height:1.3; } .sellrow .nm small:last-child { flex-basis:100%; }
+  .sells { display:grid; gap:1px; } .post .why { color:var(--warn, #FF8A7A); } .post [hidden] { display:none !important; }
   /* ひとこと：「」で うすく。自由に 書いた 文だけ 通報できる（?admin=1 は 鹿さんの 見え方で 消せる） */
   .rows .nt { display:block; margin-top:3px; font-size:13px; color:var(--dim); } .rows .nt.gone { text-decoration:line-through; opacity:.6; }
   .flag { margin-left:8px; font-size:11px; color:var(--dim); border-bottom:1px dotted var(--line2); } .flag:hover:not(:disabled) { color:var(--warn, #FF8A7A); } .flag:disabled { border:0; }
@@ -151,7 +157,8 @@
 </div>
 <script type="module">
 import { TRADERS, SPECIAL, REP_LV, repLv, REQ_FEE, REQ_MAX, REQ_LIMITS, NOTE_PRESETS, NOTE_MAX, NOTE_HIDE_AT, noteBlock, RES_VALUE } from "./deeplink.js";
-import { MAT_NAME, GATHER, sellPrice } from "./materials.js";
+import { MAT_NAME, GATHER, sellPrice, MAT_FROM, HIDDEN_MAT } from "./materials.js";
+import { matPic } from "./mat-icons.js";
 import { BASES, OPS, baseOf } from "./equip.js";
 import { CRAFT, SYNTH } from "./recipes.js";
 import { DUNGEONS, TOOLS } from "./dungeons.js";
@@ -161,7 +168,7 @@ const q = new URLSearchParams(location.search);
 const fmt = (n) => n.toLocaleString("ja-JP");
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
 const META = Object.fromEntries([...TRADERS, SPECIAL].map((t) => [t.id, t]));
-const S = { go: q.get("go") || "junk", tab: q.get("tab") === "shop" ? "shop" : "tasks", open: null, pick: {}, pickOp: {}, sell: {}, want: null };
+const S = { go: q.get("go") || "junk", tab: q.get("tab") === "shop" ? "shop" : "tasks", open: null, pick: {}, pickOp: {}, sell: {}, sk: null, want: null };
 let ME = null, D = null, B = { list: [], staff: false };
 async function load() {
   ME = await me(); D = ME.deeplink || { traders: [], perks: {}, items: {}, recipes: [] };
@@ -222,12 +229,19 @@ function pickHtml(t, it) {
 }
 // 売る：素材を えらんで 玉に（買い取りの 上乗せこみ）
 const sellMult = () => 1 + (D.perks.sell20 ? 0.2 : D.perks.sell10 ? 0.1 : 0);
+// 売る 素材の しゅるい（倉庫と 同じ 分け方）。タブで 1 つずつ（縦に 長く ならない ように。鹿さんの声、2026-10-25）
+const SELL_KINDS = [["gather", "採取"], ["rare", "レア"], ["enemy", "敵"]];
+const sellKind = (id) => (MAT_FROM[id] ? "enemy" : HIDDEN_MAT.has(id) ? "rare" : "gather");
 function sellHtml() {
-  const list = matsBy().sort((a, b) => sellPrice(b) - sellPrice(a)), tot = Math.round(list.reduce((a, m) => a + sellPrice(m) * (S.sell[`${m.id}:${m.q}`] || 0), 0) * sellMult()), n = Object.values(S.sell).reduce((a, v) => a + v, 0);
-  if (!list.length) return `<div class="post"><p class="f">売れる 素材が ない</p></div>`;
-  return `<div class="post"><h3>売る 素材を えらぶ${sellMult() > 1 ? `（買い取り ＋${Math.round((sellMult() - 1) * 100)}%）` : ""}</h3><div class="sells">${list.map((m) => { const k = `${m.id}:${m.q}`, x = S.sell[k] || 0;
-      return `<div class="sellrow"><span>${esc(MAT_NAME[m.id] || m.id)}${m.q ? ` <small>品質${m.q}</small>` : ""} <small>×${m.n}・1 こ 玉 ${sellPrice(m)}</small></span><button class="btn" data-sk="${k}" data-d="-1" ${x ? "" : "disabled"}>−</button><b>${x}</b><button class="btn" data-sk="${k}" data-d="1" ${x < m.n ? "" : "disabled"}>＋</button><button class="btn" data-sk="${k}" data-d="all">ぜんぶ</button></div>`; }).join("")}</div>
-    <div class="f"><button class="btn" data-sell="1" ${n ? "" : "disabled"}>売る（玉 ${fmt(tot)}）</button><span>店で 買った 物から 先に 売る（拾った 物は タスクに のこる）</span></div></div>`;
+  const all = matsBy(), cnt = (k) => all.filter((m) => sellKind(m.id) === k).length;
+  if (!SELL_KINDS.some(([k]) => k === S.sk) || (!cnt(S.sk) && all.length)) S.sk = (SELL_KINDS.find(([k]) => cnt(k)) || SELL_KINDS[0])[0];
+  const list = all.filter((m) => sellKind(m.id) === S.sk).sort((a, b) => sellPrice(b) - sellPrice(a) || b.q - a.q);
+  const tot = Math.round(all.reduce((a, m) => a + sellPrice(m) * (S.sell[`${m.id}:${m.q}`] || 0), 0) * sellMult()), n = Object.values(S.sell).reduce((a, v) => a + v, 0);
+  const picked = (k) => all.filter((m) => sellKind(m.id) === k).reduce((a, m) => a + (S.sell[`${m.id}:${m.q}`] || 0), 0);
+  const tabs = `<div class="tabs stabs" role="tablist" aria-label="しゅるい">${SELL_KINDS.map(([k, name]) => `<button role="tab" data-sellk="${k}" aria-selected="${S.sk === k}" ${cnt(k) ? "" : "disabled"}>${name} ${cnt(k)}${picked(k) ? `<em>・${picked(k)}</em>` : ""}</button>`).join("")}</div>`;
+  return `<div class="post"><h3>売る 素材を えらぶ${sellMult() > 1 ? `（買い取り ＋${Math.round((sellMult() - 1) * 100)}%）` : ""}</h3>${tabs}<div class="sells">${list.map((m) => { const k = `${m.id}:${m.q}`, x = S.sell[k] || 0;
+      return `<div class="sellrow ${x ? "on" : ""}"><img src="${matPic(m.id)}" alt=""><span class="nm">${esc(MAT_NAME[m.id] || m.id)}${m.q ? `<small>品質${m.q}</small>` : ""}<small>×${m.n}・玉 ${sellPrice(m)}</small></span><span class="st"><button class="btn" data-sk="${k}" data-d="-1" ${x ? "" : "disabled"} aria-label="1 こ へらす">−</button><b>${x}</b><button class="btn" data-sk="${k}" data-d="1" ${x < m.n ? "" : "disabled"} aria-label="1 こ ふやす">＋</button><button class="btn" data-sk="${k}" data-d="all" ${x < m.n ? "" : "disabled"}>全</button></span></div>`; }).join("") || `<p class="say">この しゅるいの 素材は ない</p>`}</div>
+    <div class="f"><button class="btn" data-sell="1" ${n ? "" : "disabled"}>売る（${n} こ・玉 ${fmt(tot)}）</button><span>店で 買った 物から 先に 売る</span></div></div>`;
 }
 // 交換：同じ 行き先の 採取の 素材 3 こ → ほしい 1 こ（あげる 物は 多く 持って いる 物から えらぶ）
 function giveFor(want) {
@@ -293,6 +307,11 @@ function boardHtml() {
     ${rows ? `<ul class="rows" style="margin-top:10px">${rows}</ul>` : `<p class="note">いまは ほかの 人の 依頼が ない</p>`}${mine}`;
 }
 
+// 描きなおしても スクロールの 位置と 押して いた ボタンを のこす（押せなく なったら 次の 候補へ）
+function keepPlace(...sels) {
+  const y = scrollY; render(); scrollTo(0, y);
+  for (const sel of sels) { const el = document.querySelector(sel); if (el && !el.disabled) { el.focus({ preventScroll: true }); break; } }
+}
 function render() {
   const w = W();
   document.getElementById("balls").textContent = w ? fmt(w.balls) : "？";
@@ -333,7 +352,9 @@ document.getElementById("term").addEventListener("click", async (e) => {
   if (d.buy) { const sh = S.go === "special" ? SPECIAL : t, it = sh.shop.find((x) => x.id === d.buy), list = choices(it), pick = S.pick[it.id] && list.includes(S.pick[it.id]) ? S.pick[it.id] : list[0];
     const ops = it.get.op ? Object.keys(OPS).filter((k) => (OPS[k].from || 1) <= it.get.acc) : [], pickOp = it.get.op ? S.pickOp[it.id] || ops[0] : undefined;
     return ask(b, "trader.buy", { tid: sh.id, item: it.id, pick, pickOp }, () => `買った：${choiceName(it, pick)}${it.get.acc ? " → 装備に 入った" : it.get.recipe ? " → 作業台に レシピが 出た" : ""}`); }
-  if (d.sk) { const m = matsBy().find((x) => `${x.id}:${x.q}` === d.sk), x = S.sell[d.sk] || 0; S.sell[d.sk] = d.d === "all" ? m.n : Math.max(0, Math.min(m.n, x + +d.d)); return render(); }
+  // 数を かえる・しゅるいを かえる：描きなおしても 画面の 位置と 押して いた ボタンを そのまま（前は いちばん 上に もどって いた）
+  if (d.sk) { const m = matsBy().find((x) => `${x.id}:${x.q}` === d.sk), x = S.sell[d.sk] || 0; S.sell[d.sk] = d.d === "all" ? m.n : Math.max(0, Math.min(m.n, x + +d.d)); return keepPlace(`[data-sk="${d.sk}"][data-d="${d.d}"]`, `[data-sk="${d.sk}"][data-d="1"]`); }
+  if (d.sellk) { S.sk = d.sellk; return keepPlace(`[data-sellk="${d.sellk}"]`); }
   if (d.sell) { const mats = Object.entries(S.sell).filter(([, n]) => n > 0).map(([k, n]) => { const [id, q] = k.split(":"); return { id, q: +q, n }; });
     return ask(b, "trader.sell", { tid: "junk", mats }, (r) => `売った：玉 ${fmt(r.balls)}`).then((r) => { if (r.ok) { S.sell = {}; render(); } }); }
   if (d.trade) { const give = giveFor(d.trade); return ask(b, "trader.trade", { tid: "junk", want: d.trade, give }, () => `交換した：${MAT_NAME[d.trade]} が 1 こ 倉庫に 入った`); }
