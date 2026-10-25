@@ -135,6 +135,15 @@ export const UPPER = [
 // ミシック：行き先ごとに 1 つ（中身は dungeons.js）。もとの強さは ★5 と同じ・OP 5 つ・効果は いつも 付く
 export const MYTHICS = DUNGEONS.map((d) => ({ ...d.mythic, mythic: true }));
 export const baseOf = (id) => BASES.find((b) => b.id === id) || UPPER.find((b) => b.id === id) || MYTHICS.find((b) => b.id === id) || comboOf(id);
+// 手放す（鹿さんの決め、2026-10-25）：売る 値段（★ごと。玉・クレジット）と リサイクル
+// リサイクル：★の 数 だけ その 装備の 素材の tier の 行き先の 採取の 素材（くじ）。★4・★5 は かくし通路の 素材も 1 こ。前からの 12 しゅるいと 合成の 装備は ハルス街道、ミシックは その 行き先
+export const SCRAP_BALLS = [0, 10, 25, 60, 150, 400], SCRAP_CREDITS = [0, 30, 80, 200, 500, 1200];
+export function recycleOf(it) {
+  const b = baseOf(it.base), tier = b && b.combo ? MATS[b.mat].tier : b && b.mythic ? Math.max(0, DUNGEONS.findIndex((d) => d.mythic.id === b.id)) : 0;
+  return { did: DUNGEONS[Math.min(DUNGEONS.length - 1, tier)].id, n: it.star, hidden: it.star >= 4 ? 1 : 0 };
+}
+// まとめて 手放す ときに 入れない：ミシック・合成の 上の 装備・とくべつな 効果つき（付けて いる 物は 画面と 門番で 別に 見る）
+export const keepInBulk = (it) => { const b = baseOf(it.base); return !b || !!b.mythic || UPPER.some((u) => u.id === b.id) || !!it.fx; };
 export const hasFx = (it) => { const b = baseOf(it.base); return !!b?.fxp && (b.mythic || !!it.fx); };
 
 // OP：★の数だけ付く（★1 は 1 つ … ★5 は 5 つ）。数字はその装備の★で決まる（左から ★1〜★5）。from は付きはじめる★

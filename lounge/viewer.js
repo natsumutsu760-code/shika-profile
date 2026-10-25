@@ -14,7 +14,7 @@ import { relayEntry } from "./lounge-relay.js";   // 配信の 中継（鹿物�
 import { swapPlan } from "./lounge-money.js";   // 両替（玉・クレジット・リソース）
 import { wsMake, wsAtt, attSet, attOff, attDrop } from "./lounge-workshop.js";   // 工房（道具・アタッチメント）
 import { farmPlant, farmHarvest, farmSpr, mineSet, mineCollect, mineLeave, farmView } from "./lounge-farm.js";   // 畑と 坑道
-import { ensure, give, FURN_MAX, petFirst, petJob, tripStart, tripCalc, tripDone, tripCollect, tripView, hideoutPlan, craftPlan, synthPlan, boxTake, dropOld, stashCap, tameFeedPlan, tameJoin, tameBack, researchPlan, snackCraft, loopNew, loopSet, loopSeen, loopAfter, loopStep } from "./lounge-game.js";
+import { ensure, give, FURN_MAX, petFirst, petJob, tripStart, tripCalc, tripDone, tripCollect, tripView, hideoutPlan, craftPlan, synthPlan, boxTake, dropOld, stashCap, tameFeedPlan, tameJoin, tameBack, researchPlan, snackCraft, loopNew, loopSet, loopSeen, loopAfter, loopStep, equipScrap } from "./lounge-game.js";
 
 const OPS_KEEP = 200;            // おぼえて おく op（2 回 来たら 1 回目の 答えを 返す）
 const RATE = { n: 5, ms: 1000 }; // 1 人 1 秒に 5 回まで
@@ -265,6 +265,7 @@ export class Viewer {
     else if (body.a === "tame.join") { r = tameJoin(rec, body); if (r.ok) { const m = mineLeave(rec, body.uid, rand, now); if (m && m.got && m.got.length) r.mined = m.got; } }   // 坑道で 掘って いた 子は やめる（掘った 分は 渡す）
     else if (body.a === "tame.back") r = tameBack(rec, body);
     else if (body.a === "snack.craft") r = snackCraft(rec, body);
+    else if (body.a === "equip.scrap") r = equipScrap(rec, body, now, rand);   // 装備を 手放す（玉は 下の earn で 帳簿へ）
     else if (body.a === "ws.make") r = wsMake(rec, body, now);
     else if (body.a === "ws.att") r = wsAtt(rec, body, rand, now);
     else if (body.a === "att.set") r = attSet(rec, body);

@@ -13,7 +13,7 @@ export { DUNGEONS, RUNS, TICK, TOOLS, PURPOSES, SNACK_NEED, SNACK_PRICE, RESEARC
 export { FACILITIES, STORAGE_CAP, SNACK_RECIPES, snackMats, SNACK_CRAFT_MAX } from "./facilities.js";
 export { toStash, stashHave, BOX_DAYS, MAT_NAME, GATHER, sellPrice } from "./materials.js";
 export { CRAFT, SYNTH, craftOpen, synthOpen, synthBalls, rollCraft, rollSynth } from "./recipes.js";
-export { OPS, baseOf, BASES, SLOTS, KINDS, FORMS, MATS, COLS, OLD_SLOT, comboOf, opCount } from "./equip.js";
+export { OPS, baseOf, BASES, SLOTS, KINDS, FORMS, MATS, COLS, OLD_SLOT, comboOf, opCount, SCRAP_BALLS, SCRAP_CREDITS, recycleOf } from "./equip.js";
 export { TRADERS, SPECIAL, repLv, REQ_FEE, RES_VALUE, NOTE_PRESETS, NOTE_MAX, NOTE_HIDE_AT, noteBlock } from "./deeplink.js";
 export { chainTask, dailyTask, TASK_TIDS } from "./tasks.js";
 export { WS_ITEMS, WS_MAX, ATT_BASES, ATT_KINDS, ATT_MAX, attBase, rollAtt, withAtt, attName } from "./workshop.js";   // 工房（道具・アタッチメント）

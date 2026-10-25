@@ -5,7 +5,7 @@
 //   grant：払えたら 渡す 物。refund：返事を 待った すえに 払えなかったら もどす 物（どちらも しまえる 形の データ）
 // 数は すべて 案（鹿さんと これから 決める）
 import { PETS, QUIZ, score, PLANS, petAt, tripInit, tripStep, tripResult, floorsOpen, newProgress, diaryOf, dungeonRatio, tamedOf, rankOf, rng, DUNGEONS, RUNS, TICK, TOOLS, PURPOSES, SNACK_NEED, SNACK_PRICE, RESEARCH,
-  FACILITIES, STORAGE_CAP, SNACK_RECIPES, snackMats, SNACK_CRAFT_MAX, toStash, stashHave, BOX_DAYS, MAT_NAME, CRAFT, SYNTH, craftOpen, synthOpen, synthBalls, rollCraft, rollSynth, OPS, baseOf, comboOf, opCount } from "./game.js";
+  FACILITIES, STORAGE_CAP, SNACK_RECIPES, snackMats, SNACK_CRAFT_MAX, toStash, stashHave, BOX_DAYS, MAT_NAME, CRAFT, SYNTH, craftOpen, synthOpen, synthBalls, rollCraft, rollSynth, OPS, baseOf, comboOf, opCount, SCRAP_BALLS, SCRAP_CREDITS, recycleOf, GATHER } from "./game.js";
 import { jstDay } from "./lounge-rules.js";
 import { ensureTrade, giveTrade, bump, tripEvents } from "./lounge-trade.js";
 import { ensureReq, giveReq } from "./lounge-req.js";
@@ -323,6 +323,27 @@ export function loopStep(rec, now, seed) {
   const g = t.got, r = tripCollect(rec, { uid: t.uid }, now);
   if (!r.ok) return null;
   return { uid: t.uid, r, next: loopAfter(rec, g, r, now, seed) };
+}
+// ---------- 装備を 手放す（鹿さんの決め、2026-10-25）：玉か クレジットで 売る・リサイクルで 素材に。1 こでも まとめてでも ----------
+// how：balls（玉は 帳簿へ）・credits・recycle（素材は 倉庫へ。入りきらない 分は あずかり箱）。付けて いる 物は ことわる
+export function equipScrap(rec, b, now, R) {
+  const how = ["balls", "credits", "recycle"].includes(b.how) ? b.how : null;
+  if (!how) return { ok: false, why: "手放し方を えらんで" };
+  const uids = Array.isArray(b.uids) ? [...new Set(b.uids.filter((u) => typeof u === "string"))] : [];
+  if (!uids.length || uids.length > 200) return { ok: false, why: "手放す 装備を えらんで" };
+  const worn = equippedUids(rec), items = uids.map((u) => rec.own.equip.find((e) => e.uid === u));
+  if (items.some((e) => !e)) return { ok: false, why: "その 装備は ない" };
+  if (items.some((e) => worn.has(e.uid))) return { ok: false, why: "付けて いる 装備は 手放せない（はずして から）" };
+  const gone = new Set(uids); rec.own.equip = rec.own.equip.filter((e) => !gone.has(e.uid));
+  for (const a of rec.own.att || []) if (gone.has(a.on)) a.on = null;   // 付いて いた アタッチメントは のこす（工房の 決まり）
+  const n = items.length;
+  if (how === "credits") { const value = items.reduce((a, e) => a + SCRAP_CREDITS[e.star], 0); rec.credits += value; return { ok: true, how, n, value }; }   // value：もらった 数（credits・balls は 答えの 財布と ぶつかる）
+  if (how === "balls") { const value = items.reduce((a, e) => a + SCRAP_BALLS[e.star], 0); return { ok: true, how, n, value, earn: [{ kind: "balls", d: value }] }; }
+  // 買った・もらった 装備（b）から 出た 素材にも b を つける（商人の タスクは 派遣で 拾った 物だけ。リサイクルで 印を 消させない）
+  const got = new Map(), add = (id, b) => { const k = id + (b ? ":b" : ""), x = got.get(k) || { id, q: 0, n: 0, ...(b ? { b: 1 } : {}) }; x.n++; got.set(k, x); };
+  for (const e of items) { const r = recycleOf(e), g = GATHER[r.did]; for (let i = 0; i < r.n; i++) add(g.mats[Math.floor(R() * g.mats.length)][0], e.b); if (r.hidden) add(g.hidden[0], e.b); }
+  const mats = [...got.values()], put = putMats(rec, mats, now);
+  return { ok: true, how, n, mats, boxed: put.box.reduce((a, m) => a + m.n, 0) };
 }
 function levelUp(x, exp) {
   let up = 0; x.exp = (x.exp || 0) + exp;

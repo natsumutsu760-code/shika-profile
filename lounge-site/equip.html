@@ -8,7 +8,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Zen+Maru+Gothic:wght@500;700;900&display=swap">
 <style>
   /* MONO LINK のラウンジ：ペットの装備の画面の見本。?view=gousei で合成（OP うつし）。部品と色はガンビット・スキルツリーの画面と同じ
-     持っている装備は 倉庫と 同じ マス目（stash-grid.js）。部位の タブで えらんだ 部位 だけを 出す（ならべる：★の多い順・新しい順）・新しい順（鹿さんの決め、2026-10-25） */
+     持っている装備は 倉庫と 同じ マス目（stash-grid.js）。部位の タブで えらんだ 部位 だけを 出す（ならべる：★の多い順・新しい順。鹿さんの決め、2026-10-25） */
   :root {
     --space:#F6F8FC; --ink:#1B2340; --soft:#6A7394; --line:#DCE3F0;
     --sky:#2EA8FF; --coral:#FF5A64; --sun:#FFC21A; --leaf:#22CC88; --violet:#8E6CFF;
@@ -104,6 +104,22 @@
   .cmp .up { color:#13A36A; } .cmp .dn { color:var(--coral); } .cmp .eq0 { color:var(--soft); }
   .cmp b { font:600 13px/1 var(--num); }
   .btns { margin-top:12px; display:grid; gap:8px; }
+  /* 手放す（1 こ）：小さな ボタン 3 つ。1 回め で「もう一度 押すと 手放す」 */
+  .scrap { margin-top:14px; padding-top:10px; border-top:1.5px dashed var(--line); display:flex; flex-wrap:wrap; align-items:center; gap:6px; }
+  .scrap .sh { font:900 12px/1 var(--jp); color:var(--soft); margin-right:2px; }
+  .scrap .sc { border:1.5px solid var(--line); background:#fff; border-radius:99px; padding:6px 10px; font:700 12px/1 var(--jp); color:var(--ink); }
+  .scrap .sc.go { background:var(--coral); border-color:var(--coral); color:#fff; }
+  .scrap small { flex-basis:100%; font:700 11px/1.4 var(--jp); color:var(--soft); }
+  /* まとめて 手放す */
+  .bulkbtn { border:1.5px solid var(--line); background:#fff; border-radius:99px; padding:5px 12px; font:900 12px/1 var(--jp); color:var(--ink); }
+  .bulkbtn[aria-expanded="true"] { background:var(--ink); border-color:var(--ink); color:#fff; }
+  .bulk { margin:-2px 0 12px; padding:10px 12px; border-radius:16px; background:#FFF6F4; border:1.5px solid #FFD3CF; display:grid; gap:8px; }
+  .bulk .brow { display:flex; flex-wrap:wrap; align-items:center; gap:5px; } .bulk .brow > span { width:64px; font:900 11px/1.2 var(--jp); color:var(--soft); } .bulk .brow small { font:700 12px/1 var(--jp); color:var(--soft); }
+  .bulk .brow button { border:1.5px solid var(--line); background:#fff; border-radius:99px; padding:5px 10px; font:700 12px/1 var(--jp); color:var(--soft); }
+  .bulk .brow button[aria-pressed="true"] { background:var(--ink); border-color:var(--ink); color:#fff; }
+  @media (max-width:520px) { .bulk .brow > span { width:100%; } }   /* スマホは ラベルを 上の 行に（チップを 1 行に 収める） */
+  .bulk .bn { margin:0; font:700 12px/1.5 var(--jp); color:var(--soft); } .bulk .bn b { font:600 15px/1 var(--num); color:var(--ink); }
+  .jelly.warn { background:var(--coral); box-shadow:0 5px 0 rgba(255,90,100,.3); }
   .jelly { border:0; border-radius:999px; padding:11px 16px; font:900 14px/1 var(--jp); background:var(--ink); color:#fff; box-shadow:0 5px 0 rgba(27,35,64,.25); }
   .jelly.light { background:#fff; color:var(--ink); box-shadow:0 5px 0 var(--line); border:1.5px solid var(--line); }
   .jelly.sky { background:var(--sky); box-shadow:0 5px 0 rgba(46,168,255,.3); }
@@ -168,7 +184,8 @@ import { mergeAtt, attHtml, attClick } from "./att-panel.js";   // 武器の ア
 import { mountWallet } from "./wallet-bar.js"; mountWallet();   // 上の 通貨の 札（玉・リソース・クレジット）と 両替
 import { petInfo, linkTabs, gateHtml, addGateCss, toast } from "./pet-head.js";
 import { TYPES } from "./skills.js";
-import { SLOTS, KINDS, OPS, baseOf, itemStats, mainStats, hasFx } from "./equip.js";
+import { SLOTS, KINDS, OPS, baseOf, itemStats, mainStats, hasFx, SCRAP_BALLS, SCRAP_CREDITS, recycleOf, keepInBulk } from "./equip.js";
+import { DUNGEONS } from "./dungeons.js";
 import { SYNTH } from "./recipes.js";
 import { gearImg, watchIcons } from "./gear-icon.js";
 import { addTkCss, padGrids, watchPad } from "./stash-grid.js";
@@ -197,7 +214,7 @@ const DOLL = ["head", "weapon", "off", "arm", "neck", "leg"], ACCS = ["acc1", "a
 const EMPTY = { off: "オフ\nハンド" };
 
 let ME = mergeAtt(await me()), MP = ME.pets && ME.pets[0];
-const V = { f: null, sort: "star", sel: null, slot: null, who: new URLSearchParams(location.search).get("who") || "pet" };
+const V = { f: null, sort: "star", sel: null, slot: null, conf: null, bulk: false, bstar: 2, bhow: "balls", who: new URLSearchParams(location.search).get("who") || "pet" };
 // だれの 装備（鹿さんの決め、2026-10-25）：ペットと パーティの 2 体。部屋に いる 子でも 何か 付けて いれば 出す（はずせる ように）
 const mates = () => (ME.tamed || []).filter((c) => (ME.party || []).includes(c.uid) || Object.values(c.equip || {}).some(Boolean));
 const holder = () => (V.who !== "pet" && mates().find((c) => c.uid === V.who)) || MP;
@@ -247,7 +264,7 @@ function render() {
       ${hasFx(it) ? `<p class="note">とくべつな効果：${esc(b.fx || b.text || "")}</p>` : ""}
       ${cmp ? `<div class="cmp"><h3>いまの ${esc(baseOf(now.base).name)} ★${now.star} とくらべると</h3>${cmp.length ? cmp.map(([k, d]) => `<div class="${d > 0 ? "up" : "dn"}"><span>${nameOf(k)}</span><b>${val(k, d)}</b></div>`).join("") : `<p class="note">数は おなじ</p>`}</div>` : ""}
       ${b.slot === "weapon" ? attHtml(ME, it, { away: !!busyAway }) : ""}
-      <div class="btns">${btn}${sy ? `<a class="linkish" href="bench.html?k=s:${sy.out}">作業台で 合成する</a>` : ""}</div>`;
+      <div class="btns">${btn}${sy ? `<a class="linkish" href="bench.html?k=s:${sy.out}">作業台で 合成する</a>` : ""}</div>${w ? "" : scrapHtml(it)}`;
   }
   return `
   <section class="panel pet" aria-label="ペット">
@@ -265,13 +282,45 @@ function render() {
       </div>
     </section>
     <section class="panel" aria-label="持っている装備" id="list">
-      <div class="head"><h2>持っている装備</h2><span class="cnt"><b>${own.length}</b> / ${EQUIP_MAX}</span></div>
+      <div class="head"><h2>持っている装備</h2><span class="cnt"><b>${own.length}</b> / ${EQUIP_MAX}</span><button class="bulkbtn" data-bulk="1" aria-expanded="${V.bulk}">まとめて 手放す</button></div>
+      ${V.bulk ? bulkHtml(own, W) : ""}
       <div class="ptabs" role="tablist" aria-label="部位">${PARTS.map((k) => `<button role="tab" data-f="${k}" aria-selected="${V.f === k}" class="${n(k) ? "" : "zero"}">${PART_LABEL[k] || KINDS[k].label}<small>${n(k)}</small></button>`).join("")}</div>
       <div class="filters sorts" role="group" aria-label="ならべる"><span>ならべる</span>${SORTS.map(([k, l]) => `<button data-sort="${k}" aria-pressed="${V.sort === k}">${l}</button>`).join("")}</div>
       ${listHtml}
     </section>
     <aside class="panel detail ${it ? `r${it.star}` : ""}" aria-label="えらんだ装備" id="det">${det}</aside>
   </div>`;
+}
+// ---------- 手放す（鹿さんの決め、2026-10-25）：玉・クレジットで 売る・リサイクルで 素材に。押し まちがえない ように 2 回 押す ----------
+const HOW = { balls: "玉で 売る", credits: "クレジットで 売る", recycle: "リサイクル" };
+const dName = (did) => (DUNGEONS.find((d) => d.id === did) || { name: "" }).name;
+function scrapHtml(it) {
+  const rc = recycleOf(it), key = (how) => `${it.uid}:${how}`;
+  const b = (how, label) => `<button class="sc ${V.conf === key(how) ? "go" : ""}" data-scrap="${how}" data-su="${it.uid}">${V.conf === key(how) ? "もう一度 押すと 手放す" : label}</button>`;
+  return `<div class="scrap"><span class="sh">手放す</span>${b("balls", `玉 ${SCRAP_BALLS[it.star]}`)}${b("credits", `クレジット ${SCRAP_CREDITS[it.star]}`)}${b("recycle", `素材 ${rc.n + rc.hidden} こ`)}
+    <small>リサイクルは ${esc(dName(rc.did))}の 採取の 素材${rc.hidden ? "（かくし通路の 素材も 1 こ）" : ""}</small></div>`;
+}
+// まとめて：★N 以下（付けて いる 物・ミシック・合成の 装備は 入れない）
+function bulkPick(own, W) {
+  const low = own.filter((e) => e.star <= V.bstar), pick = low.filter((e) => !W[e.uid] && !keepInBulk(e));
+  return { pick, worn: low.filter((e) => W[e.uid]).length, keep: low.filter((e) => !W[e.uid] && keepInBulk(e)).length };
+}
+function bulkHtml(own, W) {
+  const { pick, worn, keep } = bulkPick(own, W), n = pick.length;
+  const value = V.bhow === "balls" ? `玉 ${pick.reduce((a, e) => a + SCRAP_BALLS[e.star], 0).toLocaleString("ja-JP")} で 売る` : V.bhow === "credits" ? `クレジット ${pick.reduce((a, e) => a + SCRAP_CREDITS[e.star], 0).toLocaleString("ja-JP")} で 売る` : `素材 ${pick.reduce((a, e) => { const r = recycleOf(e); return a + r.n + r.hidden; }, 0)} こに する`;
+  const out = [worn ? `付けて いる ${worn} こ` : "", keep ? `ミシック・合成 ${keep} こ` : ""].filter(Boolean).join("・");
+  return `<div class="bulk" role="group" aria-label="まとめて 手放す">
+    <div class="brow"><span>この ★ 以下</span>${[1, 2, 3, 4, 5].map((k) => `<button data-bstar="${k}" aria-pressed="${V.bstar === k}">★${k}</button>`).join("")}</div>
+    <div class="brow"><span>手放し方</span>${Object.entries(HOW).map(([k, l]) => `<button data-bhow="${k}" aria-pressed="${V.bhow === k}">${l}</button>`).join("")}</div>
+    <p class="bn"><b>${n}</b> こ（すべての 部位）${out ? `・${out}は 入れない` : ""}</p>
+    <button class="jelly ${V.conf === "bulk" ? "warn" : ""}" data-bulkgo="1" ${n ? "" : "disabled"}>${V.conf === "bulk" ? `もう一度 押すと ${n} こ 手放す` : `${n} こを ${value}`}</button></div>`;
+}
+async function doScrap(b, uids, how) {
+  const r = await busy(b, () => act("equip.scrap", { how, uids }));
+  V.conf = null;
+  if (!r.ok) { paint(); return toast(r.wait ? waitText : r.why || "できませんでした"); }
+  ME = mergeAtt(await me()); MP = ME.pets[0]; V.sel = null; document.body.classList.remove("sheet-on"); paint();
+  toast(how === "recycle" ? `${r.n} こ リサイクル：素材 ${r.mats.reduce((a, m) => a + m.n, 0)} こ${r.boxed ? `（あずかり箱に ${r.boxed} こ）` : ""}` : `${r.n} こ 売った：${how === "balls" ? "玉" : "クレジット"} ${r.value.toLocaleString("ja-JP")}`);
 }
 // だれの 装備：ペット ＋ なかま（いなければ 出さない）
 function whoHtml() {
@@ -287,6 +336,12 @@ document.body.addEventListener("click", async (e) => {
   const b = e.target.closest("button"); if (!b || b.disabled) return;
   const d = b.dataset;
   if (await attClick(b, ME, async (fresh) => { if (fresh) { ME = mergeAtt(await me()); MP = ME.pets[0]; } paint(); }, toast)) return;   // アタッチメント
+  if (!d.scrap && !d.bulkgo && V.conf) V.conf = null;   // ほかを 押したら 2 回めの 待ちを やめる
+  if (d.scrap) { const k = `${d.su}:${d.scrap}`; if (V.conf !== k) { V.conf = k; return paint(); } return doScrap(b, [d.su], d.scrap); }
+  if (d.bulk) { V.bulk = !V.bulk; return paint(); }
+  if (d.bstar) { V.bstar = +d.bstar; return paint(); }
+  if (d.bhow) { V.bhow = d.bhow; return paint(); }
+  if (d.bulkgo) { if (V.conf !== "bulk") { V.conf = "bulk"; return paint(); } return doScrap(b, bulkPick(ME.own.equip || [], wornBy()).pick.map((e) => e.uid), V.bhow); }
   if (d.u) { V.sel = d.u; paint(); if (small()) document.body.classList.add("sheet-on"); return; }
   if (d.f) { V.f = d.f; V.slot = null; V.sel = null; return paint(); }
   if (d.slot) {   // 枠を 押す：一覧が その 部位 だけに（もう 一度 押すと もどる）
