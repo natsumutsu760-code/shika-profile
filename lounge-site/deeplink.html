@@ -84,6 +84,8 @@
   .rows .prog.full { color:var(--ok); } .rows .prog.full i b { background:var(--ok); box-shadow:0 0 6px var(--ok); }
   .rw { color:var(--text); font-size:13px; } .rw .c { color:var(--cyan); } .rw .v { color:var(--violet); } .rw .g { color:var(--ok); }
   .rows li.done { opacity:.5; } .rows li.done .kd { border-style:dashed; }
+  .rows .by { display:flex; align-items:center; gap:6px; margin:0 0 4px; font-size:13px; color:var(--dim); } .rows .by svg { width:16px; height:16px; flex:none; color:var(--cyan); }
+  .rows .by b { min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:15px; font-weight:400; color:var(--cyan); text-shadow:0 0 6px rgba(70,212,255,.45); }
   .price .stock { display:block; margin-top:2px; font-size:11px; color:var(--dim); text-shadow:none; } .price .stock.out { color:var(--warn, #FF8A7A); }
   .rows .no { display:block; margin-bottom:3px; font-size:11px; color:var(--dim); letter-spacing:.04em; }
   .rows .kd.found { margin:0 0 0 8px; color:var(--dim); border-style:dashed; vertical-align:1px; }
@@ -282,10 +284,12 @@ function checkNote() {
   document.querySelector("[data-post]").disabled = !!reason;
 }
 const fee0 = () => { const b = +(document.getElementById("rq-b")?.value || 0), r = +(document.getElementById("rq-r")?.value || 0); return feeOf({ balls: b, res: r }); };
+// だれの 依頼か（鹿さんの頼み、2026-10-25）：行の いちばん 上に 人の しるしと 名前（Twitch の 表示名）
+const WHO_ICON = `<svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="5" r="3" fill="currentColor"/><path d="M2.5 14.5c.6-3.2 2.8-5 5.5-5s4.9 1.8 5.5 5z" fill="currentColor"/></svg>`;
 function boardHtml() {
   const others = B.list.filter((r) => !r.mine), mineP = B.list.find((r) => r.mine);
   const rows = others.map((r) => { const have = haveFor(r.want), need = r.want.n || 1, full = have >= need;
-    return `<li><div class="t"><span class="kd">${esc(r.name)}</span>${wantText(r.want)}${noteHtml(r)}
+    return `<li><div class="t"><span class="by">${WHO_ICON}<b>${esc(r.name || "だれか")}</b>さんの 依頼</span>${wantText(r.want)}${noteHtml(r)}
       <span class="prog ${full ? "full" : ""}"><i><b style="width:${Math.min(100, (have / need) * 100)}%"></b></i>持っている ${have} / ${need}　${leftText(r.until)}</span>
       <span class="sub">お礼　<span class="rw">${reqReward(r.reward)}</span></span></div>
       <div class="act"><button class="btn" data-req="${esc(r.rid)}" ${full ? "" : "disabled"}>届ける</button></div></li>`; }).join("");
