@@ -361,24 +361,48 @@ async function cardPage() {
   return new Response(await r.text(), { headers: { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "public, max-age=300", ...SEC, "X-Frame-Options": "SAMEORIGIN", "Content-Security-Policy": "frame-ancestors 'self'" } });
 }
 
+// サイトと ラウンジの 画面は、GitHub の main の「いまの 版（コミット）」から まとめて 取る（2026-10-25）
+//   前は ファイルごとに 5 分 ためていて、公開の 直後に 新しい 部品と 古い 部品が 混ざり、ない 物を 読もうとした ページが まるごと 止まった
+//   版は git の 入口（info/refs）で 20 秒ごとに たしかめる。JS の import には ?v=版 を つけて、1 ページの 部品を ぜんぶ 同じ 版に そろえる
+//   版が わからない ときは 前と 同じ main から 取る
+const REPO_RAW = "https://raw.githubusercontent.com/natsumutsu760-code/shika-profile/";
+const REPO_REFS = "https://github.com/natsumutsu760-code/shika-profile.git/info/refs?service=git-upload-pack";
+const SHA_RX = /^[0-9a-f]{40}$/;
+let head = { v: "", at: 0 };
+async function headSha() {
+  if (Date.now() - head.at < 20000) return head.v || "main";
+  head.at = Date.now();
+  try {
+    const r = await fetch(REPO_REFS, { headers: { "User-Agent": "git/2.45 mono-link" }, cf: { cacheTtl: 20, cacheEverything: true } });
+    const m = r.ok && /([0-9a-f]{40}) refs\/heads\/main\b/.exec(await r.text());
+    if (m) head.v = m[1];
+  } catch (e) {}
+  return head.v || "main";
+}
+// 中の "./x.js"・"/lounge/x.js" に ?v=版 を つける（読みこまれた 先でも また つけるので、下の 部品まで 同じ 版に なる）
+const withVer = (src, v) => (SHA_RX.test(v) ? src.replace(/(["'])((?:\.\/|\/lounge\/)[a-z0-9][a-z0-9_-]*\.js)\1/g, "$1$2?v=" + v + "$1") : src);
+
 async function page() {
-  const r = await fetch(HTML_URL, { cf: { cacheTtl: 120, cacheEverything: true } });
+  const v = await headSha();
+  const r = await fetch(REPO_RAW + v + "/index.html", { cf: { cacheTtl: SHA_RX.test(v) ? 86400 : 120, cacheEverything: true } });
   if (!r.ok) return new Response("いまは開けません。少し待ってからもう一度開いてください。", { status: 502, headers: { "Content-Type": "text/plain; charset=utf-8" } });
-  return new Response(await r.text(), { headers: { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-cache", ...SEC } });
+  return new Response(withVer(await r.text(), v), { headers: { "Content-Type": "text/html; charset=utf-8", "Cache-Control": "no-cache", ...SEC } });
 }
 
 // ラウンジの 画面（lounge-site/ の HTML・JS・絵）を GitHub から取って出す。HTML には本物の印を入れる（見本では同じファイルが ためしの門番で動く）
 const LOUNGE_TYPE = { html: "text/html; charset=utf-8", js: "text/javascript; charset=utf-8", png: "image/png", jpg: "image/jpeg", webp: "image/webp", svg: "image/svg+xml" };
-async function loungePage(p) {
+async function loungePage(p, ver) {
   if (p === "/lounge" || p === "/lounge/") return new Response(null, { status: 302, headers: { Location: "/lounge/lounge-room.html" } });
   const m = /^\/lounge\/((?:img\/)?[a-z0-9][a-z0-9_-]*\.(html|js|png|jpg|webp|svg))$/.exec(p);
   if (!m) return null;
-  const r = await fetch(HTML_URL.replace(/index\.html$/, "lounge-site/" + m[1]), { cf: { cacheTtl: 300, cacheEverything: true } });
+  const pinned = SHA_RX.test(ver || ""), v = pinned ? ver : await headSha();   // ?v=版 つきは その 版の まま（中身が かわらないので ずっと ためて よい）
+  const r = await fetch(REPO_RAW + v + "/lounge-site/" + m[1], { cf: { cacheTtl: SHA_RX.test(v) ? 86400 : 300, cacheEverything: true } });
   if (!r.ok) return new Response("", { status: r.status === 404 ? 404 : 502 });
   // HTML は MONO LINK の配信ページの枠（ラウンジのタブ）からだけ読み込める（ほかのサイトには埋め込ませない）
-  if (m[2] === "html") return new Response((await r.text()).replace("<head>", "<head><script>window.MONO_LINK_REAL = true;</script>"), { headers: { "Content-Type": LOUNGE_TYPE.html, "Cache-Control": "no-cache", ...SEC, "X-Frame-Options": "SAMEORIGIN", "Content-Security-Policy": "frame-ancestors 'self'" } });
+  if (m[2] === "html") return new Response(withVer((await r.text()).replace("<head>", "<head><script>window.MONO_LINK_REAL = true;</script>"), v), { headers: { "Content-Type": LOUNGE_TYPE.html, "Cache-Control": "no-cache", ...SEC, "X-Frame-Options": "SAMEORIGIN", "Content-Security-Policy": "frame-ancestors 'self'" } });
   // JS は OBS の 鹿物語（http://absolute）からも 読む（配信の 中継で 派遣を 計算しなおす）。中身は GitHub に 公開して いる 物
-  return new Response(r.body, { headers: { "Content-Type": LOUNGE_TYPE[m[2]], "Cache-Control": "public, max-age=300", ...SEC, ...(m[2] === "js" ? { "Access-Control-Allow-Origin": "*" } : {}) } });
+  if (m[2] === "js") return new Response(withVer(await r.text(), v), { headers: { "Content-Type": LOUNGE_TYPE.js, "Cache-Control": pinned ? "public, max-age=31536000, immutable" : "public, max-age=300", ...SEC, "Access-Control-Allow-Origin": "*" } });
+  return new Response(r.body, { headers: { "Content-Type": LOUNGE_TYPE[m[2]], "Cache-Control": "public, max-age=300", ...SEC } });
 }
 
 export default {
@@ -482,7 +506,7 @@ async function route(req, env) {
     if (url.pathname.startsWith("/api/")) return json({ error: "notfound" }, 404);
     if (url.pathname === "/mx-replay.js" && req.method === "GET") return replayJs();
     if (url.pathname === "/cosme-en.json" && req.method === "GET") return cosmeEn();
-    if (url.pathname === "/lounge" || url.pathname.startsWith("/lounge/")) { const lp = await loungePage(url.pathname); if (lp) return lp; }
+    if (url.pathname === "/lounge" || url.pathname.startsWith("/lounge/")) { const lp = await loungePage(url.pathname, url.searchParams.get("v")); if (lp) return lp; }
     if (url.pathname === "/card.html" && req.method === "GET") return cardPage();
     if (req.method !== "GET" && req.method !== "HEAD") return json({ error: "method" }, 405);
     return page();
