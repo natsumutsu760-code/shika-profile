@@ -7,7 +7,7 @@
 //   チャットに書かないので、連投でタイムアウトされない。1 人 1 秒に 1 回まで
 import { loungeApi, relayList } from "./lounge/lounge-api.js";
 import { relayFetch } from "./lounge/lounge-relay.js";
-import { inviteApi, inviteFetch } from "./lounge/lounge-invite.js";
+import { inviteApi, inviteFetch, inviteSeen } from "./lounge/lounge-invite.js";
 import { lgFetch, lgFromObs } from "./lounge/lounge-ledger.js";
 export { Viewer } from "./lounge/viewer.js";
 export { Market } from "./lounge/market.js";
@@ -822,6 +822,7 @@ export class Lounge {
       const b = await req.json().catch(() => ({}));
       const id = /^\d{1,20}$/.test(String(b.id || "")) ? String(b.id) : "";
       if (!id) return new Response(JSON.stringify({ error: "id" }), { status: 400 });
+      await inviteSeen(this, id);   // MONO LINK に入った印（招待コードはもう使えない）
       if (typeof b.n === "string" && b.n) this.names[id] = b.n.slice(0, 40);
       const name = this.names[id] || (this.map[id] && this.map[id].n) || "";
       if (!name) return new Response(JSON.stringify({ needName: true }));
@@ -849,6 +850,7 @@ export class Lounge {
       const id = /^\d{1,20}$/.test(String(b.id || "")) ? String(b.id) : "";
       const res = (o) => new Response(JSON.stringify(o), { headers: { "Content-Type": "application/json" } });
       if (!id) return res({ ok: false, code: "C03", why: "コマンドではありません" });
+      await inviteSeen(this, id);   // MONO LINK に入った印
       if (this.last[id] && now - this.last[id] < 1000) return res({ ok: false, code: "C01", why: "1 秒に 1 回までです" });
       if (typeof b.n === "string" && b.n) this.names[id] = b.n.slice(0, 40);
       const name = this.names[id] || (this.map[id] && this.map[id].n) || "";
@@ -871,6 +873,7 @@ export class Lounge {
         this.map[id] = { n, l: String(b.l || old.l || "").slice(0, 40), at: now };
         if (n) this.names[id] = n;
         needName = !n;
+        await inviteSeen(this, id);   // MONO LINK に入った印（ページの招待の読みこみだけにたよらない）
       }
       if (id && url.pathname === "/bye") delete this.map[id];
       await this.state.storage.put("here", this.map);

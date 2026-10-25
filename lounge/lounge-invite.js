@@ -27,8 +27,27 @@ const nameOf = (lounge, id, login) => (lounge.names && lounge.names[id]) || logi
 // ---- Lounge の 箱の 中 ----
 // invc:<コード> → 持ち主の id　invo:<id> → { code, login, name, n, sum, list, news }　invu:<id> → 使った 人 { by, code, at, login, name, created, state: "wait"|"done" }
 // invs:<id> → MONO LINK に 入った ことが ある　invpay → まだ 渡して いない リソース　invlog → 配信者の 記録（新しい 200 件）
-export async function inviteFetch(lounge, url, req) {
-  if (!/^\/inv-(code|use|paid|log)$/.test(url.pathname)) return null;
+// BAN・ブロックの 一覧は 門番（KV の gate）に ある ので、たしかめるのは 門番：使う 前に /inv-owner で 持ち主を きく・成立の 前に /inv-code の wait で 招待した 人を きく
+
+// MONO LINK に 入った 印。門番の 部屋の 箱で、入る ときに かならず 通る 所（/beat・/cmd・/ticket）から 呼ぶ（ページの 招待の 読みこみ だけに たよらない）
+// いちど つけたら 覚えて おいて、2 回 しまわない
+export async function inviteSeen(lounge, id) {
+  id = idOk(id); if (!id) return;
+  lounge.invSeen = lounge.invSeen || new Set(); if (lounge.invSeen.has(id)) return;
+  const st = lounge.state.storage;
+  if (!(await st.get("invs:" + id))) await st.put("invs:" + id, Date.now());
+  if (lounge.invSeen.size > 20000) lounge.invSeen.clear();
+  lounge.invSeen.add(id);
+}
+
+export function inviteFetch(lounge, url, req) {
+  if (!/^\/inv-(code|claim|owner|use|paid|log)$/.test(url.pathname)) return null;
+  // 1 つずつ 順番に（同じ 人が 同時に 開いても、成立を 2 回 数えない。箱の 中の 待ち〈本文を 読む など〉で 割りこまれない ように）
+  const p = (lounge.invQ || Promise.resolve()).then(() => invHandle(lounge, url, req));
+  lounge.invQ = p.catch(() => {});
+  return p;
+}
+async function invHandle(lounge, url, req) {
   const st = lounge.state.storage, now = Date.now();
   if (url.pathname === "/inv-log") return J({ log: ((await st.get("invlog")) || []).slice().reverse() });
   const b = await req.json().catch(() => ({}));
@@ -39,7 +58,7 @@ export async function inviteFetch(lounge, url, req) {
   const id = idOk(b.id); if (!id) return J({ error: "id" }, 400);
   const login = str(b.login, 40), name = str(b.name, 40) || nameOf(lounge, id, login);
 
-  if (url.pathname === "/inv-code") {   // 自分の コード（なければ 作る）。使った 人が はじめて 入れたら ここで 成立
+  if (url.pathname === "/inv-code") {   // 自分の コード（なければ 作る）。使った 人が はじめて 入れたら wait を 返す（門番が BAN を たしかめて /inv-claim）
     let o = await st.get("invo:" + id), dirty = !o;   // ページを 開く たびに 呼ばれるので、かわった ときだけ しまう
     if (!o) {
       let code = "";
@@ -50,41 +69,48 @@ export async function inviteFetch(lounge, url, req) {
     }
     if (login && o.login !== login) { o.login = login; dirty = true; }
     if (name && o.name !== name) { o.name = name; dirty = true; }
-    let got = null;
     const u = await st.get("invu:" + id);
-    if (u && u.state === "wait") {
-      const by = await st.get("invo:" + u.by);
-      if (by) {
-        by.n += 1; const d = rewardFor(by.n); by.sum += d;
-        by.list = [...by.list, { name, at: now, d }].slice(-LIST_MAX); by.news = [...(by.news || []), { name, d }].slice(-10);
-        await st.put("invo:" + u.by, by);
-        u.state = "done"; u.doneAt = now; u.d = d; u.name = name; await st.put("invu:" + id, u);
-        const q = (await st.get("invpay")) || [];
-        q.push({ mid: "inv:" + id + ":me", id, login, d: INVITEE_RES }, { mid: "inv:" + id + ":by", id: u.by, login: by.login, d });
-        await st.put("invpay", q);
-        await logPut(st, { t: now, k: "done", by: u.by, byName: by.name, id, login, name, created: u.created || "", d, n: by.n });
-        got = { d: INVITEE_RES, by: by.name };
-      }
-    }
-    if (!(await st.get("invs:" + id))) await st.put("invs:" + id, now);   // 入った ことが ある（このあと コードは 使えない）
+    await inviteSeen(lounge, id);   // 入った ことが ある（このあと コードは 使えない）。成立は invu の wait で 決まる ので かまわない
     const news = o.news || []; o.news = [];
     if (dirty || news.length) await st.put("invo:" + id, o);
-    return J({ code: o.code, n: o.n, sum: o.sum, next: rewardFor(o.n + 1), names: o.list.slice(-10).map((x) => x.name).reverse(), news, got, pay: ((await st.get("invpay")) || []).slice(0, PAY_MAX) });
+    return J({ code: o.code, n: o.n, sum: o.sum, next: rewardFor(o.n + 1), names: o.list.slice(-10).map((x) => x.name).reverse(), news, wait: u && u.state === "wait" ? { by: u.by } : null, pay: ((await st.get("invpay")) || []).slice(0, PAY_MAX) });
   }
 
-  // /inv-use：まだ フォローして いない 人が コードを 使う（フォローして いないか・前の フォロワーで ないかは 門番が たしかめて から 来る）
-  lounge.invTry = lounge.invTry || new Map();
-  const tries = (lounge.invTry.get(id) || []).filter((t) => now - t < TRY_MS);
-  if (tries.length >= TRY_MAX) return J({ ok: false, why: "コードをためすのは 1 時間に " + TRY_MAX + " 回までです" });
-  lounge.invTry.set(id, [...tries, now]);
+  if (url.pathname === "/inv-claim") {   // 成立（void：招待した 人が BAN・ブロック → 無効。どちらにも 渡さない）。2 回 来ても 2 回目は 何も しない
+    const u = await st.get("invu:" + id), by = u && (await st.get("invo:" + u.by));
+    if (!u || u.state !== "wait") return J({ got: null, pay: ((await st.get("invpay")) || []).slice(0, PAY_MAX) });
+    if (b.void || !by) {
+      u.state = "void"; u.doneAt = now; await st.put("invu:" + id, u);
+      await logPut(st, { t: now, k: "void", by: u.by, byName: (by && by.name) || "", id, login, name, created: u.created || "" });
+      return J({ got: null, pay: ((await st.get("invpay")) || []).slice(0, PAY_MAX) });
+    }
+    by.n += 1; const d = rewardFor(by.n); by.sum += d;
+    by.list = [...by.list, { name, at: now, d }].slice(-LIST_MAX); by.news = [...(by.news || []), { name, d }].slice(-10);
+    await st.put("invo:" + u.by, by);
+    u.state = "done"; u.doneAt = now; u.d = d; u.name = name; await st.put("invu:" + id, u);
+    const q = (await st.get("invpay")) || [];
+    q.push({ mid: "inv:" + id + ":me", id, login, d: INVITEE_RES }, { mid: "inv:" + id + ":by", id: u.by, login: by.login, d });
+    await st.put("invpay", q);
+    await logPut(st, { t: now, k: "done", by: u.by, byName: by.name, id, login, name, created: u.created || "", d, n: by.n });
+    return J({ got: { d: INVITEE_RES, by: by.name }, pay: q.slice(0, PAY_MAX) });
+  }
+
+  // /inv-owner → /inv-use：まだ フォローして いない 人が コードを 使う（フォローして いないか・前の フォロワーで ないか・持ち主が BAN で ないかは 門番が たしかめる）
   const code = cleanCode(b.code);
+  if (url.pathname === "/inv-owner") {   // ためす 回数は ここで 数える（コードを あてずっぽうで さがせない ように）
+    lounge.invTry = lounge.invTry || new Map();
+    const tries = (lounge.invTry.get(id) || []).filter((t) => now - t < TRY_MS);
+    if (tries.length >= TRY_MAX) return J({ ok: false, why: "コードをためすのは 1 時間に " + TRY_MAX + " 回までです" });
+    lounge.invTry.set(id, [...tries, now]);
+  }
   if (!CODE_RE.test(code)) return J({ ok: false, why: "招待コードは英字と数字の 6 文字です" });
   if (await st.get("invs:" + id)) return J({ ok: false, why: "MONO LINK に入ったことのある人は使えません" });
   const owner = await st.get("invc:" + code);
-  if (!owner || (b.ban && b.ban.includes(owner))) return J({ ok: false, why: "その招待コードはありません" });
+  if (!owner) return J({ ok: false, why: "その招待コードはありません" });
   if (owner === id) return J({ ok: false, why: "自分のコードは使えません" });
   const had = await st.get("invu:" + id);
-  if (had && had.state === "done") return J({ ok: false, why: "招待コードは 1 回だけ使えます" });
+  if (had && had.state !== "wait") return J({ ok: false, why: "招待コードは 1 回だけ使えます" });
+  if (url.pathname === "/inv-owner") return J({ ok: true, owner });
   const by = await st.get("invo:" + owner);
   await st.put("invu:" + id, { by: owner, code, at: now, login, name, created: str(b.created, 30), state: "wait" });   // フォローする 前なら 入れ直せる
   await logPut(st, { t: now, k: "use", by: owner, byName: (by && by.name) || "", id, login, name, created: str(b.created, 30) });
@@ -97,6 +123,7 @@ const loungeOf = (env) => env.LOUNGE.get(env.LOUNGE.idFromName("lounge"));
 const viewerOf = (env, id) => env.VIEWER.get(env.VIEWER.idFromName("v:" + id));
 const post = async (stub, u, body) => (await stub.fetch(u, { method: "POST", body: JSON.stringify(body) })).json();
 const staffOf = (gate, id) => !!gate && (id === gate.owner || !!(gate.mods && gate.mods[id]));
+const barred = (gate, id) => !!gate && !!((gate.ban && gate.ban[id]) || (gate.block && gate.block[id]));   // BAN・ブロック（一覧は 切らずに ぜんぶ 見る）
 
 // 始めた 日の フォロワーの 写し（KV の inv-old）。はじめて 招待の 入口が 呼ばれた とき 1 回だけ 作る。この 人たちは コードを 使えない
 async function oldList(env, gate) {
@@ -136,6 +163,12 @@ export async function inviteApi(req, env, url, h) {
     const gate = await env.DB.get("gate", "json"); await oldList(env, gate);
     const j = await post(loungeOf(env), "https://lounge/inv-code", { id: e.who.id, login: e.who.login });
     if (j.error) return J({ error: j.error }, 500);
+    j.got = null;
+    if (j.wait) {   // 成立：招待した 人が いま BAN・ブロック なら 無効（どちらにも 渡さない）
+      const c = await post(loungeOf(env), "https://lounge/inv-claim", { id: e.who.id, login: e.who.login, void: barred(gate, j.wait.by) });
+      j.got = c.got; j.pay = c.pay;
+    }
+    delete j.wait;
     await pay(env, j.pay); delete j.pay;
     return J({ ...j, staff: staffOf(gate, e.who.id) });
   }
@@ -147,8 +180,12 @@ export async function inviteApi(req, env, url, h) {
     const old = await oldList(env, w.gate);
     if (!old) return J({ ok: false, why: "招待はまだ準備中です。少し待ってからためしてください" });
     if (old.ids[w.who.id]) return J({ ok: false, why: "前にフォローしていた人は使えません" });
-    const ban = Object.keys({ ...((w.gate && w.gate.ban) || {}), ...((w.gate && w.gate.block) || {}) }).slice(0, 5000);
-    return J(await post(loungeOf(env), "https://lounge/inv-use", { id: w.who.id, login: w.who.login, code: body && body.code, created: await createdAt(w.who), ban }));
+    // ラウンジの 記録が ある 人も 入った ことの ある 人（ラウンジの ページだけ 開いた 人も）
+    if ((await viewerOf(env, w.who.id).fetch("https://viewer/public")).status === 200) return J({ ok: false, why: "MONO LINK に入ったことのある人は使えません" });
+    const code = body && body.code, o = await post(loungeOf(env), "https://lounge/inv-owner", { id: w.who.id, code });
+    if (!o.ok) return J(o);
+    if (barred(w.gate, o.owner)) return J({ ok: false, why: "その招待コードはありません" });
+    return J(await post(loungeOf(env), "https://lounge/inv-use", { id: w.who.id, login: w.who.login, code, created: await createdAt(w.who) }));
   }
   if (url.pathname === "/api/invite/log" && req.method === "GET") {
     const e = await h.enterSoon(req, env); if (e.res) return e.res;
