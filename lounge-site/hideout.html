@@ -123,14 +123,25 @@
   .box .mlist { margin-top:10px; } .box .mt { background:transparent; border-style:dashed; } .box .mt small.soon { color:#C2410C; }
   .box .why { margin:8px 0 0; text-align:left; font-size:12px; } .box .why a { color:var(--ink); margin-left:6px; }
   .tab .bd.bx { background:#F2B544; }
+  /* 倉庫の 中の タブ（スタッシュ・強化・預かり箱）：1 つずつ。右の 列は 使わない */
+  .room.store { grid-template-columns:minmax(0, 1fr); } .room.store > #detail { display:none; }
+  .stabs { display:grid; grid-template-columns:repeat(3, minmax(0, 1fr)); gap:4px; padding:4px; margin-bottom:12px; border-radius:16px; background:#fff; box-shadow:inset 0 0 0 1.5px var(--line); }
+  .stabs button { display:flex; align-items:center; justify-content:center; gap:6px; border:0; background:none; border-radius:12px; padding:10px 6px; font:900 14px/1 var(--jp); color:var(--ink); }
+  .stabs button[aria-selected="true"] { background:var(--ink); color:#fff; }
+  .stabs .bd { display:inline-grid; place-items:center; min-width:18px; height:18px; padding:0 5px; border-radius:99px; background:var(--leaf); color:#fff; font:600 11px/1 var(--num); } .stabs .bd.bx { background:#F2B544; }
+  .ktabs { display:grid; grid-template-columns:repeat(3, minmax(0, 1fr)); gap:5px; margin:12px 0 8px; }
+  .ktabs button { display:flex; align-items:center; justify-content:center; gap:5px; border:1.5px solid var(--line); background:#fff; border-radius:12px; padding:8px 4px; font:900 13px/1 var(--jp); color:var(--ink); }
+  .ktabs small { font:600 11px/1 var(--num); color:var(--soft); }
+  .ktabs button[aria-selected="true"] { background:var(--ink); border-color:var(--ink); color:#fff; } .ktabs button[aria-selected="true"] small { color:rgba(255,255,255,.7); }
+  .ktabs button.zero { color:#A9B0C6; border-style:dashed; }
+  .sdet { max-width:640px; } .panel.box .none { margin:0; font:700 13px/1.6 var(--jp); color:var(--soft); }
 
   .toast { position:fixed; left:50%; bottom:24px; transform:translateX(-50%) translateY(16px); max-width:calc(100vw - 32px); padding:10px 18px; border-radius:20px; background:var(--ink); color:#fff; font:700 14px/1.4 var(--jp); opacity:0; transition:opacity .2s, transform .2s; pointer-events:none; text-align:center; z-index:5; }
   .toast.on { opacity:1; transform:translateX(-50%); }
   .up .ico { animation:up .6s ease-out; }
   @keyframes up { 30% { transform:scale(1.15) rotate(-6deg); } 100% { transform:none; } }
   @media (max-width:860px) { .room { grid-template-columns:minmax(0, 1fr); } .detail { position:static; scroll-margin-top:12px; } .cap { margin-left:0; }
-    /* 倉庫のタブは 中の一覧が長いので、スマホでは 倉庫を上げる所を 先に */
-    .room.store #left { display:contents; } .room.store .box { order:-2; margin:0; } .room.store .detail { order:-1; } }
+ }
   @media (max-width:520px) { .wallet h1 { flex-basis:100%; } .tabs { flex-wrap:nowrap; gap:6px; } .tab { padding:10px 13px; } .pc { padding:7px; } .pc .lbl { display:none; } .fac { gap:10px; padding:10px; } .fac .ico { width:42px; height:42px; } .fac small { font-size:11.5px; } .frow { grid-template-columns:50px minmax(0, 1fr); } .filters { padding:10px; } }
   @media (prefers-reduced-motion:reduce) { .toast { transition:none; } .up .ico { animation:none; } }
 </style>
@@ -146,7 +157,7 @@
 <script type="module">
 import { FACILITIES, STORAGE_CAP, SNACK_RECIPES } from "./facilities.js";
 import { snackCraftHtml, addSnackCss } from "./snack-craft.js";
-import { MAT_NAME, MAT_FROM, HIDDEN_MAT, GATHER, ENEMY_MAT } from "./materials.js";
+import { MAT_NAME, MAT_FROM, HIDDEN_MAT, GATHER, ENEMY_MAT, BOX_DAYS } from "./materials.js";
 import { DUNGEONS } from "./dungeons.js";
 import { baseOf } from "./equip.js";
 import { gearImg, watchIcons } from "./gear-icon.js";
@@ -190,6 +201,9 @@ function load(m) {
 load(await me());
 const qf = FACILITIES.some((f) => f.id === q.get("f")) ? q.get("f") : null;
 S.tab = qf ? tabOf(qf).id : TABS.some((t) => t.id === q.get("t")) ? q.get("t") : "make";
+// 倉庫の 中の タブ（鹿さんの決め、2026-10-25）：スタッシュ → 強化 → 預かり箱 の 順。1 つずつ 出す（?st= で えらんで 開く。配信ページの「スタッシュ」の タブも ここ）
+const STORE_TABS = [["stash", "スタッシュ"], ["up", "強化"], ["box", "預かり箱"]];
+S.st = STORE_TABS.some(([k]) => k === q.get("st")) ? q.get("st") : "stash";
 S.sel = qf || TABS.find((t) => t.id === S.tab).facs[0];
 // 施設の 強化には あずかり箱の 素材も 使える（鹿さんの決め、2026-10-25。同じ 品質なら 箱の 物から 使う＝門番の takeMats）
 const inBox = (id, minQ = 0) => S.box.filter((m) => m.id === id && m.q >= minQ).reduce((a, m) => a + m.n, 0);
@@ -238,7 +252,9 @@ function boxHtml(cap) {
 }
 function stashHtml() {
   const cap = S.cap, all = stock();
-  const okK = (e, k = S.sk) => k === "all" || e.kind === k, okW = (e, w = S.sw) => w === "all" || e.where === w;
+  // しゅるいは タブで 1 つずつ（見出しで 縦に 並べない。鹿さんの決め、2026-10-25）。はじめは 素材が ある しゅるい
+  if (!KINDS.some(([k]) => k === S.sk)) S.sk = (KINDS.find(([k]) => all.some((e) => e.kind === k)) || KINDS[0])[0];
+  const okK = (e, k = S.sk) => e.kind === k, okW = (e, w = S.sw) => w === "all" || e.where === w;
   const chip = (k, v, label, n) => `<button class="chip" data-act="${k}" data-v="${v}" aria-pressed="${S[k] === v}" ${n === 0 && S[k] !== v ? "disabled" : ""}>${label}${n === null ? "" : `<small>${n}</small>`}</button>`;
   const nK = (k) => all.filter((e) => okK(e, k) && okW(e)).length, nW = (w) => all.filter((e) => okK(e) && okW(e, w)).length;
   const by = { n: (a, b) => b.n - a.n, q: (a, b) => b.top - a.top || b.n - a.n, name: (a, b) => MAT_NAME[a.id].localeCompare(MAT_NAME[b.id], "ja") }[S.sort];
@@ -247,17 +263,25 @@ function stashHtml() {
   const tile = (e) => `<li><button class="tc ${tc(e)}${e.n >= cap ? " tf" : ""}" data-m="${e.id}" aria-pressed="${S.pick === e.id}" aria-label="${esc(MAT_NAME[e.id])} ×${e.n}" title="${esc(MAT_NAME[e.id])}"><span class="tn">${esc(MAT_NAME[e.id])}</span><img src="${matPic(e.id)}" alt="">${e.top ? `<span class="tp">${"<i></i>".repeat(e.top)}</span>` : ""}<span class="tq">${e.n}</span></button></li>`;
   const vis = all.filter((e) => okK(e) && okW(e));
   if (!vis.some((e) => e.id === S.pick)) S.pick = null;
-  const groups = KINDS.map(([k, name]) => { const g = vis.filter((e) => e.kind === k).sort(by);
-    return g.length ? `<p class="tk-h">${name}の 素材<small>${g.length}</small></p><ul class="tk-g">${g.map(tile).join("")}</ul>` : ""; }).join("");
+  const groups = vis.length ? `<ul class="tk-g">${[...vis].sort(by).map(tile).join("")}</ul>` : "";
   // 押した 素材：行き先・どこで 手に 入るか・品質の 内わけ
   const pk = S.pick && vis.find((e) => e.id === S.pick), pqs = pk ? Object.keys(pk.qs).map(Number).sort((a, b) => b - a) : [];
   const info = pk ? `<div class="tk-info" aria-live="polite"><img src="${matPic(pk.id)}" alt=""><div><b>${esc(MAT_NAME[pk.id])}</b><small>${esc((DUNGEONS.find((d) => d.id === pk.where) || { name: "" }).name)}・${KIND_NOTE[pk.kind]}</small>${pqs.length ? `<small class="q">${pqs.map((q) => `品質${q} ×${pk.qs[q]}`).join("・")}</small>` : ""}<small class="${pk.n >= cap ? "fl" : ""}">${pk.n >= cap ? "いっぱい：入らない 分は あずかり箱へ" : `あと ${cap - pk.n} こ 入る`}</small></div><em>×${pk.n}</em></div>` : "";
-  return `${boxHtml(cap)}<section class="panel stash" aria-label="倉庫の中"><header><h2>倉庫の 中</h2><span class="cap">1 しゅるい <b>${cap}</b> こ まで${all.filter((e) => e.n >= cap).length ? `<span class="fl">いっぱい ${all.filter((e) => e.n >= cap).length}</span>` : ""}</span></header>
+  return `<section class="panel stash" aria-label="倉庫の中"><header><h2>倉庫の 中</h2><span class="cap">1 しゅるい <b>${cap}</b> こ まで${all.filter((e) => e.n >= cap).length ? `<span class="fl">いっぱい ${all.filter((e) => e.n >= cap).length}</span>` : ""}</span></header>
+    <div class="ktabs" role="tablist" aria-label="しゅるい">${KINDS.map(([k, name]) => `<button role="tab" data-act="sk" data-v="${k}" aria-selected="${S.sk === k}" class="${nK(k) ? "" : "zero"}">${name}<small>${nK(k)}</small></button>`).join("")}</div>
     <div class="filters" role="group" aria-label="分け方">
-      <div class="frow"><span>しゅるい</span><div>${chip("sk", "all", "すべて", nK("all"))}${KINDS.map(([k, name]) => chip("sk", k, name, nK(k))).join("")}</div></div>
       <div class="frow"><span>行き先</span><div>${chip("sw", "all", "すべて", nW("all"))}${DUNGEONS.map((d) => chip("sw", d.id, d.name, nW(d.id))).join("")}</div></div>
       <div class="frow"><span>ならべる</span><div>${SORTS.map(([k, name]) => chip("sort", k, name, null)).join("")}</div></div></div>
-    ${groups ? `<div class="tk">${groups}</div>${info}` : `<p class="empty">この分け方の 素材は ない</p>`}</section>`;
+    ${groups ? `<div class="tk">${groups}</div>${info}` : `<p class="empty">${KIND_NOTE[S.sk]}。いまは ない</p>`}</section>`;
+}
+// 倉庫の タブ：スタッシュ（中身）・強化（倉庫の Lv）・預かり箱。丸は 強化できる・箱の 数
+function storeHtml() {
+  const c = check(F("storage")), nb = S.box.reduce((a, m) => a + m.n, 0) + S.boxEq.length;
+  const tabs = `<div class="stabs" role="tablist" aria-label="倉庫">${STORE_TABS.map(([k, label]) => `<button role="tab" data-st="${k}" aria-selected="${S.st === k}">${label}${k === "up" && c.ok ? `<span class="bd" aria-label="強化できる">!</span>` : ""}${k === "box" && nb ? `<span class="bd bx" aria-label="預かり箱 ${nb}">${nb}</span>` : ""}</button>`).join("")}</div>`;
+  const body = S.st === "up" ? `<section class="panel detail sdet" aria-label="倉庫の 強化">${detailHtml()}</section>`
+    : S.st === "box" ? boxHtml(S.cap) || `<section class="panel box"><p class="none">預かり箱は からっぽ。倉庫の その しゅるいが いっぱいの ときに、入りきらない 物が ${BOX_DAYS} 日 入る</p></section>`
+    : stashHtml();
+  return tabs + body;
 }
 function rowHtml(r) {
   const ng = r.have < r.need, n = `<span class="n">${r.kind === "f" ? `Lv${r.have}` : r.unknown ? `？ / ${fmt(r.need)}` : `${fmt(r.have)} / ${fmt(r.need)}`}</span>`;
@@ -283,7 +307,7 @@ function render() {
   const t = TABS.find((x) => x.id === S.tab);
   document.getElementById("tabs").innerHTML = tabsHtml();
   document.getElementById("room").setAttribute("aria-label", t.name); document.getElementById("room").classList.toggle("store", t.id === "store");
-  document.getElementById("left").innerHTML = t.id === "store" ? stashHtml() : facsHtml(t);
+  document.getElementById("left").innerHTML = t.id === "store" ? storeHtml() : facsHtml(t);
   const tk = document.querySelector(".stash .tk"); if (tk) padGrids(tk);
   document.getElementById("detail").innerHTML = detailHtml();
   document.getElementById("detail").classList.toggle("up", S.up === S.sel);
@@ -304,6 +328,7 @@ async function ask(b, a, body, msg) {
 document.querySelector("main").addEventListener("click", async (e) => {
   const b = e.target.closest("button"); if (!b || b.disabled) return;
   if (b.dataset.tab) return pickTab(b.dataset.tab);
+  if (b.dataset.st) { S.st = b.dataset.st; q.set("t", "store"); q.set("st", S.st); history.replaceState(null, "", "?" + q.toString()); render(); return document.querySelector(`[data-st="${S.st}"]`)?.focus(); }
   if (b.dataset.snack) return ask(b, "snack.craft", { id: b.dataset.snack, n: +b.dataset.n }, (r) => `${SNACK_RECIPES.find((x) => x.id === r.id).name}を ${r.n} こ 作った`);
   if (b.dataset.act) { S[b.dataset.act] = b.dataset.v; render(); return document.querySelector(`[data-act="${b.dataset.act}"][data-v="${b.dataset.v}"]`)?.focus(); }
   if (b.dataset.m) { S.pick = S.pick === b.dataset.m ? null : b.dataset.m; render(); document.querySelector(`[data-m="${b.dataset.m}"]`)?.focus({ preventScroll: true }); return; }   // もう 一度 押すと とじる

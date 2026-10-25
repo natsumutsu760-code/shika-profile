@@ -791,6 +791,7 @@ body.live-on .floor::before, body.live-on .isle { animation: none; }
             <div class="ltabs" id="htabs" role="tablist" aria-label="ラウンジ（選んでいるタブをもう一度押すと、その画面のはじめに戻る）">
               <button type="button" role="tab" id="ht-trip" data-hp="trip" aria-controls="haken" aria-selected="true" style="--c:var(--leaf)">派遣<i class="tnum" hidden></i></button>
               <button type="button" role="tab" id="ht-pet" data-hp="pet" aria-controls="haken" aria-selected="false" tabindex="-1" style="--c:var(--violet)">ペット<i class="tnum" hidden></i></button>
+              <button type="button" role="tab" id="ht-stash" data-hp="stash" aria-controls="haken" aria-selected="false" tabindex="-1" class="ink" style="--c:var(--sun)">スタッシュ<i class="tnum" hidden></i></button>
               <button type="button" role="tab" id="ht-room" data-hp="room" aria-controls="haken" aria-selected="false" tabindex="-1" style="--c:var(--sky)">ラウンジ</button>
             </div>
           </div>
@@ -998,6 +999,7 @@ body.live-on .floor::before, body.live-on .isle { animation: none; }
     ["そのほか", "#22CC88", [["!けいじばん こんにちは", "ラウンジの掲示板に書く（1 分に 1 回・120 字まで）"], ["!バグ報告 ガチャのあと画面が止まった", "不具合を配信者に知らせる（30 秒に 1 回・300 字まで）"], ["!花火", "画面に花火（!ハート でハート）"], [null, "888 で拍手、草 で草が生える"], ["!モノリンク", "MONO LINK の URL をチャットで受け取る（!サイト でも）"]]]
   ];
   var NOTES = [
+    ["MONO LINK", "2026-10-25", ["配信画面のラウンジのタブに「スタッシュ」を足しました（派遣・ペット・スタッシュ・ラウンジ）。数は預かり箱に入っている物です", "隠れ家の倉庫を「スタッシュ・強化・預かり箱」のタブで 1 つずつ見られるようにしました。スタッシュの中も、採取・レア・敵のタブでえらんだしゅるいだけが出ます"]],
     ["MONO LINK", "2026-10-25", ["プライベートラウンジの派遣に「周回」をつけました。準備の画面でスイッチを ON にして回数（3・5・10・ずっと）をえらぶと、帰ってきたらごほうびを受け取って、同じ行き先・時間・目的でまた出発します（画面を閉じていても回ります）", "倉庫がいっぱいになると止まります。出かけているあいだもスイッチで止められます。開いたときに「周回のまとめ」が出ます"]],
     ["MONO LINK", "2026-10-25", ["プライベートラウンジの倉庫に、どの素材も置けるようになりました。倉庫の Lv で増えるのは「1 しゅるいに置ける数」です（はじめ 50・Lv1 100・Lv2 200・Lv3 400。品質ちがいは合わせて数えます）", "その素材がいっぱいのときだけ、入らない分があずかり箱へ行きます。倉庫の見出しにいっぱいの数を、派遣の出発前にいっぱいの素材を出します", "ボルトの「倉庫の棚」は、1 しゅるいに置ける数 ＋25 になりました"]],
     ["MONO LINK", "2026-10-25", ["プライベートラウンジの隠れ家の「おやつ工房」で、懐柔のおやつを作れるようになりました（Lv1 は薬草 2 ＋ 野いちご 1、Lv2 から薬草 1 ＋ 野いちご 1、Lv3 でとくべつおやつ＝野いちご 3 ＋ 四つ葉のクローバー 1）。なかまの画面からも作れます", "なかまの画面の「となりの部屋」を、丸いアイコンの図鑑にしました。職業ごとに分かれ、まわりの輪がなかよしゲージです", "パーティのなかまにも装備を付けられるようになりました。装備の画面の上で、だれの装備かを切りかえます"]],
@@ -2382,7 +2384,8 @@ var ShikaWheel = (function () {
   // ---- ラウンジ：コメントの行の左のスイッチで、コメントを書く欄から下をラウンジの画面にする ----
   // タブは配信のタブと同じ形（派遣・ペット・ラウンジ）。押すと下の枠に、その本物の画面（/lounge/）が出る。派遣中なら探索中の画面
   // しるし（開かなくても分かる）：帰ってきた派遣はスイッチの赤い点と派遣のタブの 1、使えるスキルポイントはペットのタブの数。門番の /api/me から
-  var LG = "/lounge/", HK_PAGE = { trip: "dungeon.html", pet: "status.html", room: "lounge-room.html" };
+  // スタッシュ（鹿さんの決め、2026-10-25）：隠れ家の 倉庫の タブの スタッシュ。タブの 数は 預かり箱に ある 物（日が たつと 消える）
+  var LG = "/lounge/", HK_PAGE = { trip: "dungeon.html", pet: "status.html", stash: "hideout.html?t=store&st=stash", room: "lounge-room.html" };
   var HK_OF = { "dungeon.html": "trip", "status.html": "pet", "skilltree.html": "pet", "gambit.html": "pet", "equip.html": "pet", "tame.html": "pet", "quiz.html": "pet" }; // ほかはラウンジ
   var hk = { on: false, tab: "trip", me: null, at: 0, busy: false, endT: 0 };
   function hkLoad() {
@@ -2394,7 +2397,8 @@ var ShikaWheel = (function () {
   function hkMarks() {
     var m = hk.me, t = m && (m.trips || []).filter(function (x) { return !x.done; })[0], mp = m && m.pets && m.pets[0], ready = !!(t && t.got), sp = mp && mp.sp ? mp.sp.left : 0;
     $("swap-dot").hidden = !ready;
-    [["ht-trip", ready ? 1 : 0], ["ht-pet", sp]].forEach(function (x) { var b = $(x[0]).querySelector(".tnum"); b.hidden = !(x[1] > 0); b.textContent = x[1] > 0 ? String(x[1]) : ""; });
+    var boxed = m && m.own && m.own.box ? m.own.box.reduce(function (a, x) { return a + (x.equip ? 1 : x.n || 0); }, 0) : 0;
+    [["ht-trip", ready ? 1 : 0], ["ht-pet", sp], ["ht-stash", boxed]].forEach(function (x) { var b = $(x[0]).querySelector(".tnum"); b.hidden = !(x[1] > 0); b.textContent = x[1] > 0 ? String(x[1]) : ""; });
     // 出かけているあいだは、帰ってくる時間に読み直す（スイッチの点のため）
     clearTimeout(hk.endT);
     if (t && !t.got && liveOpen) hk.endT = setTimeout(hkLoad, t.end > Date.now() ? t.end - Date.now() + 2000 : 15000);
@@ -2414,7 +2418,8 @@ var ShikaWheel = (function () {
     var w = $("hk-if").contentWindow, path = "", doc = null;
     try { path = w.location.pathname; doc = w.document; } catch (e) {}
     if (!/^\/lounge\//.test(path)) { if (path && path !== "blank") location.href = w.location.href; return; } // ラウンジの外（MONO LINK のサイトなど）へは、枠ではなくページごと行く
-    hkSel(HK_OF[path.replace(/^.*\//, "")] || "room");
+    var page = path.replace(/^.*\//, ""), qs = ""; try { qs = w.location.search; } catch (e) {}
+    hkSel(HK_OF[page] || (page === "hideout.html" && /[?&]t=store/.test(qs) ? "stash" : "room"));
     // 枠の中では、ラウンジの画面の上の見出し（MONO LINK:// ラウンジ ／ ペット）を出さない（上のタブが同じ役目。その分、探索中の画面を広く）
     if (doc && doc.head && !doc.getElementById("in-live")) { var st = doc.createElement("style"); st.id = "in-live"; st.textContent = "body > header.top { display: none !important; }"; doc.head.appendChild(st); }
     if (Date.now() - hk.at > 10000) hkLoad();
@@ -2592,7 +2597,7 @@ var ShikaWheel = (function () {
     "前にフォローしていた人は使えません": "People who followed before can't use it", "MONO LINK に入ったことのある人は使えません": "People who have been in MONO LINK before can't use it",
     "その招待コードはありません": "That invite code doesn't exist", "自分のコードは使えません": "You can't use your own code", "招待コードは 1 回だけ使えます": "An invite code can be used only once",
     "招待はまだ準備中です。少し待ってからためしてください": "Invites aren't ready yet. Please try again a bit later", "コードをためすのは 1 時間に 10 回までです": "You can try codes up to 10 times an hour",
-    "配信の映像": "Stream video", "派遣": "Expedition", "ペット": "Pet", "ラウンジ": "Lounge", "コメント": "Comment", "コメントする（! でコマンド）": "Comment (start with ! for commands)",
+    "配信の映像": "Stream video", "派遣": "Expedition", "ペット": "Pet", "スタッシュ": "Stash", "ラウンジ": "Lounge", "コメント": "Comment", "コメントする（! でコマンド）": "Comment (start with ! for commands)",
     "送る": "Send", "コメントには Twitch の許可がいります": "Commenting needs permission from Twitch", "許可する": "Allow",
     "配信のメニュー（選んでいるタブをもう一度押すとたたむ）": "Stream menu (tap the open tab again to fold it)",
     "打つ": "Fire", "ゲーム": "Game", "ガチャ": "Gacha", "くじ": "Lottery", "つけかえ": "Wear", "ほか": "More",
