@@ -908,12 +908,14 @@ export class Lounge {
       const b = await req.json().catch(() => ({}));
       const id = /^\d{1,20}$/.test(String(b.id || "")) ? String(b.id) : "";
       if (id && url.pathname === "/beat") {
-        const old = this.map[id] || {};
+        const old = this.map[id] || {}, fresh = !this.map[id];   // fresh：いまいる人の一覧にいなかった（いま MONO LINK に入った）
         const n = typeof b.n === "string" && b.n ? b.n.slice(0, 40) : old.n || "";
         this.map[id] = { n, l: String(b.l || old.l || "").slice(0, 40), at: now };
         if (n) this.names[id] = n;
         needName = !n;
         await inviteSeen(this, id);   // MONO LINK に入った印（ページの招待の読みこみだけにたよらない）
+        // 帯の広告（オーバーレイ）：MONO LINK に入った人の Twitch の id を OBS へ。広告に出る人かどうか・1 時間あけるかはオーバーレイが決める
+        if (fresh && this.map[id].l) { const s = JSON.stringify({ t: "in", id: this.map[id].l }); this.obsSockets().forEach((w) => { try { w.send(s); } catch (e) {} }); }
       }
       if (id && url.pathname === "/bye") delete this.map[id];
       await this.state.storage.put("here", this.map);
