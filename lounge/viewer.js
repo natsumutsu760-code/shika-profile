@@ -14,6 +14,7 @@ import { relayEntry } from "./lounge-relay.js";   // 配信の 中継（鹿物�
 import { swapPlan } from "./lounge-money.js";   // 両替（玉・クレジット・リソース）
 import { wsMake, wsAtt, attSet, attOff, attDrop } from "./lounge-workshop.js";   // 工房（道具・アタッチメント）
 import { farmPlant, farmHarvest, farmSpr, mineSet, mineCollect, mineLeave, farmView } from "./lounge-farm.js";   // 畑と 坑道
+import { statPut } from "./lounge-stats.js";   // 記録の まとめ（OBS の コスメの 条件。かわった ときだけ Lounge へ）
 import { ensure, give, FURN_MAX, petFirst, petJob, tripStart, tripCalc, tripDone, tripCollect, tripView, hideoutPlan, craftPlan, synthPlan, boxTake, dropOld, stashCap, tameFeedPlan, tameJoin, tameBack, researchPlan, snackCraft, loopNew, loopSet, loopSeen, loopAfter, loopStep, equipScrap } from "./lounge-game.js";
 
 const OPS_KEEP = 200;            // おぼえて おく op（2 回 来たら 1 回目の 答えを 返す）
@@ -40,7 +41,7 @@ export class Viewer {
 
   run(fn) { const p = this.q.then(fn); this.q = p.catch(() => {}); return p; }
   async load() { const rec = (await this.state.storage.get("rec")) || null; if (rec) { rec.ledger ||= emptyLedger(); ensure(rec); } return rec; }
-  async save(rec) { await this.state.storage.put("rec", rec); }
+  async save(rec) { await this.state.storage.put("rec", rec); await statPut(this, rec); }
   lounge() { return this.env.LOUNGE.get(this.env.LOUNGE.idFromName("lounge")); }
   // 配信の 中継：出かけた 派遣を Lounge に あずける（put）・本当の 帰る 時間（end）・うけとった（del）。つながらなくても 派遣は そのまま
   async relay(kind, body) { try { await this.lounge().fetch("https://lounge/relay-" + kind, { method: "POST", body: JSON.stringify(body) }); } catch (e) {} }
@@ -265,7 +266,6 @@ export class Viewer {
     else if (body.a === "tame.join") { r = tameJoin(rec, body); if (r.ok) { const m = mineLeave(rec, body.uid, rand, now); if (m && m.got && m.got.length) r.mined = m.got; } }   // 坑道で 掘って いた 子は やめる（掘った 分は 渡す）
     else if (body.a === "tame.back") r = tameBack(rec, body);
     else if (body.a === "snack.craft") r = snackCraft(rec, body);
-    else if (body.a === "equip.scrap") r = equipScrap(rec, body, now, rand);   // 装備を 手放す（玉は 下の earn で 帳簿へ）
     else if (body.a === "ws.make") r = wsMake(rec, body, now);
     else if (body.a === "ws.att") r = wsAtt(rec, body, rand, now);
     else if (body.a === "att.set") r = attSet(rec, body);
@@ -276,6 +276,7 @@ export class Viewer {
     else if (body.a === "farm.spr") r = farmSpr(rec, body);
     else if (body.a === "mine.set") r = mineSet(rec, body, rand, now);
     else if (body.a === "mine.collect") r = mineCollect(rec, rand, now);
+    else if (body.a === "equip.scrap") r = equipScrap(rec, body, now, rand);   // 装備を 手放す（玉は 下の earn で 帳簿へ）
     else if (typeof body.a === "string" && Object.prototype.hasOwnProperty.call(PLANS, body.a)) {   // お金が いる やること：計画を 作って 帳簿で 払う（「constructor」などは 通さない）
       const plan = PLANS[body.a](rec, body, this.env);
       r = plan.costs ? await this.charge(rec, plan, wallet) : plan;

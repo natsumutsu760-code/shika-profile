@@ -1738,6 +1738,62 @@ body.demo .game .demo-game { display: block; }
 .chat li.sk-collagetower > div::after { content: "塔"; position: absolute; right: 7px; top: 50%; margin-top: -12px; font: 800 22px/1 "Shippori Mincho B1", "Noto Serif JP", serif; color: #fff; animation: scdAb .45s steps(1) infinite; pointer-events: none; }
 .chat li.sk-collagetower .msg { color: #fff; }
 @media (prefers-reduced-motion: reduce) { .chat li:is(.sk-holocrack, .sk-holostutter, .sk-holomontage, .sk-holo3d, .sk-holoreel, .sk-collagered, .sk-collageui, .sk-collageblue, .sk-collagestreet, .sk-collagepaper, .sk-collagefilter, .sk-collagetower) > div, .chat li:is(.sk-holocrack, .sk-holostutter, .sk-holomontage, .sk-holo3d, .sk-holoreel, .sk-collagered, .sk-collageui, .sk-collageblue, .sk-collagestreet, .sk-collagepaper, .sk-collagefilter, .sk-collagetower) > div::before, .chat li:is(.sk-holocrack, .sk-holostutter, .sk-holomontage, .sk-holo3d, .sk-holoreel, .sk-collagered, .sk-collageui, .sk-collageblue, .sk-collagestreet, .sk-collagepaper, .sk-collagefilter, .sk-collagetower) > div::after { animation: none !important; } }
+/* ===== プライベートラウンジのスキン（lounge）：ラウンジの大きな達成で手に入る（ガチャ・お店には出ない）。絵は canvas の FXMAKE ===== */
+/* 秘密基地（★4。うす暗い地下の机に隠れ家の設計図。施設が 1 つずつ灯る） */
+.sk-lgbase { --pa: #FFB547; --pb: #17100A; --pc: #7FB8D8; }
+.pcard.sk-lgbase { background: radial-gradient(90% 120% at 22% 20%, #3A2614, #1C130B 55%, #0D0805); border-color: #2A1D10; box-shadow: 0 10px 0 rgba(20,22,74,.35), 0 0 0 1.5px rgba(127,184,216,.45) inset; }
+/* 暗い地なので文字は白。名前に地の色の縁、メタに地の色の影（絵が文字の後ろを通るので） */
+.pcard:is(.sk-lgbase, .sk-lgdive, .sk-lgneon) { color: #fff; }
+.pcard:is(.sk-lgbase, .sk-lgdive, .sk-lgneon) .nm:not(.tx-gold):not(.tx-leak):not(.tx-scan) { paint-order: stroke fill; -webkit-text-stroke: 5px var(--pb); }
+.pcard:is(.sk-lgbase, .sk-lgdive, .sk-lgneon) .meta { text-shadow: 0 0 3px var(--pb), 0 0 3px var(--pb), 0 1px 3px var(--pb); }
+.pcard:is(.sk-lgbase, .sk-lgdive, .sk-lgneon) .big { paint-order: stroke fill; -webkit-text-stroke: 4px var(--pb); }
+.pcard.sk-lgbase .meta { color: #F3E3C6; } .pcard.sk-lgbase .big { color: #FFC66B; }
+/* アイコンの枠：設計図の青い線と、ランプのあたたかい光 */
+.pcard.sk-lgbase .ic { box-shadow: 0 0 0 4px #17100A, 0 0 0 5.5px #7FB8D8, 0 0 18px 5px rgba(255,181,71,.35); }
+/* コメント欄の吹き出し：秘密基地は設計図の方眼に、角の電球がちらついてから灯る */
+@keyframes lgBulb { 0%, 100% { opacity: 1; } 3% { opacity: .15; } 6% { opacity: 1; } 9% { opacity: .3; } 12% { opacity: 1; } }
+.chat li:is(.sk-lgbase, .sk-lgdive, .sk-lgpets, .sk-lgneon) > div { position: relative; }
+.chat li.sk-lgbase > div { border: 1.5px solid #7FB8D8; background: linear-gradient(rgba(127,184,216,.14) 1px, transparent 1px) 0 0 / 10px 10px, linear-gradient(90deg, rgba(127,184,216,.14) 1px, transparent 1px) 0 0 / 10px 10px, radial-gradient(120% 160% at 8% 0%, #3E2914, #1A120A 65%); }
+.chat li.sk-lgbase > div::before { content: ""; position: absolute; right: 14px; top: -10px; width: 1.5px; height: 6px; background: #7FB8D8; pointer-events: none; }
+.chat li.sk-lgbase > div::after { content: ""; position: absolute; right: 9px; top: -5px; width: 11px; height: 11px; border-radius: 50%; background: radial-gradient(circle at 40% 38%, #FFF6DD, #FFB547 55%, #A8561A); box-shadow: 0 0 10px 3px rgba(255,181,71,.6); animation: lgBulb 3.4s steps(1) infinite; pointer-events: none; }
+.chat li.sk-lgbase .msg { color: #F7EBD6; }
+/* VR ダイブ（★5。まっ暗な中のワイヤーの格子のトンネルを降りていく。シアンとマゼンタ） */
+.sk-lgdive { --pa: #39F3FF; --pb: #03040B; --pc: #FF3DB4; }
+.pcard.sk-lgdive { background: radial-gradient(70% 110% at 84% 50%, #12224A, #060A1C 45%, #020309); border-color: #0A1030; box-shadow: 0 10px 0 rgba(20,22,74,.35), -2px 0 0 1.5px rgba(255,61,180,.55) inset, 2px 0 0 1.5px rgba(57,243,255,.6) inset; }
+.pcard.sk-lgdive .meta { color: #D8FBFF; } .pcard.sk-lgdive .big { color: #7FF8FF; }
+.pcard.sk-lgdive .ic { box-shadow: 0 0 0 4px #03040B, 0 0 0 6px #39F3FF, 0 0 0 7.5px #03040B, 0 0 0 9px #FF3DB4; }
+/* 吹き出し（★5）：格子の床が上へ流れて降りていく。右上の札がノイズでずれる */
+@keyframes lgDive { to { background-position: 0 -24px, 0 0, 0 0; } }
+@keyframes lgJack { 0%, 86%, 100% { translate: 0 0; clip-path: inset(0 0 0 0); } 88% { translate: -3px 0; clip-path: inset(0 0 55% 0); } 91% { translate: 3px 0; clip-path: inset(45% 0 0 0); } 94% { translate: -1px 0; } }
+.chat li.sk-lgdive > div { overflow: visible; border: 1.5px solid #39F3FF; box-shadow: inset 2px 0 0 rgba(255,61,180,.7), 0 0 10px rgba(57,243,255,.35); background: linear-gradient(rgba(57,243,255,.32) 1px, transparent 1px) 0 0 / 100% 12px, linear-gradient(90deg, transparent 49.6%, rgba(57,243,255,.18) 50%, transparent 50.4%) 0 0 / 22px 100%, radial-gradient(90% 140% at 100% 50%, #12224A, #04071A 70%); animation: lgDive 1.1s linear infinite; }
+.chat li.sk-lgdive > div::after { content: "B5F"; position: absolute; right: 8px; top: -9px; font: 400 11px/1 "DotGothic16", monospace; color: #03040B; background: #39F3FF; padding: 2px 5px; box-shadow: 2px 0 0 #FF3DB4; animation: lgJack 2.6s steps(1) infinite; pointer-events: none; }
+.chat li.sk-lgdive .msg { color: #E6FDFF; }
+/* なかまの行進（★4。ラウンジの昼：空色のかべとラグの黄色の床。8 種のペットが UI の後ろを行進する。明るい地なので文字はインクに白い縁） */
+.sk-lgpets { --pa: #FF8A3D; --pb: #FFFFFF; --pc: #3D7FE0; }
+.pcard.sk-lgpets { background: linear-gradient(#BFE8FF, #EEF8FF 89%, #FFE9B0 90%, #FFD877); border-color: #14164A; box-shadow: 0 10px 0 rgba(20,22,74,.35), 0 0 0 2px #fff inset, 0 0 0 3.5px #FF8A3D inset; }
+.pcard.sk-lgpets .nm:not(.tx-gold):not(.tx-leak):not(.tx-scan) { paint-order: stroke fill; -webkit-text-stroke: 5px #fff; }
+.pcard.sk-lgpets .big { paint-order: stroke fill; -webkit-text-stroke: 4px #fff; }
+.pcard.sk-lgpets .meta { text-shadow: 0 0 3px #fff, 0 0 3px #fff, 0 1px 3px #fff; }
+.pcard.sk-lgpets .ic { box-shadow: 0 0 0 4px #fff, 0 0 0 6px #14164A, 0 0 0 8px #FF8A3D; }
+/* 吹き出し：上に 8 色の三角の旗、下のふちを 8 色の小さな玉が拍ごとに行進する */
+@keyframes lgMarch { to { background-position: -96px 0, -84px 0, -72px 0, -60px 0, -48px 0, -36px 0, -24px 0, -12px 0; } }
+.chat li.sk-lgpets > div { border: 2px solid #14164A; background: linear-gradient(#DDF2FF, #F6FBFF 70%, #FFEFC2); }
+.chat li.sk-lgpets > div::before { content: ""; position: absolute; left: 10px; right: 10px; top: 0; height: 8px; background: linear-gradient(90deg, #FF8A3D 0 12.5%, #3D7FE0 0 25%, #8F6BE6 0 37.5%, #E04848 0 50%, #F6C531 0 62.5%, #4FD0F0 0 75%, #3FB45A 0 87.5%, #FF6FA8 0) 0 0 / 96px 8px; -webkit-mask: conic-gradient(from -45deg at 50% 100%, #000 90deg, transparent 0) 0 0 / 12px 8px; mask: conic-gradient(from -45deg at 50% 100%, #000 90deg, transparent 0) 0 0 / 12px 8px; pointer-events: none; }
+.chat li.sk-lgpets > div::after { content: ""; position: absolute; left: 12px; right: 12px; bottom: 3px; height: 7px; background: radial-gradient(circle 3px, #FF8A3D 92%, transparent) 0 0 / 96px 7px, radial-gradient(circle 3px, #3D7FE0 92%, transparent) 12px 0 / 96px 7px, radial-gradient(circle 3px, #8F6BE6 92%, transparent) 24px 0 / 96px 7px, radial-gradient(circle 3px, #E04848 92%, transparent) 36px 0 / 96px 7px, radial-gradient(circle 3px, #F6C531 92%, transparent) 48px 0 / 96px 7px, radial-gradient(circle 3px, #4FD0F0 92%, transparent) 60px 0 / 96px 7px, radial-gradient(circle 3px, #3FB45A 92%, transparent) 72px 0 / 96px 7px, radial-gradient(circle 3px, #FF6FA8 92%, transparent) 84px 0 / 96px 7px; background-repeat: repeat-x; animation: lgMarch 4.3s steps(16) infinite; pointer-events: none; }
+.chat li.sk-lgpets .msg { color: #14164A; }
+/* ネオンの部屋（★5。夜のラウンジ：ネオンサイン・アーケード筐体・鹿のホログラム・宇宙の見える窓。ピンクと水色の管の光） */
+.sk-lgneon { --pa: #FF4FB8; --pb: #0D0720; --pc: #3FF0FF; }
+.pcard.sk-lgneon { background: linear-gradient(#1B0E36, #0D0720 86%, #1A1030 87%, #07040F); border-color: #2A1450; box-shadow: 0 10px 0 rgba(20,22,74,.35), 0 0 0 1.5px rgba(255,79,184,.7) inset, 0 0 0 3.5px rgba(63,240,255,.35) inset; }
+.pcard.sk-lgneon .meta { color: #FFE2F4; } .pcard.sk-lgneon .big { color: #FF8AD0; }
+.pcard.sk-lgneon .ic { box-shadow: 0 0 0 4px #0D0720, 0 0 0 6px #FF4FB8, 0 0 14px 6px rgba(255,79,184,.45), 0 0 0 9px rgba(63,240,255,.6); }
+/* 吹き出し（★5）：ネオン管のふちが入ったり消えたり（電気がとどくまでちらつく）、右上の小さな鹿のネオンが灯る */
+@keyframes lgTube { 0%, 100% { border-color: #FF4FB8; box-shadow: 0 0 8px rgba(255,79,184,.7), inset 0 0 8px rgba(255,79,184,.35); } 4%, 8% { border-color: rgba(255,79,184,.25); box-shadow: none; } 6%, 10% { border-color: #FF4FB8; box-shadow: 0 0 8px rgba(255,79,184,.7), inset 0 0 8px rgba(255,79,184,.35); } }
+@keyframes lgSign { 0%, 30%, 100% { opacity: 1; } 32%, 36% { opacity: .2; } 34% { opacity: 1; } }
+.chat li.sk-lgneon > div { border: 2px solid #FF4FB8; background: radial-gradient(70% 140% at 92% 0%, rgba(63,240,255,.2), transparent 60%), linear-gradient(#1B0E36, #0D0720); animation: lgTube 5s steps(1) infinite; }
+.chat li.sk-lgneon > div::after { content: ""; position: absolute; right: 8px; top: -8px; width: 18px; height: 18px; pointer-events: none; animation: lgSign 3.3s steps(1) infinite;
+  background: radial-gradient(circle at 50% 62%, transparent 0 4px, #3FF0FF 4.5px 5.8px, transparent 6.3px), linear-gradient(60deg, transparent 44%, #3FF0FF 45% 55%, transparent 56%) 0 0 / 9px 9px no-repeat, linear-gradient(-60deg, transparent 44%, #3FF0FF 45% 55%, transparent 56%) 9px 0 / 9px 9px no-repeat; }
+.chat li.sk-lgneon .msg { color: #FFE9F6; }
+@media (prefers-reduced-motion: reduce) { .chat li:is(.sk-lgbase, .sk-lgdive, .sk-lgpets, .sk-lgneon) > div, .chat li:is(.sk-lgbase, .sk-lgdive, .sk-lgpets, .sk-lgneon) > div::before, .chat li:is(.sk-lgbase, .sk-lgdive, .sk-lgpets, .sk-lgneon) > div::after { animation: none !important; } }
 /* ===== 鹿物語の液晶の中のカード（overlay-obs.html#lcdcard を鹿物語が読み込む）：当てた人のカードだけを、液晶いっぱいに ===== */
 body.lcdcard-mode { margin: 0; overflow: hidden; background: transparent; }
 body.lcdcard-mode > :not(.lc-wrap) { display: none !important; }
@@ -2146,6 +2202,13 @@ if (location.hash === "#lcdcard" || location.hash === "#sitecard" || document.do
     function owner(name) { return has(U.own, name) && !has(U.dis, name) ? U.own[name] : ""; }
     function nameOf(id) { var u = U.ids[id]; return u && owner(u.n) === id ? u.n : ""; }
     function uidOf(name) { var id = owner(name); return id && U.ids[id] && U.ids[id].n === name ? id : ""; }
+    // ラウンジの 記録の まとめ（lstat）を 名前に つなぐ：その id の いまの 表示名。チャットで まだ 見て いない 人は 門番が 知って いる 表示名
+    //   （ほかの 人の 物と 決まった 名前・もめて いる 名前は 使わない）
+    function nameFor(id, name) {
+      id = String(id || ""); var n = nameOf(id); if (n || !/^\d{1,20}$/.test(id)) return n;
+      name = String(name || "").slice(0, 40);
+      return name && name !== "__proto__" && !has(U.dis, name) && (!has(U.own, name) || U.own[name] === id) ? name : "";
+    }
 
     // チャットの 1 行ごとに（user-id と 表示名）。かわった ときだけ しまう
     function noteUid(id, name) {
@@ -2269,7 +2332,7 @@ if (location.hash === "#lcdcard" || location.hash === "#sitecard" || document.do
       (d.viewers || []).forEach(function (v) { var id = uidOf(v.name); if (id) v.uid = id; });
       return d;
     }
-    return { handle: handle, handleAsync: handleAsync, stamp: stamp, noteUid: noteUid, resolve: resolve, disputed: disputed, hi: function () { return { t: "lg-hi" }; }, seq: function () { return st.seq; } };
+    return { handle: handle, handleAsync: handleAsync, stamp: stamp, noteUid: noteUid, resolve: resolve, disputed: disputed, nameFor: nameFor, hi: function () { return { t: "lg-hi" }; }, seq: function () { return st.seq; } };
   }
   G.ObsLedger = ObsLedger;
 })(typeof window !== "undefined" ? window : globalThis);
@@ -2332,6 +2395,9 @@ if (location.hash === "#lcdcard" || location.hash === "#sitecard" || document.do
   // 大型アップデートを配るときに BIG_ON を true にすると、ふつうのガチャの景品になる
   var BIG_ON = true;
   function BG(k) { return BIG_ON ? GA(k) : SOON; }
+  // プライベートラウンジの記録で手に入るコスメ：門番（lstat）を配るまで「準備中」。配るときに LOUNGE_ON を true にする
+  var LOUNGE_ON = true;
+  function LG(f) { return LOUNGE_ON ? f : SOON; }
   var RARITY = [null, ["ノーマル", 0x9AA0B8], ["レア", 0x2F7BFF], ["エピック", 0x9B4DFF], ["レジェンド", 0xFFB300], ["ミシック", 0xFF2E4D]];
   var RAR = {
     skin: { wakaba: 1, aozora: 1, hougan: 1, sakura: 2, senbei: 2, shiden: 2, amiten: 2, neon: 3, rush: 3, support: 3, kansoku: 3, kogane: 4, patron: 4, kanoko: 4, gokusai: 5, gentou: 5, yozora: 4, gekkou: 4, seiza: 4, ryusei: 5, aurora: 5, amanogawa: 5, kairo: 4, terminal: 4, pixel: 4, wire: 4, holo: 5, glitch: 5, signal: 5, koke: 4, momiji: 4, shirakaba: 4, komorebi: 5, hotaru: 5, shikaduno: 5, kingyo: 4, soda: 4, washi: 4, hanabi: 5, dairiseki: 5, mangekyo: 5 },
@@ -3300,6 +3366,74 @@ if (location.hash === "#lcdcard" || location.hash === "#sitecard" || document.do
   // コレクターの二つ名（視聴者の要望）：ガチャ・お店で集めたコスメの数で 3 段階
   [["コレクター", 3, 50], ["大コレクター", 4, 150], ["伝説のコレクター", 5, 300]].forEach(function (x) {
     EPITHETS.push([x[0], "ガチャ・お店でコスメを " + x[2] + " 個集める", function (u) { return (u.g || []).length >= x[2]; }]); RAR.ep[x[0]] = x[1];
+  });
+  // ---------- プライベートラウンジのアチーブメントの二つ名 ----------
+  // ラウンジの記録のまとめ u.lo（facts が作る。ない人は {}）で手に入る。[名前, ★, 手に入れ方, 条件（lo を受ける）]。技は EP_TX の「ラウンジの二つ名の技」
+  // id はサーバーの記録の生の id：行き先 hals・morph・kurai・crystal／ペットの種 shika・pelican・mouse・tv・mogura・kurage・saboten・chokin／
+  //   職業 attacker・caster・technician・healer・defender／施設 dig・workshop。最大：ペット Lv40・施設 Lv3・各行き先 5 階・敵ツリー 20・商人 5 人・売り物の家具 18 種（★5 は 2 種）・ミシック 4
+  // まとめは下がらない（門番が前の分と大きい方で合わせる）ので、クレジットを使っても・職業をかえても消えない。ペットは 1 人 1 匹なので、種ごとの二つ名は自分の子の 1 つだけ
+  [
+    // ボス（各行き先の 5 階の奥）
+    ["街道の王殺し", 3, "ラウンジでゴブリンキングを倒す", function (lo) { return ((lo.boss || {}).hals || 0) >= 1; }],
+    ["眠りを破る者", 3, "ラウンジでヒュプノスを倒す", function (lo) { return ((lo.boss || {}).morph || 0) >= 1; }],
+    ["影を祓う者", 3, "ラウンジで村長の影を倒す", function (lo) { return ((lo.boss || {}).kurai || 0) >= 1; }],
+    ["竜を砕く者", 4, "ラウンジでクリスタルドラゴンを倒す", function (lo) { return ((lo.boss || {}).crystal || 0) >= 1; }],
+    ["四つの玉座を空けた鹿", 4, "ラウンジで 4 体のボスをすべて倒す", function (lo) { return (lo.bossKinds || 0) >= 4; }],
+    ["ボスハンター", 3, "ラウンジでボスを 20 回倒す", function (lo) { return (lo.bossTotal || 0) >= 20; }],
+    ["ボス狩りの伝説", 5, "ラウンジでボスを 100 回倒す", function (lo) { return (lo.bossTotal || 0) >= 100; }],
+    // 探索（いちばん深い階）
+    ["街道の踏破者", 2, "ラウンジでハルス街道の 5 階まで行く", function (lo) { return ((lo.floor || {}).hals || 0) >= 5; }],
+    ["遺跡の最奥へ", 2, "ラウンジでモーフィアス遺跡の 5 階まで行く", function (lo) { return ((lo.floor || {}).morph || 0) >= 5; }],
+    ["闇夜の歩き手", 3, "ラウンジで暗い村の 5 階まで行く", function (lo) { return ((lo.floor || {}).kurai || 0) >= 5; }],
+    ["水晶の底を見た鹿", 3, "ラウンジで水晶洞窟の 5 階まで行く", function (lo) { return ((lo.floor || {}).crystal || 0) >= 5; }],
+    ["全域踏破", 4, "ラウンジで 4 つの行き先すべての 5 階まで行く", function (lo) { return (lo.floor5 || 0) >= 4; }],
+    // ペット（種ごとに Lv25。最大 Lv40 の 2/3 くらい）
+    ["ネムの相棒", 2, "ラウンジでネム（しか）を Lv25 に育てる", function (lo) { return ((lo.pets || {}).shika || 0) >= 25; }],
+    ["ポスケと空を見る鹿", 2, "ラウンジでポスケ（ペリカン）を Lv25 に育てる", function (lo) { return ((lo.pets || {}).pelican || 0) >= 25; }],
+    ["カチの親友", 2, "ラウンジでカチ（マウス）を Lv25 に育てる", function (lo) { return ((lo.pets || {}).mouse || 0) >= 25; }],
+    ["ザザの調律師", 2, "ラウンジでザザ（ブラウン管）を Lv25 に育てる", function (lo) { return ((lo.pets || {}).tv || 0) >= 25; }],
+    ["ホリと掘る鹿", 2, "ラウンジでホリ（もぐら）を Lv25 に育てる", function (lo) { return ((lo.pets || {}).mogura || 0) >= 25; }],
+    ["ユラとただよう鹿", 2, "ラウンジでユラ（くらげ）を Lv25 に育てる", function (lo) { return ((lo.pets || {}).kurage || 0) >= 25; }],
+    ["チクに水をやる鹿", 2, "ラウンジでチク（サボテン）を Lv25 に育てる", function (lo) { return ((lo.pets || {}).saboten || 0) >= 25; }],
+    ["チャリンの金庫番", 2, "ラウンジでチャリン（ちょきんばこ）を Lv25 に育てる", function (lo) { return ((lo.pets || {}).chokin || 0) >= 25; }],
+    ["育ての名人", 4, "ラウンジでペットを Lv40（最大）に育てる", function (lo) { return (lo.petMax || 0) >= 40; }],
+    // 職業のスキルツリーを奥義（いちばん奥）まで取る
+    ["剣の極み", 3, "ラウンジでアタッカーの奥義まで取る", function (lo) { return [].concat(lo.master || []).indexOf("attacker") >= 0; }],
+    ["魔導の極み", 3, "ラウンジでキャスターの奥義まで取る", function (lo) { return [].concat(lo.master || []).indexOf("caster") >= 0; }],
+    ["技巧の極み", 3, "ラウンジでテクニシャンの奥義まで取る", function (lo) { return [].concat(lo.master || []).indexOf("technician") >= 0; }],
+    ["癒しの極み", 3, "ラウンジでヒーラーの奥義まで取る", function (lo) { return [].concat(lo.master || []).indexOf("healer") >= 0; }],
+    ["不動の盾", 3, "ラウンジでディフェンダーの奥義まで取る", function (lo) { return [].concat(lo.master || []).indexOf("defender") >= 0; }],
+    ["道を極めし鹿", 5, "ラウンジでペットを Lv40 にして奥義まで取り、4 体のボスを倒す", function (lo) { return (lo.petMax || 0) >= 40 && [].concat(lo.master || []).length >= 1 && (lo.bossKinds || 0) >= 4; }],
+    // なかま（捕まえて懐柔した子）
+    ["はじめてのなかま", 2, "ラウンジでなかまを 1 体ふやす", function (lo) { return (lo.tamed || 0) >= 1; }],
+    ["なかま大家族", 3, "ラウンジでなかまを 4 体ふやす", function (lo) { return (lo.tamed || 0) >= 4; }],
+    ["幻獣使い", 4, "ラウンジでなかまを 10 体ふやす", function (lo) { return (lo.tamed || 0) >= 10; }],
+    // 研究（敵のツリー。全部で 20）
+    ["研究員", 1, "ラウンジで敵を 3 種研究する", function (lo) { return (lo.lab || 0) >= 3; }],
+    ["主任研究員", 2, "ラウンジで敵を 10 種研究する", function (lo) { return (lo.lab || 0) >= 10; }],
+    ["生態学の権威", 4, "ラウンジで敵を 20 種すべて研究する", function (lo) { return (lo.lab || 0) >= 20; }],
+    // 隠れ家（施設は Lv3 が最大。hide3 は作業台〜倉庫の 7 つのうち Lv3 の数）
+    ["隠れ家の大工", 2, "ラウンジで施設を 1 つ Lv3 にする", function (lo) { return (lo.hide3 || 0) >= 1; }],
+    ["隠れ家の棟梁", 3, "ラウンジで施設を 4 つ Lv3 にする", function (lo) { return (lo.hide3 || 0) >= 4; }],
+    ["秘密基地の主", 4, "ラウンジで施設を 7 つすべて Lv3 にする", function (lo) { return (lo.hide3 || 0) >= 7; }],
+    ["地底の開拓者", 3, "ラウンジで地下をいちばん奥まで広げる", function (lo) { return ((lo.hide || {}).dig || 0) >= 3; }],
+    ["工房の親方", 3, "ラウンジで工房を Lv3 にする", function (lo) { return ((lo.hide || {}).workshop || 0) >= 3; }],
+    // 家具（はじめから 6 種ある。お店の売り物は 18 種）
+    ["模様替え好き", 1, "ラウンジで家具を 9 種そろえる", function (lo) { return (lo.furnKinds || 0) >= 9; }],
+    ["インテリア通", 2, "ラウンジで家具を 14 種そろえる", function (lo) { return (lo.furnKinds || 0) >= 14; }],
+    ["家具の目利き", 4, "ラウンジで家具を 18 種そろえる", function (lo) { return (lo.furnKinds || 0) >= 18; }],
+    ["宇宙の見える部屋", 4, "ラウンジで ★5 の家具を 2 種とも持つ", function (lo) { return (lo.furn5 || 0) >= 2; }],
+    // DEEP LINK/: の商人（5 人。友好度 Lv4 が最大）
+    ["お得意さま", 2, "ラウンジで商人 1 人と友好度を最大にする", function (lo) { return (lo.repMax || 0) >= 1; }],
+    ["顔なじみ", 3, "ラウンジで商人 3 人と友好度を最大にする", function (lo) { return (lo.repMax || 0) >= 3; }],
+    ["行商人の友", 4, "ラウンジで商人 5 人すべてと友好度を最大にする", function (lo) { return (lo.repMax || 0) >= 5; }],
+    // ミシック（ボスからまれに出る。4 種）・レシピ・クレジット
+    ["伝説を拾った鹿", 3, "ラウンジでミシックを手に入れる", function (lo) { return (lo.mythicN || 0) >= 1; }],
+    ["秘宝の主", 5, "ラウンジでミシックを 4 種すべて持つ", function (lo) { return (lo.mythicN || 0) >= 4; }],
+    ["レシピ収集家", 2, "ラウンジでレシピを 10 こ覚える", function (lo) { return (lo.recipes || 0) >= 10; }],
+    ["クレジット長者", 3, "ラウンジでクレジットを 50,000 ためる", function (lo) { return (lo.credits || 0) >= 50000; }]
+  ].forEach(function (x) {
+    EPITHETS.push([x[0], x[2], LG(function (u) { var lo = (u && u.lo) || {}; return !!x[3](lo); })]); RAR.ep[x[0]] = x[1];
   });
   // ---------- アイコン 第 3 弾（楽器と音・宝石と鉱石）：[id, 名前, ★, 手に入れ方, 条件]。手に入れ方がない物はガチャ（★4 以上はお店にも並ぶ）----------
   [["🎵", "音符", 1, "コメント 50 回", function (u) { return u.c >= 50; }], ["🔔", "ベル", 1, "Lv.4", function (u) { return u.L >= 4; }], ["🎹", "鍵盤", 1], ["🔶", "こはく", 1],
@@ -4278,6 +4412,126 @@ if (location.hash === "#lcdcard" || location.hash === "#sitecard" || document.do
     ["em:holopart", "部品", 4], ["em:holocore", "光の芯", 5, "連打チャンスで !押せ 2000 回", function (u) { return u.pa.push >= 2000; }], ["em:hologrid", "虹の格子", 4], ["em:holowave", "ティルダ", 4], ["em:holotile", "タイル", 4],
     ["em:holocube", "ホロキューブ", 5], ["em:holochapter", "チャプター", 4], ["em:holoeye", "虹の瞳", 5, "ミニゲームで 30 回勝つ", function (u) { return u.pa.mini >= 30; }], ["em:holofilm", "ホロフィルム", 4], ["em:holotest", "ビジュアルテスト", 4]
   ].forEach(function (x) { ICONS.push(x[3] ? [x[0], x[1], x[3], x[4]] : [x[0], x[1], GACHA_HOW, GA("i:" + x[0])]); RAR.icon[x[0]] = x[2]; });
+  // ---------- プライベートラウンジのアイコン（lounge）----------
+  // ラウンジの大きな達成のエンブレム。★4 は明るいポップ（インクの影と太い線）、★5 は暗いタイルの上。止まった絵は t = 0。色は行き先・ミシック・ペットの色にそろえる
+  // ★4 四つの王冠：まん中に金の王冠、まわりの輪に 4 体のボスの印（ハルス街道の小鬼・モーフィアス遺跡の月・暗い村のシルクハット・水晶洞窟の結晶）。輪がまわり、印が 1 つずつ跳ねる
+  EMB.lgcrown = function (g, t) {
+    var tt = t || 0, rot = t ? t * .5 : .2, hot = t ? Math.floor(t / .7) % 4 : -1, i;
+    g.save(); g.translate(50, 52);
+    g.strokeStyle = INK; g.lineWidth = 7; bigCircle(g, 0, 0, 33); g.stroke(); g.strokeStyle = "#FFE7A0"; g.lineWidth = 3.4; bigCircle(g, 0, 0, 33); g.stroke();
+    g.fillStyle = INK; for (i = 0; i < 12; i++) { var da = rot + i * Math.PI / 6 + Math.PI / 12; bigCircle(g, Math.cos(da) * 33, Math.sin(da) * 33, 1.4); g.fill(); }
+    // 王冠
+    var by = t ? Math.sin(tt * 2.2) * 1.5 : 0;
+    bigInk(g, function () { poly(g, [[-17, 9 + by], [-19, -9 + by], [-9, -1 + by], [0, -14 + by], [9, -1 + by], [19, -9 + by], [17, 9 + by]]); }, lg(g, 0, -14, 0, 10, ["#FFF3B0", "#FFC83A", "#E08A12"]), 3.2);
+    g.fillStyle = "#E23B5A"; bigCircle(g, 0, 3 + by, 3.4); g.fill(); ol(g, 1.8); g.stroke(); g.fillStyle = "#4FD0F0"; bigCircle(g, -10, 4 + by, 2.2); g.fill(); g.stroke(); bigCircle(g, 10, 4 + by, 2.2); g.fill(); g.stroke();
+    g.save(); poly(g, [[-17, 9 + by], [-19, -9 + by], [-9, -1 + by], [0, -14 + by], [9, -1 + by], [19, -9 + by], [17, 9 + by]]); g.clip(); var sx = t ? ((tt * .6) % 1) * 70 - 35 : -8; g.rotate(-.5); g.fillStyle = "rgba(255,255,255,.55)"; g.fillRect(sx, -30, 5, 60); g.restore();
+    // ボスの印（行き先の色の丸）
+    var SG = ["#7BC96F", "#B49BEA", "#6B7AA8", "#5CC9E8"];
+    for (i = 0; i < 4; i++) {
+      var a = rot + i * Math.PI / 2 - Math.PI / 2, px = Math.cos(a) * 33, py = Math.sin(a) * 33, up = hot === i ? Math.sin(((t / .7) % 1) * Math.PI) : 0, r = 11 + up * 3;
+      g.save(); g.translate(px, py - up * 3);
+      bigInk(g, function () { bigCircle(g, 0, 0, r); }, SG[i], 2.8); g.scale(r / 11, r / 11); g.fillStyle = "#fff"; g.strokeStyle = INK; g.lineWidth = 1.6;
+      if (i === 0) { poly(g, [[-8, -5], [-4, -1], [-4, 5], [4, 5], [4, -1], [8, -5], [4, -4], [0, -7], [-4, -4]]); g.fill(); g.stroke(); g.fillStyle = INK; g.fillRect(-2.6, 0, 1.6, 1.6); g.fillRect(1, 0, 1.6, 1.6); } // 小鬼の王
+      else if (i === 1) { g.beginPath(); g.arc(0, 0, 6.5, .9, 5.4); g.arc(2.8, -1, 5.2, 4.9, 1.4, true); g.closePath(); g.fill(); g.stroke(); } // 眠りの月
+      else if (i === 2) { g.fillRect(-4.5, -7, 9, 9); g.strokeRect(-4.5, -7, 9, 9); g.fillRect(-7.5, 2, 15, 2.6); g.strokeRect(-7.5, 2, 15, 2.6); g.fillStyle = "#FFD84A"; g.fillRect(-4.5, -1.5, 9, 2); } // 影のシルクハット
+      else { poly(g, [[0, -8], [5, -2], [3, 7], [-3, 7], [-5, -2]]); g.fill(); g.stroke(); g.beginPath(); g.moveTo(0, -8); g.lineTo(0, 7); g.moveTo(-5, -2); g.lineTo(5, -2); g.lineWidth = 1; g.stroke(); } // 水晶
+      g.restore();
+      if (up > .6) bigStar(g, px + 10, py - 13, 5 * (up - .6) / .4, "#FFFFFF");
+    }
+    g.restore();
+    var s = t ? 2 + 5 * Math.max(0, Math.sin(t * 2.6)) : 6; bigStar(g, 86, 14, s, "#FFFFFF");
+  };
+  // ★5 ミシックの輝き：暗いタイルに 4 つのミシック（ハルスの旅マント・モーフィアスの仮面・暗い村のランタン・水晶の王冠）。1 つずつ光が灯り、4 つそろうと光の線がつないで輪になってまわる
+  EMB.lgmyth = function (g, t) {
+    darkTile(g); g.save(); rr(g, 6, 6, 88, 88, 20); g.clip();
+    var cyc = t ? (t % 4.8) / 4.8 : .95, lit = Math.min(4, Math.floor(cyc * 6)), all = lit >= 4, P = [[29, 31], [71, 31], [29, 73], [71, 73]], C = ["123,201,111", "180,155,234", "255,210,90", "92,201,232"], i;
+    g.globalCompositeOperation = "lighter";
+    for (i = 0; i < 4; i++) { if (i >= lit) continue; var pop = t && !all && i === lit - 1 ? 1 - ((cyc * 6) % 1) : 0, rg = g.createRadialGradient(P[i][0], P[i][1], 0, P[i][0], P[i][1], 22 + pop * 10); rg.addColorStop(0, "rgba(" + C[i] + "," + (.38 + pop * .4) + ")"); rg.addColorStop(1, "rgba(" + C[i] + ",0)"); g.fillStyle = rg; g.fillRect(P[i][0] - 32, P[i][1] - 32, 64, 64); }
+    if (all) { // 4 つをつなぐ光の線と、まわる光の点
+      var ra = t ? t * 1.6 : .8; g.strokeStyle = "rgba(255,240,200,.7)"; g.lineWidth = 1.4; g.beginPath(); g.moveTo(29, 31); g.lineTo(71, 31); g.lineTo(71, 73); g.lineTo(29, 73); g.closePath(); g.stroke();
+      g.strokeStyle = "rgba(255,240,200,.35)"; g.lineWidth = 1; bigCircle(g, 50, 52, 30); g.stroke();
+      for (i = 0; i < 3; i++) { var aa = ra + i * 2.094; g.fillStyle = "rgba(255,250,230,.9)"; bigCircle(g, 50 + Math.cos(aa) * 30, 52 + Math.sin(aa) * 30, 2); g.fill(); }
+      var rg2 = g.createRadialGradient(50, 52, 0, 50, 52, 16); rg2.addColorStop(0, "rgba(255,240,200,.7)"); rg2.addColorStop(1, "rgba(255,240,200,0)"); g.fillStyle = rg2; g.fillRect(34, 36, 32, 32);
+    }
+    g.globalCompositeOperation = "source-over";
+    function dim(i) { return i >= lit ? .45 : 1; }
+    // 旅マント（緑・金の留め具）
+    g.globalAlpha = dim(0); g.save(); g.translate(29, 32); g.scale(1.18, 1.18);
+    poly(g, [[-6, -11], [6, -11], [9, -4], [13, 11], [3, 8], [-3, 11], [-13, 9], [-9, -4]]); g.fillStyle = lg(g, 0, -11, 0, 11, ["#5FCB6A", "#2E8A3E"]); g.fill(); ol(g, 2); g.stroke();
+    g.beginPath(); g.arc(0, -7, 7, Math.PI, 0); g.fillStyle = "#3FA64E"; g.fill(); g.stroke(); g.fillStyle = "#FFD24A"; bigCircle(g, 0, -3, 2.3); g.fill(); g.stroke(); g.restore();
+    // 仮面（ラベンダーのたまご形・とじた目・三日月）
+    g.globalAlpha = dim(1); g.save(); g.translate(71, 32); g.scale(1.18, 1.18);
+    g.beginPath(); g.ellipse(0, 1, 10, 12, 0, 0, 6.2832); g.fillStyle = lg(g, 0, -11, 0, 13, ["#E2D6FF", "#A88EE8"]); g.fill(); ol(g, 2); g.stroke();
+    g.lineWidth = 1.5; g.beginPath(); g.arc(-4, 1, 3, .2, Math.PI - .2); g.moveTo(7, 1.6); g.arc(4, 1, 3, .2, Math.PI - .2); g.stroke(); g.fillStyle = "rgba(255,140,190,.7)"; bigCircle(g, -6, 6, 1.8); g.fill(); bigCircle(g, 6, 6, 1.8); g.fill();
+    g.fillStyle = "#FFD24A"; g.beginPath(); g.arc(0, -10, 3.4, .6, 5.7); g.arc(1.6, -10.6, 2.6, 5.2, 1.1, true); g.closePath(); g.fill(); g.restore();
+    // ランタン（黒い枠・中の黄色い灯）
+    g.globalAlpha = dim(2); g.save(); g.translate(29, 72); g.scale(1.18, 1.18); var fl = t ? .8 + .2 * Math.sin(t * 13) * Math.sin(t * 3.1) : 1;
+    poly(g, [[-9, -8], [0, -14], [9, -8]]); g.fillStyle = "#2A2A3E"; g.fill(); ol(g, 1.8); g.stroke();
+    g.fillStyle = "rgba(255,214,90," + fl.toFixed(2) + ")"; g.fillRect(-6.5, -8, 13, 14); g.strokeStyle = INK; g.lineWidth = 1.8; g.strokeRect(-6.5, -8, 13, 14); g.beginPath(); g.moveTo(0, -8); g.lineTo(0, 6); g.stroke();
+    g.fillStyle = "#2A2A3E"; g.fillRect(-8, 6, 16, 3.5); g.strokeRect(-8, 6, 16, 3.5); g.beginPath(); g.moveTo(0, 9.5); g.lineTo(0, 14); g.lineWidth = 2.4; g.stroke(); g.restore();
+    // 水晶の王冠（金の輪・水色の結晶・ピンクの石）
+    g.globalAlpha = dim(3); g.save(); g.translate(71, 75); g.scale(1.18, 1.18);
+    [[-8, -4, 9], [0, -6, 13], [8, -4, 9]].forEach(function (c) { poly(g, [[c[0] - 3, c[1] + 2], [c[0], c[1] - c[2]], [c[0] + 3, c[1] + 2]]); g.fillStyle = lg(g, c[0] - 3, c[1] - c[2], c[0] + 3, c[1], ["#E6FBFF", "#7AD6F2"]); g.fill(); ol(g, 1.4); g.stroke(); });
+    rr(g, -12, -2, 24, 9, 3); g.fillStyle = lg(g, 0, -2, 0, 7, ["#FFE68A", "#E0A21E"]); g.fill(); ol(g, 1.8); g.stroke(); g.fillStyle = "#FF4F8A"; bigCircle(g, 0, 2.5, 2.4); g.fill(); g.stroke(); g.restore();
+    g.globalAlpha = 1;
+    // きらり（灯ったばかりの物の上）
+    if (t && lit > 0) { var j = all ? Math.floor(t * 2) % 4 : lit - 1, sp = all ? Math.abs(Math.sin(t * 6.28)) : 1 - ((cyc * 6) % 1); bigStar(g, P[j][0] + 9, P[j][1] - 11, 2 + 5 * sp, "#FFFFFF"); }
+    else if (!t) bigStar(g, 79, 21, 6, "#FFFFFF");
+    scan(g); g.restore();
+  };
+  // ★4 研究ノート：開いたノート。右のページがめくれて、新しいページに敵の図が線で描かれていき、描き終わると「済」の判が押される（ぷるるん・コウモリ・ゆうれい・うさぎの順）
+  var LG_NOTE = [
+    [[[56, 66], [56, 56], [62, 46], [70, 43], [78, 46], [84, 56], [84, 66], [56, 66]], [[64, 55], [64, 57]], [[75, 55], [75, 57]], [[66, 61], [70, 63], [74, 61]]], // ジェムスライム
+    [[[70, 50], [64, 44], [58, 47], [55, 42], [52, 54], [60, 56], [66, 60], [70, 56], [74, 60], [80, 56], [88, 54], [85, 42], [82, 47], [76, 44], [70, 50]], [[67, 52], [67, 53]], [[73, 52], [73, 53]]], // ケイブバット
+    [[[58, 68], [58, 52], [62, 44], [70, 41], [78, 44], [82, 52], [82, 68], [78, 64], [74, 68], [70, 64], [66, 68], [62, 64], [58, 68]], [[65, 52], [65, 55]], [[74, 52], [74, 55]]], // ファントム
+    [[[60, 66], [58, 58], [62, 52], [70, 50], [78, 53], [82, 60], [80, 66], [60, 66]], [[64, 52], [62, 36], [66, 34], [68, 50]], [[70, 50], [72, 35], [76, 36], [74, 51]], [[63, 58], [63, 59]]] // ホーンラビット
+  ];
+  EMB.lgnote = function (g, t) {
+    var P = 3.2, cyc = t ? (t % (P * 4)) / P : 2.9, pg = Math.floor(cyc), u = cyc - pg, i, k;
+    // ノートの台（インクの影）と左右のページ
+    bigInk(g, function () { rr(g, 8, 20, 84, 62, 6); }, "#5A7CD8", 3);
+    g.fillStyle = "#FFF8E6"; rr(g, 12, 23, 37, 56, 3); g.fill(); ol(g, 2.2); g.stroke(); rr(g, 51, 23, 37, 56, 3); g.fill(); g.stroke();
+    g.strokeStyle = "rgba(90,124,216,.35)"; g.lineWidth = 1; for (i = 0; i < 6; i++) { g.beginPath(); g.moveTo(16, 33 + i * 8); g.lineTo(45, 33 + i * 8); g.moveTo(55, 33 + i * 8); g.lineTo(84, 33 + i * 8); g.stroke(); }
+    g.strokeStyle = INK; g.lineWidth = 2.2; g.beginPath(); g.moveTo(50, 22); g.lineTo(50, 80); g.stroke();
+    // 左のページ：前に描いた敵（小さく）と字の線
+    var prev = LG_NOTE[(pg + 3) % 4]; g.save(); g.translate(-38, 2); g.scale(.86, .86); g.translate(4, 6); g.strokeStyle = "rgba(20,22,74,.6)"; g.lineWidth = 1.6; g.lineJoin = "round"; g.lineCap = "round";
+    prev.forEach(function (ln) { g.beginPath(); ln.forEach(function (p, j) { if (j) g.lineTo(p[0], p[1]); else g.moveTo(p[0], p[1]); }); g.stroke(); }); g.restore();
+    g.strokeStyle = "rgba(20,22,74,.35)"; g.lineWidth = 1.4; g.beginPath(); g.moveTo(17, 72); g.lineTo(38, 72); g.moveTo(17, 76); g.lineTo(31, 76); g.stroke();
+    // 右のページ：めくれ（u 0〜.18）→ 線で描く（〜.75）→ 判（.78〜）
+    var cur = LG_NOTE[pg % 4], dr = t ? Math.max(0, Math.min(1, (u - .2) / .55)) : 1;
+    var tot = 0; cur.forEach(function (ln) { for (k = 1; k < ln.length; k++) tot += Math.hypot(ln[k][0] - ln[k - 1][0], ln[k][1] - ln[k - 1][1]) || 1; });
+    var left = tot * dr, tip = null; g.strokeStyle = INK; g.lineWidth = 2; g.lineJoin = "round"; g.lineCap = "round";
+    cur.forEach(function (ln) { if (left <= 0) return; g.beginPath(); g.moveTo(ln[0][0], ln[0][1]); for (k = 1; k < ln.length && left > 0; k++) { var d = Math.hypot(ln[k][0] - ln[k - 1][0], ln[k][1] - ln[k - 1][1]) || 1, v = Math.min(1, left / d); tip = [ln[k - 1][0] + (ln[k][0] - ln[k - 1][0]) * v, ln[k - 1][1] + (ln[k][1] - ln[k - 1][1]) * v]; g.lineTo(tip[0], tip[1]); left -= d; } g.stroke(); });
+    if (t && dr > 0 && dr < 1 && tip) { g.save(); g.translate(tip[0], tip[1]); g.rotate(-.7); g.fillStyle = "#FFC83A"; g.fillRect(0, -2.5, 16, 5); g.strokeStyle = INK; g.lineWidth = 1.4; g.strokeRect(0, -2.5, 16, 5); g.fillStyle = "#F7C8A0"; poly(g, [[0, -2.5], [-5, 0], [0, 2.5]]); g.fill(); g.stroke(); g.restore(); }
+    if (!t || u > .78) { var sp = t ? EZ((u - .78) / .12) : 1, z = 1.6 - .6 * sp; g.save(); g.translate(80, 70); g.rotate(-.25); g.scale(z, z); g.globalAlpha = Math.min(1, sp * 1.5); g.strokeStyle = "#E23B3B"; g.lineWidth = 1.6; bigCircle(g, 0, 0, 7); g.stroke(); g.fillStyle = "#E23B3B"; g.font = '800 9px "M PLUS Rounded 1c", sans-serif'; g.textAlign = "center"; g.textBaseline = "middle"; g.fillText("済", 0, .5); g.restore(); g.globalAlpha = 1; }
+    if (t && u < .2) { // めくれるページ（背の線を軸に右から左へ）
+      var q = EZ(u / .2), w = 37 * Math.cos(q * Math.PI); g.fillStyle = q < .5 ? "#FFFDF4" : "#F2E8CF"; g.beginPath(); g.moveTo(50, 23); g.lineTo(50 + w, 23 - Math.sin(q * Math.PI) * 6); g.lineTo(50 + w, 79 - Math.sin(q * Math.PI) * 4); g.lineTo(50, 79); g.closePath(); g.fill(); ol(g, 2.2); g.stroke();
+    }
+    // ノートの上の しおり
+    g.fillStyle = "#E23B5A"; poly(g, [[72, 18], [78, 18], [78, 28], [75, 25], [72, 28]]); g.fill(); ol(g, 1.6); g.stroke();
+  };
+  // ★4 なかまの絆：10 個の光（なかまの色）が輪になり、1 本ずつ線でつながる。輪が閉じるとまん中のハート（肉球）が脈打つ
+  EMB.lgbond = function (g, t) {
+    var N = 10, cyc = t ? (t % 4) / 4 : 1, con = Math.min(N, Math.floor(cyc * 16)), full = con >= N, beat = full && t ? Math.max(0, Math.sin(((t % .6) / .6) * Math.PI)) : 0, rot = t ? t * .25 : 0, i, C = ["#FF8A3D", "#3D7FE0", "#8F6BE6", "#E04848", "#F6C531", "#4FD0F0", "#3FB45A", "#FF6FA8", "#7BC96F", "#B49BEA"];
+    var pts = []; for (i = 0; i < N; i++) { var a = rot + i / N * 6.2832 - Math.PI / 2; pts.push([50 + Math.cos(a) * 36, 52 + Math.sin(a) * 36]); }
+    // つながった線（インクの縁に白）
+    g.lineCap = "round"; for (i = 0; i < con; i++) { var p = pts[i], q = pts[(i + 1) % N]; g.strokeStyle = INK; g.lineWidth = 4.4; g.beginPath(); g.moveTo(p[0], p[1]); g.lineTo(q[0], q[1]); g.stroke(); g.strokeStyle = full ? "#FFE7A0" : "#FFFFFF"; g.lineWidth = 2; g.stroke(); }
+    if (t && !full && con < N) { var u = (cyc * 16) % 1, p0 = pts[con], p1 = pts[(con + 1) % N]; g.strokeStyle = "rgba(255,255,255,.9)"; g.lineWidth = 2; g.setLineDash([2, 3]); g.beginPath(); g.moveTo(p0[0], p0[1]); g.lineTo(p0[0] + (p1[0] - p0[0]) * u, p0[1] + (p1[1] - p0[1]) * u); g.stroke(); g.setLineDash([]); }
+    // まん中のハートと肉球
+    var hs = 1.2 + beat * .16; g.save(); g.translate(50, 54); g.scale(hs, hs);
+    bigInk(g, function () { g.beginPath(); g.moveTo(0, 14); g.bezierCurveTo(-22, 0, -14, -18, 0, -8); g.bezierCurveTo(14, -18, 22, 0, 0, 14); g.closePath(); }, lg(g, 0, -16, 0, 14, ["#FF9CC8", "#FF4F8A"]), 3);
+    g.fillStyle = "#fff"; g.beginPath(); g.ellipse(0, 2, 5, 4, 0, 0, 6.2832); g.fill(); [[-6, -4], [-2, -7], [2, -7], [6, -4]].forEach(function (c) { g.beginPath(); g.ellipse(c[0], c[1], 1.8, 2.2, 0, 0, 6.2832); g.fill(); });
+    g.restore();
+    // 光の玉（つながった物は大きく明るい）
+    for (i = 0; i < N; i++) { var on = i <= con || full, r = on ? 5.4 + (full ? beat * 1.4 : 0) : 4; g.fillStyle = INK; bigCircle(g, pts[i][0] + 1.6, pts[i][1] + 1.6, r); g.fill(); g.fillStyle = on ? C[i] : "#C9CDD8"; bigCircle(g, pts[i][0], pts[i][1], r); g.fill(); ol(g, 2); g.stroke(); if (on) { g.fillStyle = "rgba(255,255,255,.8)"; bigCircle(g, pts[i][0] - 1.6, pts[i][1] - 1.8, 1.5); g.fill(); } }
+    if (full) bigStar(g, 84, 14, t ? 2 + 6 * beat : 6, "#FFFFFF");
+  };
+  // [id, 名前, ★, 手に入れ方, 条件]。条件は u.lo（門番から届くラウンジの記録のまとめ。ない人は {}）。ガチャ・お店には出ない
+  [["em:lgcrown", "四つの王冠", 4, "ラウンジでボスを 4 体とも倒す", function (u) { var lo = u.lo || {}; return (lo.bossKinds || 0) >= 4; }],
+    ["em:lgmyth", "ミシックの輝き", 5, "ラウンジでミシックを 4 つともそろえる", function (u) { var lo = u.lo || {}; return (lo.mythicN || 0) >= 4; }],
+    ["em:lgnote", "研究ノート", 4, "ラウンジで敵のツリーを 20 本とも研究する", function (u) { var lo = u.lo || {}; return (lo.lab || 0) >= 20; }],
+    ["em:lgbond", "なかまの絆", 4, "ラウンジでなかまを 10 体にする", function (u) { var lo = u.lo || {}; return (lo.tamed || 0) >= 10; }]
+  ].forEach(function (x) { ICONS.push([x[0], x[1], x[3], LG(x[4])]); RAR.icon[x[0]] = x[2]; });
   // ---------- 大型アップデート記念の二つ名（iconep）----------
   // モードを制した・見届けた人の肩書き。[名前, ★]。条件は BG（公開まで準備中）。技は EP_TX の「大型アップデート記念の二つ名の技」
   [["プラチナの常連", 4], ["赤か黒か", 4], ["息をのむ鹿", 4], ["時空の迷子", 4], ["宇宙ピンボーラー", 4],
@@ -4676,6 +4930,79 @@ if (location.hash === "#lcdcard" || location.hash === "#sitecard" || document.do
     if (fill) { x.fillStyle = fill; x.fillText(s, lw + 4, c.height / 2); }
     return (SCD_TX[k] = c);
   }
+  // ---------- プライベートラウンジのスキン（lounge）----------
+  // [id, 名前, ★, 手に入れ方, 条件]。ラウンジの大きな達成で手に入る（ガチャ・お店には出ない）。条件は u.lo（門番から届くラウンジの記録のまとめ。ない人は {}）。
+  // 数はラウンジのデータに合わせる（施設は bench〜storage の 7 つが Lv3 まで・行き先とボスは 4 つ・ペットは 1 人 1 匹で Lv40 まで・売っている家具は 18 種で ★5 は 2 種）。絵は CSS の「プライベートラウンジのスキン」の欄と FXMAKE
+  [["lgbase", "秘密基地", 4, "ラウンジの隠れ家で施設を 7 つとも Lv3 にする", function (u) { var lo = u.lo || {}; return (lo.hide3 || 0) >= 7; }],
+   ["lgdive", "VR ダイブ", 5, "ラウンジで 4 つの行き先を 5 階まで行き、ボスを 4 体とも倒す", function (u) { var lo = u.lo || {}; return (lo.floor5 || 0) >= 4 && (lo.bossKinds || 0) >= 4; }],
+   ["lgpets", "なかまの行進", 4, "ラウンジでペットを Lv40 にして、なかまを 4 体", function (u) { var lo = u.lo || {}; return (lo.petMax || 0) >= 40 && (lo.tamed || 0) >= 4; }],
+   ["lgneon", "ネオンの部屋", 5, "ラウンジで家具を 18 種そろえる（★5 の 2 種も）", function (u) { var lo = u.lo || {}; return (lo.furnKinds || 0) >= 18 && (lo.furn5 || 0) >= 2; }]
+  ].forEach(function (x) { SKINS.push([x[0], x[1], "sk-" + x[0], x[3], LG(x[4])]); RAR.skin[x[0]] = x[2]; });
+  SKIN_COLOR["lgbase"] = 0xFFB547; SKIN_COLOR["lgdive"] = 0x39F3FF; SKIN_COLOR["lgpets"] = 0xFF8A3D; SKIN_COLOR["lgneon"] = 0xFF4FB8;
+  // ラウンジのスキンの絵で使う道具：行き先 [名前, ボス, 色, ボスの形]。ボスの形はラウンジの敵のドット絵（lounge-proto/sprites.js の e_boss_*、24×24）を 1 行 6 桁の 16 進に詰めた物
+  var LG_DUN = [
+    ["ハルス街道", "ゴブリンキング", "123,201,111", "000000005a0000ff0001ff8001ff8041ff80e1ff887bffdc3ffffe1ffffe1ffffe0ffffe07fffe0ffffc0ffffc1ffffc1ffffc1ffffc1ffffc3ffffc3ffffc3ffffc1ffff8000000"],
+    ["モーフィアス遺跡", "ヒュプノス", "180,155,234", "0400000e00001c00003c18047c7e1e7fff7e3ffffc3ffffc3ffffc1eff7c00ff3e00ff1c01ffbe01ff9c03ffc003ffc007ffe007ffe007ffe00ffff00ffff01ffff80ffff0000000"],
+    ["暗い村", "村長の影", "142,158,255", "00ff0001ff8001ff8001ff8001ff8003ffd007fff803fff801ffb801ffb801ffb807fff81ffff83ffff87ffff87ffff83ffff81ffff81ffff81ffff83ffffc3ffffc1ffff8000010"],
+    ["水晶洞窟", "クリスタルドラゴン", "92,201,232", "0000000100800381c001c38241ff87e1ff8ff1ff9f79ffbe7dfffe7ffffe7ffffe7ffffeffffffffffffffffff67ffe607ffe003ffc003ffc003ffc001ff8001ff8001ff8000e700"]];
+  function lgBit(hex, x, y) { return x >= 0 && x < 24 && y >= 0 && y < 24 && (parseInt(hex.substr(y * 6, 6), 16) >> (23 - x)) & 1; }
+  function lgPx(hex) { var P = [], R = prng(hex.length + nameSeed(hex)), x, y; for (y = 0; y < 24; y++) for (x = 0; x < 24; x++) if (lgBit(hex, x, y)) P.push([x, y, R() * 2 - 1, R() * 2 - 1]); return P; }
+  function lgBoss(hex, rim, fill) { // ボスの影（26×26。1 画素の縁どり）
+    var c = sk4bCv(26, 26), x = c.getContext("2d"), P = lgPx(hex);
+    x.fillStyle = rim; P.forEach(function (p) { x.fillRect(p[0], p[1] + 1, 3, 1); x.fillRect(p[0] + 1, p[1], 1, 3); });
+    x.fillStyle = fill; P.forEach(function (p) { x.fillRect(p[0] + 1, p[1] + 1, 1, 1); }); return c;
+  }  // ラウンジのペット 8 種の形（左向き・64×60・足もとは y 55）。fr は歩きの 2 コマ。色は lounge-proto/img のペットの絵から
+  var LG_PET = [["shika", "255,138,61"], ["pelican", "61,127,224"], ["mouse", "143,107,230"], ["tv", "224,72,72"], ["mogura", "156,107,216"], ["kurage", "79,208,240"], ["saboten", "63,180,90"], ["chokin", "58,111,232"]], LG_PETC = {};
+  function lgPet(id, fr) {
+    var k = id + fr; if (LG_PETC[k]) return LG_PETC[k];
+    var c = sk4bCv(64, 60), x = c.getContext("2d"), s = fr ? 1 : -1, i;
+    function E(cx, cy, rx, ry, col, r) { x.beginPath(); x.ellipse(cx, cy, rx, ry, r || 0, 0, 6.2832); x.fillStyle = col; x.fill(); x.stroke(); }
+    function P(p, col) { poly(x, p); x.fillStyle = col; x.fill(); x.stroke(); }
+    function Ln(p, w, col) { x.save(); x.lineWidth = w + 3.4; x.beginPath(); p.forEach(function (q, j) { if (j) x.lineTo(q[0], q[1]); else x.moveTo(q[0], q[1]); }); x.stroke(); x.lineWidth = w; x.strokeStyle = col; x.stroke(); x.restore(); }
+    function eye(ex, ey) { x.fillStyle = INK; x.beginPath(); x.arc(ex, ey, 1.7, 0, 6.2832); x.fill(); x.fillStyle = "#fff"; x.fillRect(ex - 1, ey - 1.4, 1, 1); }
+    ol(x, 1.7);
+    if (id === "shika") { // ネム：しか（角・白いおなか）
+      Ln([[40 + s * 3, 38], [40 - s * 2, 55]], 2.6, "#C9682A"); Ln([[46 - s * 3, 38], [46 + s * 2, 55]], 2.6, "#C9682A"); Ln([[25 - s * 3, 38], [25 + s * 2, 55]], 2.6, "#E8893A"); Ln([[30 + s * 3, 38], [30 - s * 2, 55]], 2.6, "#E8893A");
+      E(49, 30, 3.5, 2.5, "#FFF1DC", -.5); E(36, 34, 14, 8.5, "#FF8A3D"); E(33, 37, 8, 4, "#FFE6C4");
+      P([[23, 32], [19, 16], [27, 15], [31, 31]], "#FF8A3D"); Ln([[21, 11], [17, 2]], 1.6, "#8A5A2B"); Ln([[18, 5], [13, 3]], 1.4, "#8A5A2B"); Ln([[25, 10], [29, 1]], 1.6, "#8A5A2B"); Ln([[28, 4], [33, 3]], 1.4, "#8A5A2B");
+      E(27, 11, 4, 2, "#FF8A3D", -.6); E(19, 16, 7.5, 6, "#FF8A3D"); E(12, 18, 4.5, 3.4, "#FFE6C4"); eye(17, 14); x.fillStyle = INK; x.beginPath(); x.arc(8.5, 17.5, 1.3, 0, 6.2832); x.fill();
+    } else if (id === "pelican") { // ポスケ：ペリカン（赤い帽子・大きなくちばし）
+      E(30 - s * 3, 54, 5, 2.4, "#F6A93B"); E(39 + s * 3, 54, 5, 2.4, "#F6A93B");
+      E(35, 37, 15, 15, "#3D7FE0"); E(30, 42, 9, 10, "#F2F6FF"); E(41, 37, 6, 9, "#2E63B8", .3);
+      E(13, 26, 8, 4, "#F6A93B"); P([[20, 18], [3, 22], [5, 25], [20, 25]], "#FFC45E");
+      E(26, 18, 9, 9, "#3D7FE0"); P([[19, 10], [33, 10], [33, 4], [19, 4]], "#E23B3B"); P([[17, 10], [35, 10], [35, 12], [17, 12]], "#B82424"); eye(23, 17);
+    } else if (id === "mouse") { // カチ：マウス（しっぽがケーブル）
+      x.save(); x.lineWidth = 5; x.beginPath(); x.moveTo(48, 46); x.bezierCurveTo(60, 46, 62, 34, 55, 30); x.stroke(); x.lineWidth = 2; x.strokeStyle = "#3A3A55"; x.stroke(); x.restore(); P([[52, 26], [58, 26], [58, 31], [52, 31]], "#C9CDD8");
+      E(28 + s * 3, 54, 4, 2, "#F7A8C8"); E(42 - s * 3, 54, 4, 2, "#F7A8C8");
+      E(25, 37, 5, 5, "#F7A8C8"); E(33, 35, 5.5, 5.5, "#F7A8C8"); E(35, 45, 16, 9.5, "#8F6BE6"); P([[22, 41], [11, 48], [22, 52]], "#8F6BE6"); x.fillStyle = "#F7A8C8"; x.beginPath(); x.arc(11.5, 48, 2, 0, 6.2832); x.fill(); eye(21, 44);
+    } else if (id === "tv") { // ザザ：ブラウン管（画面の顔・細い足）
+      Ln([[25, 38], [25 - s * 4, 54]], 2, "#2A3A7A"); Ln([[33, 38], [33 + s * 4, 54]], 2, "#2A3A7A"); E(25 - s * 4, 55, 3.4, 2, "#2A3A7A"); E(33 + s * 4, 55, 3.4, 2, "#2A3A7A");
+      Ln([[29, 28], [29, 38]], 2.4, "#2A3A7A"); E(29, 38, 6, 4, "#2A3A7A"); Ln([[24, 36], [18, 42 + s * 2]], 1.6, "#2A3A7A"); Ln([[34, 36], [40, 42 - s * 2]], 1.6, "#2A3A7A");
+      Ln([[25, 9], [20, 1]], 1.3, "#2A3A7A"); Ln([[32, 9], [38, 1]], 1.3, "#2A3A7A"); E(20, 1.5, 1.8, 1.8, "#E04848"); E(38, 1.5, 1.8, 1.8, "#E04848");
+      x.fillStyle = "#E04848"; rr(x, 14, 8, 30, 22, 4); x.fill(); x.stroke(); x.fillStyle = "#0E3A2E"; rr(x, 17, 11, 20, 16, 3); x.fill(); x.fillStyle = "#3DF2A0"; x.fillRect(21, 16, 3, 3); x.fillRect(29, 16, 3, 3); x.fillRect(22, 21, 9, 2); E(40, 15, 1.6, 1.6, "#FFD84A");
+    } else if (id === "mogura") { // ホリ：もぐら（黄色いヘルメットとランプ）
+      E(26 - s * 2, 54, 5, 2.4, "#F7A0B8"); E(38 + s * 2, 54, 5, 2.4, "#F7A0B8");
+      E(32, 38, 15, 16, "#9C6BD8"); E(19, 37, 4.5, 3.4, "#F7A0B8"); E(19, 45, 4, 3, "#F7A0B8"); E(43, 46, 4, 3, "#F7A0B8");
+      x.beginPath(); x.arc(32, 26, 13, Math.PI, 0); x.closePath(); x.fillStyle = "#F6C531"; x.fill(); x.stroke(); P([[17, 26], [47, 26], [47, 29], [17, 29]], "#E0A21C"); E(23, 21, 3.5, 3.5, "#FFF7C2");
+      x.save(); x.lineWidth = 1.5; x.beginPath(); x.arc(24, 33, 2.2, Math.PI * 1.1, Math.PI * 1.9); x.stroke(); x.restore();
+    } else if (id === "kurage") { // ユラ：くらげ（足がゆれる。浮いている）
+      x.save(); x.lineCap = "round"; for (i = 0; i < 5; i++) { var tx = 21 + i * 5.5; x.beginPath(); x.moveTo(tx, 28); for (var yy = 28; yy <= 50; yy += 4) x.lineTo(tx + Math.sin(yy * .3 + i + fr * 2) * 2.4, yy); x.lineWidth = 4.6; x.strokeStyle = INK; x.stroke(); x.lineWidth = 2.4; x.strokeStyle = "#8EE6FA"; x.stroke(); } x.restore();
+      x.beginPath(); x.arc(32, 28, 16, Math.PI, 0); for (i = 0; i <= 6; i++) x.lineTo(48 - i * 32 / 6, 28 + (i % 2 ? 3 : 0)); x.closePath(); x.fillStyle = "#4FD0F0"; x.fill(); x.stroke();
+      E(26, 19, 5, 3, "rgba(255,255,255,.75)", -.4); eye(27, 24); eye(37, 24);
+    } else if (id === "saboten") { // チク：サボテン（鉢・ピンクの花）
+      P([[19, 38], [45, 38], [41, 55], [23, 55]], "#D9774A"); P([[17, 35], [47, 35], [47, 40], [17, 40]], "#B85C34");
+      x.fillStyle = "#3FB45A"; rr(x, 16, 15, 7, 16, 3.5); x.fill(); x.stroke(); rr(x, 41, 11, 7, 14, 3.5); x.fill(); x.stroke(); rr(x, 24, 6, 16, 30, 8); x.fill(); x.stroke();
+      x.fillStyle = "#1E7A36"; [[28, 14], [35, 19], [29, 25], [36, 29]].forEach(function (p) { x.fillRect(p[0], p[1], 1.6, 1.6); });
+      for (i = 0; i < 5; i++) { var a = i * 1.2566; E(32 + Math.cos(a) * 3.4, 5 + Math.sin(a) * 3.4, 2.6, 2.6, "#FF6FA8"); } E(32, 5, 1.8, 1.8, "#FFE066"); eye(28, 20); eye(35, 20);
+    } else { // チャリン：ちょきんばこ（ぶた・金のコイン）
+      x.fillStyle = "#3A6FE8"; [[23, 44], [30, 44], [40, 44], [47, 44]].forEach(function (p, j) { var up = (j % 2 ? s : -s) > 0 ? 3 : 0; rr(x, p[0], p[1] - up, 6, 11, 2); x.fill(); x.stroke(); });
+      E(52, 33, 3, 3, "#6E97F2"); E(36, 37, 17, 12.5, "#3A6FE8"); E(31, 33, 8, 5, "#6E97F2", -.2); P([[25, 27], [28, 18], [33, 26]], "#3A6FE8"); P([[34, 26], [38, 18], [41, 27]], "#3A6FE8");
+      E(18, 39, 4.5, 5.5, "#6E97F2"); x.fillStyle = INK; x.fillRect(16.5, 37, 1.4, 3); x.fillRect(19, 37, 1.4, 3); x.fillRect(33, 25.5, 9, 2); eye(24, 34);
+      E(37.5, 17 - (fr ? 3 : 0), 4.6, 4.6, "#F2C230"); x.fillStyle = "#B8860B"; x.fillRect(36.6, 14.5 - (fr ? 3 : 0), 1.8, 5);
+    }
+    return (LG_PETC[k] = c);
+  }
+
   function lvTier(L) { return L >= 30 ? 5 : L >= 20 ? 4 : L >= 10 ? 3 : L >= 5 ? 2 : 1; }
   function titleOf(sp) {
     if (!sp) return null;
@@ -4698,6 +5025,10 @@ if (location.hash === "#lcdcard" || location.hash === "#sitecard" || document.do
   var gacha = read(GACHA, {}) || {};
   function gachaOf(name) { var o = gacha[name]; return o && typeof o === "object" && Array.isArray(o.g) ? o : { g: [], n: 0, p4: 0, p5: 0 }; }
   var equip = read(EQUIP, {}) || {}, paStats = read(PA_STATS, {}) || {}, ovStats = read(OV_STATS, {}) || {};
+  // ラウンジの 記録の まとめ（門番の lstat を OBS の 画面が しまう。表示名 → まとめ。docs/mono-link-lounge-stats.md）：コスメの 条件の u.lo
+  var LOUNGE_ST = "shika-lounge-v1", loStats = loRead();
+  function loRead() { var o = read(LOUNGE_ST, {}); return o && typeof o === "object" && !Array.isArray(o) ? o : {}; }
+  function loOf(name) { var x = Object.prototype.hasOwnProperty.call(loStats, name) ? loStats[name] : null; return x && typeof x === "object" && !Array.isArray(x) ? x : {}; }
   // ---------- 進化（ガチャの被り）----------
   // 被ると重なりが 1 つ増える：重なり 1 でⅠ（色違い）・3 でⅡ（＋光る）・6 でⅢ（＋★が 1 つ上がったような演出）。フォントは進化しない
   // shika-gacha-v1 の 1 人ずつに d = { 鍵: 重なり } と res（リソース）を足す。g だけの古い記録もそのまま読める
@@ -4761,7 +5092,7 @@ if (location.hash === "#lcdcard" || location.hash === "#sitecard" || document.do
   // L は全部の経験値のレベル（プレステージしても下がらないので、レベルで手に入れた物はなくならない）
   function facts(name) {
     var v = (typeof data !== "undefined" && data && data.viewers[name]) || {}, sp = support[name] || {}, pa = paStats[name] || {};
-    return { L: lvOf(totalXp(name)), pr: prOf(name), best: +v.best || 0, c: +((ovStats[name] || {}).c) || 0, sp: { bits: +sp.bits || 0, subs: +sp.subs || 0, gifts: +sp.gifts || 0 }, pa: { jp: +pa.jp || 0, rush: +pa.rush || 0, mini: +pa.mini || 0, push: +pa.push || 0, hack: +pa.hack || 0 }, n: +((ovStats[name] || {}).n) || 0, g: gachaOf(name).g };
+    return { L: lvOf(totalXp(name)), pr: prOf(name), best: +v.best || 0, c: +((ovStats[name] || {}).c) || 0, sp: { bits: +sp.bits || 0, subs: +sp.subs || 0, gifts: +sp.gifts || 0 }, pa: { jp: +pa.jp || 0, rush: +pa.rush || 0, mini: +pa.mini || 0, push: +pa.push || 0, hack: +pa.hack || 0 }, n: +((ovStats[name] || {}).n) || 0, g: gachaOf(name).g, lo: loOf(name) };
   }
   function owned(name) {
     var u = facts(name);
@@ -9485,6 +9816,372 @@ if (location.hash === "#lcdcard" || location.hash === "#sitecard" || document.do
         } else if (sn === "red") { var nn = sp("1:9.833", 96, "rgba(10,10,10,.5)"); g.drawImage(nn, CX - nn.width / 2 + 30, CY - nn.height / 2); ab("塔", 150, CX + 60, CY + 4, 1, 1, "#fff", d); } // 赤の全面に数字
         frame(fg === BK ? BK : "rgba(239,235,226,.8)");
       };
+    },
+    // ===== プライベートラウンジのスキン（lounge）。548×238 の canvas。重い物は最初に作り置き =====
+    // ★4 秘密基地：うす暗い地下の机に、隠れ家の設計図（左のかべに作業台・おやつ工房、奥に研究所・地図室・救護室、右にトレーニング室・倉庫、手前にはしご）。
+    // はしごから電気の線がのびて、拍ごとに施設が 1 つずつ Lv3 の光る物で灯る（ぐるっと時計回り）。7 つそろうと全部が脈打ち、次の回のはじめに電気がちらついて消える
+    lgbase: function (g, el, name) {
+      var W = g.canvas.width, H = g.canvas.height, R = prng(nameSeed(name) + 701), ic = null, B = 60 / 100, i;
+      var PX = 348, PY = 58, PW = 174, PH = 164, LX = PX + 87, LY = PY + 126; // 設計図の場所・はしごの上
+      var BLUE = "rgba(150,196,224,", F = [ // 施設 [id, x, y, 幅, 高さ, 光の色]（灯る順）
+        ["snack", PX + 5, PY + 104, 44, 54, "255,127,178"], ["bench", PX + 5, PY + 48, 44, 52, "255,181,71"], ["lab", PX + 5, PY + 5, 52, 39, "92,242,196"], ["maproom", PX + 61, PY + 5, 52, 39, "111,211,255"],
+        ["medic", PX + 117, PY + 5, 52, 39, "255,96,112"], ["gym", PX + 125, PY + 48, 44, 52, "255,154,61"], ["storage", PX + 125, PY + 104, 44, 54, "255,224,102"]];
+      // 施設の絵（Lv3 の光る物）。lit なら光の色で塗る
+      function pict(x, id, cx, cy, col, lit) {
+        var st = lit ? "rgb(" + col + ")" : BLUE + ".75)", fl = lit ? "rgba(" + col + ",.85)" : "rgba(0,0,0,0)", k;
+        x.strokeStyle = st; x.fillStyle = fl; x.lineWidth = lit ? 1.6 : 1; x.lineJoin = "round"; x.lineCap = "round";
+        if (id === "bench") { // 作業台とランプ
+          x.strokeRect(cx - 15, cy + 3, 30, 4); x.beginPath(); x.moveTo(cx - 12, cy + 7); x.lineTo(cx - 12, cy + 16); x.moveTo(cx + 12, cy + 7); x.lineTo(cx + 12, cy + 16); x.moveTo(cx + 9, cy + 3); x.lineTo(cx + 4, cy - 8); x.lineTo(cx - 4, cy - 12); x.stroke();
+          x.beginPath(); x.moveTo(cx - 4, cy - 17); x.lineTo(cx - 11, cy - 7); x.lineTo(cx + 1, cy - 9); x.closePath(); x.fill(); x.stroke();
+          if (lit) { x.fillStyle = "rgba(" + col + ",.22)"; x.beginPath(); x.moveTo(cx - 11, cy - 7); x.lineTo(cx + 1, cy - 9); x.lineTo(cx + 6, cy + 3); x.lineTo(cx - 14, cy + 3); x.closePath(); x.fill(); }
+        } else if (id === "snack") { // クッキーのネオン
+          x.beginPath(); x.arc(cx, cy, 12, .5, 5.9); x.arc(cx + 11, cy - 4, 4, 2.4, 4.4, true); x.closePath(); x.stroke();
+          if (lit) { x.lineWidth = 3.2; x.strokeStyle = "rgba(" + col + ",.35)"; x.stroke(); }
+          x.fillStyle = st; [[-5, -4], [3, 4], [-3, 6], [4, -5]].forEach(function (d) { x.fillRect(cx + d[0] - 1.2, cy + d[1] - 1.2, 2.4, 2.4); });
+        } else if (id === "lab") { // 光る液の筒
+          for (k = 0; k < 2; k++) { var tx = cx - 9 + k * 12; if (lit) { x.fillStyle = fl; x.fillRect(tx, cy - 4 + k * 4, 6, 15 - k * 4); } x.strokeRect(tx, cy - 12, 6, 23); x.beginPath(); x.moveTo(tx - 2, cy - 12); x.lineTo(tx + 8, cy - 12); x.stroke(); }
+          x.beginPath(); x.moveTo(cx - 13, cy + 13); x.lineTo(cx + 13, cy + 13); x.stroke();
+        } else if (id === "maproom") { // 光る地球儀
+          x.beginPath(); x.arc(cx, cy - 2, 10, 0, 6.2832); x.fill(); x.stroke(); x.beginPath(); x.ellipse(cx, cy - 2, 4, 10, 0, 0, 6.2832); x.moveTo(cx - 10, cy - 2); x.lineTo(cx + 10, cy - 2); x.stroke();
+          x.beginPath(); x.arc(cx, cy - 2, 13, .6, 2.5); x.moveTo(cx, cy + 11); x.lineTo(cx, cy + 14); x.moveTo(cx - 6, cy + 14); x.lineTo(cx + 6, cy + 14); x.stroke();
+        } else if (id === "medic") { // 心ぞうの画面
+          x.fillStyle = lit ? "rgba(20,8,10,.9)" : "rgba(0,0,0,0)"; x.fillRect(cx - 14, cy - 10, 28, 19); x.strokeStyle = lit ? "rgba(" + col + ",.7)" : st; x.strokeRect(cx - 14, cy - 10, 28, 19);
+          x.strokeStyle = st; x.beginPath(); x.moveTo(cx - 12, cy); x.lineTo(cx - 4, cy); x.lineTo(cx - 2, cy - 6); x.lineTo(cx + 1, cy + 6); x.lineTo(cx + 3, cy - 2); x.lineTo(cx + 5, cy); x.lineTo(cx + 12, cy); x.stroke();
+          x.beginPath(); x.moveTo(cx - 4, cy + 9); x.lineTo(cx - 6, cy + 13); x.moveTo(cx + 4, cy + 9); x.lineTo(cx + 6, cy + 13); x.stroke();
+        } else if (id === "gym") { // サンドバッグとネオン
+          x.beginPath(); x.moveTo(cx - 4, cy - 18); x.lineTo(cx - 4, cy - 12); x.stroke(); rr(x, cx - 10, cy - 12, 12, 24, 5); x.fill(); x.stroke();
+          x.beginPath(); x.moveTo(cx + 7, cy - 12); x.lineTo(cx + 12, cy - 6); x.lineTo(cx + 7, cy); x.lineTo(cx + 12, cy + 6); x.lineTo(cx + 7, cy + 12); x.stroke();
+          if (lit) { x.lineWidth = 3.4; x.strokeStyle = "rgba(" + col + ",.3)"; x.stroke(); }
+        } else { // 倉庫：たな 3 つと光るふだ
+          x.strokeRect(cx - 14, cy - 15, 28, 30); for (k = 0; k < 3; k++) { var sy = cy - 15 + (k + 1) * 10; x.beginPath(); x.moveTo(cx - 14, sy); x.lineTo(cx + 14, sy); x.stroke(); x.fillStyle = fl; x.fillRect(cx - 10 + k * 6, sy - 5, 6, 3); x.strokeRect(cx - 10 + k * 6, sy - 5, 6, 3); }
+        }
+      }
+      // 電気の線：はしごの上から、床をかぎの手に通って施設の内側のふちへ（外の施設ほど外の道。線どうしは交わらない）
+      var CB = [[[LX - 13, LY], [LX - 13, PY + 131], [PX + 49, PY + 131]], [[LX - 9, LY], [LX - 9, PY + 74], [PX + 49, PY + 74]], [[LX - 5, LY], [LX - 5, PY + 54], [PX + 31, PY + 54], [PX + 31, PY + 44]], [[LX, LY], [LX, PY + 44]],
+        [[LX + 5, LY], [LX + 5, PY + 54], [PX + 143, PY + 54], [PX + 143, PY + 44]], [[LX + 9, LY], [LX + 9, PY + 74], [PX + 125, PY + 74]], [[LX + 13, LY], [LX + 13, PY + 131], [PX + 125, PY + 131]]];
+      function upto(p, u) { // 線の u（0〜1）までの点
+        var L = 0, q; for (q = 1; q < p.length; q++) L += Math.abs(p[q][0] - p[q - 1][0]) + Math.abs(p[q][1] - p[q - 1][1]);
+        var d = L * u, out = [p[0]]; for (q = 1; q < p.length; q++) { var s = Math.abs(p[q][0] - p[q - 1][0]) + Math.abs(p[q][1] - p[q - 1][1]); if (d >= s) { out.push(p[q]); d -= s; } else { var v = s ? d / s : 0; out.push([p[q - 1][0] + (p[q][0] - p[q - 1][0]) * v, p[q - 1][1] + (p[q][1] - p[q - 1][1]) * v]); break; } }
+        return out;
+      }
+      // 作り置き：机（あたたかい暗がり・方眼）と設計図（かべ・へや・はしご・寸法線・電気の線）
+      var bg = sk4bCv(W, H), x = bg.getContext("2d"), gr = x.createRadialGradient(100, 10, 10, 120, 40, 520);
+      gr.addColorStop(0, "#4A3018"); gr.addColorStop(.35, "#24180D"); gr.addColorStop(1, "#0C0805"); x.fillStyle = gr; x.fillRect(0, 0, W, H);
+      for (i = 0; i <= W; i += 12) { x.fillStyle = BLUE + (i % 60 ? ".05)" : ".1)"); x.fillRect(i, 0, 1, H); }
+      for (i = 0; i <= H; i += 12) { x.fillStyle = BLUE + (i % 60 ? ".05)" : ".1)"); x.fillRect(0, i, W, 1); }
+      var plan = sk4bCv(W, H); x = plan.getContext("2d");
+      x.fillStyle = "rgba(14,30,48,.55)"; x.fillRect(PX - 4, PY - 4, PW + 8, PH + 8);
+      x.strokeStyle = BLUE + ".9)"; x.lineWidth = 2; x.strokeRect(PX - 1, PY - 1, PW + 2, PH + 2); x.lineWidth = .8; x.strokeRect(PX - 4.5, PY - 4.5, PW + 9, PH + 9);
+      F.forEach(function (f) { x.strokeStyle = BLUE + ".5)"; x.lineWidth = 1; x.setLineDash([3, 2]); x.strokeRect(f[1] + .5, f[2] + .5, f[3], f[4]); x.setLineDash([]); pict(x, f[0], f[1] + f[3] / 2, f[2] + f[4] / 2 - 2, f[5], false);
+        for (var q = 0; q < 3; q++) { x.strokeStyle = BLUE + ".6)"; x.strokeRect(f[1] + 4.5 + q * 6, f[2] + f[4] - 6.5, 3, 3); } });
+      x.strokeStyle = BLUE + ".85)"; x.lineWidth = 1; x.strokeRect(LX - 10.5, LY + .5, 21, 34); for (i = 1; i < 6; i++) { x.beginPath(); x.moveTo(LX - 10, LY + i * 6); x.lineTo(LX + 10, LY + i * 6); x.stroke(); } // はしご
+      x.setLineDash([2, 3]); x.strokeStyle = BLUE + ".35)"; CB.forEach(function (p) { x.beginPath(); p.forEach(function (q, j) { if (j) x.lineTo(q[0], q[1]); else x.moveTo(q[0], q[1]); }); x.stroke(); }); x.setLineDash([]);
+      x.strokeStyle = BLUE + ".6)"; x.fillStyle = BLUE + ".75)"; x.lineWidth = .8; x.beginPath(); x.moveTo(PX, PY - 10); x.lineTo(PX + PW, PY - 10); x.moveTo(PX, PY - 13); x.lineTo(PX, PY - 7); x.moveTo(PX + PW, PY - 13); x.lineTo(PX + PW, PY - 7);
+      x.moveTo(PX + PW + 10, PY); x.lineTo(PX + PW + 10, PY + PH); x.stroke(); x.font = "700 7px \"M PLUS 1 Code\", monospace"; x.textAlign = "center"; x.fillText("HIDEOUT  B1", PX + PW / 2, PY + PH - 2);
+      // 施設の灯った絵（作り置き。灯ったら重ねる）
+      var LIT = F.map(function (f) { var c = sk4bCv(f[3] + 8, f[4] + 8), y = c.getContext("2d"), cg = y.createRadialGradient(c.width / 2, c.height / 2, 2, c.width / 2, c.height / 2, f[3]);
+        cg.addColorStop(0, "rgba(" + f[5] + ",.32)"); cg.addColorStop(1, "rgba(" + f[5] + ",.06)"); y.fillStyle = cg; y.fillRect(4, 4, f[3], f[4]); y.strokeStyle = "rgba(" + f[5] + ",.8)"; y.lineWidth = 1.2; y.strokeRect(4.5, 4.5, f[3] - 1, f[4] - 1);
+        pict(y, f[0], c.width / 2, c.height / 2 - 2, f[5], true); y.fillStyle = "rgb(" + f[5] + ")"; for (var q = 0; q < 3; q++) y.fillRect(8 + q * 6, f[4] - 2, 4, 4); return c; });
+      var GL = F.map(function (f) { return sk3Glow(f[5], 34); }), warm = sk3Glow("255,190,110", 60), dot = sk3Glow("255,214,150", 6);
+      var dust = []; for (i = 0; i < 18; i++) dust.push([R() * 40 - 20, R(), .4 + R() * .8, R() * 6.28]);
+      var tc = sk4bCv(W, H);
+      return function (t, f) {
+        if (f % 15 === 0 || !ic) ic = relRect(g.canvas, el.querySelector(".ic"));
+        var b = Math.floor(t / B), bt = t / B - b, k = b % 8, cyc = Math.floor(b / 8), q, j;
+        g.drawImage(bg, 0, 0);
+        // 登場：設計図が左から引かれる（製図の線が走る）
+        var dr = EZ(t / 1.3);
+        if (dr < 1) { var cw = PX - 8 + (PW + 30) * dr; g.save(); g.beginPath(); g.rect(0, 0, cw, H); g.clip(); g.drawImage(plan, 0, 0); g.restore(); g.fillStyle = "rgba(190,226,248,.8)"; g.fillRect(cw, PY - 16, 1.5, PH + 30); }
+        else g.drawImage(plan, 0, 0);
+        // 天井の電球（アイコンの上。ときどきちらつく）
+        var fl = (b % 13 === 5 && bt < .3 && (f >> 1) % 2) ? .35 : 1;
+        g.globalCompositeOperation = "lighter"; g.globalAlpha = .55 * fl * (.92 + .08 * Math.sin(t * 3.1)); g.drawImage(warm, ic.cx - 120, -90, 240, 200); g.globalAlpha = 1;
+        // はしごの上からさす光とほこり
+        g.globalAlpha = .4 + .12 * Math.sin(t * .9); g.drawImage(warm, LX - 46, LY - 20, 92, 80);
+        dust.forEach(function (d) { var yy = LY + 34 - ((d[1] + t * .07 * d[2]) % 1) * 64, xx = LX + d[0] + Math.sin(t * .8 + d[3]) * 5; g.globalAlpha = .3 + .4 * Math.abs(Math.sin(t * 1.7 + d[3])); g.drawImage(dot, xx - 3, yy - 3, 6, 6); });
+        g.globalAlpha = 1; g.globalCompositeOperation = "source-over";
+        if (dr < 1) return;
+        // どこまで灯ったか：拍 k で k 番めの線に電気が走り、拍の半ばで灯る。拍 7 は 7 つそろう。次の回のはじめは前の光がちらついて消える
+        var off = k === 0 && cyc > 0 && bt < .3, flick = off && (f >> 1) % 2 === 0;
+        for (j = 0; j < 7; j++) {
+          var on = j < k || k === 7 || (j === k && bt >= .5), pop = j === k && bt >= .5 ? 1 - (bt - .5) * 2 : 0;
+          if (off && flick) on = true;
+          if (!on) continue;
+          var fc = F[j], a = k === 7 ? .8 + .2 * Math.cos(bt * 6.2832) : 1;
+          g.globalAlpha = a; g.drawImage(LIT[j], fc[1] - 4, fc[2] - 4);
+          g.globalCompositeOperation = "lighter"; g.globalAlpha = (.35 + .5 * pop + (k === 7 ? .25 * (1 - bt) : 0)) * a; g.drawImage(GL[j], fc[1] + fc[3] / 2 - 34, fc[2] + fc[4] / 2 - 34);
+          if (pop > 0) { g.globalAlpha = pop; g.strokeStyle = "rgba(255,248,230,.9)"; g.lineWidth = 1.5; var ex = (1 - pop) * 8; g.strokeRect(fc[1] - ex, fc[2] - ex, fc[3] + ex * 2, fc[4] + ex * 2); }
+          g.globalAlpha = 1; g.globalCompositeOperation = "source-over";
+        }
+        // 電気の線：走っている光の点（拍 7 は全部の線をいっしょに走る）
+        g.globalCompositeOperation = "lighter";
+        for (j = 0; j < 7; j++) {
+          var run = k === 7 ? bt : (j === k && bt < .5 ? bt * 2 : -1); if (run < 0 || (off && j)) continue;
+          var pts = upto(CB[j], run), hd = pts[pts.length - 1]; g.strokeStyle = "rgba(" + F[j][5] + ",.7)"; g.lineWidth = 1.4; g.beginPath(); pts.forEach(function (pp, n) { if (n) g.lineTo(pp[0], pp[1]); else g.moveTo(pp[0], pp[1]); });
+          g.stroke(); g.drawImage(GL[j], hd[0] - 9, hd[1] - 9, 18, 18);
+        }
+        // 小節の頭（7 つそろったとき）：あたたかい光が設計図を横切る
+        if (k === 7) { g.globalAlpha = .5 * (1 - bt); var sx = PX - 40 + bt * (PW + 80); g.drawImage(sk4bBand(tc, plan, sx, 40, 0, 1), 0, 0); g.drawImage(warm, sx - 60, PY + PH / 2 - 70, 120, 140); }
+        g.globalAlpha = 1; g.globalCompositeOperation = "source-over";
+      };
+    },
+    // ★5 VR ダイブ：ペットが VR ゴーグルで潜る RPG。ワイヤーの格子のトンネルを降りていき、階の数字が拍で打ちこまれる（1F→5F）。
+    // 場面が切りかわる（トンネル・地図が開ける・ノイズ）。5F の奥からボスの影（ラウンジのドット絵の形）がせまり、小節の頭で割れて STAGE CLEAR。1 周ごとに行き先がかわる（ハルス街道→モーフィアス遺跡→暗い村→水晶洞窟）
+    lgdive: function (g, el, name, L, lk, M) {
+      var W = g.canvas.width, H = g.canvas.height, R = prng(nameSeed(name) + 709), ic = null, lastB = -1, B = 60 / 128, VX = 440, VY = 122, ph = 0, lastT = 0, i;
+      var SCN = ["dive", "dive", "dive", "map", "dive", "dive", "dive", "flick", "boss", "boss", "boss", "boss", "break", "break", "clear", "clear"];
+      var FLR = [1, 1, 2, 2, 3, 4, 5, 5]; // 拍ごとの階（0〜7 拍）
+      var CUT = [[1.04, 0], [1.12, 1.6], [1.06, -1.2], [1.18, -2], [1.08, .8]];
+      var CYAN = "57,243,255", PINK = "255,61,180";
+      // 作り置き：まっ暗な地・文字の後ろを暗くする幕・ゴーグルの縁
+      var bg = sk4bCv(W, H), x = bg.getContext("2d"), gr = x.createRadialGradient(VX, VY, 4, VX, VY, 520);
+      gr.addColorStop(0, "#0E1A3A"); gr.addColorStop(.25, "#060A1C"); gr.addColorStop(1, "#020309"); x.fillStyle = gr; x.fillRect(0, 0, W, H);
+      var scr = sk4bCv(W, H); x = scr.getContext("2d"); gr = x.createLinearGradient(170, 0, 450, 0); gr.addColorStop(0, "rgba(2,3,9,.62)"); gr.addColorStop(.6, "rgba(2,3,9,.5)"); gr.addColorStop(1, "rgba(2,3,9,0)"); x.fillStyle = gr; x.fillRect(0, 0, W, H);
+      x.fillStyle = "rgba(0,0,0,.22)"; for (i = 0; i < H; i += 3) x.fillRect(0, i, W, 1);
+      // 行き先ごとの地図（作り置き。でこぼこの通路と部屋）とボスの影
+      var MAP = LG_DUN.map(function (d, n) {
+        var c = sk4bCv(240, 168), y = c.getContext("2d"), Q = prng(nameSeed(name) + 40 + n), cx = 6, cy = 3, k;
+        y.strokeStyle = "rgba(" + d[2] + ",.16)"; y.lineWidth = 1; for (k = 0; k <= 240; k += 12) { y.beginPath(); y.moveTo(k + .5, 0); y.lineTo(k + .5, 168); y.stroke(); } for (k = 0; k <= 168; k += 12) { y.beginPath(); y.moveTo(0, k + .5); y.lineTo(240, k + .5); y.stroke(); }
+        y.fillStyle = "rgba(" + d[2] + ",.55)";
+        for (k = 0; k < 150; k++) { y.fillRect(cx * 12 + 1, cy * 12 + 1, 11, 11); var r = Q(); if (r < .3) cx++; else if (r < .5) cx--; else if (r < .75) cy++; else cy--; cx = Math.max(0, Math.min(19, cx)); cy = Math.max(0, Math.min(13, cy)); if (Q() < .04) y.fillRect(cx * 12 - 11, cy * 12 - 11, 35, 35); }
+        y.fillStyle = "rgb(" + d[2] + ")"; y.fillRect(cx * 12 + 3, cy * 12 + 3, 7, 7); return c;
+      });
+      var BOSS = LG_DUN.map(function (d) { return [lgBoss(d[3], "rgb(" + d[2] + ")", "#04050C"), lgBoss(d[3], "#FFFFFF", "#FFFFFF"), lgPx(d[3])]; });
+      var gl = sk3Glow(CYAN, 12), red = sk3Glow("255,40,90", 90), wh = sk3Glow("255,255,255", 40);
+      scdFont('20px "DotGothic16"'); scdFont('40px "Dela Gothic One"');
+      function rail(z) { return [VX, VY, 340 / z, 210 / z]; }
+      function tunnel(spd, col, a) { // ワイヤーの格子のトンネル（輪が手前へ流れる。奥ほどうすい）
+        var k, n, z, r, al;
+        g.lineWidth = 1;
+        for (k = 0; k < 14; k++) {
+          z = 14 - ((k + ph) % 14); if (z < .35) continue; r = rail(z); al = Math.min(1, (14 - z) / 9) * Math.min(1, z * 1.4) * a;
+          g.strokeStyle = "rgba(" + (k % 2 ? col : CYAN) + "," + al.toFixed(2) + ")"; g.lineWidth = z < 2 ? 2 : 1.2; g.strokeRect(r[0] - r[2], r[1] - r[3], r[2] * 2, r[3] * 2);
+          if (z < 4) { g.strokeStyle = "rgba(" + (k % 2 ? col : CYAN) + "," + (al * .22).toFixed(2) + ")"; g.lineWidth = 7; g.strokeRect(r[0] - r[2], r[1] - r[3], r[2] * 2, r[3] * 2); }
+        }
+        g.lineWidth = 1; var f0 = rail(14), f1 = rail(.4); g.strokeStyle = "rgba(" + CYAN + "," + (.42 * a).toFixed(2) + ")"; g.beginPath();
+        for (n = 0; n <= 6; n++) { var u = n / 6 * 2 - 1; // かべ 4 面に 7 本ずつの線
+          g.moveTo(VX + u * f0[2], VY - f0[3]); g.lineTo(VX + u * f1[2], VY - f1[3]); g.moveTo(VX + u * f0[2], VY + f0[3]); g.lineTo(VX + u * f1[2], VY + f1[3]);
+          g.moveTo(VX - f0[2], VY + u * f0[3]); g.lineTo(VX - f1[2], VY + u * f1[3]); g.moveTo(VX + f0[2], VY + u * f0[3]); g.lineTo(VX + f1[2], VY + u * f1[3]); }
+        g.stroke();
+        g.globalCompositeOperation = "lighter"; g.globalAlpha = .55 * a; g.drawImage(gl, VX - 26, VY - 26, 52, 52); g.globalAlpha = 1; g.globalCompositeOperation = "source-over";
+      }
+      function floorNum(n, d, bt) { // 階の数字（拍の頭で大きく打ちこまれて止まる）
+        var c = scdTx('48px "Dela Gothic One", sans-serif', n + "F", "rgba(" + d[2] + ",.22)", "rgb(" + d[2] + ")", 2), z = 1 + .9 * (1 - EZ(bt * 3)), a = Math.min(1, bt * 8);
+        g.save(); g.translate(VX - 4, VY - 2); g.scale(z * 1.75, z * 1.75); g.globalAlpha = a; g.drawImage(c, -c.width / 2, -c.height / 2); g.restore(); g.globalAlpha = 1;
+        var s = scdTx('11px "DotGothic16", monospace', "B" + n + "F  " + d[0], "rgba(" + d[2] + ",.95)", "#02030A", 3); g.drawImage(s, VX - s.width / 2, VY + 50);
+      }
+      function boss(d, n, p, hit, sz) { // ボスの影：奥から寄ってくる（p 0〜1）。hit で白く光る
+        var S = 1.6 + 3.8 * EZ(p) * (sz || 1), bob = Math.sin(lastT * 3) * 2, c = BOSS[n][hit ? 1 : 0];
+        g.globalCompositeOperation = "lighter"; g.globalAlpha = .55 * EZ(p); g.drawImage(red, VX - 130, VY - 110, 260, 220); g.globalAlpha = 1; g.globalCompositeOperation = "source-over";
+        g.imageSmoothingEnabled = false; g.drawImage(c, VX - 13 * S, VY - 13 * S + bob, 26 * S, 26 * S); g.imageSmoothingEnabled = true;
+      }
+      function hp(d, v) { // ボスの体力（上の右）と名前
+        var bx = 356, bw = 148, lb = scdTx('11px "DotGothic16", monospace', "BOSS", "#02030A", null, 0), s = scdTx('11px "DotGothic16", monospace', d[1], "#FFFFFF", "#02030A", 3);
+        g.fillStyle = "#02030A"; g.fillRect(bx - 34, 49, bw + 36, 14); g.fillStyle = "rgb(" + PINK + ")"; g.fillRect(bx - 32, 51, 30, 10); g.drawImage(lb, bx - 33, 56 - lb.height / 2);
+        g.fillStyle = "rgba(255,255,255,.14)"; g.fillRect(bx, 51, bw, 10); g.fillStyle = v > .34 ? "rgb(" + PINK + ")" : "#FF2A4A"; g.fillRect(bx, 51, bw * v, 10); g.fillStyle = "rgba(255,255,255,.5)"; g.fillRect(bx, 51, bw * v, 2);
+        g.drawImage(s, bx + bw - s.width + 4, 64);
+      }
+      function map(d, n, bt) { // 地図：プレイヤーの点のまわりから開けていく
+        var c = MAP[n], mx = 280, my = 40; g.save(); g.beginPath(); g.arc(mx + 120, my + 84, 20 + EZ(bt * 1.3) * 160, 0, 6.2832); g.clip(); g.drawImage(c, mx, my); g.restore();
+        g.globalCompositeOperation = "lighter"; g.globalAlpha = .6 + .4 * Math.sin(lastT * 12); g.drawImage(wh, mx + 120 - 10, my + 84 - 10, 20, 20); g.globalAlpha = 1; g.globalCompositeOperation = "source-over";
+        g.fillStyle = "#fff"; g.fillRect(mx + 118, my + 82, 4, 4);
+      }
+      return function (t, f) {
+        if (f % 15 === 0 || !ic) ic = relRect(g.canvas, el.querySelector(".ic"));
+        var b = Math.floor(t / B), bt = t / B - b, sb = b % 16, sn = SCN[sb], s = sn, n = Math.floor(b / 16) % 4, d = LG_DUN[n], spd;
+        if (sn === "flick") s = ["dive", "map", "boss", "dive"][(f >> 1) % 4];
+        if (b !== lastB) { lastB = b; var c = CUT[b % CUT.length]; M.cut = { s: c[0], r: c[1] }; if (sn === "flick") M.glitch = Math.max(M.glitch, 8); else if (sn === "break" && sb === 12) M.glitch = Math.max(M.glitch, 6); else if (sb === 0) M.glitch = Math.max(M.glitch, 3); }
+        if (t < .55 && t > .12 && (f >> 1) % 3 === 0) M.invert = true; // 登場：短い反転を 3 回
+        spd = s === "dive" ? 3.2 + 6 * Math.exp(-bt * 5) : s === "boss" ? .9 : s === "break" ? 2 : s === "clear" ? .5 : 1.2;
+        ph += Math.max(0, Math.min(.1, t - lastT)) * spd; lastT = t;
+        g.drawImage(bg, 0, 0);
+        if (s === "map") { tunnel(spd, d[2], .25); map(d, n, sn === "map" ? bt : .6); }
+        else tunnel(spd, s === "boss" ? "255,60,110" : d[2], s === "clear" ? .55 : 1);
+        if (s === "boss") { var bp = sn === "boss" ? (sb - 8 + bt) / 4 : .5, hit = sn === "boss" && sb > 8 && bt < .14; boss(d, n, bp, hit); }
+        else if (s === "break") { // 割れる：影の画素が四方へ飛び散る
+          var q = (sb - 12 + bt) / 2, P = BOSS[n][2], S = 6;
+          if (q < .12) { g.fillStyle = "rgba(255,255,255," + (1 - q / .12).toFixed(2) + ")"; g.fillRect(0, 0, W, H); }
+          for (i = 0; i < P.length; i++) { var p = P[i], tt = q * 1.6, px = VX + (p[0] - 12) * S * (1 + tt * 2.2) + p[2] * tt * 160, py = VY + (p[1] - 12) * S * (1 + tt * 1.6) + p[3] * tt * 120 + tt * tt * 140, sz = S * (1 - q * .7);
+            if (sz <= .5) continue; g.fillStyle = i % 5 ? (i % 2 ? "rgb(" + d[2] + ")" : "#05060E") : "#fff"; g.fillRect(px, py, sz, sz); }
+          for (i = 0; i < 2; i++) { var qq = Math.max(0, q * 1.4 - i * .15); g.strokeStyle = "rgba(" + d[2] + "," + Math.max(0, .9 * (1 - qq)).toFixed(2) + ")"; g.lineWidth = 6 * (1 - qq) + 1; g.beginPath(); g.arc(VX, VY, 20 + qq * 380, 0, 6.2832); g.stroke(); }
+        } else if (s === "clear") { // 光の粉が昇る（STAGE CLEAR の文字は幕の上に描く）
+          g.globalCompositeOperation = "lighter"; for (i = 0; i < 26; i++) { var yy = ((i * 37 + t * (30 + i % 5 * 9)) % 200), xx = VX - 110 + (i * 53) % 220; g.globalAlpha = .7 * (1 - yy / 200); g.drawImage(gl, xx - 4, VY + 90 - yy - 4, 8, 8); } g.globalAlpha = 1; g.globalCompositeOperation = "source-over";
+        }
+        if (sn === "flick" && (f >> 1) % 3 === 1) { g.globalCompositeOperation = "lighter"; for (i = 0; i < 6; i++) { g.fillStyle = "rgba(" + (i % 2 ? PINK : CYAN) + ",.35)"; g.fillRect(0, R() * H, W, 2 + R() * 8); } g.globalCompositeOperation = "source-over"; }
+        g.drawImage(scr, 0, 0);
+        if (s === "dive") floorNum(FLR[Math.min(7, sb)], d, sn === "dive" && (sb === 0 || FLR[sb] !== FLR[sb - 1]) ? bt : 1);
+        else if (s === "boss") hp(d, sn === "boss" ? Math.max(.08, 1 - (sb - 8) / 3) : 1);
+        else if (s === "clear") { // STAGE CLEAR と行き先の名前
+          var a = Math.min(1, ((sb - 14) + bt) * 3), c1 = scdTx('26px "DotGothic16", monospace', "STAGE CLEAR", "#FFFFFF", "#02030A", 3), c0 = scdTx('26px "DotGothic16", monospace', "STAGE CLEAR", "rgb(" + d[2] + ")", "rgb(" + d[2] + ")", 3), c2 = scdTx('12px "DotGothic16", monospace', d[0] + "  5F 踏破", "rgb(" + d[2] + ")", "#02030A", 3);
+          g.globalAlpha = a; g.drawImage(c0, 506 - c1.width + (1 - a) * 30 + 3, VY - 53); g.drawImage(c1, 506 - c1.width + (1 - a) * 30, VY - 56); g.drawImage(c2, 506 - c2.width, VY - 24); g.globalAlpha = 1;
+        }
+        // 小節の頭：トンネルの入口が白く光る（ダイブ・ボスの登場）
+        if (sb % 4 === 0 && bt < .5 && sn !== "break") { var e = EZ(bt * 2); g.strokeStyle = "rgba(255,255,255," + (.8 * (1 - e)).toFixed(2) + ")"; g.lineWidth = 3 * (1 - e) + .5; var rr0 = rail(4 - e * 3.6); g.strokeRect(rr0[0] - rr0[2], rr0[1] - rr0[3], rr0[2] * 2, rr0[3] * 2);
+          if (sn === "boss") { g.fillStyle = "rgba(255,40,90," + (.25 * (1 - e)).toFixed(2) + ")"; g.fillRect(0, 0, W, H); } }
+        // 登場：VR ゴーグルの 2 つのレンズが開く
+        if (t < 1.3) { var o = EZ(t / 1.3), lw = 60 + o * 420, lh = 50 + o * 260; g.fillStyle = "#000"; g.beginPath(); g.rect(0, 0, W, H); g.ellipse(VX - 70 - o * 140, VY, lw / 2, lh / 2, 0, 0, 6.2832); g.ellipse(VX + 70 + o * 140, VY, lw / 2, lh / 2, 0, 0, 6.2832); g.fill("evenodd"); }
+      };
+    },
+    // ★4 なかまの行進：ラウンジの昼（空色のかべと、ラグの黄色の床）。8 種のペット（ネム・ポスケ・カチ・ザザ・ホリ・ユラ・チク・チャリン）が経験値の棒の上を右から左へ行進し、アイコンの後ろへ消えていく。
+    // 先頭のネムは旗を持つ。拍ごとに足を運び、小節の頭でみんなでいっしょに跳ねてきらり。上には 8 色の旗がゆれる
+    lgpets: function (g, el, name) {
+      var W = g.canvas.width, H = g.canvas.height, B = 60 / 112, GY = 196, FY = 214, SP = 74, LOOP = SP * 8, V = 34, i;
+      var bg = sk4bCv(W, H), x = bg.getContext("2d"), gr = x.createLinearGradient(0, 0, 0, H);
+      gr.addColorStop(0, "#BFE8FF"); gr.addColorStop(FY / H - .01, "#EEF8FF"); gr.addColorStop(FY / H, "#FFE9B0"); gr.addColorStop(1, "#FFD877"); x.fillStyle = gr; x.fillRect(0, 0, W, H);
+      x.fillStyle = "rgba(255,255,255,.55)"; for (i = 0; i < 9; i++) x.fillRect(30 + i * 64, 0, 22, FY); // かべの明るい縦じま
+      x.fillStyle = "rgba(255,196,80,.45)"; for (i = -2; i < 30; i++) { x.beginPath(); x.moveTo(i * 24, H); x.lineTo(i * 24 + 12, H); x.lineTo(i * 24 + 30, FY); x.lineTo(i * 24 + 18, FY); x.closePath(); x.fill(); }
+      x.fillStyle = "#FFFFFF"; x.fillRect(0, FY - 1, W, 2); x.fillStyle = "rgba(20,22,74,.18)"; x.fillRect(0, FY + 1, W, 1);
+      var FL = ["#FF8A3D", "#3D7FE0", "#8F6BE6", "#E04848", "#F6C531", "#4FD0F0", "#3FB45A", "#FF6FA8"];
+      function flags(t) { // 上の旗（8 色）。ひもがたるみ、旗がゆれる
+        var x0 = 186, x1 = W + 10, k;
+        g.strokeStyle = "rgba(20,22,74,.6)"; g.lineWidth = 1.2; g.beginPath(); for (k = 0; k <= 20; k++) { var u = k / 20; g.lineTo(x0 + (x1 - x0) * u, 3 + Math.sin(u * Math.PI) * 13); } g.stroke();
+        for (k = 0; k < 14; k++) { var u2 = (k + .5) / 14, fx = x0 + (x1 - x0) * u2, fy = 3 + Math.sin(u2 * Math.PI) * 13, a = Math.sin(t * 2.4 + k * .8) * .18;
+          g.save(); g.translate(fx, fy); g.rotate(a); g.fillStyle = FL[k % 8]; g.beginPath(); g.moveTo(-7, 0); g.lineTo(7, 0); g.lineTo(0, 13); g.closePath(); g.fill(); ol(g, 1.2); g.stroke(); g.restore(); }
+      }
+      return function (t, f) {
+        if (f % 15 === 0) { var bn = el.querySelector(".bar"); GY = bn ? relRect(g.canvas, bn).y + 1 : 196; } // 地面は経験値の棒の上ふち
+        var b = Math.floor(t / B), bt = t / B - b, bar = b % 4 === 0, hop = bar && bt < .55 ? Math.sin(bt / .55 * Math.PI) : 0, k;
+        g.drawImage(bg, 0, 0); flags(t);
+        for (k = 7; k >= 0; k--) { // 後ろの子から描く（先頭のネムがいちばん手前）
+          var p = LG_PET[k], id = p[0], px = ((W + 40 + k * SP - V * t) % LOOP + LOOP) % LOOP - 40, step = (b + k) % 2, ph = bt * Math.PI, py = GY;
+          if (px < -40 || px > W + 40) continue;
+          if (id === "kurage") py = GY - 12 + Math.sin(t * 2.2 + k) * 4; // 浮いている
+          else if (id === "saboten") py = GY - Math.abs(Math.sin(ph)) * 6; // 鉢ごとぴょんぴょん
+          else if (id === "mouse") py = GY - Math.abs(Math.sin(ph * 2)) * 2; // ちょこちょこ
+          else py = GY - Math.abs(Math.sin(ph)) * 2.5;
+          py -= hop * (14 + (k % 3) * 3);
+          var sq = 1 + (id === "kurage" ? 0 : Math.cos(ph * 2) * .025), sp = lgPet(id, id === "kurage" ? (Math.floor(t * 3) % 2) : step);
+          g.save(); g.translate(px, py); g.scale(.86 / sq, .86 * sq); g.drawImage(sp, -32, -55); g.restore();
+          if (k === 0) { // 先頭のネムの旗
+            var fx = px - 2, fy = py - 50, wv = Math.sin(t * 6) * 3; g.strokeStyle = "#8A5A2B"; g.lineWidth = 2; g.beginPath(); g.moveTo(fx + 4, py - 12); g.lineTo(fx, fy - 6); g.stroke();
+            g.fillStyle = "#FF4FA0"; g.beginPath(); g.moveTo(fx, fy - 6); g.quadraticCurveTo(fx + 12, fy - 9 + wv, fx + 22, fy - 3 + wv); g.lineTo(fx, fy + 5); g.closePath(); g.fill(); ol(g, 1.3); g.stroke();
+          }
+          if (hop > .7) bigStar(g, px + 10, py - 54, 5 * (hop - .7) / .3, k % 2 ? "#FFFFFF" : "#FFE066");
+        }
+      };
+    },
+    // ★5 ネオンの部屋：夜のラウンジ（暗いかべ・つやのある床）。★4〜5 の家具がカットで切りかわる：ネオンサイン（鹿の頭と縦書きの「ラウンジ」の管が 1 本ずつ灯る）・アーケード筐体（画面のインベーダーが拍で進み、光線を撃つ）・
+    // 鹿のホログラム（ネムの形が台の上でまわる。走査線とずれ）・宇宙の見える窓（星が流れ、輪のある星が通り、小節の頭に流れ星）。部屋の光の色が家具ごとにかわる
+    lgneon: function (g, el, name, L, lk, M) {
+      var W = g.canvas.width, H = g.canvas.height, R = prng(nameSeed(name) + 713), ic = null, lastB = -1, B = 60 / 118, CX = 446, sv = -1, i;
+      var SCN = ["sign", "sign", "sign", "arcade", "arcade", "arcade", "flick", "holo", "holo", "holo", "space", "space", "space", "flick", "sign", "holo"];
+      var CUT = [[1.04, 0], [1.12, -1.4], [1.06, 1.2], [1.16, 1.6], [1.08, -.8]];
+      var PINK = "255,79,184", CYAN = "63,240,255", LIME = "124,255,107", BLUE = "90,140,255", WASH = { sign: PINK, arcade: LIME, holo: CYAN, space: BLUE };
+      // 作り置き：かべ（夜の紫・パネルの線）とつやのある床
+      var bg = sk4bCv(W, H), x = bg.getContext("2d"), gr = x.createLinearGradient(0, 0, 0, H);
+      gr.addColorStop(0, "#1B0E36"); gr.addColorStop(.86, "#0D0720"); gr.addColorStop(.87, "#1A1030"); gr.addColorStop(1, "#07040F"); x.fillStyle = gr; x.fillRect(0, 0, W, H);
+      x.fillStyle = "rgba(255,255,255,.035)"; for (i = 0; i < W; i += 46) x.fillRect(i, 0, 1, H * .86); x.fillStyle = "rgba(255,79,184,.25)"; x.fillRect(0, Math.round(H * .86), W, 1);
+      var GLW = {}; Object.keys(WASH).forEach(function (k) { GLW[k] = sk3Glow(WASH[k], 120); });
+      var dot = sk3Glow("255,255,255", 6);
+      // ネオンの管：太くうすい線から細く明るい線へ重ねる（作り置きなので毎フレームの shadowBlur はない）
+      function tube(y, draw, col, on) {
+        var P = on ? [[13, .07], [8, .14], [4.5, .38], [2.2, 1], [.9, .9]] : [[2.2, .22]];
+        y.lineCap = "round"; y.lineJoin = "round"; P.forEach(function (p, k) { y.lineWidth = p[0]; y.strokeStyle = (on && k === 4) ? "rgba(255,255,255," + p[1] + ")" : "rgba(" + col + "," + p[1] + ")"; y.beginPath(); draw(y); y.stroke(); });
+      }
+      function deerHead(y) { // 鹿の頭の線（角・耳・顔）
+        y.moveTo(-10, 6); y.quadraticCurveTo(-12, -8, 0, -12); y.quadraticCurveTo(12, -8, 10, 6); y.quadraticCurveTo(4, 18, 0, 20); y.quadraticCurveTo(-4, 18, -10, 6);
+        y.moveTo(-10, -6); y.lineTo(-22, -12); y.lineTo(-12, -2); y.moveTo(10, -6); y.lineTo(22, -12); y.lineTo(12, -2);
+        y.moveTo(-5, -12); y.lineTo(-10, -30); y.moveTo(-8, -24); y.lineTo(-17, -28); y.moveTo(-9, -19); y.lineTo(-4, -25);
+        y.moveTo(5, -12); y.lineTo(10, -30); y.moveTo(8, -24); y.lineTo(17, -28); y.moveTo(9, -19); y.lineTo(4, -25);
+      }
+      var SIGN = null, LET = [], ARC = null, HOLO = null, WIN = null, STAR = null;
+      function build() { // フォントが届いたら作り直す
+        var k; SIGN = [];
+        [false, true].forEach(function (on) { // 鹿の頭（水色）と、縦書きの「ラウンジ」（ピンク）。消えている管はうすく見える
+          var c = sk4bCv(170, 196), y = c.getContext("2d"); y.globalCompositeOperation = "lighter";
+          y.save(); y.translate(58, 64); y.scale(1.35, 1.35); tube(y, deerHead, CYAN, on); y.restore();
+          y.font = '28px "Dela Gothic One", sans-serif'; y.textAlign = "center"; y.textBaseline = "middle"; LET = [];
+          "ラウンジ".split("").forEach(function (ch, q) { var cy = 34 + q * 38; LET.push([136, cy]);
+            [[13, .07], [8, .14], [4.5, .38], [2, 1], [.8, .9]].slice(on ? 0 : 3, on ? 5 : 4).forEach(function (p, j) { y.lineWidth = p[0]; y.lineJoin = "round"; y.strokeStyle = on && j === 4 ? "rgba(255,255,255,.9)" : "rgba(" + PINK + "," + (on ? p[1] : .22) + ")"; y.strokeText(ch, 136, cy); }); });
+          y.globalCompositeOperation = "source-over"; y.strokeStyle = "rgba(255,255,255,.12)"; y.lineWidth = 1; rr(y, 114.5, 10.5, 43, 172, 8); y.stroke(); // 看板の枠
+          SIGN.push(c);
+        });
+        // アーケード筐体（画面はあとで毎フレーム描く）
+        ARC = sk4bCv(124, 180); var y = ARC.getContext("2d");
+        y.fillStyle = "#120A26"; y.beginPath(); y.moveTo(14, 4); y.lineTo(110, 4); y.lineTo(112, 112); y.lineTo(120, 128); y.lineTo(120, 180); y.lineTo(4, 180); y.lineTo(4, 128); y.lineTo(12, 112); y.closePath(); y.fill();
+        y.strokeStyle = "rgba(" + CYAN + ",.85)"; y.lineWidth = 1.6; y.stroke();
+        y.fillStyle = "#2A0F3E"; y.fillRect(18, 8, 88, 22); y.globalCompositeOperation = "lighter"; y.font = '15px "Dela Gothic One", sans-serif'; y.textAlign = "center"; y.textBaseline = "middle";
+        [[6, .12], [3, .4], [1.2, 1]].forEach(function (p) { y.lineWidth = p[0]; y.strokeStyle = "rgba(" + PINK + "," + p[1] + ")"; y.strokeText("ARCADE", 62, 20); });
+        y.globalCompositeOperation = "source-over"; y.fillStyle = "#05030C"; rr(y, 18, 36, 88, 70, 6); y.fill();
+        y.fillStyle = "#24133F"; y.beginPath(); y.moveTo(12, 114); y.lineTo(112, 114); y.lineTo(120, 128); y.lineTo(4, 128); y.closePath(); y.fill(); y.strokeStyle = "rgba(" + PINK + ",.7)"; y.lineWidth = 1; y.stroke();
+        y.fillStyle = "#FF4FB8"; y.beginPath(); y.arc(70, 121, 3.2, 0, 6.2832); y.fill(); y.fillStyle = "#3FF0FF"; y.beginPath(); y.arc(82, 119, 3.2, 0, 6.2832); y.fill(); y.fillStyle = "#7CFF6B"; y.beginPath(); y.arc(94, 121, 3.2, 0, 6.2832); y.fill();
+        y.strokeStyle = "#C9CDD8"; y.lineWidth = 2; y.beginPath(); y.moveTo(36, 122); y.lineTo(32, 114); y.stroke(); y.fillStyle = "#E04848"; y.beginPath(); y.arc(32, 113, 3.4, 0, 6.2832); y.fill();
+        y.fillStyle = "rgba(" + CYAN + ",.12)"; y.fillRect(22, 140, 80, 2); y.fillRect(22, 150, 80, 2); y.fillStyle = "rgba(255,200,80,.85)"; y.fillRect(56, 156, 12, 3);
+        // 鹿のホログラム：ネム（なかまの行進と同じ形）を水色にそめて走査線を抜く
+        HOLO = sk4bCv(128, 120); y = HOLO.getContext("2d"); y.save(); y.scale(2, 2); y.drawImage(lgPet("shika", 0), 0, 0); y.restore();
+        y.globalCompositeOperation = "source-in"; var hg = y.createLinearGradient(0, 0, 0, 120); hg.addColorStop(0, "rgba(200,250,255,.95)"); hg.addColorStop(1, "rgba(" + CYAN + ",.55)"); y.fillStyle = hg; y.fillRect(0, 0, 128, 120);
+        y.globalCompositeOperation = "destination-out"; y.fillStyle = "rgba(0,0,0,.55)"; for (k = 0; k < 120; k += 3) y.fillRect(0, k, 128, 1);
+        // 宇宙の見える窓（星は作り置き。輪のある星と流れ星は毎フレーム）
+        STAR = sk4bCv(400, 140); y = STAR.getContext("2d"); gr = y.createLinearGradient(0, 0, 0, 140); gr.addColorStop(0, "#050A2A"); gr.addColorStop(1, "#140A3A"); y.fillStyle = gr; y.fillRect(0, 0, 400, 140);
+        y.globalCompositeOperation = "lighter"; [["180,92,255", 60, 40], ["63,140,255", 260, 90], ["255,79,184", 340, 30]].forEach(function (c) { y.globalAlpha = .35; y.drawImage(sk4dSoft(c[0], 70), c[1] - 70, c[2] - 50, 140, 100); });
+        y.globalAlpha = 1; for (k = 0; k < 120; k++) { y.fillStyle = "rgba(255,255,255," + (.25 + R() * .7).toFixed(2) + ")"; var sz = R() < .1 ? 2 : 1; y.fillRect(R() * 400, R() * 140, sz, sz); }
+        WIN = sk4bCv(196, 152); y = WIN.getContext("2d"); y.fillStyle = "#0A0618"; rr(y, 0, 0, 196, 152, 18); y.fill(); y.globalCompositeOperation = "destination-out"; rr(y, 8, 8, 180, 136, 12); y.fill();
+        y.globalCompositeOperation = "source-over"; y.strokeStyle = "rgba(" + CYAN + ",.8)"; y.lineWidth = 1.4; rr(y, 8.5, 8.5, 179, 135, 12); y.stroke(); y.fillStyle = "#0A0618"; y.fillRect(95, 8, 6, 136);
+        y.fillStyle = "rgba(255,255,255,.07)"; y.beginPath(); y.moveTo(20, 140); y.lineTo(70, 10); y.lineTo(88, 10); y.lineTo(38, 140); y.closePath(); y.fill();
+      }
+      function sign(t, b, bt, sb, fresh) { // ネオンサイン：場面のはじめに 1 本ずつちらついて灯る（鹿の頭 → ラ・ウ・ン・ジ）
+        var ox = CX - 116, oy = 22, n = fresh ? Math.floor(bt * 8) : 8, k;
+        g.drawImage(SIGN[0], ox, oy);
+        g.globalCompositeOperation = "lighter";
+        var hum = .9 + .1 * Math.sin(t * 37) * Math.sin(t * 5.3);
+        if (n > 0 && !(fresh && n === 1 && Math.floor(t * 20) % 3 === 0)) { g.save(); g.beginPath(); g.rect(ox, oy, 112, 120); g.clip(); g.globalAlpha = hum; g.drawImage(SIGN[1], ox, oy); g.restore(); }
+        for (k = 0; k < 4; k++) { if (k + 2 > n) break; if (fresh && k + 2 === n && Math.floor(t * 30) % 2) continue; var l = LET[k]; g.save(); g.beginPath(); g.rect(ox + l[0] - 24, oy + l[1] - 19, 48, 38); g.clip(); g.globalAlpha = hum; g.drawImage(SIGN[1], ox, oy); g.restore(); }
+        g.globalAlpha = 1; g.globalCompositeOperation = "source-over";
+      }
+      function arcade(t, b, bt) { // アーケード筐体：インベーダーが拍で 1 歩、光線を撃つ。点数が上がる
+        var ox = CX - 78, oy = 46, sx = ox + 18, sy = oy + 36, k, j, st = b % 8, dx = (st < 4 ? st : 8 - st) * 4;
+        g.drawImage(ARC, ox, oy);
+        g.save(); rr(g, sx, sy, 88, 70, 6); g.clip();
+        for (j = 0; j < 3; j++) for (k = 0; k < 5; k++) { if ((b * 3 + j * 5 + k) % 11 === 0) continue; var ix = sx + 10 + k * 15 + dx, iy = sy + 10 + j * 10 + Math.floor(b / 8) % 2 * 3, fr = (b + k) % 2; g.fillStyle = j === 0 ? "#FF4FB8" : j === 1 ? "#3FF0FF" : "#7CFF6B";
+          g.fillRect(ix + 2, iy, 6, 2); g.fillRect(ix, iy + 2, 10, 3); g.fillRect(ix + (fr ? 0 : 1), iy + 5, 2, 2); g.fillRect(ix + (fr ? 8 : 7), iy + 5, 2, 2); g.fillStyle = "#05030C"; g.fillRect(ix + 2, iy + 2, 2, 1); g.fillRect(ix + 6, iy + 2, 2, 1); }
+        var px = sx + 44 + Math.sin(b * 1.7) * 26; g.fillStyle = "#FFFFFF"; g.fillRect(px - 5, sy + 60, 10, 3); g.fillRect(px - 1, sy + 57, 2, 3);
+        if (bt < .35) { g.fillStyle = "rgba(" + LIME + "," + (1 - bt / .35).toFixed(2) + ")"; g.fillRect(px - 1, sy + 8, 2, 50); g.globalCompositeOperation = "lighter"; g.drawImage(dot, px - 6, sy + 6 + (1 - bt / .35) * 10, 12, 12); g.globalCompositeOperation = "source-over"; }
+        var sc = scdTx('8px "DotGothic16", monospace', "1UP " + ("00000" + (1200 + b * 50)).slice(-6), "#FFFFFF", null, 0); g.drawImage(sc, sx + 4, sy + 1);
+        g.fillStyle = "rgba(0,0,0,.3)"; for (k = 0; k < 70; k += 2) g.fillRect(sx, sy + k, 88, 1); g.restore();
+        g.globalCompositeOperation = "lighter"; g.globalAlpha = .25 + .1 * Math.sin(t * 9); g.drawImage(GLW.arcade, sx - 30, sy - 40, 148, 150); g.globalAlpha = 1; g.globalCompositeOperation = "source-over";
+      }
+      function holo(t, b, bt, sb) { // 鹿のホログラム：台から光が立ち、ネムの形がまわる。拍の頭で横にずれる
+        var px = CX - 22, py = 214, k, sx = Math.cos(t * 1.3), bob = Math.sin(t * 2) * 3;
+        g.fillStyle = "#24133F"; g.beginPath(); g.ellipse(px, py, 30, 7, 0, 0, 6.2832); g.fill(); g.strokeStyle = "rgba(" + CYAN + ",.9)"; g.lineWidth = 1.5; g.stroke();
+        g.globalCompositeOperation = "lighter"; var cg = g.createLinearGradient(0, py, 0, py - 130); cg.addColorStop(0, "rgba(" + CYAN + ",.35)"); cg.addColorStop(1, "rgba(" + CYAN + ",0)"); g.fillStyle = cg;
+        g.beginPath(); g.moveTo(px - 26, py); g.lineTo(px + 26, py); g.lineTo(px + 62, py - 130); g.lineTo(px - 62, py - 130); g.closePath(); g.fill();
+        var gl = bt < .14 && sb % 2 === 0, a = .8 + .2 * Math.sin(t * 23);
+        g.globalAlpha = a; g.save(); g.translate(px, py - 62 + bob); g.scale(Math.abs(sx) < .12 ? .12 * (sx < 0 ? -1 : 1) : sx, 1);
+        if (gl) { for (k = 0; k < 6; k++) { var off = (R() - .5) * 24; g.drawImage(HOLO, 0, k * 20, 128, 20, -64 + off, -58 + k * 20, 128, 20); } } else g.drawImage(HOLO, -64, -58);
+        g.restore(); g.globalAlpha = 1;
+        var ln = ((t * 60) % 130); g.fillStyle = "rgba(" + CYAN + ",.35)"; g.fillRect(px - 60, py - ln, 120, 2);
+        g.globalCompositeOperation = "source-over";
+      }
+      function space(t, b, bt, sb) { // 宇宙の見える窓
+        var ox = 0, oy = 0, k;
+        g.save(); g.translate(CX - 102, 54); g.scale(.86, .86); g.save(); rr(g, ox + 8, oy + 8, 180, 136, 12); g.clip();
+        var sx = -((t * 8) % 200); g.drawImage(STAR, ox + sx, oy + 6); g.drawImage(STAR, ox + sx + 400, oy + 6);
+        var plx = ox + 190 - ((t * 10) % 260), ply = oy + 60; // 輪のある星
+        var pg = g.createRadialGradient(plx - 8, ply - 8, 2, plx, ply, 26); pg.addColorStop(0, "#FFD3A8"); pg.addColorStop(.6, "#FF7FB2"); pg.addColorStop(1, "#5A2A7A"); g.fillStyle = pg; g.beginPath(); g.arc(plx, ply, 24, 0, 6.2832); g.fill();
+        g.strokeStyle = "rgba(255,230,200,.8)"; g.lineWidth = 2.2; g.beginPath(); g.ellipse(plx, ply, 42, 9, -.35, -.2, Math.PI + .2); g.stroke();
+        if (sb % 4 === 0 || bt < .5) { var q = sb % 4 === 0 ? EZ(bt * 1.4) : -1; if (q >= 0 && q < 1) { var mx = ox + 170 - q * 160, my = oy + 20 + q * 70; g.strokeStyle = "rgba(255,255,255," + (1 - q).toFixed(2) + ")"; g.lineWidth = 2; g.beginPath(); g.moveTo(mx, my); g.lineTo(mx + 30, my - 13); g.stroke(); g.globalCompositeOperation = "lighter"; g.drawImage(dot, mx - 6, my - 6, 12, 12); g.globalCompositeOperation = "source-over"; } }
+        g.restore(); g.drawImage(WIN, ox, oy); g.restore();
+      }
+      return function (t, f) {
+        if (f % 15 === 0 || !ic) ic = relRect(g.canvas, el.querySelector(".ic"));
+        if (sv !== SCD_V) { sv = SCD_V; build(); }
+        var b = Math.floor(t / B), bt = t / B - b, sb = b % 16, sn = SCN[sb], s = sn;
+        if (sn === "flick") s = ["sign", "arcade", "holo", "space"][(f >> 1) % 4];
+        if (b !== lastB) { lastB = b; var c = CUT[b % CUT.length]; M.cut = { s: c[0], r: c[1] }; if (sn === "flick") M.glitch = Math.max(M.glitch, 8); else if (SCN[(sb + 15) % 16] !== sn) M.glitch = Math.max(M.glitch, 3); }
+        if (t < .55 && t > .12 && (f >> 1) % 3 === 0) M.invert = true; // 登場：短い反転を 3 回
+        g.drawImage(bg, 0, 0);
+        // 部屋の光（家具の色。アイコンのまわりと床に回りこむ）
+        g.globalCompositeOperation = "lighter"; var bar = sb % 4 === 0, sg = bar ? 1 - EZ(bt) : 0;
+        g.globalAlpha = .4 + .35 * sg; g.drawImage(GLW[s], CX - 170, 0, 340, 240); g.globalAlpha = .22 + .2 * sg; g.drawImage(GLW[s], ic.cx - 150, ic.cy - 120, 300, 240);
+        g.globalAlpha = .3; g.drawImage(GLW[s], CX - 120, H * .86 - 10, 240, 40); g.globalAlpha = 1; g.globalCompositeOperation = "source-over";
+        var fresh = sn === "sign" && SCN[(sb + 15) % 16] !== "sign";
+        if (s === "sign") sign(t, b, bt, sb, fresh); else if (s === "arcade") arcade(t, b, bt); else if (s === "holo") holo(t, b, bt, sb); else space(t, b, bt, sb);
+        if (sn === "flick" && (f >> 1) % 3 === 1) { g.globalCompositeOperation = "lighter"; for (i = 0; i < 5; i++) { g.fillStyle = "rgba(" + (i % 2 ? PINK : CYAN) + ",.3)"; g.fillRect(0, R() * H, W, 2 + R() * 7); } g.globalCompositeOperation = "source-over"; }
+        // 床の映りこみ（家具の色の縦の光）
+        g.globalCompositeOperation = "lighter"; g.fillStyle = "rgba(" + WASH[s] + ",.12)"; g.fillRect(CX - 40, H * .86 + 2, 80, H * .14); g.globalCompositeOperation = "source-over";
+        // 小節の頭：ネオンが強く光る
+        if (bar && bt < .12) { g.fillStyle = "rgba(255,240,255," + (.35 * (1 - bt / .12)).toFixed(2) + ")"; g.fillRect(0, 0, W, H); }
+      };
     }
   };
   // レアリティごとの演出の量（上の★は下の★の分をすべて持ったうえで足す）
@@ -9652,6 +10349,9 @@ if (location.hash === "#lcdcard" || location.hash === "#sitecard" || document.do
     ["em:holokaleido", ["asun", "petals", "ripple"]], ["em:holospark", ["ahalo", "confetti", "facet"]], ["em:holoboot", ["amosaic", "bars", "speed", "rgbframe", "pixel", "cuts"]],
     ["em:holopart", ["pixel", "aglyph", "holo"]], ["em:holocore", ["asun", "orbitp", "impact", "ahalo", "bars", "rgbframe", "cuts"]], ["em:hologrid", ["amosaic", "ripple", "slices"]], ["em:holowave", ["mosh", "bars", "stopmo"]], ["em:holotile", ["leak", "stopmo", "holo"]],
     ["em:holocube", ["isowire", "facet", "pixel", "ahalo", "rgbframe", "cuts"]], ["em:holochapter", ["aglyph", "beat", "slices"]], ["em:holoeye", ["ripple", "radar", "ahalo", "asun", "slices", "rgbframe", "cuts"]], ["em:holofilm", ["leak", "stopmo", "ahalo"]], ["em:holotest", ["amosaic", "radar", "pixel"]]].forEach(function (x) { ICON_FX[x[0]] = x[1]; });
+  // ---------- プライベートラウンジのアイコンの技（lounge）。★4 は 3 つ、★5 は 5 つ＋cuts ----------
+  [["em:lgcrown", ["impact", "facet", "orbitp"]], ["em:lgnote", ["stopmo", "boil", "halftone"]], ["em:lgbond", ["beat", "ripple", "confetti"]],
+    ["em:lgmyth", ["leak", "facet", "embers", "rgbframe", "bars", "cuts"]]].forEach(function (x) { ICON_FX[x[0]] = x[1]; });
   var FX_BY_R = [[], [], ["leak"], ["echo", "stopmo"], ["trail", "leak", "holo"], ["crt", "mosh", "echo", "leak", "cuts"]]; // レシピのないアイコン
   var EMOJI_FONT = '"Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji", sans-serif';
   var IC_MORE = ["leak", "confetti", "beat", "petals"]; // Ⅲ で足す技（軽いものだけ。echo・trail は残像を何枚も描くので足さない）
@@ -9864,6 +10564,25 @@ if (location.hash === "#lcdcard" || location.hash === "#sitecard" || document.do
     ["ハイパーを見た鹿", ["assemble", "gold", "sparkle", "star", "leak", "shake", "cuts"]], ["虹を駆ける鹿", ["star", "wave", "chroma", "sparkle", "echo", "warp", "cuts"]],
     ["星雲討伐隊", ["shake", "glitch", "chroma", "neon", "drop", "scan", "cuts"]], ["奈落帰り", ["sink", "echo", "glitch", "neon", "scan", "cuts"]],
     ["時をかける鹿", ["rewind", "decode", "chroma", "echo", "stopmo", "glitch", "cuts"]]
+  ].forEach(function (x) { EP_TX[x[0]] = x[1]; });
+  // ---------- ラウンジの二つ名の技（プライベートラウンジのアチーブメント）。★2 は 1 つ・★3 は 2 つ・★4 は 3 つ・★5 は 6 つ＋cuts（★1 はなし）----------
+  // ボス＝shake・drop・glitch、水晶＝sparkle、闇と影＝echo、深い所・掘る＝sink、建てる＝assemble・outline（設計図の線）、宇宙＝warp・neon、お金＝gold
+  // marker は gold・leak・scan と組ませない（背景どうしがぶつかって文字が消える）。★5 は奇数の拍に 5 番目の技が必ず入るので、star と gold が 2 つだけで重ならない順に
+  [["街道の王殺し", ["drop", "shake"]], ["眠りを破る者", ["leak", "shake"]], ["影を祓う者", ["echo", "gold"]], ["竜を砕く者", ["shake", "glitch", "sparkle"]],
+   ["四つの玉座を空けた鹿", ["spin", "gold", "shake"]], ["ボスハンター", ["scan", "drop"]],
+   ["ボス狩りの伝説", ["drop", "shake", "gold", "glitch", "echo", "neon", "cuts"]],
+   ["街道の踏破者", ["marker"]], ["遺跡の最奥へ", ["decode"]], ["闇夜の歩き手", ["stopmo", "echo"]], ["水晶の底を見た鹿", ["sink", "sparkle"]], ["全域踏破", ["scan", "wave", "sparkle"]],
+   ["ネムの相棒", ["stopmo"]], ["ポスケと空を見る鹿", ["drop"]], ["カチの親友", ["echo"]], ["ザザの調律師", ["scan"]],
+   ["ホリと掘る鹿", ["sink"]], ["ユラとただよう鹿", ["wave"]], ["チクに水をやる鹿", ["outline"]], ["チャリンの金庫番", ["gold"]], ["育ての名人", ["bounce", "gold", "sparkle"]],
+   ["剣の極み", ["glitch", "shake"]], ["魔導の極み", ["chroma", "leak"]], ["技巧の極み", ["spin", "stopmo"]], ["癒しの極み", ["sparkle", "leak"]], ["不動の盾", ["outline", "gold"]],
+   ["道を極めし鹿", ["spin", "gold", "wave", "star", "echo", "leak", "cuts"]],
+   ["はじめてのなかま", ["bounce"]], ["なかま大家族", ["bounce", "spin"]], ["幻獣使い", ["star", "echo", "leak"]],
+   ["主任研究員", ["type"]], ["生態学の権威", ["decode", "scan", "echo"]],
+   ["隠れ家の大工", ["assemble"]], ["隠れ家の棟梁", ["assemble", "marker"]], ["秘密基地の主", ["assemble", "outline", "leak"]], ["地底の開拓者", ["sink", "shake"]], ["工房の親方", ["assemble", "spin"]],
+   ["インテリア通", ["spin"]], ["家具の目利き", ["scan", "sparkle", "spin"]], ["宇宙の見える部屋", ["warp", "sparkle", "neon"]],
+   ["お得意さま", ["sparkle"]], ["顔なじみ", ["wave", "bounce"]], ["行商人の友", ["bounce", "gold", "echo"]],
+   ["伝説を拾った鹿", ["star", "sparkle"]], ["秘宝の主", ["assemble", "gold", "star", "leak", "sparkle", "warp", "cuts"]],
+   ["レシピ収集家", ["chroma"]], ["クレジット長者", ["spin", "gold"]]
   ].forEach(function (x) { EP_TX[x[0]] = x[1]; });
   // ---------- プレステージ専用のコスメ（P1・緋）：スキン「XIII」（id は hizuno） ----------
   // プレステージした人だけが着られる（ガチャ・お店には出ない）。P1 の色は黒と緋（血のような深い赤）。
@@ -10113,7 +10832,7 @@ if (location.hash === "#lcdcard" || location.hash === "#sitecard" || document.do
       cur = ""; // 描き終わるまでは「出していない」（途中で失敗したら、鹿物語は自分のカードのまま）
       // 当てた人の見た目・レベル・持ち物は、出すたびに読み直す（オーバーレイが配信のあいだに書き換えるため）
       data = read(DATA, null); equip = read(EQUIP, {}) || {}; gacha = read(GACHA, {}) || {}; support = read(SUPPORT, {}) || {};
-      xpOv = numMap(read(XP_OV, {})); xpPa = numMap(read(XP_PA, {})); prest = prMap(read(PRESTIGE, {})); paStats = read(PA_STATS, {}) || {}; ovStats = read(OV_STATS, {}) || {};
+      xpOv = numMap(read(XP_OV, {})); xpPa = numMap(read(XP_PA, {})); prest = prMap(read(PRESTIGE, {})); paStats = read(PA_STATS, {}) || {}; ovStats = read(OV_STATS, {}) || {}; loStats = loRead();
       var lk = looks(name), X = curXp(name), L = lvOf(X), w = read("pachinko-wallet-v1", {}) || {};
       var r = fillCard(el, name, lk, { L: L, X: X, P: prOf(name), T: lvTier(L), t: titleOf(support[name]), from: L > 1 ? lvNeed(L - 1) : 0, to: lvNeed(L), meta: "大当たり！　持ち玉 " + (+w[name] || 0) + "玉" });
       wrap.style.setProperty("--pa", getComputedStyle(el).getPropertyValue("--pa").trim() || "#8B3DFF"); // 後ろはスキンの色
@@ -10406,7 +11125,7 @@ if (location.hash === "#lcdcard" || location.hash === "#sitecard" || document.do
   }
   function streakOf(name) { var v = data.viewers[name]; if (!v) return 0; var d = dayPrev(); return v.last === d.day || v.last === d.prev ? v.streak : 0; }
 
-  window.__ovTest = { note: noteViewer, streak: streakOf }; // 動作確認用
+  window.__ovTest = { note: noteViewer, streak: streakOf, facts: facts }; // 動作確認用（facts：コスメの 条件に わたす u。ラウンジの まとめは u.lo）
 
   // ---------- 時計 ----------
   var DOW = ["日", "月", "火", "水", "木", "金", "土"];
@@ -10936,6 +11655,7 @@ if (location.hash === "#lcdcard" || location.hash === "#sitecard" || document.do
     if (e.key === SUPPORT) support = read(SUPPORT, {}) || {};
     if (e.key === EQUIP) equip = read(EQUIP, {}) || {};
     if (e.key === OV_STATS) ovStats = read(OV_STATS, {}) || {};
+    if (e.key === LOUNGE_ST) loStats = loRead(); // ラウンジの 記録の まとめ（しまうのは OBS の 画面。知らせるのも あちら）
     if (e.key === PA_STATS) { // 鹿物語の実績が増えた人だけ、持ち物を確かめる
       var np = read(PA_STATS, {}) || {}, old = paStats; paStats = np;
       Object.keys(np).forEach(function (u) { if (JSON.stringify(np[u]) !== JSON.stringify(old[u])) checkOwn(u); });
@@ -12040,6 +12760,34 @@ if (location.hash === "#lcdcard" || location.hash === "#sitecard" || document.do
       [ownerId, otherId].forEach(function (id) { if (!c.ids.some(function (x) { return x.id === id; })) c.ids.push({ id: id, login: lgLogin[id] || "" }); });
       c.ids = c.ids.slice(-4); lgClash[name] = c; write("mono-link-lg-clash-v1", lgClash); lgDisOut();
     } });
+  // ---------- ラウンジの 記録の まとめ（門番の lstat。鍵が 合った あとに 全員分 all・かわった ときに その 人の 分）----------
+  // Twitch の id → 表示名（帳簿の nameFor：チャットで 見た 名前。まだの 人は 門番が 知って いる 表示名）にして shika-lounge-v1 に { 表示名: まとめ }
+  // まとめは 数と 生の id だけ（知らない 形は すてる）。id は 名前を かえた 人の 前の 名前の 分を 消す ため
+  var LO_MAPS = ["pets", "boss", "floor", "hide", "rep"], LO_IDS = ["master", "mythic"], LO_NUMS = ["petMax", "petKinds", "bossKinds", "bossTotal", "floor5", "tamed", "lab", "hide3", "furnKinds", "furn5", "repMax", "mythicN", "recipes", "credits"];
+  function loClean(lo, id) {
+    var ok = function (k) { return typeof k === "string" && /^[A-Za-z0-9_-]{1,40}$/.test(k) && k !== "__proto__"; }, n = function (v) { v = +v; return isFinite(v) && v > 0 ? Math.min(1e12, Math.floor(v)) : 0; }, out = {};
+    LO_MAPS.forEach(function (k) { var o = lo[k], m = {}; if (o && typeof o === "object" && !Array.isArray(o)) Object.keys(o).slice(0, 60).forEach(function (x) { if (ok(x) && n(o[x])) m[x] = n(o[x]); }); out[k] = m; });
+    LO_IDS.forEach(function (k) { out[k] = Array.isArray(lo[k]) ? lo[k].filter(ok).slice(0, 40) : []; });
+    LO_NUMS.forEach(function (k) { out[k] = n(lo[k]); });
+    out.id = id; return out;
+  }
+  function loGot(m) {
+    var byId = {}, got = [], dirty = false;
+    Object.keys(loStats).forEach(function (k) { var x = loStats[k]; if (x && x.id) byId[x.id] = k; });
+    m.list.slice(0, 2000).forEach(function (x) {
+      var id = x && String(x.id || ""); if (!/^\d{1,20}$/.test(id) || !x.lo || typeof x.lo !== "object") return;
+      var name = LG ? LG.nameFor(id, x.n || x.l) : String(x.n || x.l || "").slice(0, 40);
+      if (!name || name === "__proto__") return;
+      if (byId[id] && byId[id] !== name) { delete loStats[byId[id]]; dirty = true; }
+      byId[id] = name;
+      var lo = loClean(x.lo, id);
+      if (JSON.stringify(loStats[name]) === JSON.stringify(lo)) return;
+      loStats[name] = lo; dirty = true; got.push(name);
+    });
+    if (dirty && !demo) write(LOUNGE_ST, loStats);
+    // 配信中に かわった 人は すぐ 知らせる（★4 以上は 全画面）。全員分の ときは 知らせない（その 人が つぎに 話した ときに checkOwn が 知らせる）
+    if (!m.all) got.forEach(function (name) { checkOwn(name); });
+  }
   function remoteConnect() {
     clearTimeout(remoteTimer);
     var url = siteUrl(), key = siteKey();
@@ -12054,6 +12802,7 @@ if (location.hash === "#lcdcard" || location.hash === "#sitecard" || document.do
       var m; try { m = JSON.parse(ev.data); } catch (e) { return; }
       if (m.t === "auth") { remoteState = m.ok ? "on" : "badkey"; if (m.ok) { remoteRetry = 0; setTimeout(bugsOut, 1000); if (LG) ws.send(JSON.stringify(LG.hi())); } pushStatus(); return; }
       if (m.t === "lg") { if (LG) LG.handleAsync(m).then(function (r) { if (r && ws.readyState === 1) ws.send(JSON.stringify(r)); }); return; }   // ラウンジの 玉と リソース
+      if (m.t === "lstat" && Array.isArray(m.list)) { loGot(m); return; }   // ラウンジの 記録の まとめ（古い 門番は 送って こない）
       if (m.t === "bugok" && typeof m.id === "string") { bugSent(m.id); return; }
       if (m.t === "cmd" && typeof m.n === "string" && typeof m.text === "string" && m.n) remoteCmd(m.n.slice(0, 40), m.text.slice(0, 320));
       if (m.t === "like" && typeof m.id === "string" && m.byId) onLike(m);

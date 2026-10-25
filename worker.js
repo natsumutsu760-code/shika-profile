@@ -7,6 +7,7 @@
 //   チャットに書かないので、連投でタイムアウトされない。1 人 1 秒に 1 回まで
 import { loungeApi, relayList } from "./lounge/lounge-api.js";
 import { relayFetch } from "./lounge/lounge-relay.js";
+import { statFetch, statHello } from "./lounge/lounge-stats.js";
 import { inviteApi, inviteFetch, inviteSeen } from "./lounge/lounge-invite.js";
 import { lgFetch, lgFromObs } from "./lounge/lounge-ledger.js";
 export { Viewer } from "./lounge/viewer.js";
@@ -726,6 +727,7 @@ export class Lounge {
       ws.serializeAttachment({ ok, at: now, b: Math.max(0, Math.min(1e6, Math.floor(+m.b) || 0)) }); // b：オーバーレイの版（build 42 から送ってくる）
       ws.send(JSON.stringify({ t: "auth", ok }));
       if (!ok) ws.close(4001, "key"); else this.toViewers({ t: "obs", on: 1 });
+      if (ok) await statHello(this, ws);   // ラウンジの 記録の まとめ（全員分を 1 通）
       return;
     }
     if (!a.ok) return;
@@ -787,6 +789,7 @@ export class Lounge {
     const url = new URL(req.url), now = Date.now();
     const lgr = await lgFetch(this, url, req); if (lgr) return lgr;
     const rlr = await relayFetch(this, url, req); if (rlr) return rlr;
+    const str = await statFetch(this, url, req); if (str) return str;   // ラウンジの 記録の まとめ（Viewer から。OBS へ lstat）
     const ivr = await inviteFetch(this, url, req); if (ivr) return ivr;
     if (url.pathname === "/obs" || url.pathname === "/mirror") this.trimPending(url.pathname === "/obs" ? "obs" : "mx", now);
     if (url.pathname === "/obs") {
