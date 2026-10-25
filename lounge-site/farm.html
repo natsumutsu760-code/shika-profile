@@ -1,0 +1,312 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lounge Farm</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Zen+Maru+Gothic:wght@500;700;900&display=swap">
+<style>
+  /* MONO LINK のラウンジ：畑と 坑道（鹿さんの頼み、2026-10-25。スターデューバレーの ように）。地下を 広げた 所に 作る 設備
+     畑：植物の 素材を 植えると 時間で 何こかに なる。列ごとの スプリンクラーで 品質が 上がる。坑道：パーティに いない なかまが 掘る
+     タブ（畑・坑道）で 分ける。左で 見る・えらぶ、右（スマホは 下）で 決める。決まりは farm.js、記録は 門番 */
+  :root {
+    --space:#F6F8FC; --ink:#1B2340; --soft:#6A7394; --line:#DCE3F0;
+    --sky:#2EA8FF; --coral:#FF5A64; --sun:#FFC21A; --leaf:#22CC88; --gold:#E0A21C; --farm:#4CA830; --mine:#6A7088;
+    --soil:#8A5A36; --soil-lt:#A87146;
+    --jp:"Zen Maru Gothic", "Hiragino Maru Gothic ProN", sans-serif; --num:"Fredoka", "Zen Maru Gothic", sans-serif;
+    --lift:0 18px 40px -18px rgba(27,35,64,.35), 0 2px 0 rgba(27,35,64,.06);
+  }
+  * { box-sizing:border-box; }
+  body { margin:0; min-height:100vh; background:radial-gradient(120% 80% at 50% 0%, #FFFFFF 0%, var(--space) 55%, #EAF0FA 100%); color:var(--ink); font:500 16px/1.65 var(--jp); word-break:auto-phrase; text-wrap:pretty; }
+  button { font:inherit; color:inherit; cursor:pointer; }
+  button:disabled { cursor:not-allowed; }
+  :focus-visible { outline:3px solid var(--sky); outline-offset:3px; border-radius:12px; }
+  h1, h2, h3, p, ul { margin:0; padding:0; } ul { list-style:none; }
+  .top { display:flex; align-items:center; gap:10px; padding:12px clamp(16px, 4vw, 40px); }
+  .top b { font:700 22px/1 var(--num); letter-spacing:.06em; } .top b i { font-style:normal; color:var(--sky); }
+  .top small { font:700 13px/1 var(--jp); color:var(--soft); margin-left:6px; } .top small a { color:inherit; }
+  main { max-width:1060px; margin:0 auto; padding:0 clamp(16px, 4vw, 40px) 48px; display:grid; grid-template-columns:minmax(0, 1.2fr) minmax(0, 1fr); gap:14px; align-items:start; }
+  .panel { background:rgba(255,255,255,.92); border-radius:26px; box-shadow:var(--lift); padding:clamp(14px, 2.4vw, 20px); }
+  .head { grid-column:1 / -1; display:flex; flex-wrap:wrap; gap:8px 16px; align-items:center; padding:12px 20px; }
+  .head h1 { font:900 20px/1.2 var(--jp); display:flex; align-items:center; gap:10px; margin-right:auto; }
+  .head h1 small { font:600 13px/1 var(--num); padding:4px 9px; border-radius:99px; background:#E6F6DE; color:#2F7A14; }
+  .head.m h1 small { background:#ECEEF4; color:#4A5068; }
+  .gtabs { display:flex; flex-wrap:wrap; gap:6px; }
+  .gtabs button { display:inline-flex; align-items:center; gap:6px; border:1.5px solid var(--line); background:#fff; border-radius:999px; padding:8px 16px; font:800 14px/1 var(--jp); color:var(--soft); }
+  .gtabs button[aria-selected="true"] { background:var(--ink); color:#fff; border-color:var(--ink); }
+  .gtabs em { font-style:normal; min-width:18px; padding:0 5px; border-radius:99px; background:var(--leaf); color:#fff; font:600 11px/18px var(--num); text-align:center; }
+  .jelly { border:0; border-radius:999px; padding:14px 18px; font:900 16px/1 var(--jp); background:var(--farm); color:#fff; box-shadow:0 5px 0 rgba(76,168,48,.3); width:100%; }
+  .jelly.m { background:var(--mine); box-shadow:0 5px 0 rgba(106,112,136,.3); }
+  .jelly.light { background:#fff; color:var(--ink); box-shadow:inset 0 0 0 2px var(--ink); }
+  .jelly:disabled { background:#C9D1E2; color:#fff; box-shadow:0 5px 0 #E3E8F2; }
+  .why { font:700 13px/1.5 var(--jp); color:var(--coral); text-align:center; }
+  .next { font:700 13.5px/1.5 var(--jp); color:var(--soft); text-align:center; padding:6px 0 2px; } .next b { color:var(--ink); }
+  .bar { margin-bottom:12px; }
+  .more { display:block; margin-top:10px; padding:10px; border-radius:16px; border:2px dashed var(--line); text-align:center; font:800 13px/1.3 var(--jp); color:var(--soft); text-decoration:none; }
+  .lockbox { display:grid; gap:8px; justify-items:start; font:700 14px/1.6 var(--jp); } .lockbox a { font:900 14px/1 var(--jp); color:#1E6FB0; }
+  .need-h { display:block; font:900 12px/1.3 var(--jp); color:var(--soft); margin-bottom:6px; }
+
+  /* 畑：1 列 ＝ スプリンクラー 1 つ ＋ 4 マス */
+  .field { display:grid; gap:10px; padding:12px; border-radius:20px; background:linear-gradient(180deg, #E9F5DC, #DCEFC8); }
+  .row { display:grid; grid-template-columns:58px repeat(4, minmax(0, 1fr)); gap:8px; align-items:stretch; }
+  .spr { display:grid; justify-items:center; align-content:center; gap:2px; padding:6px 2px; border-radius:14px; border:2px dashed #A9C99A; background:rgba(255,255,255,.6); }
+  .spr.has { border-style:solid; border-color:#7FB8E8; background:#F2F9FF; }
+  .spr svg { width:30px; height:30px; } .spr small { font:800 10px/1.2 var(--jp); color:var(--soft); text-align:center; }
+  .spr[aria-pressed="true"] { box-shadow:0 0 0 3px var(--sky); }
+  .plot { position:relative; display:grid; justify-items:center; align-content:center; gap:3px; min-height:86px; padding:8px 4px 6px; border-radius:14px; border:0;
+    background:radial-gradient(90% 70% at 50% 40%, var(--soil-lt), var(--soil)); box-shadow:inset 0 -4px 0 rgba(0,0,0,.18); color:#fff; }
+  .plot::before { content:""; position:absolute; inset:10px 8px auto; height:42%; border-radius:10px; background:repeating-linear-gradient(0deg, rgba(0,0,0,.08) 0 3px, transparent 3px 8px); pointer-events:none; }
+  .plot img, .plot svg { position:relative; width:34px; height:34px; image-rendering:pixelated; }
+  .plot small { position:relative; font:800 11.5px/1.2 var(--jp); text-shadow:0 1px 0 rgba(0,0,0,.35); white-space:nowrap; }
+  .plot.empty { background:repeating-linear-gradient(45deg, #B88A5E 0 6px, #AE8054 6px 12px); opacity:.9; }
+  .plot.empty .plus { position:relative; width:30px; height:30px; border-radius:50%; display:grid; place-items:center; background:rgba(255,255,255,.28); font:700 20px/1 var(--num); }
+  .plot.empty[aria-pressed="true"] { opacity:1; box-shadow:0 0 0 3px var(--sky), inset 0 -4px 0 rgba(0,0,0,.18); }
+  .plot.empty[aria-pressed="true"] .plus { background:var(--sky); }
+  .plot.grow img { filter:saturate(.55) brightness(.92); transform:scale(.82); }
+  .plot .pg { position:relative; width:78%; height:6px; border-radius:99px; background:rgba(0,0,0,.28); overflow:hidden; } .plot .pg i { position:absolute; inset:0 auto 0 0; background:#B8F28A; border-radius:inherit; }
+  .plot.ready { background:radial-gradient(90% 70% at 50% 40%, #B98450, var(--soil)); box-shadow:0 0 0 2.5px #FFE07A, inset 0 -4px 0 rgba(0,0,0,.18); }
+  .plot.ready img { animation:bob 1.6s ease-in-out infinite; } .plot.ready small { color:#FFF4B8; }
+  .plot.ready::after { content:"✦"; position:absolute; top:4px; right:7px; color:#FFE07A; font-size:13px; animation:tw 1.6s ease-in-out infinite; }
+  @keyframes bob { 50% { transform:translateY(-3px); } } @keyframes tw { 50% { opacity:.3; } }
+
+  .side { display:grid; gap:12px; scroll-margin:12px; }
+  .side h2 { font:900 19px/1.3 var(--jp); }
+  .crops { display:grid; grid-template-columns:repeat(3, minmax(0, 1fr)); gap:6px; }
+  .crop { display:grid; justify-items:center; gap:2px; padding:8px 4px; border-radius:16px; border:2px solid #CCD4E4; background:#fff; text-align:center; }
+  .crop img { width:30px; height:30px; image-rendering:pixelated; } .crop b { font:800 12.5px/1.25 var(--jp); } .crop small { font:600 11px/1.2 var(--num); color:var(--soft); }
+  .crop[aria-pressed="true"] { border-color:var(--ink); box-shadow:0 0 0 3px rgba(46,168,255,.25); }
+  .crop:disabled { opacity:.42; }
+  .facts { display:grid; gap:6px; padding:10px 12px; border-radius:16px; background:var(--space); }
+  .facts div { display:grid; grid-template-columns:70px minmax(0, 1fr); gap:8px; align-items:baseline; font:700 13px/1.45 var(--jp); } .facts .l { font:900 11.5px/1.4 var(--jp); color:var(--soft); }
+  .q { display:inline-block; padding:1px 8px; border-radius:99px; font:600 12px/1.5 var(--num); background:#FFF4CC; color:#8A5F00; }
+  .sprs li { display:grid; grid-template-columns:44px minmax(0, 1fr) auto; gap:10px; align-items:center; padding:8px 10px; border-radius:16px; }
+  .sprs li + li { margin-top:4px; } .sprs li.on { background:#EAF5FF; box-shadow:inset 0 0 0 2px #9CCDF5; }
+  .sprs .ic { width:44px; height:44px; border-radius:12px; display:grid; place-items:center; background:var(--space); } .sprs .ic svg { width:34px; height:34px; }
+  .sprs b { display:block; font:800 14px/1.3 var(--jp); } .sprs small { display:block; font:700 11.5px/1.4 var(--jp); color:var(--soft); }
+  .sprs em { font-style:normal; font:900 12px/1 var(--jp); color:#1E6FB0; }
+  .sprs a { font:900 13px/1 var(--jp); color:#1E6FB0; }
+  .mini { border:1.5px solid var(--line); background:#fff; border-radius:999px; padding:8px 14px; font:800 13px/1 var(--jp); white-space:nowrap; }
+  .mini:disabled { opacity:.45; }
+  .back { justify-self:start; border:0; background:none; padding:4px 0; font:900 13px/1 var(--jp); color:#1E6FB0; }
+
+  /* 坑道 */
+  .slots { display:grid; gap:8px; }
+  .slot { display:grid; grid-template-columns:52px minmax(0, 1fr) auto; gap:12px; align-items:center; padding:10px 12px; border-radius:18px; background:linear-gradient(135deg, #F1F2F6, #E4E6EE); }
+  .slot.free { background:none; border:2px dashed var(--line); grid-template-columns:52px minmax(0, 1fr); }
+  .orb { width:52px; height:52px; border-radius:50%; display:grid; place-items:center; background:var(--c, #DCE3F0); box-shadow:inset 0 -3px 0 rgba(0,0,0,.12); }
+  .orb img { width:40px; height:40px; image-rendering:pixelated; } .orb.free { background:var(--space); color:var(--soft); font:700 22px/1 var(--num); }
+  .slot b { font:800 15px/1.3 var(--jp); } .slot small { display:block; font:700 11.5px/1.45 var(--jp); color:var(--soft); }
+  .slot .pg { margin:4px 0 2px; height:7px; border-radius:99px; background:#D3D7E2; overflow:hidden; } .slot .pg i { display:block; height:100%; border-radius:inherit; background:linear-gradient(90deg, #A7AFC4, #6A7088); }
+  .slot .pg.full i { background:linear-gradient(90deg, #FFC21A, #E0A21C); }
+  .finds { margin-top:14px; } .finds ul { display:flex; flex-wrap:wrap; gap:6px; }
+  .finds li { display:inline-flex; align-items:center; gap:5px; padding:4px 10px 4px 5px; border-radius:99px; background:var(--space); font:800 12px/1.2 var(--jp); }
+  .finds img { width:22px; height:22px; image-rendering:pixelated; }
+  .filters { display:grid; gap:6px; padding:10px 12px; border-radius:16px; background:var(--space); }
+  .frow { display:flex; align-items:center; gap:6px; flex-wrap:wrap; } .frow > span { width:56px; flex:none; font:900 11px/1.2 var(--jp); color:var(--soft); }
+  .chip { border:1.5px solid var(--line); background:#fff; border-radius:999px; padding:5px 10px; font:700 12px/1 var(--jp); display:inline-flex; align-items:center; gap:5px; }
+  .chip small { font:600 11px/1 var(--num); color:var(--soft); }
+  .chip[aria-pressed="true"] { background:var(--ink); border-color:var(--ink); color:#fff; } .chip[aria-pressed="true"] small { color:rgba(255,255,255,.7); }
+  .chip:disabled { opacity:.4; }
+  .grp { display:flex; align-items:center; gap:8px; margin:6px 0 6px; font:900 13px/1.2 var(--jp); } .grp::after { content:""; flex:1; height:1.5px; background:var(--line); }
+  .picks { display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:6px; }
+  .pick { display:grid; grid-template-columns:40px minmax(0, 1fr); gap:8px; align-items:center; padding:7px 9px 7px 7px; border-radius:16px; border:2px solid var(--line); background:#fff; text-align:left; }
+  .pick .orb { width:40px; height:40px; } .pick .orb img { width:30px; height:30px; }
+  .pick b { display:block; font:800 13px/1.25 var(--jp); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; } .pick small { display:block; font:700 11px/1.3 var(--jp); color:var(--soft); }
+  .pick[aria-pressed="true"] { border-color:var(--sky); background:#F4FAFF; box-shadow:0 0 0 3px rgba(46,168,255,.16); }
+  .got { display:flex; flex-wrap:wrap; gap:6px; justify-content:center; }
+  .got span { display:inline-flex; align-items:center; gap:4px; padding:3px 9px 3px 4px; border-radius:99px; background:#fff; font:800 12px/1.2 var(--jp); box-shadow:0 1px 0 rgba(27,35,64,.1); }
+  .got img { width:20px; height:20px; image-rendering:pixelated; }
+  @media (max-width:860px) { main { grid-template-columns:minmax(0, 1fr); } }
+  @media (max-width:520px) { .row { grid-template-columns:46px repeat(4, minmax(0, 1fr)); gap:5px; } .plot small { font-size:10.5px; letter-spacing:-.02em; } .field { padding:8px; } .plot { min-height:76px; } .plot img, .plot svg { width:28px; height:28px; } .spr svg { width:24px; height:24px; }
+    .picks { grid-template-columns:minmax(0, 1fr); } .slot { grid-template-columns:44px minmax(0, 1fr) auto; gap:10px; } .slot .orb { width:44px; height:44px; } .slot .orb img { width:34px; height:34px; } }
+  @media (prefers-reduced-motion:reduce) { .plot.ready img, .plot.ready::after { animation:none; } }
+  .toast { position:fixed; left:50%; bottom:24px; transform:translateX(-50%) translateY(16px); max-width:calc(100vw - 32px); padding:10px 18px; border-radius:20px; background:var(--ink); color:#fff; font:700 14px/1.4 var(--jp); opacity:0; transition:opacity .2s, transform .2s; pointer-events:none; text-align:center; z-index:5; }
+  .toast.on { opacity:1; transform:translateX(-50%); } .toast .got span { color:var(--ink); }
+  @media (prefers-reduced-motion:reduce) { .toast { transition:none; } }
+</style>
+</head>
+<body>
+<header class="top"><a href="/" style="color:inherit;text-decoration:none" aria-label="MONO LINK の サイトへ"><b>MONO LINK<i>://</i></b></a><small><a href="lounge-room.html">ラウンジ</a> ／ <a href="hideout.html?t=dig">地下の 隠れ家</a> ／ 畑・坑道</small></header>
+<main>
+  <section class="panel head" id="head"><h1><span id="ttl"></span> <small id="lv"></small></h1><div class="gtabs" role="tablist" id="gtabs" aria-label="畑・坑道"></div></section>
+  <section class="panel" id="left"></section>
+  <section class="panel side" id="side" aria-live="polite"></section>
+</main>
+<p class="toast" id="toast" role="status"></p>
+<script type="module">
+import { CROPS, cropOf, ROW, FARM, growMs, SPRINKLERS, CROP_Q, MINE_FIND, MINE_CAP_H, mineRate } from "./farm.js";
+import { WS_ITEMS } from "./workshop.js";
+import { MAT_NAME, GATHER } from "./materials.js";
+import { DUNGEONS } from "./dungeons.js";
+import { TYPES } from "./skills.js";
+import { spriteURL } from "./sprites.js";
+import { matPic } from "./mat-icons.js";
+import { wsIcon } from "./ws-icons.js";
+import { me, act, busy } from "./lounge-client.js";   // 畑・坑道の 記録と 植える・とる・掘る は 門番（くじも 門番が 引く）
+import { mountWallet } from "./wallet-bar.js"; mountWallet();   // 上の 通貨の 札（玉・リソース・クレジット）と 両替
+
+const H = 3600 * 1000;
+const q = new URLSearchParams(location.search);
+const fmt = (n) => Number(n).toLocaleString("ja-JP");
+const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
+const left = (ms) => { const m = Math.max(1, Math.ceil(ms / 60000)); return m >= 60 ? `${Math.floor(m / 60)} 時間${m % 60 ? ` ${m % 60} 分` : ""}` : `${m} 分`; };
+const short = (ms) => left(ms).replace(/ /g, "");   // マスの 中（せまい）
+const qRange = (k) => { const ks = Object.keys(CROP_Q[k || "none"]).map(Number); return `品質 ${Math.min(...ks)}〜${Math.max(...ks)}`; };
+const SPR_NAME = Object.fromEntries(WS_ITEMS.filter((x) => SPRINKLERS.includes(x.id)).map((x) => [x.id, x.name]));
+const whereOf = (id) => { const k = Object.keys(GATHER).find((g) => GATHER[g].mats.some(([m]) => m === id) || GATHER[g].hidden[0] === id); const d = DUNGEONS.find((x) => x.id === k); return d ? d.name : ""; };
+const SPROUT = `<svg viewBox="0 0 32 32" aria-hidden="true"><path d="M16 28V17" stroke="#7BD15A" stroke-width="3" stroke-linecap="round"/><path d="M16 18c0-5 4-8 9-8 0 5-4 8-9 8z" fill="#9BE36F" stroke="#4E9A2E" stroke-width="1.5"/><path d="M16 20c0-4-3-7-8-7 0 4 3 7 8 7z" fill="#9BE36F" stroke="#4E9A2E" stroke-width="1.5"/></svg>`;
+const NOSPR = `<svg viewBox="0 0 32 32" aria-hidden="true"><path d="M16 6c4 6 7 10 7 14a7 7 0 0 1-14 0c0-4 3-8 7-14z" fill="none" stroke="#9AB58C" stroke-width="2" stroke-dasharray="3 3"/></svg>`;
+
+const S = { tab: q.get("t") === "mine" ? "mine" : "farm", sel: new Set(), crop: null, side: "plant", pick: null, fl: "all", sort: "lv", got: null };
+let ME = null, FV = null, OFF = 0;
+const now = () => Date.now() - OFF;   // 門番の 時計に あわせる
+function load(m) {
+  ME = m; FV = m.farm || { plots: [], spr: [], mine: { slots: 0, on: [] }, now: Date.now() }; OFF = Date.now() - (FV.now || Date.now());
+  for (const i of [...S.sel]) if (FV.plots[i]) S.sel.delete(i);
+  if (!S.crop || !have(S.crop)) S.crop = (CROPS.find((c) => have(c.id)) || CROPS[0]).id;
+}
+const HV = () => ME.hideout || {};
+const have = (id) => ((ME.own && ME.own.mats) || []).filter((m) => m.id === id).reduce((a, m) => a + m.n, 0);
+const items = () => (ME.deeplink && ME.deeplink.items) || {};
+const stOf = (p) => (!p ? "empty" : now() >= p.end ? "ready" : "grow");
+const readyN = () => FV.plots.filter((p) => stOf(p) === "ready").length;
+const mineH = (w) => Math.max(0, Math.min(MINE_CAP_H, Math.floor((now() - w.at) / H)));
+const mineN = () => FV.mine.on.reduce((a, w) => a + mineH(w) * w.rate, 0);
+const tamedOf = (uid) => (ME.tamed || []).find((c) => c.uid === uid);
+const orb = (c) => `<span class="orb" style="--c:${(TYPES[c.type] || {}).color || "#DCE3F0"}33" aria-hidden="true"><img src="${spriteURL(c.tree)}" alt=""></span>`;
+
+// ---------- 畑 ----------
+function plotHtml(p, i) {
+  const st = stOf(p);
+  if (st === "empty") return `<button class="plot empty" data-plot="${i}" aria-pressed="${S.sel.has(i)}" aria-label="${i + 1} の マス（あき）"><span class="plus">＋</span><small>あき</small></button>`;
+  const name = MAT_NAME[p.id];
+  if (st === "ready") return `<div class="plot ready" aria-label="${esc(name)}（とれる）"><img src="${matPic(p.id)}" alt=""><small>とれる</small></div>`;
+  const f = Math.max(0, Math.min(1, (now() - p.at) / (p.end - p.at)));
+  return `<div class="plot grow" data-end="${p.end}" aria-label="${esc(name)}（育って いる）">${f < 0.5 ? SPROUT : `<img src="${matPic(p.id)}" alt="">`}<span class="pg"><i style="width:${Math.round(f * 100)}%"></i></span><small>${short(p.end - now())}</small></div>`;
+}
+function farmLeft() {
+  const lv = HV().farm || 0;
+  if (!lv) return `<div class="lockbox"><p>畑が まだ ない</p><a href="hideout.html?f=farm">隠れ家で 畑を 作る ›</a></div>`;
+  const n = readyN(), grow = FV.plots.filter((p) => stOf(p) === "grow").sort((a, b) => a.end - b.end)[0];
+  const bar = n ? `<button class="jelly" data-do="harvest">とる（${n} マス）</button>` : grow ? `<p class="next">つぎに とれる：<b>${esc(MAT_NAME[grow.id])}</b> あと ${left(grow.end - now())}</p>` : "";
+  const rows = [];
+  for (let r = 0; r * ROW < FV.plots.length; r++) {
+    const k = FV.spr[r];
+    rows.push(`<div class="row"><button class="spr ${k ? "has" : ""}" data-row="${r}" aria-pressed="${S.side === r}" aria-label="${r + 1} 列目の スプリンクラー（${k ? SPR_NAME[k] : "なし"}）">${k ? wsIcon(k) : NOSPR}<small>${qRange(k)}</small></button>${FV.plots.slice(r * ROW, r * ROW + ROW).map((p, j) => plotHtml(p, r * ROW + j)).join("")}</div>`);
+  }
+  const nx = lv < 3 ? `<a class="more" href="hideout.html?f=farm">＋ 畑 Lv${lv + 1} で ${FARM.plots[lv + 1] - FARM.plots[lv]} マス ふえる</a>` : (HV().dig || 0) < 3 ? `<a class="more" href="hideout.html?f=dig">＋ 地下の 拡張 Lv3 で もう 1 列</a>` : "";
+  return `<div class="bar">${bar}</div><div class="field">${rows.join("")}</div>${nx}`;
+}
+function plantSide() {
+  const lv = HV().farm || 0; if (!lv) return `<h2>植える</h2><p class="next">畑を 作ると 植えられる</p>`;
+  const c = cropOf(S.crop), hv = have(c.id), empty = FV.plots.map((p, i) => (p ? -1 : i)).filter((i) => i >= 0);
+  const sel = [...S.sel], n = sel.length || Math.min(empty.length, hv);
+  const why = !empty.length ? "あいて いる マスが ない" : !hv ? `${MAT_NAME[c.id]}を 持って いない（${whereOf(c.id)}の 採取で とれる）` : sel.length > hv ? `${MAT_NAME[c.id]} あと ${sel.length - hv}` : "";
+  const label = sel.length ? `えらんだ ${sel.length} マスに 植える` : `${n || ""} マスに 植える`.trim();
+  return `<h2>植える</h2>
+    <div class="crops" role="group" aria-label="植える 物">${CROPS.map((x) => `<button class="crop" data-crop="${x.id}" aria-pressed="${S.crop === x.id}" ${have(x.id) ? "" : "disabled"}><img src="${matPic(x.id)}" alt=""><b>${esc(MAT_NAME[x.id])}</b><small>${fmt(have(x.id))} こ</small></button>`).join("")}</div>
+    <div class="facts"><div><span class="l">育つ 時間</span><span>${left(growMs(c, lv))}</span></div><div><span class="l">1 マスで</span><span>${c.get[0]}〜${c.get[1]} こ・${qRange(null)}（スプリンクラーで 上がる）</span></div></div>
+    <button class="jelly ${readyN() ? "light" : ""}" data-do="plant" ${why ? "disabled" : ""}>${label}</button>${why ? `<p class="why">${esc(why)}</p>` : ""}`;
+}
+function sprSide(r) {
+  const cur = FV.spr[r] || null, it = items();
+  const li = (k) => { const n = k ? it[k] || 0 : 0, on = cur === k;
+    const btn = on ? `<em>置いて ある</em>` : !k ? `<button class="mini" data-spr="">はずす</button>` : n ? `<button class="mini" data-spr="${k}">置く</button>` : `<a href="workshop.html?k=i:${k}">工房で 作る ›</a>`;
+    return `<li class="${on ? "on" : ""}"><span class="ic">${k ? wsIcon(k) : NOSPR}</span><span><b>${k ? esc(SPR_NAME[k]) : "なし"}</b><small>${qRange(k)}${k ? `・持って いる ${n}` : ""}</small></span>${btn}</li>`; };
+  return `<button class="back" data-side="plant">‹ 植える に もどる</button><h2>${r + 1} 列目の スプリンクラー</h2><ul class="sprs">${[null, ...SPRINKLERS].map(li).join("")}</ul>`;
+}
+
+// ---------- 坑道 ----------
+function mineLeft() {
+  const lv = HV().mine || 0;
+  if (!lv) return `<div class="lockbox"><p>坑道が まだ ない</p><a href="hideout.html?f=mine">隠れ家で 坑道を 作る ›</a></div>`;
+  const M = FV.mine, n = mineN(), soon = M.on.filter((w) => mineH(w) < MINE_CAP_H).map((w) => w.at + (mineH(w) + 1) * H).sort((a, b) => a - b)[0];
+  const bar = n ? `<button class="jelly m" data-do="collect">うけとる（${fmt(n)} こ）</button>` : soon ? `<p class="next">つぎに 掘れる まで あと ${left(soon - now())}</p>` : "";
+  const slots = [];
+  for (let i = 0; i < M.slots; i++) {
+    const w = M.on[i], c = w && tamedOf(w.uid);
+    if (!w || !c) { slots.push(`<li class="slot free"><span class="orb free" aria-hidden="true">＋</span><div><b>あき</b><small>なかまを えらんで 掘らせる</small></div></li>`); continue; }
+    const h = mineH(w), full = h >= MINE_CAP_H;
+    slots.push(`<li class="slot">${orb(c)}<div><b>${esc(c.name)}</b><small>Lv${c.lv}・1 時間 ${w.rate} こ</small><div class="pg ${full ? "full" : ""}"><i style="width:${Math.round((h / MINE_CAP_H) * 100)}%"></i></div><small>${full ? `いっぱい（${fmt(h * w.rate)} こ）・うけとると また 掘る` : `${fmt(h * w.rate)} こ たまった・いっぱい まで あと ${left(w.at + MINE_CAP_H * H - now())}`}</small></div><button class="mini" data-stop="${w.uid}">やめる</button></li>`);
+  }
+  const nx = lv < 3 ? `<a class="more" href="hideout.html?f=mine">＋ 坑道 Lv${lv + 1} で もう 1 体</a>` : (HV().dig || 0) < 3 ? `<a class="more" href="hideout.html?f=dig">＋ 地下の 拡張 Lv3 で もう 1 体</a>` : "";
+  const finds = Object.keys(MINE_FIND[Math.max(1, Math.min(3, lv))]);
+  return `<div class="bar">${bar}</div><ul class="slots">${slots.join("")}</ul>${nx}<div class="finds"><span class="need-h">掘れる 物</span><ul>${finds.map((id) => `<li><img src="${matPic(id)}" alt="">${esc(MAT_NAME[id])}</li>`).join("")}</ul></div>`;
+}
+const BANDS = [[1, 9], [10, 19], [20, 29], [30, 99]];
+const bandOf = (c) => BANDS.findIndex(([a, b]) => c.lv >= a && c.lv <= b);
+// 掘らせられる 子：パーティに いない・出かけて いない・掘って いない
+function freeKids() {
+  const busyU = new Set([...(ME.party || []), ...(ME.trips || []).filter((t) => !t.done).flatMap((t) => t.party || []), ...FV.mine.on.map((w) => w.uid)]);
+  return (ME.tamed || []).filter((c) => !busyU.has(c.uid));
+}
+function mineSide() {
+  const lv = HV().mine || 0; if (!lv) return `<h2>掘らせる なかま</h2><p class="next">坑道を 作ると 掘らせられる</p>`;
+  const all = freeKids(); if (!all.some((c) => c.uid === S.pick)) S.pick = null;
+  const full = FV.mine.on.length >= FV.mine.slots, c = S.pick && tamedOf(S.pick);
+  if (full) return `<h2>掘らせる なかま</h2><p class="next">掘る 場所が いっぱい</p>`;
+  const why = !all.length ? "掘れる なかまが いない（パーティに いない 子が 掘れる）" : !c ? "下の 一覧から えらぶ" : "";
+  const vis = all.filter((x) => S.fl === "all" || bandOf(x) === +S.fl).sort((a, b) => (S.sort === "lv" ? b.lv - a.lv : a.lv - b.lv) || a.name.localeCompare(b.name, "ja"));
+  const chip = (k, v, label, n) => `<button class="chip" data-f="${k}" data-v="${v}" aria-pressed="${String(S[k]) === String(v)}" ${n === 0 && String(S[k]) !== String(v) ? "disabled" : ""}>${label}${n == null ? "" : `<small>${n}</small>`}</button>`;
+  const filt = all.length >= 8 ? `<div class="filters"><div class="frow"><span>Lv</span>${chip("fl", "all", "すべて", all.length)}${BANDS.map(([a, b], k) => chip("fl", k, b > 90 ? `${a}〜` : `${a}〜${b}`, all.filter((x) => bandOf(x) === k).length)).join("")}</div>
+    <div class="frow"><span>ならべる</span>${chip("sort", "lv", "Lv の 高い順", null)}${chip("sort", "low", "Lv の 低い順", null)}</div></div>` : "";
+  const groups = Object.entries(TYPES).map(([t, T]) => { const g = vis.filter((x) => x.type === t); return g.length ? `<p class="grp">${esc(T.label)}</p><div class="picks">${g.map((x) => `<button class="pick" data-pick="${x.uid}" aria-pressed="${S.pick === x.uid}">${orb(x)}<span><b>${esc(x.name)}</b><small>Lv${x.lv}・1 時間 ${mineRate(x.lv)} こ</small></span></button>`).join("")}</div>` : ""; }).join("");
+  return `<h2>掘らせる なかま</h2><button class="jelly m" data-do="dig" ${why ? "disabled" : ""}>${c ? `${esc(c.name)}に 掘らせる` : "掘らせる"}</button>${why ? `<p class="why">${esc(why)}</p>` : ""}${filt}${groups}`;
+}
+
+// ---------- ぜんたい ----------
+function render() {
+  const farm = S.tab === "farm", lv = farm ? HV().farm || 0 : HV().mine || 0;
+  document.getElementById("head").classList.toggle("m", !farm);
+  document.getElementById("ttl").textContent = farm ? "畑" : "坑道";
+  document.getElementById("lv").textContent = lv ? `Lv${lv}` : "まだ ない";
+  const nF = readyN(), nM = mineN();
+  document.getElementById("gtabs").innerHTML = [["farm", "畑", nF], ["mine", "坑道", nM]].map(([t, label, n]) => `<button role="tab" data-tab="${t}" aria-selected="${S.tab === t}">${label}${n ? `<em>${fmt(n)}</em>` : ""}</button>`).join("");
+  document.getElementById("left").innerHTML = farm ? farmLeft() : mineLeft();
+  document.getElementById("side").innerHTML = farm ? (typeof S.side === "number" ? sprSide(S.side) : plantSide()) : mineSide();
+}
+let tid;
+const toast = (html) => { const el = document.getElementById("toast"); el.innerHTML = html; el.classList.add("on"); clearTimeout(tid); tid = setTimeout(() => el.classList.remove("on"), 5200); };
+const gotHtml = (got) => `<span class="got">${got.map((m) => `<span><img src="${matPic(m.id)}" alt="">${esc(MAT_NAME[m.id])}${m.q ? ` 品質${m.q}` : ""} ×${m.n}</span>`).join("")}</span>`;
+async function run(b, a, body, text, done) {
+  const r = await busy(b, () => act(a, body), text);
+  if (!r.ok) return toast(esc(r.why || "できませんでした"));
+  load(await me()); done && done(r); render();
+}
+const toSide = () => { if (matchMedia("(max-width:860px)").matches) document.getElementById("side").scrollIntoView({ block: "start", behavior: matchMedia("(prefers-reduced-motion:reduce)").matches ? "auto" : "smooth" }); };
+document.querySelector("main").addEventListener("click", async (e) => {
+  const b = e.target.closest("button"); if (!b || b.disabled) return;
+  const d = b.dataset;
+  if (d.tab) { S.tab = d.tab; S.side = "plant"; history.replaceState(null, "", d.tab === "mine" ? "?t=mine" : location.pathname); return render(); }
+  if (d.plot) { const i = +d.plot; S.sel.has(i) ? S.sel.delete(i) : S.sel.add(i); S.side = "plant"; render(); document.querySelector(`[data-plot="${i}"]`)?.focus({ preventScroll: true });
+    if (matchMedia("(max-width:860px)").matches) document.querySelector('[data-do="plant"]')?.scrollIntoView({ block: "nearest", behavior: matchMedia("(prefers-reduced-motion:reduce)").matches ? "auto" : "smooth" }); return; }
+  if (d.row) { S.side = S.side === +d.row ? "plant" : +d.row; render(); return toSide(); }
+  if (d.side) { S.side = "plant"; return render(); }
+  if (d.crop) { S.crop = d.crop; return render(); }
+  if (d.f) { S[d.f] = d.v; return render(); }
+  if (d.pick) { S.pick = S.pick === d.pick ? null : d.pick; render(); return document.querySelector("#side .jelly")?.scrollIntoView({ block: "nearest" }); }
+  if (d.spr != null) return run(b, "farm.spr", { row: S.side, kind: d.spr || null }, "置いて います…", () => toast(d.spr ? `${SPR_NAME[d.spr]}を 置いた` : "はずして 持ち物に もどした"));
+  if (d.stop) { const c = tamedOf(d.stop); return run(b, "mine.set", { uid: d.stop, on: false }, "もどして います…", (r) => toast(`${esc(c ? c.name : "")}が もどった${r.got && r.got.length ? "<br>" + gotHtml(r.got) : ""}`)); }
+  if (d.do === "harvest") return run(b, "farm.harvest", {}, "とって います…", (r) => toast("とれた！<br>" + gotHtml(r.got)));
+  if (d.do === "collect") return run(b, "mine.collect", {}, "うけとって います…", (r) => toast("掘れた！<br>" + gotHtml(r.got)));
+  if (d.do === "dig") { const c = tamedOf(S.pick); return run(b, "mine.set", { uid: S.pick, on: true }, "坑道へ 送って います…", () => { S.pick = null; toast(`${esc(c.name)}が 掘りはじめた`); }); }
+  if (d.do === "plant") {
+    const empty = FV.plots.map((p, i) => (p ? -1 : i)).filter((i) => i >= 0), plots = S.sel.size ? [...S.sel] : empty.slice(0, have(S.crop));
+    return run(b, "farm.plant", { id: S.crop, plots }, "植えて います…", (r) => { S.sel.clear(); toast(`${esc(MAT_NAME[S.crop])}を ${r.n} マスに 植えた`); });
+  }
+});
+// 時計：育つ・掘れる 時間が すすんだら 書き直す（とれる・うけとれる 数が かわった ときだけ ぜんぶ）
+let last = "";
+setInterval(() => {
+  if (!FV || ME.denied) return;
+  const sig = [readyN(), FV.mine.on.map(mineH).join()].join("|");
+  if (sig !== last) { last = sig; return render(); }
+  for (const el of document.querySelectorAll(".plot[data-end] small")) el.textContent = short(+el.parentNode.dataset.end - now());
+}, 20000);
+load(await me());
+if (ME.denied || ME.ok === false) document.querySelector("main").innerHTML = `<section class="panel head"><h1>入れません</h1><span>${esc(ME.why || "もう 1 回 開いて ください")}</span>${ME.login ? `<a href="/">MONO LINK で ログイン</a>` : ""}</section>`;
+else { last = [readyN(), FV.mine.on.map(mineH).join()].join("|"); render(); }
+window.ready = true;
+</script>
+</body>
+</html>

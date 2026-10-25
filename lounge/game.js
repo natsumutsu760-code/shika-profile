@@ -17,3 +17,4 @@ export { OPS, baseOf, BASES, SLOTS, KINDS, FORMS, MATS, COLS, OLD_SLOT, comboOf,
 export { TRADERS, SPECIAL, repLv, REQ_FEE, RES_VALUE, NOTE_PRESETS, NOTE_MAX, NOTE_HIDE_AT, noteBlock } from "./deeplink.js";
 export { chainTask, dailyTask, TASK_TIDS } from "./tasks.js";
 export { WS_ITEMS, WS_MAX, ATT_BASES, ATT_KINDS, ATT_MAX, attBase, rollAtt, withAtt, attName } from "./workshop.js";   // 工房（道具・アタッチメント）
+export { CROPS, cropOf, ROW, plotCount, growMs, SPRINKLERS, harvestPlot, mineSlots, mineHours, mineRate, mineDig } from "./farm.js";   // 畑と 坑道

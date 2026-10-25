@@ -13,6 +13,7 @@ import "./warm.js";   // 派遣の 計算を 温めて おく（はじめの 1 �
 import { relayEntry } from "./lounge-relay.js";   // 配信の 中継（鹿物語の ランキングの 窓）に あずける 派遣の 材料
 import { swapPlan } from "./lounge-money.js";   // 両替（玉・クレジット・リソース）
 import { wsMake, wsAtt, attSet, attOff, attDrop } from "./lounge-workshop.js";   // 工房（道具・アタッチメント）
+import { farmPlant, farmHarvest, farmSpr, mineSet, mineCollect, mineLeave, farmView } from "./lounge-farm.js";   // 畑と 坑道
 import { ensure, give, FURN_MAX, petFirst, petJob, tripStart, tripCalc, tripDone, tripCollect, tripView, hideoutPlan, craftPlan, synthPlan, boxTake, dropOld, stashCap, tameFeedPlan, tameJoin, tameBack, researchPlan, snackCraft, loopNew, loopSet, loopSeen, loopAfter, loopStep } from "./lounge-game.js";
 
 const OPS_KEEP = 200;            // おぼえて おく op（2 回 来たら 1 回目の 答えを 返す）
@@ -261,7 +262,7 @@ export class Viewer {
     else if (/^item\.(map|collar|snack3|recipe)$/.test(String(body.a))) r = useItem(rec, body);
     else if (body.a === "req.deliver") r = await this.reqDeliver(rec, body);
     else if (body.a === "req.cancel") r = await this.reqCancel(rec);
-    else if (body.a === "tame.join") r = tameJoin(rec, body);
+    else if (body.a === "tame.join") { r = tameJoin(rec, body); if (r.ok) { const m = mineLeave(rec, body.uid, rand, now); if (m && m.got && m.got.length) r.mined = m.got; } }   // 坑道で 掘って いた 子は やめる（掘った 分は 渡す）
     else if (body.a === "tame.back") r = tameBack(rec, body);
     else if (body.a === "snack.craft") r = snackCraft(rec, body);
     else if (body.a === "ws.make") r = wsMake(rec, body, now);
@@ -269,6 +270,11 @@ export class Viewer {
     else if (body.a === "att.set") r = attSet(rec, body);
     else if (body.a === "att.off") r = attOff(rec, body);
     else if (body.a === "att.drop") r = attDrop(rec, body);
+    else if (body.a === "farm.plant") r = farmPlant(rec, body, now);
+    else if (body.a === "farm.harvest") r = farmHarvest(rec, rand, now);
+    else if (body.a === "farm.spr") r = farmSpr(rec, body);
+    else if (body.a === "mine.set") r = mineSet(rec, body, rand, now);
+    else if (body.a === "mine.collect") r = mineCollect(rec, rand, now);
     else if (typeof body.a === "string" && Object.prototype.hasOwnProperty.call(PLANS, body.a)) {   // お金が いる やること：計画を 作って 帳簿で 払う（「constructor」などは 通さない）
       const plan = PLANS[body.a](rec, body, this.env);
       r = plan.costs ? await this.charge(rec, plan, wallet) : plan;
@@ -298,7 +304,7 @@ export class Viewer {
     const now = Date.now(); dropOld(rec, now);
     return { id: rec.id, login: rec.login, name: rec.name, nameAt: rec.nameAt, names: rec.names, room: rec.room, own: rec.own, wallet: this.purse(rec, w), waiting: rec.ledger.unknown.length,
       pets: rec.pets.map((p) => ({ ...p, ...(p.type ? { sp: { all: spTotal(p.lv), left: spTotal(p.lv) - spUsed(p) }, freeLeft: freeTotal(p.lv) - Object.values(p.free || {}).reduce((a, v) => a + v, 0), build: fighterOf(p, rec), resetPrice: RESET_PRICE(p.lv) } : {}) })),
-      tamed: rec.tamed, party: rec.party, loop: rec.loop || null, lab: rec.lab, hideout: rec.hideout, credits: rec.credits, snacks: rec.snacks, tools: rec.tools, explore: rec.explore, seen: rec.seen,
+      tamed: rec.tamed, party: rec.party, farm: farmView(rec, now), loop: rec.loop || null, lab: rec.lab, hideout: rec.hideout, credits: rec.credits, snacks: rec.snacks, tools: rec.tools, explore: rec.explore, seen: rec.seen,
       stash: { cap: stashCap(rec) }, trips: rec.trips.map((t) => tripView(t, now)), deeplink: deeplinkView(rec, jstDay(now)), req: { mine: rec.req.mine, sending: rec.req.out.length } };
   }
 

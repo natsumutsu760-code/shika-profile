@@ -104,7 +104,40 @@ const ST = {
     }
     lamp(g, "#FFB561", [0, 0.7, 1.1, 1.6][lv], 0, 2.2, 0.8);
   },
+  farm(g, lv, fx) {   // 畑：Lv ＝ 畝の 列（1 列 4 マス）。列の はしに スプリンクラー、上に 育てる ランプ（鹿さんの頼み、2026-10-25）
+    if (!lv) return empty(g, 4.6, 3.6);
+    for (let r = 0; r < lv; r++) bed(g, r, (r - (lv - 1) / 2) * 1.15, fx);
+    box(g, 0.08, 2.5, 0.08, "#5E6680", -2.2, 0, -1.6); box(g, 0.08, 2.5, 0.08, "#5E6680", 2.2, 0, -1.6); box(g, 4.5, 0.08, 0.08, "#5E6680", 0, 2.5, -1.6);   // ランプの 柱
+    [-1.2, 0, 1.2].forEach((x) => { box(g, 0.9, 0.08, 0.3, "#3E4658", x, 2.35, -1.2); box(g, 0.8, 0.03, 0.22, glow("#FFF2C0", 1.8), x, 2.33, -1.2); });
+    cyl(g, 0.16, 0.13, 0.32, "#4DABF7", 2.05, 0, 1.55, 10); rod(g, 0.03, 0.3, "#4DABF7", 2.28, 0.26, 1.55, "x");   // じょうろ
+    lamp(g, "#FFF2C0", 0.8 + 0.25 * lv, 0, 2.2, 0, 5);
+  },
+  mine(g, lv, fx) {   // 坑道：たて穴と 巻き上げ機・レール・トロッコ。Lv2 で 鉱石の 山、Lv3 で 光る 水晶（鹿さんの頼み、2026-10-25）
+    if (!lv) return empty(g, 3.2, 2);
+    box(g, 1.3, 0.02, 1.3, mat("#0B0910", { roughness: 1 }), -0.7, 0, -0.1);   // 穴
+    [[-0.7, -0.78], [-0.7, 0.58]].forEach(([x, z]) => box(g, 1.5, 0.14, 0.14, "#7A5636", x, 0, z)); [[-1.42, -0.1], [0.02, -0.1]].forEach(([x, z]) => box(g, 0.14, 0.14, 1.5, "#7A5636", x, 0, z));
+    [-1.35, -0.05].forEach((x) => { const m = box(g, 0.1, 1.9, 0.1, "#6B4A2E", x, 0, -0.1); m.rotation.z = x < -0.7 ? -0.12 : 0.12; });   // 巻き上げ機
+    rod(g, 0.12, 1.4, "#8A6A4A", -0.7, 1.82, -0.1, "x"); cyl(g, 0.015, 0.015, 1.2, "#C9CED8", -0.7, 0.62, -0.1, 4);   // つな
+    const bk = cyl(g, 0.16, 0.12, 0.26, "#6A7088", -0.7, 0.55, -0.1, 8); fx.push({ bucket: bk });
+    [-0.25, 0.25].forEach((z) => rod(g, 0.025, 1.8, "#9AA3B8", 0.9, 0.04, z, "x"));   // レール
+    for (let x = 0.15; x < 1.8; x += 0.3) box(g, 0.08, 0.04, 0.7, "#5B4636", x, 0, 0);
+    const C = new THREE.Group(); C.position.set(1.1, 0.12, 0); g.add(C);   // トロッコ
+    box(C, 0.7, 0.4, 0.55, "#6A7088"); [[-0.22, -0.28], [0.22, -0.28], [-0.22, 0.28], [0.22, 0.28]].forEach(([x, z]) => { const w = cyl(C, 0.09, 0.09, 0.05, "#2B3040", x, -0.04, z, 8); w.rotation.x = Math.PI / 2; });
+    [["#8F9AAA", -0.15, 0.1], ["#A0522D", 0.12, -0.08], ["#C9CED8", 0.05, 0.14]].forEach(([c, x, z]) => ball(C, 0.13, c, x, 0.44, z, 5));
+    if (lv >= 2) [["#7A8299", 1.45, 0.75], ["#A0522D", 1.75, 0.55], ["#C98A3A", 1.6, 0.9]].forEach(([c, x, z], i) => ball(g, 0.2 - i * 0.03, c, x, 0.12, z, 5));
+    if (lv >= 3) [[-1.5, 0.75, "#8EE6FF"], [-1.25, 0.85, "#B197FC"], [0.3, -0.85, "#8EE6FF"]].forEach(([x, z, c], i) => { const m = cyl(g, 0, 0.1, 0.45 - i * 0.08, glow(c, 1.6), x, 0, z, 5); fx.push({ flicker: m }); });
+    box(g, 0.12, 0.2, 0.12, glow("#FFC98A", 1.4), 0.05, 1.5, -0.6); lamp(g, "#FFC98A", 0.7 + 0.3 * lv, -0.3, 1.8, 0.2, 4);
+  },
 };
+// 畑の 畝 1 列（4 マス）。作物は 列ごとに 色を かえる。z：列の 位置
+function bed(g, r, z, fx) {
+  box(g, 4, 0.22, 0.8, "#5A3A26", 0, 0, z); box(g, 3.8, 0.04, 0.62, "#7A5236", 0, 0.22, z);
+  [[-2.02, 0], [2.02, 0]].forEach(([x]) => box(g, 0.06, 0.28, 0.84, "#8A6A4A", x, 0, z));
+  const C = [["#7BD15A", "#4E9A2E"], ["#FF7FA8", "#4E9A2E"], ["#C9A0FF", "#3E7A2E"], ["#FFD43B", "#4E9A2E"]][r % 4];
+  [-1.4, -0.47, 0.47, 1.4].forEach((x, i) => { cyl(g, 0.025, 0.03, 0.3 + (i % 2) * 0.08, C[1], x, 0.24, z, 5); ball(g, 0.15, C[0], x, 0.62 + (i % 2) * 0.08, z, 6); ball(g, 0.11, C[1], x - 0.12, 0.42, z + 0.05, 5); });
+  cyl(g, 0.06, 0.08, 0.5, "#AEB7C6", 2.25, 0, z, 8); const h = cyl(g, 0.11, 0.11, 0.06, "#C9D1DE", 2.25, 0.5, z, 8); fx.push({ spin: h });   // スプリンクラー
+  ball(g, 0.05, glow("#4DABF7", 1.4), 2.25, 0.6, z, 5);
+}
 
 // 置き場所：左の かべ（作業台・おやつ工房）、奥の かべ（研究所・地図室・救護室）、右（トレーニング室・倉庫）。はしごは 手前
 export const SPOTS = {
@@ -112,8 +145,10 @@ export const SPOTS = {
   lab: { x: 3.3, z: 0.9, r: 0 }, maproom: { x: 6.6, z: 1, r: 0 }, medic: { x: 9.9, z: 0.9, r: 0 },
   gym: { x: 10.3, z: 4.6, r: 0 }, storage: { x: 9.8, z: 8.2, r: 0 },
   workshop: { x: 0.9, z: -3, r: Math.PI / 2, dig: 1 },   // dig：その 場所が 掘れる 地下の 拡張の Lv（奥の かべの 向こう）
+  farm: { x: 8, z: -3, r: 0, dig: 1 }, mine: { x: 6, z: -10.4, r: 0, dig: 2 },   // 畑と 坑道（③）
 };
 export const ROOM = { w: 12, d: 10, h: 3.4 };
+const LOW = 0.9;   // 拡張の あとの 奥の かべの 高さ
 // 地下の 拡張（鹿さんの決め、2026-10-25：いまの 部屋を 奥へ 広げる）。奥の かべ（z = 0）の 向こうへ Lv ごとに 6 マス
 export const EXT = [0, 6, 12, 18];
 export const DOOR = { x0: 4.4, x1: 5.5 };   // いまの 部屋から 奥への 入口（研究所と 地図室の あいだ）
@@ -126,9 +161,8 @@ export function makeHideout(lv) {
   const lines = []; for (let i = 1; i < ROOM.w; i++) lines.push(i, 0.005, 0, i, 0.005, ROOM.d); for (let j = 1; j < ROOM.d; j++) lines.push(0, 0.005, j, ROOM.w, 0.005, j);
   const lg = new THREE.BufferGeometry(); lg.setAttribute("position", new THREE.Float32BufferAttribute(lines, 3)); g.add(new THREE.LineSegments(lg, new THREE.LineBasicMaterial({ color: "#3A3650" })));
   if (!dig) box(g, ROOM.w, ROOM.h, 0.25, "#363049", ROOM.w / 2, 0, -0.125);
-  else {   // 奥の かべに 入口（木の わく）
-    box(g, DOOR.x0, ROOM.h, 0.25, "#363049", DOOR.x0 / 2, 0, -0.125); box(g, ROOM.w - DOOR.x1, ROOM.h, 0.25, "#363049", (ROOM.w + DOOR.x1) / 2, 0, -0.125);
-    box(g, DOOR.x1 - DOOR.x0, ROOM.h - 2.4, 0.25, "#363049", (DOOR.x0 + DOOR.x1) / 2, 2.4, -0.125);
+  else {   // 奥の かべは 腰の 高さまで（ななめ上から 見ると 高い かべの 裏 4 マスが かくれる ため）・入口に 木の わく
+    [[DOOR.x0 / 2, DOOR.x0], [(ROOM.w + DOOR.x1) / 2, ROOM.w - DOOR.x1]].forEach(([x, w]) => { box(g, w, LOW, 0.25, "#363049", x, 0, -0.125); box(g, w + 0.06, 0.08, 0.36, "#4A4466", x, LOW, -0.125); });
     [DOOR.x0 + 0.06, DOOR.x1 - 0.06].forEach((x) => box(g, 0.14, 2.4, 0.34, "#7A5636", x, 0, -0.125)); box(g, DOOR.x1 - DOOR.x0 + 0.1, 0.14, 0.34, "#7A5636", (DOOR.x0 + DOOR.x1) / 2, 2.32, -0.125);
     // 掘った 地面（土の 色）・岩の かべ・木の はり・あかり
     box(g, ROOM.w, 0.2, ext, "#2E2630", ROOM.w / 2, -0.2, -ext / 2);
@@ -137,15 +171,12 @@ export function makeHideout(lv) {
     box(g, ROOM.w, ROOM.h, 0.3, "#3B3240", ROOM.w / 2, 0, -ext - 0.15); box(g, 0.3, ROOM.h, ext, "#352C3C", -0.15, 0, -ext / 2);
     for (let z = -6; z >= -ext; z -= 6) { box(g, 0.22, ROOM.h, 0.22, "#6B4A2E", 0.15, 0, z + 0.2); rod(g, 0.09, ROOM.w, "#6B4A2E", ROOM.w / 2, ROOM.h - 0.25, z + 0.2, "x"); }
     for (let k = 1; k <= dig; k++) lamp(g, "#FFC98A", 1.1, 6, 2.8, -6 * k + 3, 6.5);
-    // まだ 設備の ない 区画：テープの わくと 段ボール（ここに 作れる）。畑・坑道は つぎの 作業で 作る
-    const mark = (x, z, w, d) => { const M = new THREE.Group(); M.position.set(x, 0, z); g.add(M); empty(M, w, d); };
-    mark(8, -3, 4.6, 3.6);                    // 畑（拡張 Lv1）
-    if (dig >= 2) mark(6, -10.4, 3.2, 2);     // 坑道（拡張 Lv2）
-    if (dig >= 3) mark(6, -15, 6, 3.6);        // 畑を 広げる（拡張 Lv3）
+    // 拡張 Lv3 の 区画：畑の もう 1 列（畑が まだ ない ときは テープの わく）
+    if (dig >= 3) { const M = new THREE.Group(); M.position.set(6, 0, -15); g.add(M); if (lv.farm) bed(M, 3, 0, fx); else empty(M, 6, 3.6); }
   }
   box(g, 0.25, ROOM.h, ROOM.d, "#2F2A42", -0.125, 0, ROOM.d / 2);
   box(g, ROOM.w, 0.18, 0.06, "#4A4466", ROOM.w / 2, 0, 0.03); box(g, 0.06, 0.18, ROOM.d, "#4A4466", 0.03, 0, ROOM.d / 2);
-  [[2.9, "#5A5470"], [3.12, "#6A6488"]].forEach(([y, c]) => { rod(g, 0.07, ROOM.w, c, ROOM.w / 2, y, 0.2, "x"); rod(g, 0.07, ROOM.d, c, 0.2, y, ROOM.d / 2, "z"); });
+  [[2.9, "#5A5470"], [3.12, "#6A6488"]].forEach(([y, c]) => { if (!dig) rod(g, 0.07, ROOM.w, c, ROOM.w / 2, y, 0.2, "x"); rod(g, 0.07, ROOM.d, c, 0.2, y, ROOM.d / 2, "z"); });
   // 部屋の まんなか：ケーブルと 箱、手前に はしご（上の ラウンジから 光が さす）
   box(g, 0.5, 0.4, 0.5, "#4A4466", 5.2, 0, 5).rotation.y = 0.4; box(g, 0.4, 0.3, 0.4, "#5A5470", 5.6, 0, 5.4).rotation.y = -0.2;
   const L = new THREE.Group(); L.position.set(6.6, 0, 8.9); g.add(L);
@@ -160,6 +191,7 @@ export function makeHideout(lv) {
     if (f.bob) f.bob.scale.y = 1 + 0.03 * Math.sin(t * 2);
     if (f.swing) f.swing.rotation.z = 0.06 * Math.sin(t * 1.7);
     if (f.flicker) f.flicker.material.emissiveIntensity = 2 + 0.4 * Math.sin(t * 9) * Math.sin(t * 2.3);
+    if (f.bucket) f.bucket.position.y = 0.55 + 0.35 * (0.5 + 0.5 * Math.sin(t * 0.9));
   });
   return g;
 }

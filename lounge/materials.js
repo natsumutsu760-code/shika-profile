@@ -31,7 +31,9 @@ export const MAT_NAME = Object.fromEntries([...Object.values(GATHER).flatMap((g)
 // どの敵の素材か（ドット絵を出すため）
 export const MAT_FROM = Object.fromEntries(Object.entries(ENEMY_MAT).map(([tree, [id]]) => [id, tree]));
 export const HIDDEN_MAT = new Set(Object.values(GATHER).map((g) => g.hidden[0]));
-export const sellPrice = (m) => (MAT_FROM[m.id] ? SELL.enemy(m.q || 1) : HIDDEN_MAT.has(m.id) ? SELL.hidden : SELL.gather);
+// 畑で とれた 物（採取の 素材に 品質 1〜5）は 品質が 高いほど 高く 売れる（鹿さんの頼み、2026-10-25。拾った 物は 品質 0）
+export const GATHER_Q = [1, 1.5, 2, 3, 4, 6];
+export const sellPrice = (m) => (MAT_FROM[m.id] ? SELL.enemy(m.q || 1) : Math.round((HIDDEN_MAT.has(m.id) ? SELL.hidden : SELL.gather) * (GATHER_Q[m.q || 0] || 1)));
 
 // 倉庫が いっぱいの とき（鹿さんの決め、2026-10-23）：入らない分は あずかり箱へ。7 日の うちに 倉庫を あければ うけとれる（すぎると なくなる）
 // 倉庫は どの しゅるいも 置ける。上限は 1 しゅるい（素材の id。品質ちがいも あわせて）ごとの 数（鹿さんの決め、2026-10-25。STORAGE_CAP）
