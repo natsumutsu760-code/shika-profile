@@ -4,6 +4,7 @@
 // Viewer から 頼まれた ときに その場で Viewer へ 送らない（おたがいに 待って 動かなく なるのを ふせぐ）
 // 終わって 7 日 たった 依頼は 小さな しるし（"t:" + 番号）に して ずっと のこす（何日も たってから 来た やりなおしにも 同じ 答えを 返す。2 重に しない）
 import { LIMIT_MS, KEEP_DONE, NOTE_HIDE_AT, fits, items } from "./lounge-req.js";
+import { arenaFetch, arenaAlarm } from "./lounge-arena.js";   // 闘技場（名簿・大会）も この 箱
 
 const res = (o, status = 200) => new Response(JSON.stringify(o), { status, headers: { "Content-Type": "application/json" } });
 const RETRY_MS = 60e3;   // 知らせが とどかなかったら 1 分後に もう 1 回
@@ -29,6 +30,7 @@ export class Market {
     const b = req.method === "POST" ? await req.json().catch(() => ({})) : {};
     const r = typeof b.rid === "string" ? this.reqs[b.rid] : this.reqs[url.searchParams.get("rid") || ""];
     const t = !r && typeof b.rid === "string" ? await this.state.storage.get("t:" + b.rid) : null;   // 終わった 依頼の しるし
+    const ar = await arenaFetch(this, url, b, now); if (ar) return ar;
     if (url.pathname === "/list") return res({ list: Object.values(this.reqs).filter((x) => x.status === "open" && x.until > now).sort((a, c) => c.at - a.at).map((x) => this.view(x, now)) });
     if (url.pathname === "/get") return r ? res({ ok: true, req: this.view(r, now) }) : res({ ok: false, why: "その 依頼は ない" });
     // Viewer から：出す（払い終わった あと。同じ 番号は 1 回だけ）
@@ -99,8 +101,10 @@ export class Market {
       }
       if (r.status !== "open" && now - (r.end || r.at) > KEEP_DONE) { delete this.reqs[r.rid]; await this.state.storage.put("t:" + r.rid, this.tomb(r)); await this.state.storage.delete("r:" + r.rid); }
     }
-    let left = 0;
+    const ta = await arenaAlarm(this, now);   // 22:00 の 大会を 進める（ごほうびは 下の 送る 箱へ）
+    let left = 0, sent = 0;
     for (const m of (await this.state.storage.list({ prefix: "o:" })).values()) {
+      if (++sent > 30) { left++; continue; }   // 1 回の アラームで 送るのは 30 こまで（よそへの 頼みの 上限）
       try {
         const v = this.env.VIEWER.get(this.env.VIEWER.idFromName("v:" + m.to));
         const j = await (await v.fetch("https://viewer/inbox", { method: "POST", body: JSON.stringify(m) })).json();
@@ -109,7 +113,7 @@ export class Market {
       left++;
     }
     const next = Object.values(this.reqs).filter((r) => r.status === "open").reduce((a, r) => Math.min(a, r.until), Infinity);
-    const at = left ? Math.min(now + RETRY_MS, next) : next;
+    const at = Math.min(left ? now + RETRY_MS : Infinity, next, ta);
     if (at < Infinity) await this.state.storage.setAlarm(at);
   }
 }

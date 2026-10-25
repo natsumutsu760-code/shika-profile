@@ -135,6 +135,7 @@ const DISPEL_FIRST = ["immunity", "activation", "overheal", "shield", "blessing"
 // opts.pve：ダンジョン（敵はゲームの中のモンスター）。「がんばり」はなし
 // 最大 HP・MP（装備とパッシブこみ）。ダンジョンの休憩や罠で使う
 export function vitalsOf(c) { const f = makeFighter(c, 0); return { maxHp: f.maxHp, maxMp: f.maxMp }; }
+export const fighterPower = (c) => Math.round(makeFighter(c, 0).power);   // 強さの 目安（装備こみ）。闘技場の 相手えらび・ごほうび
 export function simulate(A, B, seed, opts = {}) { return simulateTeams([A], [B], seed, opts); }
 
 // 何体対何体でも同じ決まりで戦う（1 対 1 は simulate と同じ結果）。全員が AGI の順に 1 回ずつ動き、ねらうのは生きている相手の中で HP がいちばん少ない子

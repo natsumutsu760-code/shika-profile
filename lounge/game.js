@@ -7,7 +7,8 @@ export { ENEMY_TREES } from "./enemy-trees.js";
 export { SKILL } from "./skills.js";
 export { EFFECTS } from "./effects.js";
 export { runDungeon, tripInit, tripStep, tripResult, startFloor, floorsOpen, newProgress, diaryOf, dungeonRatio, floorRatio, tamedOf, rankOf } from "./dungeon-sim.js";
-export { rng, COND_TEXT } from "./battle-sim.js";
+export { rng, COND_TEXT, simulate, fighterPower } from "./battle-sim.js";
+export { DUEL, duelPay, pickFoes, TOUR, TOUR_PAY, tourDay, tourAt, bracketOf, matchSeed } from "./arena.js";   // 闘技場
 export { floorMap, FLOORS } from "./floors.js";
 export { DUNGEONS, RUNS, TICK, TOOLS, PURPOSES, SNACK_NEED, SNACK_PRICE, RESEARCH } from "./dungeons.js";
 export { FACILITIES, STORAGE_CAP, SNACK_RECIPES, snackMats, SNACK_CRAFT_MAX } from "./facilities.js";

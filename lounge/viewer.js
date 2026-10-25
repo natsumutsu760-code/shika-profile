@@ -16,11 +16,12 @@ import { wsMake, wsAtt, attSet, attOff, attDrop } from "./lounge-workshop.js";  
 import { farmPlant, farmHarvest, farmSpr, mineSet, mineCollect, mineLeave, farmView } from "./lounge-farm.js";   // 畑と 坑道
 import { statPut } from "./lounge-stats.js";   // 記録の まとめ（OBS の コスメの 条件。かわった ときだけ Lounge へ）
 import { ensure, give, FURN_MAX, petFirst, petJob, tripStart, tripCalc, tripDone, tripCollect, tripView, hideoutPlan, craftPlan, synthPlan, boxTake, dropOld, stashCap, tameFeedPlan, tameJoin, tameBack, researchPlan, snackCraft, loopNew, loopSet, loopSeen, loopAfter, loopStep, equipScrap } from "./lounge-game.js";
+import { arenaFighter, ensureArena, duelCheck, duelDone, arenaMine } from "./lounge-arena.js";   // 闘技場
 
 const OPS_KEEP = 200;            // おぼえて おく op（2 回 来たら 1 回目の 答えを 返す）
 const RATE = { n: 5, ms: 1000 }; // 1 人 1 秒に 5 回まで
 const LABEL = { balls: "玉", res: "リソース" };
-export const MONEY = /^(shop\.|hideout\.up$|bench\.|trip\.collect$|tame\.feed$|tame\.research$|trader\.|task\.|req\.|pet\.respec$|pet\.rejob$|money\.)/;   // 玉か リソースが うごく やること（答えに いまの 数を つける）
+export const MONEY = /^(shop\.|hideout\.up$|bench\.|trip\.collect$|tame\.feed$|tame\.research$|trader\.|task\.|req\.|pet\.respec$|pet\.rejob$|money\.|arena\.duel$)/;   // 玉か リソースが うごく やること（答えに いまの 数を つける）
 const PLANS = {
   "hideout.up": (rec, b) => hideoutPlan(rec, b, rec.ledger.unknown),
   "bench.craft": (rec, b) => craftPlan(rec, b, rand),
@@ -204,6 +205,30 @@ export class Viewer {
     await this.mark(rec);
   }
 
+  // ---------- 闘技場（Market の 名簿・大会。相手の 強さは 相手の Viewer の /fighter） ----------
+  async arenaAsk(path, body) { try { return await (await this.market().fetch("https://market/arena/" + path, { method: "POST", body: JSON.stringify(body) })).json(); } catch (e) { return null; } }
+  async arena(rec, b, now) {
+    const A = ensureArena(rec, jstDay(now)), me = arenaFighter(rec);
+    if (!me) return { ok: false, why: "さきに ペットの 職業を えらんで" };
+    if (b.a === "arena.view" || b.a === "arena.foes") {
+      const pick = b.a === "arena.foes" || !A.foes.length, m = await this.arenaAsk("view", { id: rec.id, card: me.card, pick });
+      if (!m || !m.ok) return { ok: false, why: "いまは 闘技場に つながらない" };
+      if (m.foes) A.foes = m.foes;
+      return { ok: true, me: { ...me.card, w: A.w, l: A.l }, ...arenaMine(A), def: m.def, hold: { w: m.card.hw, l: m.card.hl }, tour: m.tour, last: m.last };
+    }
+    if (b.a === "arena.match") {   // 大会の 試合を あとから 見る 材料
+      try { return await (await this.market().fetch(`https://market/arena/match?day=${encodeURIComponent(String(b.day || ""))}&r=${+b.r || 0}&m=${+b.m || 0}`)).json(); } catch (e) { return { ok: false, why: "いまは 闘技場に つながらない" }; }
+    }
+    if (b.a === "arena.entry") return (await this.arenaAsk("entry", { id: rec.id, on: !!b.on, card: me.card })) || { ok: false, why: "いまは 闘技場に つながらない" };
+    const c = duelCheck(rec, A, b); if (c.why) return { ok: false, why: c.why };
+    let theirs = null;
+    try { theirs = await (await this.env.VIEWER.get(this.env.VIEWER.idFromName("v:" + c.foe.id)).fetch("https://viewer/fighter")).json(); } catch (e) {}
+    if (!theirs || !theirs.f) return { ok: false, why: "相手に つながらない（入れかえて べつの 相手に）" };
+    const r = duelDone(rec, A, c.me, theirs, rand, now);
+    await this.arenaAsk("log", { id: rec.id, a: c.me.card, b: c.foe.id, win: r.win });   // 相手の 守りの 記録（つながらなくても 勝負は そのまま）
+    return r;
+  }
+
   // やること（POST /act { body: { op, a, … }, wallet }）。op は ブラウザが 作る 1 回ごとの 番号。wallet は 門番が KV から 作った 物
   async act(body, wallet) {
     const rec = await this.load(); if (!rec) return { ok: false, why: "記録が ない" };
@@ -277,6 +302,7 @@ export class Viewer {
     else if (body.a === "mine.set") r = mineSet(rec, body, rand, now);
     else if (body.a === "mine.collect") r = mineCollect(rec, rand, now);
     else if (body.a === "equip.scrap") r = equipScrap(rec, body, now, rand);   // 装備を 手放す（玉は 下の earn で 帳簿へ）
+    else if (/^arena\.(view|foes|duel|entry|match)$/.test(String(body.a))) r = await this.arena(rec, body, now);
     else if (typeof body.a === "string" && Object.prototype.hasOwnProperty.call(PLANS, body.a)) {   // お金が いる やること：計画を 作って 帳簿で 払う（「constructor」などは 通さない）
       const plan = PLANS[body.a](rec, body, this.env);
       r = plan.costs ? await this.charge(rec, plan, wallet) : plan;
@@ -315,6 +341,8 @@ export class Viewer {
     try {
       if (url.pathname === "/init" && req.method === "POST") { const who = await req.json(); return res(this.mine(await this.run(() => this.init(who)), who.wallet)); }
       if (url.pathname === "/public") { const rec = await this.load(); return rec ? res(this.view(rec)) : res({ error: "none" }, 404); }
+      // 闘技場から：いまの ペットの 戦う 形（読むだけ。順番待ちを 通らない ので、デュエルの 相手どうしで 待ちあわない）
+      if (url.pathname === "/fighter") { const rec = await this.load(), f = rec && arenaFighter(rec); return f ? res(f) : res({ error: "none" }, 404); }
       if (url.pathname === "/act" && req.method === "POST") {
         this.hits = this.hits.filter((t) => now - t < RATE.ms);
         if (this.hits.length >= RATE.n) return res({ ok: false, why: "1 秒に 5 回まで" }, 429);
@@ -322,14 +350,14 @@ export class Viewer {
         const b = await req.json();
         return res(await this.run(() => this.act(b.body || {}, b.wallet || null)));
       }
-      // Market から：依頼の 知らせ（届いた 物・期限で もどる お礼）。同じ mid は 1 回だけ
+      // Market から：依頼の 知らせ（届いた 物・期限で もどる お礼）・闘技場の 大会の ごほうび。同じ mid は 1 回だけ
       if (url.pathname === "/inbox" && req.method === "POST") {
         const m = await req.json();
         return res(await this.run(async () => {
           const rec = await this.load();
           if (!rec || typeof m.mid !== "string" || rec.req.done.includes(m.mid)) return { ok: true };
           this.give(rec, m.give);
-          for (const e of Array.isArray(m.earn) ? m.earn : []) if ((e.kind === "balls" || e.kind === "res") && Number.isInteger(e.d) && e.d > 0) await this.earn(rec, e.kind, e.d, "req:" + m.mid);
+          for (const e of Array.isArray(m.earn) ? m.earn : []) if ((e.kind === "balls" || e.kind === "res") && Number.isInteger(e.d) && e.d > 0) await this.earn(rec, e.kind, e.d, typeof m.why === "string" ? m.why : "req:" + m.mid);   // why：闘技場の 大会は "arena:日"
           if (m.clear && rec.req.mine === m.clear) rec.req.mine = null;
           if (m.clear) rec.req.out = rec.req.out.filter((x) => !(x.k === "post" && x.rid === m.clear));   // 板に 出て 終わった 依頼を もう 1 回 出さない
           rec.req.done = [...rec.req.done, m.mid].slice(-200);

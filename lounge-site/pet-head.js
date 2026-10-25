@@ -16,8 +16,13 @@ export function fillPet(ME) {
 }
 
 // ペットの 画面の タブ：押すと その 画面へ（えらんで いる タブは そのまま）
-const TAB_URL = { ステータス: "status.html", スキルツリー: "skilltree.html", ガンビット: "gambit.html", 装備: "equip.html", 冒険: "dungeon.html", なかま: "tame.html" };
+const TAB_URL = { ステータス: "status.html", スキルツリー: "skilltree.html", ガンビット: "gambit.html", 装備: "equip.html", 冒険: "dungeon.html", なかま: "tame.html", 闘技場: "arena.html" };
 export function linkTabs(root = document) {
+  // 闘技場（2026-10-25）：ペットの タブの さいごに 足す（どの ページの 並びも ここで そろう）
+  root.querySelectorAll('.tabs[role="tablist"]').forEach((nav) => {
+    const names = [...nav.querySelectorAll('[role="tab"]')].map((b) => b.textContent.trim());
+    if (names.includes("ステータス") && !names.includes("闘技場")) { const b = document.createElement("button"); b.setAttribute("role", "tab"); b.setAttribute("aria-selected", "false"); b.textContent = "闘技場"; nav.appendChild(b); }
+  });
   root.querySelectorAll('.tabs [role="tab"]').forEach((b) => {
     const u = TAB_URL[b.textContent.trim()];
     if (u && b.getAttribute("aria-selected") !== "true") b.addEventListener("click", () => { location.href = u; });

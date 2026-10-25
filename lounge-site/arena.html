@@ -1,0 +1,286 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lounge Arena</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Dela+Gothic+One&family=M+PLUS+Rounded+1c:wght@500;800&family=Fredoka:wght@500;600;700&family=Zen+Maru+Gothic:wght@500;700;900&display=swap">
+<style>
+  /* MONO LINK のラウンジ：闘技場（鹿さんの頼み、2026-10-25。プライベートラウンジの PVP）
+     タブ：デュエル（相手 3 人を 大きく：格下・同じくらい・格上。鹿さんの決め）・トーナメント（毎日 22:00・6 人から）・記録
+     戦いは 3D の 2 匹（battle-view.js。帯の 試作と 同じ 動き）。決まりは arena.js、記録と くじは 門番 */
+  :root {
+    --space:#F6F8FC; --ink:#1B2340; --soft:#6A7394; --line:#DCE3F0;
+    --sky:#2EA8FF; --coral:#FF5A64; --sun:#FFC21A; --leaf:#22CC88; --violet:#8E6CFF; --gold:#E0A21C; --ar:#D9483B;
+    --jp:"Zen Maru Gothic", "Hiragino Maru Gothic ProN", sans-serif; --num:"Fredoka", "Zen Maru Gothic", sans-serif; --pop:"Dela Gothic One", "Zen Maru Gothic", sans-serif;
+    --lift:0 18px 40px -18px rgba(27,35,64,.35), 0 2px 0 rgba(27,35,64,.06);
+  }
+  * { box-sizing:border-box; }
+  body { margin:0; min-height:100vh; background:radial-gradient(120% 80% at 50% 0%, #FFFFFF 0%, var(--space) 55%, #EAF0FA 100%); color:var(--ink); font:500 16px/1.65 var(--jp); word-break:auto-phrase; text-wrap:pretty; }
+  button { font:inherit; color:inherit; cursor:pointer; } button:disabled { cursor:not-allowed; }
+  :focus-visible { outline:3px solid var(--sky); outline-offset:3px; border-radius:12px; }
+  h1, h2, h3, p, ul { margin:0; padding:0; } ul { list-style:none; }
+  .top { display:flex; align-items:center; gap:10px; padding:12px clamp(16px, 4vw, 40px); }
+  .top b { font:700 22px/1 var(--num); letter-spacing:.06em; } .top b i { font-style:normal; color:var(--sky); }
+  .top small { font:700 13px/1 var(--jp); color:var(--soft); margin-left:6px; } .top small a { color:inherit; }
+  main { max-width:1060px; margin:0 auto; padding:0 clamp(16px, 4vw, 40px) 48px; }
+  .panel { background:rgba(255,255,255,.92); border-radius:26px; box-shadow:var(--lift); padding:clamp(14px, 2.4vw, 20px); }
+  /* ペットの 札と タブ（ほかの ペットの 画面と 同じ） */
+  .pet { display:grid; grid-template-columns:60px auto 1fr; gap:14px; align-items:center; padding:8px 20px 8px 8px; border-radius:22px; }
+  .pet .pic { width:60px; height:60px; border-radius:16px; background:radial-gradient(circle at 50% 38%, #fff 0, #FFF4D6 80%); display:flex; justify-content:center; overflow:hidden; }
+  .pet .pic img { height:120%; margin-top:4%; }
+  .pet h1 { font:900 24px/1.1 var(--jp); display:flex; align-items:baseline; gap:10px; white-space:nowrap; }
+  .pet h1 small { font:700 13px/1 var(--jp); color:var(--soft); }
+  .pet .meta { margin-top:6px; display:flex; gap:8px; align-items:center; }
+  .pet .pow { justify-self:end; text-align:right; font:700 12px/1.3 var(--jp); color:var(--soft); } .pet .pow b { display:block; font:600 26px/1 var(--num); color:var(--ink); }
+  .badge { display:inline-flex; align-items:center; gap:5px; border-radius:999px; padding:4px 10px 4px 5px; font:700 12px/1 var(--jp); color:#fff; background:var(--c); }
+  .badge::before { content:""; width:11px; height:11px; border-radius:50%; background:#fff; opacity:.85; }
+  .lv { font:600 16px/1 var(--num); } .lv small { font:700 12px/1 var(--jp); color:var(--soft); margin-right:3px; }
+  .tabs { display:flex; gap:8px; margin:12px 0 10px; overflow-x:auto; padding-bottom:4px; }
+  .tabs button { flex:none; border:1.5px solid var(--line); background:rgba(255,255,255,.9); border-radius:999px; padding:8px 16px; font:700 14px/1 var(--jp); }
+  .tabs button[aria-selected="true"] { background:var(--ink); color:#fff; border-color:var(--ink); box-shadow:0 5px 0 rgba(27,35,64,.22); }
+  /* 闘技場 */
+  .ahead { display:flex; flex-wrap:wrap; gap:8px 14px; align-items:center; margin-bottom:14px; }
+  .ahead h2 { font:400 24px/1 var(--pop); margin-right:auto; letter-spacing:.04em; }
+  .gtabs { display:flex; flex-wrap:wrap; gap:6px; }
+  .gtabs button { display:inline-flex; align-items:center; gap:6px; border:1.5px solid var(--line); background:#fff; border-radius:999px; padding:8px 16px; font:800 14px/1 var(--jp); color:var(--soft); }
+  .gtabs button[aria-selected="true"] { background:var(--ar); color:#fff; border-color:var(--ar); }
+  .gtabs em { font-style:normal; min-width:18px; padding:0 5px; border-radius:99px; background:var(--leaf); color:#fff; font:600 11px/18px var(--num); text-align:center; }
+  .jelly { border:0; border-radius:999px; padding:13px 18px; font:900 16px/1 var(--jp); background:var(--ar); color:#fff; box-shadow:0 5px 0 rgba(217,72,59,.28); width:100%; }
+  .jelly.light { background:#fff; color:var(--ink); box-shadow:inset 0 0 0 2px var(--ink); }
+  .jelly:disabled { background:#C9D1E2; color:#fff; box-shadow:0 5px 0 #E3E8F2; }
+  .mini { border:1.5px solid var(--line); background:#fff; border-radius:999px; padding:8px 14px; font:800 13px/1 var(--jp); white-space:nowrap; }
+  .why { font:700 13px/1.5 var(--jp); color:var(--coral); text-align:center; }
+  .bar { display:flex; flex-wrap:wrap; gap:6px 16px; align-items:center; margin-bottom:12px; font:700 13px/1.4 var(--jp); color:var(--soft); }
+  .bar b { font:600 18px/1 var(--num); color:var(--ink); margin:0 2px; } .bar .mini { margin-left:auto; }
+  .foes { display:grid; grid-template-columns:repeat(3, minmax(0, 1fr)); gap:12px; }
+  .foe { position:relative; display:grid; justify-items:center; gap:4px; padding:30px 14px 16px; border-radius:22px; background:linear-gradient(180deg, #fff, #F5F7FC); box-shadow:inset 0 0 0 2px var(--line); text-align:center; }
+  .foe .tier { position:absolute; top:10px; left:50%; transform:translateX(-50%); padding:3px 12px; border-radius:99px; font:900 12px/1.3 var(--jp); color:#fff; white-space:nowrap; }
+  .foe.down .tier { background:#5FA8E8; } .foe.even .tier { background:#8E96AC; } .foe.up .tier { background:var(--ar); }
+  .foe.up { box-shadow:inset 0 0 0 2px #F2B3AC; }
+  .foe .pic { width:96px; height:96px; border-radius:50%; background:radial-gradient(circle at 50% 38%, #fff 0, #FFF4D6 80%); display:flex; justify-content:center; overflow:hidden; }
+  .foe .pic img { height:120%; margin-top:6%; }
+  .foe h3 { font:900 19px/1.25 var(--jp); max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .foe .own { font:700 12px/1.3 var(--jp); color:var(--soft); max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .foe .meta { display:flex; gap:8px; align-items:center; }
+  .foe .pw { font:700 12px/1.3 var(--jp); color:var(--soft); } .foe .pw b { font:600 20px/1 var(--num); color:var(--ink); margin-left:4px; }
+  .foe .pay { min-height:26px; font:600 18px/1.3 var(--num); color:#0E8F5A; } .foe .pay small { font:800 12px/1 var(--jp); } .foe .pay.none { font:800 12px/26px var(--jp); color:var(--soft); }
+  .foe .jelly { margin-top:4px; }
+  .empty { display:grid; gap:10px; justify-items:center; text-align:center; padding:28px 12px; font:700 14px/1.6 var(--jp); color:var(--soft); }
+  /* 戦い */
+  .fight { display:grid; gap:12px; }
+  .stage { border-radius:22px; overflow:hidden; background:radial-gradient(70% 90% at 50% 20%, #4C5BD4 0%, #2A2F7E 55%, #161A4A 100%); }
+  .stage .bv::before { content:""; position:absolute; left:0; right:0; top:440px; bottom:0; background:linear-gradient(180deg, #C9A06A, #9C7446); border-top:4px solid #14164A; }
+  .stage .bv::after { content:""; position:absolute; inset:0; background:repeating-linear-gradient(90deg, rgba(255,255,255,.05) 0 2px, transparent 2px 80px); pointer-events:none; }
+  .fctl { display:flex; gap:8px; justify-content:flex-end; }
+  .result { display:grid; grid-template-columns:auto minmax(0, 1fr) auto; gap:14px; align-items:center; padding:14px 18px; border-radius:20px; }
+  .result.win { background:linear-gradient(135deg, #FFF4D6, #FFE9E4); box-shadow:inset 0 0 0 2px #FFC9A8; } .result.lose { background:var(--space); box-shadow:inset 0 0 0 2px var(--line); }
+  .result .big { font:400 30px/1 var(--pop); color:var(--ar); } .result.lose .big { color:var(--soft); }
+  .result p { font:800 14px/1.5 var(--jp); } .result p b { font:600 20px/1 var(--num); color:#0E8F5A; }
+  /* トーナメント */
+  .tour { display:grid; grid-template-columns:minmax(0, 1.1fr) minmax(0, 1fr); gap:14px; align-items:start; }
+  .box { padding:16px 18px; border-radius:20px; background:var(--space); display:grid; gap:10px; }
+  .box h3 { font:900 16px/1.3 var(--jp); display:flex; align-items:baseline; gap:10px; } .box h3 small { font:700 12px/1 var(--jp); color:var(--soft); }
+  .clock { font:600 34px/1 var(--num); } .clock small { font:800 13px/1 var(--jp); color:var(--soft); margin-left:6px; }
+  .count { font:800 14px/1.5 var(--jp); } .count b { font:600 22px/1 var(--num); margin-right:2px; } .count small { color:var(--soft); }
+  .meter { height:10px; border-radius:99px; background:#E3E8F2; overflow:hidden; } .meter i { display:block; height:100%; background:var(--ar); border-radius:inherit; }
+  .prize { display:grid; grid-template-columns:auto 1fr; gap:4px 12px; font:700 13px/1.5 var(--jp); } .prize span:nth-child(odd) { color:var(--soft); font-weight:800; }
+  .round { display:grid; gap:6px; } .round + .round { margin-top:8px; }
+  .round h4 { margin:0; font:900 12px/1.3 var(--jp); color:var(--soft); }
+  .mt { display:grid; grid-template-columns:minmax(0, 1fr) auto minmax(0, 1fr) auto; gap:8px; align-items:center; padding:7px 10px; border-radius:14px; background:#fff; font:700 13px/1.3 var(--jp); }
+  .mt span { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; } .mt span:nth-child(3) { text-align:right; }
+  .mt .w { color:var(--ar); font-weight:900; } .mt .l { color:#9AA1B8; } .mt .me { text-decoration:underline; text-decoration-thickness:2px; }
+  .mt i { font-style:normal; font:400 12px/1 var(--pop); color:var(--soft); }
+  .place { padding:10px 14px; border-radius:16px; background:linear-gradient(135deg, #FFF4D6, #FFE9E4); font:900 15px/1.4 var(--jp); }
+  /* 記録 */
+  .rec { display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:12px; margin-bottom:12px; }
+  .rec div { padding:12px 16px; border-radius:18px; background:var(--space); font:800 12px/1.4 var(--jp); color:var(--soft); }
+  .rec div b { display:block; font:600 26px/1.1 var(--num); color:var(--ink); }
+  .log li { display:grid; grid-template-columns:28px minmax(0, 1fr) auto; gap:10px; align-items:center; padding:8px 4px; border-bottom:1.5px solid var(--line); font:700 13.5px/1.4 var(--jp); }
+  .log li:last-child { border-bottom:0; } .log .ic { font-size:18px; text-align:center; } .log small { font:600 12px/1 var(--num); color:var(--soft); }
+  .log .ok { color:#0E8F5A; font-weight:900; } .log .ng { color:#9AA1B8; font-weight:900; }
+  @media (max-width:860px) { .tour { grid-template-columns:minmax(0, 1fr); } }
+  .more summary { cursor:pointer; margin-top:10px; font:900 13px/1.4 var(--jp); color:#1E6FB0; } .more .round:first-of-type { margin-top:8px; }
+  @media (max-width:640px) {
+    .ahead h2 { width:100%; font-size:22px; } .gtabs { flex-wrap:nowrap; } .gtabs button { padding:7px 11px; font-size:13px; }
+    .foes { grid-template-columns:minmax(0, 1fr); gap:8px; }
+    .foe .meta { flex-wrap:wrap; gap:4px 8px; } .foe .pay small { display:block; }
+    .foe { grid-template-columns:64px minmax(0, 1fr) auto; justify-items:start; text-align:left; gap:2px 12px; padding:12px 14px; }
+    .foe .tier { position:static; transform:none; grid-column:2; justify-self:start; }
+    .foe .pic { grid-row:1 / span 4; width:64px; height:64px; align-self:center; }
+    .foe h3, .foe .own, .foe .meta, .foe .pw { grid-column:2; }
+    .foe .pay { grid-column:3; grid-row:1 / span 2; align-self:end; justify-self:end; text-align:right; line-height:1.1; }
+    .foe .jelly { grid-column:3; grid-row:3 / span 2; width:auto; padding:11px 18px; align-self:center; }
+    .pet { grid-template-columns:60px minmax(0, 1fr) auto; } .pet h1 small { display:none; }
+    .result { grid-template-columns:minmax(0, 1fr); text-align:center; }
+    .rec { grid-template-columns:minmax(0, 1fr) minmax(0, 1fr); }
+  }
+  .toast { position:fixed; left:50%; bottom:24px; transform:translateX(-50%) translateY(16px); max-width:calc(100vw - 32px); padding:10px 18px; border-radius:20px; background:var(--ink); color:#fff; font:700 14px/1.4 var(--jp); opacity:0; transition:opacity .2s, transform .2s; pointer-events:none; text-align:center; z-index:5; }
+  .toast.on { opacity:1; transform:translateX(-50%); }
+  @media (prefers-reduced-motion:reduce) { .toast { transition:none; } }
+</style>
+<script type="importmap">{ "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.169.0/build/three.module.js", "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.169.0/examples/jsm/" } }</script>
+</head>
+<body>
+<header class="top"><a href="/" style="color:inherit;text-decoration:none" aria-label="MONO LINK の サイトへ"><b>MONO LINK<i>://</i></b></a><small><a href="lounge-room.html">ラウンジ</a> ／ 闘技場</small></header>
+<main id="main"></main>
+<p class="toast" id="toast" role="status"></p>
+<script type="module">
+import { PETS } from "./quiz.js";
+import { TYPES } from "./skills.js";
+import { simulate } from "./battle-sim.js";
+import { DUEL, duelPay, tierOf, TIERS, TOUR, TOUR_PAY, roundName } from "./arena.js";
+import { petInfo, linkTabs, gateHtml, addGateCss } from "./pet-head.js";
+import { me, act, busy } from "./lounge-client.js";   // 名簿・相手・大会・戦いの くじは 門番（相手の いまの 強さも 門番が 組み立てる）
+import { mountWallet } from "./wallet-bar.js"; mountWallet();   // 上の 通貨の 札（玉・リソース・クレジット）と 両替
+addGateCss();
+
+const q = new URLSearchParams(location.search);
+const fmt = (n) => Number(n || 0).toLocaleString("ja-JP");
+const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
+const TABS = [["duel", "デュエル"], ["tour", "トーナメント"], ["log", "記録"]];
+const S = { tab: TABS.some(([k]) => k === q.get("t")) ? q.get("t") : "duel", V: null, fight: null };
+const main = document.getElementById("main");
+const imgOf = (qid) => (PETS[qid] || PETS.nemu).img;
+const badge = (type) => { const T = TYPES[type]; return T ? `<span class="badge" style="--c:${T.color}">${T.label}</span>` : ""; };
+const left = (ms) => { const m = Math.max(0, Math.ceil(ms / 60000)); return m >= 60 ? `${Math.floor(m / 60)} 時間 ${m % 60} 分` : `${m} 分`; };
+let tid; const toast = (t) => { const el = document.getElementById("toast"); el.textContent = t; el.classList.add("on"); clearTimeout(tid); tid = setTimeout(() => el.classList.remove("on"), 4200); };
+
+function petHtml() {
+  const mp = ME.pets[0], P = petInfo(mp), V = S.V;
+  return `<section class="panel pet" aria-label="ペット"><div class="pic"><img src="${P.img}" alt="${esc(P.label)}の${esc(mp.name)}"></div>
+    <div><h1>${esc(mp.name)}<small>${esc(P.label)} ／ ${esc(ME.name)} の相棒</small></h1><div class="meta">${badge(mp.type)}<span class="lv"><small>Lv</small>${Number(mp.lv) || 1}</span></div></div>
+    <div class="pow">強さ<b>${fmt(V.me.power)}</b></div></section>
+  <nav class="tabs" role="tablist"><button role="tab" aria-selected="false">ステータス</button><button role="tab" aria-selected="false">スキルツリー</button><button role="tab" aria-selected="false">ガンビット</button><button role="tab" aria-selected="false">装備</button><button role="tab" aria-selected="false">冒険</button><button role="tab" aria-selected="false">なかま</button><button role="tab" aria-selected="true">闘技場</button></nav>`;
+}
+const tabBadge = (k) => { const V = S.V; if (k === "duel") return V.left.paid > 0 && V.foes.length ? V.left.paid : 0; if (k === "tour") return V.tour && V.tour.state === "open" && !V.tour.entered ? 1 : 0; return 0; };
+
+// ---------- デュエル ----------
+function payHtml(c) {
+  const V = S.V;
+  if (V.beat.includes(c.id)) return `<p class="pay none">きょうは もらった</p>`;
+  if (V.left.paid <= 0) return `<p class="pay none">ごほうび なし</p>`;
+  const p = duelPay(V.me.power, c.power);
+  return `<p class="pay">+${fmt(p.credits)}<small> クレジット</small>${p.res ? `<small>＋リソース ${p.res}</small>` : ""}</p>`;
+}
+function foeHtml(c) {
+  const t = tierOf(S.V.me.power, c.power), label = TIERS.find(([k]) => k === t)[1], over = S.V.left.duels <= 0;
+  return `<article class="foe ${t}"><span class="tier">${label}</span><span class="pic"><img src="${imgOf(c.pet.qid)}" alt=""></span>
+    <h3>${esc(c.pet.name)}</h3><p class="own">${esc(c.name)} の 相棒</p><div class="meta">${badge(c.pet.type)}<span class="lv"><small>Lv</small>${Number(c.pet.lv) || 1}</span></div>
+    <p class="pw">強さ<b>${fmt(c.power)}</b></p>${payHtml(c)}<button class="jelly" data-duel="${esc(c.id)}" ${over ? "disabled" : ""}>挑む</button></article>`;
+}
+function duelHtml() {
+  const V = S.V;
+  if (S.fight) return fightHtml();
+  const bar = `<div class="bar"><span>ごほうび あと<b>${V.left.paid}</b>回</span><span>きょう あと<b>${V.left.duels}</b>回 戦える</span><button class="mini" data-do="foes">入れかえ</button></div>`;
+  if (!V.foes.length) return bar + `<div class="empty"><p>まだ 相手が いない</p><p>闘技場を 開いた 人が 相手に なる</p></div>`;
+  return bar + `<div class="foes">${V.foes.map(foeHtml).join("")}</div>${V.left.duels <= 0 ? `<p class="why" style="margin-top:10px">きょうは もう ${DUEL.perDay} 回 戦った（あした また）</p>` : ""}`;
+}
+function fightHtml() {
+  const F = S.fight;
+  return `<div class="fight"><div class="stage" id="stage"></div><div class="fctl" id="fctl">${F.done ? "" : `<button class="mini" data-do="skip">結果だけ 見る</button>`}</div><div id="res">${F.done ? resultHtml() : ""}</div></div>`;
+}
+function resultHtml() {
+  const F = S.fight, r = F.r;
+  if (F.kind === "match") return `<div class="result win"><span class="big">勝負あり</span><p>${esc(F.title)}</p><button class="mini" data-do="back">もどる</button></div>`;
+  const pay = r.pay ? `<b>+${fmt(r.pay.credits)}</b> クレジット${r.pay.res ? `・リソース ＋${r.pay.res}` : ""}${r.pay.label ? `（${r.pay.label}に 勝った）` : ""}` : r.win ? "ごほうびは なし（きょうの 分は もらった）" : "何も へらない";
+  return `<div class="result ${r.win ? "win" : "lose"}"><span class="big">${r.win ? (r.upset ? "下克上！" : "勝ち！") : "負け…"}</span><p>${pay}</p><button class="jelly" data-do="back" style="width:auto;padding:12px 22px">つぎの 相手へ</button></div>`;
+}
+// 3D で 見せる（門番と 同じ 種で 計算しなおす。ちがう 結果に なったら 3D は 出さずに 結果だけ）
+async function showFight(A, B, seed, win) {
+  const host = document.getElementById("stage");
+  if (simulate(A, B, seed).at(-1).winner !== (win ? 0 : 1)) { S.fight.done = true; host.remove(); document.getElementById("fctl").innerHTML = ""; document.getElementById("res").innerHTML = resultHtml(); return; }
+  try {
+    const { mountBattle } = await import("./battle-view.js");
+    const narrow = host.clientWidth < 600, geo = narrow ? { W: 640, H: 520, S: 125, home: [200, 440], plates: "top", turnY: 456, winY: 230 } : {};   // スマホ：名札は 上の 左右（縮みすぎない ように はばを せまく）
+    S.fight.view = mountBattle(host, { A, B, seed }, { ...geo, onEnd: () => { S.fight.done = true; document.getElementById("fctl").innerHTML = ""; document.getElementById("res").innerHTML = resultHtml(); document.getElementById("res").scrollIntoView({ block: "nearest" }); } });
+    S.fight.view.play();
+  } catch (e) { S.fight.done = true; host.remove(); document.getElementById("fctl").innerHTML = ""; document.getElementById("res").innerHTML = resultHtml(); }
+}
+
+// ---------- トーナメント ----------
+function bracketHtml(T, myId) {
+  const name = (x) => (x ? `${esc(x.pet)}<small style="color:var(--soft)">（${esc(x.name)}）</small>` : "—");
+  const rows = [...T.rounds.map((R, r) => ({ R, r }))].reverse().map(({ R, r }) => `<div class="round"><h4>${roundName(R.length * 2)}</h4>${R.map((m, k) => {
+    if (m.bye) return "";
+    const ca = m.w === 0 ? "w" : m.w === 1 ? "l" : "", cb = m.w === 1 ? "w" : m.w === 0 ? "l" : "";
+    return `<div class="mt"><span class="${ca} ${m.a && m.a.id === myId ? "me" : ""}">${name(m.a)}</span><i>VS</i><span class="${cb} ${m.b && m.b.id === myId ? "me" : ""}">${name(m.b)}</span>${m.w != null ? `<button class="mini" data-match="${r}:${k}">見る</button>` : "<span></span>"}</div>`;
+  }).join("")}</div>`);
+  return rows.slice(0, 2).join("") + (rows.length > 2 ? `<details class="more"><summary>${roundName(T.rounds[T.rounds.length - 3].length * 2)}から 見る</summary>${rows.slice(2).join("")}</details>` : "");
+}
+const PLACE = { 1: "優勝！", 2: "準優勝！", 4: "ベスト 4！", 0: "参加" };
+function tourHtml() {
+  const V = S.V, T = V.tour, L = V.last, myId = V.me.id;
+  const pay = (k) => { const P = TOUR_PAY[k]; return `${fmt(P.credits)} クレジット${P.res ? `＋リソース ${P.res}` : ""}`; };
+  const now = T ? `<div class="box"><h3>きょうの 大会<small>${TOUR.hour}:00 から</small></h3>
+      <p class="clock" id="clock">${left(T.at - Date.now())}<small>あと</small></p>
+      <p class="count"><b>${T.n}</b> 人 <small>／ ${TOUR.min} 人から ひらく（${TOUR.max} 人まで）</small></p><div class="meter"><i style="width:${Math.min(100, (T.n / TOUR.min) * 100)}%"></i></div>
+      ${T.entered ? `<button class="jelly light" data-entry="0">参加を やめる</button>` : `<button class="jelly" data-entry="1" ${T.n >= TOUR.max ? "disabled" : ""}>参加する</button>`}
+      <div class="prize"><span>優勝</span><span>${pay(1)}</span><span>準優勝</span><span>${pay(2)}</span><span>ベスト 4</span><span>${pay(4)}</span><span>参加</span><span>${pay("all")}</span></div></div>` : "";
+  const last = !L ? `<div class="box"><h3>前の 大会</h3><p class="count"><small>まだ ない</small></p></div>`
+    : L.state === "none" ? `<div class="box"><h3>前の 大会<small>${esc(L.day)}</small></h3><p class="count"><small>${TOUR.min} 人 そろわず 中止</small></p></div>`
+    : L.state !== "done" ? `<div class="box"><h3>前の 大会<small>${esc(L.day)}</small></h3><p class="count"><small>試合中…</small></p></div>`
+    : `<div class="box"><h3>前の 大会<small>${esc(L.day)}</small></h3>${L.place != null ? `<p class="place">${PLACE[L.place] || "参加"}　${pay(L.place || "all")}</p>` : ""}${bracketHtml(L, myId)}</div>`;
+  return `<div class="tour">${now}${last}</div>`;
+}
+
+// ---------- 記録 ----------
+function logHtml() {
+  const V = S.V, ago = (t) => { const m = Math.floor((Date.now() - t) / 60000); return m < 60 ? `${m} 分前` : m < 1440 ? `${Math.floor(m / 60)} 時間前` : `${Math.floor(m / 1440)} 日前`; };
+  const rows = [...V.log.map((x) => ({ at: x.at, html: `<span class="ic" aria-hidden="true">⚔</span><span>${esc(x.name)} の ${esc(x.pet)}に <span class="${x.win ? "ok" : "ng"}">${x.win ? "勝った" : "負けた"}</span>${x.pay ? `（+${fmt(x.pay.credits)}）` : ""}</span>` })),
+    ...V.def.map((x) => ({ at: x.at, html: `<span class="ic" aria-hidden="true">🛡</span><span>${esc(x.name)} の ${esc(x.pet)}が 来た → <span class="${x.held ? "ok" : "ng"}">${x.held ? "守った" : "やられた"}</span></span>` }))].sort((a, b) => b.at - a.at).slice(0, 20);
+  return `<div class="rec"><div>デュエル<b>${V.me.w} 勝 ${V.me.l} 敗</b></div><div>留守の あいだ<b>${V.hold.w || 0} 勝 ${V.hold.l || 0} 敗</b></div></div>
+    ${rows.length ? `<ul class="log">${rows.map((x) => `<li>${x.html}<small>${ago(x.at)}</small></li>`).join("")}</ul>` : `<div class="empty"><p>まだ 記録が ない</p></div>`}`;
+}
+
+function render() {
+  const body = S.tab === "duel" ? duelHtml() : S.tab === "tour" ? tourHtml() : logHtml();
+  main.innerHTML = petHtml() + `<section class="panel"><div class="ahead"><h2>闘技場</h2><div class="gtabs" role="tablist">${TABS.map(([k, label]) => { const n = tabBadge(k); return `<button role="tab" data-tab="${k}" aria-selected="${S.tab === k}">${label}${n ? `<em>${n}</em>` : ""}</button>`; }).join("")}</div></div><div id="body">${body}</div></section>`;
+  linkTabs(main);
+}
+const reload = async () => { const v = await act("arena.view"); if (v.ok) S.V = v; };
+main.addEventListener("click", async (e) => {
+  const b = e.target.closest("button"); if (!b || b.disabled) return;
+  const d = b.dataset;
+  if (d.tab) { if (S.fight && S.fight.view) S.fight.view.destroy(); S.fight = null; S.tab = d.tab; history.replaceState(null, "", d.tab === "duel" ? location.pathname : "?t=" + d.tab); return render(); }
+  if (d.do === "foes") { const r = await busy(b, () => act("arena.foes"), "さがして います…"); if (!r.ok) return toast(r.why || "できませんでした"); S.V = r; return render(); }
+  if (d.duel) {
+    const r = await busy(b, () => act("arena.duel", { foe: d.duel }), "相手を よんで います…");
+    if (!r.ok) return toast(r.why || "できませんでした");
+    S.fight = { kind: "duel", r, done: false }; S.V.left = r.left; if (r.pay) S.V.beat = [...S.V.beat, r.foe.id];
+    render(); document.getElementById("stage").scrollIntoView({ block: "start", behavior: "smooth" });
+    return showFight(r.A, r.B, r.seed, r.win);
+  }
+  if (d.match) {
+    const [rr, mm] = d.match.split(":").map(Number), L = S.V.last, m = L.rounds[rr][mm];
+    const r = await busy(b, () => act("arena.match", { day: L.day, r: rr, m: mm }), "よんで います…");
+    if (!r.ok) return toast(r.why || "できませんでした");
+    const title = `${roundName(L.rounds[rr].length * 2)}：${m.a.pet}（${m.a.name}）VS ${m.b.pet}（${m.b.name}）`;
+    S.fight = { kind: "match", r, done: false, title: `${title} → ${[m.a, m.b][r.w].pet} の 勝ち` };
+    if (S.tab !== "duel") { const body = document.getElementById("body"); body.innerHTML = fightHtml(); } else render();
+    document.getElementById("stage").scrollIntoView({ block: "start", behavior: "smooth" });
+    return showFight(r.A, r.B, r.seed, r.w === 0);
+  }
+  if (d.do === "skip" && S.fight && S.fight.view) return S.fight.view.skip();
+  if (d.do === "back") { if (S.fight && S.fight.view) S.fight.view.destroy(); const was = S.fight && S.fight.kind; S.fight = null; if (was === "duel") await reload(); return render(); }
+  if (d.entry != null) {
+    const r = await busy(b, () => act("arena.entry", { on: d.entry === "1" }), d.entry === "1" ? "申しこんで います…" : "とりけして います…");
+    if (!r.ok) return toast(r.why || "できませんでした");
+    S.V.tour = r.tour; toast(d.entry === "1" ? `参加しました（きょう ${TOUR.hour}:00）` : "参加を やめました"); return render();
+  }
+});
+// ---------- はじめ（関数の 定義の あと） ----------
+const ME = await me();
+const gate = gateHtml(ME, esc);
+if (gate) { main.innerHTML = gate; window.ready = true; }
+else {
+  S.V = await act("arena.view");
+  if (!S.V.ok) main.innerHTML = `<section class="panel"><p class="why">${esc(S.V.why || "いまは 闘技場に つながらない")}</p></section>`;
+  else render();
+  linkTabs(main);
+  setInterval(() => { if (S.tab === "tour" && !S.fight) { const c = document.getElementById("clock"); if (c && S.V.tour) c.firstChild.textContent = left(S.V.tour.at - Date.now()); } }, 30000);
+  window.ready = true;
+}
+</script>
+</body>
+</html>
