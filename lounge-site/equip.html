@@ -66,7 +66,7 @@
   .filters button { border:1.5px solid var(--line); background:#fff; border-radius:999px; padding:5px 12px; font:700 12px/1 var(--jp); color:var(--soft); }
   .filters button[aria-pressed="true"] { background:var(--ink); color:#fff; border-color:var(--ink); }
   .filters .sort { margin-left:auto; }
-  .grid { display:grid; grid-template-columns:repeat(4, minmax(0, 1fr)); gap:8px; }
+  .grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(96px, 1fr)); gap:8px; }   /* 幅に 合わせて 列の 数が かわる（1 まい 96px より 細く しない） */
   .card { position:relative; text-align:left; border:1.5px solid var(--line); background:#fff; border-radius:16px; padding:6px 6px 8px; display:grid; gap:3px; }
   .card .ico { aspect-ratio:1; width:100%; border-radius:12px; }
   .card b { font:700 12px/1.25 var(--jp); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
@@ -125,6 +125,12 @@
   .grid .note { grid-column:1 / -1; }
   .slot .ico:empty { background:#F1F3F9; border:1.5px dashed var(--line); }
   a.linkish { align-self:center; }
+  /* 配信ページの ラウンジの 枠（820〜1100px）：着ているものを 上の 1 行に、下に 持っている装備と えらんだ装備（3 列だと まん中が つぶれる） */
+  @media (min-width:821px) and (max-width:1100px) {
+    .cols { grid-template-columns:minmax(0, 1fr) 270px; }
+    .cols > .wear { grid-column:1 / -1; display:grid; grid-template-columns:140px minmax(0, 1fr); gap:14px; align-items:center; }
+    .wear .stage { height:150px; } .slots { margin-top:0; grid-template-columns:repeat(3, minmax(0, 1fr)); }
+  }
   @media (max-width:820px) {
     .pet { grid-template-columns:48px 1fr auto; padding:6px 12px 6px 6px; gap:10px; border-radius:18px; }
     .pet .pic { width:48px; height:48px; border-radius:12px; } .pet h1 { font-size:20px; } .pet h1 small { font-size:12px; }
