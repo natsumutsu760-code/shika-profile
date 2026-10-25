@@ -2202,13 +2202,6 @@ if (location.hash === "#lcdcard" || location.hash === "#sitecard" || document.do
     function owner(name) { return has(U.own, name) && !has(U.dis, name) ? U.own[name] : ""; }
     function nameOf(id) { var u = U.ids[id]; return u && owner(u.n) === id ? u.n : ""; }
     function uidOf(name) { var id = owner(name); return id && U.ids[id] && U.ids[id].n === name ? id : ""; }
-    // ラウンジの 記録の まとめ（lstat）を 名前に つなぐ：その id の いまの 表示名。チャットで まだ 見て いない 人は 門番が 知って いる 表示名
-    //   （ほかの 人の 物と 決まった 名前・もめて いる 名前は 使わない）
-    function nameFor(id, name) {
-      id = String(id || ""); var n = nameOf(id); if (n || !/^\d{1,20}$/.test(id)) return n;
-      name = String(name || "").slice(0, 40);
-      return name && name !== "__proto__" && !has(U.dis, name) && (!has(U.own, name) || U.own[name] === id) ? name : "";
-    }
 
     // チャットの 1 行ごとに（user-id と 表示名）。かわった ときだけ しまう
     function noteUid(id, name) {
@@ -2332,7 +2325,7 @@ if (location.hash === "#lcdcard" || location.hash === "#sitecard" || document.do
       (d.viewers || []).forEach(function (v) { var id = uidOf(v.name); if (id) v.uid = id; });
       return d;
     }
-    return { handle: handle, handleAsync: handleAsync, stamp: stamp, noteUid: noteUid, resolve: resolve, disputed: disputed, nameFor: nameFor, hi: function () { return { t: "lg-hi" }; }, seq: function () { return st.seq; } };
+    return { handle: handle, handleAsync: handleAsync, stamp: stamp, noteUid: noteUid, resolve: resolve, disputed: disputed, uidOf: uidOf, nameOf: nameOf, hi: function () { return { t: "lg-hi" }; }, seq: function () { return st.seq; } };
   }
   G.ObsLedger = ObsLedger;
 })(typeof window !== "undefined" ? window : globalThis);
@@ -2397,7 +2390,7 @@ if (location.hash === "#lcdcard" || location.hash === "#sitecard" || document.do
   function BG(k) { return BIG_ON ? GA(k) : SOON; }
   // プライベートラウンジの記録で手に入るコスメ：門番（lstat）を配るまで「準備中」。配るときに LOUNGE_ON を true にする
   var LOUNGE_ON = true;
-  function LG(f) { return LOUNGE_ON ? f : SOON; }
+  function LOUNGE(f) { return LOUNGE_ON ? f : SOON; } // LG は 帳簿（OBS の 画面）の 名前なので 使わない
   var RARITY = [null, ["ノーマル", 0x9AA0B8], ["レア", 0x2F7BFF], ["エピック", 0x9B4DFF], ["レジェンド", 0xFFB300], ["ミシック", 0xFF2E4D]];
   var RAR = {
     skin: { wakaba: 1, aozora: 1, hougan: 1, sakura: 2, senbei: 2, shiden: 2, amiten: 2, neon: 3, rush: 3, support: 3, kansoku: 3, kogane: 4, patron: 4, kanoko: 4, gokusai: 5, gentou: 5, yozora: 4, gekkou: 4, seiza: 4, ryusei: 5, aurora: 5, amanogawa: 5, kairo: 4, terminal: 4, pixel: 4, wire: 4, holo: 5, glitch: 5, signal: 5, koke: 4, momiji: 4, shirakaba: 4, komorebi: 5, hotaru: 5, shikaduno: 5, kingyo: 4, soda: 4, washi: 4, hanabi: 5, dairiseki: 5, mangekyo: 5 },
@@ -3433,7 +3426,7 @@ if (location.hash === "#lcdcard" || location.hash === "#sitecard" || document.do
     ["レシピ収集家", 2, "ラウンジでレシピを 10 こ覚える", function (lo) { return (lo.recipes || 0) >= 10; }],
     ["クレジット長者", 3, "ラウンジでクレジットを 50,000 ためる", function (lo) { return (lo.credits || 0) >= 50000; }]
   ].forEach(function (x) {
-    EPITHETS.push([x[0], x[2], LG(function (u) { var lo = (u && u.lo) || {}; return !!x[3](lo); })]); RAR.ep[x[0]] = x[1];
+    EPITHETS.push([x[0], x[2], LOUNGE(function (u) { var lo = (u && u.lo) || {}; return !!x[3](lo); })]); RAR.ep[x[0]] = x[1];
   });
   // ---------- アイコン 第 3 弾（楽器と音・宝石と鉱石）：[id, 名前, ★, 手に入れ方, 条件]。手に入れ方がない物はガチャ（★4 以上はお店にも並ぶ）----------
   [["🎵", "音符", 1, "コメント 50 回", function (u) { return u.c >= 50; }], ["🔔", "ベル", 1, "Lv.4", function (u) { return u.L >= 4; }], ["🎹", "鍵盤", 1], ["🔶", "こはく", 1],
@@ -4531,7 +4524,7 @@ if (location.hash === "#lcdcard" || location.hash === "#sitecard" || document.do
     ["em:lgmyth", "ミシックの輝き", 5, "ラウンジでミシックを 4 つともそろえる", function (u) { var lo = u.lo || {}; return (lo.mythicN || 0) >= 4; }],
     ["em:lgnote", "研究ノート", 4, "ラウンジで敵のツリーを 20 本とも研究する", function (u) { var lo = u.lo || {}; return (lo.lab || 0) >= 20; }],
     ["em:lgbond", "なかまの絆", 4, "ラウンジでなかまを 10 体にする", function (u) { var lo = u.lo || {}; return (lo.tamed || 0) >= 10; }]
-  ].forEach(function (x) { ICONS.push([x[0], x[1], x[3], LG(x[4])]); RAR.icon[x[0]] = x[2]; });
+  ].forEach(function (x) { ICONS.push([x[0], x[1], x[3], LOUNGE(x[4])]); RAR.icon[x[0]] = x[2]; });
   // ---------- 大型アップデート記念の二つ名（iconep）----------
   // モードを制した・見届けた人の肩書き。[名前, ★]。条件は BG（公開まで準備中）。技は EP_TX の「大型アップデート記念の二つ名の技」
   [["プラチナの常連", 4], ["赤か黒か", 4], ["息をのむ鹿", 4], ["時空の迷子", 4], ["宇宙ピンボーラー", 4],
@@ -4937,7 +4930,7 @@ if (location.hash === "#lcdcard" || location.hash === "#sitecard" || document.do
    ["lgdive", "VR ダイブ", 5, "ラウンジで 4 つの行き先を 5 階まで行き、ボスを 4 体とも倒す", function (u) { var lo = u.lo || {}; return (lo.floor5 || 0) >= 4 && (lo.bossKinds || 0) >= 4; }],
    ["lgpets", "なかまの行進", 4, "ラウンジでペットを Lv40 にして、なかまを 4 体", function (u) { var lo = u.lo || {}; return (lo.petMax || 0) >= 40 && (lo.tamed || 0) >= 4; }],
    ["lgneon", "ネオンの部屋", 5, "ラウンジで家具を 18 種そろえる（★5 の 2 種も）", function (u) { var lo = u.lo || {}; return (lo.furnKinds || 0) >= 18 && (lo.furn5 || 0) >= 2; }]
-  ].forEach(function (x) { SKINS.push([x[0], x[1], "sk-" + x[0], x[3], LG(x[4])]); RAR.skin[x[0]] = x[2]; });
+  ].forEach(function (x) { SKINS.push([x[0], x[1], "sk-" + x[0], x[3], LOUNGE(x[4])]); RAR.skin[x[0]] = x[2]; });
   SKIN_COLOR["lgbase"] = 0xFFB547; SKIN_COLOR["lgdive"] = 0x39F3FF; SKIN_COLOR["lgpets"] = 0xFF8A3D; SKIN_COLOR["lgneon"] = 0xFF4FB8;
   // ラウンジのスキンの絵で使う道具：行き先 [名前, ボス, 色, ボスの形]。ボスの形はラウンジの敵のドット絵（lounge-proto/sprites.js の e_boss_*、24×24）を 1 行 6 桁の 16 進に詰めた物
   var LG_DUN = [
@@ -5025,10 +5018,18 @@ if (location.hash === "#lcdcard" || location.hash === "#sitecard" || document.do
   var gacha = read(GACHA, {}) || {};
   function gachaOf(name) { var o = gacha[name]; return o && typeof o === "object" && Array.isArray(o.g) ? o : { g: [], n: 0, p4: 0, p5: 0 }; }
   var equip = read(EQUIP, {}) || {}, paStats = read(PA_STATS, {}) || {}, ovStats = read(OV_STATS, {}) || {};
-  // ラウンジの 記録の まとめ（門番の lstat を OBS の 画面が しまう。表示名 → まとめ。docs/mono-link-lounge-stats.md）：コスメの 条件の u.lo
-  var LOUNGE_ST = "shika-lounge-v1", loStats = loRead();
+  // ラウンジの 記録の まとめ（門番の lstat を OBS の 画面が しまう。"#Twitch の id" → まとめ。docs/mono-link-lounge-stats.md）：コスメの 条件の u.lo
+  // 名前 → id は チャットで 見た 物だけ（帳簿の uidOf）で つなぐ。門番の 表示名は 使わない（日本語の 表示名は ほかの 人と かぶれる）
+  var LOUNGE_ST = "shika-lounge-v1", loStats = loRead(), loU = null;
   function loRead() { var o = read(LOUNGE_ST, {}); return o && typeof o === "object" && !Array.isArray(o) ? o : {}; }
-  function loOf(name) { var x = Object.prototype.hasOwnProperty.call(loStats, name) ? loStats[name] : null; return x && typeof x === "object" && !Array.isArray(x) ? x : {}; }
+  function loUid(name) {
+    if (LG) return LG.uidOf(name);
+    // OBS 以外（パネル）：帳簿 mono-link-uid-v2 を 読むだけ（帳簿の uidOf と 同じ 決まり）
+    var h = function (m, k) { return !!m && typeof m === "object" && Object.prototype.hasOwnProperty.call(m, k); };
+    var U = loU || (loU = read("mono-link-uid-v2", null) || {}), id = h(U.own, name) && !h(U.dis, name) ? String(U.own[name]) : "";
+    return id && h(U.ids, id) && U.ids[id] && U.ids[id].n === name ? id : "";
+  }
+  function loOf(name) { var id = loUid(name), x = id && Object.prototype.hasOwnProperty.call(loStats, "#" + id) ? loStats["#" + id] : null; return x && typeof x === "object" && !Array.isArray(x) ? x : {}; }
   // ---------- 進化（ガチャの被り）----------
   // 被ると重なりが 1 つ増える：重なり 1 でⅠ（色違い）・3 でⅡ（＋光る）・6 でⅢ（＋★が 1 つ上がったような演出）。フォントは進化しない
   // shika-gacha-v1 の 1 人ずつに d = { 鍵: 重なり } と res（リソース）を足す。g だけの古い記録もそのまま読める
@@ -11656,6 +11657,7 @@ if (location.hash === "#lcdcard" || location.hash === "#sitecard" || document.do
     if (e.key === EQUIP) equip = read(EQUIP, {}) || {};
     if (e.key === OV_STATS) ovStats = read(OV_STATS, {}) || {};
     if (e.key === LOUNGE_ST) loStats = loRead(); // ラウンジの 記録の まとめ（しまうのは OBS の 画面。知らせるのも あちら）
+    if (e.key === "mono-link-uid-v2") loU = null; // 名前 → id（OBS の 画面の 帳簿が 書く）
     if (e.key === PA_STATS) { // 鹿物語の実績が増えた人だけ、持ち物を確かめる
       var np = read(PA_STATS, {}) || {}, old = paStats; paStats = np;
       Object.keys(np).forEach(function (u) { if (JSON.stringify(np[u]) !== JSON.stringify(old[u])) checkOwn(u); });
@@ -12761,8 +12763,8 @@ if (location.hash === "#lcdcard" || location.hash === "#sitecard" || document.do
       c.ids = c.ids.slice(-4); lgClash[name] = c; write("mono-link-lg-clash-v1", lgClash); lgDisOut();
     } });
   // ---------- ラウンジの 記録の まとめ（門番の lstat。鍵が 合った あとに 全員分 all・かわった ときに その 人の 分）----------
-  // Twitch の id → 表示名（帳簿の nameFor：チャットで 見た 名前。まだの 人は 門番が 知って いる 表示名）にして shika-lounge-v1 に { 表示名: まとめ }
-  // まとめは 数と 生の id だけ（知らない 形は すてる）。id は 名前を かえた 人の 前の 名前の 分を 消す ため
+  // shika-lounge-v1 に { "#Twitch の id": まとめ } で しまう（名前には つながない。読む ときに loOf が チャットで 見た 名前 → id で 引く）
+  // まとめは 数と 生の id だけ（知らない 形は すてる）
   var LO_MAPS = ["pets", "boss", "floor", "hide", "rep"], LO_IDS = ["master", "mythic"], LO_NUMS = ["petMax", "petKinds", "bossKinds", "bossTotal", "floor5", "tamed", "lab", "hide3", "furnKinds", "furn5", "repMax", "mythicN", "recipes", "credits"];
   function loClean(lo, id) {
     var ok = function (k) { return typeof k === "string" && /^[A-Za-z0-9_-]{1,40}$/.test(k) && k !== "__proto__"; }, n = function (v) { v = +v; return isFinite(v) && v > 0 ? Math.min(1e12, Math.floor(v)) : 0; }, out = {};
@@ -12772,21 +12774,17 @@ if (location.hash === "#lcdcard" || location.hash === "#sitecard" || document.do
     out.id = id; return out;
   }
   function loGot(m) {
-    var byId = {}, got = [], dirty = false;
-    Object.keys(loStats).forEach(function (k) { var x = loStats[k]; if (x && x.id) byId[x.id] = k; });
+    var got = [], dirty = false;
+    Object.keys(loStats).forEach(function (k) { if (k.charAt(0) !== "#") { delete loStats[k]; dirty = true; } }); // build 105 の 名前の キーは 捨てる
     m.list.slice(0, 2000).forEach(function (x) {
       var id = x && String(x.id || ""); if (!/^\d{1,20}$/.test(id) || !x.lo || typeof x.lo !== "object") return;
-      var name = LG ? LG.nameFor(id, x.n || x.l) : String(x.n || x.l || "").slice(0, 40);
-      if (!name || name === "__proto__") return;
-      if (byId[id] && byId[id] !== name) { delete loStats[byId[id]]; dirty = true; }
-      byId[id] = name;
       var lo = loClean(x.lo, id);
-      if (JSON.stringify(loStats[name]) === JSON.stringify(lo)) return;
-      loStats[name] = lo; dirty = true; got.push(name);
+      if (JSON.stringify(loStats["#" + id]) === JSON.stringify(lo)) return;
+      loStats["#" + id] = lo; dirty = true; got.push(id);
     });
     if (dirty && !demo) write(LOUNGE_ST, loStats);
     // 配信中に かわった 人は すぐ 知らせる（★4 以上は 全画面）。全員分の ときは 知らせない（その 人が つぎに 話した ときに checkOwn が 知らせる）
-    if (!m.all) got.forEach(function (name) { checkOwn(name); });
+    if (!m.all) got.forEach(function (id) { var name = LG ? LG.nameOf(id) : ""; if (name) checkOwn(name); }); // チャットで 見た 名前の 人だけ
   }
   function remoteConnect() {
     clearTimeout(remoteTimer);
