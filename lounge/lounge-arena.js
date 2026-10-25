@@ -134,6 +134,7 @@ export async function arenaFetch(mk, url, b, now) {
   // 派遣先の 戦い（出会った 人の Viewer から）：ふたりの 記録（"a:e:" + id。見る 材料つき 6 こ）・相手の ごほうび（1 日 3 回まで。送る 箱へ）
   if (url.pathname === "/arena/enc") {
     if (!b.a || !b.foe || !b.A || !b.B || !Number.isFinite(+b.seed)) return J({ ok: false });
+    const gate = await mk.env.DB.get("gate", "json"); if (hidden(gate, id) || hidden(gate, String(b.foe))) return J({ ok: false });   // どちらかが 入れない 人なら 記録も ごほうびも なし
     const foeId = String(b.foe), base = { at: now, did: String(b.did || ""), seed: +b.seed, A: b.A, B: b.B };
     await pushEnc(st, id, { ...base, me: 0, by: foeId, name: String(b.B.owner || ""), pet: String(b.B.name || ""), win: !!b.win });
     await pushEnc(st, foeId, { ...base, me: 1, by: id, name: String(b.A.owner || ""), pet: String(b.A.name || ""), win: !b.win });

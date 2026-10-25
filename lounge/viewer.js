@@ -212,8 +212,9 @@ export class Viewer {
   async encounter(rec, t, now) {
     if (!t || !this.env.MARKET || !encReady(rec, jstDay(now))) return null;
     const me = arenaFighter(rec); if (!me || t.party[0] !== rec.pets[0].uid) return null;
+    const gate = await this.env.DB.get("gate", "json"); if (hidden(gate, rec.id)) return null;   // 入れない 人は 出会わない（BAN の 前から つづく 周回でも 帯に 出さない）
     let list = null; try { list = (await (await this.lounge().fetch("https://lounge/relay")).json()).list; } catch (e) { return null; }
-    const foe = encPick(list, rec.id, t.did, rand, await this.env.DB.get("gate", "json")); if (!foe) return null;
+    const foe = encPick(list, rec.id, t.did, rand, gate); if (!foe) return null;
     const r = encDone(rec, me, foe, rand);
     await this.arenaAsk("enc", { id: rec.id, a: me.card, foe: foe.id, A: r.A, B: r.B, seed: r.seed, win: r.win, did: r.did });   // ふたりの 記録・相手の ごほうび
     await this.relay("pvp", { kind: "enc", A: r.A, B: r.B, seed: r.seed, did: r.did, pay: r.pay });   // 配信中なら 帯で
