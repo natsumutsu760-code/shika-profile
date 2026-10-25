@@ -8,7 +8,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Zen+Maru+Gothic:wght@500;700;900&display=swap">
 <style>
   /* MONO LINK のラウンジ：ペットの装備の画面の見本。?view=gousei で合成（OP うつし）。部品と色はガンビット・スキルツリーの画面と同じ
-     持っている装備は 倉庫と 同じ マス目（stash-grid.js）。ならべる：部位別（あたま → … → アクセサリー、その中は ★の多い順）・★の多い順・新しい順（鹿さんの決め、2026-10-25） */
+     持っている装備は 倉庫と 同じ マス目（stash-grid.js）。部位の タブで えらんだ 部位 だけを 出す（ならべる：★の多い順・新しい順）・新しい順（鹿さんの決め、2026-10-25） */
   :root {
     --space:#F6F8FC; --ink:#1B2340; --soft:#6A7394; --line:#DCE3F0;
     --sky:#2EA8FF; --coral:#FF5A64; --sun:#FFC21A; --leaf:#22CC88; --violet:#8E6CFF;
@@ -228,7 +228,6 @@ function render() {
   // マス：色は ★、左下に ★、右上に 付けて いる 印（装＝この 子・仲＝なかま）
   const card = ({ e }) => { const w = W[e.uid], nm = esc(baseOf(e.base).name);
     return `<li><button class="tc t${e.star}${w ? " tw-on" : ""}" data-u="${e.uid}" aria-pressed="${e.uid === V.sel}" aria-label="${nm} ★${e.star}${w ? (w.me ? "（そうび中）" : `（${esc(nameOfWho(w.who))}）`) : ""}" title="${nm}"><span class="tn">${nm}</span>${gearImg(e.base, { cls: "hd" })}<span class="ts">${"★".repeat(e.star)}</span>${w ? `<span class="tw${w.me ? "" : " mate"}">${w.me ? "装" : w.who === "pet" ? "ペ" : "仲"}</span>` : ""}</button></li>`; };
-  // 部位別：あたま・くび・うで・あし・武器・オフハンド・アクセサリーの 見出し（ない 部位は 出さない）
   const listHtml = !vis.length ? `<p class="note">${KINDS[V.f].label}の 装備は まだ ない。<a href="dungeon.html">冒険</a>の 宝箱か <a href="bench.html">作業台</a>で 手に 入る</p>` : `<div class="tk list-tk"><ul class="tk-g">${vis.map(card).join("")}</ul></div>`;
   const it = own.find((e) => e.uid === V.sel);
   let det = `<p class="note">まだ 装備が ない。<a href="dungeon.html">冒険</a>の 宝箱か <a href="bench.html">作業台</a>で 手に 入る</p>`;

@@ -281,6 +281,49 @@ export function tripCollect(rec, b, now) {
   rec.trips = [...rec.trips.filter((x) => !x.done), ...rec.trips.filter((x) => x.done).slice(-TRIP_KEEP)];
   return { ok: true, exp, up, lv: pet ? pet.lv : 0, ups, boxed: put.box.reduce((a, m) => a + m.n, 0), earn: g.resource ? [{ kind: "res", d: g.resource }] : [] };
 }
+// ---------- 周回（鹿さんの決め、2026-10-25）：帰って きたら 門番が うけとって、同じ 行き先・時間・目的・階で また 出発。画面を とじても 回る ----------
+// 回数は 3・5・10・ずっと（0）。倉庫が いっぱいに なったら（入りきらない 素材が あずかり箱に 入ったら）止める。道具は 持って いる 間は 毎回、なければ なしで
+// rec.loop = { on, max, n：出発した 回数, cfg, sum：開いた ときに 見せる まとめ, stop：止まった わけ }
+export const LOOP_COUNTS = [3, 5, 10, 0];
+const emptySum = () => ({ n: 0, exp: 0, up: 0, credits: 0, snacks: 0, resource: 0, mats: 0, equip: 0, caught: 0, wipes: 0, boxed: 0 });
+// 出発した ときに：周回を えらんで いれば はじめる（えらんで いなければ 前の 周回は おわり）
+export function loopNew(rec, b, now) {
+  const t = rec.trips.find((x) => !x.done);
+  rec.loop = t && LOOP_COUNTS.includes(b.loop) ? { on: true, max: b.loop, n: 1, cfg: { did: t.did, run: t.run, purpose: t.purpose, target: t.target, tool: t.tool, floor: t.floor || 0 }, sum: emptySum(), stop: null, at: now } : null;
+}
+// 周回の ボタン：on で はじめる（出かけて いる 派遣を 1 回めに）・off で 止める（いまの 派遣が 帰ったら おわり）
+export function loopSet(rec, b, now) {
+  if (!b.on) { if (rec.loop) { rec.loop.on = false; rec.loop.stop = "off"; } return { ok: true }; }
+  if (!LOOP_COUNTS.includes(b.count)) return { ok: false, why: "回数を えらんで" };
+  const t = rec.trips.find((x) => !x.done);
+  if (!t) return { ok: false, why: "出発する ときに えらんで" };
+  const sum = rec.loop && rec.loop.sum && rec.loop.sum.n ? rec.loop.sum : emptySum();   // まだ 見て いない まとめは のこす。回して いる 途中に 回数だけ かえる ときは 何回めかも のこす
+  rec.loop = { on: true, max: b.count, n: rec.loop && rec.loop.on ? rec.loop.n : 1, cfg: { did: t.did, run: t.run, purpose: t.purpose, target: t.target, tool: t.tool, floor: t.floor || 0 }, sum, stop: null, at: now };
+  return { ok: true };
+}
+// まとめを 見た（止まって いれば 周回の 記録も 消す）
+export function loopSeen(rec) { if (rec.loop) { if (rec.loop.on) rec.loop.sum = emptySum(); else rec.loop = null; } return { ok: true }; }
+// うけとった あと：まとめに 足して、つづけるか 決める。つづけるなら つぎの 出発（tripStart の 答え）を 返す
+export function loopAfter(rec, g, r, now, seed) {
+  const L = rec.loop; if (!L || !L.on) return null;
+  const S = L.sum; S.n++; S.exp += r.exp; S.up += r.up || 0; S.credits += g.credits; S.snacks += g.snacks; S.resource += g.resource || 0;
+  S.mats += g.materials.reduce((a, m) => a + m.n, 0); S.equip += g.equip.length; S.caught += g.captured.length; S.wipes += g.reason === "wipe" ? 1 : 0; S.boxed += r.boxed || 0;
+  if (r.boxed) { L.on = false; L.stop = "full"; return null; }   // 倉庫が いっぱい（日が たつと 消える あずかり箱に 入れつづけない）
+  if (L.max && L.n >= L.max) { L.on = false; L.stop = "count"; return null; }
+  const tool = L.cfg.tool && rec.tools[L.cfg.tool] > 0 ? L.cfg.tool : null;
+  const s = tripStart(rec, { ...L.cfg, tool }, now, seed);
+  if (!s.ok) { L.on = false; L.stop = s.why; return null; }
+  L.n++;
+  return s;
+}
+// アラーム：帰って きた 派遣を うけとって、つぎへ。帰って いない・計算中・周回 なしは 何も しない
+export function loopStep(rec, now, seed) {
+  const L = rec.loop, t = rec.trips.find((x) => !x.done);
+  if (!L || !L.on || !t || t.calc || now < t.end) return null;
+  const g = t.got, r = tripCollect(rec, { uid: t.uid }, now);
+  if (!r.ok) return null;
+  return { uid: t.uid, r, next: loopAfter(rec, g, r, now, seed) };
+}
 function levelUp(x, exp) {
   let up = 0; x.exp = (x.exp || 0) + exp;
   while (x.lv < LV_MAX && x.exp >= expNeed(x.lv)) { x.exp -= expNeed(x.lv); x.lv++; up++; }

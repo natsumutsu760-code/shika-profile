@@ -146,6 +146,26 @@
   .real .where small { display:block; font:700 12px/1.4 var(--jp); color:var(--soft); }
   .timer { margin-top:8px; display:flex; align-items:baseline; gap:8px; }
   .timer b { font:600 40px/1 var(--num); letter-spacing:.02em; } .timer small { font:700 13px/1 var(--jp); color:var(--soft); }
+  /* 周回：スイッチ ＋ 回数の チップ */
+  .loop { display:flex; flex-wrap:wrap; align-items:center; gap:6px 8px; margin-top:12px; padding:8px 10px; border-radius:16px; background:var(--space); }
+  .loop .sw { display:inline-flex; align-items:center; gap:8px; border:0; background:none; padding:2px 0; font:900 14px/1 var(--jp); color:var(--ink); }
+  .loop .sw i { position:relative; width:38px; height:22px; border-radius:99px; background:#CDD5E5; transition:background .15s; }
+  .loop .sw i::after { content:""; position:absolute; left:3px; top:3px; width:16px; height:16px; border-radius:50%; background:#fff; box-shadow:0 1px 2px rgba(27,35,64,.3); transition:left .15s; }
+  .loop.on .sw i { background:var(--leaf); } .loop.on .sw i::after { left:19px; }
+  .loop .lnow { font:700 12px/1.2 var(--jp); color:#0E8F5A; } .loop .lnow.off { color:var(--soft); }
+  .loop .lcnt { display:flex; gap:4px; margin-left:auto; }
+  .loop .lcnt button { border:1.5px solid var(--line); background:#fff; border-radius:99px; padding:4px 9px; font:700 12px/1 var(--jp); color:var(--soft); white-space:nowrap; }
+  .real .loop .lcnt { flex-basis:100%; margin-left:0; } .real .loop .lcnt button { flex:1; padding:5px 4px; }   /* 出かけて いる ときは 列が 細いので 回数を 下の 行に */
+  .loop .lcnt button[aria-pressed="true"] { background:var(--ink); border-color:var(--ink); color:#fff; }
+  @media (prefers-reduced-motion:reduce) { .loop .sw i, .loop .sw i::after { transition:none; } }
+  /* 周回の まとめ */
+  .lsum { margin-bottom:12px; padding:12px 16px; border:2px solid #BDEBD3; background:#F3FCF7; }
+  .lsum.stop { border-color:#FFD98A; background:#FFFBEF; }
+  .lsum .lh { display:flex; align-items:center; gap:10px; flex-wrap:wrap; } .lsum .lh b { font:900 15px/1.2 var(--jp); } .lsum .lh span { font:700 12px/1.2 var(--jp); color:var(--soft); }
+  .lsum .lx { margin-left:auto; border:1.5px solid var(--line); background:#fff; border-radius:99px; padding:5px 12px; font:900 12px/1 var(--jp); }
+  .lsum .lc { margin:8px 0 0; display:flex; flex-wrap:wrap; gap:6px; } .lsum .lc span { padding:3px 10px; border-radius:99px; background:#fff; font:700 12px/1.4 var(--jp); } .lsum .lc b { font:600 13px/1 var(--num); }
+  .lsum .lw { margin:8px 0 0; font:900 13px/1.4 var(--jp); color:#A56A00; }
+  .lsum .lgo { display:inline-block; margin-top:8px; font:900 13px/1 var(--jp); color:#1E6FB0; }
   .timer.back { flex-wrap:wrap; row-gap:4px; } .timer.back b { font:900 24px/1.15 var(--jp); letter-spacing:0; white-space:nowrap; } .timer.back small { white-space:nowrap; } .pbar.cut i { background:var(--leaf); } .pbar.cut.wipe i { background:var(--coral); }   /* 早めに 帰る：バーは そこで 止まる */
   .pbar { margin-top:8px; height:10px; border-radius:99px; background:#EDF1F8; overflow:hidden; } .pbar i { display:block; height:100%; border-radius:99px; background:var(--sky); }
   .real .jelly { margin-top:auto; } .real .note { margin:8px 0 0; font:700 11px/1.5 var(--jp); color:var(--soft); }
@@ -491,7 +511,25 @@ const floorChips = (did, prog, pu, fl) => { const open = floorsOpen(did, prog), 
     return `<button data-fl="${n}" aria-pressed="${(fl || rec) === n}" ${ok ? "" : "disabled"}>${n === rec ? `<i class="rec">おすすめ</i>` : ""}<b>${n}<small>階</small></b><span>${!ok ? "まだ" : prog.floors[n] ? `${Math.round(r * 100)}%` : "はじめて"}</span></button>`; }).join(""); };
 const opts = () => { const did = DUNGEONS.some((x) => x.id === q.get("d")) ? q.get("d") : LAST ? LAST.did : DUNGEONS[0].id, d = DUNGEONS.find((x) => x.id === did), pu = PURPOSES[q.get("pu")] ? q.get("pu") : "explore";
   return { did, d, rk: RUNS[q.get("run")] ? q.get("run") : LAST ? LAST.run : "mid", pu, tg: [...d.foes, d.rare].some((f) => f.tree === q.get("tg")) ? q.get("tg") : d.foes[0].tree, tool: TOOLS[q.get("tool")] && TOOL_HAVE[q.get("tool")] ? q.get("tool") : null, fl: Math.min(+q.get("fl") || 0, floorsOpen(did, PROG[did])) }; };   // fl：えらんだ 階（0 は おすすめ。まだ 行けない 階は えらべない）
-const TOOL_HAVE = ME.tools || {};   // 持って いる 道具の 数（DEEP LINK/: の 商人の 店で 買う）
+const TOOL_HAVE = ME.tools || {};
+// 周回（鹿さんの決め、2026-10-25）：門番が 帰って きた 派遣を うけとって また 出発（画面を とじても 回る）。回数は 3・5・10・ずっと、倉庫が いっぱいに なると 止まる
+const LOOP = ME.loop || null, LOOP_N = [3, 5, 10, 0], loopName = (n) => (n ? `${n} 回` : "ずっと");
+const prepLoop = () => (q.has("loop") && LOOP_N.includes(+q.get("loop")) ? +q.get("loop") : null);   // じゅんびで えらんだ 回数（null は 周回 しない）
+// 周回の ボタン：スイッチ ＋ 回数の チップ。where は prep（出発の 前）か play（出かけて いる あいだ）
+function loopHtml(where) {
+  const on = where === "prep" ? prepLoop() !== null : !!(LOOP && LOOP.on), cnt = where === "prep" ? prepLoop() : LOOP && LOOP.on ? LOOP.max : null;
+  const now = where === "play" && on ? `<span class="lnow">${LOOP.n} 回め${LOOP.max ? ` / ${LOOP.max}` : ""}</span>` : where === "play" && LOOP && LOOP.stop === "off" ? `<span class="lnow off">この 派遣で おわり</span>` : "";
+  return `<div class="loop ${on ? "on" : ""}" role="group" aria-label="周回"><button class="sw" data-loop-sw="${where}" aria-pressed="${on}"><i aria-hidden="true"></i>周回</button>${now}
+    ${on ? `<div class="lcnt">${LOOP_N.map((n) => `<button data-loop-n="${n}" data-where="${where}" aria-pressed="${cnt === n}">${loopName(n)}</button>`).join("")}</div>` : ""}</div>`;
+}
+// 周回の まとめ：開いた ときに、門番が うけとった 分を まとめて 見せる（とじると 消える）
+function loopSumHtml() {
+  const L = LOOP; if (!L || !L.sum || !L.sum.n) return "";
+  const S = L.sum, why = !L.on ? (L.stop === "full" ? `倉庫が いっぱいに なったので 止まった${S.boxed ? `（あずかり箱に ${S.boxed} こ）` : ""}` : L.stop === "count" ? `${L.max} 回 回ったので おわり` : L.stop === "off" ? "周回を 止めた" : `止まった：${esc(L.stop || "")}`) : "";
+  const chips = [`経験値 <b>+${S.exp.toLocaleString("ja-JP")}</b>`, S.up ? `Lv <b>+${S.up}</b>` : "", `クレジット <b>+${S.credits.toLocaleString("ja-JP")}</b>`, S.mats ? `素材 <b>${S.mats}</b> こ` : "", S.equip ? `装備 <b>${S.equip}</b> こ` : "", S.caught ? `捕まえた <b>${S.caught}</b>` : "", S.snacks ? `おやつ <b>+${S.snacks}</b>` : "", S.resource ? `リソース <b>+${S.resource}</b>` : ""].filter(Boolean);
+  return `<section class="panel lsum ${L.on ? "" : "stop"}" aria-label="周回の まとめ"><div class="lh"><b>周回の まとめ</b><span>${S.n} 回 帰って きた${S.wipes ? `（力つきた ${S.wipes} 回）` : ""}</span><button class="lx" id="loopSeen">とじる</button></div>
+    <p class="lc">${chips.map((c) => `<span>${c}</span>`).join("")}</p>${why ? `<p class="lw">${why}</p>` : ""}${S.equip ? `<a class="lgo" href="equip.html">装備を 見る</a>` : ""}</section>`;
+}   // 持って いる 道具の 数（DEEP LINK/: の 商人の 店で 買う）
 const STASH = { have: stashHave(ME.own && ME.own.mats), cap: (ME.stash && ME.stash.cap) || 50 };   // 倉庫（1 しゅるいごとの 上限。入らない 分は あずかり箱へ）
 // この 行き先で 拾える 素材の うち、倉庫で もう いっぱいの しゅるい（2 つまで 名前を 出す）
 const fullHtml = (d) => { const ids = [...GATHER[d.id].mats.map(([id]) => id), GATHER[d.id].hidden[0], ...[...d.foes, d.rare, d.boss].map((f) => ENEMY_MAT[f.tree][0])];
@@ -559,7 +597,8 @@ function renderPrep() {
       <div class="pparty">${PARTY.map((c) => `<span>${face(c)}<b>${esc(c.name)}</b><small>Lv${c.lv}</small></span>`).join("")}</div>
       <div class="outlook" style="--ec:${ec}"><span class="lab">見通し</span><p>${metric}</p><p class="w"><i class="bar"><b style="width:${Math.round(o.wipe * 100)}%"></b></i>力つきる <b>${Math.round(o.wipe * 100)}%</b><small>${word}</small></p></div>
       ${fullHtml(d)}
-      <button class="jelly sky go" data-go="play"><svg viewBox="0 0 30 18" aria-hidden="true"><rect x="1" y="2" width="28" height="14" rx="6" fill="#fff"/><rect x="4" y="5" width="22" height="8" rx="3" fill="#1B2340"/><circle cx="23" cy="7" r="1.3" fill="#52F2A0"/></svg>ゴーグルをつけて出発</button><p class="why" id="goWhy"></p>
+      ${loopHtml("prep")}
+      <button class="jelly sky go" data-go="play"><svg viewBox="0 0 30 18" aria-hidden="true"><rect x="1" y="2" width="28" height="14" rx="6" fill="#fff"/><rect x="4" y="5" width="22" height="8" rx="3" fill="#1B2340"/><circle cx="23" cy="7" r="1.3" fill="#52F2A0"/></svg>ゴーグルをつけて出発${prepLoop() !== null ? `（周回 ${loopName(prepLoop())}）` : ""}</button><p class="why" id="goWhy"></p>
     </aside></div>`;
 }
 
@@ -614,6 +653,7 @@ function renderPlay() {
       <p class="where">${esc(d.name)} ${actAt}<small>${run.sec / 60} 分コース・${PURPOSES[pu].name}・${wonSoFar} 戦 勝った</small></p>
       ${back ? `<div class="timer back"><b>帰って くる</b><small>${BACK_WHY[res.reason === "wipe" ? "wipe" : pu] || ""}</small></div>` : `<div class="timer"><b>${mm(Math.max(0, (full - now) / 1000))}</b><small>のこり</small></div>`}
       <div class="pbar ${back ? `cut ${res.reason === "wipe" ? "wipe" : ""}` : ""}"><i style="width:${Math.round(Math.min(1, (Math.min(now, t.end) - t.start) / Math.max(1, full - t.start)) * 100)}%"></i></div>
+      ${loopHtml("play")}
       <div class="spacer"></div>
     </section>
     <section class="visor inside ex th-${did}" style="--dc:${d.color}" aria-label="ゴーグルの中">
@@ -700,7 +740,7 @@ function toast(html) { const el = document.getElementById("toast"); el.innerHTML
 
 // ---------- どの 画面を 出すか：門番の 記録で 決める ----------
 const route = () => (!MP ? renderGate() : !MP.type ? renderJob() : TRIP ? (TRIP.got ? renderDone() : renderPlay()) : renderPick());
-function paint() { document.getElementById("app").innerHTML = route(); bind(); }
+function paint() { document.getElementById("app").innerHTML = (MP && MP.type ? loopSumHtml() : "") + route(); bind(); }
 const reopen = (k, v) => { q.set(k, v); location.search = q.toString(); };   // 行き先・目的・時間は アドレスに のこす（開きなおしても 同じ）
 function bind() {
   const on = (sel, f) => document.querySelectorAll(sel).forEach((b) => b.addEventListener("click", () => f(b)));
@@ -720,7 +760,7 @@ function bind() {
   // 出発：門番が 行き先・時間・目的・道具を たしかめて、道のりを 1 回 計算する
   on("[data-go]", async (b) => {
     const { did, rk, pu, tg, tool, fl } = opts(), html = b.innerHTML;
-    const r = await busy(b, () => act("trip.start", { did, run: rk, purpose: pu, target: tg, tool, floor: fl || undefined }), "出発して います…");
+    const r = await busy(b, () => act("trip.start", { did, run: rk, purpose: pu, target: tg, tool, floor: fl || undefined, loop: prepLoop() ?? undefined }), "出発して います…");
     if (r.ok) { location.href = location.pathname; return; }
     b.innerHTML = html; document.getElementById("goWhy").textContent = r.why || "出発できませんでした";
   });
@@ -728,9 +768,21 @@ function bind() {
   on("#collect", async (b) => {
     const r = await busy(b, () => act("trip.collect", { uid: TRIP.uid }));
     if (!r.ok) { document.getElementById("cWhy").textContent = r.why || "うけとれませんでした"; return; }
+    if (r.next) { location.reload(); return; }   // 周回中：つぎの 派遣が もう 出発した（まとめに 入る）
     GOT = r; MP.lv = r.lv || MP.lv; fillHead(); paint();
     toast(`経験値 <b>+${r.exp}</b>${r.up ? `・Lv <b>${r.lv}</b> に 上がった` : ""}${r.boxed ? `・${r.boxed} こ あずかり箱へ` : ""}`);
   });
+  // 周回：じゅんびでは アドレスに のこす（ほかの えらびと 同じ）。出かけて いる あいだは 門番に 頼む
+  on("[data-loop-sw]", async (b) => {
+    if (b.dataset.loopSw === "prep") { if (prepLoop() !== null) q.delete("loop"); else q.set("loop", "3"); location.search = q.toString(); return; }
+    const on = !(LOOP && LOOP.on), r = await busy(b, () => act("loop.set", on ? { on: true, count: LOOP && LOOP.max != null ? LOOP.max : 3 } : { on: false }));
+    if (r.ok) location.reload(); else toast(esc(r.why || "できませんでした"));
+  });
+  on("[data-loop-n]", async (b) => {
+    if (b.dataset.where === "prep") { q.set("loop", b.dataset.loopN); location.search = q.toString(); return; }
+    const r = await busy(b, () => act("loop.set", { on: true, count: +b.dataset.loopN })); if (r.ok) location.reload(); else toast(esc(r.why || "できませんでした"));
+  });
+  on("#loopSeen", async (b) => { const r = await busy(b, () => act("loop.seen", {})); if (r.ok) location.reload(); });
   on("#again", () => { const t = TRIP, p = new URLSearchParams({ step: "prep", d: t.did, run: t.run, pu: t.purpose }); if (t.target) p.set("tg", t.target); if (t.tool) p.set("tool", t.tool); if (t.floor) p.set("fl", t.floor); location.search = p.toString(); });
   // スマホ：地図は えらんだ 行き先の まわりから 見せる
   const ws = document.querySelector(".wscroll"), pin = document.querySelector('.wpin[aria-pressed="true"]');
@@ -743,7 +795,8 @@ paint(); watchIcons();
 document.querySelector(".tabs").scrollLeft = 9999;   // スマホ：えらんでいるタブ（冒険）を見えるところに
 // 出かけて いる あいだは 2 秒ごとに ようすを 進める。帰る 時間を すぎたら 門番に 聞きなおす（ごほうびは 帰って から 見える）
 // 早めに 帰る ときは「帰って くる」を 少し 見せてから（6 秒）
-if (MP && MP.type && TRIP && !TRIP.got) setInterval(() => { const early = TRIP.end < TRIP.start + RUNS[TRIP.run].sec * 1000; if (Date.now() >= TRIP.end + (early ? 6000 : TRIP.calc ? 4000 : 1500)) location.reload(); else paint(); }, 2000);
+// 周回中は 門番が うけとって つぎを 出すのを 待つ（6 秒）
+if (MP && MP.type && TRIP && !TRIP.got) setInterval(() => { const early = TRIP.end < TRIP.start + RUNS[TRIP.run].sec * 1000; if (Date.now() >= TRIP.end + (early || (LOOP && LOOP.on) ? 6000 : TRIP.calc ? 4000 : 1500)) location.reload(); else paint(); }, 2000);
 window.ready = true;
 </script>
 </body>

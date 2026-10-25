@@ -11,7 +11,7 @@ import { reqPostPlan, takeFor, items } from "./lounge-req.js";
 import { petTake, petGrow, petSub, petStat, petGambits, petStyle, equipSet, respecPlan, fighterOf, spTotal, spUsed, freeTotal, RESET_PRICE } from "./lounge-pet.js";
 import "./warm.js";   // 派遣の 計算を 温めて おく（はじめの 1 回が おそく ならない ように）
 import { relayEntry } from "./lounge-relay.js";   // 配信の 中継（鹿物語の ランキングの 窓）に あずける 派遣の 材料
-import { ensure, give, FURN_MAX, petFirst, petJob, tripStart, tripCalc, tripDone, tripCollect, tripView, hideoutPlan, craftPlan, synthPlan, boxTake, dropOld, stashCap, tameFeedPlan, tameJoin, tameBack, researchPlan, snackCraft } from "./lounge-game.js";
+import { ensure, give, FURN_MAX, petFirst, petJob, tripStart, tripCalc, tripDone, tripCollect, tripView, hideoutPlan, craftPlan, synthPlan, boxTake, dropOld, stashCap, tameFeedPlan, tameJoin, tameBack, researchPlan, snackCraft, loopNew, loopSet, loopSeen, loopAfter, loopStep } from "./lounge-game.js";
 
 const OPS_KEEP = 200;            // おぼえて おく op（2 回 来たら 1 回目の 答えを 返す）
 const RATE = { n: 5, ms: 1000 }; // 1 人 1 秒に 5 回まで
@@ -58,6 +58,7 @@ export class Viewer {
     if (rec.ledger.pending.length + rec.ledger.unknown.length) await this.mark(rec);   // 知らせそこねて いても ここで もう 1 回
     if (rec.req.out.length && this.env.MARKET) { await this.flushReq(rec); await this.save(rec); }   // 依頼の 板に 送りそこねた 分
     if (rec.trips.some((t) => t.calc) && (await this.state.storage.getAlarm()) == null) await this.state.storage.setAlarm(Date.now());   // 派遣の 計算が 止まって いたら もう 1 回
+    else if (rec.loop && rec.loop.on && (await this.state.storage.getAlarm()) == null) { const t = rec.trips.find((x) => !x.done); if (t) await this.state.storage.setAlarm(Math.max(Date.now(), t.end)); }   // 周回の アラームが 止まって いたら
     return rec;
   }
 
@@ -65,11 +66,33 @@ export class Viewer {
   //   とちゅうで 止められても（上限を こえた など）、しまって ある sim から やりなおす（同じ 種なので 同じ 結果。Cloudflare が アラームを くり返す）
   alarm() { return this.run(() => this.calc()); }
   async calc() {
-    const sim = await this.state.storage.get("sim"); if (!sim) return;
+    const sim = await this.state.storage.get("sim"); if (!sim) return this.loopTick();
     if (!tripCalc(sim, 1)) { await this.state.storage.put("sim", sim); await this.state.storage.setAlarm(Date.now()); return; }
     const rec = await this.load();   // 記録を 読むのは 終わった ときだけ
-    if (rec && tripDone(rec, sim)) { await this.save(rec); const t = rec.trips.find((x) => x.uid === sim.uid); if (t) await this.relay("end", { id: rec.id, uid: t.uid, end: t.end }); }
+    if (rec && tripDone(rec, sim)) {
+      await this.save(rec); const t = rec.trips.find((x) => x.uid === sim.uid); if (t) await this.relay("end", { id: rec.id, uid: t.uid, end: t.end });
+      await this.state.storage.delete("sim");
+      if (t && rec.loop && rec.loop.on) await this.state.storage.setAlarm(Math.max(Date.now(), t.end));   // 周回：帰る 時間に うけとって つぎへ
+      return;
+    }
     await this.state.storage.delete("sim");
+  }
+  // 周回の アラーム：帰って きた 派遣を うけとって、同じ ように また 出発（画面を とじて いても）
+  async loopTick() {
+    const rec = await this.load(), now = Date.now(); if (!rec || !rec.loop || !rec.loop.on) return;
+    const t = rec.trips.find((x) => !x.done); if (!t || t.calc) return;
+    if (now < t.end) { await this.state.storage.setAlarm(t.end); return; }   // 早く 鳴った
+    const s = loopStep(rec, now, Math.floor(rand() * 2 ** 31)); if (!s) return;
+    await this.relay("del", { id: rec.id, uid: s.uid });
+    for (const e of s.r.earn || []) await this.earn(rec, e.kind, e.d, "trip.loop");   // ボスの リソースは 帳簿へ
+    await this.loopGo(rec, s.next);
+    await this.save(rec);
+  }
+  // 周回の つぎの 出発：計算を アラームに あずけて、中継に 出す
+  async loopGo(rec, s) {
+    if (!s || !s.ok) return;
+    await this.state.storage.put("sim", s.sim); await this.state.storage.setAlarm(Date.now());
+    await this.relay("put", relayEntry(rec, rec.trips[rec.trips.length - 1]));
   }
 
   // 物を 渡す（{ furniture, mats, equip, credits, snacks, hideout }。lounge-game.js の give）
@@ -218,13 +241,17 @@ export class Viewer {
     else if (body.a === "tame.equip") r = equipSet(rec, body.who ? body : { ...body, who: "-" });
     else if (body.a === "trip.start") {
       r = tripStart(rec, body, now, Math.floor(rand() * 2 ** 31));
+      if (r.ok) loopNew(rec, body, now);   // 周回（3・5・10・ずっと）を えらんで いれば はじめる
       if (r.sim) { await this.state.storage.put("sim", r.sim); await this.state.storage.setAlarm(Date.now()); delete r.sim; }   // 計算は アラームで 少しずつ
       if (r.ok) await this.relay("put", relayEntry(rec, rec.trips[rec.trips.length - 1]));
     }
     else if (body.a === "trip.collect") {
-      const t = rec.trips.find((x) => !x.done && (!body.uid || x.uid === body.uid));   // tripCollect と 同じ さがし方
+      const t = rec.trips.find((x) => !x.done && (!body.uid || x.uid === body.uid)), g = t && t.got;   // tripCollect と 同じ さがし方
       r = tripCollect(rec, body, now); if (r.ok && t) await this.relay("del", { id: rec.id, uid: t.uid });
-    } else if (body.a === "box.take") r = boxTake(rec, now);
+      if (r.ok && g) { const nx = loopAfter(rec, g, r, now, Math.floor(rand() * 2 ** 31)); if (nx && nx.ok) { await this.loopGo(rec, nx); r.next = true; } }   // 周回中なら 自分で うけとっても つぎへ
+    }
+    else if (body.a === "loop.set") r = loopSet(rec, body, now);
+    else if (body.a === "loop.seen") r = loopSeen(rec); else if (body.a === "box.take") r = boxTake(rec, now);
     else if (body.a === "trader.sell") r = sellAct(rec, body, jstDay());
     else if (body.a === "trader.trade") r = tradeAct(rec, body, jstDay());
     else if (body.a === "task.done") r = taskDone(rec, body, jstDay(), rand);
@@ -263,7 +290,7 @@ export class Viewer {
     const now = Date.now(); dropOld(rec, now);
     return { id: rec.id, login: rec.login, name: rec.name, nameAt: rec.nameAt, names: rec.names, room: rec.room, own: rec.own, wallet: this.purse(rec, w), waiting: rec.ledger.unknown.length,
       pets: rec.pets.map((p) => ({ ...p, ...(p.type ? { sp: { all: spTotal(p.lv), left: spTotal(p.lv) - spUsed(p) }, freeLeft: freeTotal(p.lv) - Object.values(p.free || {}).reduce((a, v) => a + v, 0), build: fighterOf(p, rec), resetPrice: RESET_PRICE(p.lv) } : {}) })),
-      tamed: rec.tamed, party: rec.party, lab: rec.lab, hideout: rec.hideout, credits: rec.credits, snacks: rec.snacks, tools: rec.tools, explore: rec.explore, seen: rec.seen,
+      tamed: rec.tamed, party: rec.party, loop: rec.loop || null, lab: rec.lab, hideout: rec.hideout, credits: rec.credits, snacks: rec.snacks, tools: rec.tools, explore: rec.explore, seen: rec.seen,
       stash: { cap: stashCap(rec) }, trips: rec.trips.map((t) => tripView(t, now)), deeplink: deeplinkView(rec, jstDay(now)), req: { mine: rec.req.mine, sending: rec.req.out.length } };
   }
 
