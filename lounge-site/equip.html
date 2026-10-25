@@ -78,6 +78,11 @@
   .filters { display:flex; gap:6px; margin-bottom:10px; flex-wrap:wrap; }
   .filters button { border:1.5px solid var(--line); background:#fff; border-radius:999px; padding:5px 12px; font:700 12px/1 var(--jp); color:var(--soft); }
   .filters button[aria-pressed="true"] { background:var(--ink); color:#fff; border-color:var(--ink); }
+  .ptabs { display:grid; grid-template-columns:repeat(4, minmax(0, 1fr)); gap:5px; margin-bottom:10px; }
+  .ptabs button { display:flex; align-items:center; justify-content:center; gap:5px; min-width:0; border:1.5px solid var(--line); background:#fff; border-radius:12px; padding:7px 4px; font:700 13px/1 var(--jp); color:var(--ink); white-space:nowrap; }
+  .ptabs small { font:600 11px/1 var(--num); color:var(--soft); }
+  .ptabs button[aria-selected="true"] { background:var(--ink); border-color:var(--ink); color:#fff; box-shadow:0 4px 0 rgba(27,35,64,.2); } .ptabs button[aria-selected="true"] small { color:rgba(255,255,255,.7); }
+  .ptabs button.zero { color:#A9B0C6; border-style:dashed; }   /* 0 こ の 部位も 押せる（着せかえの 枠と 同じ。「まだ ない」と 手に 入れる 場所を 出す） */
   .sorts { display:flex; align-items:center; gap:6px; margin:-2px 0 10px; } .sorts span { font:900 11px/1 var(--jp); color:var(--soft); margin-right:2px; }   /* ならべる */
   .list-tk { --tk-c:76px; }
   /* 右：えらんだ装備 */
@@ -181,22 +186,23 @@ const diffOf = (a, b) => { const x = a ? itemStats(a) : {}, y = b ? itemStats(b)
   return out; };
 const nameOf = (k) => SL[k] || OPS[k].label, unit = (k) => (SL[k] ? "" : "%");
 const val = (k, v) => `${sign(k === "dmgCut" ? -v : v)}${unit(k)}`;   // 受けるダメージは へる ほど いい（−で 出す）
-// しぼりこみ：部位を 3 つに まとめる（チップは 4 こまで）。着せかえの 枠を 押すと その 部位 だけ
-const GROUPS = [["all", "すべて", null], ["wear", "身につける", ["head", "neck", "arm", "leg"]], ["hold", "手に持つ", ["weapon", "off"]], ["acc", "アクセサリー", ["acc"]]];
+// 部位の タブ：えらんだ 部位 だけを 出す（縦に ぜんぶ 並べると 分けた 意味が ない。鹿さんの声、2026-10-25）
+// 1 行め あたま・くび・うで・あし、2 行め 武器・オフハンド・アクセ。着せかえの 枠を 押しても 同じ 部位に なる
+const PARTS = Object.keys(KINDS), PART_LABEL = { acc: "アクセ" };
 const kindOf = (e) => baseOf(e.base).slot;
-const inF = (e, f) => f === "all" || (GROUPS.find((g) => g[0] === f)?.[2] || [f]).includes(kindOf(e));
+const inF = (e, f) => kindOf(e) === f;
 const DOLL = ["head", "weapon", "off", "arm", "neck", "leg"], ACCS = ["acc1", "acc2", "acc3"];
 const EMPTY = { off: "オフ\nハンド" };
 
 let ME = await me(), MP = ME.pets && ME.pets[0];
-const V = { f: "all", sort: "slot", sel: null, slot: null, who: new URLSearchParams(location.search).get("who") || "pet" };
+const V = { f: null, sort: "star", sel: null, slot: null, who: new URLSearchParams(location.search).get("who") || "pet" };
 // だれの 装備（鹿さんの決め、2026-10-25）：ペットと パーティの 2 体。部屋に いる 子でも 何か 付けて いれば 出す（はずせる ように）
 const mates = () => (ME.tamed || []).filter((c) => (ME.party || []).includes(c.uid) || Object.values(c.equip || {}).some(Boolean));
 const holder = () => (V.who !== "pet" && mates().find((c) => c.uid === V.who)) || MP;
 const isPet = () => holder() === MP;
 const nameOfWho = (w) => (w === "pet" ? MP.name : ((ME.tamed || []).find((c) => c.uid === w) || { name: "なかま" }).name);
 const away = (uid) => (ME.trips || []).some((t) => !t.done && t.party.includes(uid));
-const SORTS = [["slot", "部位別"], ["star", "★の多い順"], ["new", "新しい順"]];   // 部位別：部位の 見出しごとに ★の多い順
+const SORTS = [["star", "★の多い順"], ["new", "新しい順"]];
 // 付けて いる 子：who は "pet" か なかまの uid。me は いま 見て いる 子が 付けて いる
 const wornBy = () => { const m = {}, here = isPet() ? "pet" : holder().uid;
   for (const [s, u] of Object.entries((MP && MP.equip) || {})) if (u) m[u] = { who: "pet", slot: s, me: here === "pet" };
@@ -212,8 +218,9 @@ function render() {
   const info = petInfo(MP), ty = TYPES[MP.type], own = ME.own.equip || [], W = wornBy();
   const total = {}; for (const s of Object.keys(SLOTS)) { const it = cur(s); if (it) for (const [k, v] of Object.entries(itemStats(it))) total[k] = (total[k] || 0) + v; }
   const sum = Object.entries(total).filter(([k]) => !SPECIAL.has(k)).map(([k, v]) => `${nameOf(k)} <b>${val(k, v)}</b>`).join("・");
+  if (!PARTS.includes(V.f)) V.f = PARTS.find((k) => own.some((e) => kindOf(e) === k)) || "head";   // はじめは 持って いる 物が ある 部位
   const vis = own.map((e, i) => ({ e, i })).filter(({ e }) => inF(e, V.f)).sort((a, b) => (V.sort === "new" ? b.i - a.i : b.e.star - a.e.star || b.i - a.i));
-  if (!own.some((e) => e.uid === V.sel)) V.sel = (Object.keys(SLOTS).map(cur).find(Boolean) || own[0] || {}).uid || null;
+  if (!vis.some(({ e }) => e.uid === V.sel)) V.sel = (Object.keys(SLOTS).filter((s) => SLOTS[s].kind === V.f).map(cur).find(Boolean) || (vis[0] || {}).e || {}).uid || null;   // えらぶのは いま 見て いる 部位の 物
   const n = (f) => own.filter((e) => inF(e, f)).length;
   const tile = (s) => { const e = cur(s), lab = SLOTS[s].label, on = V.slot === s ? " on" : "", pos = DOLL.includes(s) ? ` style="grid-area:${s}"` : "";
     return e ? `<button class="sl r${e.star}${on}" data-slot="${s}"${pos} title="${lab}：${esc(baseOf(e.base).name)} ★${e.star}" aria-label="${lab}：${esc(baseOf(e.base).name)}">${gearImg(e.base)}</button>`
@@ -222,8 +229,7 @@ function render() {
   const card = ({ e }) => { const w = W[e.uid], nm = esc(baseOf(e.base).name);
     return `<li><button class="tc t${e.star}${w ? " tw-on" : ""}" data-u="${e.uid}" aria-pressed="${e.uid === V.sel}" aria-label="${nm} ★${e.star}${w ? (w.me ? "（そうび中）" : `（${esc(nameOfWho(w.who))}）`) : ""}" title="${nm}"><span class="tn">${nm}</span>${gearImg(e.base, { cls: "hd" })}<span class="ts">${"★".repeat(e.star)}</span>${w ? `<span class="tw${w.me ? "" : " mate"}">${w.me ? "装" : w.who === "pet" ? "ペ" : "仲"}</span>` : ""}</button></li>`; };
   // 部位別：あたま・くび・うで・あし・武器・オフハンド・アクセサリーの 見出し（ない 部位は 出さない）
-  const listHtml = !vis.length ? `<p class="note">この 部位の 装備は ない</p>` : V.sort !== "slot" ? `<div class="tk list-tk"><ul class="tk-g">${vis.map(card).join("")}</ul></div>`
-    : `<div class="tk list-tk">${Object.keys(KINDS).map((k) => { const g = vis.filter(({ e }) => kindOf(e) === k); return g.length ? `<p class="tk-h">${KINDS[k].label}<small>${g.length}</small></p><ul class="tk-g">${g.map(card).join("")}</ul>` : ""; }).join("")}</div>`;
+  const listHtml = !vis.length ? `<p class="note">${KINDS[V.f].label}の 装備は まだ ない。<a href="dungeon.html">冒険</a>の 宝箱か <a href="bench.html">作業台</a>で 手に 入る</p>` : `<div class="tk list-tk"><ul class="tk-g">${vis.map(card).join("")}</ul></div>`;
   const it = own.find((e) => e.uid === V.sel);
   let det = `<p class="note">まだ 装備が ない。<a href="dungeon.html">冒険</a>の 宝箱か <a href="bench.html">作業台</a>で 手に 入る</p>`;
   if (it) {
@@ -241,7 +247,6 @@ function render() {
       ${cmp ? `<div class="cmp"><h3>いまの ${esc(baseOf(now.base).name)} ★${now.star} とくらべると</h3>${cmp.length ? cmp.map(([k, d]) => `<div class="${d > 0 ? "up" : "dn"}"><span>${nameOf(k)}</span><b>${val(k, d)}</b></div>`).join("") : `<p class="note">数は おなじ</p>`}</div>` : ""}
       <div class="btns">${btn}${sy ? `<a class="linkish" href="bench.html?k=s:${sy.out}">作業台で 合成する</a>` : ""}</div>`;
   }
-  const kindChip = GROUPS.some((g) => g[0] === V.f) ? "" : `<button data-f="all" aria-pressed="true">${KINDS[V.f].label} だけ ✕</button>`;
   return `
   <section class="panel pet" aria-label="ペット">
     <div class="pic"><img src="${info.img}" alt="${esc(info.label)}の${esc(MP.name)}"></div>
@@ -260,8 +265,7 @@ function render() {
     </section>
     <section class="panel" aria-label="持っている装備" id="list">
       <div class="head"><h2>持っている装備</h2><span class="cnt"><b>${own.length}</b> / ${EQUIP_MAX}</span></div>
-      <div class="filters" role="group" aria-label="しぼりこみ">${GROUPS.map(([f, l]) => `<button data-f="${f}" aria-pressed="${V.f === f}" ${n(f) || V.f === f ? "" : "disabled"}>${l} ${n(f)}</button>`).join("")}${kindChip}
-      </div>
+      <div class="ptabs" role="tablist" aria-label="部位">${PARTS.map((k) => `<button role="tab" data-f="${k}" aria-selected="${V.f === k}" class="${n(k) ? "" : "zero"}">${PART_LABEL[k] || KINDS[k].label}<small>${n(k)}</small></button>`).join("")}</div>
       <div class="filters sorts" role="group" aria-label="ならべる"><span>ならべる</span>${SORTS.map(([k, l]) => `<button data-sort="${k}" aria-pressed="${V.sort === k}">${l}</button>`).join("")}</div>
       ${listHtml}
     </section>
@@ -282,15 +286,15 @@ document.body.addEventListener("click", async (e) => {
   const b = e.target.closest("button"); if (!b || b.disabled) return;
   const d = b.dataset;
   if (d.u) { V.sel = d.u; paint(); if (small()) document.body.classList.add("sheet-on"); return; }
-  if (d.f) { V.f = d.f; V.slot = null; return paint(); }
+  if (d.f) { V.f = d.f; V.slot = null; V.sel = null; return paint(); }
   if (d.slot) {   // 枠を 押す：一覧が その 部位 だけに（もう 一度 押すと もどる）
-    if (V.slot === d.slot) { V.slot = null; V.f = "all"; return paint(); }
+    if (V.slot === d.slot) { V.slot = null; return paint(); }
     V.slot = d.slot; V.f = SLOTS[d.slot].kind; const W = wornBy();   // 付けて いる 物、あいて いれば 付けられる いちばん ★の 多い 物を えらぶ
     const e2 = cur(d.slot) || (ME.own.equip || []).filter((x) => kindOf(x) === V.f && !W[x.uid]).sort((x, y) => y.star - x.star)[0]; if (e2) V.sel = e2.uid;
     paint(); if (small()) { if (cur(d.slot)) document.body.classList.add("sheet-on"); else document.getElementById("list").scrollIntoView({ behavior: "smooth", block: "start" }); } return;   // スマホ：付けて いれば シート、あきなら 一覧へ
   }
   if (d.sort) { V.sort = d.sort; return paint(); }
-  if (d.who) { V.who = d.who; V.slot = null; V.f = "all"; V.sel = null; return paint(); }
+  if (d.who) { V.who = d.who; V.slot = null; V.sel = null; return paint(); }
   if (d.on || d.off || d.move) {
     const here = isPet() ? "pet" : holder().uid, it = (ME.own.equip || []).find((x) => x.uid === (d.on || d.move || V.sel)), slot = d.off || slotFor(kindOf(it));
     const r = await busy(b, async () => {
