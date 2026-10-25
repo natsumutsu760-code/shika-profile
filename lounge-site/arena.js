@@ -48,5 +48,22 @@ export function bracketOf(ids, seed) {
 }
 // 何回戦か の 名前（のこり 人数で）
 export const roundName = (n) => (n === 2 ? "決勝" : n === 4 ? "準決勝" : n === 8 ? "準々決勝" : `${n / 2} 試合`);
+// 配信の 帯に 流す 試合：ベスト 8 から（鹿さんの決め、2026-10-25。最大 7 試合・1 試合 30 秒ほど）。不戦勝は 出さない
+// a・b は rounds の まま（id）。no：その 回戦の 何試合目か（1 試合だけの 回戦は 0）・next：勝った 方が 進む 回戦
+export const TOUR_BAND = 8;
+export function bandMatches(rounds) {
+  const out = [];
+  (rounds || []).forEach((R, r) => {
+    const n = R.length * 2; if (n > TOUR_BAND) return;
+    const real = R.filter((m) => m.a != null && m.b != null);
+    real.forEach((m, k) => out.push({ a: m.a, b: m.b, seed: m.seed, r, label: roundName(n), no: real.length > 1 ? k + 1 : 0, next: n > 2 ? roundName(n / 2) : "", final: n === 2 }));
+  });
+  return out;
+}
 // 試合の 種（大会の 日・回戦・番号から 決まる。あとから 見る ときも 同じ 戦いに なる）
 export const matchSeed = (day, r, m) => { let h = 2166136261; for (const ch of `${day}:${r}:${m}`) { h ^= ch.charCodeAt(0); h = Math.imul(h, 16777619); } return h >>> 0; };
+
+// ---------- 派遣先の 戦い（⑤。鹿さんの頼み、2026-10-25） ----------
+// 同じ 行き先に 出かけて いる ほかの 人の ペットと、出発の ときに たまに 出会って 戦う（ペット どうしの 1 対 1）
+// 時間は かからず、勝っても 負けても 探索は そのまま。ふたりとも リソースを 少し、勝った 方は クレジットも。配信中なら オーバーレイの 帯で その場で 戦う
+export const ENC = { chance: 0.3, perDay: 3, res: 1, winCredits: 300 };   // 出会う 確率・1 日に 出会える 回数（ごほうびも この 回数まで）・ふたりの リソース・勝った 方の クレジット

@@ -2,6 +2,7 @@
 <html lang="ja" data-mode="#sitecard">
 <head>
 <meta charset="utf-8">
+<script type="importmap">{ "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.169.0/build/three.module.js", "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.169.0/examples/jsm/" } }</script><!-- 帯の 戦い（MONO LINK の battle-view.js が 使う 3D） -->
 <!--shika-mirror-head--><script>
 /* ミラーの音の下ごしらえ（ページのいちばん最初に入れる）：この画面の音の出口を覚えておき、
    配信者用ページで音を聞いている人がいるとき、leader.js がそこから音を集められるようにする。音の鳴り方は何も変えない。
@@ -333,6 +334,10 @@ body.demo .game .demo-game { display: block; }
 .rotator h3 { margin: 0 0 12px; font: 400 30px/1.1 var(--font-pop); display: flex; align-items: baseline; gap: 14px; }
 .rotator h3 small { font: 800 16px/1 var(--font-body); color: #6A6F9E; }
 .rotator .bar { position: absolute; left: 236px; right: 0; bottom: 0; height: 8px; background: var(--sky); border-top: 3px solid var(--ink); }
+/* 帯の 戦い（⑤ 派遣先で ばったり・④ 大会の 決勝）：帯の ふちを 床に して、上で 3D の 2 匹が 戦う（battle-view.js） */
+.rotator .pvp-sub { margin: 0; font: 800 20px/1.45 var(--font-body); color: #4A4F86; }
+.rotator .pvp-sub b { color: var(--ink); } .rotator .pvp-sub em { font-style: normal; color: var(--pink); }
+.pvp-stage { position: absolute; left: 0; top: 380px; width: 1500px; height: 500px; z-index: 45; pointer-events: none; }
 .rotator .bar i { display: block; height: 100%; width: 0; background: var(--pink); }
 /* ランキングの札（横に並ぶ） */
 .rank { display: grid; grid-template-columns: repeat(5, 1fr); gap: 14px; margin: 0; padding: 0; list-style: none; }
@@ -1975,6 +1980,7 @@ if (location.hash === "#lcdcard" || location.hash === "#sitecard" || document.do
     <div class="page" data-page="follow"><h3>新しいフォロワー<small>ありがとう</small></h3><ol class="rank" id="list-follow"></ol></div>
     <div class="page" data-page="sub"><h3>サブスクしてくれた人<small>ありがとう</small></h3><ol class="rank" id="list-sub"></ol></div>
     <div class="page" data-page="level"><h3>視聴者レベル<small>コメント・パチンコ・応援で上がります（!レベル で確認）</small></h3><ol class="rank" id="rank-level"></ol></div>
+    <div class="page" data-page="pvp"><h3 id="pvp-h"></h3><p class="pvp-sub" id="pvp-sub"></p></div>
     <div class="bar"><i id="rot-bar"></i></div>
   </section>
 
@@ -11558,6 +11564,7 @@ if (location.hash === "#lcdcard" || location.hash === "#sitecard" || document.do
     alertBusy = true;
     if (a.kind === "get") { getShow(a.e, nextAlert); return; }
     if (a.kind === "g10") { g10Show(a.e, nextAlert); return; }
+    if (a.kind === "pvp") { pvpShow(a.e, function () { if (a.e.tour) pvpTourNext(); nextAlert(); }); return; }   // 大会は 1 試合 終わる ごとに つぎを 列の うしろへ
     var K = KIND[a.kind], el = $("alert");
     el.className = "alert k-" + a.kind;
     $("al-badge").textContent = K.badge; $("al-kind").textContent = K.label;
@@ -11571,6 +11578,51 @@ if (location.hash === "#lcdcard" || location.hash === "#sitecard" || document.do
     burst(c.x - 300, c.y, 30); burst(c.x + 300, c.y, 30); burst(850, 120, a.kind === "raid" ? 60 : 30, "hanabi");
     setTimeout(function () { el.classList.add("out"); setTimeout(function () { el.className = "alert"; nextAlert(); }, 420); }, a.kind === "raid" ? 8000 : 6000);
   }
+
+  // ---------- 帯の 戦い（⑤ 派遣先で ばったり・④ 大会の ベスト 8 から。鹿さんの頼み、2026-10-25）----------
+  // 門番（MONO LINK）の relay-pvp から { A, B, seed, kind, did, pay }（大会は { kind: "tour", fs, list } で まとめて 来る）。部品（battle-view.js と その 先）は 門番の /lounge/ から 読む（鹿物語の 中継と 同じ）
+  // 帯の ふち（y=858）を 床に して 2 匹が 戦い、帯の 中に だれと だれか・結果を 出す。終わったら いつもの ページに もどす
+  var PVP_PLACE = { hals: "ハルス街道", morph: "モーフィアス遺跡", kurai: "暗い村", crystal: "水晶洞窟" }, pvpLib = null;
+  function pvpBand(e, res) {
+    var on = !!e;
+    document.querySelectorAll(".rotator .page").forEach(function (p) { p.classList.toggle("on", on ? p.dataset.page === "pvp" : p.dataset.page === PAGES[pageI].id); });
+    document.querySelectorAll("#tabs div").forEach(function (d) { d.classList.toggle("on", !on && d.dataset.tab === PAGES[pageI].id); });
+    if (!on) return;
+    var A = e.A, B = e.B, who = function (f) { return "<b>" + esc(f.owner || "") + "</b> の " + esc(f.name || ""); }, pay = e.pay || {};
+    if (!res) {
+      $("pvp-h").innerHTML = (e.kind === "final" ? "闘技場の 大会・決勝！" : e.kind === "tour" ? "闘技場の 大会・" + esc(e.label) + "！" : "派遣先で ばったり！") + "<small>" + (e.kind === "final" ? "きょうの 優勝が 決まる" : e.kind === "tour" ? (e.no ? "第 " + (+e.no) + " 試合" : "") : esc((PVP_PLACE[e.did] || "派遣先") + "で 出会った")) + "</small>";
+      $("pvp-sub").innerHTML = who(A) + "　VS　" + who(B);
+      return;
+    }
+    var w = res.winner === 0 ? A : B;
+    $("pvp-h").innerHTML = esc(w.name || "") + " の 勝ち！<small>" + (res.upset ? "下克上" : e.kind === "final" ? "優勝" : "勝負あり") + "</small>";
+    $("pvp-sub").innerHTML = e.kind === "final" ? who(w) + " が 優勝！" : e.kind === "tour" ? who(w) + " が " + esc(e.next) + "へ！" : who(w) + " に <em>+" + (+pay.credits || 0) + " クレジット</em>・ふたりに <em>リソース +" + (+pay.res || 0) + "</em>（探索は そのまま）";
+  }
+  // 大会：ベスト 8 からの 試合（最大 7。1 試合 30 秒ほど）。ぜんぶ 列に 入れず 1 つずつ 入れる ので、試合の あいだに フォローなどの お知らせが はさまる
+  var pvpTourQ = [], pvpTourOn = false;
+  function pvpTour(m) {
+    var fs = m.fs || {};
+    (m.list || []).forEach(function (x) {
+      if (x && fs[x.a] && fs[x.b] && isFinite(+x.seed)) pvpTourQ.push({ tour: true, kind: x.final ? "final" : "tour", A: fs[x.a], B: fs[x.b], seed: +x.seed, day: m.day, label: String(x.label || ""), no: +x.no || 0, next: String(x.next || "") });
+    });
+    if (!pvpTourOn && pvpTourQ.length) { pvpTourOn = true; alertShow("pvp", pvpTourQ.shift()); }
+  }
+  function pvpTourNext() { var x = pvpTourQ.shift(); if (x) alertQ.push({ kind: "pvp", e: x }); else pvpTourOn = false; }
+  function pvpShow(e, done) {
+    var url = siteUrl(), fin = false, host = null, view = null;
+    var guard = setTimeout(end, 150000);   // 何が あっても 2 分半で つぎへ
+    function end() { if (fin) return; fin = true; clearTimeout(guard); try { if (view) view.destroy(); } catch (x) {} if (host) host.remove(); pvpBand(null); done(); }
+    if (!url) { end(); return; }
+    (pvpLib || (pvpLib = import(url + "/lounge/battle-view.js"))).then(function (m) {
+      host = document.createElement("div"); host.className = "pvp-stage"; $("stage").appendChild(host);
+      $("rotator").style.visibility = "";   // 前の 通知が 帯を かくして いても 出す
+      pvpBand(e, null); Sound.play("follow");
+      view = m.mountBattle(host, { A: e.A, B: e.B, seed: +e.seed }, { W: 1500, H: 500, ground: 478, S: 150, home: [540, 900], turnY: 426, winY: 220, fit: false,
+        onEnd: function (r) { pvpBand(e, r); setTimeout(end, 5000); } });
+      view.play();
+    }).catch(function () { pvpLib = null; end(); });
+  }
+  window.__shikaPvp = function (m) { if (m && m.kind === "tour") pvpTour(m); else alertShow("pvp", m); };   // 試す とき（見本・撮影）
 
   // ---------- 下の窓：時間で切り替わる ----------
   var PAGES = [{ id: "count", name: "コメント数" }, { id: "streak", name: "連続視聴" }, { id: "level", name: "レベル" }, { id: "follow", name: "フォロワー" }, { id: "sub", name: "サブスク" }];
@@ -12805,6 +12857,8 @@ if (location.hash === "#lcdcard" || location.hash === "#sitecard" || document.do
       if (m.t === "cmd" && typeof m.n === "string" && typeof m.text === "string" && m.n) remoteCmd(m.n.slice(0, 40), m.text.slice(0, 320));
       if (m.t === "like" && typeof m.id === "string" && m.byId) onLike(m);
       if (m.t === "tr" && typeof m.id === "string") trGot(m);
+      if (m.t === "pvp" && m.kind === "tour" && m.fs && Array.isArray(m.list)) pvpTour(m);   // 大会の ベスト 8 から（1 試合ずつ 順番待ちへ）
+      else if (m.t === "pvp" && m.A && m.B && isFinite(+m.seed)) alertShow("pvp", m);   // 帯の 戦い（派遣先で ばったり）。フォローの 通知と 同じ 順番待ち
       if (m.t === "notice" && typeof m.text === "string") notice(m.text, m.id);
       // 鹿物語の「みんなに玉」：MONO LINK にいまいる人の名前を、聞いてきた id と一緒に渡す
       if (m.t === "who" && typeof m.id === "string" && Array.isArray(m.names)) write("shika-who-v1", { id: m.id.slice(0, 40), names: m.names.slice(0, 500).map(function (n) { return String(n).slice(0, 40); }), at: Date.now() });

@@ -131,6 +131,7 @@ import { TYPES } from "./skills.js";
 import { simulate } from "./battle-sim.js";
 import { DUEL, duelPay, tierOf, TIERS, TOUR, TOUR_PAY, roundName } from "./arena.js";
 import { petInfo, linkTabs, gateHtml, addGateCss } from "./pet-head.js";
+import { DUNGEONS } from "./dungeons.js";
 import { me, act, busy } from "./lounge-client.js";   // 名簿・相手・大会・戦いの くじは 門番（相手の いまの 強さも 門番が 組み立てる）
 import { mountWallet } from "./wallet-bar.js"; mountWallet();   // 上の 通貨の 札（玉・リソース・クレジット）と 両替
 addGateCss();
@@ -228,7 +229,8 @@ function tourHtml() {
 function logHtml() {
   const V = S.V, ago = (t) => { const m = Math.floor((Date.now() - t) / 60000); return m < 60 ? `${m} 分前` : m < 1440 ? `${Math.floor(m / 60)} 時間前` : `${Math.floor(m / 1440)} 日前`; };
   const rows = [...V.log.map((x) => ({ at: x.at, html: `<span class="ic" aria-hidden="true">⚔</span><span>${esc(x.name)} の ${esc(x.pet)}に <span class="${x.win ? "ok" : "ng"}">${x.win ? "勝った" : "負けた"}</span>${x.pay ? `（+${fmt(x.pay.credits)}）` : ""}</span>` })),
-    ...V.def.map((x) => ({ at: x.at, html: `<span class="ic" aria-hidden="true">🛡</span><span>${esc(x.name)} の ${esc(x.pet)}が 来た → <span class="${x.held ? "ok" : "ng"}">${x.held ? "守った" : "やられた"}</span></span>` }))].sort((a, b) => b.at - a.at).slice(0, 20);
+    ...V.def.map((x) => ({ at: x.at, html: `<span class="ic" aria-hidden="true">🛡</span><span>${esc(x.name)} の ${esc(x.pet)}が 来た → <span class="${x.held ? "ok" : "ng"}">${x.held ? "守った" : "やられた"}</span></span>` })),
+    ...(V.enc || []).map((x) => ({ at: x.at, html: `<span class="ic" aria-hidden="true">🗺</span><span>${esc((DUNGEONS.find((d) => d.id === x.did) || { name: "派遣先" }).name)}で ${esc(x.name)} の ${esc(x.pet)}と ばったり → <span class="${x.win ? "ok" : "ng"}">${x.win ? "勝った" : "負けた"}</span> <button class="mini" data-enc="${Number(x.at)}">見る</button></span>` }))].sort((a, b) => b.at - a.at).slice(0, 20);
   return `<div class="rec"><div>デュエル<b>${V.me.w} 勝 ${V.me.l} 敗</b></div><div>留守の あいだ<b>${V.hold.w || 0} 勝 ${V.hold.l || 0} 敗</b></div></div>
     ${rows.length ? `<ul class="log">${rows.map((x) => `<li>${x.html}<small>${ago(x.at)}</small></li>`).join("")}</ul>` : `<div class="empty"><p>まだ 記録が ない</p></div>`}`;
 }
@@ -260,6 +262,13 @@ main.addEventListener("click", async (e) => {
     if (S.tab !== "duel") { const body = document.getElementById("body"); body.innerHTML = fightHtml(); } else render();
     document.getElementById("stage").scrollIntoView({ block: "start", behavior: "smooth" });
     return showFight(r.A, r.B, r.seed, r.w === 0);
+  }
+  if (d.enc) {   // 派遣先の 戦いを 見る（自分が 右の ときも ある）
+    const x = (S.V.enc || []).find((y) => y.at === +d.enc), r = await busy(b, () => act("arena.enc", { at: +d.enc }), "よんで います…");
+    if (!r.ok || !x) return toast((r && r.why) || "できませんでした");
+    S.fight = { kind: "match", r, done: false, title: `${(DUNGEONS.find((z) => z.id === x.did) || { name: "派遣先" }).name}で ${x.name} の ${x.pet}と ばったり → ${x.win ? "勝った" : "負けた"}` };
+    document.getElementById("body").innerHTML = fightHtml(); document.getElementById("stage").scrollIntoView({ block: "start", behavior: "smooth" });
+    return showFight(r.A, r.B, r.seed, r.me === 0 ? r.win : !r.win);
   }
   if (d.do === "skip" && S.fight && S.fight.view) return S.fight.view.skip();
   if (d.do === "back") { if (S.fight && S.fight.view) S.fight.view.destroy(); const was = S.fight && S.fight.kind; S.fight = null; if (was === "duel") await reload(); return render(); }

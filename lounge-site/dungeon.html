@@ -760,7 +760,7 @@ function bind() {
   on("[data-go]", async (b) => {
     const { did, rk, pu, tg, tool, fl } = opts(), html = b.innerHTML;
     const r = await busy(b, () => act("trip.start", { did, run: rk, purpose: pu, target: tg, tool, floor: fl || undefined, loop: prepLoop() ?? undefined }), "出発して います…");
-    if (r.ok) { location.href = location.pathname; return; }
+    if (r.ok) { if (r.enc) try { sessionStorage.setItem("ml-enc", JSON.stringify({ name: r.enc.foe.name, pet: r.enc.foe.pet, win: r.enc.win, credits: r.enc.credits, res: r.enc.res })); } catch (e) {} location.href = location.pathname; return; }   // 派遣先で ばったり（⑤）：読みなおした あとで 知らせる
     b.innerHTML = html; document.getElementById("goWhy").textContent = r.why || "出発できませんでした";
   });
   // うけとる：経験値・クレジット・素材・装備・捕まえた 子が 入る（リソースは 帳簿へ）
@@ -796,6 +796,9 @@ document.querySelector(".tabs").scrollLeft = 9999;   // スマホ：えらんで
 // 早めに 帰る ときは「帰って くる」を 少し 見せてから（6 秒）
 // 周回中は 門番が うけとって つぎを 出すのを 待つ（6 秒）
 if (MP && MP.type && TRIP && !TRIP.got) setInterval(() => { const early = TRIP.end < TRIP.start + RUNS[TRIP.run].sec * 1000; if (Date.now() >= TRIP.end + (early || (LOOP && LOOP.on) ? 6000 : TRIP.calc ? 4000 : 1500)) location.reload(); else paint(); }, 2000);
+// 派遣先で ばったり（⑤。出発の あとに 1 回だけ）：同じ 行き先の ほかの 人の ペットと 戦った。探索は そのまま
+try { const en = JSON.parse(sessionStorage.getItem("ml-enc") || "null"); sessionStorage.removeItem("ml-enc");
+  if (en) toast(`派遣先で ばったり！ ${esc(en.name)} の ${esc(en.pet)}に ${en.win ? "勝った" : "負けた"}（${en.credits ? `クレジット <b>+${Number(en.credits)}</b>・` : ""}リソース <b>+${Number(en.res)}</b>）　<a href="arena.html?t=log" style="color:inherit">見る ›</a>`); } catch (e) {}
 window.ready = true;
 </script>
 </body>

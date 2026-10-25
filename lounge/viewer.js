@@ -16,7 +16,8 @@ import { wsMake, wsAtt, attSet, attOff, attDrop } from "./lounge-workshop.js";  
 import { farmPlant, farmHarvest, farmSpr, mineSet, mineCollect, mineLeave, farmView } from "./lounge-farm.js";   // 畑と 坑道
 import { statPut } from "./lounge-stats.js";   // 記録の まとめ（OBS の コスメの 条件。かわった ときだけ Lounge へ）
 import { ensure, give, FURN_MAX, petFirst, petJob, tripStart, tripCalc, tripDone, tripCollect, tripView, hideoutPlan, craftPlan, synthPlan, boxTake, dropOld, stashCap, tameFeedPlan, tameJoin, tameBack, researchPlan, snackCraft, loopNew, loopSet, loopSeen, loopAfter, loopStep, equipScrap } from "./lounge-game.js";
-import { arenaFighter, ensureArena, duelCheck, duelDone, arenaMine } from "./lounge-arena.js";   // 闘技場
+import { arenaFighter, ensureArena, duelCheck, duelDone, arenaMine, encReady, encPick, encDone } from "./lounge-arena.js";   // 闘技場・派遣先の 戦い
+import { hidden } from "./lounge-gate.js";
 
 const OPS_KEEP = 200;            // おぼえて おく op（2 回 来たら 1 回目の 答えを 返す）
 const RATE = { n: 5, ms: 1000 }; // 1 人 1 秒に 5 回まで
@@ -99,6 +100,8 @@ export class Viewer {
     if (!s || !s.ok) return;
     await this.state.storage.put("sim", s.sim); await this.state.storage.setAlarm(Date.now());
     await this.relay("put", relayEntry(rec, rec.trips[rec.trips.length - 1]));
+    const en = await this.encounter(rec, rec.trips[rec.trips.length - 1], Date.now());   // 周回でも 派遣先で ばったり
+    if (en) for (const e of en.earn) await this.earn(rec, e.kind, e.d, "enc");
   }
 
   // 物を 渡す（{ furniture, mats, equip, credits, snacks, hideout }。lounge-game.js の give）
@@ -205,6 +208,18 @@ export class Viewer {
     await this.mark(rec);
   }
 
+  // ---------- 派遣先の 戦い（⑤）：出発の あとに 同じ 行き先の ほかの 人と たまに 出会う。答え：{ view（画面へ）, earn（帳簿へ） } か null ----------
+  async encounter(rec, t, now) {
+    if (!t || !this.env.MARKET || !encReady(rec, jstDay(now))) return null;
+    const me = arenaFighter(rec); if (!me || t.party[0] !== rec.pets[0].uid) return null;
+    let list = null; try { list = (await (await this.lounge().fetch("https://lounge/relay")).json()).list; } catch (e) { return null; }
+    const foe = encPick(list, rec.id, t.did, rand, await this.env.DB.get("gate", "json")); if (!foe) return null;
+    const r = encDone(rec, me, foe, rand);
+    await this.arenaAsk("enc", { id: rec.id, a: me.card, foe: foe.id, A: r.A, B: r.B, seed: r.seed, win: r.win, did: r.did });   // ふたりの 記録・相手の ごほうび
+    await this.relay("pvp", { kind: "enc", A: r.A, B: r.B, seed: r.seed, did: r.did, pay: r.pay });   // 配信中なら 帯で
+    return { view: { foe: r.foe, win: r.win, upset: r.upset, credits: r.credits, res: r.res, did: r.did, A: r.A, B: r.B, seed: r.seed }, earn: [{ kind: "res", d: r.res }] };
+  }
+
   // ---------- 闘技場（Market の 名簿・大会。相手の 強さは 相手の Viewer の /fighter） ----------
   async arenaAsk(path, body) { try { return await (await this.market().fetch("https://market/arena/" + path, { method: "POST", body: JSON.stringify(body) })).json(); } catch (e) { return null; } }
   async arena(rec, b, now) {
@@ -214,13 +229,17 @@ export class Viewer {
       const pick = b.a === "arena.foes" || !A.foes.length, m = await this.arenaAsk("view", { id: rec.id, card: me.card, pick });
       if (!m || !m.ok) return { ok: false, why: "いまは 闘技場に つながらない" };
       if (m.foes) A.foes = m.foes;
-      return { ok: true, me: { ...me.card, w: A.w, l: A.l }, ...arenaMine(A), def: m.def, hold: { w: m.card.hw, l: m.card.hl }, tour: m.tour, last: m.last };
+      return { ok: true, me: { ...me.card, w: A.w, l: A.l }, ...arenaMine(A), def: m.def, hold: { w: m.card.hw, l: m.card.hl }, tour: m.tour, last: m.last, enc: m.enc || [] };
     }
     if (b.a === "arena.match") {   // 大会の 試合を あとから 見る 材料
       try { return await (await this.market().fetch(`https://market/arena/match?day=${encodeURIComponent(String(b.day || ""))}&r=${+b.r || 0}&m=${+b.m || 0}`)).json(); } catch (e) { return { ok: false, why: "いまは 闘技場に つながらない" }; }
     }
+    if (b.a === "arena.enc") {   // 派遣先の 戦いを あとから 見る 材料
+      try { return await (await this.market().fetch(`https://market/arena/encget?id=${rec.id}&at=${+b.at || 0}`)).json(); } catch (e) { return { ok: false, why: "いまは 闘技場に つながらない" }; }
+    }
     if (b.a === "arena.entry") return (await this.arenaAsk("entry", { id: rec.id, on: !!b.on, card: me.card })) || { ok: false, why: "いまは 闘技場に つながらない" };
     const c = duelCheck(rec, A, b); if (c.why) return { ok: false, why: c.why };
+    if (hidden(await this.env.DB.get("gate", "json"), c.foe.id)) return { ok: false, why: "その 相手とは 戦えない（入れかえて べつの 相手に）" };   // あとから 入れなく なった 人
     let theirs = null;
     try { theirs = await (await this.env.VIEWER.get(this.env.VIEWER.idFromName("v:" + c.foe.id)).fetch("https://viewer/fighter")).json(); } catch (e) {}
     if (!theirs || !theirs.f) return { ok: false, why: "相手に つながらない（入れかえて べつの 相手に）" };
@@ -274,6 +293,7 @@ export class Viewer {
       if (r.ok) loopNew(rec, body, now);   // 周回（3・5・10・ずっと）を えらんで いれば はじめる
       if (r.sim) { await this.state.storage.put("sim", r.sim); await this.state.storage.setAlarm(Date.now()); delete r.sim; }   // 計算は アラームで 少しずつ
       if (r.ok) await this.relay("put", relayEntry(rec, rec.trips[rec.trips.length - 1]));
+      if (r.ok) { const en = await this.encounter(rec, rec.trips[rec.trips.length - 1], now); if (en) { r.enc = en.view; r.earn = [...(r.earn || []), ...en.earn]; } }   // 派遣先で ばったり（探索は そのまま）
     }
     else if (body.a === "trip.collect") {
       const t = rec.trips.find((x) => !x.done && (!body.uid || x.uid === body.uid)), g = t && t.got;   // tripCollect と 同じ さがし方
@@ -302,7 +322,7 @@ export class Viewer {
     else if (body.a === "mine.set") r = mineSet(rec, body, rand, now);
     else if (body.a === "mine.collect") r = mineCollect(rec, rand, now);
     else if (body.a === "equip.scrap") r = equipScrap(rec, body, now, rand);   // 装備を 手放す（玉は 下の earn で 帳簿へ）
-    else if (/^arena\.(view|foes|duel|entry|match)$/.test(String(body.a))) r = await this.arena(rec, body, now);
+    else if (/^arena\.(view|foes|duel|entry|match|enc)$/.test(String(body.a))) r = await this.arena(rec, body, now);
     else if (typeof body.a === "string" && Object.prototype.hasOwnProperty.call(PLANS, body.a)) {   // お金が いる やること：計画を 作って 帳簿で 払う（「constructor」などは 通さない）
       const plan = PLANS[body.a](rec, body, this.env);
       r = plan.costs ? await this.charge(rec, plan, wallet) : plan;

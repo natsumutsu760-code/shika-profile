@@ -3,8 +3,9 @@
 // Market（みんなの 箱）：名簿 "a:c:" + id・守りの 記録 "a:d:" + id・大会 "a:t:" + 日・大会の ペット "a:f:" + 日 + ":" + id
 //   受付中の 大会の 日 "a:open"・進めて いる 大会の 日 "a:runq"・さいごに 終わった 大会の 日 "a:last"。22:00 の アラームで 大会を 少しずつ 進める（CPU の 上限が あるので 1 回に 数試合）
 // ごほうび：デュエルは その場で（クレジットは 記録・リソースは 帳簿）。大会は Market の 送る 箱（"o:"）から Viewer の /inbox へ
-import { DUEL, duelPay, pickFoes, TOUR, TOUR_PAY, tourDay, tourAt, bracketOf, matchSeed, simulate, fighterPower } from "./game.js";
+import { DUEL, duelPay, pickFoes, TOUR, TOUR_PAY, tourDay, tourAt, bracketOf, bandMatches, matchSeed, simulate, fighterPower, ENC } from "./game.js";
 import { fighterOf } from "./lounge-game.js";
+import { hidden } from "./lounge-gate.js";   // 入れない 人は 相手に えらばない・大会から はずす・名前を 出さない
 
 const J = (o, status = 200) => new Response(JSON.stringify(o), { status, headers: { "Content-Type": "application/json" } });
 const OLD_MS = 30 * 864e5;   // 30 日 来て いない 人は 相手に えらばない
@@ -50,6 +51,22 @@ export function duelDone(rec, A, me, theirs, R, now) {
 // 画面に 出す 自分の 分
 export const arenaMine = (A) => ({ left: { duels: DUEL.perDay - A.n, paid: DUEL.paidPerDay - A.paid }, beat: A.beat, foes: A.foes, w: A.w, l: A.l, log: A.log });
 
+// ---------- 派遣先の 戦い（⑤） ----------
+// 出発の ときに：中継（Lounge の /relay）の 派遣中の 人から、同じ 行き先の ほかの 人を さがす。いれば 3 割で 出会う
+export function encReady(rec, day) { const E = (rec.enc ||= { day: -1, n: 0 }); if (E.day !== day) Object.assign(E, { day, n: 0 }); return E.n < ENC.perDay; }
+export function encPick(list, myId, did, R, gate) {
+  const c = (list || []).filter((e) => e && e.id !== myId && e.did === did && Array.isArray(e.party) && e.party[0] && e.party[0].stats && !hidden(gate, e.id));
+  if (!c.length || R() >= ENC.chance) return null;
+  return c[Math.floor(R() * c.length)];
+}
+// 戦って 自分の 分を 記録に 入れる（相手の 分は Market が 送る 箱から）。探索（派遣）には さわらない
+export function encDone(rec, me, foe, R) {
+  const B = { ...foe.party[0], owner: foe.name }, seed = Math.floor(R() * 2 ** 31), end = simulate(me.f, B, seed, { quiet: true }).at(-1), win = end.winner === 0;
+  rec.enc.n++;
+  if (win) rec.credits += ENC.winCredits;
+  return { A: me.f, B, seed, win, upset: !!end.upset, did: foe.did, foe: { id: foe.id, name: foe.name, pet: B.name }, credits: win ? ENC.winCredits : 0, res: ENC.res, pay: { credits: ENC.winCredits, res: ENC.res } };
+}
+
 // ---------- Market ----------
 async function cardsOf(mk) {
   if (!mk.cards) mk.cards = Object.fromEntries([...(await mk.state.storage.list({ prefix: "a:c:" })).values()].map((c) => [c.id, c]));
@@ -64,6 +81,7 @@ async function putCard(mk, card, now, d = {}) {
   return c;
 }
 const pub = (c) => ({ id: c.id, name: c.name, pet: c.pet, power: c.power });
+async function pushEnc(st, id, e) { const list = (await st.get("a:e:" + id)) || []; await st.put("a:e:" + id, [e, ...list].slice(0, 6)); }
 // 大会を 画面の 形に（名前は 参加した ときの 札から）
 function tourView(t, id) {
   if (!t) return null;
@@ -80,10 +98,11 @@ export async function arenaFetch(mk, url, b, now) {
   // 見る（自分の 札を 名簿に のせる。pick：相手を 3 人 えらびなおす）
   if (url.pathname === "/arena/view") {
     if (!b.card || String(b.card.id) !== id) return J({ ok: false, why: "札が ない" });
-    const me = await putCard(mk, b.card, now), C = await cardsOf(mk);
+    const me = await putCard(mk, b.card, now), C = await cardsOf(mk), gate = await mk.env.DB.get("gate", "json");
     const day = tourDay(now), last = await st.get("a:last");
-    const out = { ok: true, card: me, def: ((await st.get("a:d:" + id)) || []).slice(0, 10), tour: tourView((await st.get("a:t:" + day)) || newTour(day), id), last: last ? tourView(await st.get("a:t:" + last), id) : null };
-    if (b.pick) out.foes = pickFoes(Object.values(C).filter((c) => now - c.at < OLD_MS), id, me.power, Math.random).map(pub);
+    const out = { ok: true, card: me, def: ((await st.get("a:d:" + id)) || []).filter((x) => !x.by || !hidden(gate, x.by)).slice(0, 10), tour: tourView((await st.get("a:t:" + day)) || newTour(day), id), last: last ? tourView(await st.get("a:t:" + last), id) : null };
+    out.enc = ((await st.get("a:e:" + id)) || []).filter((x) => !hidden(gate, x.by)).map(({ A, B, seed, ...x }) => x);   // 派遣先の 戦い（見る 材料は 出さない）
+    if (b.pick) out.foes = pickFoes(Object.values(C).filter((c) => now - c.at < OLD_MS && !hidden(gate, c.id)), id, me.power, Math.random).map(pub);
     return J(out);
   }
   // デュエルの 記録（挑んだ 人の Viewer から）：a は 挑んだ 人の 札、b は 相手の id、win は 挑んだ 人が 勝ったか
@@ -94,7 +113,7 @@ export async function arenaFetch(mk, url, b, now) {
     if (d) {
       await putCard(mk, d, d.at, b.win ? { hl: 1 } : { hw: 1 });
       const list = (await st.get("a:d:" + d.id)) || [];
-      await st.put("a:d:" + d.id, [{ at: now, name: b.a.name, pet: (b.a.pet || {}).name || "", held: !b.win }, ...list].slice(0, 20));
+      await st.put("a:d:" + d.id, [{ at: now, by: String(b.a.id), name: b.a.name, pet: (b.a.pet || {}).name || "", held: !b.win }, ...list].slice(0, 20));
     }
     return J({ ok: true });
   }
@@ -111,6 +130,25 @@ export async function arenaFetch(mk, url, b, now) {
     } else t.ents = t.ents.filter((x) => x !== id);
     await st.put("a:t:" + day, t);
     return J({ ok: true, tour: tourView(t, id) });
+  }
+  // 派遣先の 戦い（出会った 人の Viewer から）：ふたりの 記録（"a:e:" + id。見る 材料つき 6 こ）・相手の ごほうび（1 日 3 回まで。送る 箱へ）
+  if (url.pathname === "/arena/enc") {
+    if (!b.a || !b.foe || !b.A || !b.B || !Number.isFinite(+b.seed)) return J({ ok: false });
+    const foeId = String(b.foe), base = { at: now, did: String(b.did || ""), seed: +b.seed, A: b.A, B: b.B };
+    await pushEnc(st, id, { ...base, me: 0, by: foeId, name: String(b.B.owner || ""), pet: String(b.B.name || ""), win: !!b.win });
+    await pushEnc(st, foeId, { ...base, me: 1, by: id, name: String(b.A.owner || ""), pet: String(b.A.name || ""), win: !b.win });
+    const day = Math.floor((now + 9 * 3600e3) / 864e5), ec = await st.get("a:ec"), cnt = ec && ec.day === day ? ec.n : {};   // その 日の 回数だけ（日が かわったら 入れかわる。鍵は 1 つ）
+    if ((cnt[foeId] || 0) < ENC.perDay) {
+      const mid = `enc:${now}:${id}:${foeId}`;
+      cnt[foeId] = (cnt[foeId] || 0) + 1; await st.put("a:ec", { day, n: cnt });
+      await st.put("o:" + mid, { to: foeId, mid, why: "enc", give: { credits: b.win ? 0 : ENC.winCredits }, earn: [{ kind: "res", d: ENC.res }] });
+      await mk.wake(now);
+    }
+    return J({ ok: true });
+  }
+  if (url.pathname === "/arena/encget") {
+    const e = ((await st.get("a:e:" + id)) || []).find((x) => x.at === +url.searchParams.get("at"));
+    return e ? J({ ok: true, A: e.A, B: e.B, seed: e.seed, me: e.me, win: e.win }) : J({ ok: false, why: "その 戦いは もう ない" });
   }
   // 試合を あとから 見る 材料（2 匹の 戦う 形と 種。同じ 種で 同じ 戦いに なる）
   if (url.pathname === "/arena/match") {
@@ -151,7 +189,9 @@ async function tourStep(mk, day, now) {
   const st = mk.state.storage, t = await st.get("a:t:" + day);
   if (!t || (t.state !== "fetch" && t.state !== "run")) return true;
   if (t.state === "fetch") {
+    const gate = await mk.env.DB.get("gate", "json");
     for (const id of t.ents.filter((x) => !t.got.includes(x) && !t.drop.includes(x)).slice(0, 8)) {
+      if (hidden(gate, id)) { t.drop.push(id); continue; }   // 22:00 の 時点で 入れない 人は 出ない
       let j = null;
       try { j = await (await mk.env.VIEWER.get(mk.env.VIEWER.idFromName("v:" + id)).fetch("https://viewer/fighter")).json(); } catch (e) {}
       if (j && j.f && j.card) { await st.put(`a:f:${day}:${id}`, j); t.cards[id] = pub(j.card); t.got.push(id); } else t.drop.push(id);
@@ -189,6 +229,13 @@ async function tourStep(mk, day, now) {
         await st.put("o:" + mid, { to: id, mid, why: "arena:" + day, give: { credits: P.credits }, earn: P.res ? [{ kind: "res", d: P.res }] : [] });
       }
       await st.put("a:t:" + day, t); await st.put("a:last", day);
+      // 配信中なら ベスト 8 からの 試合を オーバーレイの 帯へ（1 回で 送る。ペットは Twitch の id で なく 番号で）
+      try {
+        const L = bandMatches(t.rounds), ids = [...new Set(L.flatMap((x) => [x.a, x.b]))], got = await Promise.all(ids.map((id) => st.get(`a:f:${day}:${id}`))), fs = {}, k = {};
+        ids.forEach((id, i) => { if (got[i]) { k[id] = String(i); fs[i] = got[i].f; } });
+        const list = L.filter((x) => k[x.a] && k[x.b]).map((x) => ({ ...x, a: k[x.a], b: k[x.b] }));
+        if (list.length && mk.env.LOUNGE) await mk.env.LOUNGE.get(mk.env.LOUNGE.idFromName("lounge")).fetch("https://lounge/relay-pvp", { method: "POST", body: JSON.stringify({ kind: "tour", day, fs, list }) });
+      } catch (e) {}
       return true;
     }
   }
