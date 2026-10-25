@@ -7,7 +7,7 @@
 // 勝った敵は 1 体ずつ、一定の確率で捕まえる（研究するとサブツリー、懐柔するとパーティに入れられる）。戦いに勝つと、ときどき懐柔のおやつを拾う
 import { simulateTeams, rngIn, vitalsOf } from "./battle-sim.js";
 import { petAt } from "./builds.js";
-import { OPS, rollCombo, comboOf, opCount } from "./equip.js";
+import { OPS, rollCombo, comboOf, opCount, baseOf } from "./equip.js";
 import { DUNGEONS, RUNS, RARE_RATE, CAPTURE, GROUP, SNACK_DROP, TICK, ENCOUNTER, REST, TRAP, FLOOR_LV, BATTLE_TICKS, PURPOSES, CHEST_STAR, BOSS_STAR, MYTHIC, BOSS_RESOURCE, EXP_PER_LV, CREDIT, TOOLS, LURE_SHARE, NET_MULT } from "./dungeons.js";
 import { ENEMY_TREES } from "./enemy-trees.js";
 import { floorMap, reachOf, exploredRatio, keyOf, DIRS, GW, GH, FLOORS, T, isPass } from "./floors.js";
@@ -236,7 +236,6 @@ function machine(S) {
 }
 
 // ---------- 日記：ペットの口ぐせで、何があったかを書く ----------
-const BASE_NAME = { helmet: "工事のヘルメット", knit: "毛糸のぼうし", straw: "麦わら帽子", nabe: "鍋のふた", bowtie: "蝶ネクタイ", omamori: "お守り", bib: "よだれかけ", gold: "金のネックレス", stick: "木の棒", pikopiko: "ピコピコハンマー", mizudeppo: "水鉄砲", kamifusen: "紙ふうせん" };
 const DIARY = {
   shika: { win: "ゴーグルを つけた。{d}で ねた。おきたら {n}たい たおしてた。{item}", lose: "ゴーグルを つけた。{d}で ねた。{foe}に まけてた。ねた。" },
   pelican: { win: "{d}へ 配達に 行った。{n}たい たおした。{item}", lose: "{d}で {foe}に つかまった。手紙は ぶじ。" },
@@ -249,7 +248,8 @@ const DIARY = {
 };
 export function diaryOf(species, res) {
   const t = DIARY[species] || DIARY.shika, it = res.drops[0], last = res.battles.at(-1);
-  const item = it ? (species === "chokin" ? `${BASE_NAME[it.base]}（★${it.star}）は たべられなかった。` : `${BASE_NAME[it.base]}（★${it.star}）が とどいた。`) : "";
+  const iname = it ? baseOf(it.base)?.name || it.base : "";   // 組み合わせの 装備（鉄の手袋 など）も 名前で
+  const item = it ? (species === "chokin" ? `${iname}（★${it.star}）は たべられなかった。` : `${iname}（★${it.star}）が とどいた。`) : "";
   let s = (res.cleared ? t.win : t.lose).replaceAll("{d}", res.dungeon.name).replaceAll("{n}", res.kills).replaceAll("{foe}", last ? last.foe.name : "なにか").replaceAll("{item}", item);
   if (!res.cleared && it) s += ` ${item}`;
   const gain = Math.round((res.after.reduce((a, b) => a + b, 0) - res.before.reduce((a, b) => a + b, 0)) / res.after.length * 100);

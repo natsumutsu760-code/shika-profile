@@ -146,6 +146,7 @@
   .real .where small { display:block; font:700 12px/1.4 var(--jp); color:var(--soft); }
   .timer { margin-top:8px; display:flex; align-items:baseline; gap:8px; }
   .timer b { font:600 40px/1 var(--num); letter-spacing:.02em; } .timer small { font:700 13px/1 var(--jp); color:var(--soft); }
+  .timer.back { flex-wrap:wrap; row-gap:4px; } .timer.back b { font:900 24px/1.15 var(--jp); letter-spacing:0; white-space:nowrap; } .timer.back small { white-space:nowrap; } .pbar.cut i { background:var(--leaf); } .pbar.cut.wipe i { background:var(--coral); }   /* 早めに 帰る：バーは そこで 止まる */
   .pbar { margin-top:8px; height:10px; border-radius:99px; background:#EDF1F8; overflow:hidden; } .pbar i { display:block; height:100%; border-radius:99px; background:var(--sky); }
   .real .jelly { margin-top:auto; } .real .note { margin:8px 0 0; font:700 11px/1.5 var(--jp); color:var(--soft); }
   .real .spacer { flex:1; min-height:12px; }
@@ -575,9 +576,10 @@ function mapHtml(did, f, seen, opened, hidOpen, me) {
   return `<div class="dmap" role="img" aria-label="${f} 階の地図">${html}</div>`;
 }
 let PLAY = null;   // 出かけた ときと 同じ 種・行き先・パーティで、この ブラウザでも 1 回 計算する（ごほうびは 門番が 出かける ときに 決めて いる）
+const BACK_WHY = { wipe: "力つきた……", explore: "探索を おえた", boss: "ボスを たおした", gather: "採取を おえた" };
 function renderPlay() {
   const t = TRIP, did = t.did, d = DUNGEONS.find((x) => x.id === did), run = RUNS[t.run], pu = t.purpose;
-  if (!PLAY) { const party = [PET, ...t.party.slice(1).map(mateOf).filter(Boolean)]; PLAY = { party, res: runDungeon(party, did, t.run, t.seed, { purpose: pu, target: t.target, tool: t.tool, floor: t.floor, progress: PROG[did] }) }; }
+  if (!PLAY) { const party = t.team ? t.team.map((c, k) => ({ ...c, owner: k ? "" : ME.name })) : [PET, ...t.party.slice(1).map(mateOf).filter(Boolean)]; PLAY = { party, res: runDungeon(party, did, t.run, t.seed, { purpose: pu, target: t.target, tool: t.tool, floor: t.floor, progress: PROG[did] }) }; }   // 出かけた ときの 形（team。門番と 同じ）。前の 記録には ないので いまの 形
   const { party: TP, res } = PLAY, now = Date.now();
   if (t.calc) t.end = t.start + Math.min(res.budget, res.track.length) * TICK * 1000;   // 門番が まだ 計算中：帰る 時間は この ブラウザの 計算で（同じ 種なので 同じ）
   const at = Math.max(0, Math.min(res.track.length - 1, Math.floor((now - t.start) / (TICK * 1000))));
@@ -586,6 +588,8 @@ function renderPlay() {
   const hidOpen = !!PROG[did].floors[f]?.hidden || res.log.some((l) => l.t <= at && l.s.includes("かくし通路を 見つけた") && res.track[l.t]?.f === f);
   const pct = Math.round(exploredRatio(did, f, [...seen]) * 100), act = tr.a === "b" ? "戦っている" : tr.a === "r" ? "休憩中" : "探索中", actAt = tr.a === "w" ? `${f} 階を 探索中` : `${f} 階で ${act}`;
   const wonSoFar = res.battles.filter((b) => b.tick + b.cost <= at && b.win).length;
+  // のこりは えらんだ コースの 時間で 数える（鹿さんの決め、2026-10-25）。早めに 帰る（力つきた・やる ことを おえた）ことは、その 場面に なって はじめて 出す
+  const full = t.start + run.sec * 1000, back = now >= t.end && t.end < full;
   let side = "", lines;
   if (tr.a === "b") {
     const b = res.battles[tr.b], acts = b.ev.filter((e) => e.type === "act"), frac = Math.min(1, (at - b.tick + 1) / b.cost), upto = acts.length ? b.ev.indexOf(acts[Math.max(0, Math.min(acts.length - 1, Math.floor(acts.length * frac) - 1))]) + 1 : 1;
@@ -604,8 +608,8 @@ function renderPlay() {
     <section class="panel real" aria-label="${esc(MP.name)}のようす">
       <div class="stage"><img src="${VR_IMG}" alt="ゴーグルをつけた${esc(MP.name)}"></div>
       <p class="where">${esc(d.name)} ${actAt}<small>${run.sec / 60} 分コース・${PURPOSES[pu].name}・${wonSoFar} 戦 勝った</small></p>
-      <div class="timer"><b>${mm(Math.max(0, (t.end - now) / 1000))}</b><small>のこり</small></div>
-      <div class="pbar"><i style="width:${Math.round(Math.min(1, (now - t.start) / Math.max(1, t.end - t.start)) * 100)}%"></i></div>
+      ${back ? `<div class="timer back"><b>帰って くる</b><small>${BACK_WHY[res.reason === "wipe" ? "wipe" : pu] || ""}</small></div>` : `<div class="timer"><b>${mm(Math.max(0, (full - now) / 1000))}</b><small>のこり</small></div>`}
+      <div class="pbar ${back ? `cut ${res.reason === "wipe" ? "wipe" : ""}` : ""}"><i style="width:${Math.round(Math.min(1, (Math.min(now, t.end) - t.start) / Math.max(1, full - t.start)) * 100)}%"></i></div>
       <div class="spacer"></div>
     </section>
     <section class="visor inside ex th-${did}" style="--dc:${d.color}" aria-label="ゴーグルの中">
@@ -734,7 +738,8 @@ linkTabs();
 paint(); watchIcons();
 document.querySelector(".tabs").scrollLeft = 9999;   // スマホ：えらんでいるタブ（冒険）を見えるところに
 // 出かけて いる あいだは 2 秒ごとに ようすを 進める。帰る 時間を すぎたら 門番に 聞きなおす（ごほうびは 帰って から 見える）
-if (MP && MP.type && TRIP && !TRIP.got) setInterval(() => { if (Date.now() >= TRIP.end + (TRIP.calc ? 4000 : 1500)) location.reload(); else paint(); }, 2000);
+// 早めに 帰る ときは「帰って くる」を 少し 見せてから（6 秒）
+if (MP && MP.type && TRIP && !TRIP.got) setInterval(() => { const early = TRIP.end < TRIP.start + RUNS[TRIP.run].sec * 1000; if (Date.now() >= TRIP.end + (early ? 6000 : TRIP.calc ? 4000 : 1500)) location.reload(); else paint(); }, 2000);
 window.ready = true;
 </script>
 </body>
