@@ -2,6 +2,7 @@
 // makeHideout(lv) が THREE.Group を返す。lv は { bench: 0〜3, ... }。施設の Lv で 見た目が かわる（Lv0 は 箱と 設計図だけの 空き地）
 // ラウンジと 同じ ローポリ（箱と 筒の 組み合わせ）。1 マス ＝ 1。部屋は 12 × 10。地下の 拡張（lv.dig）で 奥の かべの 向こうへ 6・12・18 マス 広がる
 import * as THREE from "three";
+import { FACILITIES } from "./facilities.js";
 
 const M = {}, mat = (c, o = {}) => (M[c + JSON.stringify(o)] ||= new THREE.MeshStandardMaterial({ color: c, roughness: 0.7, metalness: 0, flatShading: true, ...o }));
 const glow = (c, k = 1.6) => mat(c, { emissive: c, emissiveIntensity: k, roughness: 0.4 });
@@ -147,6 +148,43 @@ const ST = {
   },
 };
 // 畑の 畝 1 列（4 マス）。作物は 列ごとに 色を かえる。z：列の 位置
+// 無線機（ニライ諸島へ 行く 施設。Lv1 だけ）：木の つくえの 上の 古い 短波の 無線機・ヘッドホン・かべの アンテナ線と 小さな 海図
+ST.radio = function radio(g, lv, fx) {
+  if (!lv) return empty(g, 1.6, 0.9);
+  legs(g, 1.4, 0.7, 0.78, "#5B4636"); box(g, 1.46, 0.08, 0.74, "#A8784A", 0, 0.78, 0);
+  // 無線機の 箱（木の わくに 金ぞくの 前の 板）
+  const R = new THREE.Group(); R.position.set(-0.18, 0.86, -0.08); g.add(R);
+  box(R, 0.78, 0.44, 0.36, "#8A6544"); const ant = cyl(R, 0.008, 0.012, 0.55, "#C9CED8", 0.33, 0.44, -0.1, 5); ant.rotation.z = -0.35; box(R, 0.72, 0.38, 0.02, "#3A3F4A", 0, 0.03, 0.18);
+  // スピーカーの 網（左）：横の すじ
+  box(R, 0.24, 0.26, 0.01, "#22262E", -0.2, 0.09, 0.195); for (let i = 0; i < 6; i++) box(R, 0.22, 0.012, 0.012, "#7A808C", -0.2, 0.11 + i * 0.04, 0.2);
+  // 周波数の 窓（あたたかい 色）と 針、メーター（緑に ゆっくり 明滅）
+  box(R, 0.34, 0.09, 0.012, glow("#FFC46A", 1.2), 0.15, 0.27, 0.195); box(R, 0.01, 0.08, 0.016, "#C8392E", 0.1, 0.275, 0.2);
+  const meter = box(R, 0.13, 0.08, 0.012, glow("#5CFF8A", 1.7), 0.08, 0.13, 0.195); fx.push({ flicker: meter });
+  ball(R, 0.025, glow("#5CFF8A", 1.7), 0.25, 0.17, 0.2, 6);
+  // つまみ（大きい 選局の つまみと 小さい つまみ 3 こ）
+  rod(R, 0.055, 0.04, "#2B2B33", 0.27, 0.1, 0.21, "z", 12); [-0.01, 0.1].forEach((x) => rod(R, 0.03, 0.035, "#C9CED8", x + 0.04, 0.06, 0.21, "z", 10));
+  // ヘッドホン（つくえの 右）
+  const H = new THREE.Group(); H.position.set(0.48, 0.86, 0.12); H.rotation.y = -0.4; g.add(H);
+  const band = new THREE.Mesh(new THREE.TorusGeometry(0.13, 0.018, 6, 16, Math.PI), mat("#2B2B33")); band.position.y = 0.04; band.rotation.x = -Math.PI / 2; H.add(band);
+  [-1, 1].forEach((k) => cyl(H, 0.06, 0.06, 0.05, "#3A3F4A", 0.13 * k, 0, 0, 12)); [-1, 1].forEach((k) => cyl(H, 0.045, 0.045, 0.052, "#8E5A3A", 0.13 * k, 0.001, 0, 12));
+  // メモと えんぴつ
+  box(g, 0.22, 0.01, 0.16, "#F2E6D0", 0.42, 0.86, -0.18).rotation.y = 0.25; rod(g, 0.008, 0.16, "#FFC21A", 0.4, 0.875, -0.12, "x", 5);
+  // アンテナ線：無線機の うしろから かべを のぼって、天井の 近くで 横に はしる（白い がいし つき）
+  const W = mat("#C8814A", { emissive: "#6A3A1A", emissiveIntensity: 0.4 }), wz = -0.84;
+  cyl(g, 0.02, 0.02, 0.6, W, -0.38, 1.3, wz); rod(g, 0.02, 0.3, W, -0.38, 1.3, wz + 0.15, "z", 5);
+  cyl(g, 0.02, 0.02, 1.05, W, -0.38, 1.9, wz); rod(g, 0.02, 1.5, W, 0.05, 2.95, wz, "x", 5);
+  [-0.38, 0.75].forEach((x) => ball(g, 0.045, "#F2EEE4", x, 2.95, wz, 6));
+  // 小さな 海図（ニライ諸島の かたち）：紙の 上に 本島と 小島 4 つ、北の 寺院に 赤い ピン
+  const Mp = new THREE.Group(); Mp.position.set(0.38, 1.62, wz + 0.02); g.add(Mp);
+  box(Mp, 0.66, 0.46, 0.02, "#7A5636", 0, -0.23); box(Mp, 0.6, 0.4, 0.022, "#CFE4F0", 0, -0.2);
+  const isle = (r, sx, sy, x, y, c = "#6FAE5A") => { const b = ball(Mp, r, c, x, y, 0.016, 8); b.scale.set(sx, sy, 0.12); return b; };
+  isle(0.1, 1.15, 0.9, 0.0, -0.02); isle(0.07, 0.6, 0.6, -0.2, 0.1, "#7A6E66"); isle(0.08, 0.6, 0.6, -0.16, 0.13, "#5A5058"); isle(0.06, 0.55, 0.7, 0.2, 0.12, "#9C8D7E"); isle(0.07, 0.8, 0.5, 0.2, -0.12, "#8FE6D8");
+  ball(Mp, 0.015, "#E8393C", 0.0, 0.08, 0.03, 6);
+  // いす
+  cyl(g, 0.17, 0.17, 0.05, "#7A5236", -0.1, 0.46, 0.62, 12); [[-1, -1], [1, -1], [-1, 1], [1, 1]].forEach(([i, j]) => box(g, 0.035, 0.46, 0.035, "#5B4636", -0.1 + i * 0.1, 0, 0.62 + j * 0.1));
+  lamp(g, "#BFF2C8", [0, 0.6][lv], 0, 2.1, 0.8);
+};
+
 function bed(g, r, z, fx) {
   box(g, 4, 0.22, 0.8, "#5A3A26", 0, 0, z); box(g, 3.8, 0.04, 0.62, "#7A5236", 0, 0.22, z);
   [[-2.02, 0], [2.02, 0]].forEach(([x]) => box(g, 0.06, 0.28, 0.84, "#8A6A4A", x, 0, z));
@@ -157,13 +195,16 @@ function bed(g, r, z, fx) {
 }
 
 // 置き場所：左の かべ（作業台・おやつ工房）、奥の かべ（研究所・地図室・救護室）、右（トレーニング室・倉庫）。はしごは 手前
-export const SPOTS = {
+const PLACE = {
   bench: { x: 0.9, z: 3.2, r: Math.PI / 2 }, snack: { x: 0.9, z: 7.2, r: Math.PI / 2 },
   lab: { x: 3.3, z: 0.9, r: 0 }, maproom: { x: 6.6, z: 1, r: 0 }, medic: { x: 9.9, z: 0.9, r: 0 },
   gym: { x: 10.3, z: 4.6, r: 0 }, storage: { x: 9.8, z: 8.2, r: 0 }, armory: { x: 4.4, z: 8.5, r: 0 },   // 武器庫：はしごの 左（おやつ工房と はしごの あいだ）
   workshop: { x: 0.9, z: -3, r: Math.PI / 2, dig: 1 },   // dig：その 場所が 掘れる 地下の 拡張の Lv（奥の かべの 向こう）
   farm: { x: 8, z: -3, r: 0, dig: 1 }, mine: { x: 6, z: -10.4, r: 0, dig: 2 },   // 畑と 坑道（③）
+  radio: { x: 0.75, z: 5.2, r: Math.PI / 2 },   // 無線機：左の かべ（作業台と おやつ工房の あいだ）
 };
+// ゲームに 出て いる 施設だけ 置く（ニライ諸島が 出る まで〈ISLAND_OPEN = 1〉は 無線機が FACILITIES に ないので 置かない・ふだも 出ない）
+export const SPOTS = Object.fromEntries(Object.entries(PLACE).filter(([id]) => FACILITIES.some((f) => f.id === id)));
 export const ROOM = { w: 12, d: 10, h: 3.4 };
 const LOW = 0.9;   // 拡張の あとの 奥の かべの 高さ
 // 地下の 拡張（鹿さんの決め、2026-10-25：いまの 部屋を 奥へ 広げる）。奥の かべ（z = 0）の 向こうへ Lv ごとに 6 マス
@@ -201,7 +242,7 @@ export function makeHideout(lv) {
   cyl(g, 0.7, 0.9, 2.8, mat("#FFE6B0", { transparent: true, opacity: 0.08, emissive: "#FFE6B0", emissiveIntensity: 0.6, depthWrite: false }), 6.6, 0.2, 8.9, 16);
   lamp(g, "#FFE6B0", 1.4, 6.6, 3, 8.9, 5);
   // 施設
-  for (const [id, sp] of Object.entries(SPOTS)) { if ((sp.dig || 0) > dig) continue; const S = new THREE.Group(); S.position.set(sp.x + (sp.r ? 0.15 : 0), 0, sp.z + (sp.r ? 0 : 0.15)); S.rotation.y = sp.r; S.userData.id = id; g.add(S); ST[id](S, lv[id] || 0, fx); }
+  for (const [id, sp] of Object.entries(SPOTS)) { if (!FACILITIES.some((f) => f.id === id) || (sp.dig || 0) > dig) continue; const S = new THREE.Group(); S.position.set(sp.x + (sp.r ? 0.15 : 0), 0, sp.z + (sp.r ? 0 : 0.15)); S.rotation.y = sp.r; S.userData.id = id; g.add(S); ST[id](S, lv[id] || 0, fx); }
   g.userData.tick = (t) => fx.forEach((f) => {
     if (f.spin) f.spin.rotation.y = t * 0.8;
     if (f.gear) f.gear.rotation.y = t * 0.9 * f.s;

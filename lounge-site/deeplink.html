@@ -82,7 +82,7 @@
   .rows .prog { display:flex; align-items:center; gap:8px; margin-top:4px; font-size:13px; color:var(--dim); }
   .rows .prog i { flex:0 0 120px; height:6px; border:1px solid var(--line); } .rows .prog i b { display:block; height:100%; background:var(--dim); }
   .rows .prog.full { color:var(--ok); } .rows .prog.full i b { background:var(--ok); box-shadow:0 0 6px var(--ok); }
-  .rw { color:var(--text); font-size:13px; } .rw .c { color:var(--cyan); } .rw .v { color:var(--violet); } .rw .g { color:var(--ok); }
+  .rw { color:var(--text); font-size:13px; } .rw .c { color:var(--cyan); } .rw .v { color:var(--violet); } .rw .g { color:var(--ok); } .rw .k { color:var(--amber, #F2C14E); font-weight:800; }
   .rows li.done { opacity:.5; } .rows li.done .kd { border-style:dashed; }
   .rows .by { display:flex; align-items:center; gap:6px; margin:0 0 4px; font-size:13px; color:var(--dim); } .rows .by svg { width:16px; height:16px; flex:none; color:var(--cyan); }
   .rows .by b { min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:15px; font-weight:400; color:var(--cyan); text-shadow:0 0 6px rgba(70,212,255,.45); }
@@ -185,7 +185,7 @@ const cur = (c, n) => (c === "res" ? `<span class="v">リソース ${fmt(n)}</sp
 const pips = (lv) => `<span class="pips" aria-label="友好度 Lv${lv}">${"▮".repeat(lv)}${"▯".repeat(4 - lv)}</span>`;
 const ITEM = { map: "かくし通路の地図", collar: "なかよしの首輪", snack3: "とくべつおやつ", recipe: "作るの レシピ", charm: "くじの お守り" };
 const getText = (g) => !g ? [] : [g.acc && `装備 ★${g.acc}`, g.snacks && `おやつ ${g.snacks}`, ...Object.entries(g.items || {}).map(([k, n]) => `${ITEM[k] || k}${n > 1 ? ` ×${n}` : ""}`), ...Object.entries(g.tools || {}).map(([k, n]) => `${TOOLS[k] ? TOOLS[k].name : k}${n > 1 ? ` ×${n}` : ""}`), ...(g.mats || []).map(([id, n]) => `${MAT_NAME[id] || id} ×${n}`)];
-const rewardText = (r) => [r.balls && `<span class="c">玉 ${fmt(r.balls)}</span>`, r.res && `<span class="v">リソース ${r.res}</span>`, ...getText(r.get).map(esc), r.rep && `<span class="g">友好 ＋${r.rep}</span>`].filter(Boolean).join("・");
+const rewardText = (r) => [r.balls && `<span class="c">玉 ${fmt(r.balls)}</span>`, r.res && `<span class="v">リソース ${r.res}</span>`, ...getText(r.get).map(esc), r.key && `<span class="k">${esc(r.key.name)}（${esc(r.key.place)}へ 行ける）</span>`, r.rep && `<span class="g">友好 ＋${r.rep}</span>`].filter(Boolean).join("・");
 const tasksOf = (v) => (v.chain ? [{ ...v.chain, which: "chain" }, { ...v.daily, which: "daily", daily: true }] : []);
 const ready = (v) => tasksOf(v).filter((k) => !k.done && k.have >= k.need).length;
 // 持って いる 素材（id と 品質ごとに まとめる）

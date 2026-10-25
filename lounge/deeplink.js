@@ -12,7 +12,8 @@ export const repLv = (p) => REP_LV.filter((x) => p >= x).length;
 
 // タスク：tasks.js が 決まりから 作る（つながりは 終わりが ない・毎日 1 つ）。chain は いま 何こ目か、prog は 見本の 進み（need に かける 割合）
 // 品の id と get は 門番が 渡す 中身（get：mat・snacks・items・tools・acc・recipe・perk。pick は えらべる 物の 一覧。q は 品質の くじ）
-const FOE_MATS = DUNGEONS.flatMap((d) => d.foes.map((f) => ENEMY_MAT[f.tree][0]));   // ふつうの 敵の素材
+const ISLE1 = DUNGEONS.filter((d) => (d.isle || 1) === 1);   // 店の 素材は はじめの 島の 分だけ（ニライ諸島の 素材は 島で 集める）
+const FOE_MATS = ISLE1.flatMap((d) => d.foes.map((f) => ENEMY_MAT[f.tree][0]));   // ふつうの 敵の素材
 // ショップ：lv はその友好度 Lv から買える。cur は 玉 か リソース。stock は 1 日に 買える数（毎日 もどる。week は 1 週ごと）、left は 見本の きょうの のこり。once は 1 回だけ。tool は 派遣に 持っていく 道具（dungeons.js の TOOLS）
 // 品ぞろえは 鹿さんの決め（2026-10-22）。値段は すべて 仮
 export const TRADERS = [
@@ -61,7 +62,7 @@ export const TRADERS = [
       { id: "k-net", name: "捕獲ネット", note: "派遣に 持っていく：捕まえる 確率 2 倍", price: 600, cur: "balls", lv: 2, stock: 2, left: 2, tool: "net", get: { tools: { net: 1 } } },
       { id: "k-mat2", name: "敵の素材（品質 2）", note: "ふつうの 敵の素材。しゅるいを えらぶ", price: 80, cur: "balls", lv: 3, stock: 3, left: 3, get: { mat: "pick", q: [2] }, pick: FOE_MATS },
       { id: "k-mat34", name: "敵の素材（品質 3〜4）", note: "ふつうの 敵の素材。しゅるいを えらぶ", price: 200, cur: "balls", lv: 4, stock: 2, left: 2, get: { mat: "pick", q: [3, 4] }, pick: FOE_MATS },
-      { id: "k-boss", name: "ボスの素材", note: "1 週に 1 こ", price: 1500, cur: "balls", lv: 4, stock: 1, left: 1, week: true, get: { mat: "pick", q: [5] }, pick: DUNGEONS.map((d) => ENEMY_MAT[d.boss.tree][0]) },
+      { id: "k-boss", name: "ボスの素材", note: "1 週に 1 こ", price: 1500, cur: "balls", lv: 4, stock: 1, left: 1, week: true, get: { mat: "pick", q: [5] }, pick: ISLE1.map((d) => ENEMY_MAT[d.boss.tree][0]) },
     ] },
 ];
 // 特別ショップ：リソースで買う、ここだけの品（家具は ラウンジの お店で 買うので 置かない。鹿さんの決め）

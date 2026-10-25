@@ -94,7 +94,9 @@ function build(tid, n, R, daily) {
   return k;
 }
 // n こ目の つながった タスク（1 から。いくつでも）
-export const chainTask = (tid, n) => ({ n, ...build(tid, n, rngOf(`${tid}:chain:${n}`), false) });
+// かくしダンジョンの 鍵（ホーク #20・ガラク #30。dungeons.js の hidden）は その タスクの ごほうびに 出す（開くのは 門番の canGo。もう 過ぎた 人も 開く）
+const HIDDEN_AT = Object.fromEntries(DUNGEONS.filter((d) => d.hidden).map((d) => [`${d.hidden.trader}:${d.hidden.n}`, d]));
+export const chainTask = (tid, n) => { const k = { n, ...build(tid, n, rngOf(`${tid}:chain:${n}`), false) }, h = HIDDEN_AT[`${tid}:${n}`]; if (h) k.reward.key = { name: h.hidden.key, did: h.id, place: h.name }; return k; };
 // 毎日の タスク：day は 日の番号。進み（いまの つながりの n）で 行き先と 数が かわる
 export const dailyTask = (tid, day, n = 1) => ({ day, daily: true, ...build(tid, Math.max(1, n), rngOf(`${tid}:daily:${day}`), true) });
 export const TASK_TIDS = Object.keys(T);

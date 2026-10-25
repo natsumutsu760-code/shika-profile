@@ -23,7 +23,7 @@ import { hidden } from "./lounge-gate.js";
 const OPS_KEEP = 200;            // おぼえて おく op（2 回 来たら 1 回目の 答えを 返す）
 const RATE = { n: 5, ms: 1000 }; // 1 人 1 秒に 5 回まで
 const LABEL = { balls: "玉", res: "リソース" };
-export const MONEY = /^(shop\.|hideout\.up$|bench\.|trip\.collect$|tame\.feed$|tame\.research$|trader\.|task\.|req\.|pet\.respec$|pet\.rejob$|money\.|arena\.duel$)/;   // 玉か リソースが うごく やること（答えに いまの 数を つける）
+export const MONEY = /^(shop\.|hideout\.up$|bench\.|trip\.collect$|trip\.start$|tame\.feed$|tame\.research$|trader\.|task\.|req\.|pet\.respec$|pet\.rejob$|money\.|arena\.duel$)/;   // 玉か リソースが うごく やること（答えに いまの 数を つける）
 const PLANS = {
   "hideout.up": (rec, b) => hideoutPlan(rec, b, rec.ledger.unknown),
   "bench.craft": (rec, b) => craftPlan(rec, b, rand),
@@ -93,8 +93,20 @@ export class Viewer {
     const s = loopStep(rec, now, Math.floor(rand() * 2 ** 31)); if (!s) return;
     await this.relay("del", { id: rec.id, uid: s.uid });
     for (const e of s.r.earn || []) await this.earn(rec, e.kind, e.d, "trip.loop");   // ボスの リソースは 帳簿へ
-    await this.loopGo(rec, s.next);
+    let next = s.next;
+    if (next && next.pay) {   // 費用の ある 行き先：1 回ごとに 玉を 払う（財布は いまの 配信の 記録から。払えなければ 周回を 止める）
+      let st = null; const pl = { costs: [{ kind: "balls", d: -next.pay }], why: "trip:" + next.body.did, grant: {}, refund: {}, take: () => { st = tripStart(rec, next.body, now, next.seed); if (st.ok) pl.refund.voidTrip = st.trip.uid; } };
+      const c = await this.charge(rec, pl, await this.freshWallet(rec));
+      if (st && st.ok) rec.loop.n++; else if (rec.loop) { rec.loop.on = false; rec.loop.stop = (st && st.why) || c.why || "玉が 足りない"; }
+      next = st;
+    }
+    await this.loopGo(rec, next);
     await this.save(rec);
+  }
+  // いまの 財布（配信の 記録 KV から。門番の 入口〈lounge-api.js の wallet〉と 同じ 作り方）。周回の 支払いに 使う（前に 開いた ときの 写しは 使わない）
+  async freshWallet(rec) {
+    try { const d = await this.env.DB.get("data", "json"), v = ((d && d.viewers) || []).find((x) => x.uid != null && String(x.uid) === String(rec.id)); return v ? { balls: +v.balls || 0, res: +v.res || 0, lg: +d.lg || 0, known: true } : { balls: 0, res: 0, lg: 0, known: false }; }
+    catch (e) { return null; }
   }
   // 周回の つぎの 出発：計算を アラームに あずけて、中継に 出す
   async loopGo(rec, s) {
@@ -292,7 +304,12 @@ export class Viewer {
     else if (body.a === "equip.best") r = equipBest(rec, body);   // おすすめ装備（えらび方・だれ）
     else if (body.a === "tame.equip") r = equipSet(rec, body.who ? body : { ...body, who: "-" });
     else if (body.a === "trip.start") {
-      r = tripStart(rec, body, now, Math.floor(rand() * 2 ** 31));
+      const seed = Math.floor(rand() * 2 ** 31), chk = tripStart(rec, body, now, seed, true);
+      if (chk.ok && chk.cost) {   // 費用の ある 行き先（ニライ諸島）：たしかめてから 玉を 払い、払えたら 出発（返事が おくれた ときも 出発。2 回 へる ことは ない）
+        let st = null; const pl = { costs: [{ kind: "balls", d: -chk.cost }], why: "trip:" + body.did, grant: {}, refund: {}, take: () => { st = tripStart(rec, body, now, seed); if (st.ok) pl.refund.voidTrip = st.trip.uid; } };
+        const c = await this.charge(rec, pl, wallet);   // 返事が おくれて あとで 払えなかったと わかったら、その 派遣の 収穫は なし（refund の voidTrip）
+        r = st && st.ok ? { ...st, paid: chk.cost } : c;
+      } else r = chk.ok ? tripStart(rec, body, now, seed) : chk;
       if (r.ok) loopNew(rec, body, now);   // 周回（3・5・10・ずっと）を えらんで いれば はじめる
       if (r.sim) { await this.state.storage.put("sim", r.sim); await this.state.storage.setAlarm(Date.now()); delete r.sim; }   // 計算は アラームで 少しずつ
       if (r.ok) await this.relay("put", relayEntry(rec, rec.trips[rec.trips.length - 1]));

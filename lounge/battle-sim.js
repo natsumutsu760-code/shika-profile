@@ -229,7 +229,7 @@ export function simulateTeams(SA, SB, seed, opts = {}) {
     const waza = sk.kind === "waza";
     const acc = x.sure ? 1 : hitRate(st(me, "dex"), st(foe, "agi")) * (waza && me.fx.blind ? 0.5 : 1) * (1 - (foe.P.foeAcc || 0));   // foeAcc：暗い村のランタン
     if (R() > acc) { e.hits.push({ miss: true, dmg: 0 }); return false; }
-    const ev = Math.min(0.75, amt(foe, "mirage") / 100 + (foe.P.evade || 0) + (foe.P.lowHpEvade && foe.hp <= foe.maxHp * 0.3 ? foe.P.lowHpEvade : 0));
+    const ev = Math.max(0, Math.min(0.75, amt(foe, "mirage") / 100 + (foe.P.evade || 0) + (foe.P.lowHpEvade && foe.hp <= foe.maxHp * 0.3 ? foe.P.lowHpEvade : 0)) - (me.P.foeEvadeCut || 0));   // foeEvadeCut：ティダのレンズ
     if (R() < ev) { e.hits.push({ miss: true, dmg: 0 }); if (foe.fx.mirage) { halve(foe, "mirage"); e.notes.push(`${foe.name} は幻影でかわした`); } return false; }
     if (foe.fx.barrier) { foe.fx.barrier.amt--; if (foe.fx.barrier.amt <= 0) delete foe.fx.barrier; e.hits.push({ dmg: 0, blocked: true }); e.notes.push(`${foe.name} のバリアが防いだ`); return false; }
     const atk = x.stat === "best" ? Math.max(st(me, "atk"), st(me, "int"), st(me, "dex")) : x.stat === "mpNow" ? me.mp * (x.statMul || 1) : x.stat === "hp" ? me.maxHp * (x.statMul || 1) : x.stat ? st(me, x.stat) * (x.statMul || 1) : waza ? st(me, "atk") : st(me, "int");   // best：ATK・INT・DEX のいちばん高いもの（こうげき）
@@ -297,12 +297,18 @@ export function simulateTeams(SA, SB, seed, opts = {}) {
       const me = F[i];
       if (!alive(0).length || !alive(1).length) break;
       if (me.hp <= 0) continue;
-      const foe = plan[i].tgt.hp > 0 ? plan[i].tgt : targetOf(me);                                  // ねらっていた相手が倒れていたら、ねらいなおす
+      let foe = plan[i].tgt.hp > 0 ? plan[i].tgt : targetOf(me);                                    // ねらっていた相手が倒れていたら、ねらいなおす
       // 手番のはじめ：再生・毎ターンのパッシブ・毒・炎上・体調不良・凍傷・疲労・おさえこみ
       me.dot = 0;
       const tick = { type: "tick", turn, who: i, items: [] }, tn = [];
       if (me.fx.regen) { const a = heal(me, me.maxHp * me.fx.regen.amt / 100, tn); if (a) tick.items.push({ who: i, heal: a, why: "再生" }); halve(me, "regen"); }
       if (me.P.hpRegen) { const a = heal(me, me.maxHp * me.P.hpRegen, tn); if (a) tick.items.push({ who: i, heal: a }); }
+      if (me.P.teamRegen) for (const g of F) if (g.side === me.side && g.hp > 0) { const a = heal(g, g.maxHp * me.P.teamRegen, tn); if (a) tick.items.push({ who: F.indexOf(g), heal: a, why: "癒やしの歌" }); }   // ザンの竪琴：味方 全員
+      if (me.P.waveEvery && turn % me.P.waveEvery === 0) for (const g of F) if (g.side !== me.side && g.hp > 0) {   // ニライの三叉槍：相手 全員に 水の こうげき（ATK か INT の 高い 方 → DEF と RES の 低い 方）
+        let d = me.P.wavePow * Math.pow((Math.max(st(me, "atk"), st(me, "int")) + 10) / (Math.min(st(g, "def"), st(g, "res")) + 10), 0.6) * (0.8 + R() * 0.4);
+        if (g.P.dmgCut) d *= 1 - g.P.dmgCut / 100; if (g.fx.guard) d *= 0.5;
+        d = Math.max(1, Math.round(d)); hurt(g, d, tn); tick.items.push({ who: F.indexOf(g), dmg: d, why: "大波" });
+      }
       if (me.P.mpRegen) { me.mpAcc = (me.mpAcc || 0) + me.P.mpRegen; const g = Math.floor(me.mpAcc + 1e-9); if (g) { me.mpAcc -= g; me.mp = Math.min(me.maxMp, me.mp + g); } }   // 0.5 なら 2 ターンごとに +1
       if (me.P.bellMp && turn % (me.P.bellEvery || 3) === 0) me.mp = Math.min(me.maxMp, me.mp + me.P.bellMp);   // 夜ふけの鐘
       if (me.fx.poison) dot(me, me.maxHp * me.fx.poison.amt / 100 * (me.fx.poison.mul || 1), "毒", tick.items, i, tn);
@@ -315,6 +321,7 @@ export function simulateTeams(SA, SB, seed, opts = {}) {
       if (me.crack?.left > 0) { const c = me.crack, k = Math.min(c.left, c.per); c.left -= k; hurt(me, k, tn); tick.items.push({ who: i, dmg: k, why: "ひび" }); }   // 40% の 上限は かけない（もとは 直接の ダメージ）
       if (!quiet && (tick.items.length || tn.length)) { tick.notes = tn; tick.after = snap(); ev.push(tick); }
       if (me.hp <= 0) continue;
+      if (foe.hp <= 0) { foe = targetOf(me); if (!foe) continue; }                                   // 大波で 相手が 倒れたら ねらいなおす
 
       const e = { type: "act", who: i, turn, by: plan[i].by, notes: [], ...(duel ? {} : { tgt: F.indexOf(foe) }) };
       // 動けないとき：凍結 → 気絶 → 眠り → 麻痺 → おさえこみ

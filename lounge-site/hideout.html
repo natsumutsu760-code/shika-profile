@@ -161,7 +161,7 @@ import "./lounge-en.js";   // 英語の 画面（MONO LINK の サイトの EN�
 import { FACILITIES, STORAGE_CAP, SNACK_RECIPES, facCap } from "./facilities.js";
 import { snackCraftHtml, addSnackCss } from "./snack-craft.js";
 import { MAT_NAME, MAT_FROM, HIDDEN_MAT, GATHER, ENEMY_MAT, BOX_DAYS } from "./materials.js";
-import { DUNGEONS } from "./dungeons.js";
+import { DUNGEONS, ISLAND_OPEN } from "./dungeons.js";
 import { baseOf } from "./equip.js";
 import { gearImg, watchIcons } from "./gear-icon.js";
 import { matPic } from "./mat-icons.js";
@@ -194,7 +194,7 @@ const kindOf = (id) => (MAT_FROM[id] ? "enemy" : HIDDEN_MAT.has(id) ? "rare" : "
 const SORTS = [["n", "多い順"], ["q", "品質の 高い順"], ["name", "名前順"]];
 
 // 門番の 記録を 画面の 形に。玉と リソースが まだ わからない 人は known: false（足りるかは 門番が 決める）
-const S = { balls: 0, res: 0, cr: 0, known: false, up: null, sk: "all", sw: "all", sort: "n", pick: null, lv: {}, inv: [], box: [], boxEq: [], cap: STORAGE_CAP[0] };
+const S = { balls: 0, res: 0, cr: 0, known: false, up: null, sk: "all", si: "all", sw: "all", sort: "n", pick: null, lv: {}, inv: [], box: [], boxEq: [], cap: STORAGE_CAP[0] };
 let ME = null;
 function load(m) {
   ME = m; const now = Date.now(), days = (t) => Math.max(1, Math.ceil((t - now) / 864e5));
@@ -262,9 +262,11 @@ function stashHtml() {
   const cap = S.cap, all = stock();
   // しゅるいは タブで 1 つずつ（見出しで 縦に 並べない。鹿さんの決め、2026-10-25）。はじめは 素材が ある しゅるい
   if (!KINDS.some(([k]) => k === S.sk)) S.sk = (KINDS.find(([k]) => all.some((e) => e.kind === k)) || KINDS[0])[0];
-  const okK = (e, k = S.sk) => e.kind === k, okW = (e, w = S.sw) => w === "all" || e.where === w;
+  // 島が 2 つ 以上 ある ときは「島」→「行き先」の 2 だん（島を えらんだ ときだけ、その 島の 行き先の チップを 出す）
+  const isleOfW = (w) => (DUNGEONS.find((d) => d.id === w) || {}).isle || 1;
+  const okK = (e, k = S.sk) => e.kind === k, okI = (e, i = S.si) => i === "all" || isleOfW(e.where) === +i, okW = (e, w = S.sw) => okI(e) && (w === "all" || e.where === w);
   const chip = (k, v, label, n) => `<button class="chip" data-act="${k}" data-v="${v}" aria-pressed="${S[k] === v}" ${n === 0 && S[k] !== v ? "disabled" : ""}>${label}${n === null ? "" : `<small>${n}</small>`}</button>`;
-  const nK = (k) => all.filter((e) => okK(e, k) && okW(e)).length, nW = (w) => all.filter((e) => okK(e) && okW(e, w)).length;
+  const nK = (k) => all.filter((e) => okK(e, k) && okW(e)).length, nW = (w) => all.filter((e) => okK(e) && okW(e, w)).length, nI = (i) => all.filter((e) => okK(e) && okI(e, i)).length;
   const by = { n: (a, b) => b.n - a.n, q: (a, b) => b.top - a.top || b.n - a.n, name: (a, b) => MAT_NAME[a.id].localeCompare(MAT_NAME[b.id], "ja") }[S.sort];
   // マス：色は しゅるい（採取 tg・レア tr）か 敵の 素材の いちばん 高い 品質（t1〜t5）。品質は 左下の 四角の 数
   const tc = (e) => (e.kind === "gather" ? "tg" : e.kind === "rare" ? "tr" : `t${Math.max(1, e.top)}`);
@@ -278,7 +280,8 @@ function stashHtml() {
   return `<section class="panel stash" aria-label="倉庫の中"><header><h2>倉庫の 中</h2><span class="cap">1 しゅるい <b>${cap}</b> こ まで${all.filter((e) => e.n >= cap).length ? `<span class="fl">いっぱい ${all.filter((e) => e.n >= cap).length}</span>` : ""}</span></header>
     <div class="ktabs" role="tablist" aria-label="しゅるい">${KINDS.map(([k, name]) => `<button role="tab" data-act="sk" data-v="${k}" aria-selected="${S.sk === k}" class="${nK(k) ? "" : "zero"}">${name}<small>${nK(k)}</small></button>`).join("")}</div>
     <div class="filters" role="group" aria-label="分け方">
-      <div class="frow"><span>行き先</span><div>${chip("sw", "all", "すべて", nW("all"))}${DUNGEONS.map((d) => chip("sw", d.id, d.name, nW(d.id))).join("")}</div></div>
+      ${ISLAND_OPEN >= 2 ? `<div class="frow"><span>島</span><div>${chip("si", "all", "すべて", nI("all"))}${chip("si", "1", "はじまりの島", nI("1"))}${chip("si", "2", "ニライ諸島", nI("2"))}</div></div>` : ""}
+      ${ISLAND_OPEN < 2 || S.si !== "all" ? `<div class="frow"><span>行き先</span><div>${chip("sw", "all", "すべて", nW("all"))}${DUNGEONS.filter((d) => ISLAND_OPEN < 2 || (d.isle || 1) === +S.si).map((d) => chip("sw", d.id, d.name, nW(d.id))).join("")}</div></div>` : ""}
       <div class="frow"><span>ならべる</span><div>${SORTS.map(([k, name]) => chip("sort", k, name, null)).join("")}</div></div></div>
     ${groups ? `<div class="tk">${groups}</div>${info}` : `<p class="empty">${KIND_NOTE[S.sk]}。いまは ない</p>`}</section>`;
 }
@@ -337,7 +340,7 @@ document.querySelector("main").addEventListener("click", async (e) => {
   if (b.dataset.tab) return pickTab(b.dataset.tab);
   if (b.dataset.st) { S.st = b.dataset.st; q.set("t", "store"); q.set("st", S.st); history.replaceState(null, "", "?" + q.toString()); render(); return document.querySelector(`[data-st="${S.st}"]`)?.focus(); }
   if (b.dataset.snack) return ask(b, "snack.craft", { id: b.dataset.snack, n: +b.dataset.n }, (r) => `${SNACK_RECIPES.find((x) => x.id === r.id).name}を ${r.n} こ 作った`);
-  if (b.dataset.act) { S[b.dataset.act] = b.dataset.v; render(); return document.querySelector(`[data-act="${b.dataset.act}"][data-v="${b.dataset.v}"]`)?.focus(); }
+  if (b.dataset.act) { S[b.dataset.act] = b.dataset.v; if (b.dataset.act === "si") S.sw = "all"; render(); return document.querySelector(`[data-act="${b.dataset.act}"][data-v="${b.dataset.v}"]`)?.focus(); }
   if (b.dataset.m) { S.pick = S.pick === b.dataset.m ? null : b.dataset.m; render(); document.querySelector(`[data-m="${b.dataset.m}"]`)?.focus({ preventScroll: true }); return; }   // もう 一度 押すと とじる
   if (b.dataset.f) S.sel = b.dataset.f;
   if (b.dataset.take) return ask(b, "box.take", {}, (r) => `倉庫に 入れた：${r.took} こ${r.left ? `（のこりは 箱に）` : ""}`);

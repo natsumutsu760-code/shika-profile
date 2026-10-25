@@ -59,6 +59,64 @@ const MAKE = {
     put(g, new THREE.CylinderGeometry(0.88, 0.92, 0.32, 40, 1, true), toy("#FFC93C", 0.3, { side: THREE.DoubleSide }), 0, 0.16, 0);
     for (let i = 0; i < 7; i++) { const a = (i / 7) * Math.PI * 2, h = i % 2 ? 0.55 : 0.85, o = put(g, new THREE.OctahedronGeometry(0.2, 0), cr, Math.sin(a) * 0.88, 0.32 + h * 0.45, Math.cos(a) * 0.88); o.scale.set(0.8, h * 2.4, 0.8); }
     put(g, ball(0.12), toy("#FF5A8A", 0.15, { emissive: "#FF3A6A", emissiveIntensity: 0.4 }), 0, 0.18, 0.93); return g; },
+  // ---- ミシック（ニライ諸島。docs/mono-link-island2.md）----
+  inohBangle() { const g = new THREE.Group(), co = toy("#FF8FA6", 0.45), sh = toy("#FFF8F0", 0.35);   // うで：桃色の珊瑚と白い貝の腕輪
+    put(g, new THREE.TorusGeometry(0.55, 0.14, 14, 40), co, 0, 0.6, 0);
+    [[-0.5, 0.95, 0.3], [0.45, 1.0, -0.4], [0.05, 1.15, 0.1]].forEach(([x, y, r]) => { const b = put(g, cyl(0.035, 0.05, 0.36, 8), co, x, y, 0.05); b.rotation.z = r; put(g, ball(0.06), co, x - Math.sin(r) * 0.18, y + Math.cos(r) * 0.18, 0.05); });
+    [0, 1, 2, 3, 4].forEach((i) => { const a = (i / 5) * Math.PI * 2 + 0.3, s = put(g, new THREE.ConeGeometry(0.11, 0.14, 7), sh, Math.cos(a) * 0.55, 0.6 + Math.sin(a) * 0.55, 0.15); s.rotation.x = Math.PI / 2; s.scale.set(1, 1, 0.5); }); return g; },
+  redbeardHat() { const g = new THREE.Group(), bk = toy("#34343F", 0.55), au = toy("#FFC93C", 0.3);   // あたま：赤い羽根つきの黒い三角帽・金のふち（3 方向にそり上がったつば）
+    put(g, dome(0.82, 1.15), bk); put(g, cyl(1.05, 1.05, 0.06, 3), bk, 0, 0.03, 0).rotation.y = Math.PI / 6;
+    [0, 1, 2].forEach((i) => { const f = new THREE.Group(); f.rotation.y = (i / 3) * Math.PI * 2 + Math.PI / 3; g.add(f);
+      const w = put(f, new RoundedBoxGeometry(1.55, 0.6, 0.08, 2, 0.03), bk, 0, 0.3, 0.55); w.rotation.x = -0.32;
+      put(f, new THREE.BoxGeometry(1.5, 0.06, 0.1), au, 0, 0.58, 0.46).rotation.x = -0.32; });
+    put(g, new THREE.TorusGeometry(0.83, 0.05, 8, 40), au, 0, 0.1, 0).rotation.x = Math.PI / 2;
+    const fe = new THREE.Group(); fe.position.set(0.5, 0.75, 0.45); fe.rotation.set(-0.45, 0, -0.75); g.add(fe);
+    put(fe, ball(0.2, 1, 4.2, 0.35), toy("#E8393C", 0.55)); put(fe, cyl(0.015, 0.015, 1.5, 6), toy("#F2E6D0", 0.5), 0, 0.05, 0.03); return g; },
+  tidaLens() { const g = new THREE.Group(), br = metal("#E0B048", 0.3), sun = toy("#FFC23A", 0.2, { emissive: "#FFB020", emissiveIntensity: 1.4 });   // オフハンド：真鍮のわくの灯台のレンズ・中が太陽色に光る
+    put(g, cyl(0.05, 0.05, 0.55, 12), toy("#7A5A3A", 0.8), 0, 0.15, 0); put(g, cyl(0.12, 0.12, 0.08, 16), br, 0, 0.45, 0);
+    const L = new THREE.Group(); L.position.set(0, 0.95, 0); g.add(L);
+    put(L, new THREE.TorusGeometry(0.46, 0.07, 10, 40), br); put(L, new THREE.CircleGeometry(0.42, 40), toy("#FFF1C8", 0.1, { transparent: true, opacity: 0.6, side: THREE.DoubleSide }), 0, 0, -0.01);
+    [0.32, 0.22].forEach((r) => put(L, new THREE.TorusGeometry(r, 0.025, 6, 36), toy("#FFF6DC", 0.08, { transparent: true, opacity: 0.85 }), 0, 0, 0.02));
+    put(L, ball(0.13, 1, 1, 0.6), sun, 0, 0, 0.02); [-1, 1].forEach((k) => put(L, ball(0.07), br, 0.46 * k, 0, 0)); put(L, new THREE.TorusGeometry(0.1, 0.03, 6, 16), br, 0, 0.52, 0); return g; },
+  atuiAnchor() { const g = new THREE.Group(), ir = toy("#7E6A60", 0.8), rs = toy("#B86A40", 0.85), bc = toy("#E8E2D0", 0.7);   // 武器：さびた鉄の錨・フジツボと鎖
+    put(g, new THREE.TorusGeometry(0.12, 0.035, 8, 20), ir, 0, -0.18, 0); put(g, cyl(0.055, 0.06, 1.35, 12), ir, 0, 0.5, 0); put(g, new THREE.BoxGeometry(0.6, 0.08, 0.08), rs, 0, 0.05, 0);
+    const arm = put(g, new THREE.TorusGeometry(0.4, 0.085, 10, 30, Math.PI), ir, 0, 1.2, 0); arm.rotation.z = Math.PI;
+    [-1, 1].forEach((k) => { const f = put(g, new THREE.ConeGeometry(0.17, 0.34, 4), rs, 0.4 * k, 1.32, 0); f.rotation.z = -0.5 * k; f.scale.set(1, 1, 0.45); });
+    put(g, new THREE.ConeGeometry(0.08, 0.18, 8), ir, 0, 1.27, 0).rotation.z = Math.PI;
+    [[0.06, 0.75, 0.04], [-0.07, 0.4, 0.03], [0.3, 1.05, 0.05], [-0.25, 0.95, 0.06]].forEach(([x, y, z]) => { put(g, cyl(0.035, 0.05, 0.05, 8), bc, x, y, z).rotation.x = Math.PI / 2; });
+    for (let i = 0; i < 6; i++) { const l = put(g, new THREE.TorusGeometry(0.06, 0.018, 6, 14), metal("#8A8A92", 0.5), 0.09 * Math.sin(i * 1.3), 0.25 + i * 0.12, 0.07); l.rotation.set(i % 2 ? 0 : Math.PI / 2, 0.4, 0); } return g; },
+  zanHarp() { const g = new THREE.Group(), pl = toy("#FFF4F8", 0.2), sh = toy("#FFD0DC", 0.4), st = toy("#7FD3FF", 0.2, { emissive: "#3AA8FF", emissiveIntensity: 0.5 });   // オフハンド：真珠と貝の小さな竪琴・青い弦
+    put(g, cyl(0.05, 0.06, 0.4, 12), sh, 0, 0.05, 0);
+    const base = put(g, new THREE.ConeGeometry(0.3, 0.2, 10), sh, 0, 0.32, 0); base.rotation.z = Math.PI;
+    [-1, 1].forEach((k) => { put(g, tube([[0.1 * k, 0.35, 0], [0.42 * k, 0.6, 0], [0.38 * k, 1.0, 0], [0.48 * k, 1.25, 0]], 0.05), pl); put(g, ball(0.08), pl, 0.48 * k, 1.28, 0); });
+    put(g, cyl(0.035, 0.035, 0.95, 10), pl, 0, 1.12, 0).rotation.z = Math.PI / 2;
+    [-0.24, -0.08, 0.08, 0.24].forEach((x) => put(g, cyl(0.009, 0.009, 0.72, 6), st, x, 0.76, 0));
+    put(g, ball(0.09), toy("#FFFFFF", 0.1), 0, 1.2, 0.04); return g; },
+  ufuGauntlet() { const g = new THREE.Group(), ob = toy("#2E2A3A", 0.18, { flatShading: true }), lv = toy("#FF6A20", 0.4, { emissive: "#FF5010", emissiveIntensity: 1.6 });   // うで：黒曜石の籠手・すきまから溶岩の光
+    put(g, cyl(0.4, 0.46, 0.8, 16), ob, 0, 0.4, 0); [0.12, 0.4, 0.68].forEach((y) => put(g, cyl(0.47, 0.53, 0.2, 8), ob, 0, y, 0));
+    [0.26, 0.54].forEach((y) => put(g, new THREE.TorusGeometry(0.48, 0.04, 8, 32), lv, 0, y, 0).rotation.x = Math.PI / 2); put(g, new THREE.BoxGeometry(0.05, 0.5, 0.02), lv, 0.12, 0.45, 0.5).rotation.z = 0.3;
+    put(g, new RoundedBoxGeometry(0.76, 0.32, 0.5, 2, 0.06), lv, 0, 0.98, 0.05); put(g, new THREE.BoxGeometry(0.84, 0.26, 0.56), ob, 0, 0.98, 0.05);
+    [-0.27, -0.09, 0.09, 0.27].forEach((x) => { const c = put(g, new THREE.ConeGeometry(0.08, 0.22, 5), ob, x, 1.2, 0.18); c.rotation.x = 0.4; });
+    [-1, 1].forEach((k) => { const sp = put(g, new THREE.ConeGeometry(0.1, 0.32, 5), ob, 0.5 * k, 0.55, 0); sp.rotation.z = -1.2 * k; }); return g; },
+  kajiPlume() { const g = new THREE.Group(), wh = toy("#FFFFFF", 0.6), gy = toy("#C8D4E0", 0.6), au = toy("#FFC93C", 0.3);   // アクセサリー：白い海鳥の羽根の飾り・小さな雷の石
+    [[-0.3, 0.5], [0, 0], [0.3, -0.5]].forEach(([x, r]) => { const f = new THREE.Group(); f.position.set(x * 0.4, 0.35, 0); f.rotation.z = r; g.add(f);
+      put(f, ball(0.15, 1, 4, 0.25), wh, 0, 0.6, 0); put(f, ball(0.1, 1, 1.6, 0.27), gy, 0, 1.12, 0); put(f, cyl(0.012, 0.012, 1.1, 6), toy("#9AA8BC", 0.5), 0, 0.55, 0.03); });
+    put(g, cyl(0.16, 0.18, 0.18, 16), au, 0, 0.32, 0);
+    put(g, new THREE.OctahedronGeometry(0.17, 0), toy("#FFE066", 0.2, { emissive: "#FFD21A", emissiveIntensity: 1.0, flatShading: true }), 0, 0.12, 0.12).scale.set(0.8, 1.3, 0.8); return g; },
+  niraiTrident() { const g = new THREE.Group(), mb = toy("#F6F3EC", 0.3), au = metal("#FFC93C", 0.2), co = toy("#3A9BE8", 0.4);   // 武器：白い大理石と金の三叉槍・青い珊瑚の飾り
+    put(g, cyl(0.05, 0.055, 1.5, 14), mb, 0, 0.5, 0); put(g, cyl(0.075, 0.075, 0.1, 14), au, 0, -0.25, 0); put(g, cyl(0.08, 0.08, 0.08, 14), au, 0, 1.22, 0);
+    put(g, new THREE.TorusGeometry(0.22, 0.035, 8, 20, Math.PI), au, 0, 1.38, 0).rotation.z = Math.PI;
+    [-0.22, 0, 0.22].forEach((x) => { put(g, cyl(0.03, 0.03, x ? 0.38 : 0.52, 10), au, x, x ? 1.56 : 1.5, 0); put(g, new THREE.ConeGeometry(0.065, 0.2, 8), au, x, x ? 1.84 : 1.86, 0); });
+    [[0.1, 1.05, 0.5], [-0.1, 0.95, -0.6], [0.0, 1.12, 0.1]].forEach(([x, y, r]) => { const b = put(g, cyl(0.02, 0.03, 0.22, 6), co, x, y, 0.06); b.rotation.z = r; put(g, ball(0.035), co, x - Math.sin(r) * 0.11, y + Math.cos(r) * 0.11, 0.06); }); return g; },
+  mabuiCompass() { const g = new THREE.Group(), br = metal("#9AA8B8", 0.35), gl = toy("#BFE8FF", 0.1, { emissive: "#7FD0FF", emissiveIntensity: 0.9, transparent: true, opacity: 0.9 });   // アクセサリー：青白く光る古いコンパス
+    const m = new THREE.Group(); m.rotation.x = Math.PI / 2 - 0.25; m.position.y = 0.55; g.add(m);
+    put(m, cyl(0.48, 0.5, 0.14, 36), br); put(m, cyl(0.42, 0.42, 0.02, 36), gl, 0, 0.075, 0); put(m, new THREE.TorusGeometry(0.47, 0.03, 8, 36), toy("#5A6478", 0.5), 0, 0.08, 0).rotation.x = Math.PI / 2;
+    const nd = put(m, new THREE.ConeGeometry(0.06, 0.36, 4), toy("#FFFFFF", 0.2, { emissive: "#E8F6FF", emissiveIntensity: 1.2 }), 0, 0.1, -0.12); nd.rotation.x = -Math.PI / 2; nd.scale.set(1, 1, 0.3);
+    put(m, new THREE.TorusGeometry(0.1, 0.03, 6, 16), br, 0, 0, -0.56).rotation.x = Math.PI / 2; put(m, ball(0.04), br, 0, 0.1, 0); return g; },
+  kanaiNecklace() { const g = new THREE.Group(), au = metal("#C8D4E0", 0.25), dp = toy("#1E3A8A", 0.08, { emissive: "#1A3AA8", emissiveIntensity: 0.35 });   // くび：深い青の大きな真珠の首飾り
+    const ch = put(g, new THREE.TorusGeometry(0.8, 0.035, 8, 48, Math.PI), au, 0, 0.55, 0); ch.rotation.z = Math.PI;
+    for (let i = 1; i < 8; i++) { const a = Math.PI + (i / 8) * Math.PI; put(g, ball(0.07), toy("#F4F8FF", 0.15), Math.cos(a) * 0.8, 0.55 + Math.sin(a) * 0.8, 0.02); }
+    put(g, new THREE.TorusGeometry(0.1, 0.03, 6, 16), au, 0, -0.18, 0.04); put(g, ball(0.27), dp, 0, -0.45, 0.08); put(g, ball(0.06), toy("#FFFFFF", 0.1), -0.08, -0.36, 0.3); return g; },
 };
 export const makeItem = (base) => (MAKE[base] || MAKE.stick)();
 

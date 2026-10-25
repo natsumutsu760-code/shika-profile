@@ -74,6 +74,16 @@
     background:repeating-linear-gradient(0deg, rgba(20,24,38,.04) 0 1px, transparent 1px 3px), radial-gradient(120% 90% at 50% 45%, transparent 62%, rgba(20,24,38,.4) 100%); }
   .wmap svg { position:absolute; inset:0; width:100%; height:100%; pointer-events:none; }
   .road { fill:none; stroke-linecap:round; } .road.under { stroke:rgba(20,24,38,.5); stroke-width:9; } .road.top { stroke:#F3E2B8; stroke-width:4.5; stroke-dasharray:14 11; }
+  /* 2 つめの 島：絵は world2.jpg。船の 道は 細い 点線 */
+  .wmap.isle2 { background-image:url(img/world2.jpg); }
+  .road.sea.under { stroke:rgba(16,40,72,.35); stroke-width:7; } .road.sea.top { stroke:#EAF7FF; stroke-width:3; stroke-dasharray:1 9; }
+  /* 島の タブ（2 つめの 島が ゲームに 出て いる とき。右上。左上は ニライ諸島の ピンが 混むので） */
+  .wisle { position:absolute; z-index:4; right:28px; top:9px; display:flex; gap:3px; padding:3px; border-radius:12px; background:rgba(20,24,38,.76); }
+  .wisle button { border:0; background:transparent; color:#fff; font:400 13px/1 var(--game); padding:6px 10px; border-radius:9px; display:inline-flex; align-items:center; gap:5px; cursor:pointer; }
+  .wisle button[aria-pressed="true"] { background:var(--cyan); color:var(--visor); }
+  .wisle button:focus-visible { outline:3px solid var(--sky); outline-offset:1px; }
+  .wisle svg { width:11px; height:12px; }
+  .gowhy { margin:8px 0 0; font:700 12px/1.5 var(--jp); color:var(--soft); } .gowhy a { color:var(--ink); font-weight:900; }
   .wpin { position:absolute; z-index:2; left:var(--x); top:var(--y); width:0; height:0; padding:0; border:0; background:none; }
   /* ピンは地図の場所（町・遺跡・村・水晶）を隠さないように、細い棒で上に浮かせる */
   .wpin::before { content:""; position:absolute; left:-4px; top:-4px; width:8px; height:8px; border-radius:50%; background:var(--dc, #fff); box-shadow:0 0 0 2px #fff, 0 1px 4px rgba(20,24,38,.6); }
@@ -100,6 +110,7 @@
   .detail h2 { font:900 22px/1.25 var(--jp); display:flex; align-items:center; gap:8px; }
   .detail h2::before { content:""; width:14px; height:14px; border-radius:5px; background:var(--dc); flex:none; }
   .detail h2 .rec { margin-left:auto; font:700 12px/1 var(--jp); color:var(--soft); white-space:nowrap; }
+  .detail h2 .rec.cost { margin-left:8px; padding:4px 8px; border-radius:99px; background:#FFF4D6; color:#8A5A00; }   /* 派遣の 費用（ニライ諸島） */
   .detail .desc { margin-top:4px; font:700 13px/1.6 var(--jp); color:var(--soft); }
   .foes { list-style:none; margin:0; padding:0; display:flex; flex-wrap:wrap; gap:6px; }
   .foes li { display:inline-flex; align-items:center; gap:6px; padding:4px 10px 4px 7px; border-radius:999px; border:1.5px solid var(--line); background:#fff; font:700 12px/1.2 var(--jp); }
@@ -230,6 +241,9 @@
 
   /* ===== 探索（ヴェルヴェットと同じ。鹿さんの決め、2026-10-22） ===== */
   .wpin.r .chip { transform:translateX(-22%); }
+  /* 地図の 左はしの ピンは 札を 右へ（棒も ピンの 上に）・上の はしの ピンは 札を 下へ（島の タブと 重ならない） */
+  .wpin.rr .chip { transform:translateX(-12px); } .wpin.rr .chip::after { left:11px; }
+  .wpin.b .chip { bottom:auto; top:26px; } .wpin.b .chip::after { top:auto; bottom:100%; }
   .wpin .chip em { display:grid; place-items:center; padding:0 7px; font:600 11px/1 var(--num); font-style:normal; background:rgba(255,255,255,.16); border-radius:0 10px 10px 0; }
   .wpin[aria-pressed="true"] .chip em { background:rgba(20,24,38,.12); }
   .sub.exh { display:flex; align-items:baseline; gap:8px; } .exh b { font:600 22px/1 var(--num); color:var(--ink); } .exh b small { font-size:13px; }
@@ -398,7 +412,7 @@
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 <script type="module">
 import "./lounge-en.js";   // 英語の 画面（MONO LINK の サイトの EN／日本語 と 同じ 決まり。英語の ときだけ 辞書を 読む）
-import { DUNGEONS, RUNS, RESEARCH, PURPOSES, TICK, TOOLS } from "./dungeons.js";
+import { DUNGEONS, RUNS, RESEARCH, PURPOSES, TICK, TOOLS, ISLAND_OPEN, canGo, tripCost } from "./dungeons.js";
 import { runDungeon, diaryOf, rankOf, tamedOf, newProgress, floorRatio, dungeonRatio, startFloor, floorsOpen } from "./dungeon-sim.js";
 import { floorMap, exploredRatio, keyOf, DIRS, GW, GH, FLOORS, T } from "./floors.js";
 import { petAt } from "./builds.js";
@@ -487,14 +501,43 @@ const MAP_W = 1280, MAP_H = 800, HOME = [489, 431];
 const MAP_POS = { hals: [678, 423], morph: [659, 234], kurai: [953, 218], crystal: [994, 490] };
 // 道：スタートの町 → 街道の畑 → 台地の湖の島の遺跡 → 北東の高台の暗い村 → 東の海ぞいを南へ → 南東の雪山の水晶
 const ROAD = "M489 433 C500 431 526 423 557 422 C588 421 653 432 678 425 C703 418 706 403 708 382 C710 361 695 321 687 297 C679 273 646 245 659 236 C672 227 734 246 766 245 C798 244 823 235 854 231 C885 227 922 212 953 220 C984 228 1019 254 1038 281 C1057 308 1059 361 1068 385 C1077 409 1106 405 1094 423 C1082 441 1010 480 993 492";
-const CHIP_SIDE = { kurai: "r" };   // ピンの札を右にずらす（となりの札と重ならないように）
+const CHIP_SIDE = { kurai: "r", gama: "rr b", mabui: "rr" };   // ピンの札を右にずらす（となりの札と重ならないように）
+// 2 つめの 島「ニライ諸島」：img/world2.jpg と pins2.json（モデリング専用スレッドが worldmap2.py で 作った）。村 → 桟橋は 陸、小島へは 船の 道。かくしの 道（hide）は 開くまで 出さない
+const HOME2 = [668, 577];
+const POS2 = { inoh: [420, 626], gama: [152, 386], tida: [1023, 446], atui: [1118, 651], zan: [652, 372], ufu: [286, 143], kaji: [1007, 242], nirai: [662, 220], mabui: [124, 289], kanai: [912, 750] };
+const ROUTE2 = [
+  { sea: false, d: "M668 577 C675 592 702 654 709 670" },
+  { sea: false, d: "M668 579 C657 582 626 589 602 595 C578 601 550 611 526 615 C502 619 477 619 459 621 C441 623 426 627 420 628" },
+  { sea: false, d: "M668 579 C667 572 665 552 663 534 C661 516 662 492 657 473 C652 454 639 438 636 422 C633 406 637 384 640 376 C643 368 650 374 652 373" },
+  { sea: false, d: "M652 373 C645 368 620 364 609 346 C598 328 583 281 585 266 C587 251 609 256 621 254 C633 252 648 256 655 255 C662 254 662 256 663 251 C664 246 662 227 662 222" },
+  { sea: false, d: "M668 579 C680 577 716 571 741 565 C766 559 794 554 820 544 C846 534 870 518 895 505 C920 492 947 477 968 467 C989 457 1013 450 1022 447" },
+  { sea: true, d: "M709 670 C681 676 608 707 539 707 C470 707 353 695 295 668 C237 641 215 591 191 544 C167 497 158 414 152 388" },
+  { sea: true, d: "M152 388 C149 388 131 402 136 391 C141 380 162 338 183 319 C204 300 242 304 259 275 C276 246 282 166 286 144" },
+  { sea: true, d: "M709 670 C731 676 795 700 842 703 C889 706 945 699 991 691 C1037 683 1097 659 1118 653" },
+  { sea: true, d: "M1118 653 C1131 641 1186 618 1195 583 C1204 548 1184 486 1170 446 C1156 406 1134 368 1114 340 C1094 312 1068 295 1050 279 C1032 263 1014 249 1007 243" },
+  { hide: "mabui", sea: true, d: "M152 388 C147 391 128 413 121 406 C114 399 110 364 111 345 C112 326 122 299 124 290" },
+  { hide: "kanai", sea: true, d: "M709 670 C720 678 750 703 773 715 C796 727 825 737 848 743 C871 749 901 750 912 752" },
+];
+// 最初の 島には まだ 名前が ない（タブの 呼び名は 仮）
+const ISLES = { 1: { name: "はじまりの島", home: HOME, homeName: "スタート", pos: MAP_POS }, 2: { name: "ニライ諸島", home: HOME2, homeName: "ニライ村", pos: POS2 } };
+const isleOf = (d) => d.isle || 1;
+// その人が 行けるか（門番と 同じ canGo）。島 2 は 無線機、かくしは 商人の つながった タスクの 先
+const chainN = (tid) => (((ME.deeplink && ME.deeplink.traders) || []).find((t) => t.id === tid) || { chain: { n: 1 } }).chain?.n || 1;
+const goOf = (d) => canGo(d, ME.hideout, chainN);
+const shown = (d) => !d.hidden || goOf(d).ok;   // かくしは 開くまで 地図にも 一覧にも 出さない
+const LOCK = `<svg viewBox="0 0 11 12" aria-hidden="true"><rect x="1" y="5" width="9" height="7" rx="1.6" fill="currentColor"/><path d="M3 5V3.6a2.5 2.5 0 0 1 5 0V5" fill="none" stroke="currentColor" stroke-width="1.6"/></svg>`;
 const at = ([x, y]) => `--x:${(x / MAP_W) * 100}%;--y:${(y / MAP_H) * 100}%`;
 function worldMap(did) {
-  const pins = DUNGEONS.map((x) => { const gap = PET.lv - x.lv, fit = gap >= 5 ? "var(--leaf)" : gap >= 0 ? "var(--sky)" : gap >= -5 ? "var(--sun)" : "var(--coral)", pct = Math.round(dungeonRatio(x.id, PROG[x.id]) * 100);
-    return `<button class="wpin ${CHIP_SIDE[x.id] || ""}" data-d="${x.id}" aria-pressed="${x.id === did}" aria-label="${esc(x.name)}（おすすめ Lv${x.lv}）" style="${at(MAP_POS[x.id])};--dc:${x.color};--fit:${fit}"><span class="chip"><b>Lv${x.lv}</b><span>${esc(x.name)}</span><em>${pct}%</em></span></button>`; }).join("");
-  return `<div class="visor world"><span class="wtitle">ワールドマップ</span><div class="wscroll"><div class="wmap" role="group" aria-label="行き先">
-      <svg viewBox="0 0 ${MAP_W} ${MAP_H}" aria-hidden="true"><path class="road under" d="${ROAD}"/><path class="road top" d="${ROAD}"/></svg>
-      <span class="wpin home" style="${at(HOME)}"><span class="chip"><span>スタート</span></span></span>${pins}</div></div></div>
+  const isle = isleOf(DUNGEONS.find((x) => x.id === did)), I = ISLES[isle];
+  const pins = DUNGEONS.filter((x) => isleOf(x) === isle && shown(x)).map((x) => { const gap = PET.lv - x.lv, fit = gap >= 5 ? "var(--leaf)" : gap >= 0 ? "var(--sky)" : gap >= -5 ? "var(--sun)" : "var(--coral)", pct = Math.round(dungeonRatio(x.id, PROG[x.id]) * 100);
+    return `<button class="wpin ${CHIP_SIDE[x.id] || ""}" data-d="${x.id}" aria-pressed="${x.id === did}" aria-label="${esc(x.name)}（おすすめ Lv${x.lv}）" style="${at(I.pos[x.id])};--dc:${x.color};--fit:${fit}"><span class="chip"><b>Lv${x.lv}</b><span>${esc(x.name)}</span><em>${pct}%</em></span></button>`; }).join("");
+  const roads = isle === 1 ? `<path class="road under" d="${ROAD}"/><path class="road top" d="${ROAD}"/>`
+    : ROUTE2.filter((r) => !r.hide || shown(DUNGEONS.find((x) => x.id === r.hide))).map((r) => `<path class="road under${r.sea ? " sea" : ""}" d="${r.d}"/><path class="road top${r.sea ? " sea" : ""}" d="${r.d}"/>`).join("");
+  const radio = !!(ME.hideout && ME.hideout.radio >= 1);
+  const head = ISLAND_OPEN >= 2 ? `<div class="wisle" role="group" aria-label="島">${[1, 2].map((n) => `<button data-isle="${n}" aria-pressed="${n === isle}">${ISLES[n].name}${n >= 2 && !radio ? LOCK : ""}</button>`).join("")}</div>` : `<span class="wtitle">ワールドマップ</span>`;
+  return `<div class="visor world">${head}<div class="wscroll"><div class="wmap ${isle === 2 ? "isle2" : ""}" role="group" aria-label="行き先">
+      <svg viewBox="0 0 ${MAP_W} ${MAP_H}" aria-hidden="true">${roads}</svg>
+      <span class="wpin home" style="${at(I.home)}"><span class="chip"><span>${I.homeName}</span></span></span>${pins}</div></div></div>
     <p class="wleg"><span>Lv の色</span><i style="--c:var(--leaf)"></i>らく<i style="--c:var(--sky)"></i>ちょうどいい<i style="--c:var(--sun)"></i>きびしい<i style="--c:var(--coral)"></i>むずかしい</p>`;
 }
 
@@ -511,7 +554,7 @@ const startFloorOf = (did, pu) => startFloor(did, PROG[did], pu);   // 門番と
 const floorChips = (did, prog, pu, fl) => { const open = floorsOpen(did, prog), rec = startFloorOf(did, pu);
   return Array.from({ length: FLOORS }, (_, i) => { const n = i + 1, ok = n <= open, r = floorRatio(did, prog, n);
     return `<button data-fl="${n}" aria-pressed="${(fl || rec) === n}" ${ok ? "" : "disabled"}>${n === rec ? `<i class="rec">おすすめ</i>` : ""}<b>${n}<small>階</small></b><span>${!ok ? "まだ" : prog.floors[n] ? `${Math.round(r * 100)}%` : "はじめて"}</span></button>`; }).join(""); };
-const opts = () => { const did = DUNGEONS.some((x) => x.id === q.get("d")) ? q.get("d") : LAST ? LAST.did : DUNGEONS[0].id, d = DUNGEONS.find((x) => x.id === did), pu = PURPOSES[q.get("pu")] ? q.get("pu") : "explore";
+const opts = () => { const did = DUNGEONS.some((x) => x.id === q.get("d") && shown(x)) ? q.get("d") : LAST ? LAST.did : DUNGEONS[0].id, d = DUNGEONS.find((x) => x.id === did), pu = PURPOSES[q.get("pu")] ? q.get("pu") : "explore";
   return { did, d, rk: RUNS[q.get("run")] ? q.get("run") : LAST ? LAST.run : "mid", pu, tg: [...d.foes, d.rare].some((f) => f.tree === q.get("tg")) ? q.get("tg") : d.foes[0].tree, tool: TOOLS[q.get("tool")] && TOOL_HAVE[q.get("tool")] ? q.get("tool") : null, fl: Math.min(+q.get("fl") || 0, floorsOpen(did, PROG[did])) }; };   // fl：えらんだ 階（0 は おすすめ。まだ 行けない 階は えらべない）
 const TOOL_HAVE = ME.tools || {};
 // 周回（鹿さんの決め、2026-10-25）：門番が 帰って きた 派遣を うけとって また 出発（画面を とじても 回る）。回数は 3・5・10・ずっと、倉庫が いっぱいに なると 止まる
@@ -549,8 +592,8 @@ const HIST = (ME.trips || []).filter((t) => t.done && t.got).slice().reverse().m
 const floorsHtml = (did, prog) => Array.from({ length: FLOORS }, (_, i) => { const n = i + 1, r = floorRatio(did, prog, n), open = n <= prog.maxFloor;
   return `<li class="${open ? "" : "lock"} ${r >= 1 ? "full" : ""}"><span>${n} 階</span><i class="bar"><b style="width:${Math.round(r * 100)}%"></b></i><em>${open ? `${Math.round(r * 100)}%` : "まだ"}</em><small>${prog.floors[n]?.hidden ? "かくし通路" : n === FLOORS ? "ボスの部屋" : ""}</small></li>`; }).join("");
 function renderPick() {
-  if (q.get("step") === "prep") return renderPrep();
-  const { did, d } = opts(), prog = PROG[did];
+  if (q.get("step") === "prep" && goOf(opts().d).ok) return renderPrep();
+  const { did, d } = opts(), prog = PROG[did], go = goOf(d);
   return `<div class="pick">
     <section class="panel" aria-label="行き先">
       ${worldMap(did)}
@@ -558,7 +601,7 @@ function renderPick() {
       <ul class="hist">${HIST.map((h) => `<li style="--dc:${DUNGEONS.find((x) => x.id === h.d).color}"><span class="when">${h.when}</span><b>${esc(DUNGEONS.find((x) => x.id === h.d).name)}</b><span class="rk">${h.min} 分・${h.pu}</span><span class="out ${h.ok ? "" : "ng"}">${h.ok ? "帰ってきた" : "力つきた"}</span><span class="it">${h.got}</span></li>`).join("")}</ul>
     </section>
     <aside class="panel detail" style="--dc:${d.color}" aria-label="えらんだ行き先">
-      <h2>${esc(d.name)}<span class="rec">おすすめ Lv${d.lv}</span></h2><p class="desc">${esc(d.text)}</p>
+      <h2>${esc(d.name)}<span class="rec">おすすめ Lv${d.lv}</span>${tripCost(d) ? `<span class="rec cost">玉 ${tripCost(d).toLocaleString("ja-JP")}</span>` : ""}</h2><p class="desc">${esc(d.text)}</p>
       <h3 class="sub exh"><span>探索率</span><b>${Math.round(dungeonRatio(did, prog) * 100)}<small>%</small></b>${prog.bossKills ? `<i>ボスを たおした ${prog.bossKills} 回</i>` : ""}</h3>
       <ul class="floors">${floorsHtml(did, prog)}</ul>
       <h3 class="sub">出てくる敵</h3>
@@ -571,7 +614,7 @@ function renderPick() {
       <h3 class="sub">採取の 素材</h3>
       <ul class="mats">${GATHER[did].mats.map(([, n]) => `<li><i></i><b>${esc(n)}</b></li>`).join("")}<li class="hd"><i></i><b>${esc(GATHER[did].hidden[1])}</b><em>かくし通路</em></li></ul>
       <div class="myth"><span class="ico">${gearImg(d.mythic.id, { dir: IMG })}</span><div><b>？？？</b><small>ボスから ごくまれに。ここだけの ミシック装備</small></div></div>
-      <button class="jelly sky go" data-step="prep">じゅんびへ</button>
+      ${go.ok ? `<button class="jelly sky go" data-step="prep">じゅんびへ</button>` : `<button class="jelly sky go" disabled>じゅんびへ</button><p class="gowhy">${esc(go.why)}${isleOf(d) >= 2 && !(ME.hideout && ME.hideout.radio >= 1) ? `　<a href="hideout.html">隠れ家へ</a>` : ""}</p>`}
     </aside></div>`;
 }
 // ---------- じゅんび（2 だんめ：目的・時間をえらんで、出発）----------
@@ -601,7 +644,7 @@ function renderPrep() {
       <div class="outlook" style="--ec:${ec}"><span class="lab">見通し</span><p>${metric}</p><p class="w"><i class="bar"><b style="width:${Math.round(o.wipe * 100)}%"></b></i>力つきる <b>${Math.round(o.wipe * 100)}%</b><small>${word}</small></p></div>
       ${fullHtml(d)}
       ${loopHtml("prep")}
-      <button class="jelly sky go" data-go="play"><svg viewBox="0 0 30 18" aria-hidden="true"><rect x="1" y="2" width="28" height="14" rx="6" fill="#fff"/><rect x="4" y="5" width="22" height="8" rx="3" fill="#1B2340"/><circle cx="23" cy="7" r="1.3" fill="#52F2A0"/></svg>ゴーグルをつけて出発${prepLoop() !== null ? `（周回 ${loopName(prepLoop())}）` : ""}</button><p class="why" id="goWhy"></p>
+      <button class="jelly sky go" data-go="play"><svg viewBox="0 0 30 18" aria-hidden="true"><rect x="1" y="2" width="28" height="14" rx="6" fill="#fff"/><rect x="4" y="5" width="22" height="8" rx="3" fill="#1B2340"/><circle cx="23" cy="7" r="1.3" fill="#52F2A0"/></svg>ゴーグルをつけて出発${[tripCost(d) ? `玉 ${tripCost(d).toLocaleString("ja-JP")}` : "", prepLoop() !== null ? `周回 ${loopName(prepLoop())}` : ""].filter(Boolean).map((x, i, a) => (i ? "・" : "（") + x + (i === a.length - 1 ? "）" : "")).join("")}</button>${tripCost(d) && prepLoop() !== null ? `<p class="gowhy">周回は 1 回ごとに 玉 ${tripCost(d).toLocaleString("ja-JP")}（足りなく なったら 止まる）</p>` : ""}<p class="why" id="goWhy"></p>
     </aside></div>`;
 }
 
@@ -748,6 +791,8 @@ const reopen = (k, v) => { q.set(k, v); location.search = q.toString(); };   // 
 function bind() {
   const on = (sel, f) => document.querySelectorAll(sel).forEach((b) => b.addEventListener("click", () => f(b)));
   on("[data-d]", (b) => reopen("d", b.dataset.d));
+  // 島の タブ：その 島の 行き先へ（前に 行った 所が あれば そこ）
+  on("[data-isle]", (b) => { const n = +b.dataset.isle, list = DUNGEONS.filter((x) => isleOf(x) === n && shown(x)), pick = (LAST && list.find((x) => x.id === LAST.did)) || list[0]; if (pick) { q.delete("step"); reopen("d", pick.id); } });
   on("[data-run]", (b) => reopen("run", b.dataset.run));
   on("[data-pu]", (b) => reopen("pu", b.dataset.pu));
   on("[data-fl]", (b) => reopen("fl", b.dataset.fl));

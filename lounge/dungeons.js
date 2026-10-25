@@ -55,10 +55,11 @@ export const SNACK_DROP = 0.08, SNACK_PRICE = 50;
 export const SNACK_NEED = { 通常: 10, 希少: 30, ボス: 100 };
 export const CAPTURE = { 通常: 0.012, 希少: 0.012, ボス: 0.004 };   // たおした敵 1 体ごと（探索にして、1 分あたりは前とだいたい同じ 2% くらい）
 export const RESEARCH = { 通常: 10, 希少: 30, ボス: 100 };
-// ゲームに 出て いる 島の 数。2 つめの 島（ニライ諸島。docs/mono-link-island2.md）の 行き先が できたら 2 に する
+// ゲームに 出て いる 島の 数。2 つめの 島（ニライ諸島。docs/mono-link-island2.md）の 行き先・敵の ツリー・絵が そろったので 2（2026-10-25）
 // 2 に すると：隠れ家に 無線機（作ると その人は ニライ諸島へ 行ける）・無線機の ある 人は 各施設の Lv4（島の 素材を 使う）が 出る（facilities.js）
-export const ISLAND_OPEN = 1;
-export const DUNGEONS = [
+export const ISLAND_OPEN = 2;
+// isle：何番目の 島か（書いて いない 物は 1）。hidden：かくし（DEEP LINK/: の 商人の つながった タスクを n 番まで 終えると 開く）
+export const DUNGEONS_ALL = [
   {
     id: "hals", name: "ハルス街道", lv: 3, color: "#7BC96F", text: "草原をぬける古い街道。はじめての冒険に",
     foes: [{ name: "ホーンラビット", type: "technician", lv: 2, tree: "e_hare" }, { name: "ゴブリン", type: "attacker", lv: 3, tree: "e_thief" }, { name: "コボルト", type: "defender", lv: 3, tree: "e_watch" }],
@@ -91,4 +92,98 @@ export const DUNGEONS = [
     drops: ["helmet", "knit", "straw", "nabe", "bowtie", "omamori", "bib", "gold", "stick", "pikopiko", "mizudeppo", "kamifusen"],
     mythic: { id: "crystalCrown", slot: "head", name: "水晶の王冠", text: "水晶のからだ：受けるダメージ −8%、会心で ふえた 分は ひびに なり、3 ターンに 分けて 受ける", main: { def: 0.5, res: 0.5 }, fxp: { dmgCut: 8, critSplit: 3 } },
   },
+  // ===== 2 つめの 島「ニライ諸島」（設定資料：docs/mono-link-island2.md。無線機を 作った 人が 行ける。敵の Lv は 行き先の Lv −1〜+1・希少 +1・ボス +5） =====
+  {
+    id: "inoh", isle: 2, name: "イノーの浜", lv: 35, color: "#3FC1B0", text: "白い 砂と サンゴ礁の 浅い 海。島の 冒険は ここから",
+    foes: [{ name: "ヤシガニ", type: "defender", lv: 34, tree: "e_coconutcrab" }, { name: "ウミネコ", type: "technician", lv: 35, tree: "e_gull" }, { name: "サハギン", type: "attacker", lv: 36, tree: "e_sahagin" }],
+    rare: { name: "虹色クマノミ", type: "healer", lv: 36, tree: "e_clownfish" },
+    boss: { name: "キングクラブ", type: "defender", lv: 40, tree: "e_boss_crab" },
+    drops: ["helmet", "knit", "straw", "nabe", "bowtie", "omamori", "bib", "gold", "stick", "pikopiko", "mizudeppo", "kamifusen"],
+    mythic: { id: "inohBangle", slot: "arm", name: "イノーの珊瑚腕輪", text: "潮だまり：自分の 番の はじめに HP 1.5% 回復", main: { dex: 0.6, hp: 0.5 }, fxp: { hpRegen: 0.015 } },
+  },
+  {
+    id: "gama", isle: 2, name: "ガマの隠れ港", lv: 38, color: "#C98A4B", text: "洞くつの 奥に 海賊の 船が かくれている",
+    foes: [{ name: "海賊の下っぱ", type: "attacker", lv: 37, tree: "e_pirate" }, { name: "おしゃべりオウム", type: "technician", lv: 38, tree: "e_parrot" }, { name: "樽ミミック", type: "defender", lv: 39, tree: "e_barrel" }],
+    rare: { name: "宝の地図売り", type: "healer", lv: 39, tree: "e_mapseller" },
+    boss: { name: "赤ひげ船長", type: "attacker", lv: 43, tree: "e_boss_redbeard" },
+    drops: ["helmet", "knit", "straw", "nabe", "bowtie", "omamori", "bib", "gold", "stick", "pikopiko", "mizudeppo", "kamifusen"],
+    mythic: { id: "redbeardHat", slot: "head", name: "赤ひげの三角帽", text: "船長の 勘：会心 +12%・会心の ダメージ +30%", main: { def: 0.5, luk: 0.6 }, fxp: { crit: 0.12, critDmg: 30 } },
+  },
+  {
+    id: "tida", isle: 2, name: "ティダ岬の灯台", lv: 42, color: "#E9B949", text: "消えない 霧の 中で、太陽の 灯台が まわる",
+    foes: [{ name: "灯台守のゴースト", type: "caster", lv: 41, tree: "e_keeper" }, { name: "岬のハーピー", type: "technician", lv: 42, tree: "e_harpy" }, { name: "シーサー像", type: "defender", lv: 43, tree: "e_shisa" }],
+    rare: { name: "迷い光", type: "healer", lv: 43, tree: "e_glimmer" },
+    boss: { name: "霧の巨人", type: "caster", lv: 47, tree: "e_boss_fog" },
+    drops: ["helmet", "knit", "straw", "nabe", "bowtie", "omamori", "bib", "gold", "stick", "pikopiko", "mizudeppo", "kamifusen"],
+    mythic: { id: "tidaLens", slot: "off", name: "ティダのレンズ", text: "照らす：相手の 回避 −15%・DEX +20%・会心 +5%・盲目に ならない", main: { int: 0.7, dex: 0.5 }, fxp: { foeEvadeCut: 0.15, dexMul: 1.2, crit: 0.05, noFx: { blind: true } } },
+  },
+  {
+    id: "atui", isle: 2, name: "アトゥイ号の沈没船", lv: 45, color: "#3D86B8", text: "浅い 海に 大きな 船が 沈んでいる",
+    foes: [{ name: "ドクロ水夫", type: "attacker", lv: 44, tree: "e_skelsailor" }, { name: "フジツボゴーレム", type: "defender", lv: 45, tree: "e_barnacle" }, { name: "電気クラゲ", type: "caster", lv: 46, tree: "e_jelly" }],
+    rare: { name: "金貨ガニ", type: "technician", lv: 46, tree: "e_goldcrab" },
+    boss: { name: "大ダコ", type: "attacker", lv: 50, tree: "e_boss_octopus" },
+    drops: ["helmet", "knit", "straw", "nabe", "bowtie", "omamori", "bib", "gold", "stick", "pikopiko", "mizudeppo", "kamifusen"],
+    mythic: { id: "atuiAnchor", slot: "weapon", name: "アトゥイ号の錨", text: "重い 一撃：こうげきの とき 20% で 相手を 気絶（1 ターン）", main: { atk: 1.2 }, fxp: { onHitFx: [["stun", 0.2, undefined, 1]] } },
+  },
+  {
+    id: "zan", isle: 2, name: "ザンの洞窟", lv: 49, color: "#6F8FE8", text: "滝の うらから 歌が 聞こえる",
+    foes: [{ name: "セイレーン", type: "caster", lv: 48, tree: "e_siren" }, { name: "洞窟ウナギ", type: "technician", lv: 49, tree: "e_eel" }, { name: "貝の守り手", type: "defender", lv: 50, tree: "e_clam" }],
+    rare: { name: "歌う真珠貝", type: "healer", lv: 50, tree: "e_pearl" },
+    boss: { name: "ザンの女王", type: "healer", lv: 54, tree: "e_boss_mermaid" },
+    drops: ["helmet", "knit", "straw", "nabe", "bowtie", "omamori", "bib", "gold", "stick", "pikopiko", "mizudeppo", "kamifusen"],
+    mythic: { id: "zanHarp", slot: "off", name: "ザンの竪琴", text: "癒やしの 歌：自分の 番の はじめに 味方 全員の HP 2% 回復", main: { int: 0.6, mp: 0.6 }, fxp: { teamRegen: 0.02 } },
+  },
+  {
+    id: "ufu", isle: 2, name: "ウフ火山", lv: 52, color: "#E2603F", text: "島の 熱い 心。煙が やまない",
+    foes: [{ name: "溶岩トカゲ", type: "attacker", lv: 51, tree: "e_lavalizard" }, { name: "ヒーダマ", type: "caster", lv: 52, tree: "e_hidama" }, { name: "黒曜石ゴーレム", type: "defender", lv: 53, tree: "e_obsidian" }],
+    rare: { name: "火の鳥のひな", type: "healer", lv: 53, tree: "e_firechick" },
+    boss: { name: "サラマンダー", type: "attacker", lv: 57, tree: "e_boss_salamander" },
+    drops: ["helmet", "knit", "straw", "nabe", "bowtie", "omamori", "bib", "gold", "stick", "pikopiko", "mizudeppo", "kamifusen"],
+    mythic: { id: "ufuGauntlet", slot: "arm", name: "ウフ火山のこて", text: "熱い 手：こうげきの とき 35% で 相手に 炎上 +6", main: { atk: 0.7, dex: 0.5 }, fxp: { onHitFx: [["burn", 0.35, 6]] } },
+  },
+  {
+    id: "kaji", isle: 2, name: "カジの海峡", lv: 56, color: "#7F8FB0", text: "風の 通り道。いつも 嵐が いる",
+    foes: [{ name: "雷鳥", type: "technician", lv: 55, tree: "e_thunderbird" }, { name: "大渦の精", type: "caster", lv: 56, tree: "e_whirl" }, { name: "嵐の海賊船", type: "attacker", lv: 57, tree: "e_stormship" }],
+    rare: { name: "風見カモメ", type: "healer", lv: 57, tree: "e_vane" },
+    boss: { name: "大イラブー", type: "caster", lv: 61, tree: "e_boss_irabu" },
+    drops: ["helmet", "knit", "straw", "nabe", "bowtie", "omamori", "bib", "gold", "stick", "pikopiko", "mizudeppo", "kamifusen"],
+    mythic: { id: "kajiPlume", slot: "acc", name: "カジの羽根飾り", text: "追い風：AGI +30%・回避 +10%・最初の ターンは 先に 動く", main: { agi: 0.7, luk: 0.5 }, fxp: { agiMul: 1.3, evade: 0.1, firstStrike: true } },
+  },
+  {
+    id: "nirai", isle: 2, name: "ニライ寺院", lv: 60, color: "#2FA7A0", text: "割れた 石の 門の 先、海を 見守る 白い 寺院",
+    foes: [{ name: "寺院の衛兵", type: "defender", lv: 59, tree: "e_guard" }, { name: "トライデントナイト", type: "attacker", lv: 60, tree: "e_trident" }, { name: "半魚人の神官", type: "caster", lv: 61, tree: "e_priest" }],
+    rare: { name: "白いイルカ", type: "healer", lv: 61, tree: "e_dolphin" },
+    boss: { name: "ニライの海神", type: "caster", lv: 65, tree: "e_boss_seagod" },
+    drops: ["helmet", "knit", "straw", "nabe", "bowtie", "omamori", "bib", "gold", "stick", "pikopiko", "mizudeppo", "kamifusen"],
+    mythic: { id: "niraiTrident", slot: "weapon", name: "ニライの三叉槍", text: "大波：3 ターンごとに 相手 全員に 水の こうげき（威力 6。ATK か INT の 高い 方）", main: { atk: 0.7, int: 0.6 }, fxp: { waveEvery: 3, wavePow: 6 } },
+  },
+  {
+    id: "mabui", isle: 2, name: "マブイの幽霊船", lv: 50, color: "#8A9FC4", text: "霧の 夜に だけ くる 船。迷った 魂が 乗っている", hidden: { trader: "hunter", who: "ホーク", n: 20, key: "幽霊船の海図" },
+    foes: [{ name: "幽霊水夫", type: "attacker", lv: 49, tree: "e_ghostsailor" }, { name: "マジムン", type: "caster", lv: 50, tree: "e_majimun" }, { name: "呪いの人形", type: "technician", lv: 51, tree: "e_doll" }],
+    rare: { name: "迷子の船猫", type: "healer", lv: 51, tree: "e_shipcat" },
+    boss: { name: "幽霊船長", type: "caster", lv: 55, tree: "e_boss_captain" },
+    drops: ["helmet", "knit", "straw", "nabe", "bowtie", "omamori", "bib", "gold", "stick", "pikopiko", "mizudeppo", "kamifusen"],
+    mythic: { id: "mabuiCompass", slot: "acc", name: "幽霊船長のコンパス", text: "死にぞこない：戦いの はじめに 輪廻（1 回だけ 力つきても HP 1 で のこる）", main: { luk: 0.8, res: 0.4 }, fxp: { startFx: [["reincarnation"]] } },
+  },
+  {
+    id: "kanai", isle: 2, name: "カナイの門", lv: 70, color: "#33479E", text: "海の かなたの 国への 門", hidden: { trader: "junk", who: "ガラク", n: 30, key: "カナイの門の鍵" },
+    foes: [{ name: "チョウチンアンコウ", type: "caster", lv: 69, tree: "e_angler" }, { name: "ダイオウイカ", type: "attacker", lv: 70, tree: "e_squid" }, { name: "深海の巨人", type: "defender", lv: 71, tree: "e_deepgiant" }],
+    rare: { name: "光る深海魚", type: "healer", lv: 71, tree: "e_deepfish" },
+    boss: { name: "深淵の門番", type: "defender", lv: 75, tree: "e_boss_gatekeeper" },
+    drops: ["helmet", "knit", "straw", "nabe", "bowtie", "omamori", "bib", "gold", "stick", "pikopiko", "mizudeppo", "kamifusen"],
+    mythic: { id: "kanaiNecklace", slot: "neck", name: "カナイの首飾り", text: "水圧：受ける ダメージ −10%・戦いの はじめに 相手 全員の ATK −10%", main: { hp: 0.8, def: 0.5 }, fxp: { dmgCut: 10, startFoeFx: [["down_atk", 10]] } },
+  },
 ];
+// 派遣の 費用（玉。鹿さんの決め、2026-10-25）：ニライ諸島は 1,000 から、Lv の 低い 順に 1 か所ごと +250（かくしも 入れて 10 か所。1,000〜3,250）。はじめの 島は ただ
+// 1 回の 派遣ごと（1・3・10 分 同じ。周回は 1 回ごとに 払う）
+DUNGEONS_ALL.filter((d) => d.isle === 2).sort((a, b) => a.lv - b.lv).forEach((d, i) => (d.cost = 1000 + 250 * i));
+export const tripCost = (d) => (d && d.cost) || 0;
+// ゲームに 出て いる 島の 行き先（ISLAND_OPEN まで）。その人が 行けるかは 別（島 2 は 無線機・かくしは タスク。門番の canGo）
+export const DUNGEONS = DUNGEONS_ALL.filter((d) => (d.isle || 1) <= ISLAND_OPEN);
+// その人が その 行き先へ 行けるか（門番と 画面で 同じ 決まり）。hideout：施設の Lv、chainN(商人の id)：つながった タスクの いま 何こ目か
+// 島 2 は 無線機 Lv1 から。かくしは さらに 商人の つながった タスクを n 番まで 終えて いる こと（もう 過ぎて いる 人は 無線機を 作れば すぐ 開く。鹿さんの決め、2026-10-25）
+export function canGo(d, hideout, chainN) {
+  if ((d.isle || 1) >= 2 && !((hideout || {}).radio >= 1)) return { ok: false, why: "隠れ家に 無線機を 作ると 行ける" };
+  if (d.hidden && !(chainN(d.hidden.trader) > d.hidden.n)) return { ok: false, why: `${d.hidden.who}の つながった タスク #${d.hidden.n} の ごほうびで 行ける` };
+  return { ok: true };
+}
