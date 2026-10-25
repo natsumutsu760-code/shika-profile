@@ -5,7 +5,7 @@
 //   grant：払えたら 渡す 物。refund：返事を 待った すえに 払えなかったら もどす 物（どちらも しまえる 形の データ）
 // 数は すべて 案（鹿さんと これから 決める）
 import { PETS, QUIZ, score, PLANS, petAt, tripInit, tripStep, tripResult, floorsOpen, newProgress, diaryOf, dungeonRatio, tamedOf, rankOf, rng, DUNGEONS, RUNS, TICK, TOOLS, PURPOSES, SNACK_NEED, SNACK_PRICE, RESEARCH,
-  FACILITIES, STORAGE_CAP, SNACK_RECIPES, snackMats, SNACK_CRAFT_MAX, toStash, stashHave, BOX_DAYS, MAT_NAME, CRAFT, SYNTH, craftOpen, synthOpen, synthBalls, rollCraft, rollSynth, OPS, baseOf, comboOf, opCount, SCRAP_BALLS, SCRAP_CREDITS, recycleOf, GATHER } from "./game.js";
+  FACILITIES, STORAGE_CAP, EQUIP_CAP, SNACK_RECIPES, snackMats, SNACK_CRAFT_MAX, toStash, stashHave, BOX_DAYS, MAT_NAME, CRAFT, SYNTH, craftOpen, synthOpen, synthBalls, rollCraft, rollSynth, OPS, baseOf, comboOf, opCount, SCRAP_BALLS, SCRAP_CREDITS, recycleOf, AUTO_SELL_STARS, AUTO_SELL_HOW, autoSellOf, GATHER } from "./game.js";
 import { jstDay } from "./lounge-rules.js";
 import { ensureTrade, giveTrade, bump, tripEvents } from "./lounge-trade.js";
 import { ensureReq, giveReq } from "./lounge-req.js";
@@ -16,7 +16,7 @@ export const LV_MAX = 40;                                  // ペットの Lv �
 // 10 分の 派遣 1 回で ハルス街道 Lv3 ひとり 1・3 体 6、水晶洞窟 Lv30 3 体 105 くらい
 export const expNeed = (lv) => Math.ceil((lv * lv) / (lv < 10 ? 4 : 2));
 export const JOBS = Object.keys(PLANS);                    // アタッカー・キャスター・テクニシャン・ヒーラー・ディフェンダー
-export const EQUIP_MAX = 200;                              // 装備を 持てる 数（案）。こえた 分は あずかり箱へ
+export const EQUIP_MAX = EQUIP_CAP[0];                     // 装備を 持てる 数（はじめ。武器庫で 増える＝equipCap）。こえた 分は あずかり箱へ
 export const FURN_MAX = 99;                                // 同じ 家具を 持てる 数
 export const TRIP_KEEP = 10;                               // 終わった 派遣を のこす 数（結果を 見る ため）
 export const PARTY_MAX = 2;                                // パーティは ペット ＋ なかま 2 体
@@ -51,11 +51,14 @@ export function putMats(rec, mats, now) {
   see(rec, mats.map((m) => m.id));
   return { stash, box };
 }
-// 装備を 持ち物へ。EQUIP_MAX を こえた 分は あずかり箱へ
+// 装備を 持てる 数：武器庫の Lv（鹿さんの頼み、2026-10-25）
+export const equipCap = (rec) => EQUIP_CAP[Math.max(0, Math.min(3, rec.hideout.armory || 0))];
+// 装備を 持ち物へ。持てる 数を こえた 分は あずかり箱へ
 export function putEquip(rec, items, now) {
+  const cap = equipCap(rec);
   for (const it of items) {
     const x = { uid: it.uid || newUid(rec, "e"), base: it.base, star: it.star, ops: [...(it.ops || [])], ...(it.fx ? { fx: true } : {}), ...(it.b ? { b: 1 } : {}) };
-    if (rec.own.equip.length < EQUIP_MAX) rec.own.equip.push(x); else rec.own.box.push({ equip: x, until: now + BOX_DAYS * DAY });
+    if (rec.own.equip.length < cap) rec.own.equip.push(x); else rec.own.box.push({ equip: x, until: now + BOX_DAYS * DAY });
   }
   see(rec, items.map((it) => { const c = comboOf(it.base); return c ? "f:" + c.form : it.base; }));   // 組み合わせの 装備は 形だけ おぼえる（しゅるいが 何千も あるので）
 }
@@ -65,9 +68,9 @@ export function boxTake(rec, now) {
   dropOld(rec, now);
   if (!rec.own.box.length) return { ok: false, why: "あずかり箱は からっぽ" };
   const { stash, box } = toStash(rec.own.box.filter((x) => !x.equip), stashCap(rec), stashHave(rec.own.mats)), eq = rec.own.box.filter((x) => x.equip);
-  const eqIn = eq.slice(0, Math.max(0, EQUIP_MAX - rec.own.equip.length));
+  const eqIn = eq.slice(0, Math.max(0, equipCap(rec) - rec.own.equip.length));
   const took = stash.reduce((a, m) => a + m.n, 0) + eqIn.length;
-  if (!took) return { ok: false, why: "倉庫の その しゅるいが いっぱい（倉庫を 強化するか、素材を 使って から）" };
+  if (!took) return { ok: false, why: eq.length && !rec.own.box.some((x) => !x.equip) ? "装備が いっぱい（武器庫を 強化するか、装備を 手放して から）" : "倉庫の その しゅるいが いっぱい（倉庫を 強化するか、素材を 使って から）" };
   stash.forEach((m) => addMat(rec, m)); eqIn.forEach((x) => rec.own.equip.push(x.equip));
   rec.own.box = [...box, ...eq.slice(eqIn.length)];
   return { ok: true, took, left: rec.own.box.length };
@@ -272,6 +275,15 @@ export function tripCollect(rec, b, now) {
   rec.credits += g.credits; rec.snacks += g.snacks;
   dropOld(rec, now);
   const put = putMats(rec, g.materials, now);
+  // 自動で 売る（設定した ★以下・派遣で 拾った 物だけ）。売った 物は 持ち物に 入れない。結果に のこす（t.sold）
+  const A = rec.autoSell, sell = A ? g.equip.filter((it) => autoSellOf(it, A)) : [];
+  let sold = null, earnS = [], boxS = 0;
+  if (sell.length) {
+    const sg = scrapGain(rec, sell, A.how, now, rng((t.seed || 1) + 77));
+    sold = { n: sell.length, how: A.how, star: A.star, value: sg.value || 0, mats: (sg.mats || []).reduce((a, m) => a + m.n, 0) };
+    earnS = sg.earn || []; boxS = sg.boxed || 0;   // リサイクルの 素材が 倉庫に 入りきらない ときも「いっぱい」（周回を 止める）
+    g.equip = g.equip.filter((it) => !sell.includes(it)); t.sold = sold;
+  }
   putEquip(rec, g.equip, now);
   for (const f of g.captured) rec.tamed.push({ uid: newUid(rec, "t"), ...f, exp: 0, gauge: 0 });   // となりの 部屋で 待つ（おやつで 懐柔する）
   rec.explore[t.did] = g.progress;
@@ -279,13 +291,13 @@ export function tripCollect(rec, b, now) {
   if (g.stats) tripEvents(rec, t.did, g.stats, jstDay(now));   // DEEP LINK/: の タスクに 数える
   t.done = true; t.at = now; delete t.team;
   rec.trips = [...rec.trips.filter((x) => !x.done), ...rec.trips.filter((x) => x.done).slice(-TRIP_KEEP)];
-  return { ok: true, exp, up, lv: pet ? pet.lv : 0, ups, boxed: put.box.reduce((a, m) => a + m.n, 0), earn: g.resource ? [{ kind: "res", d: g.resource }] : [] };
+  return { ok: true, exp, up, lv: pet ? pet.lv : 0, ups, boxed: put.box.reduce((a, m) => a + m.n, 0) + boxS, sold, earn: [...(g.resource ? [{ kind: "res", d: g.resource }] : []), ...earnS] };
 }
 // ---------- 周回（鹿さんの決め、2026-10-25）：帰って きたら 門番が うけとって、同じ 行き先・時間・目的・階で また 出発。画面を とじても 回る ----------
 // 回数は 3・5・10・ずっと（0）。倉庫が いっぱいに なったら（入りきらない 素材が あずかり箱に 入ったら）止める。道具は 持って いる 間は 毎回、なければ なしで
 // rec.loop = { on, max, n：出発した 回数, cfg, sum：開いた ときに 見せる まとめ, stop：止まった わけ }
 export const LOOP_COUNTS = [3, 5, 10, 0];
-const emptySum = () => ({ n: 0, exp: 0, up: 0, credits: 0, snacks: 0, resource: 0, mats: 0, equip: 0, caught: 0, wipes: 0, boxed: 0 });
+const emptySum = () => ({ n: 0, exp: 0, up: 0, credits: 0, snacks: 0, resource: 0, mats: 0, equip: 0, sold: 0, caught: 0, wipes: 0, boxed: 0 });
 // 出発した ときに：周回を えらんで いれば はじめる（えらんで いなければ 前の 周回は おわり）
 export function loopNew(rec, b, now) {
   const t = rec.trips.find((x) => !x.done);
@@ -307,7 +319,7 @@ export function loopSeen(rec) { if (rec.loop) { if (rec.loop.on) rec.loop.sum = 
 export function loopAfter(rec, g, r, now, seed) {
   const L = rec.loop; if (!L || !L.on) return null;
   const S = L.sum; S.n++; S.exp += r.exp; S.up += r.up || 0; S.credits += g.credits; S.snacks += g.snacks; S.resource += g.resource || 0;
-  S.mats += g.materials.reduce((a, m) => a + m.n, 0); S.equip += g.equip.length; S.caught += g.captured.length; S.wipes += g.reason === "wipe" ? 1 : 0; S.boxed += r.boxed || 0;
+  S.mats += g.materials.reduce((a, m) => a + m.n, 0); S.equip += g.equip.length; S.sold = (S.sold || 0) + (r.sold ? r.sold.n : 0); S.caught += g.captured.length; S.wipes += g.reason === "wipe" ? 1 : 0; S.boxed += r.boxed || 0;
   if (r.boxed) { L.on = false; L.stop = "full"; return null; }   // 倉庫が いっぱい（日が たつと 消える あずかり箱に 入れつづけない）
   if (L.max && L.n >= L.max) { L.on = false; L.stop = "count"; return null; }
   const tool = L.cfg.tool && rec.tools[L.cfg.tool] > 0 ? L.cfg.tool : null;
@@ -330,20 +342,32 @@ export function equipScrap(rec, b, now, R) {
   const how = ["balls", "credits", "recycle"].includes(b.how) ? b.how : null;
   if (!how) return { ok: false, why: "手放し方を えらんで" };
   const uids = Array.isArray(b.uids) ? [...new Set(b.uids.filter((u) => typeof u === "string"))] : [];
-  if (!uids.length || uids.length > 200) return { ok: false, why: "手放す 装備を えらんで" };
-  const worn = equippedUids(rec), items = uids.map((u) => rec.own.equip.find((e) => e.uid === u));
+  if (!uids.length || uids.length > EQUIP_CAP[EQUIP_CAP.length - 1]) return { ok: false, why: "手放す 装備を えらんで" };   // まとめては 武器庫 Lv3 の 数まで
+  const byUid = new Map(rec.own.equip.map((e) => [e.uid, e])), worn = equippedUids(rec), items = uids.map((u) => byUid.get(u));
   if (items.some((e) => !e)) return { ok: false, why: "その 装備は ない" };
   if (items.some((e) => worn.has(e.uid))) return { ok: false, why: "付けて いる 装備は 手放せない（はずして から）" };
   const gone = new Set(uids); rec.own.equip = rec.own.equip.filter((e) => !gone.has(e.uid));
   for (const a of rec.own.att || []) if (gone.has(a.on)) a.on = null;   // 付いて いた アタッチメントは のこす（工房の 決まり）
-  const n = items.length;
-  if (how === "credits") { const value = items.reduce((a, e) => a + SCRAP_CREDITS[e.star], 0); rec.credits += value; return { ok: true, how, n, value }; }   // value：もらった 数（credits・balls は 答えの 財布と ぶつかる）
-  if (how === "balls") { const value = items.reduce((a, e) => a + SCRAP_BALLS[e.star], 0); return { ok: true, how, n, value, earn: [{ kind: "balls", d: value }] }; }
+  return { ok: true, how, n: items.length, ...scrapGain(rec, items, how, now, R) };
+}
+// 手放した 分を もらう（手放す・自動で 売る で 同じ 値段）。value：もらった 数（credits・balls は 答えの 財布と ぶつかる）
+// balls は 帳簿へ（earn）。recycle の 素材は 倉庫へ（入りきらない 分は あずかり箱）
+export function scrapGain(rec, items, how, now, R) {
+  if (how === "credits") { const value = items.reduce((a, e) => a + SCRAP_CREDITS[e.star], 0); rec.credits += value; return { value }; }
+  if (how === "balls") { const value = items.reduce((a, e) => a + SCRAP_BALLS[e.star], 0); return { value, earn: [{ kind: "balls", d: value }] }; }
   // 買った・もらった 装備（b）から 出た 素材にも b を つける（商人の タスクは 派遣で 拾った 物だけ。リサイクルで 印を 消させない）
   const got = new Map(), add = (id, b) => { const k = id + (b ? ":b" : ""), x = got.get(k) || { id, q: 0, n: 0, ...(b ? { b: 1 } : {}) }; x.n++; got.set(k, x); };
   for (const e of items) { const r = recycleOf(e), g = GATHER[r.did]; for (let i = 0; i < r.n; i++) add(g.mats[Math.floor(R() * g.mats.length)][0], e.b); if (r.hidden) add(g.hidden[0], e.b); }
   const mats = [...got.values()], put = putMats(rec, mats, now);
-  return { ok: true, how, n, mats, boxed: put.box.reduce((a, m) => a + m.n, 0) };
+  return { mats, boxed: put.box.reduce((a, m) => a + m.n, 0) };
+}
+// 自動で 売る 設定（鹿さんの頼み、2026-10-25）：star 0 で やめる。how：credits・balls・recycle
+export function autoSellSet(rec, b) {
+  const star = Math.floor(+b.star || 0);
+  if (!star) { rec.autoSell = null; return { ok: true, autoSell: null }; }
+  if (!AUTO_SELL_STARS.includes(star) || !AUTO_SELL_HOW.includes(b.how)) return { ok: false, why: "売る ★と もらう 物を えらんで" };
+  rec.autoSell = { star, how: b.how };
+  return { ok: true, autoSell: rec.autoSell };
 }
 function levelUp(x, exp) {
   let up = 0; x.exp = (x.exp || 0) + exp;

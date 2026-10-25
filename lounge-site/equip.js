@@ -144,6 +144,10 @@ export function recycleOf(it) {
 }
 // まとめて 手放す ときに 入れない：ミシック・合成の 上の 装備・とくべつな 効果つき（付けて いる 物は 画面と 門番で 別に 見る）
 export const keepInBulk = (it) => { const b = baseOf(it.base); return !b || !!b.mythic || UPPER.some((u) => u.id === b.id) || !!it.fx; };
+// 自動で 売る（鹿さんの頼み、2026-10-25）：派遣で 拾った ★N 以下の 装備を 持ち物に 入れずに 手放す。もらう 物は えらべる（手放すと 同じ 値段）
+// 売らない：まとめて 手放さない 物（ミシック・合成の 上・効果つき）・買った／もらった 物（b）。a：rec.autoSell = { star, how }
+export const AUTO_SELL_STARS = [1, 2, 3, 4], AUTO_SELL_HOW = ["credits", "balls", "recycle"];
+export const autoSellOf = (it, a) => !!a && a.star > 0 && it.star <= a.star && !it.b && !keepInBulk(it);
 export const hasFx = (it) => { const b = baseOf(it.base); return !!b?.fxp && (b.mythic || !!it.fx); };
 
 // OP：★の数だけ付く（★1 は 1 つ … ★5 は 5 つ）。数字はその装備の★で決まる（左から ★1〜★5）。from は付きはじめる★

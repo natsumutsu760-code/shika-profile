@@ -74,6 +74,23 @@ const ST = {
     if (lv >= 3) { cyl(g, 0.02, 0.02, 0.6, "#5A5470", -0.6, 2.2, -0.3); const bag = cyl(g, 0.2, 0.2, 0.8, "#D9443C", -0.6, 1.3, -0.3, 10); fx.push({ swing: bag }); [[0, 0.25, 0.3], [0.12, 0.05, 0.25]].forEach(([x, y, l]) => box(g, 0.05, l, 0.03, glow("#46D4FF", 2.4), 0.4 + x, 1.7 + y, -0.6).rotation.z = 0.5); lamp(g, "#46B4FF", 1.2, 0, 1.8, 0.2, 3); }
     lamp(g, "#BFDFFF", [0, 0.6, 0.9, 1.1][lv], 0, 2.1, 0.8);
   },
+  armory(g, lv, fx) {   // 武器庫：剣の 立てかけ台 → 槍の 台と 盾 → 光る 剣の ショーケース
+    if (!lv) return empty(g);
+    const stand = (x) => { const R = new THREE.Group(); R.position.set(x, 0, -0.15); g.add(R); box(R, 0.95, 0.12, 0.45, "#5B4636"); [-0.44, 0.44].forEach((i) => box(R, 0.07, 1.5, 0.07, "#5B4636", i, 0, -0.15)); box(R, 0.95, 0.07, 0.1, "#6E5440", 0, 1.3, -0.15); return R; };
+    const S = stand(-0.55);
+    [-0.28, 0, 0.28].forEach((x, k) => { const w = new THREE.Group(); w.position.set(x, 0.12, 0.05); w.rotation.x = -0.18; S.add(w);   // 剣：刃・つば・つか
+      box(w, 0.07, 0.95, 0.02, ["#C9CED8", "#B8C4D8", "#D8D2C0"][k], 0, 0.3, 0); box(w, 0.24, 0.05, 0.07, "#C9A06A", 0, 0.26, 0); box(w, 0.05, 0.26, 0.05, "#3A3550"); });
+    if (lv >= 2) {
+      const P = stand(0.55);
+      [-0.28, 0, 0.28].forEach((x) => { cyl(P, 0.025, 0.025, 1.7, "#8A6A48", x, 0.12, 0.02); cyl(P, 0, 0.06, 0.22, "#C9CED8", x, 1.82, 0.02); });   // 槍
+      const sh = cyl(g, 0.34, 0.34, 0.06, "#3E7BE6", 1.08, 0.36, 0.25, 12); sh.rotation.x = Math.PI / 2 - 0.25; ball(g, 0.07, "#FFC21A", 1.08, 0.38, 0.29);   // 盾
+    }
+    if (lv >= 3) {   // まんなか 手前に ガラスの ケースと 光る 剣
+      box(g, 0.5, 0.5, 0.4, "#3A3550", 0, 0, 0.5); box(g, 0.46, 0.7, 0.36, mat("#CDE8FF", { transparent: true, opacity: 0.25 }), 0, 0.5, 0.5);
+      const b = box(g, 0.06, 0.55, 0.02, glow("#8EE8FF", 2.4), 0, 0.58, 0.5); box(g, 0.2, 0.04, 0.06, glow("#FFC21A", 1.8), 0, 0.6, 0.5); fx.push({ spin: b });
+    }
+    lamp(g, "#FFD9A0", [0, 0.6, 1, 1.6][lv], 0, 2.2, 0.8);
+  },
   storage(g, lv, fx) {   // 倉庫：たなが ふえる（Lv1 1 つ・Lv2 2 つ・Lv3 3 つと 光る ふだ）
     if (!lv) return empty(g, 2.6, 1.2);
     const racks = lv, crate = ["#B98A55", "#7A8299", "#3E7BE6", "#22CC88", "#E8B23A"];
@@ -143,7 +160,7 @@ function bed(g, r, z, fx) {
 export const SPOTS = {
   bench: { x: 0.9, z: 3.2, r: Math.PI / 2 }, snack: { x: 0.9, z: 7.2, r: Math.PI / 2 },
   lab: { x: 3.3, z: 0.9, r: 0 }, maproom: { x: 6.6, z: 1, r: 0 }, medic: { x: 9.9, z: 0.9, r: 0 },
-  gym: { x: 10.3, z: 4.6, r: 0 }, storage: { x: 9.8, z: 8.2, r: 0 },
+  gym: { x: 10.3, z: 4.6, r: 0 }, storage: { x: 9.8, z: 8.2, r: 0 }, armory: { x: 4.4, z: 8.5, r: 0 },   // 武器庫：はしごの 左（おやつ工房と はしごの あいだ）
   workshop: { x: 0.9, z: -3, r: Math.PI / 2, dig: 1 },   // dig：その 場所が 掘れる 地下の 拡張の Lv（奥の かべの 向こう）
   farm: { x: 8, z: -3, r: 0, dig: 1 }, mine: { x: 6, z: -10.4, r: 0, dig: 2 },   // 畑と 坑道（③）
 };

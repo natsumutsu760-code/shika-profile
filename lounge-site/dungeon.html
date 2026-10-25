@@ -210,6 +210,7 @@
   .got b { font:700 14px/1.25 var(--jp); } .got .stars { margin-left:6px; vertical-align:1px; }
   .got .ops { display:block; margin-top:3px; font:700 11px/1.5 var(--jp); color:var(--soft); }
   .got li.mythic { border:3px solid transparent; background:linear-gradient(135deg, #FFFDF4, #F6F0FF) padding-box, var(--myth) border-box; padding:8px 12px 10px 8px; grid-template-columns:72px minmax(0, 1fr); }
+  .got li.sell { opacity:.62; } .got li .sl { margin-left:6px; padding:2px 7px; border-radius:99px; background:#E5F7EE; color:#13A36A; font:900 11px/1.4 var(--jp); white-space:nowrap; }
   .got li.mythic .ico { width:72px; height:72px; background:radial-gradient(circle at 50% 40%, #fff 0, #FFF1C9 60%, #EBDDFF 100%); }
   .got li.mythic b { font-size:16px; }
   .got .tag { display:inline-block; margin-right:6px; padding:3px 8px; border-radius:7px; background:var(--ink); color:#fff; font:700 11px/1 var(--jp); vertical-align:2px; }
@@ -401,7 +402,7 @@ import { runDungeon, diaryOf, rankOf, tamedOf, newProgress, floorRatio, dungeonR
 import { floorMap, exploredRatio, keyOf, DIRS, GW, GH, FLOORS, T } from "./floors.js";
 import { petAt } from "./builds.js";
 import { ENEMY_TREES } from "./enemy-trees.js";
-import { OPS, SLOTS, MATS, baseOf, matsOf } from "./equip.js";
+import { OPS, SLOTS, MATS, baseOf, matsOf, autoSellOf } from "./equip.js";
 import { gearImg, watchIcons } from "./gear-icon.js";
 import { TYPES } from "./skills.js";
 import { spriteURL } from "./sprites.js";
@@ -523,10 +524,11 @@ function loopHtml(where) {
     ${on ? `<div class="lcnt">${LOOP_N.map((n) => `<button data-loop-n="${n}" data-where="${where}" aria-pressed="${cnt === n}">${loopName(n)}</button>`).join("")}</div>` : ""}</div>`;
 }
 // 周回の まとめ：開いた ときに、門番が うけとった 分を まとめて 見せる（とじると 消える）
+const soldGain = (s) => s.how === "recycle" ? `素材 <b>${s.mats}</b> こ` : `${s.how === "balls" ? "玉" : "クレジット"} <b>+${s.value.toLocaleString("ja-JP")}</b>`;   // 自動で 売った 分
 function loopSumHtml() {
   const L = LOOP; if (!L || !L.sum || !L.sum.n) return "";
   const S = L.sum, why = !L.on ? (L.stop === "full" ? `倉庫が いっぱいに なったので 止まった${S.boxed ? `（あずかり箱に ${S.boxed} こ）` : ""}` : L.stop === "count" ? `${L.max} 回 回ったので おわり` : L.stop === "off" ? "周回を 止めた" : `止まった：${esc(L.stop || "")}`) : "";
-  const chips = [`経験値 <b>+${S.exp.toLocaleString("ja-JP")}</b>`, S.up ? `Lv <b>+${S.up}</b>` : "", `クレジット <b>+${S.credits.toLocaleString("ja-JP")}</b>`, S.mats ? `素材 <b>${S.mats}</b> こ` : "", S.equip ? `装備 <b>${S.equip}</b> こ` : "", S.caught ? `捕まえた <b>${S.caught}</b>` : "", S.snacks ? `おやつ <b>+${S.snacks}</b>` : "", S.resource ? `リソース <b>+${S.resource}</b>` : ""].filter(Boolean);
+  const chips = [`経験値 <b>+${S.exp.toLocaleString("ja-JP")}</b>`, S.up ? `Lv <b>+${S.up}</b>` : "", `クレジット <b>+${S.credits.toLocaleString("ja-JP")}</b>`, S.mats ? `素材 <b>${S.mats}</b> こ` : "", S.equip ? `装備 <b>${S.equip}</b> こ` : "", S.sold ? `売った 装備 <b>${S.sold}</b> こ` : "", S.caught ? `捕まえた <b>${S.caught}</b>` : "", S.snacks ? `おやつ <b>+${S.snacks}</b>` : "", S.resource ? `リソース <b>+${S.resource}</b>` : ""].filter(Boolean);
   return `<section class="panel lsum ${L.on ? "" : "stop"}" aria-label="周回の まとめ"><div class="lh"><b>周回の まとめ</b><span>${S.n} 回 帰って きた${S.wipes ? `（力つきた ${S.wipes} 回）` : ""}</span><button class="lx" id="loopSeen">とじる</button></div>
     <p class="lc">${chips.map((c) => `<span>${c}</span>`).join("")}</p>${why ? `<p class="lw">${why}</p>` : ""}${S.equip ? `<a class="lgo" href="equip.html">装備を 見る</a>` : ""}</section>`;
 }   // 持って いる 道具の 数（DEEP LINK/: の 商人の 店で 買う）
@@ -673,7 +675,8 @@ function renderDone() {
   for (const it of eq) text = hl(text, `${baseName(it.base)}（★${it.star}）`);
   if (myth) text = hl(text, `★ミシック★ ${myth.name}を 手に入れた！`);
   for (const f of g.captured) text = hl(text, `${f.name}を 捕まえた！`);
-  const items = eq.map((it) => `<li class="r${it.star}"><span class="ico">${gearImg(it.base, { dir: IMG })}</span><div><b>${esc(baseName(it.base))}</b>${stars(it.star)}<span class="ops">${it.ops.map((o) => esc(OPS[o].fmt(OPS[o].v[it.star - 1]))).join("・")}</span></div></li>`).join("");
+  const sells = (it) => autoSellOf(it, GOT ? GOT.sold && { star: GOT.sold.star } : ME.autoSell);   // 自動で 売る（武器庫の 設定。鹿さんの頼み、2026-10-25）
+  const items = eq.map((it) => `<li class="r${it.star}${sells(it) ? " sell" : ""}"><span class="ico">${gearImg(it.base, { dir: IMG })}</span><div><b>${esc(baseName(it.base))}</b>${stars(it.star)}${sells(it) ? `<span class="sl">${GOT ? "売った" : "自動で 売る"}</span>` : ""}<span class="ops">${it.ops.map((o) => esc(OPS[o].fmt(OPS[o].v[it.star - 1]))).join("・")}</span></div></li>`).join("");
   const mythLi = myth ? `<li class="mythic"><span class="ico">${gearImg(myth.id, { dir: IMG })}</span><div><span class="tag">ミシック</span><b>${esc(myth.name)}</b><span class="fx">${esc(myth.text)}</span></div></li>` : "";
   const title = g.reason === "wipe" ? "力つきて 帰ってきた" : g.boss ? "ボスを たおした！" : g.reason === "done" ? "目的を はたして 帰ってきた" : "時間に なって 帰ってきた";
   const [r0, r1] = g.ratio, date = new Date(t.end), wd = "日月火水木金土"[date.getDay()];
@@ -769,7 +772,7 @@ function bind() {
     if (!r.ok) { document.getElementById("cWhy").textContent = r.why || "うけとれませんでした"; return; }
     if (r.next) { location.reload(); return; }   // 周回中：つぎの 派遣が もう 出発した（まとめに 入る）
     GOT = r; MP.lv = r.lv || MP.lv; fillHead(); paint();
-    toast(`経験値 <b>+${r.exp}</b>${r.up ? `・Lv <b>${r.lv}</b> に 上がった` : ""}${r.boxed ? `・${r.boxed} こ あずかり箱へ` : ""}`);
+    toast(`経験値 <b>+${r.exp}</b>${r.up ? `・Lv <b>${r.lv}</b> に 上がった` : ""}${r.sold ? `・装備 ${r.sold.n} こ 売った（${soldGain(r.sold)}）` : ""}${r.boxed ? `・${r.boxed} こ あずかり箱へ` : ""}`);
   });
   // 周回：じゅんびでは アドレスに のこす（ほかの えらびと 同じ）。出かけて いる あいだは 門番に 頼む
   on("[data-loop-sw]", async (b) => {

@@ -113,6 +113,9 @@
   /* まとめて 手放す */
   .bulkbtn { border:1.5px solid var(--line); background:#fff; border-radius:99px; padding:5px 12px; font:900 12px/1 var(--jp); color:var(--ink); }
   .bulkbtn[aria-expanded="true"] { background:var(--ink); border-color:var(--ink); color:#fff; }
+  .bulkbtn.on small { margin-left:5px; padding:2px 6px; border-radius:99px; background:#E5F7EE; color:#13A36A; font:900 11px/1 var(--jp); } .bulkbtn.on[aria-expanded="true"] small { background:rgba(255,255,255,.18); color:#fff; }
+  .bulk.auto { background:#F2FBF6; border-color:#BFE9D2; }
+  .cnt a { margin-left:6px; font:900 12px/1 var(--jp); color:#13A36A; } .cnt.full b { color:var(--coral); }
   .bulk { margin:-2px 0 12px; padding:10px 12px; border-radius:16px; background:#FFF6F4; border:1.5px solid #FFD3CF; display:grid; gap:8px; }
   .bulk .brow { display:flex; flex-wrap:wrap; align-items:center; gap:5px; } .bulk .brow > span { width:64px; font:900 11px/1.2 var(--jp); color:var(--soft); } .bulk .brow small { font:700 12px/1 var(--jp); color:var(--soft); }
   .bulk .brow button { border:1.5px solid var(--line); background:#fff; border-radius:99px; padding:5px 10px; font:700 12px/1 var(--jp); color:var(--soft); }
@@ -184,7 +187,7 @@ import { mergeAtt, attHtml, attClick } from "./att-panel.js";   // 武器の ア
 import { mountWallet } from "./wallet-bar.js"; mountWallet();   // 上の 通貨の 札（玉・リソース・クレジット）と 両替
 import { petInfo, linkTabs, gateHtml, addGateCss, toast } from "./pet-head.js";
 import { TYPES } from "./skills.js";
-import { SLOTS, KINDS, OPS, baseOf, itemStats, mainStats, hasFx, SCRAP_BALLS, SCRAP_CREDITS, recycleOf, keepInBulk } from "./equip.js";
+import { SLOTS, KINDS, OPS, baseOf, itemStats, mainStats, hasFx, SCRAP_BALLS, SCRAP_CREDITS, recycleOf, keepInBulk, AUTO_SELL_STARS } from "./equip.js";
 import { DUNGEONS } from "./dungeons.js";
 import { SYNTH } from "./recipes.js";
 import { gearImg, watchIcons } from "./gear-icon.js";
@@ -193,7 +196,7 @@ import { spriteURL } from "./sprites.js";
 
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
 const SL = { hp: "HP", mp: "MP", atk: "ATK", def: "DEF", int: "INT", res: "RES", agi: "AGI", dex: "DEX", luk: "LUK" };
-const EQUIP_MAX = 200;
+const EQUIP_MAX = 200;   // 武器庫 Lv0 の 数（門番の equipCap が 来なかった とき）
 const stars = (n) => `<span class="stars">${"★".repeat(n)}</span>`;
 const sign = (v) => (v < 0 ? `−${Math.abs(v)}` : `+${v}`);
 const SPECIAL = new Set(["mpRegen", "firstStrike", "endure", "focusStart"]);
@@ -214,7 +217,7 @@ const DOLL = ["head", "weapon", "off", "arm", "neck", "leg"], ACCS = ["acc1", "a
 const EMPTY = { off: "オフ\nハンド" };
 
 let ME = mergeAtt(await me()), MP = ME.pets && ME.pets[0];
-const V = { f: null, sort: "star", sel: null, slot: null, conf: null, bulk: false, bstar: 2, bhow: "balls", who: new URLSearchParams(location.search).get("who") || "pet" };
+const V = { f: null, sort: "star", sel: null, slot: null, conf: null, bulk: false, bstar: 2, bhow: "balls", auto: false, ahow: null, who: new URLSearchParams(location.search).get("who") || "pet" };
 // だれの 装備（鹿さんの決め、2026-10-25）：ペットと パーティの 2 体。部屋に いる 子でも 何か 付けて いれば 出す（はずせる ように）
 const mates = () => (ME.tamed || []).filter((c) => (ME.party || []).includes(c.uid) || Object.values(c.equip || {}).some(Boolean));
 const holder = () => (V.who !== "pet" && mates().find((c) => c.uid === V.who)) || MP;
@@ -234,7 +237,7 @@ const slotFor = (kind) => (kind !== "acc" ? kind : V.slot && SLOTS[V.slot].kind 
 
 function render() {
   const gate = gateHtml(ME, esc); if (gate) return gate;
-  const info = petInfo(MP), ty = TYPES[MP.type], own = ME.own.equip || [], W = wornBy();
+  const info = petInfo(MP), ty = TYPES[MP.type], own = ME.own.equip || [], W = wornBy(), cap = ME.equipCap || EQUIP_MAX, AS = ME.autoSell;
   const total = {}; for (const s of Object.keys(SLOTS)) { const it = cur(s); if (it) for (const [k, v] of Object.entries(itemStats(it))) total[k] = (total[k] || 0) + v; }
   const sum = Object.entries(total).filter(([k]) => !SPECIAL.has(k)).map(([k, v]) => `${nameOf(k)} <b>${val(k, v)}</b>`).join("・");
   if (!PARTS.includes(V.f)) V.f = PARTS.find((k) => own.some((e) => kindOf(e) === k)) || "head";   // はじめは 持って いる 物が ある 部位
@@ -282,8 +285,8 @@ function render() {
       </div>
     </section>
     <section class="panel" aria-label="持っている装備" id="list">
-      <div class="head"><h2>持っている装備</h2><span class="cnt"><b>${own.length}</b> / ${EQUIP_MAX}</span><button class="bulkbtn" data-bulk="1" aria-expanded="${V.bulk}">まとめて 手放す</button></div>
-      ${V.bulk ? bulkHtml(own, W) : ""}
+      <div class="head"><h2>持っている装備</h2><span class="cnt ${own.length >= cap ? "full" : ""}"><b>${own.length}</b> / ${cap}${own.length >= cap * 0.9 ? `<a href="hideout.html?f=armory">増やす</a>` : ""}</span><button class="bulkbtn" data-bulk="1" aria-expanded="${V.bulk}">まとめて 手放す</button><button class="bulkbtn ${AS ? "on" : ""}" data-auto="1" aria-expanded="${V.auto}">自動で 売る${AS ? `<small>★${AS.star} 以下</small>` : ""}</button></div>
+      ${V.bulk ? bulkHtml(own, W) : V.auto ? autoHtml() : ""}
       <div class="ptabs" role="tablist" aria-label="部位">${PARTS.map((k) => `<button role="tab" data-f="${k}" aria-selected="${V.f === k}" class="${n(k) ? "" : "zero"}">${PART_LABEL[k] || KINDS[k].label}<small>${n(k)}</small></button>`).join("")}</div>
       <div class="filters sorts" role="group" aria-label="ならべる"><span>ならべる</span>${SORTS.map(([k, l]) => `<button data-sort="${k}" aria-pressed="${V.sort === k}">${l}</button>`).join("")}</div>
       ${listHtml}
@@ -315,6 +318,20 @@ function bulkHtml(own, W) {
     <p class="bn"><b>${n}</b> こ（すべての 部位）${out ? `・${out}は 入れない` : ""}</p>
     <button class="jelly ${V.conf === "bulk" ? "warn" : ""}" data-bulkgo="1" ${n ? "" : "disabled"}>${V.conf === "bulk" ? `もう一度 押すと ${n} こ 手放す` : `${n} こを ${value}`}</button></div>`;
 }
+// 自動で 売る（鹿さんの頼み、2026-10-25）：派遣で 拾った ★N 以下の 装備を、持ち物に 入れずに 売る。もらう 物も えらぶ。押すと すぐ しまう
+function autoHtml() {
+  const A = ME.autoSell, how = V.ahow || (A && A.how) || "credits";
+  return `<div class="bulk auto" role="group" aria-label="自動で 売る">
+    <div class="brow"><span>この ★ 以下</span><button data-astar="0" aria-pressed="${!A}">しない</button>${AUTO_SELL_STARS.map((k) => `<button data-astar="${k}" aria-pressed="${!!A && A.star === k}">★${k}</button>`).join("")}</div>
+    <div class="brow"><span>もらう 物</span>${Object.entries(HOW).map(([k, l]) => `<button data-ahow="${k}" aria-pressed="${how === k}">${l}</button>`).join("")}</div>
+    <p class="bn">派遣で 拾った 物だけ・ミシックなどは 売らない</p></div>`;
+}
+async function setAuto(b, star, how) {
+  const r = await busy(b, () => act("equip.auto", { star, how }));
+  if (!r.ok) { paint(); return toast(r.wait ? waitText : r.why || "できませんでした"); }
+  ME.autoSell = r.autoSell; V.ahow = how; paint();
+  toast(r.autoSell ? `派遣で 拾った ★${r.autoSell.star} 以下を ${HOW[r.autoSell.how]}` : "自動で 売るのを やめた");
+}
 async function doScrap(b, uids, how) {
   const r = await busy(b, () => act("equip.scrap", { how, uids }));
   V.conf = null;
@@ -338,7 +355,10 @@ document.body.addEventListener("click", async (e) => {
   if (await attClick(b, ME, async (fresh) => { if (fresh) { ME = mergeAtt(await me()); MP = ME.pets[0]; } paint(); }, toast)) return;   // アタッチメント
   if (!d.scrap && !d.bulkgo && V.conf) V.conf = null;   // ほかを 押したら 2 回めの 待ちを やめる
   if (d.scrap) { const k = `${d.su}:${d.scrap}`; if (V.conf !== k) { V.conf = k; return paint(); } return doScrap(b, [d.su], d.scrap); }
-  if (d.bulk) { V.bulk = !V.bulk; return paint(); }
+  if (d.bulk) { V.bulk = !V.bulk; V.auto = false; return paint(); }
+  if (d.auto) { V.auto = !V.auto; V.bulk = false; return paint(); }
+  if (d.astar) return setAuto(b, +d.astar, V.ahow || (ME.autoSell && ME.autoSell.how) || "credits");
+  if (d.ahow) { if (!ME.autoSell) { V.ahow = d.ahow; return paint(); } return setAuto(b, ME.autoSell.star, d.ahow); }   // しない の ときは えらぶ だけ
   if (d.bstar) { V.bstar = +d.bstar; return paint(); }
   if (d.bhow) { V.bhow = d.bhow; return paint(); }
   if (d.bulkgo) { if (V.conf !== "bulk") { V.conf = "bulk"; return paint(); } return doScrap(b, bulkPick(ME.own.equip || [], wornBy()).pick.map((e) => e.uid), V.bhow); }

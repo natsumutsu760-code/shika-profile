@@ -40,6 +40,12 @@ export const FACILITIES = [
     { fx: "1 しゅるい 200 こ まで 置ける", need: { mats: [["oldnail", 10], ["oldcloth", 6]], credits: 1500, balls: 1000 } },
     { fx: "1 しゅるい 400 こ まで 置ける", need: { mats: [["ironore", 10], ["crystalbit", 8]], credits: 6000, balls: 4000, res: 2, fac: [["bench", 2]] } },
   ] },
+  // 武器庫（鹿さんの頼み、2026-10-25：武器の スタッシュも 強化できる ように）。装備を 持てる 数（EQUIP_CAP）
+  { id: "armory", name: "武器庫", text: "装備を 持てる 数が 増える（はじめは 200 こ）", lv: [
+    { fx: "装備 300 こ まで 持てる", need: { mats: [["oldnail", 20], ["brick", 15], ["goblin_knife", 3]], credits: 1000, balls: 800 } },
+    { fx: "装備 500 こ まで 持てる", need: { mats: [["ironore", 30], ["oldcloth", 20], ["wolf_fang", 4, 2]], credits: 5000, balls: 3000, res: 1, fac: [["bench", 1]] } },
+    { fx: "装備 800 こ まで 持てる", need: { mats: [["ironore", 80], ["crystalbit", 40], ["crystal_scale", 3, 4]], credits: 15000, balls: 8000, res: 4, fac: [["storage", 2]] } },
+  ] },
   // 地下の 拡張と 新しい 設備（鹿さんの頼み、2026-10-25。いまの 部屋を 奥へ 広げる 形。スタック数を 増やした ぶん 素材を たくさん 使う）
   { id: "dig", name: "地下の 拡張", text: "地下を 奥へ 広げて、新しい 設備を 置く", lv: [
     { fx: "奥に 広がる（工房・畑を 置ける）", need: { mats: [["pebble", 40], ["brick", 30], ["oldnail", 20]], credits: 3000, balls: 2000 } },
@@ -62,6 +68,7 @@ export const FACILITIES = [
     { fx: "3 体・光る石・ときどき 虹水晶", need: { mats: [["ironore", 120], ["crystalbit", 60], ["bat_wing", 6, 4], ["dragon_crystal", 1, 5]], credits: 30000, balls: 15000, res: 6, fac: [["dig", 3]] } },
   ] },
 ];
+export const EQUIP_CAP = [200, 300, 500, 800];   // 武器庫の Lv で 装備を 持てる 数（案）。こえた 分は あずかり箱へ
 export const STORAGE_CAP = [50, 100, 200, 400];   // 1 しゅるい（素材の id）ごとの 上限。どの しゅるいも 置ける（鹿さんの決め、2026-10-25：前は ぜんぶの 合計で 100・200・400・800）
 // おやつ工房で 作る 物（鹿さんの決め、2026-10-25）。Lv2 から ふつうの おやつの 素材が 3 こ → 2 こ。とくべつおやつ（なかよし ＋3）は Lv3 から
 export const SNACK_RECIPES = [
