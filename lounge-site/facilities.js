@@ -35,13 +35,13 @@ export const FACILITIES = [
     { fx: "派遣の 経験値 ＋20%", need: { mats: [["brick", 10], ["wolf_fang", 4, 2], ["oldnail", 6]], credits: 2500, balls: 1500, res: 1, fac: [["medic", 1]] } },
     { fx: "派遣の 経験値 ＋30%", need: { mats: [["ironore", 12], ["crystal_scale", 4, 4], ["midnight_bell", 1, 5]], credits: 9000, balls: 6000, res: 4 } },
   ] },
-  { id: "storage", name: "倉庫", text: "素材を 置ける 数が 増える（はじめは 100 こ）", lv: [
-    { fx: "素材を 200 こ まで 置ける", need: { mats: [["straw", 6], ["berry", 4]], credits: 300, balls: 300 } },
-    { fx: "素材を 400 こ まで 置ける", need: { mats: [["oldnail", 10], ["oldcloth", 6]], credits: 1500, balls: 1000 } },
-    { fx: "素材を 800 こ まで 置ける", need: { mats: [["ironore", 10], ["crystalbit", 8]], credits: 6000, balls: 4000, res: 2, fac: [["bench", 2]] } },
+  { id: "storage", name: "倉庫", text: "1 しゅるいに 置ける 数が 増える（はじめは 50 こ）", lv: [
+    { fx: "1 しゅるい 100 こ まで 置ける", need: { mats: [["straw", 6], ["berry", 4]], credits: 300, balls: 300 } },
+    { fx: "1 しゅるい 200 こ まで 置ける", need: { mats: [["oldnail", 10], ["oldcloth", 6]], credits: 1500, balls: 1000 } },
+    { fx: "1 しゅるい 400 こ まで 置ける", need: { mats: [["ironore", 10], ["crystalbit", 8]], credits: 6000, balls: 4000, res: 2, fac: [["bench", 2]] } },
   ] },
 ];
-export const STORAGE_CAP = [100, 200, 400, 800];
+export const STORAGE_CAP = [50, 100, 200, 400];   // 1 しゅるい（素材の id）ごとの 上限。どの しゅるいも 置ける（鹿さんの決め、2026-10-25：前は ぜんぶの 合計で 100・200・400・800）
 // おやつ工房で 作る 物（鹿さんの決め、2026-10-25）。Lv2 から ふつうの おやつの 素材が 3 こ → 2 こ。とくべつおやつ（なかよし ＋3）は Lv3 から
 export const SNACK_RECIPES = [
   { id: "snack", name: "懐柔のおやつ", gauge: 1, lv: 1, mats: [["herb", 2], ["berry", 1]], lv2: [["herb", 1], ["berry", 1]] },

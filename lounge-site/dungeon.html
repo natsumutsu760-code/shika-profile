@@ -386,7 +386,7 @@ import { OPS, SLOTS, MATS, baseOf, matsOf } from "./equip.js";
 import { gearImg, watchIcons } from "./gear-icon.js";
 import { TYPES } from "./skills.js";
 import { spriteURL } from "./sprites.js";
-import { GATHER, MAT_FROM, MAT_NAME, HIDDEN_MAT, sellPrice, toStash, BOX_DAYS } from "./materials.js";
+import { GATHER, ENEMY_MAT, MAT_FROM, MAT_NAME, HIDDEN_MAT, sellPrice, toStash, stashHave, BOX_DAYS } from "./materials.js";
 import { me, act, busy } from "./lounge-client.js";
 import { fillPet, petInfo, linkTabs, gateHtml } from "./pet-head.js";   // ペット・探索の 進み・道具・出発・うけとるは 門番から（見本では ブラウザの 中の ためしの 門番）
 
@@ -492,7 +492,11 @@ const floorChips = (did, prog, pu, fl) => { const open = floorsOpen(did, prog), 
 const opts = () => { const did = DUNGEONS.some((x) => x.id === q.get("d")) ? q.get("d") : LAST ? LAST.did : DUNGEONS[0].id, d = DUNGEONS.find((x) => x.id === did), pu = PURPOSES[q.get("pu")] ? q.get("pu") : "explore";
   return { did, d, rk: RUNS[q.get("run")] ? q.get("run") : LAST ? LAST.run : "mid", pu, tg: [...d.foes, d.rare].some((f) => f.tree === q.get("tg")) ? q.get("tg") : d.foes[0].tree, tool: TOOLS[q.get("tool")] && TOOL_HAVE[q.get("tool")] ? q.get("tool") : null, fl: Math.min(+q.get("fl") || 0, floorsOpen(did, PROG[did])) }; };   // fl：えらんだ 階（0 は おすすめ。まだ 行けない 階は えらべない）
 const TOOL_HAVE = ME.tools || {};   // 持って いる 道具の 数（DEEP LINK/: の 商人の 店で 買う）
-const STASH = { have: (ME.own && ME.own.mats || []).reduce((a, m) => a + m.n, 0), cap: (ME.stash && ME.stash.cap) || 100 };   // 倉庫（入らない 分は あずかり箱へ）
+const STASH = { have: stashHave(ME.own && ME.own.mats), cap: (ME.stash && ME.stash.cap) || 50 };   // 倉庫（1 しゅるいごとの 上限。入らない 分は あずかり箱へ）
+// この 行き先で 拾える 素材の うち、倉庫で もう いっぱいの しゅるい（2 つまで 名前を 出す）
+const fullHtml = (d) => { const ids = [...GATHER[d.id].mats.map(([id]) => id), GATHER[d.id].hidden[0], ...[...d.foes, d.rare, d.boss].map((f) => ENEMY_MAT[f.tree][0])];
+  const full = [...new Set(ids)].filter((id) => (STASH.have[id] || 0) >= STASH.cap);
+  return full.length ? `<p class="full">倉庫が いっぱい：${full.slice(0, 2).map((id) => esc(MAT_NAME[id])).join("・")}${full.length > 2 ? ` ほか ${full.length - 2}` : ""}。入らない分は あずかり箱へ</p>` : ""; };
 const face = (c) => (c.species ? `<img class="pf" src="${PET_IMG}" alt="">` : `<img class="ps" src="${spriteURL(c.tree)}" alt="">`);
 
 // これまでの冒険（門番に のこる 新しい 10 回）
@@ -554,7 +558,7 @@ function renderPrep() {
       <h3 class="sub first">パーティ</h3>
       <div class="pparty">${PARTY.map((c) => `<span>${face(c)}<b>${esc(c.name)}</b><small>Lv${c.lv}</small></span>`).join("")}</div>
       <div class="outlook" style="--ec:${ec}"><span class="lab">見通し</span><p>${metric}</p><p class="w"><i class="bar"><b style="width:${Math.round(o.wipe * 100)}%"></b></i>力つきる <b>${Math.round(o.wipe * 100)}%</b><small>${word}</small></p></div>
-      ${o.mat > STASH.cap - STASH.have ? `<p class="full">倉庫 のこり ${STASH.cap - STASH.have} こ。入らない分は あずかり箱へ</p>` : ""}
+      ${fullHtml(d)}
       <button class="jelly sky go" data-go="play"><svg viewBox="0 0 30 18" aria-hidden="true"><rect x="1" y="2" width="28" height="14" rx="6" fill="#fff"/><rect x="4" y="5" width="22" height="8" rx="3" fill="#1B2340"/><circle cx="23" cy="7" r="1.3" fill="#52F2A0"/></svg>ゴーグルをつけて出発</button><p class="why" id="goWhy"></p>
     </aside></div>`;
 }
@@ -634,7 +638,7 @@ function renderDone() {
   const title = g.reason === "wipe" ? "力つきて 帰ってきた" : g.boss ? "ボスを たおした！" : g.reason === "done" ? "目的を はたして 帰ってきた" : "時間に なって 帰ってきた";
   const [r0, r1] = g.ratio, date = new Date(t.end), wd = "日月火水木金土"[date.getDay()];
   const mats = g.materials.map((m) => ({ ...m, name: MAT_NAME[m.id] || m.id }));
-  const split = toStash(mats, STASH.cap - STASH.have), chip = (m) => `<li class="${MAT_FROM[m.id] ? "en" : HIDDEN_MAT.has(m.id) ? "hd" : "ga"}">${MAT_FROM[m.id] ? `<img src="${spriteURL(MAT_FROM[m.id])}" alt="">` : "<i></i>"}<b>${esc(m.name)}</b>${m.q ? `<span class="q" aria-label="品質 ${m.q}">${"◆".repeat(m.q)}${"◇".repeat(5 - m.q)}</span>` : ""}<em>×${m.n}</em></li>`;
+  const split = toStash(mats, STASH.cap, STASH.have), chip = (m) => `<li class="${MAT_FROM[m.id] ? "en" : HIDDEN_MAT.has(m.id) ? "hd" : "ga"}">${MAT_FROM[m.id] ? `<img src="${spriteURL(MAT_FROM[m.id])}" alt="">` : "<i></i>"}<b>${esc(m.name)}</b>${m.q ? `<span class="q" aria-label="品質 ${m.q}">${"◆".repeat(m.q)}${"◇".repeat(5 - m.q)}</span>` : ""}<em>×${m.n}</em></li>`;
   const btns = GOT ? `<div class="btns"><button class="jelly sky" id="again">もう一度 出発</button><a class="jelly light" href="equip.html" style="text-align:center;text-decoration:none">装備を見る</a></div>`
     : `<button class="jelly sky go" id="collect">うけとる</button><p class="why" id="cWhy"></p>`;
   return `<div class="done">

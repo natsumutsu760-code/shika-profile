@@ -5,7 +5,7 @@
 //   grant：払えたら 渡す 物。refund：返事を 待った すえに 払えなかったら もどす 物（どちらも しまえる 形の データ）
 // 数は すべて 案（鹿さんと これから 決める）
 import { PETS, QUIZ, score, PLANS, petAt, tripInit, tripStep, tripResult, floorsOpen, newProgress, diaryOf, dungeonRatio, tamedOf, rankOf, rng, DUNGEONS, RUNS, TICK, TOOLS, PURPOSES, SNACK_NEED, SNACK_PRICE, RESEARCH,
-  FACILITIES, STORAGE_CAP, SNACK_RECIPES, snackMats, SNACK_CRAFT_MAX, toStash, BOX_DAYS, MAT_NAME, CRAFT, SYNTH, craftOpen, synthOpen, synthBalls, rollCraft, rollSynth, OPS, baseOf, comboOf, opCount } from "./game.js";
+  FACILITIES, STORAGE_CAP, SNACK_RECIPES, snackMats, SNACK_CRAFT_MAX, toStash, stashHave, BOX_DAYS, MAT_NAME, CRAFT, SYNTH, craftOpen, synthOpen, synthBalls, rollCraft, rollSynth, OPS, baseOf, comboOf, opCount } from "./game.js";
 import { jstDay } from "./lounge-rules.js";
 import { ensureTrade, giveTrade, bump, tripEvents } from "./lounge-trade.js";
 import { ensureReq, giveReq } from "./lounge-req.js";
@@ -38,13 +38,14 @@ const matName = (id) => MAT_NAME[id] || id;
 const facName = (id) => (FACILITIES.find((f) => f.id === id) || { name: id }).name;
 
 // ---------- 倉庫と あずかり箱 ----------
-export const stashCap = (rec) => STORAGE_CAP[rec.hideout.storage || 0] + (rec.perks && rec.perks.shelf ? 50 : 0);   // ボルトの 倉庫の棚で ＋50
+// 倉庫は どの しゅるいも 置ける。上限は 1 しゅるい（素材の id）ごと（鹿さんの決め、2026-10-25）
+export const stashCap = (rec) => STORAGE_CAP[rec.hideout.storage || 0] + (rec.perks && rec.perks.shelf ? 25 : 0);   // ボルトの 倉庫の棚で 1 しゅるい ＋25
 export const stashUsed = (rec) => rec.own.mats.reduce((a, m) => a + m.n, 0);
 // b：店や 商人から 買った・もらった 物（タスクで 納められるのは 派遣で 拾った 物だけ）。山は b ごとに 分ける
 const addMat = (rec, m) => { const b = m.b ? 1 : 0, x = rec.own.mats.find((y) => y.id === m.id && y.q === (m.q || 0) && (y.b ? 1 : 0) === b); if (x) x.n += m.n; else rec.own.mats.push({ id: m.id, q: m.q || 0, n: m.n, ...(b ? { b } : {}) }); };
 // 素材を 倉庫へ。入らない 分は あずかり箱へ（7 日。いい物から 倉庫に 入れる）
 export function putMats(rec, mats, now) {
-  const { stash, box } = toStash(mats.filter((m) => m.n > 0).map((m) => ({ id: m.id, q: m.q || 0, n: m.n, ...(m.b ? { b: 1 } : {}) })), stashCap(rec) - stashUsed(rec));
+  const { stash, box } = toStash(mats.filter((m) => m.n > 0).map((m) => ({ id: m.id, q: m.q || 0, n: m.n, ...(m.b ? { b: 1 } : {}) })), stashCap(rec), stashHave(rec.own.mats));
   stash.forEach((m) => addMat(rec, m));
   box.forEach((m) => rec.own.box.push({ id: m.id, q: m.q, n: m.n, ...(m.b ? { b: 1 } : {}), until: now + BOX_DAYS * DAY }));
   see(rec, mats.map((m) => m.id));
@@ -63,10 +64,10 @@ export const dropOld = (rec, now) => { rec.own.box = rec.own.box.filter((x) => x
 export function boxTake(rec, now) {
   dropOld(rec, now);
   if (!rec.own.box.length) return { ok: false, why: "あずかり箱は からっぽ" };
-  const { stash, box } = toStash(rec.own.box.filter((x) => !x.equip), stashCap(rec) - stashUsed(rec)), eq = rec.own.box.filter((x) => x.equip);
+  const { stash, box } = toStash(rec.own.box.filter((x) => !x.equip), stashCap(rec), stashHave(rec.own.mats)), eq = rec.own.box.filter((x) => x.equip);
   const eqIn = eq.slice(0, Math.max(0, EQUIP_MAX - rec.own.equip.length));
   const took = stash.reduce((a, m) => a + m.n, 0) + eqIn.length;
-  if (!took) return { ok: false, why: "倉庫が いっぱい（倉庫を 強化するか、素材を 使って から）" };
+  if (!took) return { ok: false, why: "倉庫の その しゅるいが いっぱい（倉庫を 強化するか、素材を 使って から）" };
   stash.forEach((m) => addMat(rec, m)); eqIn.forEach((x) => rec.own.equip.push(x.equip));
   rec.own.box = [...box, ...eq.slice(eqIn.length)];
   return { ok: true, took, left: rec.own.box.length };
@@ -102,6 +103,7 @@ export function give(rec, g, now) {
   if (!g) return;
   for (const [id, n] of Object.entries(g.furniture || {})) rec.own.furniture[id] = Math.min(FURN_MAX, (rec.own.furniture[id] || 0) + n);
   if (g.mats) putMats(rec, g.mats, now);
+  if (g.box) for (const m of g.box) if (m.until > now) rec.own.box.push({ id: m.id, q: m.q || 0, n: m.n, ...(m.b ? { b: 1 } : {}), until: m.until });   // あずかり箱から 取った 物は 元の 期限で 箱へ もどす（期限を のばさない）
   if (g.equip) putEquip(rec, g.equip, now);
   if (g.credits) rec.credits += g.credits;
   if (g.snacks) rec.snacks += g.snacks;
@@ -307,7 +309,8 @@ export function hideoutPlan(rec, b, unknown = []) {
   const t = takeMats(rec, need.mats || [], { box: true });   // あずかり箱の 素材も 使える
   if (t.why) return { ok: false, why: t.why };
   return { costs: [["balls", need.balls], ["res", need.res]].filter(([, v]) => v > 0).map(([kind, v]) => ({ kind, d: -v })), why: `hideout:${f.id}:${lv + 1}`,
-    take: () => { applyTake(rec, t.picks); rec.credits -= cr; }, grant: { hideout: f.id }, refund: { mats: t.taken, credits: cr } };
+    take: () => { applyTake(rec, t.picks); rec.credits -= cr; }, grant: { hideout: f.id },
+    refund: { mats: t.picks.filter((p) => !p.box).map(({ id, q, n, b }) => ({ id, q, n, ...(b ? { b: 1 } : {}) })), box: t.picks.filter((p) => p.box).map(({ id, q, n, b, until }) => ({ id, q, n, ...(b ? { b: 1 } : {}), until })), credits: cr } };
 }
 
 // ---------- 作業台 ----------

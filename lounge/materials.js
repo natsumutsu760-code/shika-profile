@@ -34,12 +34,19 @@ export const HIDDEN_MAT = new Set(Object.values(GATHER).map((g) => g.hidden[0]))
 export const sellPrice = (m) => (MAT_FROM[m.id] ? SELL.enemy(m.q || 1) : HIDDEN_MAT.has(m.id) ? SELL.hidden : SELL.gather);
 
 // 倉庫が いっぱいの とき（鹿さんの決め、2026-10-23）：入らない分は あずかり箱へ。7 日の うちに 倉庫を あければ うけとれる（すぎると なくなる）
-// 倉庫に 入れるのは いい物から：かくし通路の レア → 敵の素材（品質の 高い順）→ 採取の素材。ほかは 箱へ
+// 倉庫は どの しゅるいも 置ける。上限は 1 しゅるい（素材の id。品質ちがいも あわせて）ごとの 数（鹿さんの決め、2026-10-25。STORAGE_CAP）
+// 同じ しゅるいの 中では いい物から 入れる（敵の素材は 品質の 高い順）。入らない 分は 箱へ
 export const BOX_DAYS = 7;
 const rankMat = (m) => (HIDDEN_MAT.has(m.id) ? 100 : MAT_FROM[m.id] ? 10 + (m.q || 1) : 0);
-export function toStash(mats, free) {
-  const stash = [], box = []; let left = Math.max(0, free);
-  for (const m of [...mats].sort((a, b) => rankMat(b) - rankMat(a))) { const k = Math.min(m.n, left); left -= k;
-    if (k) stash.push({ ...m, n: k }); if (m.n > k) box.push({ ...m, n: m.n - k }); }
+// cap：1 しゅるいの 上限、have：いま 倉庫に ある 数（id → こ。stashHave）
+export function toStash(mats, cap, have = {}) {
+  const stash = [], box = [], room = {};
+  for (const m of [...mats].sort((a, b) => rankMat(b) - rankMat(a))) {
+    if (!(m.id in room)) room[m.id] = Math.max(0, cap - (have[m.id] || 0));
+    const k = Math.min(m.n, room[m.id]); room[m.id] -= k;
+    if (k) stash.push({ ...m, n: k }); if (m.n > k) box.push({ ...m, n: m.n - k });
+  }
   return { stash, box };
 }
+// 倉庫に ある 数（id → こ。品質ちがいも あわせて）
+export const stashHave = (mats) => (mats || []).reduce((o, m) => ((o[m.id] = (o[m.id] || 0) + m.n), o), {});

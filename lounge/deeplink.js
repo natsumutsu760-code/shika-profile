@@ -52,7 +52,7 @@ export const TRADERS = [
       { id: "m-recipe", name: "作るの レシピ", note: "素材を 拾う前に レシピを 1 つ 出せる", price: 400, cur: "balls", lv: 2, stock: 1, left: 1, get: { recipe: "craft" }, pick: CRAFT.map((r) => r.base) },
       { id: "m-iron", name: "鉄鉱石", note: "作業台・施設で 使う", price: 60, cur: "balls", lv: 3, stock: 10, left: 10, get: { mat: "ironore" } },
       { id: "m-synth", name: "合成の レシピ", note: "上の装備の レシピを 1 つ 出せる", price: 1000, cur: "balls", lv: 3, stock: 1, left: 1, get: { recipe: "synth" }, pick: SYNTH.map((r) => r.out) },
-      { id: "m-shelf", name: "倉庫の棚", note: "素材を 置ける数 ＋50", price: 1500, cur: "balls", lv: 4, once: true, get: { perk: "shelf" } },
+      { id: "m-shelf", name: "倉庫の棚", note: "倉庫に 1 しゅるい 置ける数 ＋25", price: 1500, cur: "balls", lv: 4, once: true, get: { perk: "shelf" } },
     ] },
   { id: "hunter", name: "ホーク", animal: "タカ", role: "敵をたおす・捕まえるタスク", rep: 10, say: "えものの 話なら、まかせて。",
     chain: 1, prog: { chain: 0.6, daily: 0 },

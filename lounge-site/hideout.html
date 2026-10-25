@@ -10,6 +10,7 @@
   /* MONO LINK のラウンジ：地下の 隠れ家（施設）の画面の見本（タルコフの隠れ家のように、素材を集めて Lv を上げる。鹿さんの決め、2026-10-22）
      どれも Lv 3 まで・すぐできる。使う物は素材・玉・リソース・クレジット・ほかの施設の Lv。PC は置くだけ。データは facilities.js
      タブで「つくる・派遣・倉庫」を切りかえる（一度に見るのは 1〜3 こ）。左で えらぶ／見る、右で 上げる
+     倉庫は どの しゅるいも 置ける。上限は 1 しゅるいごと（倉庫の Lv で 50・100・200・400。鹿さんの決め、2026-10-25）
      倉庫の中は タルコフの スタッシュの ような マス目（stash-grid.js）。しゅるい（採取・レア・敵）と 行き先で 分けて、多い順・品質の高い順・名前順に ならべる。マスを 押すと 下に くわしく
      ?t=make|trip|store でタブ、?f=施設の id で えらんだ施設から開く。押すと見本の中だけで動く（保存しない） */
   :root {
@@ -91,8 +92,9 @@
   /* 倉庫の中 */
   .stash header { display:flex; align-items:center; gap:12px; flex-wrap:wrap; }
   .stash h2 { font:900 18px/1.3 var(--jp); }
-  .cap { display:flex; align-items:center; gap:8px; font:600 15px/1 var(--num); color:var(--soft); margin-left:auto; }
-  .cap i { width:150px; height:10px; border-radius:99px; background:#EDF1F8; overflow:hidden; } .cap i b { display:block; height:100%; background:var(--sky); border-radius:99px; }
+  .cap { display:flex; align-items:baseline; gap:6px; font:700 13px/1.2 var(--jp); color:var(--soft); margin-left:auto; }   /* 1 しゅるいの 上限 */
+  .cap b { font:600 18px/1 var(--num); color:var(--ink); } .cap .fl { padding:3px 8px; border-radius:99px; background:#FFF0DC; color:#B5651D; font-weight:900; }
+  .tc.tf .tq { color:#FFB547; }   /* 上限まで 入った しゅるい */
   .filters { display:grid; gap:6px; margin:12px 0; padding:10px 12px; border-radius:16px; background:var(--space); }
   .frow { display:grid; grid-template-columns:64px minmax(0, 1fr); gap:6px; align-items:start; }
   .frow > span { padding-top:6px; font:900 11px/1.2 var(--jp); color:var(--soft); } .frow > div { display:flex; gap:6px; flex-wrap:wrap; }
@@ -109,7 +111,7 @@
   /* 倉庫の マスを 押した ときの くわしい 所 */
   .tk-info { display:grid; grid-template-columns:52px minmax(0, 1fr) auto; gap:12px; align-items:center; margin-top:10px; padding:10px 14px 10px 10px; border-radius:16px; background:var(--space); }
   .tk-info img { width:52px; height:52px; padding:6px; border-radius:12px; background:#1E2229; image-rendering:pixelated; }
-  .tk-info b { display:block; font:900 15px/1.3 var(--jp); } .tk-info small { display:block; font:700 12px/1.45 var(--jp); color:var(--soft); } .tk-info small.q { color:#B07A00; }
+  .tk-info b { display:block; font:900 15px/1.3 var(--jp); } .tk-info small { display:block; font:700 12px/1.45 var(--jp); color:var(--soft); } .tk-info small.q { color:#B07A00; } .tk-info small.fl { color:#B5651D; }
   .tk-info em { font:600 22px/1 var(--num); font-style:normal; }
   .mt b { display:block; font:700 13px/1.3 var(--jp); } .mt small { display:block; font:700 10.5px/1.35 var(--jp); color:var(--soft); }
   .mt small.q { color:#B07A00; } .mt em { font:600 15px/1 var(--num); font-style:normal; }
@@ -144,7 +146,7 @@
 <script type="module">
 import { FACILITIES, STORAGE_CAP, SNACK_RECIPES } from "./facilities.js";
 import { snackCraftHtml, addSnackCss } from "./snack-craft.js";
-import { MAT_NAME, MAT_FROM, HIDDEN_MAT, GATHER, ENEMY_MAT, toStash } from "./materials.js";
+import { MAT_NAME, MAT_FROM, HIDDEN_MAT, GATHER, ENEMY_MAT } from "./materials.js";
 import { DUNGEONS } from "./dungeons.js";
 import { baseOf } from "./equip.js";
 import { gearImg, watchIcons } from "./gear-icon.js";
@@ -192,7 +194,7 @@ S.sel = qf || TABS.find((t) => t.id === S.tab).facs[0];
 // 施設の 強化には あずかり箱の 素材も 使える（鹿さんの決め、2026-10-25。同じ 品質なら 箱の 物から 使う＝門番の takeMats）
 const inBox = (id, minQ = 0) => S.box.filter((m) => m.id === id && m.q >= minQ).reduce((a, m) => a + m.n, 0);
 const have = (id, minQ = 0) => S.inv.filter((m) => m.id === id && m.q >= minQ).reduce((a, m) => a + m.n, 0) + inBox(id, minQ);
-const total = () => S.inv.reduce((a, m) => a + m.n, 0);
+const inStash = (id) => S.inv.filter((m) => m.id === id).reduce((a, m) => a + m.n, 0);   // 倉庫に ある 数（品質ちがいも あわせて。上限は 1 しゅるいごと）
 const F = (id) => FACILITIES.find((f) => f.id === id);
 // 次の Lv に足りているか（足りない物の一覧も）
 function check(f) {
@@ -225,14 +227,14 @@ function stock() {
   for (const x of S.inv) { const e = m.get(x.id) || { id: x.id, n: 0, qs: {} }; e.n += x.n; if (x.q) e.qs[x.q] = (e.qs[x.q] || 0) + x.n; m.set(x.id, e); }
   return [...m.values()].map((e) => ({ ...e, kind: kindOf(e.id), where: WHERE[e.id], top: Math.max(0, ...Object.keys(e.qs).map(Number)) }));
 }
-// あずかり箱：うけとると 倉庫の あいている 分だけ 入る（いい物から）。いっぱいなら 理由と 売りに いく 道を 1 行で
+// あずかり箱：うけとると 倉庫の その しゅるいの あいている 分だけ 入る（いい物から）。どれも いっぱいなら 理由と 売りに いく 道を 1 行で
 function boxHtml(cap) {
   if (!S.box.length && !S.boxEq.length) return "";
-  const n = S.box.reduce((a, m) => a + m.n, 0) + S.boxEq.length, free = cap - total(), soon = Math.min(...S.box.map((m) => m.days), ...S.boxEq.map((e) => e.days));
+  const n = S.box.reduce((a, m) => a + m.n, 0) + S.boxEq.length, free = S.box.some((m) => inStash(m.id) < cap) ? 1 : 0, soon = Math.min(...S.box.map((m) => m.days), ...S.boxEq.map((e) => e.days));
   const tile = (m) => {
     return `<li class="mt"><img src="${matPic(m.id)}" alt=""><span><b>${esc(MAT_NAME[m.id])}</b><small class="${m.days <= 2 ? "soon" : ""}">あと ${m.days} 日${m.q ? `・品質${m.q}` : ""}</small></span><em>×${m.n}</em></li>`; };
   return `<section class="panel box" aria-label="あずかり箱"><div class="bh"><b>あずかり箱</b><span>${n} こ・はやい物は あと ${soon} 日で なくなる</span><button data-take="1" ${free > 0 || S.boxEq.length ? "" : "disabled"}>うけとる</button></div>
-    <ul class="mlist">${S.box.map(tile).join("")}${S.boxEq.map((e) => `<li class="mt">${gearImg(e.base, { cls: "gear" })}<span><b>${esc((baseOf(e.base) || { name: e.base }).name)} ★${e.star}</b><small class="${e.days <= 2 ? "soon" : ""}">あと ${e.days} 日・装備</small></span><em>×1</em></li>`).join("")}</ul>${free > 0 || S.boxEq.length ? "" : `<p class="why">倉庫が いっぱい：素材を 使うか 売ると あく<a href="deeplink.html?go=junk&tab=shop&boot=0">ガラクに 売る</a></p>`}</section>`;
+    <ul class="mlist">${S.box.map(tile).join("")}${S.boxEq.map((e) => `<li class="mt">${gearImg(e.base, { cls: "gear" })}<span><b>${esc((baseOf(e.base) || { name: e.base }).name)} ★${e.star}</b><small class="${e.days <= 2 ? "soon" : ""}">あと ${e.days} 日・装備</small></span><em>×1</em></li>`).join("")}</ul>${free > 0 || S.boxEq.length ? "" : `<p class="why">倉庫の その しゅるいが いっぱい：素材を 使うか 売ると あく<a href="deeplink.html?go=junk&tab=shop&boot=0">ガラクに 売る</a></p>`}</section>`;
 }
 function stashHtml() {
   const cap = S.cap, all = stock();
@@ -242,15 +244,15 @@ function stashHtml() {
   const by = { n: (a, b) => b.n - a.n, q: (a, b) => b.top - a.top || b.n - a.n, name: (a, b) => MAT_NAME[a.id].localeCompare(MAT_NAME[b.id], "ja") }[S.sort];
   // マス：色は しゅるい（採取 tg・レア tr）か 敵の 素材の いちばん 高い 品質（t1〜t5）。品質は 左下の 四角の 数
   const tc = (e) => (e.kind === "gather" ? "tg" : e.kind === "rare" ? "tr" : `t${Math.max(1, e.top)}`);
-  const tile = (e) => `<li><button class="tc ${tc(e)}" data-m="${e.id}" aria-pressed="${S.pick === e.id}" aria-label="${esc(MAT_NAME[e.id])} ×${e.n}" title="${esc(MAT_NAME[e.id])}"><span class="tn">${esc(MAT_NAME[e.id])}</span><img src="${matPic(e.id)}" alt="">${e.top ? `<span class="tp">${"<i></i>".repeat(e.top)}</span>` : ""}<span class="tq">${e.n}</span></button></li>`;
+  const tile = (e) => `<li><button class="tc ${tc(e)}${e.n >= cap ? " tf" : ""}" data-m="${e.id}" aria-pressed="${S.pick === e.id}" aria-label="${esc(MAT_NAME[e.id])} ×${e.n}" title="${esc(MAT_NAME[e.id])}"><span class="tn">${esc(MAT_NAME[e.id])}</span><img src="${matPic(e.id)}" alt="">${e.top ? `<span class="tp">${"<i></i>".repeat(e.top)}</span>` : ""}<span class="tq">${e.n}</span></button></li>`;
   const vis = all.filter((e) => okK(e) && okW(e));
   if (!vis.some((e) => e.id === S.pick)) S.pick = null;
   const groups = KINDS.map(([k, name]) => { const g = vis.filter((e) => e.kind === k).sort(by);
     return g.length ? `<p class="tk-h">${name}の 素材<small>${g.length}</small></p><ul class="tk-g">${g.map(tile).join("")}</ul>` : ""; }).join("");
   // 押した 素材：行き先・どこで 手に 入るか・品質の 内わけ
   const pk = S.pick && vis.find((e) => e.id === S.pick), pqs = pk ? Object.keys(pk.qs).map(Number).sort((a, b) => b - a) : [];
-  const info = pk ? `<div class="tk-info" aria-live="polite"><img src="${matPic(pk.id)}" alt=""><div><b>${esc(MAT_NAME[pk.id])}</b><small>${esc((DUNGEONS.find((d) => d.id === pk.where) || { name: "" }).name)}・${KIND_NOTE[pk.kind]}</small>${pqs.length ? `<small class="q">${pqs.map((q) => `品質${q} ×${pk.qs[q]}`).join("・")}</small>` : ""}</div><em>×${pk.n}</em></div>` : "";
-  return `${boxHtml(cap)}<section class="panel stash" aria-label="倉庫の中"><header><h2>倉庫の 中</h2><span class="cap"><i><b style="width:${Math.min(100, (total() / cap) * 100)}%"></b></i>${total()} / ${cap}</span></header>
+  const info = pk ? `<div class="tk-info" aria-live="polite"><img src="${matPic(pk.id)}" alt=""><div><b>${esc(MAT_NAME[pk.id])}</b><small>${esc((DUNGEONS.find((d) => d.id === pk.where) || { name: "" }).name)}・${KIND_NOTE[pk.kind]}</small>${pqs.length ? `<small class="q">${pqs.map((q) => `品質${q} ×${pk.qs[q]}`).join("・")}</small>` : ""}<small class="${pk.n >= cap ? "fl" : ""}">${pk.n >= cap ? "いっぱい：入らない 分は あずかり箱へ" : `あと ${cap - pk.n} こ 入る`}</small></div><em>×${pk.n}</em></div>` : "";
+  return `${boxHtml(cap)}<section class="panel stash" aria-label="倉庫の中"><header><h2>倉庫の 中</h2><span class="cap">1 しゅるい <b>${cap}</b> こ まで${all.filter((e) => e.n >= cap).length ? `<span class="fl">いっぱい ${all.filter((e) => e.n >= cap).length}</span>` : ""}</span></header>
     <div class="filters" role="group" aria-label="分け方">
       <div class="frow"><span>しゅるい</span><div>${chip("sk", "all", "すべて", nK("all"))}${KINDS.map(([k, name]) => chip("sk", k, name, nK(k))).join("")}</div></div>
       <div class="frow"><span>行き先</span><div>${chip("sw", "all", "すべて", nW("all"))}${DUNGEONS.map((d) => chip("sw", d.id, d.name, nW(d.id))).join("")}</div></div>
