@@ -638,6 +638,35 @@ html:not([lang="en"]) .en-only { display: none !important; }
 .gate-copy { border: 0; border-radius: 999px; padding: 8px 14px; font: 800 13px/1 var(--jp); background: var(--space); color: var(--ink); box-shadow: inset 0 0 0 2px var(--ink); }
 .gate-copy:focus-visible { outline: 3px solid var(--sky); outline-offset: 2px; }
 .gate-hint { margin: 10px 0 0; font-size: 12px; color: var(--soft); }
+/* 招待コード：ログイン画面の「フォローする」の所（まだフォローしていない人だけ）・自分のページの札・成立のお知らせ */
+.ivt-note { margin: -6px auto 16px; max-width: 400px; font-size: 14px; font-weight: 700; color: var(--violet); }
+.ivt-note[hidden], .ivt-gate[hidden], .ivt-toast[hidden] { display: none; }
+.ivt-gate { margin: 0 auto 18px; padding: 16px 18px 14px; max-width: 400px; text-align: left; background: #fff; border-radius: 18px; box-shadow: 0 8px 0 rgba(27,35,64,.08), 0 0 0 2px rgba(142,108,255,.4); }
+.ivt-gate label { display: block; font-weight: 900; margin: 0 0 8px; }
+.ivt-row { display: flex; gap: 8px; }
+.ivt-row input { flex: 1; min-width: 0; width: 0; border: 0; border-radius: 999px; padding: 11px 16px; background: var(--space); box-shadow: inset 0 0 0 2px var(--line); font: 700 18px/1 var(--num); letter-spacing: .12em; text-transform: uppercase; color: var(--ink); }
+.ivt-row input:focus-visible { outline: 3px solid var(--sky); outline-offset: 2px; }
+.ivt-row .jelly { flex: none; padding: 11px 18px; background: var(--violet); }
+.ivt-gift { margin: 10px 0 0; font-size: 14px; font-weight: 700; }
+.ivt-warn { margin: 4px 0 0; font-size: 13px; font-weight: 800; color: var(--coral); }
+.ivt-msg { margin: 8px 0 0; font-size: 14px; font-weight: 800; }
+.ivt-msg:empty { display: none; }
+.ivt-msg.ok { color: #12935F; } .ivt-msg.ng { color: var(--coral); }
+.ivt-gate.used .ivt-row, .ivt-gate.used .ivt-gift { display: none; }
+.gate-link.next { padding: 13px 22px; border-radius: 999px; background: var(--violet); color: #fff; text-decoration: none; box-shadow: 0 6px 0 rgba(27,35,64,.25); }
+.ivt-card .ivt-code { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; margin: 0 0 10px; }
+.ivt-card .ivt-code small { display: block; width: 100%; font-size: 13px; font-weight: 700; color: var(--soft); }
+.ivt-card .ivt-code b { font: 700 clamp(30px, 8vw, 40px)/1 var(--num); letter-spacing: .1em; }
+.ivt-card .ivt-now { margin: 0; font-weight: 800; }
+.ivt-card .ivt-now em { font-style: normal; color: var(--violet); white-space: nowrap; }
+.ivt-card p { margin: 4px 0 0; }
+.ivt-card details { margin-top: 12px; border-top: 2px solid var(--line); padding-top: 10px; }
+.ivt-card summary { cursor: pointer; font-weight: 800; font-size: 14px; }
+.ivt-log { list-style: none; margin: 8px 0 0; padding: 0; font-size: 13px; display: grid; gap: 4px; max-height: 320px; overflow-y: auto; }
+.ivt-log li { display: flex; flex-wrap: wrap; gap: 2px 10px; padding: 6px 10px; border-radius: 10px; background: var(--space); }
+.ivt-log time { color: var(--soft); font-family: var(--num); }
+.ivt-log .new { color: var(--coral); font-weight: 900; }
+.ivt-toast { position: fixed; left: 16px; right: 16px; bottom: calc(96px + env(safe-area-inset-bottom)); margin: 0 auto; width: fit-content; max-width: 520px; z-index: 90; padding: 12px 18px; border-radius: 16px; background: var(--ink); color: #fff; font-weight: 800; font-size: 14px; line-height: 1.5; box-shadow: 0 12px 30px -10px rgba(0,0,0,.5); white-space: pre-line; cursor: pointer; animation: rise .4s var(--out); }
 .out { margin-left: 8px; border: 0; background: none; font: 700 12px/1 var(--jp); color: var(--soft); text-decoration: underline; }
 .trail { position: fixed; z-index: 70; width: 8px; height: 8px; border-radius: 50%; pointer-events: none; animation: fade .7s ease-out forwards; }
 @keyframes fade { to { transform: translate(var(--dx), var(--dy)) scale(0); opacity: 0; } }
@@ -681,6 +710,14 @@ body.live-on .floor::before, body.live-on .isle { animation: none; }
     <h1 class="gate-title">MONO LINK<i>://</i></h1>
     <p class="gate-sub">code〈〉Lounge</p>
     <p class="gate-msg" id="gate-msg">deerman_247 をフォローしている人のラウンジです。Twitch でログインして入ってください。</p>
+    <p class="ivt-note" id="ivt-note" hidden></p>
+    <form class="ivt-gate" id="ivt-gate" autocomplete="off" hidden>
+      <label for="ivt-in">招待コード（フォローする前に）</label>
+      <div class="ivt-row"><input id="ivt-in" maxlength="8" spellcheck="false" autocapitalize="characters" inputmode="text" placeholder="例 7Q2-MXK"><button class="jelly" type="submit" id="ivt-go">使う</button></div>
+      <p class="ivt-gift">フォローして入ると、あなたにリソース 500。招待した人にもお礼が届きます</p>
+      <p class="ivt-warn">サブアカウントでの招待は BAN します</p>
+      <p class="ivt-msg" id="ivt-msg" role="status"></p>
+    </form>
     <div class="gate-err" id="gate-err" role="alert" hidden>
       <p class="gate-code"><b id="gate-code"></b><span id="gate-why"></span></p>
       <dl class="gate-info" id="gate-info"></dl>
@@ -948,6 +985,7 @@ body.live-on .floor::before, body.live-on .isle { animation: none; }
   <button type="button" data-go="season" style="--c:var(--sun)" aria-label="シーズン"><svg viewBox="0 0 24 24"><path d="M12 3l2.6 5.6 6 .7-4.5 4.1 1.2 6L12 16.5 6.7 19.4l1.2-6L3.4 9.3l6-.7z"/></svg><span>シーズン</span></button>
   <button type="button" data-go="board" style="--c:var(--coral)" aria-label="掲示板"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="13" rx="4"/><path d="M8 21l3-4"/></svg><span>掲示板</span></button>
 </nav>
+<div class="ivt-toast" id="ivt-toast" role="status" hidden></div>
 
 <script>
 (function () {
@@ -960,6 +998,7 @@ body.live-on .floor::before, body.live-on .isle { animation: none; }
     ["そのほか", "#22CC88", [["!けいじばん こんにちは", "ラウンジの掲示板に書く（1 分に 1 回・120 字まで）"], ["!バグ報告 ガチャのあと画面が止まった", "不具合を配信者に知らせる（30 秒に 1 回・300 字まで）"], ["!花火", "画面に花火（!ハート でハート）"], [null, "888 で拍手、草 で草が生える"], ["!モノリンク", "MONO LINK の URL をチャットで受け取る（!サイト でも）"]]]
   ];
   var NOTES = [
+    ["MONO LINK", "2026-10-25", ["招待コードを始めました。自分のページの「招待」に、あなたのコードと招待リンクがあります", "まだフォローしていない人がリンクから来て、ログイン画面でコードを使い、フォローして入ると成立します。来た人にリソース 500、招待した人には 1 人目 500・2 人目 1,000・3 人目 1,500・4 人目 2,000、5 人目からは増え方が半分ずつ（2,250・2,380・2,440…）で、いちばん多くて 2,500", "フォローしたあとや、前にフォローしていた人は使えません。サブアカウントでの招待は BAN します"]],
     ["build 103", "2026-10-25", ["鹿物語 Ver.1.8.40：派遣の中継の「のこり時間」を、えらんだコースの時間（10 分など）で数えるようにしました。これまでは、力つきて早めに帰ってくる回は最初から短い時間が出て、負けることが先にわかってしまいました", "力つきた場面（探索を おえた場面）になったら「力つきた…… 帰って くる」と出て、バーがそこで止まります。ラウンジの派遣の画面も同じ数え方です"]],
     ["build 102", "2026-10-25", ["鹿物語 Ver.1.8.39：派遣の中継を大きく見やすくしました。地図は、見えた所とペットに寄って大きく映ります（広く歩くと引きます）", "派遣中のペットがいるあいだは、持ち玉ランキングのかわりに中継だけを 15 秒ずつ順に流します。だれも派遣していないときはランキングです", "見出しに「派遣中 〇 匹」が出ます"]],
     ["build 101", "2026-10-25", ["鹿物語 Ver.1.8.38：配信画面の「持ち玉ランキング」の窓で、ラウンジで派遣に出ているペットの中継を始めました", "ランキング 10 秒のあと、派遣中のペットを 2 匹（ランダム）15 秒ずつ映します。地図の上を歩くようす・戦い・HP・出来事・のこり時間が出ます", "だれも派遣していないときは、いつものランキングだけです"]],
@@ -1329,9 +1368,11 @@ body.live-on .floor::before, body.live-on .isle { animation: none; }
       + stat("", v.gacha, "回", "コスメガチャ", "var(--violet)")
       + '</div>'
       + '<h2 class="sec" style="--c:var(--leaf)">通貨</h2><div class="panel"><div class="coins"><div class="coin res" style="--i:0"><b>' + fmt(v.res || 0) + '</b><small>リソース</small></div>' + [1, 2, 3].map(function (i) { return '<div class="coin" style="--i:' + i + '">近日</div>'; }).join("") + '</div><p class="soft" style="margin:12px 0 0">リソースは、コスメガチャでフォントや Ⅲ まで進化した物が被るともらえます。配信のチャットで「!リソース交換 数」と打つと、持ち玉 1,000 をリソース 1 に交換できます。使い道はこれから増えていきます。</p></div>'
+      + (v === me() ? '<h2 class="sec" style="--c:var(--sky)">招待</h2><div class="panel ivt-card" id="ivt-card"></div>' : "")   // 招待の札は自分のページだけ
       + '<h2 class="sec" style="--c:var(--violet)">持ち物</h2><div class="kinds" id="kinds"></div><div class="inv-f" id="invf"></div><div class="grid" id="grid"></div>';
     box.innerHTML = html;
     wireBack();
+    if ($("ivt-card")) ivtCard();
     $("copy").addEventListener("click", function () {
       var u = location.origin + location.pathname + "#u=" + encodeURIComponent(v.name), b = $("copy");
       (navigator.clipboard ? navigator.clipboard.writeText(u) : Promise.reject()).then(function () { b.textContent = "コピーしました"; }, function () { prompt("このリンクをコピーしてください", u); });
@@ -2534,6 +2575,19 @@ var ShikaWheel = (function () {
     "」さんの記録は、まだありません。": "\" has no record yet.",
     "配信でコメントすると、次の更新でここに出ます。": "Comment on the stream and it'll show up here after the next update.",
     // 配信ページ
+    // 招待コード
+    "招待": "Invite", "招待コード（フォローする前に）": "Invite code (before you follow)", "使う": "Use", "例 7Q2-MXK": "e.g. 7Q2-MXK",
+    "フォローして入ると、あなたにリソース 500。招待した人にもお礼が届きます": "Follow and come in to get 500 Resources. The person who invited you gets a reward too",
+    "サブアカウントでの招待は BAN します": "Inviting with alt accounts gets you banned", "あなたの招待コード": "Your invite code", "招待リンクをコピー": "Copy invite link",
+    "まだフォローしていない人に送ってください（フォローしたあとでは使えません）": "Send it to someone who doesn't follow yet (it can't be used after following)",
+    "招待の記録（配信者とモデレーターだけ）": "Invite log (streamer and mods only)", "先にログインしてください": "Log in first",
+    "招待コードは英字と数字の 6 文字です": "Invite codes are 6 letters and numbers", "招待コードは、フォローする前の人だけが使えます": "Invite codes are only for people who don't follow yet",
+    "いまは読み込めません。少し待ってから開き直してください": "Can't load right now. Wait a moment and open it again", "使えませんでした": "Couldn't use it",
+    "もうフォローしている人は使えません（招待コードはフォローする前に使います）": "You already follow, so you can't use it (invite codes are used before following)",
+    "フォローしているか確かめられませんでした。もう一度ログインしてください": "Couldn't check whether you follow. Please log in again",
+    "前にフォローしていた人は使えません": "People who followed before can't use it", "MONO LINK に入ったことのある人は使えません": "People who have been in MONO LINK before can't use it",
+    "その招待コードはありません": "That invite code doesn't exist", "自分のコードは使えません": "You can't use your own code", "招待コードは 1 回だけ使えます": "An invite code can be used only once",
+    "招待はまだ準備中です。少し待ってからためしてください": "Invites aren't ready yet. Please try again a bit later", "コードをためすのは 1 時間に 10 回までです": "You can try codes up to 10 times an hour",
     "配信の映像": "Stream video", "派遣": "Expedition", "ペット": "Pet", "ラウンジ": "Lounge", "コメント": "Comment", "コメントする（! でコマンド）": "Comment (start with ! for commands)",
     "送る": "Send", "コメントには Twitch の許可がいります": "Commenting needs permission from Twitch", "許可する": "Allow",
     "配信のメニュー（選んでいるタブをもう一度押すとたたむ）": "Stream menu (tap the open tab again to fold it)",
@@ -2635,6 +2689,10 @@ var ShikaWheel = (function () {
   };
   // 数字の入る文は形で置きかえる
   var EN_RULES = [
+    [/^招待コード ([A-Z0-9-]+) を預かっています。フォローする前に、先にログインしてください$/, "You have invite code $1. Log in first, before you follow"],
+    [/^(.+) さんの招待コードを使いました。フォローしてから、もう一度「Twitch でログインして入る」を押してください$/, "You used $1's invite code. Follow, then press “Log in with Twitch” again"],
+    [/^招待した人 ([\d,]+) 人・次の 1 人で$/, "Invited $1 · the next one gives"],
+    [/^リソース \+([\d,]+)$/, "+$1 Resources"],
     [/^更新 (.+)$/, "Updated $1"],
     [/^([\d,]+) ?玉$/, function (m, n) { return n === "1" ? "1 ball" : n + " balls"; }],
     [/^\+([\d,]+) ?玉$/, function (m, n) { return "+" + n + (n === "1" ? " ball" : " balls"); }],
@@ -2960,8 +3018,89 @@ var ShikaWheel = (function () {
   // ---- 入口：Twitch でログイン → 門番（/api/data）がフォロー・BAN・ブロックを確かめて記録をくれる ----
   var TOK = "ml-token", ST = "ml-state", BACK = "ml-back";
   function ss(k, v) { try { if (v === undefined) return sessionStorage.getItem(k); if (v === null) sessionStorage.removeItem(k); else sessionStorage.setItem(k, v); } catch (e) { return null; } }
+  // ---- 招待コード（docs/invite.md）：招待リンクの ?inv= を控える・ログイン画面のコードの欄（まだフォローしていない人だけ）・自分のページの札・成立のお知らせ ----
+  var IVT = "ml-inv", ivtInfo = null, ivtT = 0;
+  function ivtFmt(c) { c = String(c || ""); return c.length === 6 ? c.slice(0, 3) + "-" + c.slice(3) : c; }
+  function ivtClean(c) { return String(c || "").normalize("NFKC").toUpperCase().replace(/[\s-]/g, "").slice(0, 12); }
+  function ivtForget() { try { localStorage.removeItem(IVT); } catch (e) {} }
+  (function ivtTake() { // 招待リンク（/?inv=コード）：Twitch のログインから戻るときに消えるので、この端末に控えておく
+    var q = new URLSearchParams(location.search); if (!q.has("inv")) return;
+    var c = ivtClean(q.get("inv")); if (/^[A-Z0-9]{6}$/.test(c)) lsSet(IVT, c);
+    q.delete("inv"); var s = q.toString();
+    history.replaceState(null, "", location.pathname + (s ? "?" + s : "") + location.hash);
+  })();
+  // ログイン画面：ログインの前は「預かっている招待コード」の一言、フォローしていない（F01）ときはコードの欄
+  function ivtGate(follow) {
+    var c = lsGet(IVT) || "", tok = ss(TOK), note = $("ivt-note");
+    note.hidden = !(c && !tok); if (!note.hidden) note.textContent = "招待コード " + ivtFmt(c) + " を預かっています。フォローする前に、先にログインしてください";
+    $("gate-follow").style.display = note.hidden ? "" : "none";   // 先にフォローするとコードが使えなくなるので、ログインの前は「フォローする」を出さない
+    $("ivt-gate").hidden = !(follow && tok);
+    if (follow && tok && c && !$("ivt-in").value) $("ivt-in").value = ivtFmt(c);
+  }
+  $("ivt-gate").addEventListener("submit", function (e) {
+    e.preventDefault();
+    var tok = ss(TOK), c = ivtClean($("ivt-in").value), msg = $("ivt-msg"), b = $("ivt-go");
+    var say = function (t, good) { msg.textContent = t; msg.className = "ivt-msg " + (good ? "ok" : "ng"); };
+    if (!tok) { say("先にログインしてください"); return; }
+    if (!/^[A-Z0-9]{6}$/.test(c)) { say("招待コードは英字と数字の 6 文字です"); return; }
+    b.disabled = true;
+    fetch("/api/invite/use", { method: "POST", headers: { Authorization: "Bearer " + tok, "Content-Type": "application/json" }, body: JSON.stringify({ code: c }), cache: "no-store" })
+      .then(function (r) { return r.json(); })
+      .then(function (j) {
+        if (j && j.ok) {
+          lsSet(IVT, c); $("ivt-gate").classList.add("used"); $("gate-follow").classList.add("next");
+          say((j.by ? j.by + " さんの" : "") + "招待コードを使いました。フォローしてから、もう一度「Twitch でログインして入る」を押してください", true);
+        } else say((j && j.why) || "使えませんでした");
+      }, function () { say("いまはつながりません。少し待ってからためしてください"); })
+      .then(function () { b.disabled = false; });
+  });
+  // 入れたあと：自分のコード（札に出す）と、招待の成立（使った人・招待した人へのお知らせ）
+  function ivtNow(tok) {
+    var had = lsGet(IVT);
+    fetch("/api/invite", { headers: { Authorization: "Bearer " + tok }, cache: "no-store" }).then(function (r) { return r.ok ? r.json() : null; }).then(function (j) {
+      if (!j || !j.code) { ivtInfo = { err: 1 }; ivtCard(); return; }
+      ivtInfo = j; ivtCard(); ivtForget();
+      var t = [];
+      if (j.got) t.push((j.got.by ? j.got.by + " さんの招待で" : "招待で") + "リソース +" + fmt(j.got.d) + "（配信でチャットすると届きます）");
+      (j.news || []).forEach(function (n) { t.push(n.name + " さんがあなたの招待で来ました（リソース +" + fmt(n.d) + "）"); });
+      if (!j.got && had) t.push("招待コードは、フォローする前の人だけが使えます");
+      if (t.length) ivtToast(t.join("\n"));
+    }, function () { ivtInfo = { err: 1 }; ivtCard(); });
+  }
+  function ivtToast(text) {
+    var el = $("ivt-toast"); el.textContent = text; el.hidden = false;
+    clearTimeout(ivtT); ivtT = setTimeout(function () { el.hidden = true; }, 10000);
+  }
+  $("ivt-toast").addEventListener("click", function () { this.hidden = true; });
+  // 自分のページの札：コード・招待リンクのコピー・人数と次の 1 人の報酬（配信者とモデレーターには記録も）
+  function ivtCard() {
+    var box = $("ivt-card"), j = ivtInfo; if (!box) return;
+    if (!j || j.err) { box.innerHTML = '<p class="soft">' + (j ? "いまは読み込めません。少し待ってから開き直してください" : "読み込み中") + '</p>'; return; }
+    box.innerHTML = '<div class="ivt-code"><small>あなたの招待コード</small><b>' + esc(ivtFmt(j.code)) + '</b><button class="jelly" type="button" id="ivt-copy">招待リンクをコピー</button></div>'
+      + '<p class="ivt-now">招待した人 ' + fmt(j.n) + ' 人・次の 1 人で <em>リソース +' + fmt(j.next) + '</em></p>'
+      + '<p class="soft">まだフォローしていない人に送ってください（フォローしたあとでは使えません）</p>'
+      + '<p class="ivt-warn">サブアカウントでの招待は BAN します</p>'
+      + (j.staff ? '<details id="ivt-logbox"><summary>招待の記録（配信者とモデレーターだけ）</summary><ol class="ivt-log" id="ivt-log"><li>読み込み中</li></ol></details>' : "");
+    $("ivt-copy").addEventListener("click", function () {
+      var u = location.origin + "/?inv=" + j.code, b = this;
+      (navigator.clipboard ? navigator.clipboard.writeText(u) : Promise.reject()).then(function () { b.textContent = "コピーしました"; }, function () { prompt("このリンクをコピーしてください", u); });
+    });
+    if (j.staff) $("ivt-logbox").addEventListener("toggle", function () { if (this.open) ivtLog(); });
+  }
+  // 配信者の記録：だれがだれを招待したか・Twitch のアカウントを作って何日か（7 日以内は赤。サブアカウントを見つけるため）
+  function ivtLog() {
+    var ol = $("ivt-log"), at = function (t) { return new Date(t).toLocaleString("ja-JP", { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" }); };
+    fetch("/api/invite/log", { headers: { Authorization: "Bearer " + ss(TOK) }, cache: "no-store" }).then(function (r) { return r.ok ? r.json() : null; }).then(function (j) {
+      var L = (j && j.log) || [];
+      ol.innerHTML = L.length ? L.slice(0, 100).map(function (e) {
+        var age = e.created ? Math.floor((e.t - Date.parse(e.created)) / 864e5) : NaN;
+        return '<li><time>' + esc(at(e.t)) + '</time><span>' + esc(e.byName || "?") + ' → ' + esc(e.name || e.login || "?") + '</span><span>' + (e.k === "done" ? "成立 +" + fmt(e.d) + "（" + fmt(e.n) + " 人目）" : "コードを使った") + '</span>'
+          + (isFinite(age) ? '<span' + (age <= 7 ? ' class="new"' : "") + '>アカウントを作って ' + age + ' 日</span>' : "") + '</li>';
+      }).join("") : "<li>まだありません</li>";
+    }, function () { ol.innerHTML = "<li>読み込めませんでした</li>"; });
+  }
   function showGate(msg, follow, err) {
-    $("gate-msg").textContent = msg; $("gate-follow").hidden = !follow; $("gate").hidden = false;
+    $("gate-msg").textContent = msg; $("gate-follow").hidden = !follow; $("gate").hidden = false; ivtGate(follow);
     var box = $("gate-err"); box.hidden = !err; $("gate").classList.toggle("err", !!err);
     if (err) {
       var info = err.info || {}, at = function (t) { return t ? new Date(+t).toLocaleString("ja-JP", { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" }) : ""; };
@@ -3013,7 +3152,7 @@ var ShikaWheel = (function () {
     fetch("/api/data", { headers: { Authorization: "Bearer " + tok }, cache: "no-store" }).then(function (r) {
       return r.json().then(function (j) { return { s: r.status, j: j }; }, function () { return { s: r.status, j: null }; });
     }).then(function (x) {
-      if (x.s === 200 && x.j) { here = x.j.here || []; var ml = (x.j.me && x.j.me.login) || "", mh = here.filter(function (h) { return h.l && h.l === ml; })[0]; meName = (mh && mh.n) || ml; meLogin = ml; meId = String((x.j.me && x.j.me.id) || ""); setObs(x.j.obs); $("logout").hidden = false; boot(x.j.d); done(); stay(tok); return; }
+      if (x.s === 200 && x.j) { here = x.j.here || []; var ml = (x.j.me && x.j.me.login) || "", mh = here.filter(function (h) { return h.l && h.l === ml; })[0]; meName = (mh && mh.n) || ml; meLogin = ml; meId = String((x.j.me && x.j.me.id) || ""); setObs(x.j.obs); $("logout").hidden = false; boot(x.j.d); done(); stay(tok); ivtNow(tok); return; }
       var e = x.j && x.j.error, err = x.j && x.j.code ? { code: x.j.code, why: x.j.why, info: x.j.info } : { code: "N02", why: "門番から思わぬ返事がありました", info: { detail: "HTTP " + x.s } };
       if (x.s === 401) { ss(TOK, null); showGate(err.code === "A04" ? "フォローしているかを確かめるため、もう一度ログインしてください（Twitch で「フォローしているチャンネルを見る」を許可してください）。" : err.code === "A03" ? "このラウンジのログインではありません。もう一度ログインしてください。" : "ログインの期限が切れました。もう一度ログインしてください。", false, err.code === "A02" ? null : err); return; }
       if (e === "follow") showGate("deerman_247 のフォロワーの一覧に見つかりませんでした。フォローしていないときは、フォローして 1 分ほど待ってから、もう一度ログインしてください。", true, err);

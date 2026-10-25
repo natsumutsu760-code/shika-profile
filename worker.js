@@ -7,6 +7,7 @@
 //   チャットに書かないので、連投でタイムアウトされない。1 人 1 秒に 1 回まで
 import { loungeApi, relayList } from "./lounge/lounge-api.js";
 import { relayFetch } from "./lounge/lounge-relay.js";
+import { inviteApi, inviteFetch } from "./lounge/lounge-invite.js";
 import { lgFetch, lgFromObs } from "./lounge/lounge-ledger.js";
 export { Viewer } from "./lounge/viewer.js";
 export { Market } from "./lounge/market.js";
@@ -284,6 +285,21 @@ async function enterSoon(req, env) {
   if (e.who) { if (PASS.size > 500) PASS.clear(); PASS.set(tok, { who: e.who, until: now + 60000 }); }
   return e;
 }
+// 招待コードを使う人（まだフォローしていない人も通す）：ログインと BAN・ブロックだけ確かめて、フォローしているか（yes / no / noscope / error）を返す
+async function whoAny(req, env) {
+  const tok = bearer(req);
+  if (!tok) return { res: deny("A01") };
+  const gate = await env.DB.get("gate", "json");
+  if (!gate) return { res: deny("G01") };
+  const v = await fetch("https://id.twitch.tv/oauth2/validate", { headers: { Authorization: "OAuth " + tok } });
+  if (!v.ok) return { res: deny("A02") };
+  const who = await v.json(), id = String(who.user_id || ""), me = { login: String(who.login || ""), id };
+  if (gate.clientId && who.client_id !== gate.clientId) return { res: deny("A03", me) };
+  if (gate.ban && gate.ban[id]) return { res: deny("D01", me) };
+  if (gate.block && gate.block[id]) return { res: deny("D02", me) };
+  const follow = id === gate.owner || (gate.mods && gate.mods[id]) || (gate.follow && gate.follow[id]) ? "yes" : await followsLive(who, tok, gate.owner);
+  return { who: { id, login: me.login, client: String(who.client_id || ""), tok }, follow, gate };
+}
 async function remoteCmd(req, env) {
   const e = await enterSoon(req, env);
   if (e.res) return e.res;
@@ -461,6 +477,7 @@ async function route(req, env) {
       if (!env.UPLOAD_KEY || !(await sameKey(bearer(req), env.UPLOAD_KEY))) return json({ error: "key" }, 401, UP_CORS);
       return json(await relayList(env), 200, UP_CORS);
     }
+    const ir = await inviteApi(req, env, url, { enter, enterSoon, whoAny }); if (ir) return ir;   // 招待コード
     const lr = await loungeApi(req, env, url, { enter, enterSoon, displayName }); if (lr) return lr;
     if (url.pathname.startsWith("/api/")) return json({ error: "notfound" }, 404);
     if (url.pathname === "/mx-replay.js" && req.method === "GET") return replayJs();
@@ -744,6 +761,7 @@ export class Lounge {
     const url = new URL(req.url), now = Date.now();
     const lgr = await lgFetch(this, url, req); if (lgr) return lgr;
     const rlr = await relayFetch(this, url, req); if (rlr) return rlr;
+    const ivr = await inviteFetch(this, url, req); if (ivr) return ivr;
     if (url.pathname === "/obs" || url.pathname === "/mirror") this.trimPending(url.pathname === "/obs" ? "obs" : "mx", now);
     if (url.pathname === "/obs") {
       const pair = new WebSocketPair(), client = pair[0], server = pair[1];
