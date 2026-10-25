@@ -144,6 +144,11 @@
   .rejob .chips button i { width:10px; height:10px; border-radius:50%; background:var(--c, var(--soft)); }
   .rejob .chips button[aria-pressed="true"] { border-color:var(--ink); box-shadow:0 0 0 2px rgba(27,35,64,.12); }
   .rejob .chips button:disabled { opacity:.45; }
+  /* 島の チップ（敵の ツリー・図鑑） */
+  .isles { display:flex; gap:6px; margin:0 0 12px; }
+  .isles button { border:1.5px solid var(--line); background:#fff; border-radius:999px; padding:7px 14px 6px; font:700 13px/1 var(--jp); color:var(--soft); display:inline-flex; align-items:center; gap:6px; }
+  .isles button[aria-pressed="true"] { border-color:var(--ink); color:var(--ink); box-shadow:0 0 0 2px rgba(27,35,64,.12); }
+  .isles button b { min-width:18px; height:18px; padding:0 5px; border-radius:9px; display:grid; place-items:center; background:#7A55E0; color:#fff; font:700 11px/1 var(--num); }
   .rejob .go2 { display:flex; align-items:center; gap:8px; flex-wrap:wrap; font:700 12px/1.4 var(--jp); color:var(--soft); } .rejob .go2 .sp { flex:1; }
   .sum { border-radius:18px; padding:12px 14px; background:var(--space); }
   .sum h3 { font:900 13px/1.2 var(--jp); color:var(--soft); margin-bottom:6px; }
@@ -234,7 +239,7 @@ import "./lounge-en.js";   // 英語の 画面（MONO LINK の サイトの EN�
 import { nodesOf, stateOf, learned, JOB_TREES, SP_PER_LV, statValue, treeOf, SHAPE } from "./trees.js";
 import { SKILL, TYPES, TREES } from "./skills.js";
 import { ENEMY_TREES } from "./enemy-trees.js";
-import { DUNGEONS, RESEARCH, CAPTURE } from "./dungeons.js";
+import { DUNGEONS, RESEARCH, CAPTURE, ISLAND_OPEN, canGo } from "./dungeons.js";
 import { EFFECTS } from "./effects.js";
 import { spriteURL } from "./sprites.js";
 import { me, act, busy, waitText } from "./lounge-client.js";   // ペットの ツリーは 門番の 記録（見本では ブラウザの 中の ためしの 門番）
@@ -249,6 +254,14 @@ const KIC = { stat: "能", skill: "技", passive: "常", keyword: "鍵" };
 // ペットと ツリーは 門番の 記録。枠 0 は 職業ツリー、1〜3 は サブツリー（研究した 敵の ツリー）
 let ME = await me(), MP = ME.pets && ME.pets[0];
 const UI = { slot: Math.max(0, Math.min(3, +(q.get("slot") || 0))), sel: null, sure: false, rejob: null, carry: null, scrollTo: true };
+// 島（ニライ諸島が 出たら、敵の ツリーと 図鑑を 島で 分ける。呼び名は 冒険の 画面と 同じ）。かくしの 行き先は その 人に 開くまで 出さない（canGo）
+const ISLE_NAME = { 1: "マッサラ島", 2: "ニライ諸島" };   // 最初の 島の 名前は「マッサラ島」（鹿さんの決め、2026-10-25。冒険の 画面と 同じ）
+const chainN = (tid) => (((ME.deeplink && ME.deeplink.traders) || []).find((t) => t.id === tid) || { chain: { n: 1 } }).chain?.n || 1;
+const isleOfTree = (id) => (DUNGEONS.find((d) => ENEMY_TREES[id] && d.id === ENEMY_TREES[id].dungeon) || {}).isle || 1;
+UI.isle = Math.max(1, Math.min(ISLAND_OPEN, +(q.get("isle") || (ENEMY_TREES[q.get("e")] ? isleOfTree(q.get("e")) : 1))));
+const isleDungeons = () => DUNGEONS.filter((d) => (d.isle || 1) === UI.isle && (!d.hidden || canGo(d, ME.hideout, chainN).ok));
+// 島の チップ（n：島ごとの 数を 丸で。図鑑では 研究できる 数）
+const isleChips = (n) => ISLAND_OPEN >= 2 ? `<div class="isles" role="group" aria-label="島">${Object.keys(ISLE_NAME).map(Number).filter((i) => i <= ISLAND_OPEN).map((i) => `<button data-isle="${i}" aria-pressed="${i === UI.isle}">${ISLE_NAME[i]}${n && n(i) ? `<b>${n(i)}</b>` : ""}</button>`).join("")}</div>` : "";
 let SLOTS = [], CUR = null, TID = null, TAKEN = new Set(), nodes = [], spLeft = 0, sel = null;
 const spOf = (s) => nodesOf(s.tree).filter((n) => s.taken.has(n.id)).reduce((a, n) => a + n.sp, 0);
 function reload() {
@@ -388,11 +401,11 @@ function renderAll() {
     <div class="all">${rows}</div></section>`;
 }
 
-// ---------- 敵ツリー 20 本の中身（行き先ごと）----------
+// ---------- 敵ツリーの中身（行き先ごと。島で 分ける）----------
 function renderEnemies() {
   const short = (t) => esc(t.split("。")[0].replace(/（[^）]*）/g, ""));
   const cell = (id, cls) => { const s = SKILL[id]; return `<div class="cell ${cls}">${esc(s.name)}<em>${s.kind === "passive" ? short(s.text) : `MP ${s.mp}`}</em></div>`; };
-  const groups = DUNGEONS.map((d) => {
+  const groups = isleDungeons().map((d) => {
     const rows = Object.entries(ENEMY_TREES).filter(([, t]) => t.dungeon === d.id).map(([id, t]) => {
       const sk = (n) => t.list.find((s) => s.slot === `S${n}`).id, ps = (n) => t.list.find((s) => s.slot === `P${n}`).id;
       return `<div class="job"><div class="jn" style="--c:${TYPES[t.type].color}"><i></i>${esc(t.name)}<span class="who">${esc(t.enemy)}${t.rank === "通常" ? "" : `<span class="rk ${t.rank === "希少" ? "r" : ""}">${t.rank}</span>`}</span><small>テーマ ${EFFECTS[t.theme].label}・主 ${SL[t.main]}・副 ${SL[t.sub]}<br>${TYPES[t.type].label}の伸び方</small></div><div>
@@ -402,7 +415,7 @@ function renderEnemies() {
     }).join("");
     return `<h3 class="dg" style="--dc:${d.color}">${esc(d.name)}<small>おすすめ Lv ${d.lv}・通常 3・希少 1・ボス 1</small></h3><div class="all">${rows}</div>`;
   }).join("");
-  return `<section class="panel"><div class="bar"><h2>敵のスキルツリー 20 本<span>派遣で捕まえて研究すると、サブツリーに付けられる。上の段が技、下の段がパッシブ。分岐は左の道・右の道の順</span></h2></div>
+  return `<section class="panel"><div class="bar">${isleChips()}<h2>敵のスキルツリー ${Object.values(ENEMY_TREES).filter((t) => isleDungeons().some((d) => d.id === t.dungeon)).length} 本<span>派遣で捕まえて研究すると、サブツリーに付けられる。上の段が技、下の段がパッシブ。分岐は左の道・右の道の順</span></h2></div>
     <div class="lanes-h"><div></div><div class="lane"><div>技 ①</div><div>技 ②</div><div>技 ③</div><div>分岐①（左・右）</div><div>分岐②（左・右）</div><div>奥義</div></div></div>${groups}</section>`;
 }
 
@@ -414,16 +427,17 @@ function labOf() {
 }
 function renderLab() {
   const ST = { done: "研究ずみ", cap: "捕まえた", seen: "出会った", none: "？？？" }, LAB = labOf();
-  const pick = ENEMY_TREES[UI.e] ? UI.e : ENEMY_TREES[q.get("e")] ? q.get("e") : Object.keys(LAB).find((id) => LAB[id] === "cap") || "e_hare", P = ENEMY_TREES[pick], st = LAB[pick], cost = RESEARCH[P.rank];
+  const inIsle = (id) => isleDungeons().some((d) => d.id === ENEMY_TREES[id].dungeon), here = Object.keys(LAB).filter(inIsle);
+  const pick = ENEMY_TREES[UI.e] ? UI.e : ENEMY_TREES[q.get("e")] && inIsle(q.get("e")) ? q.get("e") : here.find((id) => LAB[id] === "cap") || here[0] || "e_hare", P = ENEMY_TREES[pick], st = LAB[pick], cost = RESEARCH[P.rank];
   const mon = ([id, t]) => { const v = LAB[id]; return `<button class="mon ${v} ${id === pick ? "sel" : ""}" data-e="${id}" style="--c:${TYPES[t.type].color}">${t.rank === "通常" ? "" : `<span class="rk ${t.rank === "希少" ? "r" : ""}">${t.rank}</span>`}<span class="orb spr"><img src="${spriteURL(id)}" alt=""></span><b>${v === "none" ? "？？？" : esc(t.enemy)}</b><span class="st">${ST[v]}</span></button>`; };
-  const groups = DUNGEONS.map((d) => `<h3 class="dg" style="--dc:${d.color}">${esc(d.name)}<small>${Object.entries(ENEMY_TREES).filter(([id, t]) => t.dungeon === d.id && (LAB[id] === "done" || LAB[id] === "cap")).length} / 5 捕まえた</small></h3><div class="dex">${Object.entries(ENEMY_TREES).filter(([, t]) => t.dungeon === d.id).map(mon).join("")}</div>`).join("");
+  const groups = isleDungeons().map((d) => `<h3 class="dg" style="--dc:${d.color}">${esc(d.name)}<small>${Object.entries(ENEMY_TREES).filter(([id, t]) => t.dungeon === d.id && (LAB[id] === "done" || LAB[id] === "cap")).length} / 5 捕まえた</small></h3><div class="dex">${Object.entries(ENEMY_TREES).filter(([, t]) => t.dungeon === d.id).map(mon).join("")}</div>`).join("");
   const KI = { waza: "技", itazura: "技", passive: "常" };
   const list = P.list.filter((x) => ["S1", "S2", "S4", "P1", "S8"].includes(x.slot)).sort((a, b) => ["S1", "S2", "P1", "S4", "S8"].indexOf(a.slot) - ["S1", "S2", "P1", "S4", "S8"].indexOf(b.slot));
   const go = st === "cap" ? `<p>研究すると、飼っているペットみんなが このツリーを サブツリーに付けられる</p><button class="take" data-do="lab" data-t="${pick}">研究する（リソース <b>${cost}</b>）</button>`
     : st === "done" ? `<p>研究ずみ。ペットのスキルツリーの画面で サブツリーに付けられる</p>` : `<p>まだ捕まえていない。派遣で たおすと ${(CAPTURE[P.rank] * 100).toFixed(1)}% で捕まえる（1 体ごと。「指定の敵だけ」で 探しに行ける）</p>`;
   return `<section class="panel"><div class="res"><div class="bar" style="margin:0"><h2>図鑑と研究<span>派遣で捕まえた敵を研究すると、その敵のスキルツリーが使えるようになる</span></h2></div></div>
     <div class="lab"><div>
-      <div class="legend"><span style="--c:var(--leaf)">研究ずみ</span><span style="--c:#7A55E0">捕まえた</span><span style="--c:#B4BCCF">出会った</span><span style="--c:#E4E8F2">まだ会っていない</span></div>
+      ${isleChips((n) => Object.entries(LAB).filter(([id, v]) => v === "cap" && isleOfTree(id) === n).length)}<div class="legend"><span style="--c:var(--leaf)">研究ずみ</span><span style="--c:#7A55E0">捕まえた</span><span style="--c:#B4BCCF">出会った</span><span style="--c:#E4E8F2">まだ会っていない</span></div>
       ${groups}</div>
       <aside class="ldetail" aria-label="えらんだ敵">
         <div class="detail" style="border-color:#CDB8FF">
@@ -473,6 +487,7 @@ document.getElementById("app").addEventListener("click", async (e) => {
   if (d.n) { UI.sel = d.n; UI.reveal = true; return paint(); }
   if (d.slot) { UI.slot = +d.slot; UI.sel = null; UI.sure = false; UI.rejob = null; UI.scrollTo = true; return paint(); }
   if (d.e) { UI.e = d.e; return paint(); }
+  if (d.isle) { UI.isle = +d.isle; if (ENEMY_TREES[UI.e] && isleOfTree(UI.e) !== UI.isle) UI.e = null; return paint(); }
   if (d.job) { UI.rejob = d.job; return paint(); }
   if (d.carry !== undefined) { UI.carry = d.carry || null; return paint(); }
   if (d.sub) return ask(b, "pet.sub", { slot: UI.slot - 1, tree: d.sub }, () => `サブツリー ${UI.slot} に「${ENEMY_TREES[d.sub].name}」を 付けた`);

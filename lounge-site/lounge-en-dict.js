@@ -12,8 +12,9 @@ import * as BASE from "./lounge-en-base.js";
 import * as ARENA from "./lounge-en-arena.js";
 import * as DL from "./lounge-en-dl.js";
 import * as SRV from "./lounge-en-srv.js";
+import * as FX from "./lounge-en-fx.js";   // 敵の パッシブ・効果の 説明（形の 決まり）
 
-const pages = [SRV, UI, TRIP, PET, BASE, DL, ARENA];   // せまい 決まりの 多い 順（闘技場の「X は Y」は いちばん 広いので 最後）
+const pages = [FX, SRV, UI, TRIP, PET, BASE, DL, ARENA];   // せまい 決まりの 多い 順（効果の 説明は いちばん せまいので 先・闘技場の「X は Y」は いちばん 広いので 最後）
 export const WORDS = Object.assign({}, nameWords(), ...pages.map((x) => x.WORDS));
 
 // ペットの 名前と しゅるい（「ペリカンのポスケ」→「Posuke the Pelican」）

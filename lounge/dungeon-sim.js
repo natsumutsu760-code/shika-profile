@@ -1,7 +1,7 @@
 // ダンジョン（VR ゲーム）の計算（試作）。runDungeon(パーティ, 行き先, 時間, 種, { purpose, target, progress }) が、探索の流れ・戦い・宝箱・日記のもとを返す。同じ種なら同じ結果
 // 門番は tripInit・tripStep・tripResult で 少しずつ 計算する（下の「1 回の 派遣」）
 // 探索（鹿さんの参考ゲーム「魔界派遣ヴェルヴェット」と同じ。鹿さんの決め、2026-10-22）：1 つの行き先は 5 階。1 歩ずつ地図を歩き、まわり 1 マスが見えて探索率が上がる（progress に残る）
-// 歩くと、ときどき敵と出会う（1〜3 体）。HP が減ったら休憩して回復する（鹿さんの決め、2026-10-22）。倒れた子は帰るまで戦えない。全員倒れたら、力つきて帰ってくる（失敗ではない）
+// 歩くと、ときどき敵と出会う（1〜3 体）。HP が減ったら休憩して回復する（鹿さんの決め、2026-10-22）。倒れた子は帰るまで戦えない（救護室 Lv3 から 休憩で 起きあがる）。全員倒れたら、力つきて帰ってくる（失敗ではない）
 // 目的：探索（見ていないマスをうめて下へ）・ボス優先（一番深い階からボスの部屋へ）・採取優先・指定の敵だけ。時間（1・3・10 分）が来たら帰る
 // パーティはペット＋懐柔した子 2 体まで（ペットだけでもいい）。状態（バフ・デバフ）は帰るまで持ちこす。ボスには凍結・眠り・気絶が効かない
 // 勝った敵は 1 体ずつ、一定の確率で捕まえる（研究するとサブツリー、懐柔するとパーティに入れられる）。戦いに勝つと、ときどき懐柔のおやつを拾う
@@ -9,7 +9,7 @@ import { simulateTeams, rngIn, vitalsOf } from "./battle-sim.js";
 import { petAt } from "./builds.js";
 import { growOf, PLUS_RATE } from "./monster.js";
 import { OPS, rollCombo, comboOf, opCount, baseOf } from "./equip.js";
-import { DUNGEONS, RUNS, RARE_RATE, CAPTURE, GROUP, SNACK_DROP, TICK, ENCOUNTER, REST, TRAP, FLOOR_LV, BATTLE_TICKS, PURPOSES, CHEST_STAR, BOSS_STAR, MYTHIC, BOSS_RESOURCE, EXP_PER_LV, CREDIT, TOOLS, LURE_SHARE, NET_MULT } from "./dungeons.js";
+import { DUNGEONS, RUNS, RARE_RATE, CAPTURE, GROUP, SNACK_DROP, TICK, ENCOUNTER, REST, TRAP, FLOOR_LV, BATTLE_TICKS, PURPOSES, CHEST_STAR, BOSS_STAR, MYTHIC, BOSS_RESOURCE, EXP_PER_LV, CREDIT, TOOLS, LURE_SHARE, NET_MULT, MEDIC } from "./dungeons.js";
 import { ENEMY_TREES } from "./enemy-trees.js";
 import { floorMap, reachOf, exploredRatio, keyOf, DIRS, GW, GH, FLOORS, T, isPass } from "./floors.js";
 import { GATHER, ENEMY_MAT, GATHER_N, floorMats, ENEMY_DROP, QUALITY } from "./materials.js";
@@ -74,6 +74,7 @@ export function runDungeon(party, dungeonId, runKey, seed, opts = {}) {
   return tripResult(S);
 }
 // opts.floor：出発する 階（えらべない 階なら ふつうの 決め方。0・なしも ふつう）
+// opts.medic：出かけた ときの 救護室の Lv（休憩の 回復・倒れた子）。opts.stairs：地図室 Lv1 から（着いた 階の 階段の まわりが 見えて いる）。なしは 前と 同じ 結果。門番・派遣の 画面・配信の 中継で 同じ 物を わたす
 export function tripInit(party, dungeonId, runKey, seed, opts = {}) {
   const d = DUNGEONS.find((x) => x.id === dungeonId), purpose = PURPOSES[opts.purpose] ? opts.purpose : "explore", tool = TOOLS[opts.tool] ? opts.tool : null;
   const pick = () => Math.max(0, [...d.foes, d.rare].findIndex((f) => f.tree === opts.target));   // えらんだ 敵（いなければ 1 体目）。S には 番号で しまう
@@ -86,6 +87,7 @@ export function tripInit(party, dungeonId, runKey, seed, opts = {}) {
     nt: 0, track: [], log: [], battles: [], captured: [], chests: [], gathered: [], drops: [], mats: [],
     tick: 0, floor: 0, pos: null, prev: null, seen: [], done: [], hiddenOpen: false, resting: false, status: "run", reason: null, fin: false,
     snacks: 0, exp: 0, credits: 0, kills: 0, wins: 0, rests: 0, traps: 0, steps: 0, bossDone: false, mythic: false, resource: 0, toolUsed: false, start: 1,
+    med: Math.max(0, Math.min(MEDIC.rest.length - 1, opts.medic | 0)), st: opts.stairs ? 1 : 0,
   };
   machine(S).begin();
   return S;
@@ -118,7 +120,9 @@ function machine(S) {
   const mpRate = () => { const a = alive().filter((m) => m.maxMp > 0); return a.length ? a.reduce((s, m) => s + m.mp, 0) / a.reduce((s, m) => s + m.maxMp, 0) : 1; };
   const snap = (a, b) => { S.nt++; if (!S.lite) S.track.push({ f: S.floor, x: S.pos.x, y: S.pos.y, a, b, hp: team.map((m) => (m.down ? 0 : Math.round((m.hp / m.maxHp) * 100))) }); };
   const persist = () => { if (S.floor) prog.floors[S.floor] = { seen: [...seen], hidden: S.hiddenOpen }; };
-  const reveal = () => { for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) { const x = S.pos.x + dx, y = S.pos.y + dy; if (x >= 0 && y >= 0 && x < GW && y < GH) seen.add(keyOf(x, y)); } };
+  const revealAt = (cx, cy) => { for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) { const x = cx + dx, y = cy + dy; if (x >= 0 && y >= 0 && x < GW && y < GH) seen.add(keyOf(x, y)); } };
+  const reveal = () => revealAt(S.pos.x, S.pos.y);
+  const rest = MEDIC.rest[S.med || 0], rise = MEDIC.up[S.med || 0];   // 救護室（とちゅうで しまった 前の S は 0）
   const ratio = () => { let tot = 0, got = 0; const hid = new Set(map.hidden.map(([x, y]) => keyOf(x, y))); for (const k of reach) if (!hid.has(k)) { tot++; if (seen.has(k)) got++; } return tot ? got / tot : 1; };
   const openHidden = (loud) => { S.hiddenOpen = true; for (const [x, y, t] of map.hidden) grid[y][x] = t; reach = reachOf(grid, map.start); if (loud) say("かべの むこうに かくし通路を 見つけた！"); };
   const checkHidden = () => { if (!S.hiddenOpen && map.hidden.length && ratio() >= 1) { openHidden(true); persist(); } };
@@ -127,7 +131,8 @@ function machine(S) {
     seen = new Set(prog.floors[n]?.seen || []); S.hiddenOpen = false; reach = reachOf(grid, map.start);
     if (prog.floors[n]?.hidden) openHidden(false);
     S.pos = { ...map.start }; S.prev = null; done = new Set();
-    prog.maxFloor = Math.max(prog.maxFloor, n); reveal(); persist(); say(`${n} 階に 着いた`, "sys"); checkHidden();
+    prog.maxFloor = Math.max(prog.maxFloor, n); reveal(); if (S.st && n < FLOORS) revealAt(map.goal.x, map.goal.y);   // 地図室 Lv1：階段の まわり
+    persist(); say(`${n} 階に 着いた`, "sys"); checkHidden();
   }
   // 歩けるか（指定の敵だけのときは、ボスの部屋に入らない）
   const canStep = (x, y) => x >= 0 && y >= 0 && x < GW && y < GH && isPass(grid[y][x]) && !(purpose === "target" && grid[y][x] === T.BOSS);
@@ -224,12 +229,17 @@ function machine(S) {
   function run(max) {
     while (going() && fought < max) {
       if (S.resting) {
-        for (const m of alive()) { m.hp = Math.min(m.maxHp, m.hp + Math.max(1, Math.round(m.maxHp * REST.hp))); m.mp = Math.min(m.maxMp, m.mp + Math.max(1, Math.round(m.maxMp * REST.mp))); }
+        for (const m of alive()) { m.hp = Math.min(m.maxHp, m.hp + Math.max(1, Math.round(m.maxHp * REST.hp * rest))); m.mp = Math.min(m.maxMp, m.mp + Math.max(1, Math.round(m.maxMp * REST.mp * rest))); }
         snap("r"); S.tick++;
         if (hpRate() >= REST.until && mpRate() >= REST.until) { S.resting = false; say("休憩を おえた", "sys"); }
         continue;
       }
-      if (hpRate() < REST.hpAt || mpRate() < REST.mpAt) { S.resting = true; S.rests++; say("つかれたので 休憩する", "sys"); snap("r"); S.tick++; continue; }
+      const fallen = rise ? team.filter((m) => m.down) : [];   // 救護室 Lv3 から：倒れた子が いれば 休憩して 起こす
+      if (hpRate() < REST.hpAt || mpRate() < REST.mpAt || fallen.length) {
+        S.resting = true; S.rests++; say("つかれたので 休憩する", "sys");
+        for (const m of fallen) { m.down = false; m.hp = Math.max(1, Math.round(m.maxHp * rise)); say(`${m.c.name}が 起きあがった`, "sys"); }
+        snap("r"); S.tick++; continue;
+      }
       const nx = next();
       if (nx === "down") { say("階段を おりた", "sys"); load(S.floor + 1); snap("w"); S.tick++; continue; }
       if (!nx) { S.status = "end"; S.reason = "done"; say(purpose === "boss" ? "ボスを たおしたので 帰る" : purpose === "gather" ? "採取を おえて 帰る" : "探索を おえて 帰る"); break; }

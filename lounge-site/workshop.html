@@ -97,8 +97,7 @@
 import "./lounge-en.js";   // 英語の 画面（MONO LINK の サイトの EN／日本語 と 同じ 決まり。英語の ときだけ 辞書を 読む）
 import { WS_ITEMS, WS_MAX, ATT_BASES, ATT_KINDS, ATT_STAR, attOpN } from "./workshop.js";
 import { OPS } from "./equip.js";
-import { MAT_NAME, MAT_FROM, HIDDEN_MAT } from "./materials.js";
-import { spriteURL } from "./sprites.js";
+import { MAT_NAME, HIDDEN_MAT } from "./materials.js";
 import { matPic } from "./mat-icons.js";
 import { wsIcon } from "./ws-icons.js";
 import { me, act, busy } from "./lounge-client.js";   // 工房の Lv・素材・クレジット・作る は 門番から（くじも 門番が 引く）
@@ -136,7 +135,7 @@ function listHtml() {
 }
 const tabsHtml = () => TABS.map(([t, label]) => { const n = keysOf(t).filter((k) => stateOf(k) === "can").length; return `<button role="tab" data-tab="${t}" aria-selected="${S.tab === t}">${label}${n ? `<em>${n}</em>` : ""}</button>`; }).join("");
 function rowHtml(x) {
-  const pic = x.c ? `<i class="dot c"></i>` : MAT_FROM[x.id] ? `<img src="${spriteURL(MAT_FROM[x.id])}" alt="">` : HIDDEN_MAT.has(x.id) ? `<i class="dot hd"></i>` : `<img src="${matPic(x.id)}" alt="">`;
+  const pic = x.c ? `<i class="dot c"></i>` : HIDDEN_MAT.has(x.id) && !matPic(x.id) ? `<i class="dot hd"></i>` : `<img src="${matPic(x.id)}" alt="">`;   // 絵の ある 素材は 絵（ニライ諸島の 敵の 素材・かくし通路も。絵が なければ 点）
   return `<li class="${x.have < x.need ? "ng" : ""}">${pic}<span>${x.c ? "クレジット" : esc(MAT_NAME[x.id])}${x.q > 1 ? `<small>品質 ${x.q} 以上</small>` : ""}</span><span class="n">${fmt(x.have)} / ${fmt(x.need)}</span></li>`;
 }
 function madeHtml() {

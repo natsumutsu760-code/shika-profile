@@ -12,6 +12,7 @@ import { WS_ITEMS, ATT_KINDS, ATT_BASES } from "./workshop.js";
 import { FURN } from "./lounge-rules.js";
 import { PETS, QUIZ } from "./quiz.js";
 import { TRADERS, SPECIAL } from "./deeplink.js";
+import { DUNGEON2_EN, MYTHIC2_EN, TREE2_EN, SKILL2_EN } from "./lounge-en-isle2.js";   // ニライ諸島（2 つめの 島）の 名前
 
 const SL = { hp: "HP", mp: "MP", atk: "ATK", def: "DEF", int: "INT", res: "RES", agi: "AGI", dex: "DEX", luk: "LUK" };
 
@@ -419,6 +420,9 @@ export const SHOP_EN = {
   "y-map": ["Hidden Passage Map", "Opens it on 1 floor without reaching 100%"], "y-collar": ["Friendship Collar", "Friendship gauge +5"],
   "y-core": ["Blank Core", "Extracts 1 OP from a piece of gear (the gear is used up)"], "y-charm": ["Lucky Charm (Crafting)", "Your next craft or fusion gets ★ +1"],
 };
+
+// ニライ諸島の 名前を はじめの 島の 表に 足す（id で 引く）
+Object.assign(DUNGEON_EN, DUNGEON2_EN); Object.assign(MYTHIC_EN, MYTHIC2_EN); Object.assign(ENEMY_EN, TREE2_EN); Object.assign(SKILL_EN, SKILL2_EN);
 
 // ---- 日本語 → 英語 の 組み立て ----
 export function nameWords() {

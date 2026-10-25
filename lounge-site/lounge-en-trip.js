@@ -4,6 +4,8 @@ const MON = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct
 const P = (p, s) => p(s) || s;   // 名前（訳せなければ そのまま）
 
 export const WORDS = {
+  // 島（ニライ諸島）
+  "マッサラ島": "Massara Island", "ニライ諸島": "Nirai Isles", "ニライ村": "Nirai Village", "島": "Island", "隠れ家に 無線機を 作ると 行ける": "Build a Radio in your hideout to go here",
   // ---- 行き先を えらぶ ----
   "行き先": "Destination", "ワールドマップ": "World Map", "スタート": "Start", "Lv の色": "Lv colors", "らく": "Easy", "ちょうどいい": "Just right", "きびしい": "Tough", "むずかしい": "Hard", "あんしん": "Safe",
   "階": "F", "おすすめ": "Recommended", "まだ": "—", "はじめて": "First time", "ずっと": "Forever", "# 回": "×#", "この 派遣で おわり": "Ends after this trip", "周回": "Repeat",
@@ -45,6 +47,7 @@ export const WORDS = {
 };
 
 export const RULES = [
+  [/^(.+)の つながった タスク #(\d+) の ごほうびで 行ける$/, (m, p) => `Unlocked by finishing task #${m[2]} in ${P(p, m[1])}'s chain`],   // かくしの 行き先（canGo）
   // 行き先・日付
   [/^(.+)（おすすめ Lv(\d+)）$/, (m, p) => p(m[1]) && `${p(m[1])} (Recommended Lv${m[2]})`],
   [/^(\d+)月(\d+)日（(.)）$/, (m) => `${WD[m[3]] || ""}, ${MON[+m[1] - 1]} ${m[2]}`],
@@ -80,6 +83,7 @@ export const RULES = [
   [/^(かくし通路で )?(.+)を 採取した$/, (m, p) => { const xs = m[2].split("と ").map((x) => p(x)); return xs.every(Boolean) ? `Gathered ${xs.join(" and ")}${m[1] ? " in the hidden passage" : ""}` : null; }],
   [/^(.+?)(?:たち (\d+) 体)?で 出発した$/, (m, p) => `${P(p, m[1])}${m[2] ? ` and party (${m[2]})` : ""} set out`],
   [/^目的：(.+)$/, (m, p) => p(m[1]) && `Goal: ${p(m[1])}`], [/^(.+)を 持っていく$/, (m, p) => p(m[1]) && `Brought a ${p(m[1])}`],
+  [/^(.+)が 起きあがった$/, (m, p) => `${P(p, m[1])} got back up`],   // 救護室 Lv3 から（名前は 人が つけた 物も あるので そのまま でも よい）
   [/^(.+)を 捕まえた！$/, (m, p) => p(m[1]) && `Caught ${p(m[1])}!`], [/^★ミシック★ (.+)を 手に入れた！$/, (m, p) => p(m[1]) && `★Mythic★ Got ${p(m[1])}!`],
   // 日記（文ごと）
   [/^(.+)で ねた$/, (m, p) => p(m[1]) && `Slept in ${p(m[1])}`], [/^おきたら (\d+)たい たおしてた$/, (m) => `Woke up having beaten ${m[1]}`],

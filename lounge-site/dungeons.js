@@ -16,6 +16,9 @@ export const RUNS = {
 export const TICK = 2;
 export const ENCOUNTER = { path: 0.06, room: 0.09 };                 // 1 歩ごとに敵と出会う確率（道・広場）
 export const REST = { hpAt: 0.7, mpAt: 0.3, until: 1, hp: 0.1, mp: 0.08 };   // HP が 7 割（MP が 3 割）を切ったら休憩。1 歩ぶんで HP 1 割・MP 8% もどる。満タンで歩きだす。倒れた子は帰るまでもどらない
+// 救護室（隠れ家）の Lv：休憩で もどる 量の 倍率と、休憩の はじめに 倒れた子が 起きあがる HP の 割合（0 は 起きない。Lv3 から）。facilities.js の 文と 同じ（鹿さんの頼み、2026-10-25：字だけで 計算に 入って いなかった）
+export const MEDIC = { rest: [1, 1.25, 1.5, 1.5, 2], up: [0, 0, 0, 0.1, 0.3] };
+export const MAP_STAIRS = 1;   // 地図室 この Lv から：階に 着いた とき 階段の まわり（3×3）が 見えて いる（地図に 出て、探索率にも 入る）
 export const TRAP = { avoid: 0.25, dmg: 0.08 };                      // 罠：25% で見抜く。かかると全員が最大 HP の 8%
 export const FLOOR_LV = (n) => n - 2;                                // 階ごとの敵の Lv（1 階 −1・2 階 ±0・3 階 +1・4 階 +2・5 階 +3。ボスはそのまま）
 export const BATTLE_TICKS = (turns) => 2 + Math.ceil(turns / 2);     // 戦いにかかる時間（歩数）

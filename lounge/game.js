@@ -11,7 +11,7 @@ export { rng, COND_TEXT, simulate, fighterPower } from "./battle-sim.js";
 export { REC_MODES, REC_SCOPES, recommend } from "./recommend.js";   // おすすめ装備
 export { DUEL, duelPay, pickFoes, TOUR, TOUR_PAY, tourDay, tourAt, bracketOf, bandMatches, matchSeed, ENC } from "./arena.js";   // 闘技場・派遣先の 戦い
 export { floorMap, FLOORS } from "./floors.js";
-export { DUNGEONS, DUNGEONS_ALL, ISLAND_OPEN, canGo, tripCost, RUNS, TICK, TOOLS, PURPOSES, SNACK_NEED, SNACK_PRICE, RESEARCH } from "./dungeons.js";
+export { DUNGEONS, DUNGEONS_ALL, ISLAND_OPEN, canGo, tripCost, RUNS, TICK, TOOLS, PURPOSES, SNACK_NEED, SNACK_PRICE, RESEARCH, MAP_STAIRS } from "./dungeons.js";
 export { FACILITIES, STORAGE_CAP, EQUIP_CAP, SNACK_RECIPES, snackMats, snackMade, SNACK_CRAFT_MAX, mapExtra, facCap } from "./facilities.js";
 export { toStash, stashHave, BOX_DAYS, MAT_NAME, GATHER, sellPrice } from "./materials.js";
 export { CRAFT, SYNTH, craftOpen, synthOpen, synthBalls, rollCraft, rollSynth } from "./recipes.js";

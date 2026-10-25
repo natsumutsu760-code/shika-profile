@@ -16,7 +16,7 @@ export function relayEntry(rec, t) {
   const mates = t.party.slice(1).map((u) => rec.tamed.find((c) => c.uid === u)).filter(Boolean);
   return {
     id: rec.id, uid: t.uid, name: rec.name, pet: { name: pet.name, qid: pet.qid, species: pet.species, type: pet.type, lv: pet.lv },
-    did: t.did, run: t.run, purpose: t.purpose, target: t.target, tool: t.tool, floor: t.floor || 0, seed: t.seed, start: t.start, end: t.end, calc: !!t.calc,   // floor：えらんだ 出発の 階（0 は ふつう）
+    did: t.did, run: t.run, purpose: t.purpose, target: t.target, tool: t.tool, floor: t.floor || 0, seed: t.seed, start: t.start, end: t.end, calc: !!t.calc, med: t.med || 0, st: t.st ? 1 : 0,   // floor：えらんだ 出発の 階（0 は ふつう）。med・st：出かけた ときの 救護室の Lv・地図室 Lv1 から（同じ 計算に する）
     party: t.team ? t.team.map((c, k) => (k ? c : { ...c, owner: rec.name })) : [{ ...fighterOf(pet, rec), owner: rec.name }, ...mates.map((c) => mateOf(c, rec))], progress: rec.explore[t.did] || null,
   };
 }
