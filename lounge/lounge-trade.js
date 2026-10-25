@@ -13,7 +13,20 @@ const CONDS_OK = [(t) => !t.wipe, (t) => t.rests === 0, (t) => !t.tool, () => tr
 const ONE_TRIP = 3;                                  // 「1 回の 派遣で」：1 回の 派遣で 足りれば よい（足し算しない）
 const has = (m, k) => typeof k === "string" && Object.prototype.hasOwnProperty.call(m, k);
 
-export function ensureTrade(rec) { rec.traders ||= {}; rec.perks ||= {}; rec.items ||= {}; rec.recipes ||= []; return rec; }
+export function ensureTrade(rec) { rec.traders ||= {}; rec.perks ||= {}; rec.items ||= {}; rec.recipes ||= []; rec.tally ||= seedTally(rec); return rec; }
+// ---------- これまでの 記録（鹿さんの決め、2026-10-25）：つながった タスクには まだ 出て いない ときの 分も 数える ----------
+// rec.tally：できごとの 合計。キーは goal と 同じ 形（型・行き先・敵・★ 以上）。じょうけんに 合った 派遣の 分は「キー#じょうけんの 番号」にも 足す
+// 商人ごとに 使った 分（t.used）を 引いた のこりを 数え、終えると その 分を 使う（同じ 商人の つぎの タスクに 使いまわさない）
+// 「1 回の 派遣で」は ためない（出てからの 派遣だけ）。毎日の タスクは その日の 分だけ（前と 同じ）。ためはじめは 入れた とき（ボスは 前の 分も わかる）
+const goalKey = (g) => g.type + (g.did ? ":" + g.did : "") + (g.tree ? ":" + g.tree : "") + (g.star ? "@" + g.star : "") + (g.cond != null ? "#" + g.cond : "");
+const banked = (g) => !["fac", "floor", "deliver", "deliverEq"].includes(g.type) && g.cond !== ONE_TRIP;
+function evKeys(ev) {
+  const base = [ev.type, ev.did && ev.type + ":" + ev.did, ev.tree && ev.type + ":" + ev.tree, ...Array.from({ length: Math.min(5, ev.star || 0) }, (_, i) => ev.type + "@" + (i + 1))].filter(Boolean);
+  const conds = ev.trip ? CONDS_OK.map((ok, ci) => (ci !== ONE_TRIP && ok(ev.trip) ? ci : -1)).filter((ci) => ci >= 0) : [];
+  return [...base, ...base.flatMap((k) => conds.map((ci) => k + "#" + ci))];
+}
+function seedTally(rec) { const t = {}; for (const [did, p] of Object.entries(rec.explore || {})) if (p && p.bossKills > 0) t["boss:" + did] = p.bossKills; return t; }
+const avail = (rec, t, g) => Math.max(0, (rec.tally[goalKey(g)] || 0) - ((t.used || {})[goalKey(g)] || 0));
 // 商人ごとの 記録。日が かわったら きょうの タスクと 品の のこりを もどす（日本時間 0 時。ボスの素材は 1 週ごと）
 export function traderOf(rec, tid, day) {
   const t = (rec.traders[tid] ||= { rep: 0, n: 1, cp: 0, day: 0, dn: 1, dp: 0, ddone: 0, bday: 0, buy: {}, bweek: 0, wbuy: {} });
@@ -27,19 +40,20 @@ export const tasksOf = (tid, t, day) => ({ chain: chainTask(tid, t.n), daily: da
 // ---------- タスクの 進み ----------
 const found = (rec, id, q) => rec.own.mats.filter((m) => m.id === id && m.q >= q && !m.b).reduce((a, m) => a + m.n, 0);   // 派遣で 拾った 物だけ
 const foundEq = (rec, star) => { const on = equippedUids(rec); return rec.own.equip.filter((e) => e.star >= star && !e.b && !on.has(e.uid)); };   // 付けて いる 物は のぞく
-// いまの 進み。施設・階・納める は いまの ようすから、ほかは 数えた 数
-export function progressOf(rec, k, counted) {
+// いまの 進み。施設・階・納める は いまの ようすから、ほかは 数えた 数（t を わたすと つながった タスク：ためた 分の のこりも 数える）
+export function progressOf(rec, k, counted, t) {
   const g = k.goal;
   if (g.type === "fac") return (rec.hideout[g.fac] || 0) >= g.lv ? 1 : 0;
   if (g.type === "floor") { const p = rec.explore[g.did]; return p ? Math.floor(floorRatio(g.did, p, g.floor) * 100) : 0; }
   if (g.type === "deliver") return Math.min(k.need, found(rec, g.mat, g.q || 0));
   if (g.type === "deliverEq") return Math.min(k.need, foundEq(rec, g.star).length);
-  return Math.min(k.need, counted);
+  return Math.min(k.need, t && banked(g) ? Math.max(counted, avail(rec, t, g)) : counted);
 }
 const hit = (g, ev) => g.type === ev.type && (!g.did || g.did === ev.did) && (!g.tree || g.tree === ev.tree) && (!g.star || (ev.star || 0) >= g.star);
 // できごと（派遣の 結果・売る・作る・合成・おやつ）を タスクに 数える。ev：{ type, n, did, tree, star, trip }
 export function bump(rec, ev, day) {
   ensureTrade(rec);
+  if (Number.isInteger(ev.n) && ev.n > 0) for (const key of evKeys(ev)) rec.tally[key] = (rec.tally[key] || 0) + ev.n;   // これまでの 記録（商人の 数に よらず 1 回）
   for (const tid of TASK_TIDS) {
     const t = traderOf(rec, tid, day), ks = tasksOf(tid, t, day);
     for (const [k, key] of [[ks.chain, "cp"], [ks.daily, "dp"]]) {
@@ -66,7 +80,7 @@ export function taskDone(rec, b, day, R) {
   if (!TASK_TIDS.includes(b.tid)) return { ok: false, why: "知らない 商人" };
   const t = traderOf(rec, b.tid, day), which = b.which === "daily" ? "daily" : "chain", k = tasksOf(b.tid, t, day)[which], g = k.goal;
   if (which === "daily" && t.ddone) return { ok: false, why: "きょうの タスクは もう 終わった" };
-  const now = progressOf(rec, k, which === "daily" ? t.dp : t.cp);
+  const now = which === "daily" ? progressOf(rec, k, t.dp) : progressOf(rec, k, t.cp, t);
   if (now < k.need) return { ok: false, why: `まだ たりない（${now}/${k.need}${k.unit}）` };
   if (g.type === "deliver") {   // 品質の 低い 物から。拾った 物だけ
     let left = k.need;
@@ -80,6 +94,7 @@ export function taskDone(rec, b, day, R) {
   const rw = k.reward;
   t.rep += rw.rep || 0;
   if (rw.get) grantGet(rec, rw.get, R, Date.now());
+  if (which === "chain" && banked(g)) { const key = goalKey(g); (t.used ||= {})[key] = Math.min(rec.tally[key] || 0, (t.used[key] || 0) + k.need); }   // ためた 分を 使う
   if (which === "daily") t.ddone = 1; else { t.n++; t.cp = 0; }
   return { ok: true, rep: rw.rep || 0, earn: [...(rw.balls ? [{ kind: "balls", d: rw.balls }] : []), ...(rw.res ? [{ kind: "res", d: rw.res }] : [])] };
 }
@@ -216,8 +231,8 @@ export function deeplinkView(rec, day) {
     const t = traderOf(rec, s.id, day), lv = s === SPECIAL ? 1 : repLv(t.rep);
     const shop = s.shop.map((it) => ({ id: it.id, lv: it.lv, price: it.price, cur: it.cur, open: lv >= it.lv, left: it.stock ? it.stock - ((it.week ? t.wbuy : t.buy)[it.id] || 0) : null, done: !!(it.get && it.get.perk && rec.perks[it.get.perk]) }));
     if (s === SPECIAL) return { id: s.id, shop };
-    const ks = tasksOf(s.id, t, day), task = (k, c, done) => ({ n: k.n, kind: k.kind, found: !!k.found, text: k.text, need: k.need, unit: k.unit, cond: k.condText || null, have: progressOf(rec, k, c), reward: k.reward, done });
-    return { id: s.id, rep: t.rep, lv, chain: task(ks.chain, t.cp, false), daily: task(ks.daily, t.dp, !!t.ddone), shop };
+    const ks = tasksOf(s.id, t, day), task = (k, c, done, tr) => ({ n: k.n, kind: k.kind, found: !!k.found, text: k.text, need: k.need, unit: k.unit, cond: k.condText || null, have: progressOf(rec, k, c, tr), reward: k.reward, done });
+    return { id: s.id, rep: t.rep, lv, chain: task(ks.chain, t.cp, false, t), daily: task(ks.daily, t.dp, !!t.ddone), shop };
   });
   return { traders, perks: rec.perks, items: rec.items, recipes: rec.recipes };
 }
