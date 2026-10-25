@@ -11,7 +11,7 @@ import { ensureTrade, giveTrade, bump, tripEvents } from "./lounge-trade.js";
 import { ensureReq, giveReq } from "./lounge-req.js";
 import { ensurePet, autoFill, fighterOf, mateOf, givePet, equippedUids, moveOldSlots } from "./lounge-pet.js";
 
-export const LV_MAX = 40;                                  // ペットの Lv の 上限（案）
+export const LV_MAX = Infinity;                            // ペットと なかまの Lv に 上限は ない（鹿さんの決め、2026-10-25。前は 40。ステータスも Lv と いっしょに 伸びつづける）
 // つぎの Lv までの 経験値（案）：Lv×Lv÷2。Lv10 までは 半分（はじめは ひとりなので。鹿さんの決め、2026-10-24）
 // 10 分の 派遣 1 回で ハルス街道 Lv3 ひとり 1・3 体 6、水晶洞窟 Lv30 3 体 105 くらい
 export const expNeed = (lv) => Math.ceil((lv * lv) / (lv < 10 ? 4 : 2));
@@ -371,10 +371,9 @@ export function autoSellSet(rec, b) {
   rec.autoSell = { star, how: b.how };
   return { ok: true, autoSell: rec.autoSell };
 }
-function levelUp(x, exp) {
+export function levelUp(x, exp) {   // 試験からも よぶ
   let up = 0; x.exp = (x.exp || 0) + exp;
-  while (x.lv < LV_MAX && x.exp >= expNeed(x.lv)) { x.exp -= expNeed(x.lv); x.lv++; up++; }
-  if (x.lv >= LV_MAX) x.exp = 0;
+  while (x.lv < LV_MAX && x.exp >= expNeed(x.lv)) { x.exp -= expNeed(x.lv); x.lv++; up++; }   // いる 経験値は Lv の 2 乗で ふえるので、1 回で 上がる 数は かぎられる
   return up;
 }
 // 見せる 形（帰る 前は ごほうびを 出さない）
