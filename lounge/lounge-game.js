@@ -111,7 +111,7 @@ export function give(rec, g, now) {
   if (g.equip) putEquip(rec, g.equip, now);
   if (g.credits) rec.credits += g.credits;
   if (g.snacks) rec.snacks += g.snacks;
-  if (g.hideout) rec.hideout[g.hideout] = Math.min(3, (rec.hideout[g.hideout] || 0) + 1);
+  if (g.hideout) { const f = FACILITIES.find((x) => x.id === g.hideout); rec.hideout[g.hideout] = Math.min(f ? f.lv.length : 3, (rec.hideout[g.hideout] || 0) + 1); }   // 上限は その 施設の Lv の 数（前は 3 で 止まり、Lv4 は 払うだけで 上がらなかった。2026-10-26）
   if (g.tame) { const c = rec.tamed.find((x) => x.uid === g.tame[0]); if (c) c.gauge = Math.min(SNACK_NEED[rankOf(c)], c.gauge + g.tame[1]); }
   if (g.lab && !rec.lab.includes(g.lab)) rec.lab.push(g.lab);
   if (g.voidTrip) { const t = rec.trips.find((x) => x.uid === g.voidTrip); if (t && !t.done) t.void = 1; }   // 派遣の 玉が あとで 払えなかったと わかった（返事が おくれた とき）：その 派遣の 収穫は なし
