@@ -1,8 +1,9 @@
 // 両替（玉・クレジット・リソース。鹿さんの決め、2026-10-25）
 // - 玉 ⇄ クレジット：1 対 1。手数料 1 割（10 の 倍数で わたす）
-// - リソース：1 を 玉 5,000 か クレジット 5,000 で 買う。売ると 玉 2,000 か クレジット 2,000（レートは かなり 高く）
+// - リソース：1 を 玉 5,000 か クレジット 5,000 で 買う。売れない（2026-10-26 鹿さんの決め。前は 1 こ 2,000 で 売れたが、ガチャの 被りで もらう
+//   リソース（★4 で 20・★5 で 50）を 売ると ガチャ 1 回 500 玉より ずっと 多く もどり、ガチャ → 売る → ガチャ で 玉が ふえつづけた）
 // 玉と リソースは 帳簿（viewer.js の charge）で 動かす。クレジットは 記録の 中（take で 引き、払えなかったら refund で もどす）
-export const RES_BUY = 5000, RES_SELL = 2000, SWAP_FEE = 0.1;
+export const RES_BUY = 5000, SWAP_FEE = 0.1;
 export const CUR = ["balls", "credits", "res"];
 export const SWAP_MAX = { coin: 1000000, res: 100 };   // 1 回に わたせる 玉・クレジット、1 回に 買う・売る リソース
 
@@ -13,14 +14,14 @@ export function swapQuote(from, to, n) {
     if (n % 10 || n > SWAP_MAX.coin) return null;
     return { give: n, get: Math.floor(n * (1 - SWAP_FEE)) };
   }
-  if (n > SWAP_MAX.res) return null;
-  return to === "res" ? { give: n * RES_BUY, get: n } : { give: n, get: n * RES_SELL };
+  if (from === "res" || n > SWAP_MAX.res) return null;   // リソースは 買うだけ
+  return { give: n * RES_BUY, get: n };
 }
 
 // 計画（charge に わたす 形）。b：{ from, to, n }
 export function swapPlan(rec, b) {
   const from = String(b.from), to = String(b.to), q = swapQuote(from, to, b.n);
-  if (!q) return { ok: false, why: from !== "res" && to !== "res" ? "10 の 倍数で、100 万まで" : "リソースは 1〜100 こ" };
+  if (!q) return { ok: false, why: from === "res" ? "リソースは 売れない（両替は 買うだけ）" : to !== "res" ? "10 の 倍数で、100 万まで" : "リソースは 1〜100 こ" };
   if (from === "credits" && rec.credits < q.give) return { ok: false, why: `足りない：クレジット あと ${(q.give - rec.credits).toLocaleString("ja-JP")}` };
   const costs = [], take = [], grant = {}, refund = {};
   if (from === "credits") { take.push(() => { rec.credits -= q.give; }); refund.credits = q.give; }

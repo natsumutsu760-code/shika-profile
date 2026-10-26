@@ -11,7 +11,7 @@ export const WORDS = {
   "玉と リソースが まだ わかりません（配信で 1 回 チャットすると わかります）": "Balls and Resources aren't known yet (chat once on stream to see them)",
   "とじる": "Close", "わたす": "Pay", "もらう": "Get", "数": "Amount", "ぜんぶ": "All", "わたす 玉": "Balls to pay", "わたす クレジット": "Credits to pay",
   "リソースの 数": "Number of Resources", "1万": "10K", "から": "to", "10 の 倍数で（100 万まで）": "In multiples of 10 (up to 1M)", "リソースは 1〜100 こ": "1–100 Resources",
-  "手数料 1 割": "10% fee", "できませんでした": "Couldn't do that",
+  "手数料 1 割": "10% fee", "リソースは 売れない（両替は 買うだけ）": "Resources can't be sold (you can only buy them)", "できませんでした": "Couldn't do that",
   "ためしの 門番を 読めません（stream-layouts/ を まるごと 出す サーバーで 開いて ください）": "Can't load the test gatekeeper (open it from a server that serves all of stream-layouts/)",
   "入れません": "Can't enter", "門番に つながりません。もう 1 回 押して ください": "Can't reach the server. Please tap again",
   "たしかめて います…": "Checking…", "配信の 画面の 返事を 待って います。つぎに 開いた ときに 決まります": "Waiting for the stream to reply. It'll be settled next time you open this",
@@ -60,7 +60,7 @@ export const RULES = [
   // 足りない 物（「足りない：きれいな小石 あと 8、ゴブリンのナイフ あと 2、ほか 1 こ」）
   [/^足りない：(.+)$/, (m, p) => { const xs = m[1].split("、").map((x) => { let k = x.match(/^(.+) あと ([\d,]+)$/); if (k) { const a = p(k[1]); return a && `${a} ×${k[2]}`; } k = x.match(/^ほか ([\d,]+) こ$/); return k ? `+${k[1]} more` : p(x); }); return xs.every(Boolean) ? "Missing: " + xs.join(", ") : null; }],
   [/^リソースが 足りない：あと ([\d,]+)$/, (m) => `Not enough Resources: ${m[1]} more`],
-  [/^リソース 1 ＝ (.+) ([\d,]+)$/, (m, p) => `1 Resource = ${m[2]} ${p(m[1])}`], [/^リソース 1 → (.+) ([\d,]+)$/, (m, p) => `1 Resource → ${m[2]} ${p(m[1])}`],
+  [/^リソース 1 ＝ (.+) ([\d,]+)（リソースは 売れない）$/, (m, p) => `1 Resource = ${m[2]} ${p(m[1])} (Resources can't be sold)`], [/^リソース 1 ＝ (.+) ([\d,]+)$/, (m, p) => `1 Resource = ${m[2]} ${p(m[1])}`], [/^リソース 1 → (.+) ([\d,]+)$/, (m, p) => `1 Resource → ${m[2]} ${p(m[1])}`],
   [/^(.+) の 部屋$/, (m) => `${m[1]}'s room`], [/^(.+) ／ (.+) の相棒$/, (m, p) => p(m[1]) && `${p(m[1])} / ${m[2]}'s partner`], [/^(.+) の相棒$/, (m) => `${m[1]}'s partner`],
   [/^(.+)の 職業を えらぶ$/, (m, p) => `Choose ${p(m[1]) || m[1]}'s job`],
   [/^(.+)を しまった$/, (m, p) => p(m[1]) && `Put away the ${p(m[1])}`],

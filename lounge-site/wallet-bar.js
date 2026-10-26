@@ -4,7 +4,7 @@
 // 札を 押すと 両替（玉 ⇄ クレジットは 1 対 1・手数料 1 割、リソースは 5,000 で 買う・2,000 で 売る。計算は 門番の lounge-money.js と 同じ）
 import { me, act, busy, lastPurse, waitText } from "./lounge-client.js";
 
-const RES_BUY = 5000, RES_SELL = 2000, FEE = 0.1;
+const RES_BUY = 5000, FEE = 0.1;   // リソースは 買うだけ（売れない。門番の lounge-money.js と 同じ）
 const CUR = { balls: { label: "玉", c: "#2EA8FF" }, res: { label: "リソース", c: "#8E6CFF" }, credits: { label: "クレジット", c: "#13A36A" } };
 const ICON = {
   balls: `<svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="8" fill="#2EA8FF"/><circle cx="7.4" cy="7" r="2.6" fill="#fff" opacity=".75"/></svg>`,
@@ -60,8 +60,8 @@ function addCss() { if (document.getElementById("wb-css")) return; const st = do
 export function quote(from, to, n) {
   if (!CUR[from] || !CUR[to] || from === to || !Number.isInteger(n) || n < 1) return null;
   if (from !== "res" && to !== "res") return n % 10 || n > 1e6 ? null : { give: n, get: Math.floor(n * (1 - FEE)) };
-  if (n > 100) return null;
-  return to === "res" ? { give: n * RES_BUY, get: n } : { give: n, get: n * RES_SELL };
+  if (from === "res" || n > 100) return null;   // リソースは 売れない
+  return { give: n * RES_BUY, get: n };
 }
 
 let P = null, bars = [];
@@ -98,19 +98,19 @@ const isCoin = () => S.from !== "res" && S.to !== "res";
 function maxN() {
   const h = have(S.from); if (h == null) return 0;
   if (isCoin()) return Math.min(1e6, Math.floor(h / 10) * 10);
-  return Math.min(100, S.to === "res" ? Math.floor(h / RES_BUY) : h);
+  return Math.min(100, Math.floor(h / RES_BUY));
 }
 function draw() {
   const f = dlg.querySelector("form"), q = quote(S.from, S.to, S.n), h = have(S.from);
   const seg = (role, list) => list.map((k) => `<button type="button" data-${role}="${k}" aria-pressed="${S[role] === k}">${ICON[k]}${CUR[k].label}${role === "from" ? `<small>${have(k) == null ? "？" : short(have(k))}</small>` : ""}</button>`).join("");
   const short_ = !q ? "" : h == null ? "玉と リソースが まだ わかりません（配信で 1 回 チャットすると わかります）" : q.give > h ? `足りない：${CUR[S.from].label} あと ${fmt(q.give - h)}` : "";
   f.innerHTML = `<header><h2>両替</h2><button type="button" class="wbd-close" data-close aria-label="とじる">×</button></header>
-    <div class="wbd-row"><span>わたす</span><div class="wbd-seg" role="group" aria-label="わたす">${seg("from", Object.keys(CUR))}</div></div>
+    <div class="wbd-row"><span>わたす</span><div class="wbd-seg" role="group" aria-label="わたす">${seg("from", Object.keys(CUR).filter((k) => k !== "res"))}</div></div>
     <div class="wbd-row"><span>もらう</span><div class="wbd-seg" role="group" aria-label="もらう">${seg("to", Object.keys(CUR).filter((k) => k !== S.from))}</div></div>
     <div class="wbd-row"><span>数</span><div class="wbd-n"><input id="wbd-n" inputmode="numeric" autocomplete="off" aria-label="${isCoin() ? `わたす ${CUR[S.from].label}` : "リソースの 数"}" value="${S.n}"><span class="u">${isCoin() ? CUR[S.from].label : "リソース"}</span></div></div>
     <div class="wbd-q">${(isCoin() ? [[100, "100"], [1000, "1,000"], [10000, "1万"]] : [[1, "1"], [5, "5"], [10, "10"]]).map(([v, t]) => `<button type="button" data-q="${v}">${t}</button>`).join("")}<button type="button" data-q="max">ぜんぶ</button></div>
     <div class="wbd-sum" aria-live="polite">${q ? `<span>${ICON[S.from]}${fmt(q.give)}</span><span class="ar" aria-label="から">→</span><span>${ICON[S.to]}${fmt(q.get)}</span>` : `<span style="font:700 14px/1.4 var(--jp, sans-serif);color:#6A7394">${isCoin() ? "10 の 倍数で（100 万まで）" : "リソースは 1〜100 こ"}</span>`}</div>
-    <p class="wbd-note">${isCoin() ? "手数料 1 割" : S.to === "res" ? `リソース 1 ＝ ${CUR[S.from].label} ${fmt(RES_BUY)}` : `リソース 1 → ${CUR[S.to].label} ${fmt(RES_SELL)}`}</p>
+    <p class="wbd-note">${isCoin() ? "手数料 1 割" : `リソース 1 ＝ ${CUR[S.from].label} ${fmt(RES_BUY)}（リソースは 売れない）`}</p>
     <button type="submit" class="wbd-go" ${q && !short_ ? "" : "disabled"}>両替する</button>
     <p class="wbd-why" id="wbd-why" role="status">${short_}</p>`;
 }
