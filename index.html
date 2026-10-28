@@ -999,6 +999,7 @@ body.live-on .floor::before, body.live-on .isle { animation: none; }
     ["そのほか", "#22CC88", [["!けいじばん こんにちは", "ラウンジの掲示板に書く（1 分に 1 回・120 字まで）"], ["!バグ報告 ガチャのあと画面が止まった", "不具合を配信者に知らせる（30 秒に 1 回・300 字まで）"], ["!花火", "画面に花火（!ハート でハート）"], [null, "888 で拍手、草 で草が生える"], ["!モノリンク", "MONO LINK の URL をチャットで受け取る（!サイト でも）"]]]
   ];
   var NOTES = [
+    ["MONO LINK", "2026-10-28", ["ログインが、タブを閉じたり新しいタブで開いたりするたびに外れていたのを直しました。一度ログインすると、この端末ではログインしたままになります（ほかの人と使う端末では、使い終わったら「ログアウト」を押してください）"]],
     ["MONO LINK", "2026-10-28", ["MONO LINK の大工事のため、しばらくのあいだ、ラウンジの部屋とショップ（両替も）だけ使えるようにしました。ペット・派遣・隠れ家・DEEP LINK/: などは工事中です。派遣中のペットや持ち物は消えません。工事が終わったらお知らせします"]],
     ["MONO LINK", "2026-10-28", ["技の能力（カンチョーの DEX など）を上げても、ダメージがほとんど変わらなかった不具合を直しました。能力がそのまま効きます（能力を 2 倍にするとダメージもだいたい 2 倍。守りの能力も同じように効きます）", "配合の「系統」が 16 種族になりました（ゼリー系・ドラゴン系・獣系・悪魔系・不死系・鉱物系・植物系・虫系・神聖系・霊系・鳥系・水棲系・人型系・妖魔系・怪異系・異形系）", "配合でしか生まれない「配合限定」のモンスターが 80 種ふえました（F〜SS の 8 ランクに 10 種ずつ）。決まった組み合わせの「特殊配合」と、祖父母 4 体で決まる「4 体配合」もあります", "配合で 10% の確率で「双子」が生まれます。双子どうし・きょうだいどうしの「近親配合」では、いちばん高い力を 50% 受けつぎ、ほかの力は 8 割になります"]],
     ["MONO LINK", "2026-10-26", ["施設の Lv4 を建てても、素材だけ使われて Lv3 のままになる不具合を直しました（地図室などの Lv4 が対象。報告ありがとうございます）。すでに被害にあった方は、使った素材などをお返しして Lv4 にしますので、お知らせください"]],
@@ -2336,7 +2337,7 @@ var ShikaWheel = (function () {
   // コマンドを送る。1 秒たっていなければ、最後に押したものを 1 つだけ取っておいて、空いたら送る
   function send(text, btn, after, again, out) {
     out = out || tell;
-    var tok = ss(TOK); if (!tok) { showGate("ログインの期限が切れました。もう一度ログインしてください。"); return; }
+    var tok = tk(); if (!tok) { showGate("ログインの期限が切れました。もう一度ログインしてください。"); return; }
     var now = Date.now();
     if (now < nextAt) {
       if (waiting && waiting.btn && waiting.btn !== btn) waiting.btn.classList.remove("queued");
@@ -2353,7 +2354,7 @@ var ShikaWheel = (function () {
         if (j.ok) { setObs(1); out(text + " を送りました", "ok"); if (after) after(); return; }
         if (j.code === "C01" && !again) { nextAt = Date.now() + COOL; send(text, btn, after, true, out); return; }
         if (j.code === "C02") setObs(0);
-        if (x.s === 401) { ss(TOK, null); showGate("ログインの期限が切れました。もう一度ログインしてください。"); return; }
+        if (x.s === 401) { tk(null); showGate("ログインの期限が切れました。もう一度ログインしてください。"); return; }
         out((j.code ? j.code + "　" : "") + (j.code === "C01" ? "1 秒に 1 回までです（ほかのタブでも押していませんか）" : j.why || "送れませんでした（HTTP " + x.s + "）"), "err");
       }, function () { out("いまはつながりません。少し待ってからもう一度押してください", "err"); });
   }
@@ -2420,7 +2421,7 @@ var ShikaWheel = (function () {
   var HK_OF = { "dungeon.html": "trip", "status.html": "pet", "skilltree.html": "pet", "gambit.html": "pet", "equip.html": "pet", "tame.html": "pet", "quiz.html": "pet" }; // ほかはラウンジ
   var hk = { on: false, tab: "trip", me: null, at: 0, busy: false, endT: 0 };
   function hkLoad() {
-    var tok = ss(TOK); if (!tok || hk.busy) return; hk.busy = true;
+    var tok = tk(); if (!tok || hk.busy) return; hk.busy = true;
     fetch("/api/me", { headers: { Authorization: "Bearer " + tok }, cache: "no-store" }).then(function (r) { return r.json(); })
       .then(function (j) { if (j && !j.code) hk.me = j; }, function () {})
       .then(function () { hk.busy = false; hk.at = Date.now(); hkMarks(); });
@@ -2913,7 +2914,7 @@ var ShikaWheel = (function () {
   function saveLiked() { lsSet("ml-liked", JSON.stringify(Object.keys(liked).slice(-300))); }
   function lwsOpen() {
     if (!liveOpen || (lws && lws.readyState <= 1)) return;
-    var tok = ss(TOK); if (!tok) return;
+    var tok = tk(); if (!tok) return;
     fetch("/api/ticket", { method: "POST", headers: { Authorization: "Bearer " + tok }, cache: "no-store" }).then(function (r) { return r.ok ? r.json() : null; }).then(function (j) {
       if (!liveOpen || (lws && lws.readyState <= 1)) return;
       if (!j || !j.ticket) { lwsLater(); return; }
@@ -2969,14 +2970,14 @@ var ShikaWheel = (function () {
   var hintT = 0;
   function hint(msg, err) { var el = $("say-hint"); el.textContent = msg || ""; el.className = "hint" + (err ? " err" : ""); clearTimeout(hintT); if (msg) hintT = setTimeout(function () { hint(""); }, err ? 9000 : 4000); }
   function needScope() { $("say-form").hidden = true; $("say-ask").hidden = false; hint(""); }
-  function canWrite() { var sc = ss("ml-scope"); return sc == null || sc.indexOf("user:write:chat") >= 0; }
+  function canWrite() { var sc = keep("ml-scope"); return sc == null || sc.indexOf("user:write:chat") >= 0; }
   $("say-login").addEventListener("click", function () { lsSet("ml-chat", "1"); login(); });
   $("say-form").addEventListener("submit", function (e) {
     e.preventDefault();
     var inp = $("say-in"), text = inp.value.trim(), bt = $("say-form").querySelector("button");
     if (!text) return;
     if (/^[!！]/.test(text)) { send("!" + text.slice(1), bt, function () { inp.value = ""; }, false, function (m, k) { hint(m, k === "err"); }); return; }
-    var tok = ss(TOK); if (!tok) return;
+    var tok = tk(); if (!tok) return;
     bt.disabled = true;
     conf().then(function (c) {
       if (!c.clientId || !c.owner || !meId) { hint("いまはコメントできません。少し待ってからためしてください", true); return; }
@@ -3059,6 +3060,9 @@ var ShikaWheel = (function () {
   // ---- 入口：Twitch でログイン → 門番（/api/data）がフォロー・BAN・ブロックを確かめて記録をくれる ----
   var TOK = "ml-token", ST = "ml-state", BACK = "ml-back";
   function ss(k, v) { try { if (v === undefined) return sessionStorage.getItem(k); if (v === null) sessionStorage.removeItem(k); else sessionStorage.setItem(k, v); } catch (e) { return null; } }
+  // ログインの札（と許可の範囲）はこの端末に残す（タブを閉じても外れない。鹿さんの頼み、2026-10-28）。前の sessionStorage の分も読む
+  function keep(k, v) { try { if (v === undefined) { var a = localStorage.getItem(k); return a != null ? a : sessionStorage.getItem(k); } sessionStorage.removeItem(k); if (v === null) localStorage.removeItem(k); else localStorage.setItem(k, v); } catch (e) { return null; } }
+  function tk(v) { return keep(TOK, v); }
   // ---- 招待コード（docs/invite.md）：招待リンクの ?inv= を控える・ログイン画面のコードの欄（まだフォローしていない人だけ）・自分のページの札・成立のお知らせ ----
   var IVT = "ml-inv", ivtInfo = null, ivtT = 0;
   function ivtFmt(c) { c = String(c || ""); return c.length === 6 ? c.slice(0, 3) + "-" + c.slice(3) : c; }
@@ -3072,7 +3076,7 @@ var ShikaWheel = (function () {
   })();
   // ログイン画面：ログインの前は「預かっている招待コード」の一言、フォローしていない（F01）ときはコードの欄
   function ivtGate(follow) {
-    var c = lsGet(IVT) || "", tok = ss(TOK), note = $("ivt-note");
+    var c = lsGet(IVT) || "", tok = tk(), note = $("ivt-note");
     note.hidden = !(c && !tok); if (!note.hidden) note.textContent = "招待コード " + ivtFmt(c) + " を預かっています。フォローする前に、先にログインしてください";
     $("gate-follow").style.display = note.hidden ? "" : "none";   // 先にフォローするとコードが使えなくなるので、ログインの前は「フォローする」を出さない
     $("ivt-gate").hidden = !(follow && tok);
@@ -3080,7 +3084,7 @@ var ShikaWheel = (function () {
   }
   $("ivt-gate").addEventListener("submit", function (e) {
     e.preventDefault();
-    var tok = ss(TOK), c = ivtClean($("ivt-in").value), msg = $("ivt-msg"), b = $("ivt-go");
+    var tok = tk(), c = ivtClean($("ivt-in").value), msg = $("ivt-msg"), b = $("ivt-go");
     var say = function (t, good) { msg.textContent = t; msg.className = "ivt-msg " + (good ? "ok" : "ng"); };
     if (!tok) { say("先にログインしてください"); return; }
     if (!/^[A-Z0-9]{6}$/.test(c)) { say("招待コードは英字と数字の 6 文字です"); return; }
@@ -3131,7 +3135,7 @@ var ShikaWheel = (function () {
   // 配信者の記録：だれがだれを招待したか・Twitch のアカウントを作って何日か（7 日以内は赤。サブアカウントを見つけるため）
   function ivtLog() {
     var ol = $("ivt-log"), at = function (t) { return new Date(t).toLocaleString("ja-JP", { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" }); };
-    fetch("/api/invite/log", { headers: { Authorization: "Bearer " + ss(TOK) }, cache: "no-store" }).then(function (r) { return r.ok ? r.json() : null; }).then(function (j) {
+    fetch("/api/invite/log", { headers: { Authorization: "Bearer " + tk() }, cache: "no-store" }).then(function (r) { return r.ok ? r.json() : null; }).then(function (j) {
       var L = (j && j.log) || [];
       ol.innerHTML = L.length ? L.slice(0, 100).map(function (e) {
         var age = e.created ? Math.floor((e.t - Date.parse(e.created)) / 864e5) : NaN;
@@ -3171,8 +3175,9 @@ var ShikaWheel = (function () {
     }, function () { showGate("いまはつながりません。少し待ってからもう一度押してください。"); });
   }
   $("login").addEventListener("click", function () { login(); });
-  $("logout").addEventListener("click", function () { ss(TOK, null); ss("ml-scope", null); location.replace(location.pathname); });
+  $("logout").addEventListener("click", function () { tk(null); keep("ml-scope", null); location.replace(location.pathname); });
   var loginErr = null; // ログインの途中で起きたこと（コード・理由）
+  var away = false; // ログインのあと、ほかのページ（ml-page）へ移るところ
   (function takeToken() { // Twitch から戻ってきたとき
     var h = location.hash.slice(1), qs = location.search.slice(1), q = new URLSearchParams(h.indexOf("access_token=") >= 0 || h.indexOf("error=") >= 0 ? h : qs);
     if (!q.get("access_token") && !q.get("error")) return;
@@ -3182,12 +3187,15 @@ var ShikaWheel = (function () {
       loginErr = q.get("error") === "access_denied" ? { code: "L01", why: "Twitch のログインがキャンセルされました", info: { detail: desc } } : { code: "L02", why: "Twitch のログインでエラーが起きました", info: { detail: desc } };
     } else if (!st) loginErr = { code: "L03", why: "ログインを始めたページと、戻ってきたページが違います", info: { detail: "Twitch アプリや X などのアプリの中ではなく、Safari や Chrome でこのページを開いて、もう一度ログインしてください" } };
     else if (q.get("state") !== st) loginErr = { code: "L04", why: "ログインの確認用の印が合いません", info: { detail: "もう一度ログインしてください。続くときは、ほかのタブでこのページを閉じてからためしてください" } };
-    else { ss(TOK, q.get("access_token")); ss("ml-scope", q.get("scope") || ""); }
+    else { tk(q.get("access_token")); keep("ml-scope", q.get("scope") || ""); }
     ss(ST, null);
+    var page = ss("ml-page"); ss("ml-page", null);   // ラウンジのページ（サポート窓口など）からログインしたときは、そのページに戻す（同じサイトの /lounge/ だけ）
+    if (!loginErr && page && /^\/lounge\/[\w-]+\.html(\?[\w=&-]*)?$/.test(page)) { away = true; ss(BACK, null); location.replace(page); return; }
     history.replaceState(null, "", location.pathname + (ss(BACK) || "")); ss(BACK, null);
   })();
   (function enter() {
-    var tok = ss(TOK);
+    if (away) return;
+    var tok = tk();
     if (!tok && loginErr) { showGate("ログインできませんでした。", false, loginErr); return; }
     if (!tok) { showGate("deerman_247 をフォローしている人のラウンジです。Twitch でログインして入ってください。"); return; }
     fetch("/api/data", { headers: { Authorization: "Bearer " + tok }, cache: "no-store" }).then(function (r) {
@@ -3195,7 +3203,7 @@ var ShikaWheel = (function () {
     }).then(function (x) {
       if (x.s === 200 && x.j) { here = x.j.here || []; var ml = (x.j.me && x.j.me.login) || "", mh = here.filter(function (h) { return h.l && h.l === ml; })[0]; meName = (mh && mh.n) || ml; meLogin = ml; meId = String((x.j.me && x.j.me.id) || ""); setObs(x.j.obs); $("logout").hidden = false; boot(x.j.d); done(); stay(tok); ivtNow(tok); walletNow(); return; }
       var e = x.j && x.j.error, err = x.j && x.j.code ? { code: x.j.code, why: x.j.why, info: x.j.info } : { code: "N02", why: "門番から思わぬ返事がありました", info: { detail: "HTTP " + x.s } };
-      if (x.s === 401) { ss(TOK, null); showGate(err.code === "A04" ? "フォローしているかを確かめるため、もう一度ログインしてください（Twitch で「フォローしているチャンネルを見る」を許可してください）。" : err.code === "A03" ? "このラウンジのログインではありません。もう一度ログインしてください。" : "ログインの期限が切れました。もう一度ログインしてください。", false, err.code === "A02" ? null : err); return; }
+      if (x.s === 401) { tk(null); showGate(err.code === "A04" ? "フォローしているかを確かめるため、もう一度ログインしてください（Twitch で「フォローしているチャンネルを見る」を許可してください）。" : err.code === "A03" ? "このラウンジのログインではありません。もう一度ログインしてください。" : "ログインの期限が切れました。もう一度ログインしてください。", false, err.code === "A02" ? null : err); return; }
       if (e === "follow") showGate("deerman_247 のフォロワーの一覧に見つかりませんでした。フォローしていないときは、フォローして 1 分ほど待ってから、もう一度ログインしてください。", true, err);
       else if (e === "denied") showGate("このラウンジには入れません。", false, err);
       else if (e === "notready") showGate("ラウンジはまだ準備中です。配信が始まると開きます。", false, err);
@@ -3213,7 +3221,7 @@ var ShikaWheel = (function () {
     function ping() {
       if (busy || document.hidden) return; busy = true; last = Date.now();
       fetch("/api/ping", { headers: { Authorization: "Bearer " + tok }, cache: "no-store" }).then(function (r) {
-        if (r.status === 401) { ss(TOK, null); return null; }
+        if (r.status === 401) { tk(null); return null; }
         return r.ok ? r.json() : null;
       }).then(function (j) { if (j && j.here) { here = j.here; buildPlaza(); } if (j && j.obs != null) setObs(j.obs); }, function () {}).then(function () { busy = false; });
     }

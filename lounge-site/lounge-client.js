@@ -1,9 +1,23 @@
 // 画面から 門番（プライベートラウンジの 入口）へ 頼む
-// - 本物（?real か window.MONO_LINK_REAL）：同じ 場所の /api/...。Twitch の 札は sessionStorage の ml-token（MONO LINK の サイトと 同じ）
+// - 本物（?real か window.MONO_LINK_REAL）：同じ 場所の /api/...。Twitch の 札は localStorage の ml-token（MONO LINK の サイトと 同じ。前の sessionStorage の 札も 読む）
 // - 見本：門番の 部品（../lounge-server）を この ブラウザの 中で 動かす（lounge-demo.js。記録は この ブラウザに しまう）
 // 頼みには 1 回ごとの 番号（op）を つける。つながらなかったら 同じ 番号で 1 回だけ やりなおす（門番は 同じ 番号を 2 回 しない）
 const REAL = new URLSearchParams(location.search).has("real") || !!window.MONO_LINK_REAL;
 let demo = null;
+// ログインの 札：この 端末に のこす（タブを 閉じても 外れない。鹿さんの 頼み、2026-10-28）。書くのは サイトの トップ（index.html）
+const token = () => { try { return localStorage.getItem("ml-token") || sessionStorage.getItem("ml-token") || ""; } catch (e) { return ""; } };
+export const loggedIn = () => !!token();
+// この ページから Twitch で ログインする。Twitch の 戻り先は サイトの トップ（登録した 1 つだけ）で、トップが 札を しまって ml-page の ページに もどす
+export async function startLogin() {
+  const c = await fetch("/api/config", { cache: "no-store" }).then((r) => r.json()).catch(() => ({}));
+  if (!c.clientId) return false;
+  const st = [...crypto.getRandomValues(new Uint8Array(16))].map((b) => b.toString(16).padStart(2, "0")).join("");
+  let chat = false; try { chat = localStorage.getItem("ml-chat") === "1"; } catch (e) {}
+  try { sessionStorage.setItem("ml-state", st); sessionStorage.setItem("ml-page", location.pathname + location.search); } catch (e) { return false; }
+  location.href = "https://id.twitch.tv/oauth2/authorize?response_type=token&client_id=" + encodeURIComponent(c.clientId) + "&redirect_uri=" + encodeURIComponent(location.origin + "/")
+    + "&scope=" + encodeURIComponent("user:read:follows" + (chat ? " user:write:chat" : "")) + "&state=" + st;
+  return true;
+}
 
 async function call(path, body) {
   if (!REAL) {
@@ -11,7 +25,7 @@ async function call(path, body) {
     catch (e) { return { ok: false, denied: true, why: "ためしの 門番を 読めません（stream-layouts/ を まるごと 出す サーバーで 開いて ください）" }; }
     return demo.call(path, body);
   }
-  let tok = ""; try { tok = sessionStorage.getItem("ml-token") || ""; } catch (e) {}
+  const tok = token();
   const r = await fetch(path, { method: body ? "POST" : "GET", cache: "no-store",
     headers: { Authorization: "Bearer " + tok, ...(body ? { "Content-Type": "application/json" } : {}) }, body: body ? JSON.stringify(body) : undefined });
   const j = await r.json().catch(() => ({}));

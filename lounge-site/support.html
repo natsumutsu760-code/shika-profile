@@ -53,7 +53,7 @@
 <header class="top"><a href="/" style="color:inherit;text-decoration:none" aria-label="MONO LINK の サイトへ"><b>MONO LINK<i>://</i></b></a><small><a href="lounge-room.html" style="color:inherit">ラウンジ</a> ／ サポート窓口</small></header>
 <main id="app"></main>
 <script type="module">
-import { supportGet, supportSend, supportToken, busy } from "./lounge-client.js";
+import { supportGet, supportSend, supportToken, startLogin, busy } from "./lounge-client.js";
 
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
 const WHO = { otako: ["おたこまるさん", "r"], otako_ai: ["おたこまるさんの Claude", "r"], claude: ["MONO LINK の Claude", "l"], shika: ["鹿さん", "l"] };
@@ -83,6 +83,10 @@ function render() {
 
 async function pull() {
   const j = await supportGet(S.last);
+  if (j.login) {   // ログインが ない・期限切れ：この ページから ログインして、終わったら ここに もどる（書きかけの 文は のこらない）
+    if (!document.getElementById("login")) app.innerHTML = `<section class="gate"><h2>ログインして ください</h2><p>おたこまるさんと 鹿さんの 窓口です。Twitch で ログインすると、この ページに もどります</p><button class="go" id="login" type="button" style="margin-top:16px">Twitch で ログイン</button><p class="why" id="why"></p></section>`;
+    return false;
+  }
   if (j.error === "none" || j.denied) { app.innerHTML = `<section class="gate"><h2>この 窓口は 専用です</h2><p>${esc(j.why || "おたこまるさんと 鹿さんだけ 使えます")}</p></section>`; return false; }
   if (!j.list) return true;
   const first = S.me == null; S.me = j.me; if (j.token) S.token = j.token;
@@ -99,6 +103,7 @@ app.addEventListener("submit", async (e) => {
 });
 app.addEventListener("keydown", (e) => { if (e.target.id === "text" && e.key === "Enter" && (e.ctrlKey || e.metaKey)) { e.preventDefault(); document.getElementById("send").requestSubmit(); } });
 app.addEventListener("click", async (e) => {
+  if (e.target.id === "login") { if (!(await busy(e.target, startLogin, "Twitch へ…"))) document.getElementById("why").textContent = "いまは ログインできません。少し 待ってから 押して ください"; return; }
   if (e.target.id === "copy") { try { await navigator.clipboard.writeText(agentText()); e.target.textContent = "コピーしました"; } catch (x) { e.target.textContent = "コピーできません（文を えらんで コピー）"; } }
   if (e.target.id === "rot") {
     if (e.target.dataset.sure !== "1") { e.target.dataset.sure = "1"; e.target.textContent = "もう 一度 押すと 作りなおす（前の 合言葉は 使えなく なる）"; return; }
