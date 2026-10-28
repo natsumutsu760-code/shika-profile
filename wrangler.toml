@@ -31,3 +31,8 @@ class_name = "Market"
 [[migrations]]
 tag = "v2"
 new_sqlite_classes = ["Viewer", "Market"]
+
+# サポート窓口の 知らせ先（GitHub の 受付の PR。こちらの Claude 以外が 窓口に 書くと 1 行 コメントする）
+# トークンは Cloudflare の 秘密 GH_INBOX_TOKEN（鹿さんが 入れる。ここには 書かない）。どちらか ない ときは 何も しない
+[vars]
+GH_INBOX = "natsumutsu760-code/mono-link-inbox#1"

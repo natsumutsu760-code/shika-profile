@@ -4,6 +4,9 @@
 // - おたこまるさんの Claude：窓口の 合言葉（おたこまるさんの 画面に だけ 出る。/api/support/agent）
 // - こちらの Claude：門番の 鍵 UPLOAD_KEY（/api/support/claude）
 // 文は 報告・相談。パッチ・アップデートの 最終決定は 鹿さん（CLAUDE.md・Obsidian の「絶対のルール」）。画面は かならず エスケープして 出す
+// 知らせ：こちらの Claude 以外が 書いたら、GitHub の 受付の PR に 1 行 コメントする（その コメントで こちらの Claude の セッションが 起きる）
+//   env.GH_INBOX ＝ "owner/repo#番号"・env.GH_INBOX_TOKEN ＝ その リポジトリだけの トークン（鹿さんが Cloudflare の 秘密に 入れる）。どちらか ない ときは 何も しない
+//   コメントには 文の 中身を 書かない（番号と だれかだけ。中身は 窓口で 読む）
 const OTAKO = "420214272", SHIKA = "1140507103";
 const KEY = "support:" + OTAKO, TOK = "support:tok", MAX = 300, LEN = 4000, GAP = 2000;
 const J = (o, status = 200) => new Response(JSON.stringify(o), { status, headers: { "Content-Type": "application/json; charset=utf-8", "Cache-Control": "no-store" } });
@@ -18,6 +21,18 @@ async function same(a, b) {
 }
 const newTok = () => [...crypto.getRandomValues(new Uint8Array(24))].map((b) => b.toString(16).padStart(2, "0")).join("");
 const load = async (env) => (await env.DB.get(KEY, "json")) || { list: [], n: 0, last: {} };
+const NAME = { otako: "おたこまるさん", otako_ai: "おたこまるさんの Claude", shika: "鹿さん" }, NOTIFY_GAP = 20000;
+async function notify(env, s, from) {
+  const m = /^([\w.-]+)\/([\w.-]+)#(\d+)$/.exec(env.GH_INBOX || "");
+  if (!m || !env.GH_INBOX_TOKEN || from === "claude" || Date.now() - (s.told || 0) < NOTIFY_GAP) return false;   // 続けて 来たら 20 秒に 1 回（起きたら まとめて 読む）
+  s.told = Date.now();
+  try {
+    await fetch(`https://api.github.com/repos/${m[1]}/${m[2]}/issues/${m[3]}/comments`, { method: "POST",
+      headers: { Authorization: "Bearer " + env.GH_INBOX_TOKEN, Accept: "application/vnd.github+json", "User-Agent": "mono-link-support", "Content-Type": "application/json" },
+      body: JSON.stringify({ body: `サポート窓口に 新しい 文（#${s.n}・${NAME[from] || from}）` }) });
+  } catch (e) {}   // 知らせが 届かなくても 文は 窓口に のこる
+  return true;
+}
 const view = (s, since) => ({ list: s.list.filter((m) => m.id > since), last: s.n });
 
 async function add(env, from, body) {
@@ -29,6 +44,7 @@ async function add(env, from, body) {
   s.n++; s.last[from] = now;
   s.list.push({ id: s.n, at: now, from, text });
   s.list = s.list.slice(-MAX);
+  await notify(env, s, from);
   await env.DB.put(KEY, JSON.stringify(s));
   return J({ ok: true, id: s.n });
 }
