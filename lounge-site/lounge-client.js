@@ -47,6 +47,10 @@ export async function act(a, body = {}) {
   }
 }
 export const board = () => call("/api/board");
+// おたこまるさん 専用の 窓口（support.html）
+export const supportGet = (since = 0) => call("/api/support?since=" + since);
+export const supportSend = (text) => call("/api/support", { text });
+export const supportToken = () => call("/api/support/token", {});
 export const report = (rid) => call("/api/board/report", { rid });
 export const notedel = (rid) => call("/api/board/notedel", { rid });
 

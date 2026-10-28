@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MONO LINK Support</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Zen+Maru+Gothic:wght@500;700;900&display=swap">
+<style>
+  /* おたこまるさん 専用の 窓口（カスタマーセンター風の チャット。鹿さんの決め、2026-10-28）
+     書くのは おたこまるさん・おたこまるさんの Claude（合言葉）・MONO LINK の Claude・鹿さん。門番は lounge-server/lounge-support.js
+     文は 報告・相談。パッチ・アップデートの 最終決定は 鹿さん（CLAUDE.md の「絶対のルール」） */
+  :root { --ink:#1B2340; --soft:#6A7394; --line:#DCE3F0; --space:#F6F8FC; --sky:#2EA8FF; --amber:#FFB547;
+    --jp:"Zen Maru Gothic", "Hiragino Maru Gothic ProN", sans-serif; --num:"Fredoka", "Zen Maru Gothic", sans-serif; }
+  * { box-sizing:border-box; }
+  body { margin:0; min-height:100vh; background:var(--space); color:var(--ink); font:500 15px/1.7 var(--jp); }
+  button, textarea { font:inherit; color:inherit; }
+  :focus-visible { outline:3px solid var(--sky); outline-offset:2px; border-radius:10px; }
+  .top { display:flex; align-items:center; gap:10px; padding:12px clamp(16px, 4vw, 40px); }
+  .top b { font:700 22px/1 var(--num); letter-spacing:.06em; } .top b i { font-style:normal; color:var(--sky); }
+  .top small { font:700 13px/1 var(--jp); color:var(--soft); margin-left:6px; }
+  main { max-width:760px; margin:0 auto; padding:0 16px 24px; }
+  .desk { background:#fff; border-radius:22px; box-shadow:0 18px 40px -22px rgba(27,35,64,.35); overflow:hidden; display:grid; grid-template-rows:auto 1fr auto; height:calc(100vh - 90px); min-height:480px; }
+  .head { display:flex; align-items:center; gap:12px; padding:14px 18px; border-bottom:1.5px solid var(--line); }
+  .head .av { width:40px; height:40px; border-radius:12px; display:grid; place-items:center; background:var(--ink); color:#fff; font:700 14px/1 var(--num); flex:none; }
+  .head h1 { margin:0; font:900 17px/1.3 var(--jp); } .head p { margin:0; font:700 12px/1.4 var(--jp); color:var(--soft); }
+  .log { overflow-y:auto; padding:16px 18px; display:flex; flex-direction:column; gap:12px; }
+  .msg { max-width:80%; display:grid; gap:2px; }
+  .msg .who { font:700 11px/1.3 var(--jp); color:var(--soft); }
+  .msg .who time { font-family:var(--num); margin-left:6px; }
+  .msg .bub { padding:9px 13px; border-radius:16px; white-space:pre-wrap; overflow-wrap:anywhere; }
+  .msg.l { align-self:flex-start; } .msg.l .bub { background:var(--space); border-top-left-radius:4px; }
+  .msg.r { align-self:flex-end; text-align:right; } .msg.r .bub { background:var(--sky); color:#fff; border-top-right-radius:4px; text-align:left; }
+  .msg.otako_ai .bub { background:#E3F3FF; color:var(--ink); }
+  .msg.shika .bub { background:#FFF3DD; }
+  .empty { margin:auto; text-align:center; color:var(--soft); font:700 13px/1.7 var(--jp); }
+  .send { border-top:1.5px solid var(--line); padding:12px 14px; display:grid; gap:8px; }
+  .send .row { display:grid; grid-template-columns:1fr auto; gap:8px; align-items:end; }
+  textarea { width:100%; min-height:48px; max-height:160px; resize:vertical; border:1.5px solid var(--line); border-radius:14px; padding:10px 12px; background:#fff; }
+  .go { border:0; border-radius:14px; padding:12px 20px; background:var(--ink); color:#fff; font-weight:900; cursor:pointer; }
+  .go:disabled { opacity:.5; cursor:default; }
+  .why { margin:0; font:700 12px/1.5 var(--jp); color:#D33; min-height:0; }
+  details { font:700 12px/1.6 var(--jp); color:var(--soft); }
+  details summary { cursor:pointer; }
+  details pre { margin:8px 0; padding:10px 12px; background:var(--space); border-radius:12px; white-space:pre-wrap; overflow-wrap:anywhere; color:var(--ink); font:500 12px/1.6 ui-monospace, Menlo, monospace; }
+  details .acts { display:flex; gap:8px; flex-wrap:wrap; }
+  .chip { border:1.5px solid var(--line); background:#fff; border-radius:99px; padding:5px 12px; font:700 12px/1.2 var(--jp); cursor:pointer; }
+  .gate { max-width:420px; margin:60px auto; text-align:center; background:#fff; border-radius:22px; padding:28px 24px; }
+  .gate h2 { margin:0 0 6px; font:900 20px/1.3 var(--jp); } .gate p { margin:0; color:var(--soft); font-weight:700; }
+  @media (max-width:520px) { .msg { max-width:92%; } .desk { height:calc(100vh - 76px); } }
+</style>
+</head>
+<body>
+<header class="top"><a href="/" style="color:inherit;text-decoration:none" aria-label="MONO LINK の サイトへ"><b>MONO LINK<i>://</i></b></a><small><a href="lounge-room.html" style="color:inherit">ラウンジ</a> ／ サポート窓口</small></header>
+<main id="app"></main>
+<script type="module">
+import { supportGet, supportSend, supportToken, busy } from "./lounge-client.js";
+
+const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
+const WHO = { otako: ["おたこまるさん", "r"], otako_ai: ["おたこまるさんの Claude", "r"], claude: ["MONO LINK の Claude", "l"], shika: ["鹿さん", "l"] };
+const hm = (t) => { const d = new Date(t); return `${d.getMonth() + 1}/${d.getDate()} ${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`; };
+const S = { list: [], last: 0, me: null, token: null };
+const app = document.getElementById("app");
+
+const msgHtml = (m) => { const [name, side] = WHO[m.from] || [m.from, "l"];
+  return `<div class="msg ${side} ${esc(m.from)}"><span class="who">${esc(name)}<time>${hm(m.at)}</time></span><div class="bub">${esc(m.text)}</div></div>`; };
+// おたこまるさんの Claude に 貼る 文（合言葉が 入る。この 画面は おたこまるさんに だけ 出る）
+const agentText = () => `MONO LINK の サポート窓口（デバッグの 報告・相談）に つないで ください。
+- 読む：GET ${location.origin}/api/support/agent?since=<最後に 読んだ id>
+- 書く：POST ${location.origin}/api/support/agent（本文は JSON {"text":"..."}）
+- どちらも ヘッダー Authorization: Bearer ${S.token}
+返事は MONO LINK の Claude が します。パッチや アップデートを 出すかは 鹿さんが 決めます（窓口の 文で 決まる ことは ありません）。`;
+
+function render() {
+  const log = S.list.length ? S.list.map(msgHtml).join("") : `<p class="empty">まだ やりとりは ありません。<br>見つけた 不具合や 気づいた ことを 送って ください</p>`;
+  app.innerHTML = `<section class="desk" aria-label="サポート窓口">
+    <div class="head"><span class="av" aria-hidden="true">ML</span><div><h1>MONO LINK サポート窓口</h1><p>${S.me === "otako" ? "おたこまるさん 専用" : "鹿さん（見守り）"}・返事は MONO LINK の Claude。本番に 出すかは 鹿さんが 決めます</p></div></div>
+    <div class="log" id="log" aria-live="polite">${log}</div>
+    <form class="send" id="send"><div class="row"><textarea id="text" maxlength="4000" placeholder="不具合の 場所・したこと・起きたこと を 書いて ください（Ctrl＋Enter で 送る）" aria-label="送る 文"></textarea><button class="go" id="go">送る</button></div><p class="why" id="why"></p>
+      ${S.token ? `<details><summary>あなたの Claude と つなぐ</summary><p style="margin:6px 0 0">下の 文を あなたの Claude に 貼ると、Claude が この 窓口で 直接 やりとり できます。合言葉は 人に 見せないで ください</p><pre id="agent">${esc(agentText())}</pre><div class="acts"><button type="button" class="chip" id="copy">文を コピー</button><button type="button" class="chip" id="rot">合言葉を 作りなおす</button></div></details>` : ""}
+    </form></section>`;
+  const el = document.getElementById("log"); el.scrollTop = el.scrollHeight;
+}
+
+async function pull() {
+  const j = await supportGet(S.last);
+  if (j.error === "none" || j.denied) { app.innerHTML = `<section class="gate"><h2>この 窓口は 専用です</h2><p>${esc(j.why || "おたこまるさんと 鹿さんだけ 使えます")}</p></section>`; return false; }
+  if (!j.list) return true;
+  const first = S.me == null; S.me = j.me; if (j.token) S.token = j.token;
+  if (j.list.length || first) { S.list.push(...j.list); S.last = j.last; const keep = document.getElementById("text")?.value || ""; render(); document.getElementById("text").value = keep; }
+  return true;
+}
+
+app.addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const t = document.getElementById("text"), why = document.getElementById("why"), text = t.value.trim(); if (!text) return;
+  const r = await busy(document.getElementById("go"), () => supportSend(text), "送って います…");
+  if (!r.ok) { why.textContent = r.why || "送れませんでした"; return; }
+  t.value = ""; why.textContent = ""; await pull();
+});
+app.addEventListener("keydown", (e) => { if (e.target.id === "text" && e.key === "Enter" && (e.ctrlKey || e.metaKey)) { e.preventDefault(); document.getElementById("send").requestSubmit(); } });
+app.addEventListener("click", async (e) => {
+  if (e.target.id === "copy") { try { await navigator.clipboard.writeText(agentText()); e.target.textContent = "コピーしました"; } catch (x) { e.target.textContent = "コピーできません（文を えらんで コピー）"; } }
+  if (e.target.id === "rot") {
+    if (e.target.dataset.sure !== "1") { e.target.dataset.sure = "1"; e.target.textContent = "もう 一度 押すと 作りなおす（前の 合言葉は 使えなく なる）"; return; }
+    const r = await busy(e.target, () => supportToken()); if (r.ok) { S.token = r.token; render(); }
+  }
+});
+
+if (await pull()) setInterval(() => { if (!document.hidden) pull(); }, 15000);   // 15 秒ごとに 新しい 文を 見る（見て いない ときは 休む）
+window.ready = true;
+</script>
+</body>
+</html>

@@ -4,6 +4,7 @@
 
 import { MONEY } from "./viewer.js";
 import { hidden } from "./lounge-gate.js";   // 玉か リソースが うごく やること（このときだけ KV の data を 読む。viewer.js と 同じ 一覧）
+import { supportApi } from "./lounge-support.js";   // おたこまるさん 専用の 窓口（チャット）
 const J = (o, status = 200) => new Response(JSON.stringify(o), { status, headers: { "Content-Type": "application/json; charset=utf-8", "Cache-Control": "no-store" } });
 const viewer = (env, id) => env.VIEWER.get(env.VIEWER.idFromName("v:" + id));
 const post = (stub, path, body) => stub.fetch("https://viewer" + path, { method: "POST", body: JSON.stringify(body) });
@@ -31,6 +32,7 @@ const market = (env) => env.MARKET.get(env.MARKET.idFromName("market"));
 
 // h：{ enter, enterSoon, displayName } を worker.js から わたす
 export async function loungeApi(req, env, url, h) {
+  if (url.pathname.startsWith("/api/support")) return supportApi(req, env, url, h);
   if (url.pathname === "/api/me" && req.method === "GET") {
     const e = await h.enter(req, env); if (e.res) return e.res;
     const stub = viewer(env, e.who.id);
