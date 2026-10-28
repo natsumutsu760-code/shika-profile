@@ -8,6 +8,7 @@ export const SUB_MAX = 2;                 // サブスキルの 数（自分の 
 export const TREE_FULL = pathSp({});      // ツリー 1 本を 最大まで 振る SP（分岐は 左）
 export const PLUS_RATE = 0.02;            // ＋値 1 ごとに ステータス ＋2%
 export const FUSE_LV = 10;                // 配合できる Lv
+export const INBRED_LOW = 0.8;            // 近親配合の 子：いちばん 高い 力の ほかは 8 割（fusion.js）
 export const SEXES = { m: "♂", f: "♀", b: "両性" };
 
 // 持って いる ツリー（自分の ツリーが さいしょ）

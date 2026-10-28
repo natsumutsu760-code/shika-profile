@@ -1,7 +1,7 @@
 // モンスターの 配合と なかまの スキルポイント（鹿さんの決め、2026-10-25。決まりは docs/mono-link-haigou.md と lounge-proto/fusion.js・monster.js）
 // tame.fuse：なかよしの なかま 2 体（Lv10 以上・♂ × ♀）から 子を 1 体。親は いなく なる（付けて いた 装備は 持ち物に のこる）
 // tame.sp：なかまの スキルポイントを 手で 振る（振った 分は もどせない）・自動の 入り切り
-import { candidates, skillOptions, makeChild, canFuse, SNACK_NEED, rankOf, spSplit, treesOf, TREE_FULL, SUB_MAX } from "./game.js";
+import { candidates, skillOptions, makeChild, canFuse, TWIN_RATE, SNACK_NEED, rankOf, spSplit, treesOf, TREE_FULL, SUB_MAX } from "./game.js";
 
 const newUid = (rec, p) => p + (++rec.uidN).toString(36);
 const full = (c) => c.gauge >= SNACK_NEED[rankOf(c)];
@@ -23,9 +23,10 @@ export function tameFuse(rec, b, R, leave = () => {}) {
   const wasParty = rec.party.some((u) => u === A.uid || u === B.uid);
   rec.tamed = rec.tamed.filter((c) => c !== A && c !== B);
   rec.party = rec.party.filter((u) => u !== A.uid && u !== B.uid);
-  rec.tamed.push(child);
+  const twin = R() < TWIN_RATE ? { ...structuredClone(child), uid: newUid(rec, "t") } : null;   // 双子：まったく 同じ 子が もう 1 体（同じ bid。パーティには 入らない）
+  rec.tamed.push(child); if (twin) rec.tamed.push(twin);
   if (wasParty) rec.party.push(child.uid);   // 親が パーティに いたら、子が かわりに 入る
-  return { ok: true, child, how: cand.find((x) => x.tree === b.child).how, ...(mined.length ? { mined } : {}) };
+  return { ok: true, child, how: cand.find((x) => x.tree === b.child).how, ...(twin ? { twin } : {}), ...(child.inb ? { inbred: child.inb } : {}), ...(mined.length ? { mined } : {}) };
 }
 
 // スキルポイント。b：{ uid, auto?：true／false, add?：{ ツリー id：足す SP } }

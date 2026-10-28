@@ -52,7 +52,7 @@
   .spr img { width:var(--px); height:var(--px); image-rendering:pixelated; margin-top:-6%; }
   .spr.happy::after { content:""; position:absolute; right:-3px; top:-3px; width:14px; height:12px; background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 7 6' shape-rendering='crispEdges'%3E%3Cpath fill='%23FF5A8A' d='M1 0h2v1h1V0h2v1h1v2H6v1H5v1H4v1H3V5H2V4H1V3H0V1h1z'/%3E%3C/svg%3E") center / contain no-repeat; filter:drop-shadow(0 0 0 #fff) drop-shadow(1px 1px 0 #fff) drop-shadow(-1px -1px 0 #fff); }
   .rk { display:inline-block; padding:2px 7px; border-radius:6px; background:var(--ink); color:#fff; font:700 10px/1.3 var(--jp); vertical-align:2px; }
-  .rk.r希少 { background:var(--violet); } .rk.rボス { background:#E59A00; }
+  .rk.r希少 { background:var(--violet); } .rk.rボス { background:#E59A00; } .rk.r配合 { background:#0FA3A3; }
 
   /* パーティ（ペット＋2 体） */
   .party { display:grid; grid-template-columns:auto repeat(3, minmax(0, 1fr)); gap:12px; align-items:stretch; margin-bottom:16px; }
@@ -195,6 +195,7 @@
   .cand b { font:700 13px/1.3 var(--jp); } .cand small { display:flex; gap:4px; justify-content:center; flex-wrap:wrap; }
   .rkl { display:inline-block; min-width:22px; padding:2px 6px; border-radius:6px; background:var(--ink); color:#fff; font:600 11px/1.2 var(--num); text-align:center; }
   .dx .ring .rkl { position:absolute; right:-6px; top:-4px; } .dx:disabled { opacity:.35; }
+  .fam { display:inline-block; padding:2px 7px; border-radius:6px; background:#EEF1F8; color:var(--soft); font:700 10.5px/1.3 var(--jp); white-space:nowrap; }
   .how { display:inline-block; padding:2px 7px; border-radius:6px; background:#E59A00; color:#fff; font:700 10px/1.3 var(--jp); }
   .subs { display:flex; flex-wrap:wrap; gap:6px; }
   .chip.evo { border-color:#F2C46B; background:#FFF5DE; } .chip.evo small { color:#B57500; } .chip.evo[aria-pressed="true"] { background:#E59A00; border-color:#E59A00; color:#fff; } .chip.evo[aria-pressed="true"] small { color:#fff; }
@@ -236,7 +237,7 @@ import { mountWallet } from "./wallet-bar.js"; mountWallet();   // 上の 通貨
 import { fillPet, petInfo, linkTabs, gateHtml } from "./pet-head.js";
 import { SNACK_RECIPES } from "./facilities.js";
 import { snackCraftHtml, addSnackCss, SNACK_ICON } from "./snack-craft.js";
-import { candidates, skillOptions, makeChild, speciesOf, RANKS as FRANK } from "./fusion.js";   // 配合（門番と 同じ 計算で 候補を 出す）
+import { candidates, skillOptions, makeChild, speciesOf, famOf, FAMILIES, RANKS as FRANK, TWIN_RATE } from "./fusion.js";   // 配合（門番と 同じ 計算で 候補を 出す）
 import { spSplit, treesOf, TREE_FULL, SUB_MAX, FUSE_LV, sexOk, SEXES } from "./monster.js";   // なかまの スキルポイント・性別
 import { autoTake, nodesOf, learned } from "./trees.js";
 
@@ -270,7 +271,7 @@ const fitGive = () => { const c = cur(); S.give = c ? Math.max(1, Math.min(left(
 
 // ドット絵は 24px の整数倍で出す（にじまないように）
 const orb = (c, s = 52) => `<span class="spr ${c.gauge >= need(c) ? "happy" : ""}" style="--c:${TYPES[c.type].color};--s:${s}px;--px:${Math.max(1, Math.floor((s * 0.96) / 24)) * 24}px" aria-hidden="true"><img src="${spriteURL(c.tree)}" alt=""></span>`;
-const RANKS = ["ボス", "希少", "通常"];
+const RANKS = ["配合", "ボス", "希少", "通常"];   // 配合：配合限定の 子
 const inR = (c, r = S.fr) => r === "all" || rankOf(c) === r, inJ = (c, j = S.job) => c.type === j;
 const byNow = () => (S.sort === "lv" ? (a, b) => b.lv - a.lv : (a, b) => b.gauge / need(b) - a.gauge / need(a) || b.lv - a.lv);
 const shown = () => S.room.filter((c) => inJ(c) && inR(c)).sort(byNow());
@@ -278,6 +279,8 @@ const shown = () => S.room.filter((c) => inJ(c) && inR(c)).sort(byNow());
 const fitJob = () => { const c = cur(); if (c) S.job = c.type; else if (!S.room.some((x) => x.type === S.job)) S.job = (Object.keys(TYPES).find((t) => S.room.some((x) => x.type === t))) || null; };
 const rk = (c) => (rankOf(c) === "通常" ? "" : `<span class="rk r${rankOf(c)}">${rankOf(c)}</span>`);
 const sexTag = (c) => (c.sex ? `<span class="sx ${c.sex}" title="${SEXES[c.sex]}" aria-label="${SEXES[c.sex]}">${c.sex === "b" ? "⚥" : SEXES[c.sex]}</span>` : "");
+const famTag = (tree) => { const f = FAMILIES[famOf(tree)]; return f ? `<span class="fam">${f.name}</span>` : ""; };   // 系統（ヴェルヴェットの 16 大種族）
+const STAT_JA = { atk: "ATK", def: "DEF", int: "INT", res: "RES", agi: "AGI", dex: "DEX", luk: "LUK" };
 const plusTag = (c) => (c.plus ? `<span class="plus">＋${c.plus}</span>` : "");
 const typeBadge = (c) => `<span class="badge" style="--c:${TYPES[c.type].color}">${TYPES[c.type].label}</span>`;
 const COOKIE = `<svg viewBox="0 0 22 22" aria-hidden="true"><circle cx="11" cy="11" r="9.5" fill="#E9B26A" stroke="#fff" stroke-width="1.5"/><circle cx="8" cy="8" r="1.5" fill="#9A5B2C"/><circle cx="14" cy="9.5" r="1.4" fill="#9A5B2C"/><circle cx="10" cy="14.5" r="1.4" fill="#9A5B2C"/></svg>`;
@@ -340,7 +343,7 @@ function feedHtml() {
   const FT = [["feed", c.inParty ? "パーティ" : full ? "なかまに" : "おやつ", ""], ["skill", "スキル", manual && sp.free ? sp.free : ""], ["make", "作る", lv ? `Lv${lv}` : ""], ["lab", "研究", c.lab ? "✓" : ""]];
   const tabs = `<div class="ftabs" role="tablist" aria-label="${esc(c.name)}に すること">${FT.map(([k, l, sm]) => `<button role="tab" data-act="ft" data-v="${k}" aria-selected="${S.ft === k}">${l}${sm ? `<small>${sm}</small>` : ""}</button>`).join("")}</div>`;
   return `<aside class="panel feed" aria-label="えらんだ子">
-    <div class="who">${orb(c, 64)}<div><h2>${esc(c.name)}${plusTag(c)}${rk(c)}</h2><p>${typeBadge(c)}<span class="lv"><small>Lv</small>${c.lv}</span>${sexTag(c)}<span>${c.gen ? `配合で 生まれた（${c.gen} 代目）` : `${esc(c.from)}で 捕まえた`}</span></p></div></div>
+    <div class="who">${orb(c, 64)}<div><h2>${esc(c.name)}${plusTag(c)}${rk(c)}</h2><p>${typeBadge(c)}<span class="lv"><small>Lv</small>${c.lv}</span>${sexTag(c)}${famTag(c.tree)}<span>${c.gen ? `配合で 生まれた（${c.gen} 代目）` : `${esc(c.from)}で 捕まえた`}</span></p></div></div>
     <p class="say" aria-live="polite">${esc(S.say || line(c))}</p>
     <div class="gauge"><h3><span>なかよしゲージ</span><span><b>${Math.min(c.gauge, n)}<small> / ${n}</small></b>${!full && S.give ? `<em>＋${Math.min(S.give, left(c))}</em>` : ""}</span></h3>
       <div class="pips" style="--n:${cols};--p:${size}px;--g:${gap}px" role="img" aria-label="なかよしゲージ ${c.gauge} / ${n}">${pips}</div></div>
@@ -398,14 +401,15 @@ function fuseHtml() {
   if (!F.child) return `<aside class="panel feed" aria-label="配合">${pair}<p class="say">この 2 体からは 生まれない</p></aside>`;
   const { opts, subs } = subsOf(A, B);
   const cands = cand.map((x) => { const sp = speciesOf(x.tree);
-    return `<button class="cand" data-act="fchild" data-v="${x.tree}" aria-pressed="${x.tree === F.child}">${orb({ tree: x.tree, type: sp.type, gauge: 0 }, 52)}<b>${esc(sp.name)}</b><small><span class="rkl">${FRANK[sp.rank]}</span>${x.how === "位階配合" ? "" : `<span class="how">${x.how}</span>`}</small></button>`; }).join("");
+    return `<button class="cand" data-act="fchild" data-v="${x.tree}" aria-pressed="${x.tree === F.child}">${orb({ tree: x.tree, type: sp.type, gauge: 0 }, 52)}<b>${esc(sp.name)}</b><small><span class="rkl">${FRANK[sp.rank]}</span>${famTag(x.tree)}${x.how === "位階配合" ? "" : `<span class="how">${x.how}</span>`}</small></button>`; }).join("");
   const chips = opts.map((o) => { const on = subs.includes(o.id), T = ENEMY_TREES[o.id];
     return `<button class="chip ${o.evo ? "evo" : ""}" data-act="fsub" data-v="${o.id}" aria-pressed="${on}" ${!on && subs.length >= SUB_MAX ? "disabled" : ""}>${esc(T.name)}${o.evo ? "<small>進化</small>" : ""}</button>`; }).join("");
   const kid = makeChild(A, B, F.child, subs, () => 0, "-"), st = tamedOf(kid, 1).stats, wild = tamedOf({ tree: F.child, type: kid.type, name: kid.name }, 1).stats;
   return `<aside class="panel feed" aria-label="配合">${pair}
     <div><p class="sub">生まれる 子</p><div class="cands">${cands}</div></div>
     <div><p class="sub">受けつぐ スキル<small>${subs.length} / ${SUB_MAX}</small></p><div class="subs">${chips || `<p class="cost">受けつげる スキルが ない</p>`}</div></div>
-    <div class="kid"><span>＋値<b>${kid.plus}</b></span><span>受けつぐ ポイント<b>${kid.carry}</b></span><span>Lv1 の HP<b>${st.hp}</b>（ふつう ${wild.hp}）</span></div>
+    ${kid.inb ? `<p class="cost short">近親配合（双子・きょうだいどうし）：${STAT_JA[kid.inb]}の 受けつぎが 50%・ほかの 力は 8 割</p>` : ""}
+    <div class="kid"><span>＋値<b>${kid.plus}</b></span><span>受けつぐ ポイント<b>${kid.carry}</b></span><span>Lv1 の HP<b>${st.hp}</b>（ふつう ${wild.hp}）</span><span>双子<b>${Math.round(TWIN_RATE * 100)}</b>%</span></div>
     <p class="cost short">${esc(A.name)}と ${esc(B.name)}は いなく なる（付けて いた 装備は 持ち物に もどる）</p>
     <button class="jelly ${F.sure ? "warn" : "sky"} go" data-act="fuse">${F.sure ? "もう 一度 押すと 配合する" : "配合する"}</button>
   </aside>`;
@@ -468,7 +472,7 @@ document.getElementById("app").addEventListener("click", async (e) => {
   if (act0 === "fuse") {
     if (!S.fz.sure) S.fz.sure = true;   // 親とは おわかれ なので 2 回 押して 決める
     else { const F = S.fz, { subs } = subsOf(...pick2());
-      return ask(b, "tame.fuse", { pa: F.pa, pb: F.pb, child: F.child, subs }, (r) => { toast(`${r.child.name}${r.child.plus ? "＋" + r.child.plus : ""}が 生まれた（${r.how}）`); S.fz = FZ0(); S.view = "room"; S.sel = r.child.uid; S.ft = "skill"; S.say = null; fitJob(); }); }
+      return ask(b, "tame.fuse", { pa: F.pa, pb: F.pb, child: F.child, subs }, (r) => { toast(`${r.child.name}${r.child.plus ? "＋" + r.child.plus : ""}が ${r.twin ? "双子で " : ""}生まれた（${r.how}）`); S.fz = FZ0(); S.view = "room"; S.sel = r.child.uid; S.ft = "skill"; S.say = null; fitJob(); }); }
   }
   render();
   const again = document.querySelector(`[data-act="${act0}"]${act0 === "pick" ? `[data-u="${S.sel}"]` : ""}${b.dataset.v !== undefined ? `[data-v="${b.dataset.v}"]` : ""}`); if (again) again.focus();

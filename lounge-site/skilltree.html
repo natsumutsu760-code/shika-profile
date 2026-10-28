@@ -331,7 +331,7 @@ function renderTree() {
       ${job ? `<span class="auto">自動で振る<button class="tg" data-do="auto" aria-pressed="${!!auto}" aria-label="自動で振る"></button></span>` : `<button class="linkish" data-do="unsub" style="margin-left:auto">このツリーを はずす（SP は もどる）</button>`}
       ${job ? `<button class="linkish" data-do="rejob-open">職業を かえる</button>` : ""}<button class="linkish" data-do="respec-ask">振り直す（${priceText()}）</button></div>
     ${sure}${job ? rejobHtml() : ""}
-    ${E ? `<p class="origin">${esc(D.name)}の <span class="chip" style="--c:${TYPES[E.type].color}"><i></i>${esc(E.enemy)}</span> を捕まえて研究した ${E.rank === "通常" ? "" : `<span class="rk ${E.rank === "希少" ? "r" : ""}">${E.rank}</span>`}・テーマ <span class="chip" style="--c:${EFFECTS[E.theme].buff ? "var(--leaf)" : "var(--coral)"}"><i></i>${EFFECTS[E.theme].label}</span>・SP は職業ツリーと同じ入れ物から使う</p>` : ""}
+    ${E ? `<p class="origin">${D ? `${esc(D.name)}の ` : "配合で 生まれた "}<span class="chip" style="--c:${TYPES[E.type].color}"><i></i>${esc(E.enemy)}</span> を${D ? "捕まえて" : " "}研究した ${E.rank === "通常" ? "" : `<span class="rk ${E.rank === "希少" ? "r" : ""}">${E.rank}</span>`}・テーマ <span class="chip" style="--c:${EFFECTS[E.theme].buff ? "var(--leaf)" : "var(--coral)"}"><i></i>${EFFECTS[E.theme].label}</span>・SP は職業ツリーと同じ入れ物から使う</p>` : ""}
     <div class="tlay" style="--tc:${tc}">
       <div>
         <div class="legend2" aria-hidden="true"><span class="g"><i></i>取った</span><span class="c"><i></i>取れる</span><span><i></i>まだ</span></div>
@@ -441,7 +441,7 @@ function renderLab() {
       ${groups}</div>
       <aside class="ldetail" aria-label="えらんだ敵">
         <div class="detail" style="border-color:#CDB8FF">
-          <div class="head"><span class="orb spr" style="--c:${TYPES[P.type].color}"><img src="${spriteURL(pick)}" alt=""></span><div><h2>${esc(P.enemy)}</h2><p class="sub2">${esc(DUNGEONS.find((d) => d.id === P.dungeon).name)}・${TYPES[P.type].label}${P.rank === "通常" ? "" : `・${P.rank}`}</p></div></div>
+          <div class="head"><span class="orb spr" style="--c:${TYPES[P.type].color}"><img src="${spriteURL(pick)}" alt=""></span><div><h2>${esc(P.enemy)}</h2><p class="sub2">${esc((DUNGEONS.find((d) => d.id === P.dungeon) || { name: "配合限定" }).name)}・${TYPES[P.type].label}${P.rank === "通常" ? "" : `・${P.rank}`}</p></div></div>
           <h3>スキルツリー「${esc(P.name)}」</h3>
           <p class="sub2">テーマ ${EFFECTS[P.theme].label}・主 ${SL[P.main]}・副 ${SL[P.sub]}・技 8・パッシブ 7</p>
           <ol>${list.map((x) => `<li class="k-${x.kind === "passive" ? "passive" : "skill"}"><i>${KI[x.kind]}</i><span>${esc(x.name)}<small>${esc(x.text)}</small></span></li>`).join("")}</ol>

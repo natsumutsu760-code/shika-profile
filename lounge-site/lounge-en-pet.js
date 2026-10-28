@@ -90,7 +90,8 @@ export const WORDS = {
   "ならべかた：Lv の 高い順（押すと ランク順）": "Sort: highest Lv (tap for rank)", "ならべかた：ランク順（押すと Lv の 高い順）": "Sort: rank (tap for highest Lv)", "ランク順": "By rank", "⇅ ランク順": "⇅ By rank",
   "♂ と ♀ で 配合する": "Fusion needs ♂ and ♀", "生まれる 子": "Offspring", "受けつぐ スキル": "Inherited skills", "受けつぐ ポイント": "Inherited points", "進化": "Evolved", "＋値": "Plus", "Lv# の HP": "HP at Lv#", "（ふつう #）": "(usually #)",
   "受けつげる スキルが ない": "No skills to inherit", "この # 体からは 生まれない": "These # can't produce offspring", "配合する": "Fuse", "もう 一度 押すと 配合する": "Tap again to fuse",
-  "位階配合": "Rank fusion", "特殊配合": "Special fusion", "4体配合": "Quad fusion",
+  "ゼリー系": "Jelly", "ドラゴン系": "Dragon", "獣系": "Beast", "悪魔系": "Demon", "不死系": "Undead", "鉱物系": "Mineral", "植物系": "Plant", "虫系": "Insect", "神聖系": "Divine", "霊系": "Spirit", "鳥系": "Avian", "水棲系": "Aquatic", "人型系": "Humanoid", "妖魔系": "Yo-kai", "怪異系": "Specter", "異形系": "Aberration",
+  "位階配合": "Rank fusion", "双子": "Twins", "特殊配合": "Special fusion", "4体配合": "Quad fusion",
   // 門番の 答え（lounge-fuse.js・fusion.js）
   "# 体 えらんで": "Choose #", "♂ と ♀ で 配合する（両性は どちらとも）": "Fusion needs ♂ and ♀ (Both pairs with either)", "出かけて いる 子は 配合できない（帰って から）": "Companions who are away can't fuse (after they return)",
   "生まれる 子を 候補から えらんで": "Choose the offspring from the candidates", "受けつぐ スキルは 親の スキルから # つまで": "Inherit up to # skills from the parents", "その 子は 生まれない": "That offspring can't be born",
@@ -100,6 +101,8 @@ export const WORDS = {
 
 export const RULES = [
   // 配合と サブスキル（名前が 入る 文）
+  [/^近親配合（双子・きょうだいどうし）：(ATK|DEF|INT|RES|AGI|DEX|LUK)の 受けつぎが 50%・ほかの 力は 8 割$/, (m) => `Inbreeding (twins or siblings): ${m[1]} inherited at 50%, other stats at 80%`],
+  [/^(.+?)(?:＋(\d+))?が 双子で 生まれた（(.+)）$/, (m, p) => `${P(p, m[1])}${m[2] ? "+" + m[2] : ""} was born as twins (${P(p, m[3])})`],
   [/^(.+)＋$/, (m, p) => p(m[1]) && `${p(m[1])}+`],   // 進化した ツリー・技（「草原の跳ね足＋」）
   [/^(.+)を はずす$/, (m, p) => `Remove ${P(p, m[1])}`], [/^(.+)に (\d+) 振る$/, (m, p) => `Add ${m[2]} to ${P(p, m[1])}`],
   [/^(.+)と (.+)は いなく なる（付けて いた 装備は 持ち物に もどる）$/, (m, p) => `${P(p, m[1])} and ${P(p, m[2])} will be gone (their equipment returns to your items)`],

@@ -73,7 +73,10 @@ function st(f, k) {
   return v;
 }
 const hpPct = (f) => (f.hp / f.maxHp) * 100;
-// 継続ダメージを DEF や RES で減らす（直接ダメージの式と同じ 0.6 乗）
+// 直接ダメージの 能力の 効き方：威力 ×（こうげきの 能力 ＋ 10）÷（守りの 能力 ＋ 10）の STAT_EXP 乗
+// 1 ＝ 能力が そのまま 効く（DEX を 2 倍に すると カンチョーの ダメージも だいたい 2 倍）。前は 0.6 で、能力を 上げても ほとんど 変わらなかった（鹿さんの 報告、2026-10-28）
+export const STAT_EXP = 1;
+// 継続ダメージを DEF や RES で減らす（0.6 乗の まま）
 const soften = (d, guard) => d * Math.pow(10 / (guard + 10), 0.6);
 
 // ---------- 技えらび：ガンビット → オート ----------
@@ -237,7 +240,7 @@ export function simulateTeams(SA, SB, seed, opts = {}) {
     const critVs = Object.entries(me.P.critVsFx || {}).reduce((a, [id, v]) => a + (foe.fx[id] ? v : 0), 0);
     const crit = me.fx.clarity || foe.fx.daze || R() < 0.03 + st(me, "dex") * 0.004 + (me.P.crit || 0) + (!waza ? me.P.magicCrit || 0 : 0) + (x.critUp || 0) + critVs + (ganbari(me) ? gCrit : 0);
     const cm = crit ? 1.5 + st(me, "luk") * 0.01 + (me.P.critDmg || 0) / 100 : 1;
-    let d = pow * Math.pow((atk + 10) / (grd + 10), 0.6) * cm * (0.8 + R() * 0.4);
+    let d = pow * Math.pow((atk + 10) / (grd + 10), STAT_EXP) * cm * (0.8 + R() * 0.4);
     d *= 1 + ((waza ? me.P.wazaDmg : me.P.itazuraDmg) || 0) / 100;
     if (me.P.firstHit) { me.firstE ??= e; if (me.firstE === e) d *= 1 + me.P.firstHit; }             // 竜の いぶき：最初に 攻撃した 技（何回 当てても その技 ぜんぶ）
     if (foe.P.dmgCut) d *= 1 - foe.P.dmgCut / 100;
@@ -305,7 +308,7 @@ export function simulateTeams(SA, SB, seed, opts = {}) {
       if (me.P.hpRegen) { const a = heal(me, me.maxHp * me.P.hpRegen, tn); if (a) tick.items.push({ who: i, heal: a }); }
       if (me.P.teamRegen) for (const g of F) if (g.side === me.side && g.hp > 0) { const a = heal(g, g.maxHp * me.P.teamRegen, tn); if (a) tick.items.push({ who: F.indexOf(g), heal: a, why: "癒やしの歌" }); }   // ザンの竪琴：味方 全員
       if (me.P.waveEvery && turn % me.P.waveEvery === 0) for (const g of F) if (g.side !== me.side && g.hp > 0) {   // ニライの三叉槍：相手 全員に 水の こうげき（ATK か INT の 高い 方 → DEF と RES の 低い 方）
-        let d = me.P.wavePow * Math.pow((Math.max(st(me, "atk"), st(me, "int")) + 10) / (Math.min(st(g, "def"), st(g, "res")) + 10), 0.6) * (0.8 + R() * 0.4);
+        let d = me.P.wavePow * Math.pow((Math.max(st(me, "atk"), st(me, "int")) + 10) / (Math.min(st(g, "def"), st(g, "res")) + 10), STAT_EXP) * (0.8 + R() * 0.4);
         if (g.P.dmgCut) d *= 1 - g.P.dmgCut / 100; if (g.fx.guard) d *= 0.5;
         d = Math.max(1, Math.round(d)); hurt(g, d, tn); tick.items.push({ who: F.indexOf(g), dmg: d, why: "大波" });
       }
