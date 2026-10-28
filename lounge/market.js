@@ -5,6 +5,7 @@
 // 終わって 7 日 たった 依頼は 小さな しるし（"t:" + 番号）に して ずっと のこす（何日も たってから 来た やりなおしにも 同じ 答えを 返す。2 重に しない）
 import { LIMIT_MS, KEEP_DONE, NOTE_HIDE_AT, fits, items } from "./lounge-req.js";
 import { arenaFetch, arenaAlarm } from "./lounge-arena.js";   // 闘技場（名簿・大会）も この 箱
+import { supportFetch } from "./lounge-support.js";   // おたこまるさんの 窓口の 記録も この 箱（KV の おくれで 上書きされない ように）
 
 const res = (o, status = 200) => new Response(JSON.stringify(o), { status, headers: { "Content-Type": "application/json" } });
 const RETRY_MS = 60e3;   // 知らせが とどかなかったら 1 分後に もう 1 回
@@ -31,6 +32,7 @@ export class Market {
     const r = typeof b.rid === "string" ? this.reqs[b.rid] : this.reqs[url.searchParams.get("rid") || ""];
     const t = !r && typeof b.rid === "string" ? await this.state.storage.get("t:" + b.rid) : null;   // 終わった 依頼の しるし
     const ar = await arenaFetch(this, url, b, now); if (ar) return ar;
+    const sp = await supportFetch(this, url, b); if (sp) return sp;
     if (url.pathname === "/list") return res({ list: Object.values(this.reqs).filter((x) => x.status === "open" && x.until > now).sort((a, c) => c.at - a.at).map((x) => this.view(x, now)) });
     if (url.pathname === "/get") return r ? res({ ok: true, req: this.view(r, now) }) : res({ ok: false, why: "その 依頼は ない" });
     // Viewer から：出す（払い終わった あと。同じ 番号は 1 回だけ）
