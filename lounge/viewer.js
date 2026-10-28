@@ -5,6 +5,7 @@
 // ほかの 頼みが 入ると、同じ 人が すばやく 2 回 押した とき 2 重に 使えて しまうので
 // 派遣の 計算は 出かけた あと アラームで 戦い 1 回ずつ（Cloudflare の 無料の プランは 1 回 10 ミリ秒まで）。とちゅうは「sim」に しまう
 import { cleanRoom, STARTER_OWN, STARTER_ROOM, N, SALE_IDS, priceOn, jstDay, pullId, GACHA_COST } from "./lounge-rules.js";
+import { locked, lockedAct, LOCK_WHY } from "./lounge-lock.js";   // 大工事の あいだの ロック
 import { emptyLedger, balanceOf, trimSent, toObs, settle } from "./ledger.js";
 import { buyPlan, sellAct, tradeAct, taskDone, useItem, deeplinkView } from "./lounge-trade.js";
 import { reqPostPlan, takeFor, items } from "./lounge-req.js";
@@ -269,6 +270,7 @@ export class Viewer {
     const rec = await this.load(); if (!rec) return { ok: false, why: "記録が ない" };
     const op = typeof body.op === "string" && /^[\w-]{8,64}$/.test(body.op) ? body.op : "";
     if (!op) return { ok: false, why: "op が ない" };
+    if (lockedAct(rec, body.a, this.env)) return { ok: false, lock: true, why: LOCK_WHY };   // 工事中（部屋・ショップ・両替の ほかは 止める）
     const money = MONEY.test(String(body.a)), out = (r) => ({ ...(money && wallet ? { ...r, wallet: this.purse(rec, wallet) } : r), credits: rec.credits }), now = Date.now();   // クレジットは いつも つける（上の 通貨の 札）
     if (wallet) trimSent(rec.ledger, wallet);
     const done = rec.ops.find((x) => x.op === op); if (done) return out(done.r);   // 2 回目は 1 回目の 答え
@@ -377,7 +379,7 @@ export class Viewer {
   view(rec) { return { name: rec.name, login: rec.login, room: rec.room }; }
   mine(rec, w) {
     const now = Date.now(); dropOld(rec, now);
-    return { id: rec.id, login: rec.login, name: rec.name, nameAt: rec.nameAt, names: rec.names, room: rec.room, own: rec.own, wallet: this.purse(rec, w), waiting: rec.ledger.unknown.length,
+    return { id: rec.id, lock: locked(rec, this.env), login: rec.login, name: rec.name, nameAt: rec.nameAt, names: rec.names, room: rec.room, own: rec.own, wallet: this.purse(rec, w), waiting: rec.ledger.unknown.length,
       pets: rec.pets.map((p) => ({ ...p, ...(p.type ? { sp: { all: spTotal(p.lv), left: spTotal(p.lv) - spUsed(p) }, freeLeft: freeTotal(p.lv) - Object.values(p.free || {}).reduce((a, v) => a + v, 0), build: fighterOf(p, rec), resetPrice: RESET_PRICE(p.lv) } : {}) })),
       tamed: rec.tamed, party: rec.party, farm: farmView(rec, now), loop: rec.loop || null, lab: rec.lab, hideout: rec.hideout, credits: rec.credits, snacks: rec.snacks, tools: rec.tools, explore: rec.explore, seen: rec.seen,
       stash: { cap: stashCap(rec) }, equipCap: equipCap(rec), autoSell: rec.autoSell || null, trips: rec.trips.map((t) => tripView(t, now)), deeplink: deeplinkView(rec, jstDay(now)), req: { mine: rec.req.mine, sending: rec.req.out.length } };
@@ -389,7 +391,7 @@ export class Viewer {
       if (url.pathname === "/init" && req.method === "POST") { const who = await req.json(); return res(this.mine(await this.run(() => this.init(who)), who.wallet)); }
       if (url.pathname === "/public") { const rec = await this.load(); return rec ? res(this.view(rec)) : res({ error: "none" }, 404); }
       // 闘技場から：いまの ペットの 戦う 形（読むだけ。順番待ちを 通らない ので、デュエルの 相手どうしで 待ちあわない）
-      if (url.pathname === "/fighter") { const rec = await this.load(), f = rec && arenaFighter(rec); return f ? res(f) : res({ error: "none" }, 404); }
+      if (url.pathname === "/fighter") { const rec = await this.load(), f = rec && !locked(rec, this.env) && arenaFighter(rec); return f ? res(f) : res({ error: "none" }, 404); }
       if (url.pathname === "/act" && req.method === "POST") {
         this.hits = this.hits.filter((t) => now - t < RATE.ms);
         if (this.hits.length >= RATE.n) return res({ ok: false, why: "1 秒に 5 回まで" }, 429);

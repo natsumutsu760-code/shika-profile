@@ -29,11 +29,20 @@ function notePurse(j) {
   PURSE = { ...(PURSE || { known: false, balls: 0, res: 0, credits: 0 }), ...(j.wallet || {}), ...(j.credits != null ? { credits: j.credits } : {}) };
   try { dispatchEvent(new CustomEvent("ml-purse", { detail: PURSE })); } catch (e) {}
 }
-export const me = async () => { const j = await call("/api/me"); notePurse(j); return j; };
+// 大工事の あいだの ロック（門番が lock を 返す。鹿さんの決め、2026-10-28）：部屋と ショップの ほかの 画面は「工事中」で ふさぐ
+const OPEN_PAGE = /\/(lounge-room|lounge-shop)\.html$/.test(location.pathname);
+function lockScreen(j) {
+  if (!j || !j.lock || OPEN_PAGE || document.getElementById("ml-lock")) return;
+  const d = document.createElement("div"); d.id = "ml-lock"; d.setAttribute("role", "alert");
+  d.style.cssText = "position:fixed;inset:0;z-index:9999;display:grid;place-items:center;padding:16px;background:rgba(244,247,252,.97);color:#1B2340;text-align:center;font:700 15px/1.7 'Zen Maru Gothic',system-ui,sans-serif";
+  d.innerHTML = '<div><b style="display:block;font-size:24px;margin-bottom:6px">工事中</b><p style="margin:0 0 14px">MONO LINK の 大工事の あいだは、ラウンジの 部屋と ショップだけ 使えます</p><p style="margin:0;display:flex;gap:10px;justify-content:center"><a href="lounge-room.html" style="padding:8px 16px;border-radius:99px;background:#2EA8FF;color:#fff;text-decoration:none">部屋へ</a><a href="lounge-shop.html" style="padding:8px 16px;border-radius:99px;border:1.5px solid #DCE3F0;color:#1B2340;text-decoration:none">ショップへ</a></p></div>';
+  document.body.append(d);
+}
+export const me = async () => { const j = await call("/api/me"); notePurse(j); lockScreen(j); return j; };
 export async function act(a, body = {}) {
   const op = newOp();
   for (let i = 0; i < 2; i++) {
-    try { const j = await call("/api/act", { ...body, op, a }); notePurse(j); return j; }
+    try { const j = await call("/api/act", { ...body, op, a }); notePurse(j); lockScreen(j); return j; }
     catch (e) { if (i) return { ok: false, net: true, why: "門番に つながりません。もう 1 回 押して ください" }; }
   }
 }
