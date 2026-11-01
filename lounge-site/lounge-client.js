@@ -49,8 +49,20 @@ function lockScreen(j) {
   if (!j || !j.lock || OPEN_PAGE || document.getElementById("ml-lock")) return;
   const d = document.createElement("div"); d.id = "ml-lock"; d.setAttribute("role", "alert");
   d.style.cssText = "position:fixed;inset:0;z-index:9999;display:grid;place-items:center;padding:16px;background:rgba(244,247,252,.97);color:#1B2340;text-align:center;font:700 15px/1.7 'Zen Maru Gothic',system-ui,sans-serif";
-  d.innerHTML = '<div><b style="display:block;font-size:24px;margin-bottom:6px">工事中</b><p style="margin:0 0 14px">MONO LINK の 大工事の あいだは、ラウンジの 部屋と ショップだけ 使えます</p><p style="margin:0;display:flex;gap:10px;justify-content:center"><a href="lounge-room.html" style="padding:8px 16px;border-radius:99px;background:#2EA8FF;color:#fff;text-decoration:none">部屋へ</a><a href="lounge-shop.html" style="padding:8px 16px;border-radius:99px;border:1.5px solid #DCE3F0;color:#1B2340;text-decoration:none">ショップへ</a></p></div>';
+  d.innerHTML = '<div><b style="display:block;font-size:24px;margin-bottom:6px">工事中</b><p style="margin:0 0 14px">MONO LINK の 大工事の あいだは、ラウンジの 部屋と ショップだけ 使えます</p><div id="ml-dev"></div><p style="margin:0;display:flex;gap:10px;justify-content:center"><a href="lounge-room.html" style="padding:8px 16px;border-radius:99px;background:#2EA8FF;color:#fff;text-decoration:none">部屋へ</a><a href="lounge-shop.html" style="padding:8px 16px;border-radius:99px;border:1.5px solid #DCE3F0;color:#1B2340;text-decoration:none">ショップへ</a></p></div>';
   document.body.append(d);
+  progressInto(d.querySelector("#ml-dev"));
+}
+// 開発の 進み具合（門番の /api/progress。鹿物語の ランキングの 窓と 同じ 中身。鹿さんの決め、2026-11-01）。空なら 出さない
+const escH = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
+async function progressInto(el) {
+  const j = await fetch("/api/progress", { cache: "no-store" }).then((r) => r.json()).catch(() => null);
+  if (!el || !j || !j.items || !j.items.length) return;
+  const d = new Date(j.at), day = `${d.getMonth() + 1}/${d.getDate()} 更新`;
+  el.style.cssText = "width:min(340px,100%);margin:0 auto 16px;padding:14px 16px;border-radius:16px;background:#fff;box-shadow:0 10px 30px -18px rgba(27,35,64,.45);text-align:left;font-size:13px;line-height:1.5";
+  el.innerHTML = `<div style="display:flex;align-items:baseline;gap:8px;margin-bottom:8px"><b style="font-size:14px">開発の 進み具合</b><small style="color:#6A7394;margin-left:auto">${day}</small></div>`
+    + `<div style="display:flex;align-items:baseline;gap:6px;margin-bottom:10px"><span style="color:#6A7394">全体</span><b style="font:700 26px/1 Fredoka,system-ui,sans-serif;color:#2EA8FF">${j.total}<small style="font-size:14px">%</small></b></div>`
+    + j.items.map((it) => `<div style="margin-top:6px"><div style="display:flex"><span>${escH(it.name)}</span><b style="margin-left:auto;font-family:Fredoka,system-ui,sans-serif">${it.pct}%</b></div><i style="display:block;height:6px;border-radius:99px;background:#E6ECF5;overflow:hidden"><b style="display:block;height:100%;width:${it.pct}%;background:#2EA8FF;border-radius:99px"></b></i></div>`).join("");
 }
 export const me = async () => { const j = await call("/api/me"); notePurse(j); lockScreen(j); return j; };
 export async function act(a, body = {}) {
