@@ -4,7 +4,7 @@
 //           statHello（OBS の 鍵が 合ったら 全員分を 1 通）。OBS へは { t: "lstat", all?: 1, list: [{ id, l: login, n: 表示名, lo: まとめ }] }
 // - アチーブメント用なので、Lounge は 下がらない 形で しまう（数は 前より 大きい 方・id は 足して いく。クレジットを 使っても・職業を かえても 二つ名が 消えない）
 // 入れるのは 数と 生の id と 名前（login・表示名）だけ。鍵・トークン・玉は 入れない。名前に 直すのは オーバーレイ
-import { PLANS, SHAPE, FACILITIES, DUNGEONS, FLOORS, TRADERS, repLv, CRAFT, SYNTH, craftOpen, synthOpen, SNACK_NEED, rankOf } from "./game.js";
+import { PLANS, SHAPE, FACILITIES, DUNGEONS, FLOORS, TRADERS, CRAFT, SYNTH, craftOpen, synthOpen, SNACK_NEED, rankOf } from "./game.js";
 import { FURN } from "./lounge-rules.js";
 
 const MAX_BYTES = 8 * 1024, CHUNK = 200;
@@ -16,12 +16,15 @@ const nm = (s) => String(s || "").replace(/[\u0000-\u001f\u007f]/g, "").slice(0,
 
 const JOB_IDS = Object.keys(PLANS);                                              // attacker・caster・technician・healer・defender
 const MASTER = (SHAPE.find((n) => n.master) || { id: "Ab7" }).id;                // 奥義の さいごの ノード（ここまで 取ると マスター）
-const HIDE_MAX = Object.fromEntries(FACILITIES.map((f) => [f.id, f.lv.length])); // 施設の 最大 Lv（はじめの 島は 3。ニライ諸島が 開くと 4）
+// 施設は「前の Lv（段 0〜4）」で 送る（施設の 作り直しで Lv1〜100 に なったが、オーバーレイの 称号は 前の Lv で 書いて あり、Lounge は 大きい 方を のこす ので 物差しを かえない。2026-11-03）
+//   新しい Lv → 前の Lv：Lv100 → 4・Lv80〜 → 3・Lv50〜 → 2・Lv1〜 → 1（前の 記録の うつし方 MIGRATE_LV の 逆）。まだ うつして いない 記録（facV < 2）は その まま
+const HIDE_IDS = new Set([...FACILITIES.map((f) => f.id), "dig"]);              // 地下の 拡張（dig）は なくした が、うつす 前の 記録には ある
+const OLD_LV = (lv) => (lv >= 100 ? 4 : lv >= 80 ? 3 : lv >= 50 ? 2 : lv >= 1 ? 1 : 0);
+const hideOf = (rec, id, lv) => (id === "radio" ? Math.min(1, lv) : (rec.facV || 0) >= 2 ? OLD_LV(lv) : Math.min(4, lv));
 const HIDE7 = ["bench", "lab", "snack", "maproom", "medic", "gym", "storage"];    // hide3 で 数える 7 つ（あとから 足した 地下の 拡張・工房は 入れない）
-const HIDE3 = 3;   // hide3 は「Lv3 以上の 数」のまま（Lv4 が できても 前の 記録が 減らない ように）
 const DUNGEON_IDS = DUNGEONS.map((d) => d.id);                                   // hals・morph・kurai・crystal
 const MYTHIC_IDS = DUNGEONS.map((d) => d.mythic && d.mythic.id).filter(Boolean); // halsCloak・morphMask・kuraiLantern・crystalCrown
-const TRADER_IDS = TRADERS.map((t) => t.id), REP_TOP = repLv(Infinity);         // 友好度の いちばん 上の Lv（4）。ヨル（special）は Lv が ないので repMax に 入れない
+const TRADER_IDS = TRADERS.map((t) => t.id), REP_TOP = 500;   // repMax は「前の いちばん 上の Lv（Lv4 ＝ 500 点）」の まま 数える（友好度が Lv100 に なっても 前の 記録が 減らない ように）。ヨル（special）は 入れない
 const FURN_IDS = FURN.filter((f) => f.star > 0).map((f) => f.id), FURN5 = FURN.filter((f) => f.star === 5).map((f) => f.id);   // 設備（rack）と PC は 家具に 数えない
 const rankSafe = (c) => { try { return rankOf(c); } catch (e) { return ""; } };
 
@@ -32,8 +35,8 @@ function derive(b) {
     pets: b.pets, petMax: Math.max(0, ...v(b.pets)), petKinds: Object.keys(b.pets).length, master: b.master,
     boss: b.boss, bossKinds: v(b.boss).filter((n) => n > 0).length, bossTotal: v(b.boss).reduce((a, n) => a + n, 0),
     floor: b.floor, floor5: v(b.floor).filter((n) => n >= FLOORS).length, tamed: b.tamed, lab: b.lab,
-    hide: b.hide, hide3: HIDE7.filter((id) => (b.hide[id] || 0) >= HIDE3).length, furnKinds: b.furnKinds, furn5: b.furn5,
-    rep: b.rep, repMax: TRADER_IDS.filter((id) => repLv(b.rep[id] || 0) >= REP_TOP).length,
+    hide: b.hide, hide3: HIDE7.filter((id) => (b.hide[id] || 0) >= 3).length, furnKinds: b.furnKinds, furn5: b.furn5,
+    rep: b.rep, repMax: TRADER_IDS.filter((id) => (b.rep[id] || 0) >= REP_TOP).length,
     mythic: b.mythic, mythicN: b.mythic.length, recipes: b.recipes, credits: b.credits,
   };
 }
@@ -51,7 +54,7 @@ export function statOf(rec) {
     if (num(e.bossKills)) boss[did] = num(e.bossKills);
     if (num(e.maxFloor)) floor[did] = Math.min(FLOORS, num(e.maxFloor));
   }
-  for (const [fid, lv] of Object.entries(rec.hideout || {})) if (HIDE_MAX[fid] && num(lv)) hide[fid] = Math.min(HIDE_MAX[fid], num(lv));
+  for (const [fid, lv] of Object.entries(rec.hideout || {})) if (HIDE_IDS.has(fid) && num(lv)) hide[fid] = hideOf(rec, fid, num(lv));
   for (const [tid, t] of Object.entries(rec.traders || {})) if (keyOk(tid) && t && num(t.rep)) rep[tid] = num(t.rep);
   const own = rec.own || {}, fu = own.furniture || {}, seen = new Set(rec.seen || []), learnt = new Set(rec.recipes || []);
   const held = new Set([...(own.equip || []).map((e) => e && e.base), ...(own.box || []).map((x) => x && x.equip && x.equip.base)]);

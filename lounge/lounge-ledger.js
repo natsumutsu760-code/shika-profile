@@ -1,5 +1,5 @@
-// 門番の 部屋の 箱（worker.js の Durable Object「Lounge」）に 足す 部品：1 人ずつの 箱（Viewer）と OBS の あいだで 玉と リソースの 頼みを 運ぶ
-// 作りは docs/mono-link-lounge-server.md の「玉と リソースの やりとり」。つなぎ方は README.md
+// 門番の 部屋の 箱（worker.js の Durable Object「Lounge」）に 足す 部品：1 人ずつの 箱（Viewer）と OBS の あいだで 玉と アメジストの 頼みを 運ぶ
+// 作りは docs/mono-link-lounge-server.md の「玉と アメジストの やりとり」。つなぎ方は README.md
 // - OBS へ：{ t: "lg", rid, items: [{ op, id, kind, d, need, grp }] }（need：足りる ときだけ 足す。ない 物は 0 で とめて かならず 足す。grp：同じ grp は ぜんぶか なしで）
 // - OBS から：{ t: "lg-hi" }（玉を 持って いる オーバーレイです）・{ t: "lg-re", rid, res: [{ op, ok, seq, why, bal }] }
 // 頼みを 送るのは「lg-hi」を 言った いちばん 新しい OBS 1 つだけ（2 つ つながって いても 2 回 足さない）
@@ -52,6 +52,17 @@ export async function lgFetch(lounge, url, req) {
 
 // webSocketMessage の、鍵が 合った OBS の 所（if (!a.ok) return; の あと）に：if (await lgFromObs(this, ws, m)) return;
 export async function lgFromObs(lounge, ws, m) {
+  // 鹿物語の チャットの !換金・!貸し玉（2026-10-28 の 決め）：OBS から { t: "cash", rid, id, kind: "cash"|"lend", n } → その 人の 箱（Viewer の /cash）→ { t: "cash-re", rid, ok, why, balls, credits }
+  //   箱に とどかなかった ときは 答えない（オーバーレイが 同じ rid で やりなおす。箱は 同じ rid に 同じ 答え）
+  if (m.t === "cash") {
+    const rid = typeof m.rid === "string" && m.rid.length <= 80 ? m.rid : "", id = idOk(m.id), kind = m.kind === "cash" || m.kind === "lend" ? m.kind : "";
+    if (!rid) return true;
+    if (!id || !kind || !Number.isInteger(m.n)) { ws.send(JSON.stringify({ t: "cash-re", rid, ok: 0, why: !id ? "MONO LINK の 人が わからない" : "こわれた 頼み" })); return true; }
+    let r = null;
+    try { r = await (await viewerOf(lounge.env, id).fetch("https://viewer/cash", { method: "POST", body: JSON.stringify({ mid: rid, kind, n: m.n }) })).json(); } catch (e) { return true; }
+    ws.send(JSON.stringify({ t: "cash-re", rid, ok: r && r.ok ? 1 : 0, why: String((r && r.why) || "").slice(0, 80), balls: +(r && r.balls) || 0, credits: +(r && r.credits) || 0 }));
+    return true;
+  }
   if (m.t === "lg-hi") { ws.serializeAttachment({ ...lounge.att(ws), lg: 1 }); await lgSync(lounge); return true; }
   if (m.t !== "lg-re" || !Array.isArray(m.res)) return false;
   const res = m.res.slice(0, 1000).filter((r) => r && typeof r.op === "string" && r.op.length <= 100)

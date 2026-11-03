@@ -1,5 +1,5 @@
 // プライベートラウンジの 家具の 3D の 形（ブラウザ用）。決まり（大きさ・値段・お店・置けるか）は lounge-rules.js（門番と 同じ ファイル）。部屋は lounge-room.html
-// 家具の 決まりは 設計メモ（docs/mono-link-lounge.md の「家具と設備」）。値段は リソース（★1 5・★2 15・★3 40・★4 120・★5 300）
+// 家具の 決まりは 設計メモ（docs/mono-link-lounge.md の「家具と設備」）。値段は アメジスト（★1 5・★2 15・★3 40・★4 120・★5 300）
 // place：floor（床。マスを ふさぐ）・rug（しく 物。ほかの 家具を 上に 置ける）・wall（奥と 左の かべに かける）
 // size：床は [よこ, おく]（マス）、かべは はば（マス）。形は 0 度で 手前（+z）を 向く。かべの 物は かべの 面に 立てる
 import * as THREE from "three";
@@ -151,7 +151,7 @@ export const SALE = FURN.filter((f) => f.star > 0);
 export const dailyOf = (day) => dailyIds(day).map(F);
 export const pull = (R = Math.random) => F(pullId(R));
 
-// 見本の 持ち物と リソース（お店と 部屋で 同じ 物を 見る。ほんものは 門番の 記録 /api/me）。ブラウザに しまう（使えない ときは 見本の 数）
+// 見本の 持ち物と アメジスト（お店と 部屋で 同じ 物を 見る。ほんものは 門番の 記録 /api/me）。ブラウザに しまう（使えない ときは 見本の 数）
 const KEY = "mono-link-lounge-proto";
 export function loadWallet() { try { const v = JSON.parse(localStorage.getItem(KEY)); if (v && v.own) return { res: v.res ?? 128, own: { ...SAMPLE_OWN, ...v.own } }; } catch (e) {} return { res: 128, own: { ...SAMPLE_OWN } }; }
 export function saveWallet(w) { try { localStorage.setItem(KEY, JSON.stringify(w)); } catch (e) {} }

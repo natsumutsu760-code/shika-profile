@@ -1,16 +1,16 @@
 // プライベートラウンジの 入口（門番 worker.js の route() から 呼ぶ）。/api/me・/api/act・/api/room/<login>
 // ログインと フォローの たしかめは worker.js の enter() / enterSoon() を そのまま 使う（ここでは 受けとるだけ）
-// 玉と リソースは OBS が 上げた KV の data ＋ 1 人ずつの 帳簿（viewer.js・ledger.js）。数は いつも 門番が 作って 渡す（ブラウザの 数は 使わない）
+// 玉と アメジストは OBS が 上げた KV の data ＋ 1 人ずつの 帳簿（viewer.js・ledger.js）。数は いつも 門番が 作って 渡す（ブラウザの 数は 使わない）
 
 import { MONEY } from "./viewer.js";
-import { hidden } from "./lounge-gate.js";   // 玉か リソースが うごく やること（このときだけ KV の data を 読む。viewer.js と 同じ 一覧）
+import { hidden } from "./lounge-gate.js";   // 玉か アメジストが うごく やること（このときだけ KV の data を 読む。viewer.js と 同じ 一覧）
 import { supportApi } from "./lounge-support.js";   // おたこまるさん 専用の 窓口（チャット）
 import { progressApi } from "./lounge-progress.js";   // 開発の 進み具合（鹿物語の ランキングの 窓・工事中の 画面）
 const J = (o, status = 200) => new Response(JSON.stringify(o), { status, headers: { "Content-Type": "application/json; charset=utf-8", "Cache-Control": "no-store" } });
 const viewer = (env, id) => env.VIEWER.get(env.VIEWER.idFromName("v:" + id));
 const post = (stub, path, body) => stub.fetch("https://viewer" + path, { method: "POST", body: JSON.stringify(body) });
 
-// OBS が 上げた 記録から、その 人の 玉と リソース。Twitch の id（uid）で さがす
+// OBS が 上げた 記録から、その 人の 玉と アメジスト。Twitch の id（uid）で さがす
 // 表示名では さがさない（日本語の 表示名は ほかの 人と 同じに できるので、他人の 玉が 見えたり 使えたり して しまう）
 // OBS の 記録に まだ uid が ない 人は「わからない」（known: false。玉は 0 あつかいで、使う ことも できない）
 async function wallet(env, id) {

@@ -27,7 +27,7 @@ export const WORDS = {
   "足りない # こは 玉で 買う（# 玉）": "Buy the missing # with balls (# balls)", "足りない # こは 玉で 買う（# 玉）。玉が 足りない": "Buy the missing # with balls (# balls). Not enough balls",
   "おやつは 派遣で 拾える（足りない分は 玉で 買う）": "Treats can be found on expeditions (buy any shortfall with balls)",
   "とくべつおやつを あげる（＋#・のこり # こ）": "Give a Special Treat (+# · # left)", "隠れ家に おやつ工房を 作ると、ここでも 作れる": "Build a Treat Kitchen in the Hideout to make them here too",
-  "隠れ家へ": "To the Hideout", "研": "R", "研究する": "Research", "リソース # で サブツリーに つけられる（この子は のこる）": "Costs # Resources to add as a subtree (this companion stays)",
+  "隠れ家へ": "To the Hideout", "研": "R", "研究する": "Research", "アメジスト # で サブツリーに つけられる（この子は のこる）": "Costs # Amethyst to add as a subtree (this companion stays)",
   "✓ 研究ずみ": "✓ Researched", "なかまに": "Befriend", "研究": "Research", "えらんだ子": "Selected", "なかよしゲージ": "Friendship gauge", "なかよしゲージ # / #": "Friendship # / #",
   "とくべつ": "Special", "なかまは 派遣で 捕まえた 子が 来ます": "Companions are enemies you captured on expeditions", "パーティ": "Party",
   // ---- ステータス（status.html） ----
@@ -69,7 +69,7 @@ export const WORDS = {
   "分岐①（左・右）": "Branch ① (left · right)", "分岐②（左・右）": "Branch ② (left · right)", "敵のスキルツリー # 本": "# enemy skill trees",
   "派遣で捕まえて研究すると、サブツリーに付けられる。上の段が技、下の段がパッシブ。分岐は左の道・右の道の順": "Capture and research them to use as subtrees. Top row: moves, bottom row: passives. Branches are listed left path, then right path",
   "研究ずみ": "Researched", "出会った": "Met", "研究すると、飼っているペットみんなが このツリーを サブツリーに付けられる": "Once researched, all your pets can add this tree as a subtree",
-  "研究する（リソース": "Research (Resources", "研究ずみ。ペットのスキルツリーの画面で サブツリーに付けられる": "Researched. Add it as a subtree on your pet's Skill Tree screen",
+  "研究する（アメジスト": "Research (Amethyst", "研究ずみ。ペットのスキルツリーの画面で サブツリーに付けられる": "Researched. Add it as a subtree on your pet's Skill Tree screen",
   "えらんだ敵": "Selected enemy", "図鑑と研究": "Bestiary & research", "派遣で捕まえた敵を研究すると、その敵のスキルツリーが使えるようになる": "Research enemies you captured on expeditions to unlock their skill trees",
   "まだ会っていない": "Not met yet", "（もう 反対の 道を 取って いるので、振り直すと かわる）": "(you already took the other path; it changes when you reset)",
   "自動で 振る（Lv が 上がる たびに 取る）": "Auto-assign (learn every time you level up)", "自動を やめた（自分で 取る）": "Auto off (you choose)",
@@ -90,7 +90,7 @@ export const WORDS = {
   "かえられませんでした": "Couldn't change it", "保存できませんでした": "Couldn't save", "ガンビットを 保存した": "Gambits saved", "お手本に もどした": "Reset to example", "（動けない）": "(can't move)",
   // ---- 配合と サブスキル（tame.html。鹿さんの決め、2026-10-25） ----
   "スキル": "Skills", "配合": "Fusion", "配合できる 子 # 体": "Ready to fuse: #", "捕まえた子": "Captured", "# 体": "#", "両性": "Both",
-  "取り出す リソース #": "Extract · # Resources", "おわかれして 取り出す・もう 一度 押す": "Say goodbye & extract · tap again", "ポイント": "points", "自動で 振る": "Auto-assign", "自分の ツリー": "Own tree", "サブスキル #": "Sub skill #", "サブスキル #・進化": "Sub skill # · Evolved", "配合で 受けつぐ": "Inherited through fusion",
+  "取り出す アメジスト #": "Extract · # Amethyst", "おわかれして 取り出す・もう 一度 押す": "Say goodbye & extract · tap again", "ポイント": "points", "自動で 振る": "Auto-assign", "自分の ツリー": "Own tree", "サブスキル #": "Sub skill #", "サブスキル #・進化": "Sub skill # · Evolved", "配合で 受けつぐ": "Inherited through fusion",
   "技 # / #": "Skills # / #", "自分の ツリーから 最大まで → サブスキル # → # の 順に 振る": "Fills its own tree first, then sub skill #1 → #2",
   "振った ポイントは もどせない": "Assigned points can't be refunded", "出かけて いる あいだは 振れない（帰って から）": "Can't assign while away (after it returns)",
   "手で 振る（いまの 振り方は そのまま）": "Manual (current points stay as they are)", "自動で 振る（のこりを 自分の ツリーから）": "Auto (the rest go to its own tree first)",
@@ -107,6 +107,8 @@ export const WORDS = {
   "生まれる 子を 候補から えらんで": "Choose the offspring from the candidates", "受けつぐ スキルは 親の スキルから # つまで": "Inherit up to # skills from the parents", "その 子は 生まれない": "That offspring can't be born",
   "自動を 切ってから 手で 振る": "Turn off auto to assign manually", "振る ポイントを えらんで": "Choose points to assign", "その ツリーは 持って いない": "It doesn't have that tree",
   "ポイントが 足りない（のこり #）": "Not enough points (# left)", "その ツリーは # まで": "That tree caps at #",
+  "足りない # こは クレジットで 買う（": "Buy the missing # with credits (", "おやつは 派遣で 拾える（足りない分は クレジットで 買う）": "Treats can be found on expeditions (buy any shortfall with credits)",
+  "。クレジットが 足りない": ". Not enough credits",
 };
 
 export const RULES = [
@@ -127,7 +129,7 @@ export const RULES = [
   [/^(.+) Lv(\d+)・なかよし (\d+) \/ (\d+)$/, (m, p) => `${P(p, m[1])} Lv${m[2]} · Friendship ${m[3]} / ${m[4]}`],
   [/^(.+)で 捕まえた$/, (m, p) => p(m[1]) && `Caught in ${p(m[1])}`], [/^(.+)に すること$/, (m, p) => `What to do with ${P(p, m[1])}`],
   [/^(.+)を (\d+) こ 作った$/, (m, p) => p(m[1]) && `Made ${m[2]} ${p(m[1])}`],
-  [/^研究した：(.+)（リソース (\d+)）$/, (m, p) => p(m[1]) && `Researched: ${p(m[1])} (${m[2]} Resources)`],
+  [/^研究した：(.+)（アメジスト (\d+)）$/, (m, p) => p(m[1]) && `Researched: ${p(m[1])} (${m[2]} Amethyst)`],
   // ステータス
   [/^適正 ([SABCD])$/, (m) => `Aptitude ${m[1]}`], [/^(HP|MP|ATK|DEF|INT|RES|AGI|DEX|LUK) に 1 ポイント振る$/, (m) => `Add 1 point to ${m[1]}`],
   [/^(.+)の適正$/, (m, p) => `${P(p, m[1])}'s aptitude`], [/^(.+)はみんな同じ$/, (m, p) => p(m[1]) && `Every ${p(m[1])} is the same`],
@@ -144,8 +146,8 @@ export const RULES = [
   [/^SP が 足りない（あと (\d+)）$/, (m) => `Not enough SP (${m[1]} more)`], [/^能力の足し分　(.+)$/, (m, p) => `Stat bonus: ${P(p, m[1])}`],
   [/^分岐(①|②)$/, (m) => `Branch ${m[1]}`], [/^分岐(①|②)は (左|右)の 道で 自動に 取る(.*)$/, (m, p) => `Branch ${m[1]}: auto takes the ${m[2] === "左" ? "left" : "right"} path${m[3] ? " " + P(p, m[3]) : ""}`],
   [/^サブツリー (\d) に「(.+)」を 付けた$/, (m, p) => `Added “${P(p, m[2])}” as subtree ${m[1]}`], [/^「(.+)」を はずした（SP が もどった）$/, (m, p) => `Removed “${P(p, m[1])}” (SP returned)`],
-  [/^「(.+)」を 取り出した。(.+)は 旅立った（リソース (\d+)）$/, (m, p) => `Extracted “${P(p, m[1])}”. ${P(p, m[2])} has left to travel (${m[3]} Resources)`],
-  [/^取った：(.+)$/, (m, p) => `Learned: ${P(p, m[1])}`], [/^研究した：「(.+)」（リソース (\d+)）$/, (m, p) => `Researched: “${P(p, m[1])}” (${m[2]} Resources)`],
+  [/^「(.+)」を 取り出した。(.+)は 旅立った（アメジスト (\d+)）$/, (m, p) => `Extracted “${P(p, m[1])}”. ${P(p, m[2])} has left to travel (${m[3]} Amethyst)`],
+  [/^取った：(.+)$/, (m, p) => `Learned: ${P(p, m[1])}`], [/^研究した：「(.+)」（アメジスト (\d+)）$/, (m, p) => `Researched: “${P(p, m[1])}” (${m[2]} Amethyst)`],
   [/^まだ捕まえていない。派遣で たおすと ([\d.]+)% で捕まえる（1 体ごと。「指定の敵だけ」で 探しに行ける）$/, (m) => `Not captured yet. Each defeat on an expedition has a ${m[1]}% capture chance (use “Target Only” to hunt it)`],
   [/^(.+)の$/, (m, p) => p(m[1]) && `From ${p(m[1])}:`], [/^を捕まえて研究した$/, () => "captured and researched"],
   // ガンビット

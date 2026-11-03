@@ -96,7 +96,7 @@ export function tripInit(party, dungeonId, runKey, seed, opts = {}) {
     nt: 0, track: [], log: [], battles: [], captured: [], chests: [], gathered: [], drops: [], mats: [], seeds: {},
     tick: 0, floor: 0, pos: null, prev: null, seen: [], done: [], hiddenOpen: false, resting: false, status: "run", reason: null, fin: false,
     snacks: 0, exp: 0, credits: 0, kills: 0, wins: 0, rests: 0, traps: 0, steps: 0, bossDone: false, mythic: false, unique: null, resource: 0, toolUsed: false, start: 1,
-    med: Math.max(0, Math.min(MEDIC.rest.length - 1, opts.medic | 0)), st: opts.stairs ? 1 : 0,
+    med: Math.max(0, Math.min(100, opts.medic | 0)), st: opts.stairs ? 1 : 0,
     bag: opts.items ? { ...opts.items } : null, bagUsed: {},   // 戦いの アイテムの 袋（ガンビットで 使う。使った 数は bagUsed）
   };
   S.inv = invader(S, d);
@@ -119,7 +119,7 @@ export function tripResult(S) {
   return { dungeon: d, run: RUNS[S.runKey], purpose: S.purpose, target: S.ti >= 0 ? [...d.foes, d.rare][S.ti] : null, tool: S.tool, tools: S.tools || (S.tool ? [S.tool] : []), toolUsed: S.toolUsed, toolsUsed: { ...(S.used || {}) }, battles: S.battles, wins: S.wins, kills: S.kills,
     cleared: S.reason !== "wipe", reason: S.reason, bossDefeated: S.bossDone, drops: S.drops, chests: S.chests, mythic: S.mythic ? d.mythic : null, unique: S.unique ? uniqueOf(S.unique) : null, resource: S.resource, exp: Math.max(1, Math.round(S.exp)), credits: S.credits,
     captured: S.captured, snacks: S.snacks, materials, seeds: { ...(S.seeds || {}) }, gathered: S.gathered, traps: S.traps, rests: S.rests, steps: S.steps, startFloor: S.start, endFloor: S.floor, before: S.before, after, progress: S.prog,
-    track: S.track, log: S.log, budget: S.budget, ticks: Math.min(S.budget, S.nt), down: S.team.filter((m) => m.down).map((m) => m.c.name), invader: S.inv && S.inv.done ? S.inv : null, itemsUsed: S.bagUsed || {} };
+    track: S.track, log: S.log, budget: S.budget, ticks: Math.min(S.budget, S.nt), down: S.team.filter((m) => m.down).map((m) => m.c.name), risen: S.risen || 0, invader: S.inv && S.inv.done ? S.inv : null, itemsUsed: S.bagUsed || {} };
 }
 
 // S を 動かす（地図・見た マスの 集まりは S から 作りなおし、止める ときに S へ もどす）
@@ -142,7 +142,7 @@ function machine(S) {
   const persist = () => { if (S.floor) prog.floors[S.floor] = { seen: [...seen], hidden: S.hiddenOpen }; };
   const revealAt = (cx, cy) => { for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) { const x = cx + dx, y = cy + dy; if (x >= 0 && y >= 0 && x < GW && y < GH) seen.add(keyOf(x, y)); } };
   const reveal = () => revealAt(S.pos.x, S.pos.y);
-  const rest = MEDIC.rest[S.med || 0], rise = MEDIC.up[S.med || 0];   // 救護室（とちゅうで しまった 前の S は 0）
+  const rest = MEDIC.rest(S.med || 0), rise = MEDIC.up(S.med || 0);   // 救護室（とちゅうで しまった 前の S は 0）
   const ratio = () => { let tot = 0, got = 0; const hid = new Set(map.hidden.map(([x, y]) => keyOf(x, y))); for (const k of reach) if (!hid.has(k)) { tot++; if (seen.has(k)) got++; } return tot ? got / tot : 1; };
   const openHidden = (loud) => { S.hiddenOpen = true; for (const [x, y, t] of map.hidden) grid[y][x] = t; reach = reachOf(grid, map.start); if (loud) say("かべの むこうに かくし通路を 見つけた！"); };
   const checkHidden = () => { if (!S.hiddenOpen && map.hidden.length && ratio() >= 1) { openHidden(true); persist(); } };
@@ -294,10 +294,11 @@ function machine(S) {
         if (hpRate() >= REST.until && mpRate() >= REST.until) { S.resting = false; say("休憩を おえた", "sys"); }
         continue;
       }
-      const fallen = rise ? team.filter((m) => m.down) : [];   // 救護室 Lv3 から：倒れた子が いれば 休憩して 起こす
+      const fallen = rise ? team.filter((m) => m.down) : [];   // 救護室 Lv1 から：倒れた子が いれば 休憩して 起こす（HP は Lv × 0.3%）
       if (hpRate() < REST.hpAt || mpRate() < REST.mpAt || fallen.length) {
         S.resting = true; S.rests++; say("つかれたので 休憩する", "sys");
         for (const m of fallen) { m.down = false; m.hp = Math.max(1, Math.round(m.maxHp * rise)); say(`${m.c.name}が 起きあがった`, "sys"); }
+        if (fallen.length) S.risen = (S.risen || 0) + fallen.length;   // 休憩で 起きあがった 数（DEEP LINK/: の タスク）
         snap("r"); S.tick++; continue;
       }
       const nx = next();

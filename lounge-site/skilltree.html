@@ -244,7 +244,7 @@ import { researchLeaf } from "./fusion.js"; import { MAT_NAME } from "./material
 import { EFFECTS } from "./effects.js";
 import { spriteURL } from "./sprites.js";
 import { me, act, busy, waitText } from "./lounge-client.js";   // ペットの ツリーは 門番の 記録（見本では ブラウザの 中の ためしの 門番）
-import { mountWallet } from "./wallet-bar.js"; mountWallet();   // 上の 通貨の 札（玉・リソース・クレジット）と 両替
+import { mountWallet } from "./wallet-bar.js"; mountWallet();   // 上の 通貨の 札（玉・アメジスト・クレジット）と 両替
 import { petInfo, linkTabs, gateHtml, addGateCss, toast } from "./pet-head.js";
 import { jstDay } from "./lounge-rules.js";
 
@@ -257,7 +257,7 @@ let ME = await me(), MP = ME.pets && ME.pets[0];
 const UI = { slot: Math.max(0, Math.min(3, +(q.get("slot") || 0))), sel: null, sure: false, rejob: null, carry: null, scrollTo: true };
 // 島（ニライ諸島が 出たら、敵の ツリーと 図鑑を 島で 分ける。呼び名は 冒険の 画面と 同じ）。かくしの 行き先は その 人に 開くまで 出さない（canGo）
 const ISLE_NAME = { 1: "マッサラ島", 2: "ニライ諸島" };   // 最初の 島の 名前は「マッサラ島」（鹿さんの決め、2026-10-25。冒険の 画面と 同じ）
-const chainN = (tid) => (((ME.deeplink && ME.deeplink.traders) || []).find((t) => t.id === tid) || { chain: { n: 1 } }).chain?.n || 1;
+const chainN = (did) => ((ME.deeplink && ME.deeplink.keys) || []).includes(did);   // かくしダンジョンの 鍵（門番の hasKey）
 const isleOfTree = (id) => (DUNGEONS.find((d) => ENEMY_TREES[id] && d.id === ENEMY_TREES[id].dungeon) || {}).isle || 1;
 UI.isle = Math.max(1, Math.min(ISLAND_OPEN, +(q.get("isle") || (ENEMY_TREES[q.get("e")] ? isleOfTree(q.get("e")) : 1))));
 const isleDungeons = () => DUNGEONS.filter((d) => (d.isle || 1) === UI.isle && (!d.hidden || canGo(d, ME.hideout, chainN).ok));
@@ -280,7 +280,7 @@ const label = (n) => n.kind === "stat" ? `${SL[n.key]} +${statValue(n, PET.seed,
 const sub = (n) => n.kind === "skill" ? `MP ${SKILL[n.skill].mp}` : n.kind === "passive" ? "パッシブ" : n.kind === "keyword" ? "キーワード" : "";
 const CLS = { "取得済み": "got", "取れる": "can", "SP が足りない": "short", "ロック": "lock", "封鎖": "block" };
 const freeReset = () => !MP.reset || MP.reset.day !== jstDay() || MP.reset.n < 1;   // 振り直しと 職業を かえるは 1 日 1 回 無料
-const priceText = () => (freeReset() ? "きょうは 無料" : `玉 ${MP.resetPrice.toLocaleString("ja-JP")}`);
+const priceText = () => (freeReset() ? "きょうは 無料" : `クレジット ${MP.resetPrice.toLocaleString("ja-JP")}`);   // 前は 玉（2026-10-28 の 決め「同じ 数の クレジット」）
 
 // サブツリーを 付ける：研究ずみの 敵の ツリーから（付けて いる 物は のぞく）
 function subPickHtml(k) {
@@ -435,7 +435,7 @@ function renderLab() {
   const groups = isleDungeons().map((d) => `<h3 class="dg" style="--dc:${d.color}">${esc(d.name)}<small>${Object.entries(ENEMY_TREES).filter(([id, t]) => t.dungeon === d.id && (LAB[id] === "done" || LAB[id] === "cap")).length} / 5 捕まえた</small></h3><div class="dex">${Object.entries(ENEMY_TREES).filter(([, t]) => t.dungeon === d.id).map(mon).join("")}</div>`).join("");
   const KI = { waza: "技", itazura: "技", passive: "常" };
   const list = P.list.filter((x) => ["S1", "S2", "S4", "P1", "S8"].includes(x.slot)).sort((a, b) => ["S1", "S2", "P1", "S4", "S8"].indexOf(a.slot) - ["S1", "S2", "P1", "S4", "S8"].indexOf(b.slot));
-  const go = st === "cap" ? `<p>研究すると、飼っているペットみんなが このツリーを サブツリーに付けられる</p><button class="take" data-do="lab" data-t="${pick}">研究する（リソース <b>${cost}</b>${leafTxt(pick)}）</button>`
+  const go = st === "cap" ? `<p>研究すると、飼っているペットみんなが このツリーを サブツリーに付けられる</p><button class="take" data-do="lab" data-t="${pick}">研究する（アメジスト <b>${cost}</b>${leafTxt(pick)}）</button>`
     : st === "done" ? `<p>研究ずみ。ペットのスキルツリーの画面で サブツリーに付けられる</p>` : `<p>まだ捕まえていない。派遣で たおすと ${(CAPTURE[P.rank] * 100).toFixed(1)}% で捕まえる（1 体ごと。「指定の敵だけ」で 探しに行ける）</p>`;
   return `<section class="panel"><div class="res"><div class="bar" style="margin:0"><h2>図鑑と研究<span>派遣で捕まえた敵を研究すると、その敵のスキルツリーが使えるようになる</span></h2></div></div>
     <div class="lab"><div>
@@ -504,7 +504,7 @@ document.getElementById("app").addEventListener("click", async (e) => {
   if (x === "rejob-open") { UI.rejob = ""; UI.carry = null; UI.sure = false; return paint(); }
   if (x === "rejob-no") { UI.rejob = null; return paint(); }
   if (x === "rejob") { const t = UI.rejob; return ask(b, "pet.rejob", { type: t, carry: UI.carry }, () => `${TYPES[t].label}に なった`).then((r) => { if (r && r.ok) { UI.rejob = null; UI.carry = null; paint(); } }); }
-  if (x === "lab") { const c = (ME.tamed || []).find((y) => y.tree === d.t); if (!c) return toast("その 子が いない"); return ask(b, "tame.research", { uid: c.uid }, (r) => `研究した：「${ENEMY_TREES[d.t].name}」（リソース ${r.cost}）`); }
+  if (x === "lab") { const c = (ME.tamed || []).find((y) => y.tree === d.t); if (!c) return toast("その 子が いない"); return ask(b, "tame.research", { uid: c.uid }, (r) => `研究した：「${ENEMY_TREES[d.t].name}」（アメジスト ${r.cost}）`); }
 });
 paint();
 window.ready = true;

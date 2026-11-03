@@ -383,19 +383,18 @@ export const OP_EN = {
 };
 
 // ---- 隠れ家・工房・家具 ----
-export const FAC_EN = {
-  bench: ["Workbench", "Craft and fuse gear", ["Craft gear (★1–2)", "Fusion (make upgraded gear) unlocked · ★3 can appear", "★4 can appear · Fusion costs half the balls", "★5 can appear · Fusion is more likely to give ★5"]],
-  lab: ["Lab", "Cheaper research on captured enemies", ["Research Resources −20%", "Research Resources −35%", "Research Resources −50%", "Research Resources −65%"]],
-  snack: ["Treat Kitchen", "Make taming treats from materials", ["Make treats (2 Herb + 1 Wild Berry → 1 treat)", "Treats take 2 materials instead of 3", "Make special treats (Friendship gauge +3)", "Regular treats come out 2 per craft"]],
-  maproom: ["Map Room", "Makes exploring easier", ["Shows where the stairs are on each floor you enter", "Gathering spots give +50% materials", "Regular enemies drop materials 30% → 45% (gathering +50% still applies)", "Rare enemy and boss materials also get a 50% chance of +1 (earlier effects still apply)"]],
-  medic: ["Infirmary", "Recover faster when resting on expeditions", ["Rest recovery ×1.25", "Rest recovery ×1.5", "Fallen members get back up when resting (10% HP)", "Rest recovery ×2 · Fallen members get back up with 30% HP"]],
-  gym: ["Training Room", "More expedition XP", ["Expedition XP +10%", "Expedition XP +20%", "Expedition XP +30%", "Expedition XP +40%"]],
-  storage: ["Storage", "Hold more of each item type (starts at 50)", ["Up to 100 per type", "Up to 200 per type", "Up to 400 per type", "Up to 800 per type"]],
-  armory: ["Armory", "Hold more gear (starts at 200)", ["Hold up to 300 gear", "Hold up to 500 gear", "Hold up to 800 gear", "Hold up to 1,200 gear"]],
-  dig: ["Basement Expansion", "Dig the basement deeper and add new facilities", ["Expands deeper (the Workshop can be built)", "Even deeper (dig the Mine)", "All the way down (more mine slots)", "Down to the island bedrock (one more mine slot)"]],
-  workshop: ["Workshop", "Make tools and weapon attachments from materials", ["Make tools, sprinklers and attachments (★1–2)", "★3 attachments · Pep Tea · Better Sprinkler", "★4 attachments (2 OPs) · Star Sprinkler", "★5 attachments (3 OPs)"]],
-  mine: ["Mine", "Companions not in your party dig ore and junk", ["1 companion can dig (Shiny Pebble, Old Brick, Old Nail, Iron Ore)", "2 companions · Candle, Faded Cloth and Crystal Shard can appear", "3 companions · Glowstone, and sometimes Rainbow Crystal", "4 companions · Nirai Isles stones (Cape Stone, Blue Stone, Obsidian, Thunder Stone) can appear"]],
-  radio: ["Radio", "Pick up island signals and send a boat to other islands", ["Travel to the Nirai Isles · Other facilities can reach Lv4"]],
+export const FAC_EN = {   // 名前・説明（効果の 1 行は Lv で かわるので lounge-en-base.js の 形の 決まりで 訳す。2026-11-03 施設の 作り直し）
+  bench: ["Workbench", "Craft and fuse gear"],
+  lab: ["Lab", "Cheaper and faster research on captured enemies"],
+  snack: ["Treat Kitchen", "Make taming treats from materials"],
+  maproom: ["Map Room", "More gathering and enemy materials"],
+  medic: ["Infirmary", "Rest recovery, and fallen members getting back up"],
+  gym: ["Training Room", "More expedition XP"],
+  storage: ["Storage", "Hold more of each item type (starts at 50)"],
+  armory: ["Armory", "Hold more gear (starts at 200)"],
+  workshop: ["Workshop", "Make tools and weapon attachments · smelt · process"],
+  mine: ["Mine", "Companions not in your party dig ore and junk"],
+  radio: ["Radio", "Pick up island signals and send a boat to other islands"],
 };
 export const SNACK_EN = { snack: "Taming Treat", snack3: "Special Treat" };
 export const PC_EN = ["PC", "Enter DEEP LINK/:. Just place it (no levels)"];
@@ -460,7 +459,7 @@ export const TRADER_EN = {
   hanger: ["Peeko", "Peacock", "Sells gear", "Come find something that suits you."],
   mecha: ["Bolt", "Beaver", "Facility parts, Workbench recipes", "Give me parts and I can build anything."],
   hunter: ["Hawk", "Hawk", "Tasks to defeat and capture enemies", "If it's about the hunt, leave it to me."],
-  special: ["Yoru", "Black Cat", "Special items you can only buy with Resources", "Some things can only be bought with Resources.", "Special Shop"],
+  special: ["Yoru", "Black Cat", "Special items you can only buy with Amethyst", "Some things can only be bought with Amethyst.", "Special Shop"],
 };
 export const SHOP_EN = {
   "j-g1": ["Gathered Materials (Hals Road)", "Herb · Shiny Pebble · Straw · Wild Berry"], "j-sell": ["Sell Materials in Bulk", "Turn your materials into balls"],
@@ -527,7 +526,7 @@ export function nameWords() {
   for (const b of [...BASES, ...UPPER]) { const e = BASE_EN[b.id]; if (e) { put(b.name, e[0]); if (b.note) put(b.note, e[1]); if (b.fx) put(b.fx, e[2]); } }
   for (const [id, o] of Object.entries(OPS)) { if (OP_EN[id]) put(o.label, OP_EN[id]); const f = OP_FMT_EN[id]; if (f) for (const v of new Set(o.v)) if (v) put(o.fmt(v), f(v)); }
   // 隠れ家
-  for (const f of FACILITIES) { const e = FAC_EN[f.id]; if (!e) continue; put(f.name, e[0]); put(f.text, e[1]); f.lv.forEach((l, i) => put(l.fx, e[2][i])); }
+  for (const f of FACILITIES) { const e = FAC_EN[f.id]; if (!e) continue; put(f.name, e[0]); put(f.text, e[1]); }
   for (const r of SNACK_RECIPES) put(r.name, SNACK_EN[r.id]);
   put(PC.text, PC_EN[1]);
   for (const w of WS_ITEMS) { const e = WS_EN[w.id]; if (e) { put(w.name, e[0]); put(w.note, e[1]); } }

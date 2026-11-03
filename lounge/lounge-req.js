@@ -1,7 +1,7 @@
 // プライベートラウンジ 6 だんかい目：みんなの依頼（ユーザーから ユーザーへ）の 決まり。viewer.js と market.js が 使う
 // 決まりは docs/mono-link-pet-battle.md の「みんなの依頼」（鹿さんの決め、2026-10-22・23）
 // - お礼は 出すときに 先に 預ける（Market が 持つ）。届いたら すぐ 届けた人へ、期限が 来たら・取り下げたら 出した人へ もどる
-// - 頼めるのは 素材と 装備（いちどに ぜんぶ 届ける）。お礼は 玉・リソース・素材・装備
+// - 頼めるのは 素材と 装備（いちどに ぜんぶ 届ける）。お礼は 玉・アメジスト・素材・装備
 // - 手数料：お礼の ねうちの 1 割を 玉で、出した人が はらう（もどらない。案）。1 人 1 つまで
 // - ひとこと：えらぶ ことば か 自由に 書く（20 字まで）。NG ことば・URL・連絡先は 出せない（門番でも たしかめる）。通報 3 回で かくす
 import { MAT_NAME, sellPrice, baseOf, REQ_FEE, RES_VALUE, NOTE_PRESETS, NOTE_HIDE_AT, noteBlock } from "./game.js";
@@ -21,8 +21,8 @@ export function cleanWant(w) {
   if (w && typeof w.equip === "string" && baseOf(w.equip)) { const star = int(w.star ?? 1, 1, 5); return star == null ? null : { equip: w.equip, star, n: 1 }; }
   return null;
 }
-// お礼の ねうち（玉）：リソース 1 ＝ 玉 1,000、素材は 売ると いくらか、装備は ★ × リソース 1
-export const valueOf = (rw) => (rw.balls || 0) + (rw.res || 0) * RES_VALUE + (rw.mats || []).reduce((a, m) => a + sellPrice(m) * m.n, 0) + (rw.equip || []).reduce((a, e) => a + e.star * RES_VALUE, 0);
+// お礼の ねうち（玉）：アメジスト 1 ＝ 玉 1,000、素材は 売ると いくらか、装備は ★ × アメジスト 1
+export const valueOf = (rw) => (rw.credits || 0) + (rw.balls || 0) + (rw.res || 0) * RES_VALUE + (rw.mats || []).reduce((a, m) => a + sellPrice(m) * m.n, 0) + (rw.equip || []).reduce((a, e) => a + e.star * RES_VALUE, 0);
 export const feeOf = (rw) => Math.max(10, Math.round((valueOf(rw) * REQ_FEE) / 10) * 10);
 // ひとこと。{ preset: 番号 } か { text: "自由に 書く" }。extra は 門番だけが 持つ NG ことば（画面には 出さない）
 export function cleanNote(nt, extra = []) {
@@ -56,8 +56,9 @@ export function giveReq(rec, g, now) {
 }
 export const ensureReq = (rec) => { rec.req ||= { mine: null, wait: {}, out: [], done: [], n: 0 }; return rec; };
 
-// 出す 計画（viewer.js の charge で 払う）。お礼の 玉と 手数料は 玉で、リソースは リソースで（ぜんぶか なし）
-// reward：{ balls, res, mats: [{ id, q, n }], equip: [装備の uid] }・want・limit（LIMIT_MS の 番号）・note
+// 出す 計画（viewer.js の charge で 払う）。お礼の 玉と 手数料は 玉で、アメジストは アメジストで（ぜんぶか なし）
+// reward：{ credits, res, mats: [{ id, q, n }], equip: [装備の uid] }・want・limit（LIMIT_MS の 番号）・note
+// お礼と 手数料は クレジット（前は 玉。2026-10-28 の 決め「依頼の 報酬：クレジット・アメジスト・素材・装備。手数料は クレジット」）。前に 玉で 出した 依頼は 返す・渡す ときも 玉の まま
 export function reqPostPlan(rec, b, extra = []) {
   ensureReq(rec);
   if (rec.req.mine) return { ok: false, why: "依頼は 1 人 1 つまで（いまの 依頼が 終わるか 取り下げると 出せる）" };
@@ -66,20 +67,21 @@ export function reqPostPlan(rec, b, extra = []) {
   if (!Number.isInteger(b.limit) || !LIMIT_MS[b.limit]) return { ok: false, why: "期限を えらんで" };
   const nt = cleanNote(b.note, extra);
   if (nt.why) return { ok: false, why: nt.why };
-  const rw = b.reward || {}, balls = int(rw.balls ?? 0, 0, 1e6), resN = int(rw.res ?? 0, 0, 999);
+  const rw = b.reward || {}, credits = int(rw.credits ?? 0, 0, 1e6), resN = int(rw.res ?? 0, 0, 999);
   const ms = Array.isArray(rw.mats) ? rw.mats.slice(0, 5) : [], us = Array.isArray(rw.equip) ? rw.equip.slice(0, 3) : [];
-  if (balls == null || resN == null || !ms.every((m) => has(MAT_NAME, m.id) && int(m.n, 1, 999) && int(m.q ?? 0, 0, 5) != null)) return { ok: false, why: "お礼が ちがう" };
+  if (credits == null || resN == null || !ms.every((m) => has(MAT_NAME, m.id) && int(m.n, 1, 999) && int(m.q ?? 0, 0, 5) != null)) return { ok: false, why: "お礼が ちがう" };
   const t = takeMats(rec, ms.map((m) => [m.id, m.n, m.q || 0]));
   if (t.why) return { ok: false, why: t.why };
   const on = equippedUids(rec), eq = us.map((u) => rec.own.equip.find((e) => e.uid === u && !on.has(e.uid)));
   if (eq.some((e) => !e) || new Set(us).size !== us.length) return { ok: false, why: "お礼の 装備を えらびなおして（付けて いる 物は はずして から）" };
-  const reward = { balls, res: resN, ...items({ mats: t.taken, equip: eq }) };
+  const reward = { credits, res: resN, ...items({ mats: t.taken, equip: eq }) };
   if (!valueOf(reward)) return { ok: false, why: "お礼を えらんで" };
   const fee = feeOf(reward), rid = `${rec.id}:${rec.at.toString(36)}:q${++rec.req.n}`;
+  if (credits + fee > (rec.credits || 0)) return { ok: false, why: `クレジットが 足りない：あと ${(credits + fee - (rec.credits || 0)).toLocaleString("ja-JP")}（お礼と 手数料）` };
   const data = { rid, by: rec.id, name: rec.name, want, reward, fee, note: nt.note, limit: b.limit };
-  return { costs: [{ kind: "balls", d: -(balls + fee) }, { kind: "res", d: -resN }].filter((c) => c.d), why: "req:" + rid,
-    take: () => { rec.own.mats = t.mats; rec.own.equip = rec.own.equip.filter((e) => !eq.includes(e)); rec.req.mine = rid; rec.req.wait[rid] = data; },
-    grant: { reqSend: rid }, refund: { reqDrop: rid, reqBack: items({ mats: t.taken, equip: eq }) }, info: { rid, fee } };
+  return { costs: [{ kind: "res", d: -resN }].filter((c) => c.d), why: "req:" + rid,
+    take: () => { rec.own.mats = t.mats; rec.own.equip = rec.own.equip.filter((e) => !eq.includes(e)); rec.credits -= credits + fee; rec.req.mine = rid; rec.req.wait[rid] = data; },
+    grant: { reqSend: rid }, refund: { reqDrop: rid, reqBack: items({ mats: t.taken, equip: eq }), credits: credits + fee }, info: { rid, fee } };
 }
 // 届ける 物を 取る（素材は 品質の 低い 物から・買った 物から、装備は uid か ★の いちばん 低い 物）
 export function takeFor(rec, want, uid) {

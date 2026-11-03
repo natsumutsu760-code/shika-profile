@@ -1,8 +1,8 @@
 // 坑道（鹿さんの頼み、2026-10-25）。決まりの 中身は 見本の lounge-proto/mine.js
 // 受付：mine.set {uid, on}・mine.collect・mine.use {item}。記録：rec.mine = { on: [{ uid, at }], pickaxe?, lamp? }
 // 前は 隠れ家の 畑（farm.*）も ここに あったが、2026-11-03 に 消して 新しい 農園（lounge-farmv.js）に まとめた（鹿さんの 決め）
-import { mineSlots, mineHours, mineRate, mineDig, MINE_BOOST, boostH, mineCount } from "./game.js";
-import { give } from "./lounge-game.js";
+import { mineSlots, mineHours, mineRate, mineDig, MINE_BOOST, boostH, mineCount, facLv, upkeep } from "./game.js";
+import { give, payUpkeep } from "./lounge-game.js";
 
 const H = 3600 * 1000;
 export function ensureMine(rec) { rec.mine ||= { on: [] }; return rec; }
@@ -14,10 +14,10 @@ const boostNow = (list) => (Array.isArray(list) && list.length ? list[list.lengt
 function digOut(rec, w, R, now) {
   const c = rec.tamed.find((x) => x.uid === w.uid), h = mineHours(w.at, now);
   if (!c || !h) return [];
-  const a = w.at, b = w.at + h * H, rate = mineRate(c.lv), M = rec.mine;
+  const lv = facLv(rec, "mine"), a = w.at, b = w.at + h * H, rate = mineRate(lv), M = rec.mine;   // 1 時間に 2 ＋ 坑道の Lv / 25 こ（前は 掘る 子の Lv）
   w.at = now - w.at >= 12 * H ? now : w.at + h * H;   // いっぱいに なって いたら いまから、ちがえば 端数の 時間は のこす
   const n = mineCount(h, rate, a, M.pickaxe), lampN = Math.round((n * boostH(M.lamp, a, b)) / h);
-  return [...mineDig(R, rec.hideout.mine || 0, n - lampN), ...(lampN ? mineDig(R, rec.hideout.mine || 0, lampN, true) : [])];
+  return [...mineDig(R, lv, n - lampN), ...(lampN ? mineDig(R, lv, lampN, true) : [])];
 }
 // つるはし・ランプを 使う（坑道 ぜんたいに 12 時間。続けて 使うと のびる）。b：{ item }
 export function mineUse(rec, b, now = Date.now()) {
@@ -25,7 +25,7 @@ export function mineUse(rec, b, now = Date.now()) {
   if (!(rec.hideout.mine > 0)) return { ok: false, why: "坑道が まだ ない（隠れ家で 作る）" };
   const k = Object.prototype.hasOwnProperty.call(MINE_BOOST, b.item) ? b.item : "";
   if (!k) return { ok: false, why: "使う 物を えらんで" };
-  if (rec.hideout.mine < MINE_BOOST[k].lv) return { ok: false, why: `坑道 Lv${MINE_BOOST[k].lv} から` };
+  if (facLv(rec, "mine") < MINE_BOOST[k].lv) return { ok: false, why: `坑道 Lv${MINE_BOOST[k].lv} から` };
   if (!((rec.items || {})[k] > 0)) return { ok: false, why: "持って いない（工房で 作る）" };
   rec.items[k]--;
   const L = Array.isArray(rec.mine[k]) ? rec.mine[k] : [], x = boostNow(L), add = MINE_BOOST[k].h * H;
@@ -38,20 +38,22 @@ const merge = (list) => { const out = []; for (const m of list) { const x = out.
 // 掘らせる（on）・やめる（off。掘った 分は 渡す）。b：{ uid, on }
 export function mineSet(rec, b, R, now = Date.now()) {
   ensureMine(rec);
-  const M = rec.mine, lv = rec.hideout.mine || 0, w = M.on.find((x) => x.uid === b.uid);
+  const M = rec.mine, lv = rec.hideout.mine || 0, w = M.on.find((x) => x.uid === b.uid);   // 枠は 上げた Lv（つまみに よらない）
   if (!lv) return { ok: false, why: "坑道が まだ ない（隠れ家で 作る）" };
   if (!b.on) {
     if (!w) return { ok: false, why: "その 子は 掘って いない" };
     const mats = merge(digOut(rec, w, R, now)); M.on = M.on.filter((x) => x !== w);
-    if (mats.length) give(rec, { mats }, now);
-    return { ok: true, got: mats };
+    // 掘った 分を 渡す ときも 維持費（うけとる たびに。1 体ずつ やめて 払わずに すむ ことの ない ように）。パーティに 入れる・配合の ときにも 呼ばれて 断れないので、足りなければ 持って いる 分まで（Claude の 案、2026-11-03）
+    const fee = mats.length ? Math.min(rec.credits || 0, upkeep("mine", facLv(rec, "mine"))) : 0;
+    if (mats.length) { payUpkeep(rec, fee, now); give(rec, { mats }, now); }
+    return { ok: true, got: mats, ...(fee ? { fee } : {}) };
   }
   const c = rec.tamed.find((x) => x.uid === b.uid);
   if (!c) return { ok: false, why: "その 子は いない" };
   if (w) return { ok: false, why: "もう 掘って いる" };
   if (rec.party.includes(c.uid)) return { ok: false, why: "パーティの 子は 掘れない（部屋に もどすと 掘れる）" };
   if (rec.trips.some((t) => !t.done && t.party.includes(c.uid))) return { ok: false, why: "いまは 出かけて いる" };
-  if (M.on.length >= mineSlots(lv, rec.hideout.dig || 0)) return { ok: false, why: "掘る 場所が いっぱい（坑道の Lv で ふえる）" };
+  if (M.on.length >= mineSlots(lv)) return { ok: false, why: "掘る 場所が いっぱい（坑道の Lv で ふえる）" };
   M.on.push({ uid: c.uid, at: now });
   return { ok: true };
 }
@@ -59,10 +61,14 @@ export function mineSet(rec, b, R, now = Date.now()) {
 export function mineCollect(rec, R, now = Date.now()) {
   ensureMine(rec);
   if (!(rec.hideout.mine > 0)) return { ok: false, why: "坑道が まだ ない（隠れ家で 作る）" };
+  if (!rec.mine.on.some((w) => mineHours(w.at, now) > 0)) return { ok: false, why: "まだ 掘れて いない（1 時間ごとに たまる）" };
+  const fee = upkeep("mine", facLv(rec, "mine"));   // 維持費：うけとる たびに（探索の 施設と 同じ 式。つまみの Lv）
+  if (fee > (rec.credits || 0)) return { ok: false, why: `維持費が 足りない：クレジット あと ${(fee - (rec.credits || 0)).toLocaleString("ja-JP")}（つまみを 下げると 安い）` };
   const mats = merge(rec.mine.on.flatMap((w) => digOut(rec, w, R, now)));
   if (!mats.length) return { ok: false, why: "まだ 掘れて いない（1 時間ごとに たまる）" };
+  payUpkeep(rec, fee, now);
   give(rec, { mats }, now);
-  return { ok: true, got: mats };
+  return { ok: true, got: mats, fee };
 }
 // パーティに 入る 子は 坑道を やめる（掘った 分は 渡す）。tame.join の 前に 呼ぶ
 export function mineLeave(rec, uid, R, now = Date.now()) {
@@ -72,7 +78,7 @@ export function mineLeave(rec, uid, R, now = Date.now()) {
 // 画面に 出す 形（掘った 数を 門番の 時計で）。/api/me の mine
 export function mineView(rec, now = Date.now()) {
   ensureMine(rec);
-  const mlv = rec.hideout.mine || 0;
-  return { slots: mineSlots(mlv, rec.hideout.dig || 0), pickaxe: rec.mine.pickaxe || [], lamp: rec.mine.lamp || [], now,
-    on: rec.mine.on.map((w) => { const c = rec.tamed.find((x) => x.uid === w.uid); return { uid: w.uid, at: w.at, h: mineHours(w.at, now), rate: mineRate(c && c.lv) }; }) };
+  const mlv = rec.hideout.mine || 0, klv = facLv(rec, "mine");
+  return { slots: mineSlots(mlv), lv: klv, rate: mineRate(klv), fee: upkeep("mine", klv), pickaxe: rec.mine.pickaxe || [], lamp: rec.mine.lamp || [], now,
+    on: rec.mine.on.map((w) => { const c = rec.tamed.find((x) => x.uid === w.uid); return { uid: w.uid, at: w.at, h: mineHours(w.at, now), rate: mineRate(klv), ...(c ? {} : { gone: 1 }) }; }) };
 }

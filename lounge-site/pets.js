@@ -1,6 +1,6 @@
 // ラウンジのペット v3（PostPet の「らしさ」から考え直し）。makePet3(species) が THREE.Group を返す
 // ・種類ごとに体のつくりから変える（ひょろ長い・ずんぐり・箱・浮く・鉢植え・四つ足）
-// ・動物だけでなく道具も住人にする（MONO LINK らしく、パソコン・配信・手紙・リソースの道具）
+// ・動物だけでなく道具も住人にする（MONO LINK らしく、パソコン・配信・手紙・アメジストの道具）
 // ・はっきりしたおもちゃの色と、つるっとしたソフビ・プラスチックの質感
 // ・顔も種類ごとに作りを変える（半目とまつげ・ぎょろ目・画面の顔・糸目 など）
 import * as THREE from "three";
@@ -37,7 +37,7 @@ export const SPECIES3 = {
   mogura: { label: "もぐら", note: "穴をほって部屋をめぐる" },
   kurage: { label: "くらげ", note: "浮かぶ・夜に光る" },
   saboten: { label: "サボテン", note: "鉢ごと歩く" },
-  chokin: { label: "ちょきんばこ", note: "リソースをためる" },
+  chokin: { label: "ちょきんばこ", note: "アメジストをためる" },
   // 2026-10-31 に ふやした 4 匹（docs/mono-link-new-pets.md）
   tako: { label: "タコ", note: "料理好き・フライパン" },
   ittan: { label: "一反木綿", note: "アルミの板・顔に紙" },
@@ -274,7 +274,7 @@ function saboten() {
   return g;
 }
 
-// ---------- ちょきんばこ：四つ足のぶたの貯金箱。背中の口にコイン（リソース）が入る ----------
+// ---------- ちょきんばこ：四つ足のぶたの貯金箱。背中の口にコイン（アメジスト）が入る ----------
 function chokin() {
   const g = new THREE.Group(), blue = toy("#3F7BFF", 0.22), snout = toy("#7EA6FF", 0.25), slot = toy("#15223F", 0.6), gold = toy("#FFC93C", 0.25, { metalness: 0.5 }), wf = toy("#FFFFFF", 0.3), yc = toy("#FFD23F", 0.3);
   put(g, ball(0.2, 1, 0.92, 1.3), blue, 0, 0.25, 0);

@@ -1,136 +1,158 @@
-// ラウンジの施設（タルコフの隠れ家のように、素材を集めて Lv を上げる）。鹿さんの決め、2026-10-22
-// はじめの 島では どれも Lv 3 まで。次の 島が 開いたら、その 島の 素材で 上限が 1 つ 上がる（鹿さんの決め、2026-10-25。isle：何番目の 島の Lv か）
-//   ニライ諸島（2）：ゲームに 島が 出て いる（dungeons.js の ISLAND_OPEN）と、無線機と 各施設の Lv4 が 出る。Lv4 は 無線機を 作った 人だけ（facCap）
-// 強化はすぐできる（待ち時間なし）。使う物：素材・玉・リソース・クレジット（派遣のゲームの中のお金）・ほかの施設の Lv
-// PC は置くだけ（Lv なし。はじめから DEEP LINK/: のぜんぶに入れる）
-// 効果・必要な物の数はすべて案（鹿さんとこれから決める）。画面の見本は hideout.html
-// need の mats：[素材の id, 数, 品質（敵の素材で 品質 2 以上が いるときだけ。その品質以上）]。fac：[施設の id, Lv]
-// 延べ棒（鹿さんの 決め、2026-10-31。docs/mono-link-crafting.md）：鉄鉱石を 20 こ 以上 使う 所は 鉄の延べ棒（鉱石 3 こ ＝ 1 本）、上の Lv は 銀の延べ棒も。坑道より 前に いる 所（地下の 拡張 Lv2）と 少しの 所は 鉱石の まま
-//   石炭が 坑道でしか 出ないので、坑道（地下の 拡張 Lv2）より 前に いる 施設に 延べ棒を 入れると 進めなく なる。金の延べ棒は 坑道 Lv4 の あとに いる 施設が まだ ないので 装備開発で 使う
-import { GATHER, ENEMY_MAT } from "./materials.js";
-import { DUNGEONS, ISLAND_OPEN } from "./dungeons.js";
+// ラウンジの 施設（大工事で 作り直し。鹿さんの 決め、2026-10-29 の 11〜14 回目の カード・2026-11-03「施設から」。数は docs/mono-link-numbers.md の 4 章の 案）
+// - 11 こ（地下の 拡張は なくした）。Lv1〜100 で なめらかに のびる（無線機だけ 島ごとに 1 段）
+// - つまみ：上げた Lv までの どこでも えらべる（rec.knob）。効果と 維持費は えらんだ Lv。倉庫・武器庫・無線機は つまみ なし
+// - 建設：クレジットを 払って 始め、素材を 分けて 入れる。進み ＝「入れた 素材の 割合」と「経った 時間 ÷ 工期」の 小さい 方
+//   グラナート建設（残りの 時間を 半分・残りの 分 × 1 クレジット、最低 50）・ヘリクス電力の 燃料（60 クレジットで 30 分）で 早く なる
+// - 維持費：探索の 施設は 派遣ごと、作る 施設は 作るたび、坑道は うけとる たび。倉庫・武器庫・無線機は なし
+// - 前の Lv1〜4 の 段で 開いた 物（★の 上限・合成・とくべつおやつ・アタッチメントの ★・坑道の 枠）は Lv1・20・50・80 で 開く（作業台の ★の 上限の 区切りと 同じ。Claude の 案）
+// - Lv41 から 島 2 の 素材が いる ので、無線機を 作るまで Lv40 まで（Claude の 案）
+// - 払いは クレジットだけ（玉と アメジストは 使わない。経済の 決め）
+// 画面は hideout.html。門番は lounge-facility.js
+import { GATHER, ENEMY_MAT, ORE_MAT } from "./materials.js";
+import { DUNGEONS, DUNGEONS_ALL, ISLAND_OPEN } from "./dungeons.js";
 import { FARM_OPEN } from "./crops.js";
+import { MINE_ADD } from "./mine.js";
 
+export const FAC_MAX = 100;
+export const BAND_AT = [1, 20, 50, 80];
+export const band = (lv) => BAND_AT.filter((x) => (lv || 0) >= x).length;   // 0〜4（前の Lv に あたる 段）
+export const NO_RADIO_MAX = 40;   // 無線機が ない ときに 上げられる Lv
+
+// kind：make（作る たびに 維持費）・trip（派遣ごと）・mine（うけとる たび）・keep（維持費 なし）・radio（島ごとに 1 段）
 const ALL = [
-  { id: "bench", name: "作業台", text: "装備を 作る・合成する", lv: [
-    { fx: "装備を 作れる（★1〜2 が 出る）", need: { mats: [["pebble", 8], ["goblin_knife", 2]], credits: 400, balls: 300 } },
-    { fx: "合成（上の装備を 作る）が できる・★3 も 出る", need: { mats: [["brick", 12], ["golem_stone", 4, 2], ["oldnail", 8]], credits: 2000, balls: 1500, res: 1, fac: [["storage", 1]] } },
-    { fx: "★4 も 出る・合成の 玉が 半分", need: { mats: [["ironore", 15], ["crystalbit", 10], ["dragon_crystal", 1, 5], ["crown_shard", 1, 5]], credits: 8000, balls: 6000, res: 4, fac: [["lab", 2]] } },
-    { isle: 2, fx: "★5 も 出る・合成でも ★5 が 出やすい", need: { mats: [["brasspart", 30], ["rustfitting", 30], ["silver_bar", 6], ["gold_bar", 3], ["obsidian_core", 4, 3], ["salamander_tail", 1, 5]], credits: 20000, balls: 12000, res: 8, fac: [["lab", 3], ["mine", 4]] } },
-  ] },
-  { id: "lab", name: "研究所", text: "捕まえた敵の 研究が 安くなる", lv: [
-    { fx: "研究の リソース −20%", need: { mats: [["old_score", 1], ["stardust", 5]], credits: 600, balls: 300 } },
-    { fx: "研究の リソース −35%", need: { mats: [["dream_feather", 2, 2], ["sleepmoss", 10], ["shadow_shard", 3]], credits: 2500, balls: 1500, res: 1, fac: [["bench", 1]] } },
-    { fx: "研究の リソース −50%", need: { mats: [["dreamshard", 2], ["light_drop", 2, 3], ["slime_core", 3, 4]], credits: 9000, balls: 6000, res: 4 } },
-    { isle: 2, fx: "研究の リソース −65%", need: { mats: [["lampglass", 20], ["glowmoss", 20], ["glimmer_dust", 3, 3], ["song_pearl", 1, 4]], credits: 22000, balls: 12000, res: 8 } },
-  ] },
-  { id: "snack", name: "おやつ工房", text: "素材から 懐柔の おやつを 作る", lv: [
-    { fx: "おやつを 作れる（薬草 2 ＋ 野いちご 1 → おやつ 1）", need: { mats: [["herb", 6], ["berry", 6], ["hare_horn", 2]], credits: 300, balls: 300 } },
-    { fx: "作るのに 使う 素材が 3 こ → 2 こ", need: { mats: [["nightbloom", 8], ["wellwater", 8], ["poison_vial", 2, 2]], credits: 1800, balls: 1500, res: 1, fac: [["medic", 1]] } },
-    { fx: "とくべつおやつ（なかよしゲージ ＋3）を 作れる", need: { mats: [["clover", 2], ["moondrop", 1], ["deepwater", 10]], credits: 7000, balls: 6000, res: 3 } },
-    { isle: 2, fx: "ふつうの おやつが 1 回で 2 こ できる", need: { mats: [["coconut", 20], ["akabanaa", 20], ["aasa", 15], ["rainbow_fin", 1, 4]], credits: 18000, balls: 12000, res: 6 } },
-  ] },
-  { id: "maproom", name: "地図室", text: "探索が 楽に なる", lv: [
-    { fx: "入った階の 階段の 場所が わかる", need: { mats: [["straw", 8], ["kobold_fur", 2]], credits: 500, balls: 300 } },
-    { fx: "採取ポイントで とれる 素材 ＋50%", need: { mats: [["oldcloth", 10], ["mimic_tooth", 3, 2], ["candle", 6]], credits: 2500, balls: 1500, res: 1, fac: [["lab", 1]] } },
-    { fx: "ふつうの 敵の 素材が 落ちる 確率 30% → 45%（採取 ＋50% も そのまま）", need: { mats: [["glowstone", 12], ["bat_wing", 3, 4], ["rainbowcrystal", 1]], credits: 9000, balls: 6000, res: 4 } },
-    { isle: 2, fx: "希少な 敵と ボスの 素材も 50% で ＋1（いままでの 効果も そのまま）", need: { mats: [["sailcloth", 20], ["capestone", 20], ["mapscrap", 2], ["old_compass", 2, 4]], credits: 22000, balls: 12000, res: 8 } },
-  ] },
-  { id: "medic", name: "救護室", text: "探索の 休憩で 早く 回復する", lv: [
-    { fx: "休憩の 回復 ×1.25", need: { mats: [["herb", 10], ["hare_horn", 1]], credits: 400, balls: 300 } },
-    { fx: "休憩の 回復 ×1.5", need: { mats: [["sleepmoss", 8], ["ghost_cloth", 4, 2], ["wellwater", 6]], credits: 2000, balls: 1500, res: 1, fac: [["snack", 1]] } },
-    { fx: "倒れた子も 休憩で 起きあがる（HP 1 割）", need: { mats: [["deepwater", 12], ["rainbow_shell", 1, 4], ["sleep_hourglass", 1, 5]], credits: 8000, balls: 6000, res: 4 } },
-    { isle: 2, fx: "休憩の 回復 ×2・倒れた子は HP 3 割で 起きあがる", need: { mats: [["fallwater", 25], ["aasa", 20], ["jelly_gel", 4, 3], ["mermaidtear", 1]], credits: 20000, balls: 12000, res: 8 } },
-  ] },
-  { id: "gym", name: "トレーニング室", text: "派遣の 経験値が 増える", lv: [
-    { fx: "派遣の 経験値 ＋10%", need: { mats: [["pebble", 6], ["kobold_fur", 3]], credits: 500, balls: 300 } },
-    { fx: "派遣の 経験値 ＋20%", need: { mats: [["brick", 10], ["wolf_fang", 4, 2], ["oldnail", 6]], credits: 2500, balls: 1500, res: 1, fac: [["medic", 1]] } },
-    { fx: "派遣の 経験値 ＋30%", need: { mats: [["ironore", 12], ["crystal_scale", 4, 4], ["midnight_bell", 1, 5]], credits: 9000, balls: 6000, res: 4 } },
-    { isle: 2, fx: "派遣の 経験値 ＋40%", need: { mats: [["driftwood", 25], ["lavarock", 20], ["lava_scale", 4, 3], ["irabu_fang", 1, 5]], credits: 22000, balls: 12000, res: 8 } },
-  ] },
-  { id: "storage", name: "倉庫", text: "1 しゅるいに 置ける 数が 増える（はじめは 50 こ）", lv: [
-    { fx: "1 しゅるい 100 こ まで 置ける", need: { mats: [["straw", 6], ["berry", 4]], credits: 300, balls: 300 } },
-    { fx: "1 しゅるい 200 こ まで 置ける", need: { mats: [["oldnail", 10], ["oldcloth", 6]], credits: 1500, balls: 1000 } },
-    { fx: "1 しゅるい 400 こ まで 置ける", need: { mats: [["ironore", 10], ["crystalbit", 8]], credits: 6000, balls: 4000, res: 2, fac: [["bench", 2]] } },
-    { isle: 2, fx: "1 しゅるい 800 こ まで 置ける", need: { mats: [["shipwood", 40], ["rustchain", 30], ["barnacle_plate", 4, 3]], credits: 15000, balls: 8000, res: 4 } },
-  ] },
-  // 武器庫（鹿さんの頼み、2026-10-25：武器の スタッシュも 強化できる ように）。装備を 持てる 数（EQUIP_CAP）
-  { id: "armory", name: "武器庫", text: "装備を 持てる 数が 増える（はじめは 200 こ）", lv: [
-    { fx: "装備 300 こ まで 持てる", need: { mats: [["oldnail", 20], ["brick", 15], ["goblin_knife", 3]], credits: 1000, balls: 800 } },
-    { fx: "装備 500 こ まで 持てる", need: { mats: [["iron_bar", 10], ["oldcloth", 20], ["wolf_fang", 4, 2]], credits: 5000, balls: 3000, res: 1, fac: [["bench", 1]] } },
-    { fx: "装備 800 こ まで 持てる", need: { mats: [["iron_bar", 20], ["silver_bar", 3], ["crystalbit", 40], ["crystal_scale", 3, 4]], credits: 15000, balls: 8000, res: 4, fac: [["storage", 2]] } },
-    { isle: 2, fx: "装備 1,200 こ まで 持てる", need: { mats: [["rustchain", 60], ["brasspart", 40], ["gold_bar", 2], ["trident_tip", 4, 4]], credits: 35000, balls: 16000, res: 8, fac: [["storage", 3], ["mine", 4]] } },
-  ] },
-  // 地下の 拡張と 新しい 設備（鹿さんの頼み、2026-10-25。いまの 部屋を 奥へ 広げる 形。スタック数を 増やした ぶん 素材を たくさん 使う）
-  { id: "dig", name: "地下の 拡張", text: "地下を 奥へ 広げて、新しい 設備を 置く", lv: [
-    { fx: "奥に 広がる（工房を 置ける）", need: { mats: [["pebble", 40], ["brick", 30], ["oldnail", 20]], credits: 3000, balls: 2000 } },
-    { fx: "もっと 奥へ（坑道を 掘れる）", need: { mats: [["brick", 80], ["ironore", 40], ["oldcloth", 40], ["golem_stone", 6, 2]], credits: 10000, balls: 6000, res: 2, fac: [["bench", 1]] } },
-    { fx: "いちばん 奥まで（坑道の 枠が ふえる）", need: { mats: [["iron_bar", 30], ["silver_bar", 5], ["crystalbit", 60], ["glowstone", 60], ["dragon_crystal", 1, 5]], credits: 30000, balls: 15000, res: 6, fac: [["storage", 2]] } },
-    { isle: 2, fx: "島の 岩盤まで（坑道の 枠が もう 1 つ ふえる）", need: { mats: [["capestone", 120], ["marble", 80], ["obsidian", 60], ["shisa_tile", 6, 4]], credits: 70000, balls: 30000, res: 10, fac: [["storage", 3]] } },
-  ] },
-  { id: "workshop", name: "工房", text: "素材から 道具と 武器の アタッチメントを 作る", lv: [
-    { fx: "道具・スプリンクラー・アタッチメント（★1〜2）を 作れる", need: { mats: [["oldnail", 20], ["brick", 20], ["candle", 10], ["goblin_knife", 3]], credits: 1500, balls: 1000, fac: [["dig", 1]] } },
-    { fx: "アタッチメント ★3 も 出る・元気のお茶・上の スプリンクラー", need: { mats: [["iron_bar", 10], ["copper_bar", 4], ["oldcloth", 30], ["wolf_fang", 4, 2], ["light_drop", 2, 2]], credits: 6000, balls: 4000, res: 2, fac: [["bench", 2]] } },
-    { fx: "アタッチメント ★4 も 出る（OP 2 つ）・星の スプリンクラー", need: { mats: [["crystalbit", 60], ["glowstone", 40], ["crystal_scale", 4, 4], ["midnight_bell", 1, 5]], credits: 18000, balls: 10000, res: 5, fac: [["dig", 2]] } },
-    { isle: 2, fx: "アタッチメント ★5 も 出る（OP 3 つ）", need: { mats: [["thunderstone", 40], ["oldbell", 20], ["silver_bar", 8], ["gold_bar", 4], ["whirl_pearl", 4, 4], ["suncrystal", 1]], credits: 40000, balls: 20000, res: 9, fac: [["dig", 3], ["mine", 4]] } },
-  ] },
-  // 畑（施設）は 2026-11-03 に 消した。農業は 新しい 農園（部屋の 庭への扉 → garden.html。鹿さんの 決め）
-  { id: "mine", name: "坑道", text: "パーティに いない なかまが 鉱石と ガラクタを 掘る", lv: [
-    { fx: "なかま 1 体が 掘れる（小石・レンガ・釘・鉄鉱石・銅鉱石・石炭）", need: { mats: [["brick", 50], ["oldnail", 40], ["oldcloth", 30], ["golem_stone", 4, 2]], credits: 6000, balls: 4000, res: 1, fac: [["dig", 2]] } },
-    { fx: "2 体・ろうそく・布・水晶のかけら・銀鉱石（少し）も 出る", need: { mats: [["iron_bar", 16], ["copper_bar", 6], ["candle", 30], ["wolf_fang", 6, 3]], credits: 15000, balls: 8000, res: 3 } },
-    { fx: "3 体・光る石・銀鉱石が ふえる・ときどき 虹水晶", need: { mats: [["iron_bar", 30], ["silver_bar", 5], ["crystalbit", 60], ["bat_wing", 6, 4], ["dragon_crystal", 1, 5]], credits: 30000, balls: 15000, res: 6, fac: [["dig", 3]] } },
-    { isle: 2, fx: "4 体・ニライ諸島の 石（岬の石・青い石・黒曜石・雷の石）と 金鉱石も 出る", need: { mats: [["obsidian", 60], ["sulfur", 40], ["silver_bar", 10], ["hidama_ember", 6, 4], ["fireheart", 1]], credits: 70000, balls: 30000, res: 10, fac: [["dig", 4]] } },
-  ] },
-  // 無線機（ニライ諸島の 設定資料：docs/mono-link-island2.md。いる 物は 軽め＝鹿さんの決め）。作ると その人は ニライ諸島へ 行けて、ほかの 施設の Lv4 が 開く
-  { id: "radio", name: "無線機", isle: 2, text: "島の 電波を ひろって、ほかの 島へ 船を 出す", lv: [
-    { fx: "ニライ諸島へ 行ける・ほかの 施設を Lv4 に できる", need: { mats: [["ironore", 10], ["crystalbit", 6]], credits: 5000, balls: 3000, res: 1 } },
-  ] },
+  { id: "bench", kind: "make", name: "作業台", text: "装備を 作る・合成する" },
+  { id: "lab", kind: "make", name: "研究所", text: "捕まえた 敵の 研究が 安く・早く なる" },
+  { id: "snack", kind: "make", name: "おやつ工房", text: "素材から 懐柔の おやつを 作る" },
+  { id: "maproom", kind: "trip", name: "地図室", text: "採取と 敵の 素材が ふえる" },
+  { id: "medic", kind: "trip", name: "救護室", text: "休憩の 回復と、倒れた 子の 起きあがり" },
+  { id: "gym", kind: "trip", name: "トレーニング室", text: "派遣の 経験値が ふえる" },
+  { id: "storage", kind: "keep", name: "倉庫", text: "1 しゅるいに 置ける 数が ふえる（はじめは 50 こ）" },
+  { id: "armory", kind: "keep", name: "武器庫", text: "装備を 持てる 数が ふえる（はじめは 200 こ）" },
+  { id: "workshop", kind: "make", name: "工房", text: "道具と 武器の アタッチメントを 作る・精錬・加工" },
+  { id: "mine", kind: "mine", name: "坑道", text: "パーティに いない なかまが 鉱石と ガラクタを 掘る" },
+  { id: "radio", kind: "radio", name: "無線機", isle: 2, max: 1, text: "島の 電波を ひろって、ほかの 島へ 船を 出す" },
 ];
-// ゲームに 出て いる 島の 分だけ（まだ 出て いない 島の 施設と Lv は ない 物と する）。ALL は 試験と 資料の ため
-// 大工事で 農業の 畑が つながったら、施設に 布・建材を 入れる（鹿さんの 決め、2026-10-31。docs/mono-link-crafting.md）。坑道より 前の Lv は かえない
-// [施設, Lv の 番号（0 から）, 取りかえる 素材（null は 足すだけ）, 布・建材, 数]。天の布・真珠絹は 装備開発の いちばん 上で 使う
-// 金の延べ棒は 作業台・武器庫・工房の 島 2 の 段に 使う（鹿さんの 決め、2026-10-31。どの 施設に 何こは Claude の 案）。金鉱石は 坑道 Lv4 から なので 坑道 Lv4 を 先に。地下の 拡張には 入れない（坑道 Lv4 が 地下の 拡張 Lv4 を 待つ ため、まわって 進めなく なる）
-export const FARM_SWAP = [
-  ["armory", 1, "oldcloth", "cotton_cloth", 6], ["workshop", 1, "oldcloth", "cotton_cloth", 8], ["medic", 2, null, "flax_cloth", 6],
-  ["storage", 2, null, "straw_bundle", 10], ["dig", 2, null, "bamboo_lumber", 12], ["mine", 1, null, "bamboo_lumber", 8],
-  ["gym", 2, null, "nightbamboo_lumber", 8], ["lab", 2, null, "blackbamboo_lumber", 6],
-  ["armory", 3, null, "sylph_sail", 6], ["medic", 3, null, "whitesand_cloth", 6], ["dig", 3, null, "stormbamboo_lumber", 12], ["mine", 3, null, "stormbamboo_lumber", 8],
-];
-export const withFarm = (list) => list.map((f) => ({ ...f, lv: f.lv.map((l, i) => {
-  const sw = FARM_SWAP.filter(([id, k]) => id === f.id && k === i); if (!sw.length) return l;
-  let mats = [...l.need.mats];
-  for (const [, , from, to, n] of sw) { if (from) mats = mats.filter(([id]) => id !== from); mats.push([to, n]); }
-  return { ...l, need: { ...l.need, mats } };
-}) }));
 export const FACILITIES_ALL = ALL;
-export const FACILITIES_FARM = withFarm(ALL);   // 畑が つながった あとの 形（試験と 資料。FARM_OPEN が true に なると FACILITIES が これに なる）
-export const FACILITIES = (FARM_OPEN ? FACILITIES_FARM : ALL).filter((f) => (f.isle || 1) <= ISLAND_OPEN).map((f) => ({ ...f, lv: f.lv.filter((l) => (l.isle || 1) <= ISLAND_OPEN) }));
+export const FACILITIES = ALL.filter((f) => (f.isle || 1) <= ISLAND_OPEN);
+export const facOf = (id) => FACILITIES.find((f) => f.id === id) || null;
+export const facMax = (f) => (f && f.max) || FAC_MAX;
 // その人が 行ける 島の 数（無線機が あれば 2）と、その人が 上げられる Lv の 上限（hide：rec.hideout）
 export const isleOf = (hide, open = ISLAND_OPEN) => (open >= 2 && ((hide || {}).radio || 0) >= 1 ? 2 : 1);
-export const facCap = (f, hide, open = ISLAND_OPEN) => ((f.isle || 1) > open ? 0 : f.lv.filter((l) => (l.isle || 1) <= isleOf(hide, open)).length);
-export const EQUIP_CAP = [200, 300, 500, 800, 1200];   // 武器庫の Lv で 装備を 持てる 数（案）。こえた 分は あずかり箱へ
-export const STORAGE_CAP = [50, 100, 200, 400, 800];   // 1 しゅるい（素材の id）ごとの 上限。どの しゅるいも 置ける（鹿さんの決め、2026-10-25：前は ぜんぶの 合計で 100・200・400・800）
-// おやつ工房で 作る 物（鹿さんの決め、2026-10-25）。Lv2 から ふつうの おやつの 素材が 3 こ → 2 こ。とくべつおやつ（なかよし ＋3）は Lv3 から
+export const facCap = (f, hide, open = ISLAND_OPEN) => (!f || (f.isle || 1) > open ? 0 : f.max ? f.max : isleOf(hide, open) >= 2 ? FAC_MAX : NO_RADIO_MAX);
+export const hasKnob = (f) => !!f && (f.kind === "make" || f.kind === "trip" || f.kind === "mine");
+// 効く Lv（つまみ）。knob が ない・上げた Lv より 上なら 上げた Lv
+export const facLv = (rec, id) => { const lv = ((rec && rec.hideout) || {})[id] || 0, k = ((rec && rec.knob) || {})[id]; return hasKnob(facOf(id)) && Number.isInteger(k) && k >= 0 && k < lv ? k : lv; };
+
+// ---------- 効果（Lv100 で 前の Lv4 と 同じ くらい）----------
+export const benchStarMax = (lv) => (lv ? band(lv) + 1 : 0);         // 作業台：Lv1 ★2・Lv20 ★3・Lv50 ★4・Lv80 ★5
+export const benchTopUp = (lv) => 0.003 * (lv || 0);                 // 高い ★の 出やすさ ＋0.3% / Lv
+export const SYNTH_LV = 20, SYNTH_HALF_LV = 50;                      // 合成は Lv20 から（前の Lv2）・合成の 玉が 半分は Lv50 から（前の Lv3）
+export const labOff = (lv) => 0.005 * (lv || 0);                     // 研究所：研究の アメジスト −0.5% / Lv
+export const LAB_H = { 通常: 1, 希少: 4, 配合: 6, ボス: 12 };          // 研究の もとの 時間（時間）
+export const labMs = (rank, lv) => Math.round((LAB_H[rank] || 1) * 3600e3 * (1 - 0.005 * (lv || 0)));   // −0.5% / Lv
+export const snackMore = (lv) => 0.01 * (lv || 0);                   // おやつ工房：1 回で 2 こ できる 確率 ＋1% / Lv
+export const snackSave = (lv) => 0.01 * (lv || 0);                   // 素材が 3 → 2 に なる 確率 ＋1% / Lv
+export const wsMore = (lv) => 0.01 * (lv || 0);                      // 工房：道具が 1 こ 多く できる 確率 ＋1% / Lv
+export const wsSave = (lv) => 0.003 * (lv || 0);                     // 素材 −0.3% / Lv
+export const mapAdd = (lv) => 0.005 * (lv || 0);                     // 地図室：採取 ＋0.5% / Lv・敵の 素材が 落ちる 確率 30% に ＋0.15% / Lv（＝ 素材 1 こごとに ＋0.5%）
+export const restMul = (lv) => 1 + (lv || 0) / 100;                  // 救護室：休憩の 回復 ×（1 ＋ Lv / 100）
+export const riseHp = (lv) => (lv ? 0.003 * lv : 0);                 // 倒れた 子が 休憩で 起きる HP ＋0.3% / Lv
+export const gymMul = (lv) => 1 + 0.004 * (lv || 0);                 // トレーニング室：派遣の 経験値 ＋0.4% / Lv
+export const storageCap = (lv) => (lv ? 100 + 7 * lv : 50);          // 倉庫：1 しゅるい 100 ＋ 7 × Lv（Lv100 で 800）
+export const equipCapOf = (lv) => 200 + 10 * (lv || 0);              // 武器庫：200 ＋ 10 × Lv（Lv100 で 1,200）
+// 前の 形の 表（いまは 試験と 見本の ため。Lv の 段 0〜4）
+export const STORAGE_CAP = [0, 1, 20, 50, 80].map(storageCap), EQUIP_CAP = [0, 1, 20, 50, 80, 100].map(equipCapOf);
+
+// 効果の 1 行（画面）
+export function facFx(id, lv) {
+  const p = (x) => `${Math.round(x * 1000) / 10}%`;
+  switch (id) {
+    case "bench": return lv ? `★${benchStarMax(lv)} まで・高い ★ ＋${p(benchTopUp(lv))}${lv >= SYNTH_LV ? "・合成" : ""}` : "まだ ない";
+    case "lab": return `研究の アメジストと 時間 −${p(labOff(lv))}`;
+    case "snack": return lv ? `2 こ できる ${p(snackMore(lv))}・素材が 2 こ ${p(snackSave(lv))}${band(lv) >= 3 ? "・とくべつおやつ" : ""}` : "まだ ない";
+    case "workshop": return lv ? `アタッチメント ★${benchStarMax(lv)} まで・道具 ＋1 こ ${p(wsMore(lv))}・素材 −${p(wsSave(lv))}` : "まだ ない";
+    case "maproom": return `採取と 敵の 素材 ＋${p(mapAdd(lv))}${lv ? "・着いた 階の 階段が 見える" : ""}`;
+    case "medic": return `休憩の 回復 ×${restMul(lv).toFixed(2)}・倒れた 子が HP ${p(riseHp(lv))} で 起きる`;
+    case "gym": return `派遣の 経験値 ＋${p(gymMul(lv) - 1)}`;
+    case "storage": return `1 しゅるい ${storageCap(lv)} こ まで`;
+    case "armory": return `装備 ${equipCapOf(lv).toLocaleString("ja-JP")} こ まで`;
+    case "mine": return lv ? `${mineSlotsOf(lv)} 体・1 時間に ${mineRateOf(lv).toFixed(1)} こ` : "まだ ない";
+    case "radio": return lv ? "ニライ諸島へ 行ける・ほかの 施設を Lv41 から 上げられる" : "まだ ない";
+  }
+  return "";
+}
+// 坑道：掘る 子の 数は 段（1〜4）・1 時間に 2 ＋ Lv / 25 こ
+export const mineSlotsOf = (lv) => band(lv);
+export const mineRateOf = (lv) => (lv ? 2 + lv / 25 : 0);
+
+// ---------- 維持費 ----------
+export function upkeep(id, lv) {
+  const f = facOf(id); if (!f || !lv) return 0;
+  if (f.kind === "trip" || f.kind === "mine") return Math.round(0.075 * lv ** 1.65);
+  if (f.kind === "make") return Math.round(0.3 * lv ** 1.65);
+  return 0;
+}
+
+// ---------- 建設（Lv を 1 つ 上げる。L は 上げた あとの Lv）----------
+export const buildCredits = (L) => Math.round(20 * L ** 1.5);
+export const buildMs = (L) => Math.round(10 * 60e3 * L ** 1.2);
+export const RUSH = { perMin: 1, min: 50 }, FUEL = { price: 60, ms: 30 * 60e3 };
+// ボルトの 店の「建設の 時間 −10%・−20%」（−20% は −10% に おきかわる。買い取り ＋10%・＋20% と 同じ 形。Claude の 案、2026-11-03）
+export const BUILD_PERK = { build10: 0.1, build20: 0.2 };
+export const buildOff = (perks) => (perks && perks.build20 ? BUILD_PERK.build20 : perks && perks.build10 ? BUILD_PERK.build10 : 0);
+// 素材：Lv が 上がるほど 奥の 行き先の 素材（Claude の 案。資料の「Lv1〜20 は 島 1 の 前半、21〜40 は 暗い村・水晶洞窟と 延べ棒、41〜60 は 島 2 の 前半と 鉄竹・夜竹、61〜100 は 島 2 の 奥・銀と 金の 延べ棒・黒竹」）
+const gath = (ids) => ids.flatMap((d) => ((GATHER[d] || {}).mats || []).map(([id]) => id)).filter((id) => !ORE_MAT.has(id) && id !== "ironore");   // 鉱石は そのまま 使わず、延べ棒に して から（水晶洞窟の 鉄鉱石も）
+const foes = (ids) => ids.flatMap((d) => { const x = DUNGEONS_ALL.find((y) => y.id === d); return x ? x.foes.map((f) => ENEMY_MAT[f.tree][0]) : []; });
+const I2 = DUNGEONS_ALL.filter((d) => d.isle === 2 && !d.hidden).sort((a, b) => a.lv - b.lv).map((d) => d.id);
+const TIERS = [
+  { to: 20, gather: gath(["hals", "morph"]), extra: foes(["hals", "morph"]), n: (L) => 1 + Math.floor(L / 10) },
+  { to: 40, gather: gath(["kurai", "crystal"]), extra: [...foes(["kurai", "crystal"]), "copper_bar", "iron_bar"], n: (L) => 1 + Math.floor((L - 20) / 6) },
+  { to: 60, gather: gath(I2.slice(0, 4)), extra: [...(FARM_OPEN ? ["iron_bamboo", "night_bamboo", "bamboo_lumber", "nightbamboo_lumber"] : []), "iron_bar", "silver_bar"], n: (L) => 2 + Math.floor((L - 40) / 5) },
+  { to: 100, gather: gath(I2.slice(4)), extra: [...(FARM_OPEN ? ["black_bamboo", "blackbamboo_lumber"] : []), "silver_bar", "gold_bar"], n: (L) => 2 + Math.floor((L - 60) / 10) },
+];
+export const tierOf = (L) => TIERS.findIndex((t) => L <= t.to);
+// 延べ棒の もとの 鉱石が 坑道で 出る Lv（坑道を 上げる ときは、その Lv より 下で 出る 鉱石の 延べ棒だけ ── まだ 掘れない 鉱石の 延べ棒で 行き止まりに しない）
+const BAR_ORE = { copper_bar: "copperore", iron_bar: "ironore", silver_bar: "silverore", gold_bar: "goldore" };
+const ORE_AT = {}; for (const [at, add] of MINE_ADD) for (const k of Object.keys(add)) if (!(k in ORE_AT)) ORE_AT[k] = at;
+export const barMineLv = (id) => (BAR_ORE[id] ? ORE_AT[BAR_ORE[id]] || 0 : 0);
+export function buildNeed(id, L) {
+  const fi = Math.max(0, ALL.findIndex((f) => f.id === id)), T = TIERS[Math.max(0, tierOf(L))];
+  if (id === "radio") return { credits: 5000, ms: buildMs(10), mats: [["iron_bar", 4], ["crystalbit", 6]] };   // 無線機（島 2 へ。前の いる 物を 延べ棒に）
+  const g1 = T.gather[(fi * 3 + L) % T.gather.length], g2 = T.gather[(fi * 3 + L + 1 + Math.floor(T.gather.length / 2)) % T.gather.length];
+  const xs = id === "mine" ? T.extra.filter((x) => barMineLv(x) < L) : T.extra;   // 坑道は いまの Lv（L − 1）で 掘れる 鉱石の 延べ棒だけ
+  const ex = xs[(fi + L) % xs.length], gn = 4 + Math.floor(L * 0.4);
+  const mats = [[g1, gn], ...(g2 !== g1 ? [[g2, gn]] : []), [ex, T.n(L)]];
+  return { credits: buildCredits(L), ms: buildMs(L), mats };
+}
+// 建設の 進み（0〜1）：入れた 素材の 割合と 経った 時間 ÷ 工期 の 小さい 方。b：{ to, at, ms, skip, mats, put }
+export const buildMatRatio = (b) => { const all = b.mats.reduce((a, [, n]) => a + n, 0), put = b.mats.reduce((a, [id, n]) => a + Math.min(n, (b.put || {})[id] || 0), 0); return all ? put / all : 1; };
+export const buildTimeRatio = (b, now) => Math.min(1, Math.max(0, (now - b.at + (b.skip || 0)) / b.ms));
+export const buildProg = (b, now) => Math.min(buildMatRatio(b), buildTimeRatio(b, now));
+export const buildLeftMs = (b, now) => Math.max(0, b.ms - (now - b.at + (b.skip || 0)));
+export const rushPrice = (b, now) => Math.max(RUSH.min, Math.ceil(buildLeftMs(b, now) / 60e3) * RUSH.perMin);
+
+// 前の Lv（1〜4）を 新しい Lv に うつす（段の はじめに。前の Lv4 は Lv100）
+export const MIGRATE_LV = { 1: 20, 2: 50, 3: 80, 4: 100 };
+
+// ---------- おやつ工房（鹿さんの決め、2026-10-25）----------
+// lv は 段（band）：とくべつおやつは 段 3（Lv50）から。素材 3 → 2・1 回で 2 こ は 確率（snackSave・snackMore）
 export const SNACK_RECIPES = [
   { id: "snack", name: "懐柔のおやつ", gauge: 1, lv: 1, mats: [["herb", 2], ["berry", 1]], lv2: [["herb", 1], ["berry", 1]] },
   { id: "snack3", name: "とくべつおやつ", gauge: 3, lv: 3, mats: [["berry", 3], ["clover", 1]] },
 ];
-export const snackMats = (r, lv) => (lv >= 2 && r.lv2 ? r.lv2 : r.mats);
-export const SNACK_DOUBLE = 4;   // この Lv から ふつうの おやつが 1 回で 2 こ（とくべつおやつは 1 こ のまま）
-export const snackMade = (r, lv, n) => (r.id === "snack" && lv >= SNACK_DOUBLE ? n * 2 : n);
+export const snackOpen = (r, lv) => !!r && band(lv) >= r.lv;
+export const snackMats = (r, save) => (save && r.lv2 ? r.lv2 : r.mats);
 export const SNACK_CRAFT_MAX = 50;   // 1 回に 作れる 数
-// 地図室（鹿さんの決め、2026-10-25：Lv2 で 採取ポイントの 採取率 up・Lv3 で ドロップ率 up。前の「見える 範囲 2 マス」「かくし通路 90%」は やめた）
-// 派遣の 計算の あと、うけとる 素材に 足す（トレーニング室の 経験値と 同じ 形。派遣の 中の ようすと 配信の 中継は かわらない）。Lv は 出かけた ときの Lv（t.map）
-// 採取：その 行き先の 採取の 素材 4 しゅるい（かくし通路の レアは 入れない）1 こごとに 50% で ＋1。ドロップ：ふつうの 敵の 素材 1 こごとに 50% で ＋1（落ちる 確率 30% → 45% と 同じ）。数字は 案
-// Lv4（ニライ諸島）：希少な 敵と ボスの 素材も 1 こごとに 50% で ＋1（ドロップの 数に 入れる）
-export const MAP_GATHER = { lv: 2, add: 0.5 }, MAP_DROP = { lv: 3, add: 0.5 }, MAP_RARE = { lv: 4, add: 0.5 };
+
+// ---------- 地図室 ----------
+// 派遣の 計算の あと、うけとる 素材に 足す（トレーニング室の 経験値と 同じ 形。派遣の 中の ようすと 配信の 中継は かわらない）。lv は 出かけた ときの Lv（t.map）
+// 採取の 素材と ふつうの 敵の 素材 1 こごとに mapAdd(lv) で ＋1（Lv100 で ＋50%）
 export function mapExtra(lv, mats, did, R) {
-  const d = DUNGEONS.find((x) => x.id === did), gath = new Set(((GATHER[did] || {}).mats || []).map(([id]) => id)), matOf = (f) => (ENEMY_MAT[f.tree] || [])[0];
-  const foe = new Set(((d && d.foes) || []).map(matOf)), rare = new Set(d ? [d.rare, d.boss].filter(Boolean).map(matOf) : []);
+  const d = DUNGEONS_ALL.find((x) => x.id === did), gs = new Set(((GATHER[did] || {}).mats || []).map(([id]) => id));
+  const foe = new Set(((d && d.foes) || []).map((f) => (ENEMY_MAT[f.tree] || [])[0])), add = mapAdd(lv);
   let gather = 0, drop = 0;
   const out = mats.map((m) => {
-    const g = gath.has(m.id) && lv >= MAP_GATHER.lv, f = foe.has(m.id) && lv >= MAP_DROP.lv, r = rare.has(m.id) && lv >= MAP_RARE.lv; if (!g && !f && !r) return m;
-    const add = g ? MAP_GATHER.add : f ? MAP_DROP.add : MAP_RARE.add;
+    const g = gs.has(m.id), f = foe.has(m.id); if ((!g && !f) || !add) return m;
     let k = 0; for (let i = 0; i < m.n; i++) if (R() < add) k++;
     if (g) gather += k; else drop += k;
     return k ? { ...m, n: m.n + k } : m;

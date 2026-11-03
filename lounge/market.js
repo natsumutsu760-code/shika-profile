@@ -45,7 +45,7 @@ export class Market {
       if (td) return td.status === "void" ? res({ ok: false, why: "取り下げた 依頼" }) : res({ ok: true, again: true });   // 取り下げた あとで おくれて 来た・板に 出て もう 終わった（お礼は もう 動いた）
       if (typeof d.rid !== "string" || !d.rid.startsWith(d.by + ":") || !d.want || !LIMIT_MS[d.limit]) return res({ ok: false, why: "こわれた 依頼" });
       if (Object.values(this.reqs).some((x) => x.by === d.by && x.status === "open" && x.until > now)) return res({ ok: false, why: "依頼は 1 人 1 つまで" });
-      const x = { rid: d.rid, by: d.by, name: String(d.name || "").slice(0, 40), want: d.want, reward: { balls: d.reward.balls || 0, res: d.reward.res || 0, ...items(d.reward) }, fee: d.fee, note: d.note || null,
+      const x = { rid: d.rid, by: d.by, name: String(d.name || "").slice(0, 40), want: d.want, reward: { ...(d.reward.credits ? { credits: d.reward.credits } : {}), ...(d.reward.balls ? { balls: d.reward.balls } : {}), res: d.reward.res || 0, ...items(d.reward) }, fee: d.fee, note: d.note || null,
         hidden: false, reports: [], at: now, until: now + LIMIT_MS[d.limit], status: "open" };
       this.reqs[x.rid] = x; await this.put(x); await this.wake(x.until);
       return res({ ok: true });
@@ -101,7 +101,7 @@ export class Market {
     for (const r of Object.values(this.reqs)) {
       if (r.status === "open" && r.until <= now) {
         r.status = "expired"; r.end = now; await this.put(r);
-        await this.state.storage.put("o:" + r.rid + ":back", { to: r.by, mid: r.rid + ":back", give: { reqBack: { mats: r.reward.mats, equip: r.reward.equip } }, earn: [["balls", r.reward.balls], ["res", r.reward.res]].filter(([, d]) => d > 0).map(([kind, d]) => ({ kind, d })), clear: r.rid });
+        await this.state.storage.put("o:" + r.rid + ":back", { to: r.by, mid: r.rid + ":back", give: { reqBack: { mats: r.reward.mats, equip: r.reward.equip }, ...(r.reward.credits ? { credits: r.reward.credits } : {}) }, earn: [["balls", r.reward.balls], ["res", r.reward.res]].filter(([, d]) => d > 0).map(([kind, d]) => ({ kind, d })), clear: r.rid });
       }
       if (r.status !== "open" && now - (r.end || r.at) > KEEP_DONE) { delete this.reqs[r.rid]; await this.state.storage.put("t:" + r.rid, this.tomb(r)); await this.state.storage.delete("r:" + r.rid); }
     }

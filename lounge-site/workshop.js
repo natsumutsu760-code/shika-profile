@@ -1,13 +1,13 @@
 // 工房（鹿さんの頼み、2026-10-25）：素材から 道具・スプリンクラーと、武器の アタッチメントを 作る。数は すべて 案
 // スタック数（1 しゅるい 50〜400）を 増やした ぶん、素材を たくさん 使う（1 回 20〜30 こ）
-// 支払いは 素材 ＋ クレジット（玉・リソースは 使わない）。工房の Lv で 作れる 物と アタッチメントの ★が かわる
+// 支払いは 素材 ＋ クレジット（玉・アメジストは 使わない）。工房の Lv で 作れる 物と アタッチメントの ★が かわる
 import { OPS } from "./equip.js";
 import { farmOpen } from "./crops.js";
 import { detailOpen } from "./nutrition.js";   // 詳細ステータス（デトックス茶）
 import { BITEM_RECIPES } from "./battle-items.js";   // 戦いの アイテム（爆弾・薬）
 
 // ---------- 道具・品（数を えらんで まとめて 作れる） ----------
-// to：もらう 物（tools は 派遣に 持っていく 道具、items は 品）。lv：工房の Lv
+// to：もらう 物（tools は 派遣に 持っていく 道具、items は 品）。lv：工房の 段（Lv1・20・50・80 で 1〜4。施設の 作り直し、2026-11-03。前は 工房の Lv1〜4）
 export const WS_ITEMS = [
   { id: "lure", name: "おとりの笛", note: "派遣の 道具：えらんだ 敵と 出会いやすい", lv: 1, to: { tools: { lure: 1 } }, mats: [["straw", 8], ["oldnail", 4], ["hare_horn", 1]], credits: 80 },
   { id: "net", name: "捕獲ネット", note: "派遣の 道具：捕まえる 確率 2 倍", lv: 1, to: { tools: { net: 1 } }, mats: [["oldcloth", 8], ["straw", 12], ["kobold_fur", 2]], credits: 200 },
@@ -43,6 +43,7 @@ export const WS_ITEMS = [
   { id: "charm_stun", name: "気絶よけの お守り", note: "派遣の 道具：気絶に かかりにくい", lv: 2, to: { tools: { charm_stun: 1 } }, mats: [["cotton_cloth", 1], ["herb", 2], ["golem_stone", 1]], credits: 300, farm: true },
   ...BITEM_RECIPES,   // 戦いで 使う アイテム（鹿さんの 決め、2026-10-31。battle-items.js。ガンビットで 使う）
 ];
+export const wsLvOk = (r, wsLv) => !!r && attBand(wsLv) >= r.lv && (wsLv || 0) >= 1;   // その 物を 作れる 工房の Lv か（段で くらべる）
 export const wsOpen = (r) => (!r.farm || farmOpen()) && (!r.detail || detailOpen());   // 作物の いる 物は 大工事の 畑が つながってから。詳細ステータスの 物は 開いてから
 export const WS_MAX = 20;   // 道具・品を 1 回に 作れる 数
 
@@ -69,7 +70,7 @@ export const SMELT = [
   { id: "gold_bar", mats: [["goldore", 3], ["coal", 2]], min: 360 },
 ];
 export const SMELT_MAX = 50;   // 1 つの 炉に 1 回で 入れられる 本数
-export const furnaces = (wsLv) => Math.max(0, Math.min(4, wsLv || 0));
+export const furnaces = (wsLv) => [1, 20, 50, 80].filter((x) => (wsLv || 0) >= x).length;   // 炉の 数は 段（工房 Lv1・20・50・80 で 1〜4。施設の 作り直し、2026-11-03）
 export const smeltOf = (id) => SMELT.find((x) => x.id === id) || null;
 // 炉の ようす。f：{ id, n, at }（at：いま 作って いる 1 本目を 入れた 時刻）。done：できた 本数・next：つぎの 1 本が できる 時刻・end：ぜんぶ できる 時刻
 export function smeltDone(f, now) {
@@ -99,8 +100,11 @@ export const ATT_MAX = 60;   // 武器に 付けて いない アタッチメン
 
 const pickW = (R, w) => { const t = Object.values(w).reduce((a, b) => a + b, 0); let x = R() * t; for (const [k, v] of Object.entries(w)) if ((x -= v) < 0) return +k; return +Object.keys(w)[0]; };
 // アタッチメントを 1 つ 引く（uid は 呼ぶ 側が つける）
+// 工房 Lv1〜100（施設の 作り直し）：段（Lv1・20・50・80）の 表に、いちばん 上の ★の 重みを ×（1 ＋ 0.3% × Lv）（作業台と 同じ 形）
+export const attBand = (wsLv) => Math.max(1, [1, 20, 50, 80].filter((x) => (wsLv || 0) >= x).length);
+export const attStarW = (wsLv) => { const w = ATT_STAR[attBand(wsLv)], top = Math.max(...Object.keys(w).map(Number)); return { ...w, [top]: w[top] * (1 + 0.003 * (wsLv || 0)) }; };
 export function rollAtt(R, base, wsLv) {
-  const star = pickW(R, ATT_STAR[Math.max(1, Math.min(4, wsLv))]), ops = [];
+  const star = pickW(R, attStarW(wsLv)), ops = [];
   const pool = base.pool.filter((k) => (OPS[k].from || 1) <= star && OPS[k].v[star - 1] > 0);
   for (let i = 0; i < attOpN(star) && pool.length; i++) { const k = pool.splice(Math.floor(R() * pool.length), 1)[0]; ops.push(k); }
   return { base: base.id, star, ops };

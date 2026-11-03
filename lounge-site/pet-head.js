@@ -16,12 +16,12 @@ export function fillPet(ME) {
 }
 
 // ペットの 画面の タブ：押すと その 画面へ（えらんで いる タブは そのまま）
-const TAB_URL = { ステータス: "status.html", スキルツリー: "skilltree.html", ガンビット: "gambit.html", 装備: "equip.html", 冒険: "dungeon.html", なかま: "tame.html", 闘技場: "arena.html" };
+const TAB_URL = { ステータス: "status.html", スキルツリー: "skilltree.html", ガンビット: "gambit.html", 装備: "equip.html", 冒険: "dungeon.html", なかま: "tame.html", "Orbit Arena": "arena.html" };
 export function linkTabs(root = document) {
-  // 闘技場（2026-10-25）：ペットの タブの さいごに 足す（どの ページの 並びも ここで そろう）
+  // 闘技場（2026-10-25。名前は Orbit Arena。2026-11-03 鹿さんの 決め）：ペットの タブの さいごに 足す（どの ページの 並びも ここで そろう）
   root.querySelectorAll('.tabs[role="tablist"]').forEach((nav) => {
     const names = [...nav.querySelectorAll('[role="tab"]')].map((b) => b.textContent.trim());
-    if (names.includes("ステータス") && !names.includes("闘技場")) { const b = document.createElement("button"); b.setAttribute("role", "tab"); b.setAttribute("aria-selected", "false"); b.textContent = "闘技場"; nav.appendChild(b); }
+    if (names.includes("ステータス") && !names.includes("Orbit Arena")) { const b = document.createElement("button"); b.setAttribute("role", "tab"); b.setAttribute("aria-selected", "false"); b.textContent = "Orbit Arena"; nav.appendChild(b); }
   });
   root.querySelectorAll('.tabs [role="tab"]').forEach((b) => {
     const u = TAB_URL[b.textContent.trim()];

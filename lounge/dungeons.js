@@ -17,7 +17,7 @@ export const TICK = 2;
 export const ENCOUNTER = { path: 0.06, room: 0.09 };                 // 1 歩ごとに敵と出会う確率（道・広場）
 export const REST = { hpAt: 0.7, mpAt: 0.3, until: 1, hp: 0.1, mp: 0.08 };   // HP が 7 割（MP が 3 割）を切ったら休憩。1 歩ぶんで HP 1 割・MP 8% もどる。満タンで歩きだす。倒れた子は帰るまでもどらない
 // 救護室（隠れ家）の Lv：休憩で もどる 量の 倍率と、休憩の はじめに 倒れた子が 起きあがる HP の 割合（0 は 起きない。Lv3 から）。facilities.js の 文と 同じ（鹿さんの頼み、2026-10-25：字だけで 計算に 入って いなかった）
-export const MEDIC = { rest: [1, 1.25, 1.5, 1.5, 2], up: [0, 0, 0, 0.1, 0.3] };
+export const MEDIC = { rest: (lv) => 1 + (lv || 0) / 100, up: (lv) => (lv ? 0.003 * lv : 0) };   // 救護室 Lv1〜100（施設の 作り直し、2026-11-03。facilities.js の restMul・riseHp と 同じ）
 export const MAP_STAIRS = 1;   // 地図室 この Lv から：階に 着いた とき 階段の まわり（3×3）が 見えて いる（地図に 出て、探索率にも 入る）
 export const TRAP = { avoid: 0.25, dmg: 0.08 };                      // 罠：25% で見抜く。かかると全員が最大 HP の 8%
 export const FLOOR_LV = (n) => n - 2;                                // 階ごとの敵の Lv（1 階 −1・2 階 ±0・3 階 +1・4 階 +2・5 階 +3。ボスはそのまま）
@@ -29,23 +29,23 @@ export const PURPOSES = {
   gather: { name: "採取優先", text: "行ったことのある一番深い階で、採取ポイントを近い順に回る", enc: 1 },
   target: { name: "指定の敵だけ", text: "えらんだ敵とだけ戦う（出会いにくくなる）。ボスの部屋には入らない。行ったことのある一番深い階から出る", enc: 0.8, rareEnc: 0.25 },
 };
-// 宝箱の装備の★（階ごと）。かくし通路の宝箱は★が 1 つ上。ボスをたおすと 1 つ（★3〜5）とリソース、まれにミシック
+// 宝箱の装備の★（階ごと）。かくし通路の宝箱は★が 1 つ上。ボスをたおすと 1 つ（★3〜5）とアメジスト、まれにミシック
 export const CHEST_STAR = { 1: { 1: 85, 2: 15 }, 2: { 1: 60, 2: 35, 3: 5 }, 3: { 1: 30, 2: 50, 3: 20 }, 4: { 2: 55, 3: 38, 4: 7 }, 5: { 2: 40, 3: 45, 4: 15 } };
-export const BOSS_STAR = { 3: 55, 4: 40, 5: 5 }, MYTHIC = 0.01, BOSS_RESOURCE = 2;
+export const BOSS_STAR = { 3: 55, 4: 40, 5: 5 }, MYTHIC = 0.01, BOSS_RESOURCE = 0;   // ボスから アメジストは 出さない（2026-10-28 の 決め「入り口は 招待・毎晩の 大会・虹保留・!アメジスト交換・宝物庫だけ」。前は 2）
 // 侵入（鹿さんの決め、2026-10-28）：派遣 1 回に 1% で、S〜EX の 配合限定の 高レベル体が 入って きて 先頭の ペットに 1 対 1 で 挑む
 // Lv は 島ごとに 100 ずつ（島 1 は 100 台・島 2 は 200 台。下 2 けたは くじ）。たおすと 5% で 捕まえる（Lv1 で なかまに）。負けたら ふつうの 戦いと 同じく 力つきて 帰る
 export const INVADE = { rate: 0.01, capture: 0.05, lvStep: 100, ranks: [6, 7] };
 // 経験値：たおした敵の Lv × EXP_PER_LV。パーティの全員が同じだけもらう
 export const EXP_PER_LV = 0.3;
 // クレジット：派遣のゲームの中のお金（鹿さんの決め、2026-10-22）。施設の強化などに使う。たおした敵の Lv × 2、宝箱 1 こで 20〜60 × 階（かくし通路は 2 倍）、ボス 300
-export const CREDIT = { perLv: 2, chest: [20, 60], boss: 300 };
+export const CREDIT = { perLv: 0, chest: [0, 0], boss: 0 };   // 派遣の 帰りに クレジットは 直接 もらえない（2026-10-28 の 決め。持ち帰った 素材を 売るのが 入り口）。前は 敵の Lv × 2・宝箱 20〜60 × 階・ボス 300。くじの 引き方は かえない（同じ 種の 派遣が 前と 同じ 中身に なる ように 0 を かける）
 
 // 敵：タイプ・Lv・自分のスキルツリー（enemy-trees.js）。ステータスはタイプの伸び方 ＋ 自分のツリーを自動で振った分（dungeon-sim.js）。弱めずに本来の強さで出る（最初はむずかしくても、レベルが上がるほど奥まで行ける。鹿さんの決め、2026-10-21）
 // rare は希少な敵：敵 1 体ごとに RARE_RATE の確率で、ふつうの敵と入れかわって出てくる
 
 // 捕まえる・研究する（数字は仮）
 // 戦いに勝つと、たおした敵 1 体ずつ CAPTURE の確率で捕まえる。ボスもごくまれに捕まる
-// 捕まえた敵は、リソースを RESEARCH だけ使って研究すると、その敵のツリーをペットのサブツリーに付けられる
+// 捕まえた敵は、アメジストを RESEARCH だけ使って研究すると、その敵のツリーをペットのサブツリーに付けられる
 export const RARE_RATE = 0.08;
 // 1 回の戦いに出る敵の数（こちらが何体でも 1〜3 体。鹿さんの決め）。数字は仮
 export const GROUP = { 1: 50, 2: 35, 3: 15 };
@@ -209,10 +209,10 @@ DUNGEONS_ALL.filter((d) => d.isle === 2).sort((a, b) => a.lv - b.lv).forEach((d,
 export const tripCost = (d) => (d && d.cost) || 0;
 // ゲームに 出て いる 島の 行き先（ISLAND_OPEN まで）。その人が 行けるかは 別（島 2 は 無線機・かくしは タスク。門番の canGo）
 export const DUNGEONS = DUNGEONS_ALL.filter((d) => (d.isle || 1) <= ISLAND_OPEN);
-// その人が その 行き先へ 行けるか（門番と 画面で 同じ 決まり）。hideout：施設の Lv、chainN(商人の id)：つながった タスクの いま 何こ目か
-// 島 2 は 無線機 Lv1 から。かくしは さらに 商人の つながった タスクを n 番まで 終えて いる こと（もう 過ぎて いる 人は 無線機を 作れば すぐ 開く。鹿さんの決め、2026-10-25）
-export function canGo(d, hideout, chainN) {
+// その人が その 行き先へ 行けるか（門番と 画面で 同じ 決まり）。hideout：施設の Lv、hasKey(行き先の id)：かくしダンジョンの 鍵を 持って いるか
+// 島 2 は 無線機 Lv1 から。かくしは さらに 鍵（商人の プライマリータスク 第 4 章の ごほうび。前は つながった タスクの #20・#30。もう 過ぎて いる 人も 開く）
+export function canGo(d, hideout, hasKey) {
   if ((d.isle || 1) >= 2 && !((hideout || {}).radio >= 1)) return { ok: false, why: "隠れ家に 無線機を 作ると 行ける" };
-  if (d.hidden && !(chainN(d.hidden.trader) > d.hidden.n)) return { ok: false, why: `${d.hidden.who}の つながった タスク #${d.hidden.n} の ごほうびで 行ける` };
+  if (d.hidden && !hasKey(d.id)) return { ok: false, why: `${d.hidden.who}の 第 4 章の ごほうびで 行ける` };
   return { ok: true };
 }

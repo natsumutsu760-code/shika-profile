@@ -6,13 +6,13 @@ const n1 = (n, one, many) => (n === "1" ? `1 ${one}` : `${n} ${many}`);
 export const WORDS = {
   // ---- 闘技場（arena.html） ----
   "デュエル": "Duel", "トーナメント": "Tournament", "記録": "Log", "きょうは もらった": "Claimed today", "ごほうび なし": "No reward", "挑む": "Challenge", "ごほうび あと": "Rewards left",
-  "きょう あと": "Today:", "回 戦える": "fights left", "入れかえ": "Shuffle", "まだ 相手が いない": "No opponents yet", "闘技場を 開いた 人が 相手に なる": "People who open the Arena become opponents",
+  "きょう あと": "Today:", "回 戦える": "fights left", "入れかえ": "Shuffle", "まだ 相手が いない": "No opponents yet", "Orbit Arena を 開いた 人が 相手に なる": "People who open the Orbit Arena become opponents",
   "結果だけ 見る": "Skip to result", "勝負あり": "Decided", "もどる": "Back", "ごほうびは なし（きょうの 分は もらった）": "No reward (already claimed today)", "何も へらない": "You lose nothing",
   "つぎの 相手へ": "Next opponent", "下克上！": "Upset!", "勝ち！": "Victory!", "負け…": "Defeat…", "見る": "Watch", "優勝！": "Champion!", "準優勝！": "Runner-up!", "ベスト 4！": "Top 4!",
   "参加": "Entry", "きょうの 大会": "Today's tournament", "あと": "left", "人": "people", "優勝": "Champion", "準優勝": "Runner-up", "ベスト 4": "Top 4", "参加を やめる": "Withdraw", "参加する": "Enter",
   "前の 大会": "Last tournament", "試合中…": "Match in progress…", "守った": "Defended", "やられた": "Lost", "派遣先": "Expedition", "留守の あいだ": "While you were away", "まだ 記録が ない": "No records yet",
   "さがして います…": "Searching…", "相手を よんで います…": "Calling the opponent…", "よんで います…": "Calling…", "申しこんで います…": "Entering…", "とりけして います…": "Withdrawing…",
-  "参加を やめました": "Withdrew", "いまは 闘技場に つながらない": "Can't reach the Arena right now", "その 戦いは もう ない": "That battle is gone",
+  "参加を やめました": "Withdrew", "いまは Orbit Arena に つながらない": "Can't reach the Orbit Arena right now", "その 戦いは もう ない": "That battle is gone",
   // ---- 戦いの 絵（battle-view.js） ----
   "ミス": "Miss", "浄化": "Cleanse", "はじけた": "Popped", "オート": "Auto", "▲バフ": "▲Buff", "がんばり": "Grit", "8 ターンで決着せず": "No result in 8 turns", "勝負あり！": "It's decided!",
   "（30 ターンでも決着せず・HP の割合）": "(no result in 30 turns · decided by HP %)",

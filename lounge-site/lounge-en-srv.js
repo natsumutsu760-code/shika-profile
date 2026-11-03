@@ -73,6 +73,21 @@ export const WORDS = {
   "前の 子の 支払いを たしかめて います（配信の 画面が こたえたら むかえられます）": "Checking the payment for the previous pet (you can welcome another once the stream replies)",
   // 工房の 精錬（lounge-workshop.js の smeltPut・smeltTake・smeltStop）
   "炉を えらんで": "Choose a furnace", "その 炉は 使って いる": "That furnace is in use", "作る 延べ棒を えらんで": "Choose an ingot", "入れる 数は 1〜# 本": "Load 1–#", "その 炉は 空いて いる": "That furnace is empty",
+  // 施設の 作り直し（2026-11-03）：建設・つまみ・維持費の 断り
+  "いま 建てて いる": "Already under construction", "もう いちばん 上": "Already at max level", "建てて いない": "Not under construction",
+  "Lv# は 無線機を 作って から（ニライ諸島の 素材が いる）": "Lv# needs the Radio first (uses Nirai Isles materials)", "その 素材は いらない": "That material isn't needed",
+  "入れる 素材を 持って いない": "You have no materials to add", "時間は もう 足りて いる（素材を 入れると できる）": "The time is already done (add the materials to finish)",
+  "燃料の 数を えらんで": "Choose how much fuel", "つまみの ない 施設": "This facility has no dial", "#〜# で えらんで": "Choose #–#",
+  "クレジットが 足りない": "Not enough credits", "維持費が 足りない": "Not enough for upkeep", "クレジット あと #（つまみを 下げると 安い）": "# more credits (lower the dial to pay less)",
+  "あと #（維持費こみ。つまみを 下げると 安い）": "# more (incl. upkeep; lower the dial to pay less)", "あと #（維持費 # こみ）": "# more (incl. # upkeep)",
+  "いま 研究して いる": "Already researching", "作業台の つまみが 0（隠れ家で 上げる）": "The Workbench dial is at 0 (raise it in the Hideout)", "合成は 作業台 Lv# から": "Fusion unlocks at Workbench Lv#",
+  "入れる 数は #〜# 本": "Choose #–# bars", "工房 Lv# から 作れる": "Unlocks at Workshop Lv#", "おやつ工房 Lv# から 作れる": "Unlocks at Treat Kitchen Lv#", "おやつ工房 Lv# から": "From Treat Kitchen Lv#",
+  // 通貨の 作り直し（2026-10-28 の 決め）：両替を やめた・!換金・!貸し玉・装備は 売れない
+  "玉と クレジットは ここでは 両替できない（配信の チャットで !貸し玉・!換金）": "Balls and credits can't be exchanged here (use !貸し玉 / !換金 in stream chat)",
+  "MONO LINK に まだ 入って いない（ラウンジを 1 回 開くと 使える）": "You're not in MONO LINK yet (open the Lounge once to use this)", "MONO LINK の 人が わからない": "Couldn't find you in MONO LINK",
+  "MONO LINK の 公開の あとで 使える": "Available after MONO LINK launches", "借りる 玉の 数を 入れて": "Enter how many balls to borrow",
+  "装備は 売れない（リサイクルで 素材に もどす）": "Gear can't be sold (recycle it into materials)", "リサイクルする ★を えらんで（装備は 売れない）": "Choose the ★ to recycle (gear can't be sold)",
+  "行き先 #": "Destination #", "保険料 #": "Premium #", "（維持費こみ。つまみを 下げると 安い）": "(incl. upkeep; lower the dial to pay less)",
 };
 
 export const RULES = [
@@ -86,4 +101,6 @@ export const RULES = [
   [/^ガンビットは (\d+) こまで$/, (m) => `Up to ${m[1]} gambits`], [/^作る 数は 1〜(\d+)$/, (m) => `Make 1–${m[1]}`],
   [/^付けて いない アタッチメントが いっぱい（(\d+) こ）。いらない 物を すてて から$/, (m) => `Unattached attachments are full (${m[1]}). Discard some first`],
   [/^まだ できて いない（あと (\d+) 分）$/, (m) => `Not ready yet (${m[1]} min left)`],
+  [/^換金は 玉 (\d+) こから（(\d+) 玉 → (\d+) クレジット）$/, (m) => `Cash-out starts at ${m[1]} balls (${m[2]} balls → ${m[3]} credits)`],
+  [/^クレジットが 足りない：あと ([\d,]+)（((?:行き先|保険料) [\d,]+(?:・(?:行き先|保険料) [\d,]+)?)）$/, (m, p) => `Not enough credits: ${m[1]} more (${m[2].split("・").map((x) => P(p, x)).join(" · ")})`],
 ];

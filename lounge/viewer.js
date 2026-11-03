@@ -1,5 +1,5 @@
 // プライベートラウンジ：1 人 1 つの 記録の 箱（Durable Object「Viewer」。idFromName("v:" + Twitch の id)）
-// 作りは docs/mono-link-lounge-server.md。2 だんかい目：記録を 作る・見る・部屋の 置き方を しまう。3 だんかい目：玉と リソースの 帳簿・家具の お店
+// 作りは docs/mono-link-lounge-server.md。2 だんかい目：記録を 作る・見る・部屋の 置き方を しまう。3 だんかい目：玉と アメジストの 帳簿・家具の お店
 // 4 だんかい目：ペット（1 匹目・職業・Lv）・派遣・隠れ家の 施設・作業台・あずかり箱（計算は lounge-game.js）
 // 記録を かえる 仕事（/init・/act・/acked）は 1 つずつ 順番に 動かす（this.run）。配信の 画面へ きく あいだ（さいごは 5 秒）に
 // ほかの 頼みが 入ると、同じ 人が すばやく 2 回 押した とき 2 重に 使えて しまうので
@@ -7,12 +7,13 @@
 import { cleanRoom, STARTER_OWN, STARTER_ROOM, N, SALE_IDS, priceOn, jstDay, pullId, GACHA_COST } from "./lounge-rules.js";
 import { locked, lockedAct, lockWhy, lockKind } from "./lounge-lock.js";   // 大工事の あいだの ロック
 import { emptyLedger, balanceOf, trimSent, toObs, settle } from "./ledger.js";
-import { buyPlan, sellAct, tradeAct, taskDone, useItem, deeplinkView } from "./lounge-trade.js";
+import { buyPlan, sellAct, tradeAct, taskDone, useItem, deeplinkView, actEvents, dlVisit } from "./lounge-trade.js";
+import { facMigrate, facDue, facStart, facPut, facRush, facFuel, facKnob, facView } from "./lounge-facility.js";   // 施設の 建設と つまみ（施設の 作り直し、2026-11-03）
 import { reqPostPlan, takeFor, items } from "./lounge-req.js";
 import { petTake, petGrow, petSub, petStat, petGambits, petStyle, equipSet, equipBest, respecPlan, fighterOf, spTotal, spUsed, freeTotal, RESET_PRICE } from "./lounge-pet.js";
 import "./warm.js";   // 派遣の 計算を 温めて おく（はじめの 1 回が おそく ならない ように）
 import { relayEntry } from "./lounge-relay.js";   // 配信の 中継（鹿物語の ランキングの 窓）に あずける 派遣の 材料
-import { swapPlan } from "./lounge-money.js";   // 両替（玉・クレジット・リソース）
+import { swapPlan, cashDo } from "./lounge-money.js";   // 両替（玉・クレジット・アメジスト）
 import { coreTake, coreSet } from "./lounge-core.js";   // ブランクコア（OP を 抜く・付ける）
 import { tameFuse, tameSp } from "./lounge-fuse.js";   // モンスターの 配合・なかまの スキルポイント
 import { wsMake, wsAtt, wsProc, attSet, attOff, attDrop, smeltPut, smeltTake, smeltStop } from "./lounge-workshop.js";   // 工房（道具・アタッチメント・精錬）
@@ -20,7 +21,7 @@ import { mineSet, mineCollect, mineUse, mineLeave, mineView } from "./lounge-min
 import { farmvPlant, farmvHarvest, farmvSpr, farmvSoil, farmvSkin, farmvView } from "./lounge-farmv.js";   // 新しい 農園（3D の 畑。鹿さんの 決め 2026-11-03）
 import { nutCraft, nutFeed, nutDetox, nutBreak } from "./lounge-nutrition.js";   // 詳細ステータス・栄養
 import { statPut } from "./lounge-stats.js";   // 記録の まとめ（OBS の コスメの 条件。かわった ときだけ Lounge へ）
-import { ensure, give, FURN_MAX, petFirst, petJob, petUnlockPlan, petSwitch, tripStart, tripCalc, tripDone, invadeRelay, tripCollect, payWaiting, tripView, hideoutPlan, craftPlan, synthPlan, boxTake, dropOld, stashCap, tameFeedPlan, tameJoin, tameBack, researchPlan, extractPlan, snackCraft, autoSellSet, equipCap, loopNew, loopSet, loopSeen, loopAfter, loopStep, equipScrap } from "./lounge-game.js";
+import { ensure, give, insDue, FURN_MAX, petFirst, petJob, petUnlockPlan, petSwitch, tripStart, tripCalc, tripDone, invadeRelay, tripCollect, payWaiting, tripView, craftPlan, synthPlan, boxTake, dropOld, stashCap, tameFeedPlan, tameJoin, tameBack, researchPlan, extractPlan, snackCraft, autoSellSet, equipCap, loopNew, loopSet, loopSeen, loopAfter, loopStep, equipScrap } from "./lounge-game.js";
 import { arenaFighter, ensureArena, duelCheck, duelDone, arenaMine, encReady, encPick, encDone } from "./lounge-arena.js";   // 闘技場・派遣先の 戦い
 import { hidden } from "./lounge-gate.js";
 import { resetOld, resetDue, RESET_GEN } from "./lounge-reset.js";
@@ -28,12 +29,11 @@ import { prizeView, prizePlan } from "./lounge-prize.js";   // パチンコの �
 
 const OPS_KEEP = 200;            // おぼえて おく op（2 回 来たら 1 回目の 答えを 返す）
 const RATE = { n: 5, ms: 1000 }; // 1 人 1 秒に 5 回まで
-const LABEL = { balls: "玉", res: "リソース" };
+const LABEL = { balls: "玉", res: "アメジスト" };
 // オーバーレイが 景品の コスメを 渡せなかった わけ（obs-ledger.js の canGive の why）
 const GIVE_WHY = { gone: "お店の 品物が 入れ替わりました", price: "値段が 合いませんでした", own: "その コスメは もう 持って いる", max: "その コスメは もう Ⅲ まで 進化して いる", give: "配信の 画面が 景品を 渡せませんでした" };
-export const MONEY = /^(shop\.|hideout\.up$|bench\.|trip\.collect$|trip\.start$|tame\.feed$|tame\.research$|tame\.extract$|trader\.|task\.|req\.|pet\.respec$|pet\.rejob$|pet\.unlock$|money\.|arena\.duel$|prize\.)/;   // 玉か リソースが うごく やること（答えに いまの 数を つける）
+export const MONEY = /^(shop\.|hideout\.up$|bench\.|trip\.collect$|trip\.start$|tame\.feed$|tame\.research$|tame\.extract$|trader\.|task\.|req\.|pet\.respec$|pet\.rejob$|pet\.unlock$|money\.|arena\.duel$|prize\.)/;   // 玉か アメジストが うごく やること（答えに いまの 数を つける）
 const PLANS = {
-  "hideout.up": (rec, b) => hideoutPlan(rec, b, rec.ledger.unknown),
   "bench.craft": (rec, b) => craftPlan(rec, b, rand),
   "bench.synth": (rec, b) => synthPlan(rec, b, rand),
   "tame.feed": (rec, b) => tameFeedPlan(rec, b, rec.ledger.unknown),
@@ -113,21 +113,10 @@ export class Viewer {
     const s = loopStep(rec, now, Math.floor(rand() * 2 ** 31));
     if (!s) { if (payWaiting(rec, t)) await this.state.storage.setAlarm(Date.now() + 5 * 60 * 1000); return; }   // 玉の 支払いの 返事待ち：あとで もう 1 回（返事が 来たら /acked からも 起こす）
     await this.relay("del", { id: rec.id, uid: s.uid });
-    for (const e of s.r.earn || []) await this.earn(rec, e.kind, e.d, "trip.loop");   // ボスの リソースは 帳簿へ
-    let next = s.next;
-    if (next && next.pay) {   // 費用の ある 行き先：1 回ごとに 玉を 払う（財布は いまの 配信の 記録から。払えなければ 周回を 止める）
-      let st = null; const pl = { costs: [{ kind: "balls", d: -next.pay }], why: "trip:" + next.body.did, grant: {}, refund: {}, take: () => { st = tripStart(rec, next.body, now, next.seed, false, next.who); if (st.ok) pl.refund.voidTrip = st.trip.uid; } };
-      const c = await this.charge(rec, pl, await this.freshWallet(rec));
-      if (st && st.ok) rec.loop.n++; else if (rec.loop) { rec.loop.on = false; rec.loop.stop = (st && st.why) || c.why || "玉が 足りない"; }
-      next = st;
-    }
+    for (const e of s.r.earn || []) await this.earn(rec, e.kind, e.d, "trip.loop");   // ボスの アメジストは 帳簿へ
+    const next = s.next;   // ニライ諸島の 費用も クレジットで tripStart が 払う（払えなければ 周回が 止まる）
     await this.loopGo(rec, next);
     await this.save(rec);
-  }
-  // いまの 財布（配信の 記録 KV から。門番の 入口〈lounge-api.js の wallet〉と 同じ 作り方）。周回の 支払いに 使う（前に 開いた ときの 写しは 使わない）
-  async freshWallet(rec) {
-    try { const d = await this.env.DB.get("data", "json"), v = ((d && d.viewers) || []).find((x) => x.uid != null && String(x.uid) === String(rec.id)); return v ? { balls: +v.balls || 0, res: +v.res || 0, lg: +d.lg || 0, known: true } : { balls: 0, res: 0, lg: 0, known: false }; }
-    catch (e) { return null; }
   }
   // 周回の つぎの 出発：計算を アラームに あずけて、中継に 出す
   async loopGo(rec, s) {
@@ -147,9 +136,9 @@ export class Viewer {
     catch (e) { return {}; }   // 送れたか わからない ときは「返事が ない」と 同じ（2 重に ならない 方へ）
   }
 
-  // 玉か リソースを へらして 物を 渡す。配信中は OBS が 数を 持って いるので OBS に きく。配信して いない ときは 帳簿で 数える
+  // 玉か アメジストを へらして 物を 渡す。配信中は OBS が 数を 持って いるので OBS に きく。配信して いない ときは 帳簿で 数える
   // plan：{ costs: [{ kind, d }], why, take, grant, refund }（lounge-game.js の 計画。お店は costs と grant だけ）
-  // 玉と リソースを いっしょに 払う ときは grp で まとめ、OBS は ぜんぶ 足すか なにも 足さないか
+  // 玉と アメジストを いっしょに 払う ときは grp で まとめ、OBS は ぜんぶ 足すか なにも 足さないか
   async charge(rec, plan, wallet) {
     const L = rec.ledger, now = Date.now(), costs = plan.costs.filter((c) => c.d), take = plan.take || (() => {});
     if (!costs.length) { take(); this.give(rec, plan.grant); return { ok: true }; }
@@ -161,7 +150,7 @@ export class Viewer {
     if (a.offline) {
       for (const k of new Set(ops.map((o) => o.kind))) {
         const bal = balanceOf(L, wallet, k);
-        if (bal == null) return { ok: false, why: "玉と リソースが まだ わかりません（配信で 1 回 チャットすると わかります）" };
+        if (bal == null) return { ok: false, why: "玉と アメジストが まだ わかりません（配信で 1 回 チャットすると わかります）" };
         if (bal + need(k) < 0) return { ok: false, why: `足りない：${LABEL[k]} あと ${-(bal + need(k))}` };
       }
       ops.forEach((o) => L.pending.push({ op: o.op, kind: o.kind, d: o.d, why: plan.why, at: now }));
@@ -196,10 +185,10 @@ export class Viewer {
       try { j = await (await this.market().fetch("https://market/" + e.k, { method: "POST", body: JSON.stringify(body) })).json(); } catch (x) { got[e.k + e.rid] = { ok: false, wait: true }; continue; }
       R.out = R.out.filter((x) => x !== e);
       got[e.k + e.rid] = j;
-      const back = async (rw, fee = 0) => { this.give(rec, { reqBack: rw }); for (const [kind, d] of [["balls", (rw.balls || 0) + fee], ["res", rw.res || 0]]) if (d > 0) await this.earn(rec, kind, d, "req:" + e.rid); };
+      const back = async (rw, fee = 0) => { const cr = rw.credits != null; this.give(rec, { reqBack: rw, ...(cr ? { credits: rw.credits + fee } : {}) }); for (const [kind, d] of [["balls", (rw.balls || 0) + (cr ? 0 : fee)], ["res", rw.res || 0]]) if (d > 0) await this.earn(rec, kind, d, "req:" + e.rid); };   // お礼と 手数料は クレジット（前に 玉で 出した 依頼は 玉で もどす）
       if (e.k === "post" && !j.ok) { await back(e.data.reward, e.data.fee); if (R.mine === e.rid) R.mine = null; }   // 板に 出せなかった：手数料も もどす
       if (e.k === "claim") {
-        if (j.ok) { this.give(rec, { reqGet: j.reward }); for (const [kind, d] of [["balls", j.reward.balls], ["res", j.reward.res]]) if (d > 0) await this.earn(rec, kind, d, "req:" + e.rid); }
+        if (j.ok) { this.give(rec, { reqGet: j.reward, ...(j.reward.credits ? { credits: j.reward.credits } : {}) }); for (const [kind, d] of [["balls", j.reward.balls], ["res", j.reward.res]]) if (d > 0) await this.earn(rec, kind, d, "req:" + e.rid); }
         else this.give(rec, { reqBack: e.items });   // 届けられなかった 物は もどす
       }
       if (e.k === "cancel" && j.ok) { await back(j.never ? e.data.reward : j.reward, j.never ? e.data.fee : 0); if (R.mine === e.rid) R.mine = null; }   // 取り下げ：手数料は もどらない（板に 出て いなかった ときだけ もどす）
@@ -232,7 +221,7 @@ export class Viewer {
     return j.ok ? { ok: true } : j.wait ? { ok: false, wait: true, why: "依頼の 板が こたえませんでした。つぎに 開いた ときに 決まります" } : { ok: false, why: j.why };
   }
 
-  // 玉か リソースを もらう（ボスの リソースなど）。かならず 足す（配信して いない ときと、OBS が まだ その 人を 知らない ときは pending）
+  // 玉か アメジストを もらう（ボスの アメジストなど）。かならず 足す（配信して いない ときと、OBS が まだ その 人を 知らない ときは pending）
   async earn(rec, kind, d, why) {
     const L = rec.ledger, op = this.nextLop(rec), a = await this.ask(rec, [{ op, kind, d }]);
     if (Array.isArray(a.res)) {
@@ -255,7 +244,7 @@ export class Viewer {
     const r = encDone(rec, me, foe, rand);
     await this.arenaAsk("enc", { id: rec.id, a: me.card, foe: foe.id, A: r.A, B: r.B, seed: r.seed, win: r.win, did: r.did });   // ふたりの 記録・相手の ごほうび
     await this.relay("pvp", { kind: "enc", A: r.A, B: r.B, seed: r.seed, did: r.did, pay: r.pay });   // 配信中なら 帯で
-    return { view: { foe: r.foe, win: r.win, upset: r.upset, credits: r.credits, res: r.res, did: r.did, A: r.A, B: r.B, seed: r.seed }, earn: [{ kind: "res", d: r.res }] };
+    return { view: { foe: r.foe, win: r.win, upset: r.upset, credits: r.credits, res: r.res, did: r.did, A: r.A, B: r.B, seed: r.seed }, earn: r.res ? [{ kind: "res", d: r.res }] : [] };
   }
 
   // ---------- 闘技場（Market の 名簿・大会。相手の 強さは 相手の Viewer の /fighter） ----------
@@ -265,17 +254,17 @@ export class Viewer {
     if (!me) return { ok: false, why: "さきに ペットの 職業を えらんで" };
     if (b.a === "arena.view" || b.a === "arena.foes") {
       const pick = b.a === "arena.foes" || !A.foes.length, m = await this.arenaAsk("view", { id: rec.id, card: me.card, pick });
-      if (!m || !m.ok) return { ok: false, why: "いまは 闘技場に つながらない" };
+      if (!m || !m.ok) return { ok: false, why: "いまは Orbit Arena に つながらない" };
       if (m.foes) A.foes = m.foes;
       return { ok: true, me: { ...me.card, w: A.w, l: A.l }, ...arenaMine(A), def: m.def, hold: { w: m.card.hw, l: m.card.hl }, tour: m.tour, last: m.last, enc: m.enc || [] };
     }
     if (b.a === "arena.match") {   // 大会の 試合を あとから 見る 材料
-      try { return await (await this.market().fetch(`https://market/arena/match?day=${encodeURIComponent(String(b.day || ""))}&r=${+b.r || 0}&m=${+b.m || 0}`)).json(); } catch (e) { return { ok: false, why: "いまは 闘技場に つながらない" }; }
+      try { return await (await this.market().fetch(`https://market/arena/match?day=${encodeURIComponent(String(b.day || ""))}&r=${+b.r || 0}&m=${+b.m || 0}`)).json(); } catch (e) { return { ok: false, why: "いまは Orbit Arena に つながらない" }; }
     }
     if (b.a === "arena.enc") {   // 派遣先の 戦いを あとから 見る 材料
-      try { return await (await this.market().fetch(`https://market/arena/encget?id=${rec.id}&at=${+b.at || 0}`)).json(); } catch (e) { return { ok: false, why: "いまは 闘技場に つながらない" }; }
+      try { return await (await this.market().fetch(`https://market/arena/encget?id=${rec.id}&at=${+b.at || 0}`)).json(); } catch (e) { return { ok: false, why: "いまは Orbit Arena に つながらない" }; }
     }
-    if (b.a === "arena.entry") return (await this.arenaAsk("entry", { id: rec.id, on: !!b.on, card: me.card })) || { ok: false, why: "いまは 闘技場に つながらない" };
+    if (b.a === "arena.entry") return (await this.arenaAsk("entry", { id: rec.id, on: !!b.on, card: me.card })) || { ok: false, why: "いまは Orbit Arena に つながらない" };
     const c = duelCheck(rec, A, b); if (c.why) return { ok: false, why: c.why };
     if (hidden(await this.env.DB.get("gate", "json"), c.foe.id)) return { ok: false, why: "その 相手とは 戦えない（入れかえて べつの 相手に）" };   // あとから 入れなく なった 人
     let theirs = null;
@@ -295,6 +284,8 @@ export class Viewer {
     const money = MONEY.test(String(body.a)), out = (r) => ({ ...(money && wallet ? { ...r, wallet: this.purse(rec, wallet) } : r), credits: rec.credits }), now = Date.now();   // クレジットは いつも つける（上の 通貨の 札）
     if (wallet) trimSent(rec.ledger, wallet);
     const done = rec.ops.find((x) => x.op === op); if (done) return out(done.r);   // 2 回目は 1 回目の 答え
+    insDue(rec, now);   // 時間が 来た 保険の 支払い（ミネルバ）を 倉庫へ
+    facMigrate(rec); facDue(rec, now);   // 前の 施設の Lv を うつす（1 回だけ）・時間が 来た 建設と 研究を 終える
     let r;
     if (body.a === "room.save") {
       const clean = cleanRoom(body.items, rec.own.furniture, rec.room.size);   // しまうのは たしかめた 形だけ（送られた 物を そのまま しまわない）
@@ -336,12 +327,8 @@ export class Viewer {
     else if (body.a === "equip.best") r = equipBest(rec, body);   // おすすめ装備（えらび方・だれ）
     else if (body.a === "tame.equip") r = equipSet(rec, body.who ? body : { ...body, who: "-" });
     else if (body.a === "trip.start") {
-      const seed = Math.floor(rand() * 2 ** 31), chk = tripStart(rec, body, now, seed, true);
-      if (chk.ok && chk.cost) {   // 費用の ある 行き先（ニライ諸島）：たしかめてから 玉を 払い、払えたら 出発（返事が おくれた ときも 出発。2 回 へる ことは ない）
-        let st = null; const pl = { costs: [{ kind: "balls", d: -chk.cost }], why: "trip:" + body.did, grant: {}, refund: {}, take: () => { st = tripStart(rec, body, now, seed); if (st.ok) pl.refund.voidTrip = st.trip.uid; } };
-        const c = await this.charge(rec, pl, wallet);   // 返事が おくれて あとで 払えなかったと わかったら、その 派遣の 収穫は なし（refund の voidTrip）
-        r = st && st.ok ? { ...st, paid: chk.cost } : c;
-      } else r = chk.ok ? tripStart(rec, body, now, seed) : chk;
+      const seed = Math.floor(rand() * 2 ** 31);
+      r = tripStart(rec, body, now, seed);   // ニライ諸島の 費用は クレジットで その場で 払う（前は 玉で、配信の 画面の 返事を 待って いた。2026-10-28 の 決め）
       if (r.ok) loopNew(rec, body, now);   // 周回（3・5・10・ずっと）を えらんで いれば はじめる
       if (r.sim) { await this.state.storage.put("sim", r.sim); await this.state.storage.setAlarm(Date.now()); delete r.sim; }   // 計算は アラームで 少しずつ
       if (r.ok) await this.relay("put", relayEntry(rec, rec.trips[rec.trips.length - 1]));
@@ -357,13 +344,19 @@ export class Viewer {
     else if (body.a === "trader.sell") r = sellAct(rec, body, jstDay());
     else if (body.a === "trader.trade") r = tradeAct(rec, body, jstDay());
     else if (body.a === "task.done") r = taskDone(rec, body, jstDay(), rand);
+    else if (body.a === "dl.visit") r = dlVisit(rec, jstDay());
     else if (/^item\.(map|collar|snack3|recipe)$/.test(String(body.a))) r = useItem(rec, body);
     else if (body.a === "req.deliver") r = await this.reqDeliver(rec, body);
     else if (body.a === "req.cancel") r = await this.reqCancel(rec);
     else if (body.a === "tame.join") { r = tameJoin(rec, body); if (r.ok) { const m = mineLeave(rec, body.uid, rand, now); if (m && m.got && m.got.length) r.mined = m.got; } }   // 坑道で 掘って いた 子は やめる（掘った 分は 渡す）
     else if (body.a === "tame.back") r = tameBack(rec, body);
-    else if (body.a === "snack.craft") r = snackCraft(rec, body);
-    else if (body.a === "ws.make") r = wsMake(rec, body, now);
+    else if (body.a === "snack.craft") r = snackCraft(rec, body, rand);
+    else if (body.a === "ws.make") r = wsMake(rec, body, now, rand);
+    else if (body.a === "fac.start") r = facStart(rec, body, now);   // 施設の 建設：始める（クレジット）・素材を 入れる・グラナート建設・燃料・つまみ
+    else if (body.a === "fac.put") r = facPut(rec, body, now);
+    else if (body.a === "fac.rush") r = facRush(rec, body, now);
+    else if (body.a === "fac.fuel") r = facFuel(rec, body, now);
+    else if (body.a === "fac.knob") r = facKnob(rec, body, now);
     else if (body.a === "ws.att") r = wsAtt(rec, body, rand, now);
     else if (body.a === "ws.proc") r = wsProc(rec, body, now);           // 加工：作物 → 布・建材
     else if (body.a === "smelt.put") r = smeltPut(rec, body, now);     // 精錬：炉に 入れる・受けとる・やめる
@@ -397,7 +390,8 @@ export class Viewer {
       if (r.ok && plan.item) r.item = plan.item;
       if (r.ok && plan.info) Object.assign(r, plan.info);
     } else r = { ok: false, why: "知らない やること" };
-    if (r.ok && r.earn) { for (const e of r.earn) await this.earn(rec, e.kind, e.d, String(body.a)); delete r.earn; }   // もらう 玉・リソース（ボス・売る・タスク）
+    actEvents(rec, String(body.a), r, body, jstDay(now));   // DEEP LINK/: の タスクに 数える（作る・収穫・景品 など）
+    if (r.ok && r.earn) { for (const e of r.earn) await this.earn(rec, e.kind, e.d, String(body.a)); delete r.earn; }   // もらう 玉・アメジスト（ボス・売る・タスク）
     if (body.a === "req.post" && rec.req.out.length) {   // 払えたら すぐ 依頼の 板へ（返事が なければ「送って いる」。つぎに 開いた ときに また 送る）
       const f = await this.flushReq(rec), x = r.rid && f["post" + r.rid];
       if (x && x.wait) r = { ...r, sending: true }; else if (x && !x.ok) r = { ok: false, why: x.why };
@@ -408,7 +402,7 @@ export class Viewer {
     return out(r);
   }
 
-  // 帳簿を 入れた いまの 玉と リソース（わからない 人は known: false）
+  // 帳簿を 入れた いまの 玉と アメジスト（わからない 人は known: false）
   purse(rec, w) {
     if (!w || !w.known) return { known: false, balls: 0, res: 0 };
     return { known: true, balls: balanceOf(rec.ledger, w, "balls"), res: balanceOf(rec.ledger, w, "res") };
@@ -417,10 +411,10 @@ export class Viewer {
   // ほかの 人に 見せる 分だけ（部屋と 名前。持ち物の 数や 玉は 出さない）
   view(rec) { return { name: rec.name, login: rec.login, room: rec.room }; }
   mine(rec, w) {
-    const now = Date.now(); dropOld(rec, now);
+    const now = Date.now(); dropOld(rec, now); facMigrate(rec); facDue(rec, now);
     return { id: rec.id, lock: locked(rec, this.env), lockKind: lockKind(), login: rec.login, name: rec.name, nameAt: rec.nameAt, names: rec.names, room: rec.room, own: rec.own, wallet: this.purse(rec, w), waiting: rec.ledger.unknown.length,
       pets: rec.pets.map((p) => ({ ...p, ...(p.type ? { sp: { all: spTotal(p.lv), left: spTotal(p.lv) - spUsed(p) }, freeLeft: freeTotal(p.lv) - Object.values(p.free || {}).reduce((a, v) => a + v, 0), build: fighterOf(p, rec), resetPrice: RESET_PRICE(p.lv) } : {}) })),
-      tamed: rec.tamed, party: rec.party, mine: mineView(rec, now), farmv: farmvView(rec, now), smelt: rec.smelt || [], loop: rec.loop || null, lab: rec.lab, hideout: rec.hideout, credits: rec.credits, snacks: rec.snacks, tools: rec.tools, explore: rec.explore, seen: rec.seen, met: rec.met,
+      tamed: rec.tamed, party: rec.party, mine: mineView(rec, now), farmv: farmvView(rec, now), smelt: rec.smelt || [], loop: rec.loop || null, lab: rec.lab, labQ: rec.labQ || [], hideout: rec.hideout, knob: rec.knob || {}, fac: facView(rec, now), credits: rec.credits, snacks: rec.snacks, tools: rec.tools, explore: rec.explore, seen: rec.seen, met: rec.met,
       stash: { cap: stashCap(rec) }, equipCap: equipCap(rec), autoSell: rec.autoSell || null, trips: rec.trips.map((t) => tripView(t, now)), deeplink: deeplinkView(rec, jstDay(now)), req: { mine: rec.req.mine, sending: rec.req.out.length } };
   }
 
@@ -437,6 +431,16 @@ export class Viewer {
         this.hits.push(now);
         const b = await req.json();
         return res(await this.run(() => this.act(b.body || {}, b.wallet || null)));
+      }
+      // Lounge から：鹿物語の チャットの !換金・!貸し玉（オーバーレイが 運ぶ。lounge-money.js の cashDo）。記録が ない 人は ことわる
+      if (url.pathname === "/cash" && req.method === "POST") {
+        const b = await req.json().catch(() => ({}));
+        return res(await this.run(async () => {
+          const rec = await this.load();
+          if (!rec) return { ok: false, why: "MONO LINK に まだ 入って いない（ラウンジを 1 回 開くと 使える）" };
+          const r = cashDo(rec, b); if (r.save) { delete r.save; await this.save(rec); }
+          return r;
+        }));
       }
       // Market から：依頼の 知らせ（届いた 物・期限で もどる お礼）・闘技場の 大会の ごほうび。同じ mid は 1 回だけ
       if (url.pathname === "/inbox" && req.method === "POST") {

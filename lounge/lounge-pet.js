@@ -7,7 +7,7 @@
 import { COUNTS } from "./main-trees.js";
 import { PETS, PLANS, gambitSlots, SHAPE, SP_PER_LV, SET_SLOTS, TREE_SLOTS, FREE_PER_LV, BASE_STATS, canTake, autoTake, learned, growthStats, ENEMY_TREES, SKILL, EFFECTS, COND_TEXT, baseOf, tamedOf, SLOTS, OLD_SLOT, withAtt, fighterPower, REC_MODES, REC_SCOPES, recommend, isBItem } from "./game.js";
 
-export const RESET_PRICE = (lv) => lv * 100;   // 2 回目からの 振り直し・職業を かえる 玉（案）
+export const RESET_PRICE = (lv) => lv * 100;   // 2 回目からの 振り直し・職業を かえる クレジット（前は 玉。2026-10-28 の 決め「振り直し Lv×100 を 同じ 数の クレジット」）
 export const STYLES = ["attack", "defense", "balance", "mp"];   // オートの 作戦：こうげき重視・防御重視・バランス・MP を大事に
 const SP_OF = Object.fromEntries(SHAPE.map((n) => [n.id, n.sp]));
 const SLOT_KEYS = Object.keys(SLOTS);   // 9 枠
@@ -212,10 +212,11 @@ export function respecPlan(rec, b, day) {
     if (b.carry != null && !mine.includes(b.carry)) return { ok: false, why: "持ちこせるのは 覚えた 技だけ" };
     job = [b.type, b.carry == null ? null : b.carry];
   }
-  const free = pet.reset.day !== day || pet.reset.n < 1;
-  return { costs: free ? [] : [{ kind: "balls", d: -RESET_PRICE(pet.lv) }], why: (job ? "rejob:" : "respec:") + pet.uid,
-    take: () => { if (pet.reset.day !== day) pet.reset = { day, n: 0 }; pet.reset.n++; },
-    grant: { petRespec: [pet.uid, job] }, refund: { petUnreset: [pet.uid, day] }, info: { free } };
+  const free = pet.reset.day !== day || pet.reset.n < 1, price = free ? 0 : RESET_PRICE(pet.lv);
+  if (price > (rec.credits || 0)) return { ok: false, why: `クレジットが 足りない：あと ${(price - (rec.credits || 0)).toLocaleString("ja-JP")}` };
+  return { costs: [], why: (job ? "rejob:" : "respec:") + pet.uid,
+    take: () => { if (pet.reset.day !== day) pet.reset = { day, n: 0 }; pet.reset.n++; rec.credits -= price; },
+    grant: { petRespec: [pet.uid, job] }, refund: { petUnreset: [pet.uid, day], ...(price ? { credits: price } : {}) }, info: { free, ...(price ? { credits: price } : {}) } };
 }
 // 渡す（lounge-game.js の give から 呼ぶ）
 export function givePet(rec, g) {

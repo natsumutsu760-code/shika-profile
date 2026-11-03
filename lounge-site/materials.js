@@ -45,7 +45,7 @@ export const BORDER = {
   edge: [["mixed_alloy", "まざり合金"], ["molten_marker", "溶けた境界標"], ["torn_flag", "裂けた旗布"], ["solder_resist", "ソルダーレジスト"], ["sync_board", "同期盤"], ["cpu_chip", "CPUチップ"]],
 };
 export const BORDER_MAT = new Set(Object.values(BORDER).flatMap((l) => l.map(([id]) => id)));
-// 鉱石と 延べ棒（鹿さんの 決め、2026-10-31。docs/mono-link-crafting.md）。鉱石は 坑道（farm.js の MINE_FIND）と 採掘の 会社 DRN だけ。延べ棒は 工房の 炉で 精錬する（workshop.js の SMELT）
+// 鉱石と 延べ棒（鹿さんの 決め、2026-10-31。docs/mono-link-crafting.md）。鉱石は 坑道（mine.js の mineFind。鉄鉱石は 水晶洞窟でも 採れる）と 採掘の 会社 DRN だけ。延べ棒は 工房の 炉で 精錬する（workshop.js の SMELT）
 // 鉄鉱石は 前から ある 素材（水晶洞窟の 採取・坑道）なので ここには 入れない
 export const ORE = [["coal", "石炭"], ["copperore", "銅鉱石"], ["silverore", "銀鉱石"], ["goldore", "金鉱石"]];
 export const BARS = [["copper_bar", "銅の延べ棒"], ["iron_bar", "鉄の延べ棒"], ["silver_bar", "銀の延べ棒"], ["gold_bar", "金の延べ棒"]];

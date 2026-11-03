@@ -1,18 +1,18 @@
 // 招待コード（MONO LINK の 仲間を ふやす）。決まりは docs/invite.md（鹿さんの決め：2026-10-25）
 // - だれでも 自分の コードを 1 つ 持つ（自分の ページの 札。はじめて 開いた とき 作る）
 // - コードを 使えるのは まだ フォローして いない 人だけ（ログイン画面の「フォローする」の 所）。始めた 日の フォロワーと、MONO LINK に 入った ことの ある 人は 使えない
-// - 使った 人が フォローして MONO LINK に 入ったら 成立：使った 人に リソース 500、招待した 人に 人数で ふえる 分（rewardFor）
+// - 使った 人が フォローして MONO LINK に 入ったら 成立：使った 人に アメジスト 500、招待した 人に 人数で ふえる 分（rewardFor）
 // - サブアカウントでの 招待は BAN（画面で 警告する。見つけるのは 配信者。記録に Twitch の アカウントを 作った 日を 出す）
 // 部品は 2 つ：
 // 画面に 出す 文（why）は MONO LINK の 書き方（ことばの 間を あけない）
 // - Lounge の fetch() で：const ivr = await inviteFetch(this, url, req); if (ivr) return ivr;（数える 所。部屋の 箱は 1 つ なので 同時でも 正しく 数える）
-// - 門番の route() で：inviteApi(req, env, url, h)（/api/invite・/api/invite/use・/api/invite/log。リソースは 1 人ずつの 箱の /inbox で 渡す）
+// - 門番の route() で：inviteApi(req, env, url, h)（/api/invite・/api/invite/use・/api/invite/log。アメジストは 1 人ずつの 箱の /inbox で 渡す）
 
 export const INVITEE_RES = 500;
 const ABC = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";   // 見まちがえやすい 0 O 1 I L は 使わない
 const CODE_RE = /^[A-HJKMNP-Z2-9]{6}$/, TRY_MAX = 10, TRY_MS = 3600e3, LOG_MAX = 200, LIST_MAX = 30, PAY_MAX = 6;
 
-// n 人目の 招待で 招待した 人が もらう リソース：500・1,000・1,500・2,000、5 人目からは ふえ方が 半分ずつ（2,250・2,380・2,440…）で 2,500 まで（10 の 位で まるめる）
+// n 人目の 招待で 招待した 人が もらう アメジスト：500・1,000・1,500・2,000、5 人目からは ふえ方が 半分ずつ（2,250・2,380・2,440…）で 2,500 まで（10 の 位で まるめる）
 export function rewardFor(n) {
   if (!(n >= 1)) return 0;
   return n <= 4 ? 500 * n : Math.round((2500 - 250 * 0.5 ** (n - 5)) / 10) * 10;
@@ -26,7 +26,7 @@ const nameOf = (lounge, id, login) => (lounge.names && lounge.names[id]) || logi
 
 // ---- Lounge の 箱の 中 ----
 // invc:<コード> → 持ち主の id　invo:<id> → { code, login, name, n, sum, list, news }　invu:<id> → 使った 人 { by, code, at, login, name, created, state: "wait"|"done" }
-// invs:<id> → MONO LINK に 入った ことが ある　invpay → まだ 渡して いない リソース　invlog → 配信者の 記録（新しい 200 件）
+// invs:<id> → MONO LINK に 入った ことが ある　invpay → まだ 渡して いない アメジスト　invlog → 配信者の 記録（新しい 200 件）
 // BAN・ブロックの 一覧は 門番（KV の gate）に ある ので、たしかめるのは 門番：使う 前に /inv-owner で 持ち主を きく・成立の 前に /inv-code の wait で 招待した 人を きく
 
 // MONO LINK に 入った 印。門番の 部屋の 箱で、入る ときに かならず 通る 所（/beat・/cmd・/ticket）から 呼ぶ（ページの 招待の 読みこみ だけに たよらない）
@@ -134,7 +134,7 @@ async function oldList(env, gate) {
   await env.DB.put("inv-old", JSON.stringify(o)); return o;
 }
 
-// まだ 渡して いない リソースを 1 人ずつの 箱へ（はじめての 人には 記録を 作って から）。同じ mid は 箱が 2 回 足さない
+// まだ 渡して いない アメジストを 1 人ずつの 箱へ（はじめての 人には 記録を 作って から）。同じ mid は 箱が 2 回 足さない
 async function pay(env, list) {
   const done = [];
   for (const p of list || []) {

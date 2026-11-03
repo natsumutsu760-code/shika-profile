@@ -54,7 +54,7 @@ function withEquip(c) {
   return { s, P, bonus };
 }
 
-function makeFighter(c, side) {
+export function makeFighter(c, side) {
   const { s, P, bonus } = withEquip(c);
   const base = { atk: s.atk * (P.atkMul || 1), def: s.def * (P.defMul || 1), int: s.int * (P.intMul || 1), res: s.res * (P.resMul || 1), agi: s.agi * (P.agiMul || 1), dex: s.dex * (P.dexMul || 1), luk: s.luk };
   const maxHp = Math.round(s.hp * (P.hpMul || 1));
@@ -104,11 +104,11 @@ export const COND_TEXT = {
   cntAtLeast: (v) => (Array.isArray(v) ? `自分の ${COUNTS[v[0]] || "カウント"}が ${v[1]} 以上` : "自分の カウント"),
   first: () => "最初のターン", every: (v) => `${v} ターンごと`, after: (v) => `${v} ターン目より後`, always: () => "いつでも",
 };
-const mpCost = (me, id) => { let m = SKILL[id].mp; if (me.fx.activation) m = Math.ceil(m / 2); if (me.P?.foeBuffBoost === id && me.boostOn) m = Math.ceil(m / 2); return m; };   // あて先ちがい：相手が バフを かけた つぎの 番は MP 半分
+export const mpCost = (me, id) => { let m = SKILL[id].mp; if (me.fx.activation) m = Math.ceil(m / 2); if (me.P?.foeBuffBoost === id && me.boostOn) m = Math.ceil(m / 2); return m; };   // あて先ちがい：相手が バフを かけた つぎの 番は MP 半分
 const needOk = (me, fx, need) => (fx || []).every((x) => x.t !== "spend" || !x.need || (me.cnt?.[x.c] || 0) >= x.need) && Object.entries(need || {}).every(([c, n]) => (me.cnt?.[c] || 0) >= n);
 const optOk = (me, o) => needOk(me, o.fx, o.need);
 const cntOk = (me, sk) => needOk(me, sk.fx) && (!sk.choose || sk.choose.some((o) => optOk(me, o))) && !(sk.fx?.length && sk.fx.every((x) => x.once) && me.onceUsed?.[sk.id]);   // カウントを 使う 技は 足りる ときだけ・1 戦 1 回の 技は 使ったら おしまい
-const usable = (me, id) => SKILL[id] && (SKILL[id].item ? !!(me.bag && me.bag[id] > 0 && (!me.bagCap || me.bagCap.n > 0)) : me.mp >= mpCost(me, id) && (!me.fx.silence || id === "kogeki") && cntOk(me, SKILL[id]));   // 戦いの アイテムは 袋に ある ときだけ（派遣の 味方。闘技場は 袋なし）
+export const usable = (me, id) => SKILL[id] && (SKILL[id].item ? !!(me.bag && me.bag[id] > 0 && (!me.bagCap || me.bagCap.n > 0)) : me.mp >= mpCost(me, id) && (!me.fx.silence || id === "kogeki") && cntOk(me, SKILL[id]));   // 戦いの アイテムは 袋に ある ときだけ（派遣の 味方。闘技場は 袋なし）
 const hasT = (id, t) => SKILL[id].fx?.some((x) => x.t === t);
 const giveMe = (id) => SKILL[id].fx.some((x) => x.t === "fx" && x.who === "me" && isBuff(x.id));
 const giveFoe = (id) => SKILL[id].fx.some((x) => (x.t === "fx" && x.who === "foe") || x.t === "dispel" || x.t === "pin");
@@ -170,6 +170,8 @@ export function simulate(A, B, seed, opts = {}) { return simulateTeams([A], [B],
 // 何体対何体でも同じ決まりで戦う（1 対 1 は simulate と同じ結果）。全員が AGI の順に 1 回ずつ動き、ねらうのは生きている相手の中で HP がいちばん少ない子
 // 出来事の who は全員の通し番号（SA が 0 から、そのあとに SB）。end の winner は 0（SA の側）か 1（SB の側）
 // opts.quiet：結果（end）だけ 返す（門番の 派遣の 計算。ようすの 記録を 作らない ぶん 軽い。勝ち負けは 同じ）
+// opts.pick(i, f, tgt, turn)：その ターンの 技を 外から 決める（クローラーの コマンドの 戦い。{ id, by, tgt?：ねらう 子の 番号 } か、自動なら null）
+// opts.until：この ターンまで 計算して 止める（コマンドの 戦いは 毎ターン、それまでの 選択を 全部 渡して 最初から 計算しなおす。同じ 種なら 同じ 結果）
 export function simulateTeams(SA, SB, seed, opts = {}) {
   const R = rng(seed), F = [...SA.map((c) => makeFighter(c, 0)), ...SB.map((c) => makeFighter(c, 1))], ev = [], duel = F.length === 2, quiet = !!opts.quiet;
   // 1 回だけ 効く 派遣の 道具（側 0＝味方。気つけ薬：状態異常を 1 回 防ぐ・起こし薬：倒れた 子を 1 回 起こす）。使ったら 終わりの used に のる
@@ -421,9 +423,16 @@ export function simulateTeams(SA, SB, seed, opts = {}) {
   F.forEach((f) => { for (const [id, n, tu] of f.P.startFoeFx || []) for (const t of F.filter((g) => g.side !== f.side)) addFx(t, id, { amt: n, turns: tu }, [], f); });   // 「戦いのはじめに相手を〇〇」（相手全員）
 
   let lastTurn = 0, simFrom = -1;
-  for (let turn = 1; turn <= SIM_TURN && alive(0).length && alive(1).length; turn++) {
+  for (let turn = 1; turn <= (opts.until ?? SIM_TURN) && alive(0).length && alive(1).length; turn++) {
     lastTurn = turn; curTurn = turn; if (turn === MAX_TURN + 1) simFrom = ev.length;
-    const plan = F.map((f) => { if (f.hp <= 0) return null; const tgt = targetOf(f); f.boostOn = !!f.P.foeBuffBoost && !!tgt && tgt.selfBuffTurn != null && tgt.selfBuffTurn >= (f.lastActTurn || 0) && f.lastActTurn > 0; return { ...choose(f, tgt, turn, R), tgt }; });
+    const plan = F.map((f, i) => {
+      if (f.hp <= 0) return null;
+      let tgt = targetOf(f);
+      const pk = opts.pick ? opts.pick(i, f, tgt, turn) : null;
+      if (pk && pk.tgt != null && F[pk.tgt] && F[pk.tgt].hp > 0 && F[pk.tgt].side !== f.side) tgt = F[pk.tgt];
+      f.boostOn = !!f.P.foeBuffBoost && !!tgt && tgt.selfBuffTurn != null && tgt.selfBuffTurn >= (f.lastActTurn || 0) && f.lastActTurn > 0;
+      return { ...(pk ? { id: pk.id, by: pk.by ?? "コマンド", opt: pk.opt } : choose(f, tgt, turn, R)), tgt };
+    });
     const speed = F.map((f, i) => (f.hp <= 0 ? -Infinity : (SKILL[plan[i].id].first ? 1000 : 0) + (turn === 1 && f.P.firstStrike ? 500 : 0) + (f.slow ? -1000 : 0) + st(f, "agi") * (0.9 + R() * 0.2)));
     F.forEach((f) => (f.slow = false));
     const order = F.map((_, i) => i).sort((a, b) => (speed[b] - speed[a]) || 0);   // 同じ速さなら番号の小さい方が先

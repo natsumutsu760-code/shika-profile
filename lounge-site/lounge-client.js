@@ -35,7 +35,7 @@ async function call(path, body) {
 const newOp = () => "op-" + (crypto.randomUUID ? crypto.randomUUID().replace(/-/g, "") : Date.now().toString(36) + Math.random().toString(36).slice(2)).slice(0, 30);
 
 export const demoMode = !REAL;
-// いまの 玉・リソース・クレジット（上の 通貨の 札 wallet-bar.js が 読む）。門番の 答えが 来る たびに 知らせる（"ml-purse"）
+// いまの 玉・アメジスト・クレジット（上の 通貨の 札 wallet-bar.js が 読む）。門番の 答えが 来る たびに 知らせる（"ml-purse"）
 let PURSE = null;
 export const lastPurse = () => PURSE;
 function notePurse(j) {

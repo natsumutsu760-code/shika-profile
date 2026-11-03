@@ -4,6 +4,7 @@ const MON = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct
 const P = (p, s) => p(s) || s;   // 名前（訳せなければ そのまま）
 
 export const WORDS = {
+  "保険": "Insurance", "なし": "None", "ふつう": "Basic", "手厚い": "Full", "力つきると 集めた 素材を ぜんぶ 失う": "If you collapse, you lose all the materials you gathered", "手厚い 保険は ミネルバの 店で 開く": "Full insurance unlocks at Minerva's shop",
   // 島（ニライ諸島）
   "マッサラ島": "Massara Island", "ニライ諸島": "Nirai Isles", "ニライ村": "Nirai Village", "島": "Island", "隠れ家に 無線機を 作ると 行ける": "Build a Radio in your hideout to go here",
   // ---- 行き先を えらぶ ----
@@ -24,7 +25,7 @@ export const WORDS = {
   "売った": "Sold", "自動で 売る": "Auto-sell", "ミシック": "Mythic", "力つきて 帰ってきた": "Came back after everyone fell", "ボスを たおした！": "Beat the boss!",
   "目的を はたして 帰ってきた": "Came back with the goal done", "時間に なって 帰ってきた": "Came back when time was up", "品質 #": "Quality #", "もう一度 出発": "Set out again", "うけとる": "Collect",
   "結果": "Result", "宝箱から 届いた装備": "Gear from chests", "採取": "Gathered", "か所": "spots", "地図室で 素材": "Map Room bonus",
-  "なかまの画面で 研究（リソース #）・懐柔できる": "Research it on the Companions screen (# Resources) to tame it", "通常": "Regular",
+  "なかまの画面で 研究（アメジスト #）・懐柔できる": "Research it on the Companions screen (# Amethyst) to tame it", "通常": "Regular",
   "今回は 宝箱を 見つけられなかった。地図が うまるほど 見つけやすい": "No chests this time. The more of the map you fill in, the easier they are to find",
   "拾った素材": "Materials picked up", "売ると 玉 #": "Sells for # balls", "あずかり箱へ": "To the holding box", "倉庫が いっぱい・# 日 のこる": "Storage full · kept # days", "倉庫で うけとる": "Collect at Storage",
   "職業": "Job", "合う 職業": "Suited jobs", "ほかの 職業": "Other jobs", "えらんだ 職業": "Chosen job", "よく 伸びる": "Grows well", "この 職業に する": "Pick this job", "あとで かえられる": "You can change it later",
@@ -45,11 +46,13 @@ export const WORDS = {
   "1 回の 派遣で": "in a single expedition", "10 分 コースで": "on the 10-min course", "ほか": "Other", "素材を 売る": "Sell materials", "派遣で 休憩する": "Rest on expeditions",
   "仲間に おやつを あげる": "Give treats to companions", "作業台で 装備を 作る": "Craft gear at the Workbench", "作業台で 合成する": "Fuse at the Workbench", "たおす": "Defeat", "たい": "", "捕まえる": "Capture",
   "納める": "Deliver", "施設": "Facilities", "作る": "Craft", "回": "times", "作るの レシピ": "Craft recipe",
+  "リサイクルした": "Recycled", "リサイクルした 装備": "Gear recycled", "自動で リサイクル": "Auto-recycle",
 };
 
 export const RULES = [
   [/^(.+)で 状態異常を 防いだ$/, (m, p) => p(m[1]) && `Blocked a status ailment with ${p(m[1])}`], [/^(.+)で 立ちあがった$/, (m, p) => p(m[1]) && `Got back up with ${p(m[1])}`],   // 派遣の 道具（気つけ薬・起こし薬）
-  [/^(.+)の つながった タスク #(\d+) の ごほうびで 行ける$/, (m, p) => `Unlocked by finishing task #${m[2]} in ${P(p, m[1])}'s chain`],   // かくしの 行き先（canGo）
+  [/^(.+)の つながった タスク #(\d+) の ごほうびで 行ける$/, (m, p) => `Unlocked by finishing task #${m[2]} in ${P(p, m[1])}'s chain`],
+  [/^(.+)の 第 4 章の ごほうびで 行ける$/, (m, p) => `Unlocked by finishing ${P(p, m[1])}'s Chapter 4`],   // かくしの 行き先（canGo）
   // 行き先・日付
   [/^(.+)（おすすめ Lv(\d+)）$/, (m, p) => p(m[1]) && `${p(m[1])} (Recommended Lv${m[2]})`],
   [/^(\d+)月(\d+)日（(.)）$/, (m) => `${WD[m[3]] || ""}, ${MON[+m[1] - 1]} ${m[2]}`],
@@ -107,10 +110,12 @@ export const RULES = [
   [/^品質 (\d+) 以上の (.+)を 納める$/, (m, p) => p(m[2]) && `Deliver ${p(m[2])} (Quality ${m[1]}+)`],
   [/^★(\d) 以上の アクセサリーを 納める$/, (m) => `Deliver a ★${m[1]}+ accessory`], [/^作業台で ★(\d) 以上の アクセサリーを 作る$/, (m) => `Craft a ★${m[1]}+ accessory at the Workbench`],
   [/^(.+)を 納める$/, (m, p) => p(m[1]) && `Deliver ${p(m[1])}`], [/^(.+)で 採取ポイントを 回る$/, (m, p) => p(m[1]) && `Visit gathering spots in ${p(m[1])}`],
-  [/^力つきずに (.+)から 帰る$/, (m, p) => p(m[1]) && `Return from ${p(m[1])} without falling`], [/^(.+)を Lv(\d+) に する$/, (m, p) => p(m[1]) && `Upgrade the ${p(m[1])} to Lv${m[2]}`],
+  [/^力つきずに (.+)から 帰る$/, (m, p) => p(m[1]) && `Return from ${p(m[1])} without falling`], [/^保険を 掛けて (.+)へ 出かける$/, (m, p) => p(m[1]) && `Go to ${p(m[1])} with insurance`],
+  [/^★(\d) 以上の 防具を 納める$/, (m) => `Deliver a ★${m[1]}+ armor piece`], [/^作業台で ★(\d) 以上の (防具|武器)を 作る$/, (m) => `Craft a ★${m[1]}+ ${m[2] === "武器" ? "weapon" : "armor piece"} at the Workbench`], [/^(.+)を Lv(\d+) に する$/, (m, p) => p(m[1]) && `Upgrade the ${p(m[1])} to Lv${m[2]}`],
   [/^(.+)の かくし通路で 宝箱を 開ける$/, (m, p) => p(m[1]) && `Open chests in the hidden passages of ${p(m[1])}`], [/^(.+)で 宝箱を 開ける$/, (m, p) => p(m[1]) && `Open treasure chests in ${p(m[1])}`],
   [/^(.+)の (\d) 階を 100% に する$/, (m, p) => p(m[1]) && `Explore floor ${m[2]} of ${p(m[1])} to 100%`],
   [/^希少な (.+)を たおす$/, (m, p) => p(m[1]) && `Defeat the rare ${p(m[1])}`], [/^ボスの (.+)を たおす$/, (m, p) => p(m[1]) && `Defeat the boss ${p(m[1])}`],
   [/^(.+)を たおす$/, (m, p) => p(m[1]) && `Defeat ${p(m[1])}`], [/^(.+)を 捕まえる$/, (m, p) => p(m[1]) && `Capture ${p(m[1])}`],
   [/^採取の素材 ×(\d+)$/, (m) => `Gathered materials ×${m[1]}`], [/^懐柔のおやつ ×(\d+)$/, (m) => `Taming Treat ×${m[1]}`], [/^装備 ★(\d)$/, (m) => `Gear ★${m[1]}`],
+  [/^派遣先で ばったり！ (.+?) の (.+)に (勝った|負けた)$/, (m, p) => `Ran into ${m[1]}'s ${P(p, m[2])} on the expedition! You ${m[3] === "勝った" ? "won" : "lost"}`],
 ];

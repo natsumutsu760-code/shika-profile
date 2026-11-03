@@ -7,7 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600&family=Zen+Maru+Gothic:wght@700;900&display=swap">
 <style>
   /* MONO LINK のプライベートラウンジ：家具の お店の 見本（鹿さんの決め、2026-10-23：部屋とは べつの ページ。左に 商品、右で 家具が まわって 買う）
-     タブ：日替わり（3 品・2 割引き・0 時に かわる）／カタログ（★1〜5 ぜんぶ）／ガチャ（1 回 10 リソース）。支払いは リソースだけ
+     タブ：日替わり（3 品・2 割引き・0 時に かわる）／カタログ（★1〜5 ぜんぶ）／ガチャ（1 回 10 アメジスト）。支払いは アメジストだけ
      買った 家具は 部屋（lounge-room.html）の もようがえの 持ち物に 入る（見本では ブラウザに しまう）。?t=daily|catalog|gacha */
   :root { --ink:#1B2340; --soft:#6A7394; --line:#DCE3F0; --space:#F6F8FC; --amber:#FFB547; --sky:#2EA8FF; --leaf:#22CC88; --coral:#FF5A64; --violet:#8E6CFF;
     --jp:"Zen Maru Gothic", sans-serif; --num:"Fredoka", sans-serif; }
@@ -114,14 +114,14 @@ import * as THREE from "three";
 import { F, kit, PRICE, SALE, DAILY_OFF, GACHA_COST, GACHA_RATE, salePrice, jstDay, dailyOf } from "./lounge-furniture.js";
 import { PRIZE_ALWAYS, prizeOf, isKey } from "./prizes.js";   // パチンコの 景品（いつも 並ぶ 7。入れ替わる 家具と コスメは 門番が 返す）
 import { me, act, busy, waitText } from "./lounge-client.js";   // 買う・ガチャは 門番に 頼む（見本では ブラウザの 中の ためしの 門番）
-import { mountWallet } from "./wallet-bar.js"; mountWallet();   // 上の 通貨の 札（玉・リソース・クレジット）と 両替
+import { mountWallet } from "./wallet-bar.js"; mountWallet();   // 上の 通貨の 札（玉・アメジスト・クレジット）と 両替
 
 const q = new URLSearchParams(location.search);
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
 const fmt = (n) => n.toLocaleString("ja-JP");
 const stars = (n) => `<span class="stars">${"★".repeat(n)}</span>`;
 const sizeText = (f) => (f.place === "wall" ? `壁・はば ${f.size}` : `${f.place === "rug" ? "しく 物" : "床"}・${f.size[0]}×${f.size[1]}`);
-// 持ち物と リソースは 門番から（known：OBS の 記録で まだ わからない 人は 買えない・waiting：返事を 待って いる 買い物）
+// 持ち物と アメジストは 門番から（known：OBS の 記録で まだ わからない 人は 買えない・waiting：返事を 待って いる 買い物）
 const W = { res: 0, balls: 0, own: {}, known: true, waiting: 0, lock: false };
 async function refresh() { const m = await me(); if (m.denied || !m.wallet) { W.known = false; return m; } W.res = m.wallet.res; W.balls = m.wallet.balls || 0; W.known = m.wallet.known; W.own = m.own.furniture; W.waiting = m.waiting || 0; W.lock = !!m.lock; return m; }
 const ME = await refresh();
@@ -238,7 +238,7 @@ function detailHtml() {
     return `<div class="nm"><b>インテリアガチャ</b><span>かぶったら 2 こ目</span></div>
       <div class="rates">${[1, 2, 3, 4, 5].map((s) => `<span><small>★${s}</small>${GACHA_RATE[s]}%</span>`).join("")}</div>
       <div class="gbtns"><button class="buy" data-pull="1" ${can1 ? "" : "disabled"}>1 回 まわす<small>${GACHA_COST}</small></button><button class="buy" data-pull="10" ${can10 ? "" : "disabled"}>10 回 まわす<small>${GACHA_COST * 10}</small></button></div>
-      ${can1 ? "" : `<p class="why">${W.known ? `リソースが 足りない：あと ${GACHA_COST - W.res}` : "リソースが まだ わかりません（配信で 1 回 チャットすると わかります）"}</p>`}
+      ${can1 ? "" : `<p class="why">${W.known ? `アメジストが 足りない：あと ${GACHA_COST - W.res}` : "アメジストが まだ わかりません（配信で 1 回 チャットすると わかります）"}</p>`}
       ${S.got.length ? `<ul class="got">${S.got.map((f, k) => `<li class="r${f.star}" style="animation-delay:${k * 0.06}s"><img src="${IMG[f.id]}" alt=""><b>${esc(f.name)}</b>${stars(f.star)}</li>`).join("")}</ul><a class="goroom" href="lounge-room.html?edit">部屋に 置く</a>` : ""}`;
   }
   const f = S.sel; if (!f) return "";
@@ -246,9 +246,9 @@ function detailHtml() {
   if (S.t === "gacha") return `<div class="stage"></div><div class="nm"><b>${esc(f.name)}</b>${stars(f.star)}<span>${sizeText(f)}</span></div><div class="price"><small>ガチャの ${GACHA_RATE[f.star]}% の 中の 1 つ</small></div><button class="buy" data-act="back">ガチャへ もどる</button>`;
   return `<div class="stage">${sale ? `<span class="off">2 割引き</span>` : ""}</div>
     <div class="nm"><b>${esc(f.name)}</b>${stars(f.star)}<span>${sizeText(f)}${have ? `・持っている ×${have}` : ""}</span></div>
-    <div class="price">${fmt(p)}${sale ? `<s>${fmt(PRICE[f.star])}</s>` : ""}<small>リソース</small></div>
+    <div class="price">${fmt(p)}${sale ? `<s>${fmt(PRICE[f.star])}</s>` : ""}<small>アメジスト</small></div>
     <button class="buy" data-buy="${f.id}" ${lack > 0 ? "disabled" : ""}>買う</button>
-    ${lack > 0 ? `<p class="why">${W.known ? `リソースが 足りない：あと ${fmt(lack)}` : "リソースが まだ わかりません（配信で 1 回 チャットすると わかります）"}</p>` : have ? `<a class="goroom" href="lounge-room.html?edit">部屋に 置く</a>` : ""}`;
+    ${lack > 0 ? `<p class="why">${W.known ? `アメジストが 足りない：あと ${fmt(lack)}` : "アメジストが まだ わかりません（配信で 1 回 チャットすると わかります）"}</p>` : have ? `<a class="goroom" href="lounge-room.html?edit">部屋に 置く</a>` : ""}`;
 }
 
 function render() {

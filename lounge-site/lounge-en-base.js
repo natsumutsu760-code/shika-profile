@@ -71,9 +71,37 @@ export const WORDS = {
   "鉱石は 坑道で 掘る ›": "Dig ore in the Mine ›", "できた 延べ棒を 受けとると 炉が 空く": "Collect finished ingots to free a furnace",
   "入れて います…": "Loading…", "入れられませんでした": "Couldn't load it", "受けとって います…": "Collecting…", "受けとれませんでした": "Couldn't collect",
   "やめて います…": "Stopping…", "やめられませんでした": "Couldn't stop", "もう 1 回 押すと やめる（まだの 分の 鉱石は もどる）": "Tap again to stop (unsmelted ore is returned)",
+  // ---- 施設の 作り直し（2026-11-03）：建設・つまみ・維持費・効果の 1 行（facFx。「・」で 分けて 引く） ----
+  "建設": "Construction", "建設を 始める": "Start building", "建設中 #%": "Building #%", "Lv# を 建設中": "Building Lv#", "Lv# に いる 物": "Needed for Lv#",
+  "建てられる": "Ready to build", "始められる": "Can start", "いちばん 上": "Max", "いちばん 上の Lv#": "Max level (Lv#)", "Lv# まで": "Up to Lv#",
+  "素材は 始めて から 少しずつ 入れられる": "You can add materials bit by bit after starting", "持って いる 素材を 入れる": "Add the materials you have", "手もち #": "have #",
+  "時間は 足りた：素材を 入れると できる": "Time's up: add the materials to finish", "グラナート建設": "Granat Construction", "グラナート建設に 頼んだ": "Hired Granat Construction",
+  "燃料 # 本": "# fuel", "燃料を 使った": "Used fuel", "# 時間 # 分": "# h # min", "やれる こと #": "# things to do",
+  "無線機を 作ると Lv# から 上げられる（ニライ諸島の 素材が いる）": "Build the Radio to raise it from Lv# (needs Nirai Isles materials)",
+  "つまみ": "Dial", "つまみ Lv#": "Dial Lv#", "いま": "Now", "いま（つまみ Lv#）": "Now (dial Lv#)", "つまみを 回す": "Turn the dial",
+  "つまみを Lv# 以上に すると 作れる": "Set the dial to Lv# or higher to make this", "つまみを Lv# 以上に すると 合成できる": "Set the dial to Lv# or higher to fuse",
+  "作る たび": "per craft", "派遣ごと": "per trip", "うけとる たび": "per collection", "維持費 #": "Upkeep #", "維持費 # クレジット": "Upkeep: # credits", "維持費 # こみ": "incl. # upkeep",
+  "維持費の クレジット あと #": "# more credits for upkeep", "合成は 作業台 Lv# から できる": "Fusion unlocks at Workbench Lv#", "なかまを 研究する": "Research companions",
+  "Lv# で ふえる": "more at Lv#", "まだ": "Not yet", "素材を # こ 入れた（素材 #%）": "Added # materials (materials #%)",
+  "★#〜# は # つ・★# は # つ・★# は # つ（作る たびに くじ）": "★#–#: # · ★#: # · ★#: # (rolled each craft)",
+  "# こ できる #%": "×#1 chance #2%", "素材 # こで すむ #%": "Only # materials #%", "作れるだけ（# 回）": "As many as possible (×#)",
+  "★# まで": "Up to ★#", "高い ★ ＋#%": "Higher ★ +#%", "素材が # こ #%": "# materials #%", "アタッチメント ★# まで": "Attachments up to ★#", "道具 ＋# こ #%": "+# tool #%",
+  "素材 −#%": "Materials −#%", "研究の アメジストと 時間 −#%": "Research Amethyst & time −#%", "採取と 敵の 素材 ＋#%": "Gathering & enemy materials +#%",
+  "着いた 階の 階段が 見える": "Shows the stairs on each floor you reach", "休憩の 回復 ×#": "Rest recovery ×#", "倒れた 子が HP #% で 起きる": "Fallen members get up with #% HP",
+  "派遣の 経験値 ＋#%": "Expedition XP +#%", "# しゅるい # こ まで": "Up to #2 per type", "装備 # こ まで": "Up to # gear", "# 体": "# diggers",
+  "# 時間に # こ": "#2 per #1 h", "# 時間 # こ": "#2 per #1 h", "ニライ諸島へ 行ける": "Travel to the Nirai Isles", "ほかの 施設を Lv# から 上げられる": "Other facilities can be raised from Lv#",
+  "自動で リサイクル": "Auto-recycle", "自動で リサイクルするのを やめた": "Auto-recycle turned off", "派遣で 拾った 物だけ・ミシックなどは リサイクルしない": "Expedition drops only · Mythics etc. aren't recycled",
 };
 
 export const RULES = [
+  // 施設の 作り直し（2026-11-03）
+  [/^(.+) Lv(\d+) の 建設を 始めた（([\d,]+) クレジット）$/, (m, p) => p(m[1]) && `Started building ${p(m[1])} Lv${m[2]} (${m[3]} credits)`],
+  [/^(.+)の つまみを Lv(\d+) に した（維持費 ([\d,]+)）$/, (m, p) => p(m[1]) && `Set the ${p(m[1])} dial to Lv${m[2]} (upkeep ${m[3]})`],
+  [/^(.+)が Lv(\d+) に なった！ (.+)$/, (m, p) => p(m[1]) && p(m[3]) && `${p(m[1])} reached Lv${m[2]}! ${p(m[3])}`],
+  [/^のこり (.+)$/, (m, p) => p(m[1]) && `${p(m[1])} left`], [/^工期 (.+)$/, (m, p) => p(m[1]) && `Build time ${p(m[1])}`],
+  [/^素材は そろった：のこり (.+) で できる$/, (m, p) => p(m[1]) && `Materials complete: done in ${p(m[1])}`],
+  [/^研究中・あと (.+)$/, (m, p) => p(m[1]) && `Researching · ${p(m[1])} left`],
+  [/^研究を 始めた：スキルツリー「(.+)」（アメジスト ([\d,]+)）。時間が 来ると 研究ずみに なる$/, (m, p) => `Research started: skill tree “${p(m[1]) || m[1]}” (${m[2]} Amethyst). It finishes when the time is up`],
   // 装備
   [/^コア ★(\d)$/, (m) => `Core ★${m[1]}`], [/^(.+)：なし$/, (m, p) => p(m[1]) && `${p(m[1])}: none`], [/^(.+)：(.+)$/, (m, p) => p(m[1]) && p(m[2]) && `${p(m[1])}: ${p(m[2])}`],
   [/^(.+)の 装備は まだ ない。$/, (m, p) => p(m[1]) && `No ${p(m[1])} gear yet. Get some from`],
@@ -124,10 +152,10 @@ export const RULES = [
   [/^(.+) (\d+) → 1 こ$/, (m, p) => p(m[1]) && `${p(m[1])} ×${m[2]} → 1`],   // 工房の 加工
   [/^(パン|薬草あめ|ジャム|串焼き|苔ようかん|コーヒー|麦茶|草餅|笹だんご|ハーブクッキー|チョコ|星の パン|ラテ|よもぎ団子|タルト|クッキー|ココナッツ|天ぷら|黒糖|ジュース|ニライ麦茶|ビターチョコ|キャンディ|ゼリー|パイ|シャーベット|プリン)が 足りない：あと (\d+)$/, (m, p) => `Not enough ${P(p, m[1])}: ${m[2]} more`],   // 栄養の おやつ
   // 研究の 葉（2026-10-31）
-  [/^リソース ([\d,]+) ＋ (.+) (\d+) で サブツリーに つけられる（この子は のこる）$/, (m, p) => p(m[2]) && `Costs ${m[1]} Resources + ${m[3]} ${p(m[2])} to add as a subtree (this companion stays)`],
+  [/^アメジスト ([\d,]+) ＋ (.+) (\d+) で サブツリーに つけられる（この子は のこる）$/, (m, p) => p(m[2]) && `Costs ${m[1]} Amethyst + ${m[3]} ${p(m[2])} to add as a subtree (this companion stays)`],
   [/^(.+) あと (\d+)（畑で 育てる）$/, (m, p) => p(m[1]) && `${m[2]} more ${p(m[1])} (grow it on the farm)`],
-  [/^＋ (.+) (\d+)）$/, (m, p) => p(m[1]) && `+ ${m[2]} ${p(m[1])})`], [/^研究する（リソース ([\d,]+) ＋ (.+) (\d+)）$/, (m, p) => p(m[2]) && `Research (${m[1]} Resources + ${m[3]} ${p(m[2])})`],
-  [/^なかまの画面で 研究（リソース ([\d,]+) ＋ (.+) (\d+)）・懐柔できる$/, (m, p) => p(m[2]) && `Research it on the Companions screen (${m[1]} Resources + ${m[3]} ${p(m[2])}) to tame it`],
+  [/^＋ (.+) (\d+)）$/, (m, p) => p(m[1]) && `+ ${m[2]} ${p(m[1])})`], [/^研究する（アメジスト ([\d,]+) ＋ (.+) (\d+)）$/, (m, p) => p(m[2]) && `Research (${m[1]} Amethyst + ${m[3]} ${p(m[2])})`],
+  [/^なかまの画面で 研究（アメジスト ([\d,]+) ＋ (.+) (\d+)）・懐柔できる$/, (m, p) => p(m[2]) && `Research it on the Companions screen (${m[1]} Amethyst + ${m[3]} ${p(m[2])}) to tame it`],
   // 工房の 精錬
   [/^1 本 (.+)$/, (m, p) => p(m[1]) && `${p(m[1])} each`],
   [/^つぎの 1 本 あと (.+)・ぜんぶ (.+)$/, (m, p) => p(m[1]) && `Next in ${p(m[1])} · all by ${m[2]}`],
@@ -135,4 +163,5 @@ export const RULES = [
   [/^炉 (\d) に 入れた（ぜんぶ (.+)）$/, (m) => `Loaded Furnace ${m[1]} (all by ${m[2]})`],
   [/^(.+)を (\d+) 本 受けとった(?:（倉庫が いっぱいで (\d+) 本は あずかり箱へ）)?$/, (m, p) => p(m[1]) && `Collected ${p(m[1])} ×${m[2]}${m[3] ? ` (storage full: ${m[3]} went to the holding box)` : ""}`],
   [/^やめた（(?:(\d+) 本 受けとり、)?(\d+) 本ぶんの 鉱石を もどした）$/, (m) => `Stopped (${m[1] ? `collected ${m[1]}, ` : ""}returned ore for ${m[2]})`],
+  [/^自動で リサイクル(.+)$/, (m, p) => `Auto-recycle ${P(p, m[1].trim())}`],
 ];

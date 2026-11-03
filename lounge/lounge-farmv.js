@@ -63,7 +63,7 @@ export function farmvHarvest(rec, b, now, R) {
     if (!F.known.includes(crop.id)) { F.known.push(crop.id); isNew = true; ups += addXp(F.field, XP.discover).length; }
     if (crop.kind !== "seed") { seeds = SEED_BACK[0] + Math.floor(R() * (SEED_BACK[1] - SEED_BACK[0] + 1)); rec.seeds[crop.id] = (rec.seeds[crop.id] || 0) + seeds; }
   }
-  return { ok: true, items, color: r.color || null, left: r.left || 0, gone: r.gone || null, isNew, seeds, lv: F.field.lv, ups };
+  return { ok: true, items, color: r.color || null, left: r.left || 0, gone: r.gone || null, isNew, seeds, lv: F.field.lv, ups, ...(crop ? { crop: crop.id } : {}) };
 }
 
 export function farmvSoil(rec, b, now, R) {

@@ -1,8 +1,9 @@
 // 工房（鹿さんの頼み、2026-10-25）：道具・品を 作る（ws.make）・武器の アタッチメントを 作る（ws.att）・付ける（att.set）・はずす（att.off）・すてる（att.drop）
 // 決まりの 中身は 見本の lounge-proto/workshop.js。支払いは 素材 ＋ クレジット（帳簿を 使わない ので その場で 決まる）
 // アタッチメントは 記録の own.att に { uid, base, star, ops, on }（on：付けて いる 武器の uid か null）。武器が 合成・売る・届けるで なくなっても、アタッチメントは のこる（付いて いない 扱い）
-import { WS_ITEMS, wsOpen, WS_MAX, ATT_MAX, attBase, rollAtt, baseOf, SMELT_MAX, furnaces, smeltOf, smeltDone, PROC_MAX, procOpen, procOf } from "./game.js";
-import { takeMats, applyTake, give, putMats } from "./lounge-game.js";
+import { WS_ITEMS, wsOpen, wsLvOk, WS_MAX, ATT_MAX, attBase, rollAtt, baseOf, SMELT_MAX, furnaces, smeltOf, smeltDone, PROC_MAX, procOpen, procOf } from "./game.js";
+import { takeMats, applyTake, give, putMats, makeFee, payUpkeep } from "./lounge-game.js";
+import { facLv, wsMore, wsSave } from "./game.js";
 
 const newUid = (rec, p) => p + (++rec.uidN).toString(36);
 export const ensureWs = (rec) => { rec.own.att ||= []; return rec; };
@@ -15,35 +16,39 @@ function wornAway(rec, uid) {
 }
 
 // 道具・品を n こ 作る。b：{ id, n }
-export function wsMake(rec, b, now = Date.now()) {
+// 工房 Lv1〜100（施設の 作り直し、2026-11-03）：道具が 1 こ 多く できる 確率 ＋1% / Lv・素材 −0.3% / Lv（切り上げ）。維持費は 作る たびに
+const BANDS = [1, 20, 50, 80];
+export function wsMake(rec, b, now = Date.now(), R = Math.random) {
   ensureWs(rec);
-  const lv = rec.hideout.workshop || 0, r = WS_ITEMS.find((x) => x.id === b.id);
-  if (!lv) return { ok: false, why: "工房が まだ ない（隠れ家で 作る）" };
+  const lv = facLv(rec, "workshop"), r = WS_ITEMS.find((x) => x.id === b.id);
+  if (!rec.hideout.workshop) return { ok: false, why: "工房が まだ ない（隠れ家で 作る）" };
   if (!r || !wsOpen(r)) return { ok: false, why: "作る 物を えらんで" };   // 作物の いる 物は 大工事の 畑が つながってから
-  if (lv < r.lv) return { ok: false, why: `工房 Lv${r.lv} から 作れる` };
+  if (!wsLvOk(r, lv)) return { ok: false, why: `工房 Lv${BANDS[r.lv - 1]} から 作れる` };
   const n = Number.isInteger(b.n) && b.n >= 1 && b.n <= WS_MAX ? b.n : 0;
   if (!n) return { ok: false, why: `作る 数は 1〜${WS_MAX}` };
-  const cr = r.credits * n;
-  if (cr > rec.credits) return { ok: false, why: "クレジットが 足りない：あと " + (cr - rec.credits).toLocaleString("ja-JP") };
-  const t = takeMats(rec, r.mats.map(([id, k, q]) => [id, k * n, q || 0]), { now });
+  const fee = makeFee(rec, "workshop"), cr = r.credits * n + fee;
+  if (cr > rec.credits) return { ok: false, why: "クレジットが 足りない：あと " + (cr - rec.credits).toLocaleString("ja-JP") + (fee ? `（維持費 ${fee} こみ）` : "") };
+  const t = takeMats(rec, r.mats.map(([id, k, q]) => [id, Math.max(1, Math.ceil(k * n * (1 - wsSave(lv)))), q || 0]), { now });
   if (t.why) return { ok: false, why: t.why };
-  applyTake(rec, t.picks); rec.credits -= cr;
-  const g = {}; for (const [kind, o] of Object.entries(r.to)) g[kind] = Object.fromEntries(Object.entries(o).map(([k, v]) => [k, v * n]));
+  applyTake(rec, t.picks); rec.credits -= cr - fee; payUpkeep(rec, fee, now);
+  let more = 0; for (let i = 0; i < n; i++) if (R() < wsMore(lv)) more++;   // 1 こ 多く できた 回数
+  const g = {}; for (const [kind, o] of Object.entries(r.to)) g[kind] = Object.fromEntries(Object.entries(o).map(([k, v]) => [k, v * n + (more ? Math.min(more, n) : 0)]));
   give(rec, g, now);
-  return { ok: true, id: r.id, n };
+  return { ok: true, id: r.id, n, ...(more ? { more } : {}), ...(fee ? { fee } : {}) };
 }
 
 // アタッチメントを 1 つ 作る（★と OP は くじ）。b：{ base }
 export function wsAtt(rec, b, R, now = Date.now()) {
   ensureWs(rec);
-  const lv = rec.hideout.workshop || 0, base = attBase(b.base);
-  if (!lv) return { ok: false, why: "工房が まだ ない（隠れ家で 作る）" };
+  const lv = facLv(rec, "workshop"), base = attBase(b.base);
+  if (!rec.hideout.workshop) return { ok: false, why: "工房が まだ ない（隠れ家で 作る）" };
   if (!base) return { ok: false, why: "作る アタッチメントを えらんで" };
   if (loose(rec).length >= ATT_MAX) return { ok: false, why: `付けて いない アタッチメントが いっぱい（${ATT_MAX} こ）。いらない 物を すてて から` };
-  if (base.credits > rec.credits) return { ok: false, why: "クレジットが 足りない：あと " + (base.credits - rec.credits).toLocaleString("ja-JP") };
+  const fee = makeFee(rec, "workshop"), cr = base.credits + fee;
+  if (cr > rec.credits) return { ok: false, why: "クレジットが 足りない：あと " + (cr - rec.credits).toLocaleString("ja-JP") + (fee ? `（維持費 ${fee} こみ）` : "") };
   const t = takeMats(rec, base.mats, { now });
   if (t.why) return { ok: false, why: t.why };
-  applyTake(rec, t.picks); rec.credits -= base.credits;
+  applyTake(rec, t.picks); rec.credits -= cr - fee; payUpkeep(rec, fee, now);
   const att = { uid: newUid(rec, "a"), ...rollAtt(R, base, lv), on: null };
   rec.own.att.push(att);
   return { ok: true, att };
@@ -67,7 +72,7 @@ export function wsProc(rec, b, now = Date.now()) {
 // ---------- 精錬（鹿さんの 決め、2026-10-31）：炉に 鉱石を 入れる（smelt.put）・できた 延べ棒を 受けとる（smelt.take）・やめる（smelt.stop）----------
 // rec.smelt[炉の 番号] ＝ { id：延べ棒, n：のこりの 本数, at：いま 作って いる 1 本目を 入れた 時刻, in：まだ 使って いない 素材〈id・q・b〉 } か null。延べ棒は 倉庫へ（いっぱいなら あずかり箱）
 // 買った 素材の 印（b：商人の タスクで「派遣で 拾った 物」に 数えない）を 消さない：1 本ずつ 前から 使い、買った 素材を 使った 延べ棒にも b。やめて もどす 素材も 元の 印・品質の まま
-const slotOf = (rec, b) => (Number.isInteger(b.slot) && b.slot >= 0 && b.slot < furnaces(rec.hideout.workshop) ? b.slot : -1);
+const slotOf = (rec, b) => (Number.isInteger(b.slot) && b.slot >= 0 && b.slot < furnaces(rec.hideout.workshop) ? b.slot : -1);   // 炉の 数は 上げた Lv（つまみで 減らさない）
 export function smeltPut(rec, b, now = Date.now()) {
   rec.smelt ||= [];
   if (!rec.hideout.workshop) return { ok: false, why: "工房が まだ ない（隠れ家で 作る）" };

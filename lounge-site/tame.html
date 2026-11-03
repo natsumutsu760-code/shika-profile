@@ -235,9 +235,9 @@ import { ENEMY_TREES } from "./enemy-trees.js";
 import { TYPES } from "./skills.js";
 import { spriteURL } from "./sprites.js";
 import { me, act, busy, waitText } from "./lounge-client.js";   // なかま・おやつ・研究・パーティは 門番から（見本では ブラウザの 中の ためしの 門番）
-import { mountWallet } from "./wallet-bar.js"; mountWallet();   // 上の 通貨の 札（玉・リソース・クレジット）と 両替
+import { mountWallet } from "./wallet-bar.js"; mountWallet();   // 上の 通貨の 札（玉・アメジスト・クレジット）と 両替
 import { fillPet, petInfo, linkTabs, gateHtml } from "./pet-head.js";
-import { SNACK_RECIPES } from "./facilities.js";
+import { SNACK_RECIPES, facLv, labOff, labMs, upkeep } from "./facilities.js";   // 施設の 作り直し（2026-11-03）：研究所 Lv1〜100（安く・早く・研究は 時間が かかる）・おやつ工房の つまみ
 import { MAT_NAME } from "./materials.js";
 import { snackCraftHtml, addSnackCss, SNACK_ICON } from "./snack-craft.js";
 import { candidates, skillOptions, makeChild, speciesOf, famOf, FAMILIES, RANKS as FRANK, TWIN_RATE, researchLeaf } from "./fusion.js";   // 配合（門番と 同じ 計算で 候補を 出す）
@@ -260,7 +260,7 @@ function load(m) {
   ME = m;
   const away = new Set((m.trips || []).filter((t) => !t.done).flatMap((t) => t.party || []));   // 出かけて いる 子（配合・スキルは 帰ってから）
   const tamed = (m.tamed || []).map((c) => ({ ...c, from: fromOf(c.tree), lab: (m.lab || []).includes(c.tree), eq: Object.values(c.equip || {}).filter(Boolean).length, away: away.has(c.uid), inParty: (m.party || []).includes(c.uid) }));
-  S.labs = m.lab || []; S.labOff = [0, 0.2, 0.35, 0.5, 0.65][((m.hideout || {}).lab) || 0]; S.snacks = m.snacks || 0; S.s3 = ((m.deeplink && m.deeplink.items) || {}).snack3 || 0; S.known = !!(m.wallet && m.wallet.known); S.balls = S.known ? m.wallet.balls : 0; S.res = S.known ? m.wallet.res : 0;
+  S.labs = m.lab || []; S.labLv = facLv(m, "lab"); S.labOff = labOff(S.labLv); S.labQ = m.labQ || []; S.snacks = m.snacks || 0; S.s3 = ((m.deeplink && m.deeplink.items) || {}).snack3 || 0; S.known = !!(m.wallet && m.wallet.known); S.balls = S.known ? m.wallet.balls : 0; S.res = S.known ? m.wallet.res : 0;
   S.party = [0, 1].map((i) => tamed.find((c) => c.uid === (m.party || [])[i]) || null);
   S.all = tamed; S.room = tamed.filter((c) => !c.inParty);
   if (!S.all.some((c) => c.uid === S.sel)) S.sel = S.room[0] ? S.room[0].uid : null;   // パーティの 子も えらべる（スキルを 見る）
@@ -323,7 +323,7 @@ function listHtml() {
 function feedHtml() {
   const c = cur();
   if (!c) return `<aside class="panel feed"><p class="say">となりの部屋に だれも いない</p></aside>`;
-  const n = need(c), full = c.gauge >= n, T = ENEMY_TREES[c.tree], buy = Math.max(0, S.give - S.snacks), cost = buy * SNACK_PRICE, poor = cost > 0 && (!S.known || cost > S.balls);
+  const n = need(c), full = c.gauge >= n, T = ENEMY_TREES[c.tree], buy = Math.max(0, S.give - S.snacks), cost = buy * SNACK_PRICE, poor = cost > (ME.credits || 0);   // 足りない おやつは クレジットで 買う（前は 玉。2026-10-28 の 決め）
   const [cols, size, gap] = n <= 10 ? [10, 30, 7] : n <= 30 ? [15, 21, 4] : [20, 15, 4];
   const pips = Array.from({ length: n }, (_, k) => { const on = k < c.gauge, nx = !full && !on && k < c.gauge + S.give, pop = on && k >= S.popFrom && S.popFrom >= 0;
     return `<i class="pip ${on ? "on" : nx ? "next" : ""} ${pop ? "pop" : ""}" style="--k:${k - S.popFrom}"></i>`; }).join("");
@@ -332,18 +332,19 @@ function feedHtml() {
     ? `<button class="jelly light go" data-act="back" data-u="${c.uid}" ${c.away ? "disabled" : ""}>部屋に もどす</button>${c.away ? `<p class="cost">出かけて いる あいだは もどせない</p>` : ""}`
     : full
     ? `<button class="jelly go" data-act="join" ${slot < 0 ? "disabled" : ""}>パーティに 入れる</button>${slot < 0 ? `<p class="cost">パーティが いっぱい。だれかを 部屋に もどすと 入れられる</p>` : ""}`
-    : `<div class="give"><div class="have"><span>持っている おやつ<b>${S.snacks}</b> こ</span><span>玉<b>${S.known ? fmt(S.balls) : "？"}</b></span></div>
-        ${S.known ? "" : `<p class="cost">玉が まだ わからない（配信で 1 回 チャットすると わかる）。持って いる おやつだけ あげられる</p>`}
+    : `<div class="give"><div class="have"><span>持っている おやつ<b>${S.snacks}</b> こ</span><span>クレジット<b>${fmt(ME.credits || 0)}</b></span></div>
         <div class="stepper"><button class="sq" data-act="dec" aria-label="1 こ へらす" ${S.give <= 1 ? "disabled" : ""}>−</button><output aria-live="polite">${S.give}<small>こ</small></output><button class="sq" data-act="inc" aria-label="1 こ ふやす" ${S.give >= left(c) ? "disabled" : ""}>＋</button><button class="all" data-act="all">いっぱいまで（${left(c)} こ）</button></div>
-        <p class="cost ${poor ? "short" : ""}">${buy ? `足りない ${buy} こは 玉で 買う（<b>${fmt(cost)}</b> 玉）${poor ? "。玉が 足りない" : ""}` : "おやつは 派遣で 拾える（足りない分は 玉で 買う）"}</p>
+        <p class="cost ${poor ? "short" : ""}">${buy ? `足りない ${buy} こは クレジットで 買う（<b>${fmt(cost)}</b>）${poor ? "。クレジットが 足りない" : ""}` : "おやつは 派遣で 拾える（足りない分は クレジットで 買う）"}</p>
         <button class="jelly sky go" data-act="feed" ${poor ? "disabled" : ""}>${COOKIE}おやつを ${S.give} こ あげる</button>
         ${S.s3 ? `<button class="jelly light go3" data-act="feed3">${SNACK_ICON.snack3}とくべつおやつを あげる（＋3・のこり ${S.s3} こ）</button>` : ""}</div>`;
-  const lv = (ME.hideout || {}).snack || 0;   // おやつ工房（作る ところは 隠れ家と 同じ 部品）
+  const lv = facLv(ME, "snack");   // おやつ工房（作る ところは 隠れ家と 同じ 部品。つまみの Lv）
   const make = lv ? snackCraftHtml(lv, (ME.own && ME.own.mats) || []) : `<p>隠れ家に おやつ工房を 作ると、ここでも 作れる <a href="hideout.html?f=snack">隠れ家へ</a></p>`;
-  // 研究：リソース（研究所の Lv で 安く）。希少・ボス・配合は 葉も（鹿さんの 決め、2026-10-31。大工事の 畑が つながってから）
+  // 研究：アメジスト（研究所の Lv で 安く）。希少・ボス・配合は 葉も（鹿さんの 決め、2026-10-31。大工事の 畑が つながってから）
   const rc = Math.ceil(RESEARCH[rankOf(c)] * (1 - (S.labOff || 0))), leaf = researchLeaf(c.tree), lh = leaf ? leafHave(leaf[0]) : 0, lshort = leaf && lh < leaf[1];
-  const lab = `<div class="lab"><span class="orb" style="--c:#B49BEA;--s:34px" aria-hidden="true">研</span><div><b>研究する（スキルツリー「${esc(T.name)}」）</b>リソース ${rc}${leaf ? ` ＋ ${esc(MAT_NAME[leaf[0]])} ${leaf[1]}` : ""} で サブツリーに つけられる（この子は のこる）${lshort ? `<span class="lshort">${esc(MAT_NAME[leaf[0]])} あと ${leaf[1] - lh}（畑で 育てる）</span>` : ""}</div>
-      ${c.lab ? `<span class="done">✓ 研究ずみ</span>` : `<button class="jelly light" data-act="lab" ${(S.known && S.res < rc) || lshort ? "disabled" : ""}>研究する</button>`}</div>`;
+  const lms = labMs(rankOf(c), S.labLv), lfee = upkeep("lab", S.labLv), lq = S.labQ.find((x) => x.tree === c.tree), lshortC = lfee > (ME.credits || 0);
+  const hrs = (ms) => { const m = Math.max(1, Math.ceil(ms / 60000)); return m < 60 ? `${m} 分` : `${Math.floor(m / 60)} 時間${m % 60 ? ` ${m % 60} 分` : ""}`; };
+  const lab = `<div class="lab"><span class="orb" style="--c:#B49BEA;--s:34px" aria-hidden="true">研</span><div><b>研究する（スキルツリー「${esc(T.name)}」）</b>アメジスト ${rc}${leaf ? ` ＋ ${esc(MAT_NAME[leaf[0]])} ${leaf[1]}` : ""} で サブツリーに つけられる（この子は のこる）・${hrs(lms)}${lfee ? `・維持費 ${lfee}` : ""}${lshort ? `<span class="lshort">${esc(MAT_NAME[leaf[0]])} あと ${leaf[1] - lh}（畑で 育てる）</span>` : lshortC && !c.lab && !lq ? `<span class="lshort">維持費の クレジット あと ${lfee - (ME.credits || 0)}</span>` : ""}</div>
+      ${c.lab ? `<span class="done">✓ 研究ずみ</span>` : lq ? `<span class="done">研究中・あと ${hrs(lq.at - Date.now())}</span>` : `<button class="jelly light" data-act="lab" ${(S.known && S.res < rc) || lshort || lshortC ? "disabled" : ""}>研究する</button>`}</div>`;
   const sp = spSplit(c), manual = c.auto === false;
   const FT = [["feed", c.inParty ? "パーティ" : full ? "なかまに" : "おやつ", ""], ["skill", "スキル", manual && sp.free ? sp.free : ""], ["make", "作る", lv ? `Lv${lv}` : ""], ["lab", "研究", c.lab ? "✓" : ""]];
   const tabs = `<div class="ftabs" role="tablist" aria-label="${esc(c.name)}に すること">${FT.map(([k, l, sm]) => `<button role="tab" data-act="ft" data-v="${k}" aria-selected="${S.ft === k}">${l}${sm ? `<small>${sm}</small>` : ""}</button>`).join("")}</div>`;
@@ -357,12 +358,12 @@ function feedHtml() {
 }
 
 // えらんだ子の スキル：自分の ツリー ＋ サブスキル 2 つ（配合で 受けつぐ）。ふだん 自動、切ると ＋ボタンで 手で 振る（もどせない）
-// 進化した サブスキルを 取り出す（なかまは おわかれ。リソース 200・研究所で 安く）。もう 一度 押すと 取り出す
+// 進化した サブスキルを 取り出す（なかまは おわかれ。アメジスト 200・研究所で 安く）。もう 一度 押すと 取り出す
 const EXTRACT_RES = 200;
 const exCost = () => Math.ceil(EXTRACT_RES * (1 - (S.labOff || 0)));
 const leafHave = (id) => [...((ME.own && ME.own.mats) || []), ...((ME.own && ME.own.box) || []).filter((x) => !x.equip && x.until > Date.now())].filter((m) => m.id === id).reduce((a, m) => a + m.n, 0);   // 持ち物 ＋ あずかり箱（門番と 同じ）
 const exBtn = (c, id) => { const sure = S.ex === c.uid + ":" + id;
-  return `<span class="tex"><button class="mb ${sure ? "warn" : ""}" data-act="extract" data-t="${id}" ${c.away || c.inParty || (S.known && S.res < exCost()) ? "disabled" : ""}>${sure ? "おわかれして 取り出す・もう 一度 押す" : `取り出す リソース ${exCost()}`}</button></span>`; };
+  return `<span class="tex"><button class="mb ${sure ? "warn" : ""}" data-act="extract" data-t="${id}" ${c.away || c.inParty || (S.known && S.res < exCost()) ? "disabled" : ""}>${sure ? "おわかれして 取り出す・もう 一度 押す" : `取り出す アメジスト ${exCost()}`}</button></span>`; };
 function skillHtml(c, { sp, free }) {
   const auto = c.auto !== false, ids = treesOf(c), lock = c.away;
   const row = (id, i) => { const T = ENEMY_TREES[id], v = sp[id] || 0, all = nodesOf(id).filter((n) => n.kind === "skill" && n.skill).length, got = learned(id, autoTake(v).taken).skills.length, room = Math.min(free, TREE_FULL - v);
@@ -459,16 +460,16 @@ document.getElementById("app").addEventListener("click", async (e) => {
   if (act0 === "dec") S.give = Math.max(1, S.give - 1);
   if (act0 === "inc") S.give = Math.min(left(c), S.give + 1);
   if (act0 === "all") S.give = left(c);
-  // おやつ：持って いる 分から あげて、足りない 分は 玉で 買う（門番が 払う）
+  // おやつ：持って いる 分から あげて、足りない 分は クレジットで 買う（門番が 払う）
   if (act0 === "feed") { const was = c.gauge; return ask(b, "tame.feed", { uid: c.uid, n: Math.min(S.give, left(c)) }, () => { S.popFrom = was; S.say = line(cur() || c); fitGive(); }); }
   if (act0 === "feed3") { const was = c.gauge; return ask(b, "item.snack3", { uid: c.uid }, () => { S.popFrom = was; S.say = line(cur() || c); fitGive(); }); }
   if (act0 === "join") return ask(b, "tame.join", { uid: c.uid }, () => { S.joined = S.party.findIndex((m) => m && m.uid === c.uid); S.say = null; fitGive(); });
   if (act0 === "back") return ask(b, "tame.back", { uid: b.dataset.u }, () => {});
-  if (act0 === "lab") return ask(b, "tame.research", { uid: c.uid }, (r) => toast(`研究した：スキルツリー「${ENEMY_TREES[c.tree].name}」（リソース ${r.cost}）`));
+  if (act0 === "lab") return ask(b, "tame.research", { uid: c.uid }, (r) => toast(`研究を 始めた：スキルツリー「${ENEMY_TREES[c.tree].name}」（アメジスト ${r.cost}）。時間が 来ると 研究ずみに なる`));
   // スキル：パーティの 子も えらべる。自動の 入り切り・手で 振る（門番が たしかめる）
   if (act0 === "skill") { S.sel = b.dataset.u; S.ft = "skill"; S.view = "room"; S.say = null; fitJob(); if (innerWidth <= 820) { render(); return document.querySelector(".feed").scrollIntoView({ behavior: "smooth", block: "start" }); } }
   if (act0 === "extract") { const key = c.uid + ":" + b.dataset.t; if (S.ex !== key) { S.ex = key; return render(); }
-    S.ex = null; return ask(b, "tame.extract", { uid: c.uid, tree: b.dataset.t }, (r) => { S.sel = null; toast(`「${ENEMY_TREES[b.dataset.t].name}」を 取り出した。${c.name}は 旅立った（リソース ${r.cost}）`); }); }
+    S.ex = null; return ask(b, "tame.extract", { uid: c.uid, tree: b.dataset.t }, (r) => { S.sel = null; toast(`「${ENEMY_TREES[b.dataset.t].name}」を 取り出した。${c.name}は 旅立った（アメジスト ${r.cost}）`); }); }
   if (act0 === "auto") { const on = c.auto === false; return ask(b, "tame.sp", { uid: c.uid, auto: on }, () => toast(on ? "自動で 振る（のこりを 自分の ツリーから）" : "手で 振る（いまの 振り方は そのまま）")); }
   if (act0 === "spadd") return ask(b, "tame.sp", { uid: c.uid, add: { [b.dataset.t]: +b.dataset.n } }, () => {});
   // 配合

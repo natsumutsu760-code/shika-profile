@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Lounge Arena</title>
+<title>Orbit Arena</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Dela+Gothic+One&family=M+PLUS+Rounded+1c:wght@500;800&family=Fredoka:wght@500;600;700&family=Zen+Maru+Gothic:wght@500;700;900&display=swap">
 <style>
   /* MONO LINK のラウンジ：闘技場（鹿さんの頼み、2026-10-25。プライベートラウンジの PVP）
@@ -122,7 +122,7 @@
 <script type="importmap">{ "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.169.0/build/three.module.js", "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.169.0/examples/jsm/" } }</script>
 </head>
 <body>
-<header class="top"><a href="/" style="color:inherit;text-decoration:none" aria-label="MONO LINK の サイトへ"><b>MONO LINK<i>://</i></b></a><small><a href="lounge-room.html">ラウンジ</a> ／ 闘技場</small></header>
+<header class="top"><a href="/" style="color:inherit;text-decoration:none" aria-label="MONO LINK の サイトへ"><b>MONO LINK<i>://</i></b></a><small><a href="lounge-room.html">ラウンジ</a> ／ Orbit Arena</small></header>
 <main id="main"></main>
 <p class="toast" id="toast" role="status"></p>
 <script type="module">
@@ -134,7 +134,7 @@ import { DUEL, duelPay, tierOf, TIERS, TOUR, TOUR_PAY, roundName } from "./arena
 import { petInfo, linkTabs, gateHtml, addGateCss } from "./pet-head.js";
 import { DUNGEONS } from "./dungeons.js";
 import { me, act, busy } from "./lounge-client.js";   // 名簿・相手・大会・戦いの くじは 門番（相手の いまの 強さも 門番が 組み立てる）
-import { mountWallet } from "./wallet-bar.js"; mountWallet();   // 上の 通貨の 札（玉・リソース・クレジット）と 両替
+import { mountWallet } from "./wallet-bar.js"; mountWallet();   // 上の 通貨の 札（玉・アメジスト・クレジット）と 両替
 addGateCss();
 
 const q = new URLSearchParams(location.search);
@@ -153,7 +153,7 @@ function petHtml() {
   return `<section class="panel pet" aria-label="ペット"><div class="pic"><img src="${P.img}" alt="${esc(P.label)}の${esc(mp.name)}"></div>
     <div><h1>${esc(mp.name)}<small>${esc(P.label)} ／ ${esc(ME.name)} の相棒</small></h1><div class="meta">${badge(mp.type)}<span class="lv"><small>Lv</small>${Number(mp.lv) || 1}</span></div></div>
     <div class="pow">強さ<b>${fmt(V.me.power)}</b></div></section>
-  <nav class="tabs" role="tablist"><button role="tab" aria-selected="false">ステータス</button><button role="tab" aria-selected="false">スキルツリー</button><button role="tab" aria-selected="false">ガンビット</button><button role="tab" aria-selected="false">装備</button><button role="tab" aria-selected="false">冒険</button><button role="tab" aria-selected="false">なかま</button><button role="tab" aria-selected="true">闘技場</button></nav>`;
+  <nav class="tabs" role="tablist"><button role="tab" aria-selected="false">ステータス</button><button role="tab" aria-selected="false">スキルツリー</button><button role="tab" aria-selected="false">ガンビット</button><button role="tab" aria-selected="false">装備</button><button role="tab" aria-selected="false">冒険</button><button role="tab" aria-selected="false">なかま</button><button role="tab" aria-selected="true">Orbit Arena</button></nav>`;
 }
 const tabBadge = (k) => { const V = S.V; if (k === "duel") return V.left.paid > 0 && V.foes.length ? V.left.paid : 0; if (k === "tour") return V.tour && V.tour.state === "open" && !V.tour.entered ? 1 : 0; return 0; };
 
@@ -163,7 +163,7 @@ function payHtml(c) {
   if (V.beat.includes(c.id)) return `<p class="pay none">きょうは もらった</p>`;
   if (V.left.paid <= 0) return `<p class="pay none">ごほうび なし</p>`;
   const p = duelPay(V.me.power, c.power);
-  return `<p class="pay">+${fmt(p.credits)}<small> クレジット</small>${p.res ? `<small>＋リソース ${p.res}</small>` : ""}</p>`;
+  return `<p class="pay">+${fmt(p.credits)}<small> クレジット</small>${p.res ? `<small>＋アメジスト ${p.res}</small>` : ""}</p>`;
 }
 function foeHtml(c) {
   const t = tierOf(S.V.me.power, c.power), label = TIERS.find(([k]) => k === t)[1], over = S.V.left.duels <= 0;
@@ -175,7 +175,7 @@ function duelHtml() {
   const V = S.V;
   if (S.fight) return fightHtml();
   const bar = `<div class="bar"><span>ごほうび あと<b>${V.left.paid}</b>回</span><span>きょう あと<b>${V.left.duels}</b>回 戦える</span><button class="mini" data-do="foes">入れかえ</button></div>`;
-  if (!V.foes.length) return bar + `<div class="empty"><p>まだ 相手が いない</p><p>闘技場を 開いた 人が 相手に なる</p></div>`;
+  if (!V.foes.length) return bar + `<div class="empty"><p>まだ 相手が いない</p><p>Orbit Arena を 開いた 人が 相手に なる</p></div>`;
   return bar + `<div class="foes">${V.foes.map(foeHtml).join("")}</div>${V.left.duels <= 0 ? `<p class="why" style="margin-top:10px">きょうは もう ${DUEL.perDay} 回 戦った（あした また）</p>` : ""}`;
 }
 function fightHtml() {
@@ -185,7 +185,7 @@ function fightHtml() {
 function resultHtml() {
   const F = S.fight, r = F.r;
   if (F.kind === "match") return `<div class="result win"><span class="big">勝負あり</span><p>${esc(F.title)}</p><button class="mini" data-do="back">もどる</button></div>`;
-  const pay = r.pay ? `<b>+${fmt(r.pay.credits)}</b> クレジット${r.pay.res ? `・リソース ＋${r.pay.res}` : ""}${r.pay.label ? `（${r.pay.label}に 勝った）` : ""}` : r.win ? "ごほうびは なし（きょうの 分は もらった）" : "何も へらない";
+  const pay = r.pay ? `<b>+${fmt(r.pay.credits)}</b> クレジット${r.pay.res ? `・アメジスト ＋${r.pay.res}` : ""}${r.pay.label ? `（${r.pay.label}に 勝った）` : ""}` : r.win ? "ごほうびは なし（きょうの 分は もらった）" : "何も へらない";
   return `<div class="result ${r.win ? "win" : "lose"}"><span class="big">${r.win ? (r.upset ? "下克上！" : "勝ち！") : "負け…"}</span><p>${pay}</p><button class="jelly" data-do="back" style="width:auto;padding:12px 22px">つぎの 相手へ</button></div>`;
 }
 // 3D で 見せる（門番と 同じ 種で 計算しなおす。ちがう 結果に なったら 3D は 出さずに 結果だけ）
@@ -213,7 +213,7 @@ function bracketHtml(T, myId) {
 const PLACE = { 1: "優勝！", 2: "準優勝！", 4: "ベスト 4！", 0: "参加" };
 function tourHtml() {
   const V = S.V, T = V.tour, L = V.last, myId = V.me.id;
-  const pay = (k) => { const P = TOUR_PAY[k]; return `${fmt(P.credits)} クレジット${P.res ? `＋リソース ${P.res}` : ""}`; };
+  const pay = (k) => { const P = TOUR_PAY[k]; return `${fmt(P.credits)} クレジット${P.res ? `＋アメジスト ${P.res}` : ""}`; };
   const now = T ? `<div class="box"><h3>きょうの 大会<small>${TOUR.hour}:00 から</small></h3>
       <p class="clock" id="clock">${left(T.at - Date.now())}<small>あと</small></p>
       <p class="count"><b>${T.n}</b> 人 <small>／ ${TOUR.min} 人から ひらく（${TOUR.max} 人まで）</small></p><div class="meter"><i style="width:${Math.min(100, (T.n / TOUR.min) * 100)}%"></i></div>
@@ -238,7 +238,7 @@ function logHtml() {
 
 function render() {
   const body = S.tab === "duel" ? duelHtml() : S.tab === "tour" ? tourHtml() : logHtml();
-  main.innerHTML = petHtml() + `<section class="panel"><div class="ahead"><h2>闘技場</h2><div class="gtabs" role="tablist">${TABS.map(([k, label]) => { const n = tabBadge(k); return `<button role="tab" data-tab="${k}" aria-selected="${S.tab === k}">${label}${n ? `<em>${n}</em>` : ""}</button>`; }).join("")}</div></div><div id="body">${body}</div></section>`;
+  main.innerHTML = petHtml() + `<section class="panel"><div class="ahead"><h2>Orbit Arena</h2><div class="gtabs" role="tablist">${TABS.map(([k, label]) => { const n = tabBadge(k); return `<button role="tab" data-tab="${k}" aria-selected="${S.tab === k}">${label}${n ? `<em>${n}</em>` : ""}</button>`; }).join("")}</div></div><div id="body">${body}</div></section>`;
   linkTabs(main);
 }
 const reload = async () => { const v = await act("arena.view"); if (v.ok) S.V = v; };
@@ -285,7 +285,7 @@ const gate = gateHtml(ME, esc);
 if (gate) { main.innerHTML = gate; window.ready = true; }
 else {
   S.V = await act("arena.view");
-  if (!S.V.ok) main.innerHTML = `<section class="panel"><p class="why">${esc(S.V.why || "いまは 闘技場に つながらない")}</p></section>`;
+  if (!S.V.ok) main.innerHTML = `<section class="panel"><p class="why">${esc(S.V.why || "いまは Orbit Arena に つながらない")}</p></section>`;
   else render();
   linkTabs(main);
   setInterval(() => { if (S.tab === "tour" && !S.fight) { const c = document.getElementById("clock"); if (c && S.V.tour) c.firstChild.textContent = left(S.V.tour.at - Date.now()); } }, 30000);

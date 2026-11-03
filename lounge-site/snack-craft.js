@@ -1,6 +1,6 @@
 // おやつ工房で 作る ところ（隠れ家の おやつ工房と なかまの 画面で 同じ 物。鹿さんの決め、2026-10-25）
-// snackCraftHtml(工房の Lv, 持って いる 素材) を ページに 入れる。ボタンは data-snack="id" data-n="数"。ページが act("snack.craft", { id, n }) を 頼む
-import { SNACK_RECIPES, snackMats, snackMade, SNACK_CRAFT_MAX } from "./facilities.js";
+// snackCraftHtml(工房の Lv〈つまみの Lv〉, 持って いる 素材) を ページに 入れる。ボタンは data-snack="id" data-n="数"。ページが act("snack.craft", { id, n }) を 頼む
+import { SNACK_RECIPES, snackMats, snackOpen, snackMore, snackSave, upkeep, BAND_AT, SNACK_CRAFT_MAX } from "./facilities.js";
 import { MAT_NAME } from "./materials.js";
 import { matPic } from "./mat-icons.js";
 
@@ -22,20 +22,24 @@ const CSS = `
 .sk-b button.lt { background:#fff; color:#9A5B2C; box-shadow:0 4px 0 #EADBC6; border:1.5px solid #EADBC6; }
 .sk-b button:disabled { background:#E3E8F2; color:#8C94AE; box-shadow:0 4px 0 #EDF1F8; border-color:transparent; }
 .sk-why { margin:0; font:700 12px/1.4 var(--jp); color:var(--coral, #FF5A64); }
+.sk-p { margin:0; font:700 12px/1.4 var(--jp); color:#9A5B2C; }
 `;
 export function addSnackCss() { if (document.getElementById("sk-css")) return; const st = document.createElement("style"); st.id = "sk-css"; st.textContent = CSS; document.head.appendChild(st); }
 
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
-// lv：おやつ工房の Lv（0 は まだ ない）。inv：[{ id, n }]。まだ 作れない 物は うすく 1 行（「Lv3 から」）
+// lv：おやつ工房の Lv（つまみの Lv。0 は まだ ない・止めて いる）。inv：[{ id, n }]。まだ 作れない 物は うすく 1 行（「Lv50 から」）
+// 施設の 作り直し（2026-11-03）：Lv ごとに 1 こで 2 こ できる・素材が 3 → 2 こ ですむ 確率が ふえる（ふつうの おやつ）。1 回 作るたびに 維持費
+const pct = (x) => `${Math.round(x * 100)}%`;
 export function snackCraftHtml(lv, inv) {
-  const have = (id) => inv.filter((m) => m.id === id).reduce((a, m) => a + m.n, 0);
+  const have = (id) => inv.filter((m) => m.id === id).reduce((a, m) => a + m.n, 0), fee = upkeep("snack", lv);
   return `<div class="sk">${SNACK_RECIPES.map((r) => {
     const head = `<div class="sk-h">${SNACK_ICON[r.id]}${esc(r.name)}<em>なかよし ＋${r.gauge}</em></div>`;
-    if (lv < r.lv) return `<div class="sk-r off"><div class="sk-h">${SNACK_ICON[r.id]}${esc(r.name)}<em>おやつ工房 Lv${r.lv} から</em></div></div>`;
-    const mats = snackMats(r, lv), max = Math.min(SNACK_CRAFT_MAX, ...mats.map(([id, k]) => Math.floor(have(id) / k)));
+    if (!snackOpen(r, lv)) return `<div class="sk-r off"><div class="sk-h">${SNACK_ICON[r.id]}${esc(r.name)}<em>おやつ工房 Lv${BAND_AT[r.lv - 1]} から</em></div></div>`;
+    const mats = snackMats(r, false), max = Math.min(SNACK_CRAFT_MAX, ...mats.map(([id, k]) => Math.floor(have(id) / k)));   // 素材は 多い 方で 数える（へったら もどる）
     const lack = mats.filter(([id, k]) => have(id) < k).map(([id, k]) => `${MAT_NAME[id]} あと ${k - have(id)}`);
-    return `<div class="sk-r">${head}<ul class="sk-m">${mats.map(([id, k]) => `<li class="${have(id) < k ? "ng" : ""}"><img src="${matPic(id)}" alt="">${esc(MAT_NAME[id])}<b>${have(id)} / ${k}</b></li>`).join("")}</ul>
-      <div class="sk-b"><button class="lt" data-snack="${r.id}" data-n="1" ${max ? "" : "disabled"}>${snackMade(r, lv, 1)} こ 作る</button><button data-snack="${r.id}" data-n="${max}" ${max > 1 ? "" : "disabled"}>作れるだけ（${snackMade(r, lv, max)} こ）</button></div>
+    const luck = r.lv2 ? `<p class="sk-p">2 こ できる ${pct(snackMore(lv))}・素材 2 こで すむ ${pct(snackSave(lv))}${fee ? `・維持費 ${fee}` : ""}</p>` : fee ? `<p class="sk-p">維持費 ${fee} クレジット</p>` : "";
+    return `<div class="sk-r">${head}<ul class="sk-m">${mats.map(([id, k]) => `<li class="${have(id) < k ? "ng" : ""}"><img src="${matPic(id)}" alt="">${esc(MAT_NAME[id])}<b>${have(id)} / ${k}</b></li>`).join("")}</ul>${luck}
+      <div class="sk-b"><button class="lt" data-snack="${r.id}" data-n="1" ${max ? "" : "disabled"}>1 こ 作る</button><button data-snack="${r.id}" data-n="${max}" ${max > 1 ? "" : "disabled"}>作れるだけ（${max} 回）</button></div>
       ${max ? "" : `<p class="sk-why">足りない：${esc(lack.slice(0, 2).join("、"))}</p>`}</div>`;
   }).join("")}</div>`;
 }

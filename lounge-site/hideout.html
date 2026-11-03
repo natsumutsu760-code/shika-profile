@@ -8,7 +8,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DotGothic16&family=Fredoka:wght@500;600;700&family=Zen+Maru+Gothic:wght@500;700;900&display=swap">
 <style>
   /* MONO LINK のラウンジ：地下の 隠れ家（施設）の画面の見本（タルコフの隠れ家のように、素材を集めて Lv を上げる。鹿さんの決め、2026-10-22）
-     どれも Lv 3 まで・すぐできる。使う物は素材・玉・リソース・クレジット・ほかの施設の Lv。PC は置くだけ。データは facilities.js
+     どれも Lv 3 まで・すぐできる。使う物は素材・玉・アメジスト・クレジット・ほかの施設の Lv。PC は置くだけ。データは facilities.js
      タブで「つくる・派遣・倉庫」を切りかえる（一度に見るのは 1〜3 こ）。左で えらぶ／見る、右で 上げる
      倉庫は どの しゅるいも 置ける。上限は 1 しゅるいごと（倉庫の Lv で 50・100・200・400。鹿さんの決め、2026-10-25）
      倉庫の中は タルコフの スタッシュの ような マス目（stash-grid.js）。しゅるい（採取・レア・敵）と 行き先で 分けて、多い順・品質の高い順・名前順に ならべる。マスを 押すと 下に くわしく
@@ -60,7 +60,22 @@
   .ico.dark { background:#120D22; color:#FFB547; }
   .fac b { display:flex; align-items:center; gap:8px; font:700 16px/1.3 var(--jp); }
   .fac small { display:block; font:700 12px/1.45 var(--jp); color:var(--soft); }
-  .lvp { display:inline-flex; gap:3px; } .lvp i { width:9px; height:9px; border-radius:50%; background:var(--line); } .lvp i.on { background:var(--c); }
+  .lvn { font:600 14px/1 var(--num); color:var(--c); }
+  .st.bld { background:#EAF4FF; color:#1673C2; }
+  .nowbox { margin-top:14px; padding:12px 14px; border-radius:16px; background:var(--space); }
+  .nowbox .now { margin:0; font:900 15px/1.5 var(--jp); color:var(--ink); } .nowbox .now small { display:block; font:900 12px/1.3 var(--jp); color:var(--soft); }
+  .knob { display:grid; grid-template-columns:auto minmax(0, 1fr) auto; gap:4px 10px; align-items:center; margin-top:10px; font:900 12px/1.2 var(--jp); color:var(--soft); }
+  .knob input { width:100%; accent-color:var(--c); } .knob b { font:600 15px/1 var(--num); color:var(--ink); } .knob small { grid-column:1 / -1; font:700 12px/1.3 var(--jp); color:var(--soft); }
+  .need-h small { margin-left:8px; font:700 12px/1 var(--jp); color:var(--soft); }
+  .need .soft .n { color:var(--soft); }
+  .hint { margin-top:8px; font:700 12px/1.5 var(--jp); color:var(--soft); text-align:center; }
+  .bld .pbar { display:grid; grid-template-columns:36px minmax(0, 1fr) 42px; gap:8px; align-items:center; margin:6px 0; font:900 12px/1 var(--jp); color:var(--soft); }
+  .bld .pbar i { height:10px; border-radius:99px; background:var(--line); overflow:hidden; } .bld .pbar b { display:block; height:100%; border-radius:99px; background:var(--c); }
+  .bld .pbar em { font:600 13px/1 var(--num); font-style:normal; color:var(--ink); text-align:right; }
+  .left { margin-top:10px; font:900 14px/1.5 var(--jp); color:var(--ink); text-align:center; }
+  .fast { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:10px; }
+  .mini { display:grid; gap:3px; padding:9px 10px; border-radius:14px; border:1.5px solid var(--line); background:#fff; text-align:center; } .mini b { font:900 13px/1.2 var(--jp); } .mini small { font:700 11px/1.3 var(--jp); color:var(--soft); }
+  .mini:disabled { opacity:.5; }
   .st { padding:4px 10px; border-radius:999px; font:900 12px/1.3 var(--jp); background:var(--space); color:var(--soft); white-space:nowrap; }
   .st.can { background:#E3F8EE; color:#0E8F5A; } .st.max { background:#FFF4D2; color:#A56A00; }
 
@@ -158,7 +173,7 @@
 <p class="toast" id="toast" role="status"></p>
 <script type="module">
 import "./lounge-en.js";   // 英語の 画面（MONO LINK の サイトの EN／日本語 と 同じ 決まり。英語の ときだけ 辞書を 読む）
-import { FACILITIES, STORAGE_CAP, SNACK_RECIPES, facCap } from "./facilities.js";
+import { FACILITIES, SNACK_RECIPES, storageCap, facMax, facFx, hasKnob, upkeep, FUEL } from "./facilities.js";   // 施設の 作り直し（2026-11-03）：Lv1〜100・建設（始める → 素材 → 時間）・つまみ・維持費。画面は 鹿さんが えらんだ A「1 列の 流れ」
 import { snackCraftHtml, addSnackCss } from "./snack-craft.js";
 import { MAT_NAME, MAT_FROM, HIDDEN_MAT, GATHER, ENEMY_MAT, BOX_DAYS } from "./materials.js";
 import { DUNGEONS, ISLAND_OPEN } from "./dungeons.js";
@@ -167,7 +182,7 @@ import { gearImg, watchIcons } from "./gear-icon.js";
 import { matPic } from "./mat-icons.js";
 import { addTkCss, padGrids, watchPad } from "./stash-grid.js";
 import { me, act, busy, waitText } from "./lounge-client.js";   // 施設の Lv・倉庫・あずかり箱・さいふは 門番から（見本では ブラウザの 中の ためしの 門番）
-import { mountWallet } from "./wallet-bar.js"; mountWallet();   // 上の 通貨の 札（玉・リソース・クレジットは ここだけに 出す）
+import { mountWallet } from "./wallet-bar.js"; mountWallet();   // 上の 通貨の 札（玉・アメジスト・クレジットは ここだけに 出す）
 
 const q = new URLSearchParams(location.search);
 const fmt = (n) => n.toLocaleString("ja-JP");
@@ -181,8 +196,8 @@ const ICON = { bench: '<path d="M4 20l9-9"/><path d="M12 5l7 7-3 3-7-7z"/>', lab
   farm: '<path d="M12 21v-9"/><path d="M12 12c0-4 3-6.5 7-6.5 0 4-3 6.5-7 6.5z"/><path d="M12 14c0-3-2.4-5-5.5-5 0 3 2.4 5 5.5 5z"/><path d="M4 21h16"/>', mine: '<path d="M3 21V11a9 9 0 0 1 18 0v10"/><path d="M3 21h18"/><path d="M9 21v-5h6v5"/><path d="M8 9.5l3-2.5M16 9.5l-3-2.5"/>',
   radio: '<rect x="4" y="9" width="16" height="11" rx="2"/><path d="M8 9l9-5"/><circle cx="9" cy="14.5" r="2.5"/><path d="M15 13h2M15 16h2"/>' };
 const icon = (id) => `<span class="ico ${id === "pc" ? "dark" : ""}" style="--c:${COLOR[id] || "#000"}" aria-hidden="true"><svg viewBox="0 0 24 24">${ICON[id]}</svg></span>`;
-// タブ：施設を 使いみちで 分ける
-const TABS = [{ id: "make", name: "つくる", facs: ["bench", "workshop", "snack", "lab"] }, { id: "trip", name: "派遣", facs: ["maproom", "medic", "gym", "radio"] }, { id: "dig", name: "拡張", facs: ["dig", "mine"] }, { id: "store", name: "倉庫", facs: ["storage", "armory"] }]   // 拡張：地下を 奥へ 広げる・広げた 所の 畑と 坑道（鹿さんの決め、2026-10-25）
+// タブ：施設を 使いみちで 分ける（地下の 拡張は 2026-11-03 に なくした ので、坑道は「つくる」へ）
+const TABS = [{ id: "make", name: "つくる", facs: ["bench", "workshop", "snack", "lab", "mine"] }, { id: "trip", name: "派遣", facs: ["maproom", "medic", "gym", "radio"] }, { id: "store", name: "倉庫", facs: ["storage", "armory"] }]
   .map((t) => ({ ...t, facs: t.facs.filter((id) => FACILITIES.some((f) => f.id === id)) }));   // 無線機は ニライ諸島が 出てから（facilities.js）
 const tabOf = (fid) => TABS.find((t) => t.facs.includes(fid));
 // 倉庫の中の 分け方：しゅるい・行き先・ならべる（なかまの画面と 同じ形）
@@ -193,18 +208,19 @@ for (const d of DUNGEONS) { for (const [id] of GATHER[d.id].mats) WHERE[id] = d.
 const kindOf = (id) => (MAT_FROM[id] ? "enemy" : HIDDEN_MAT.has(id) ? "rare" : "gather");
 const SORTS = [["n", "多い順"], ["q", "品質の 高い順"], ["name", "名前順"]];
 
-// 門番の 記録を 画面の 形に。玉と リソースが まだ わからない 人は known: false（足りるかは 門番が 決める）
-const S = { balls: 0, res: 0, cr: 0, known: false, up: null, sk: "all", si: "all", sw: "all", sort: "n", pick: null, lv: {}, inv: [], box: [], boxEq: [], cap: STORAGE_CAP[0] };
+// 門番の 記録を 画面の 形に。玉と アメジストが まだ わからない 人は known: false（足りるかは 門番が 決める）
+const S = { balls: 0, res: 0, cr: 0, known: false, up: null, sk: "all", si: "all", sw: "all", sort: "n", pick: null, lv: {}, fac: {}, at: 0, inv: [], box: [], boxEq: [], cap: storageCap(0) };
 let ME = null;
 function load(m) {
   ME = m; const now = Date.now(), days = (t) => Math.max(1, Math.ceil((t - now) / 864e5));
   S.known = !!(m.wallet && m.wallet.known); S.balls = S.known ? m.wallet.balls : 0; S.res = S.known ? m.wallet.res : 0; S.cr = m.credits || 0;
   S.lv = Object.fromEntries(FACILITIES.map((f) => [f.id, (m.hideout || {})[f.id] || 0]));
+  S.fac = Object.fromEntries((m.fac || []).map((x) => [x.id, x])); S.at = Date.now();   // 門番の 施設の ようす（Lv・つまみ・維持費・建設・次の Lv）
   S.inv = ((m.own && m.own.mats) || []).map((x) => ({ id: x.id, n: x.n, q: x.q || 0 }));
   const box = (m.own && m.own.box) || [];
   S.box = box.filter((x) => !x.equip).map((x) => ({ id: x.id, n: x.n, q: x.q || 0, days: days(x.until), name: MAT_NAME[x.id] }));
   S.boxEq = box.filter((x) => x.equip).map((x) => ({ ...x.equip, days: days(x.until) }));
-  S.cap = (m.stash && m.stash.cap) || STORAGE_CAP[S.lv.storage || 0];
+  S.cap = (m.stash && m.stash.cap) || storageCap(S.lv.storage || 0);
 }
 load(await me());
 const qf = FACILITIES.some((f) => f.id === q.get("f")) ? q.get("f") : null;
@@ -213,35 +229,34 @@ S.tab = qf ? tabOf(qf).id : TABS.some((t) => t.id === q.get("t")) ? q.get("t") :
 const STORE_TABS = [["stash", "スタッシュ"], ["up", "強化"], ["box", "預かり箱"]];
 S.st = STORE_TABS.some(([k]) => k === q.get("st")) ? q.get("st") : qf && tabOf(qf).id === "store" ? "up" : "stash";
 S.sel = qf || TABS.find((t) => t.id === S.tab).facs[0];
-// 施設の 強化には あずかり箱の 素材も 使える（鹿さんの決め、2026-10-25。同じ 品質なら 箱の 物から 使う＝門番の takeMats）
-const inBox = (id, minQ = 0) => S.box.filter((m) => m.id === id && m.q >= minQ).reduce((a, m) => a + m.n, 0);
-const have = (id, minQ = 0) => S.inv.filter((m) => m.id === id && m.q >= minQ).reduce((a, m) => a + m.n, 0) + inBox(id, minQ);
-const inStash = (id) => S.inv.filter((m) => m.id === id).reduce((a, m) => a + m.n, 0);   // 倉庫に ある 数（品質ちがいも あわせて。上限は 1 しゅるいごと）
+const have = (id) => S.inv.filter((m) => m.id === id).reduce((a, m) => a + m.n, 0);   // 建設に 入れられるのは 倉庫の 素材（品質ちがいも あわせて）
+const inStash = have;   // 倉庫に ある 数（上限は 1 しゅるいごと）
 const F = (id) => FACILITIES.find((f) => f.id === id);
-// 次の Lv に足りているか（足りない物の一覧も）
-function check(f) {
-  const lv = S.lv[f.id], next = lv < facCap(f, S.lv) ? f.lv[lv] : null; if (!next) return { max: true, ok: false, rows: [], lv, more: lv < f.lv.length };   // more：無線機を 作ると その 先の Lv が 開く
-  const n = next.need, rows = [];
-  for (const [id, k, mq] of n.mats) rows.push({ kind: "mat", id, mq, need: k, have: have(id, mq || 0), box: inBox(id, mq || 0) });
-  if (n.credits) rows.push({ kind: "c", need: n.credits, have: S.cr });
-  if (n.balls) rows.push({ kind: "b", need: n.balls, have: S.known ? S.balls : n.balls, unknown: !S.known });
-  if (n.res) rows.push({ kind: "r", need: n.res, have: S.known ? S.res : n.res, unknown: !S.known });
-  for (const [fid, flv] of n.fac || []) rows.push({ kind: "f", id: fid, need: flv, have: S.lv[fid] });
-  return { ok: rows.every((r) => r.have >= r.need), rows, next, lv };
+const V = (id) => S.fac[id] || { id, lv: 0, knob: 0, cap: 40, max: facMax(F(id)), fee: 0 };
+const dur = (ms) => { const m = Math.max(1, Math.ceil(ms / 60000)); return m < 60 ? `${m} 分` : `${Math.floor(m / 60)} 時間${m % 60 ? ` ${m % 60} 分` : ""}`; };
+const leftNow = (b) => Math.max(0, b.left - (Date.now() - S.at)), trNow = (b) => (b.ms ? 1 - leftNow(b) / b.ms : b.tr);
+// 施設の いまの ようす：build（建設中）・ready（クレジットも 素材も そろって いる）・can（クレジットは ある。始めて から 素材を 集める）・short（クレジット 不足）・cap（無線機まで）・max（いちばん 上）
+function stOf(id) {
+  const v = V(id);
+  if (v.build) { const b = v.build; return { k: "build", pct: Math.floor(Math.min(b.mr, trNow(b)) * 100), put: b.mats.some(([m, n]) => (b.put[m] || 0) < n && have(m) > 0) }; }
+  if (v.lv >= v.max) return { k: "max" };
+  if (!v.next) return { k: "cap" };
+  return { k: S.cr < v.next.credits ? "short" : v.next.mats.every(([m, n]) => have(m) >= n) ? "ready" : "can" };
 }
-const lvp = (f) => `<span class="lvp" style="--c:${COLOR[f.id]}" aria-label="Lv${S.lv[f.id]}">${f.lv.map((_, k) => `<i class="${k < S.lv[f.id] ? "on" : ""}"></i>`).join("")}</span>`;
-const stHtml = (c) => `<span class="st ${c.max ? "max" : c.ok ? "can" : ""}">${c.max ? `Lv${c.lv}` : c.ok ? "上げられる" : "足りない"}</span>`;
-const rowName = (r) => r.kind === "mat" ? MAT_NAME[r.id] : r.kind === "f" ? `${F(r.id).name} Lv${r.need}` : { c: "クレジット", b: "玉", r: "リソース" }[r.kind];
+const todo = (id) => { const t = stOf(id); return t.k === "ready" || (t.k === "build" && t.put); };   // 丸の 数：すぐ 建てきれる・入れられる 素材が ある（クレジットだけ ある 物は 数えない。いつも 丸だらけに しない）
+const lvn = (id) => { const v = V(id); return v.lv ? `<span class="lvn" style="--c:${COLOR[id]}">Lv${v.lv}</span>` : ""; };
+const stHtml = (id) => { const t = stOf(id), v = V(id);
+  return t.k === "build" ? `<span class="st bld">建設中 ${t.pct}%</span>` : t.k === "max" ? `<span class="st max">いちばん 上</span>` : t.k === "cap" ? `<span class="st max">Lv${v.cap} まで</span>` : t.k === "ready" ? `<span class="st can">建てられる</span>` : t.k === "can" ? `<span class="st">始められる</span>` : `<span class="st">足りない</span>`; };
 
 function tabsHtml() {
-  return `<div role="tablist" aria-label="施設の しゅるい" style="display:contents">${TABS.map((t) => { const k = t.facs.filter((id) => check(F(id)).ok).length;
+  return `<div role="tablist" aria-label="施設の しゅるい" style="display:contents">${TABS.map((t) => { const k = t.facs.filter(todo).length;
     const bx = t.id === "store" ? S.box.reduce((a, m) => a + m.n, 0) + S.boxEq.length : 0;
-    return `<button class="tab" role="tab" data-tab="${t.id}" aria-selected="${S.tab === t.id}" tabindex="${S.tab === t.id ? 0 : -1}">${t.name}${k ? `<span class="bd" aria-label="上げられる ${k}">${k}</span>` : ""}${bx ? `<span class="bd bx" aria-label="あずかり箱 ${bx}">${bx}</span>` : ""}</button>`; }).join("")}</div>
+    return `<button class="tab" role="tab" data-tab="${t.id}" aria-selected="${S.tab === t.id}" tabindex="${S.tab === t.id ? 0 : -1}">${t.name}${k ? `<span class="bd" aria-label="やれる こと ${k}">${k}</span>` : ""}${bx ? `<span class="bd bx" aria-label="あずかり箱 ${bx}">${bx}</span>` : ""}</button>`; }).join("")}</div>
     <a class="pc" href="deeplink.html" aria-label="PC：DEEP LINK/: を 開く">${icon("pc")}<span class="lbl">DEEP LINK/:</span></a>`;
 }
 function facsHtml(t) {
-  return `<div class="facs">${t.facs.map((id) => { const f = F(id), c = check(f);
-    return `<button class="fac ${S.up === id ? "up" : ""}" data-f="${id}" aria-pressed="${S.sel === id}">${icon(id)}<span><b>${f.name} ${lvp(f)}</b><small>${S.lv[id] ? esc(f.lv[S.lv[id] - 1].fx) : "まだ 作っていない"}</small></span>${stHtml(c)}</button>`; }).join("")}</div>`;
+  return `<div class="facs">${t.facs.map((id) => { const f = F(id), v = V(id);
+    return `<button class="fac ${S.up === id ? "up" : ""}" data-f="${id}" aria-pressed="${S.sel === id}">${icon(id)}<span><b>${f.name} ${lvn(id)}</b><small>${v.lv ? esc(facFx(id, v.knob)) : "まだ ない"}</small></span>${stHtml(id)}</button>`; }).join("")}</div>`;
 }
 // 同じ素材は 1 まいに まとめる（敵の素材は 品質ごとの数も）
 function stock() {
@@ -287,31 +302,49 @@ function stashHtml() {
 }
 // 倉庫の タブ：スタッシュ（中身）・強化（倉庫の Lv）・預かり箱。丸は 強化できる・箱の 数
 function storeHtml() {
-  const c = { ok: TABS.find((t) => t.id === "store").facs.some((id) => check(F(id)).ok) }, nb = S.box.reduce((a, m) => a + m.n, 0) + S.boxEq.length;
+  const c = { ok: TABS.find((t) => t.id === "store").facs.some(todo) }, nb = S.box.reduce((a, m) => a + m.n, 0) + S.boxEq.length;
   const tabs = `<div class="stabs" role="tablist" aria-label="倉庫">${STORE_TABS.map(([k, label]) => `<button role="tab" data-st="${k}" aria-selected="${S.st === k}">${label}${k === "up" && c.ok ? `<span class="bd" aria-label="強化できる">!</span>` : ""}${k === "box" && nb ? `<span class="bd bx" aria-label="預かり箱 ${nb}">${nb}</span>` : ""}</button>`).join("")}</div>`;
   const body = S.st === "up" ? `${facsHtml(TABS.find((t) => t.id === "store")).replace('<div class="facs">', '<div class="facs two">')}<section class="panel detail sdet" aria-label="${F(S.sel).name}の 強化">${detailHtml()}</section>`
     : S.st === "box" ? boxHtml(S.cap) || `<section class="panel box"><p class="none">預かり箱は からっぽ。倉庫の その しゅるいが いっぱいの ときに、入りきらない 物が ${BOX_DAYS} 日 入る</p></section>`
     : stashHtml();
   return tabs + body;
 }
+// 使う物の 行。soft：まだ 始めて いない（素材は あとから 入れる ので 赤に しない）・put：建設中（入れた 数 / いる 数・手もち）
 function rowHtml(r) {
-  const ng = r.have < r.need, n = `<span class="n">${r.kind === "f" ? `Lv${r.have}` : r.unknown ? `？ / ${fmt(r.need)}` : `${fmt(r.have)} / ${fmt(r.need)}`}</span>`;
-  let pic = `<i class="dot cur ${r.kind}"></i>`;
-  if (r.kind === "mat") pic = `<img src="${matPic(r.id)}" alt="">`;
-  return `<li class="${ng ? "ng" : ""}">${pic}<span>${esc(rowName(r))}${r.mq ? `<span class="tag">品質 ${r.mq}〜</span>` : ""}${r.box ? `<span class="tag bx">うち 箱 ${fmt(r.box)}</span>` : ""}</span>${n}</li>`;
+  const ng = !r.soft && r.have < r.need, n = `<span class="n">${fmt(r.have)} / ${fmt(r.need)}</span>`;
+  const pic = r.kind === "mat" ? `<img src="${matPic(r.id)}" alt="">` : `<i class="dot cur c"></i>`;
+  const sub = r.own != null && r.have < r.need ? `<span class="tag">手もち ${fmt(r.own)}</span>` : "";
+  return `<li class="${ng ? "ng" : ""} ${r.soft ? "soft" : ""}">${pic}<span>${r.kind === "mat" ? esc(MAT_NAME[r.id]) : "クレジット"}${sub}</span>${n}</li>`;
+}
+const FEE_WHEN = { make: "作る たび", trip: "派遣ごと", mine: "うけとる たび" };
+const knobHtml = (f, v, k) => `<label class="knob" style="--c:${COLOR[f.id]}"><span>つまみ</span><input type="range" min="0" max="${v.lv}" value="${k}" data-knob="${f.id}" aria-label="${f.name}の つまみ（Lv）"><b>Lv${k}</b><small>維持費 ${fmt(upkeep(f.id, k))}・${FEE_WHEN[f.kind]}</small></label>`;
+// 建設を 始める 前：クレジットで 始める。素材は あとから 分けて 入れる
+function startHtml(f, v) {
+  const n = v.next, ok = S.cr >= n.credits;
+  const rows = [{ kind: "c", need: n.credits, have: S.cr }, ...n.mats.map(([id, k]) => ({ kind: "mat", id, need: k, have: have(id), soft: 1 }))];
+  return `<span class="need-h">Lv${n.to} に いる 物<small>工期 ${dur(n.ms)}</small></span><ul class="need">${rows.map(rowHtml).join("")}</ul>
+    <button class="jelly sky go" data-start="${f.id}" ${ok ? "" : "disabled"}>建設を 始める</button><p class="${ok ? "hint" : "why"}">${ok ? "素材は 始めて から 少しずつ 入れられる" : `足りない：クレジット あと ${fmt(n.credits - S.cr)}`}</p>`;
+}
+// 建設中：素材と 時間の 進み（小さい 方が 進み）・素材を 入れる・グラナート建設と 燃料で 早める
+function buildingHtml(f, v) {
+  const b = v.build, left = leftNow(b), rows = b.mats.map(([id, k]) => ({ kind: "mat", id, need: k, have: Math.min(k, b.put[id] || 0), own: have(id) }));
+  const lack = rows.filter((r) => r.have < r.need), canPut = lack.some((r) => r.own > 0);
+  const bar = (label, p) => `<div class="pbar" style="--c:${COLOR[f.id]}"><span>${label}</span><i><b style="width:${Math.round(p * 100)}%"></b></i><em>${Math.floor(p * 100)}%</em></div>`;
+  const msg = !lack.length ? (left ? `素材は そろった：のこり ${dur(left)} で できる` : "") : left ? `のこり ${dur(left)}` : "時間は 足りた：素材を 入れると できる";
+  const fast = left > 0 ? `<div class="fast"><button class="mini" data-rush="${f.id}" ${S.cr >= b.rush ? "" : "disabled"}><b>グラナート建設</b><small>${fmt(b.rush)} クレジット・のこり 半分</small></button><button class="mini" data-fuel="${f.id}" ${S.cr >= FUEL.price ? "" : "disabled"}><b>燃料 1 本</b><small>${FUEL.price} クレジット・30 分</small></button></div>` : "";
+  return `<section class="bld" aria-label="建設"><span class="need-h">Lv${b.to} を 建設中</span>${bar("素材", b.mr)}${bar("時間", trNow(b))}
+    <ul class="need">${[...lack, ...rows.filter((r) => r.have >= r.need)].map(rowHtml).join("")}</ul>
+    ${lack.length ? `<button class="jelly sky go" data-put="${f.id}" ${canPut ? "" : "disabled"}>持って いる 素材を 入れる</button>${canPut ? "" : `<p class="why">足りない：${esc(lack.slice(0, 2).map((r) => `${MAT_NAME[r.id]} あと ${fmt(r.need - r.have)}`).join("、"))}${lack.length > 2 ? `、ほか ${lack.length - 2} こ` : ""}</p>`}` : ""}
+    ${msg ? `<p class="left">${msg}</p>` : ""}${fast}</section>`;
 }
 function detailHtml() {
-  const f = F(S.sel), c = check(f), lv = S.lv[f.id];
-  const head = `<header style="--c:${COLOR[f.id]}">${icon(f.id)}<div><h2>${f.name} ${lvp(f)}</h2><p>${esc(f.text)}</p></div></header>${f.id === "bench" && lv ? `<a class="use" href="bench.html">作業台を つかう</a>` : ""}${f.id === "armory" ? `<a class="use" href="equip.html">装備を 見る</a>` : ""}${f.id === "workshop" && lv ? `<a class="use" href="workshop.html">工房を つかう</a>` : ""}${f.id === "dig" && lv ? `<a class="use" href="hideout-room.html?all=1">広がった 地下を 見る</a>` : ""}${f.id === "mine" && lv ? `<a class="use" href="mine.html">坑道を ひらく</a>` : ""}${f.id === "snack" && lv ? `<section class="craft" aria-label="おやつを 作る"><span class="need-h">おやつを 作る</span>${snackCraftHtml(lv, S.inv)}</section>` : ""}`;   // おやつ工房：Lv1 から ここで 作る（なかまの 画面でも 同じ 物）
-  const all = `<details><summary>Lv${f.lv.length} まで 見る</summary><ul class="lvs" style="--c:${COLOR[f.id]}">${f.lv.map((x, i) => `<li class="${i < lv ? "got" : ""}"><b>Lv${i + 1}</b><span>${esc(x.fx)}</span></li>`).join("")}</ul></details>`;
-  if (c.max) return `${head}<p class="done">${c.more ? "" : "いちばん上の "}Lv${lv} です。いまは「${esc(f.lv[lv - 1].fx)}」</p>${c.more ? `<p class="soon">無線機を 作ると Lv${lv + 1} に できる</p>` : ""}${all}`;
-  const lack = c.rows.filter((r) => r.have < r.need), rows = [...lack, ...c.rows.filter((r) => r.have >= r.need)];
-  // 足りない物は 2 つまで 名前を出す（のこりは「ほか N こ」。くわしくは 赤い 数）
-  const why = lack.slice(0, 2).map((r) => r.kind === "f" ? `${F(r.id).name}を Lv${r.need} に` : `${rowName(r)} あと ${fmt(r.need - r.have)}`).join("、") + (lack.length > 2 ? `、ほか ${lack.length - 2} こ` : "");
-  return `${head}<div class="next"><small>Lv${lv + 1} に すると</small><p>${esc(c.next.fx)}</p></div>
-    ${lv ? `<p class="now">いま（Lv${lv}）：${esc(f.lv[lv - 1].fx)}</p>` : ""}
-    <span class="need-h">使う物</span><ul class="need">${rows.map(rowHtml).join("")}</ul>
-    <button class="jelly sky go" data-up="${f.id}" ${c.ok ? "" : "disabled"}>Lv${lv + 1} に する</button>${c.ok ? "" : `<p class="why">足りない：${esc(why)}</p>`}${all}`;
+  const f = F(S.sel), v = V(f.id), lv = v.lv, kn = hasKnob(f) && lv > 0, k = S.dragId === f.id && S.drag != null ? S.drag : v.knob;
+  const uses = `${f.id === "bench" && lv ? `<a class="use" href="bench.html">作業台を つかう</a>` : ""}${f.id === "armory" ? `<a class="use" href="equip.html">装備を 見る</a>` : ""}${f.id === "workshop" && lv ? `<a class="use" href="workshop.html">工房を つかう</a>` : ""}${f.id === "mine" && lv ? `<a class="use" href="mine.html">坑道を ひらく</a>` : ""}${f.id === "lab" && lv ? `<a class="use" href="tame.html">なかまを 研究する</a>` : ""}`;
+  const head = `<header style="--c:${COLOR[f.id]}">${icon(f.id)}<div><h2>${f.name} ${lvn(f.id)}</h2><p>${esc(f.text)}</p></div></header>${uses}`;
+  const cook = f.id === "snack" && lv ? `<section class="craft" aria-label="おやつを 作る"><span class="need-h">おやつを 作る</span>${snackCraftHtml(v.knob, S.inv)}</section>` : "";   // おやつ工房：ここで 作る（なかまの 画面でも 同じ 物）
+  const now = lv ? `<div class="nowbox"><p class="now"><small>いま${kn && k < lv ? `（つまみ Lv${k}）` : ""}</small><span data-fx>${esc(facFx(f.id, k))}</span></p>${kn ? knobHtml(f, v, k) : ""}</div>` : "";
+  const nx = v.build ? "" : lv >= v.max ? `<p class="done">いちばん 上の Lv${lv}</p>` : !v.next ? `<p class="soon">無線機を 作ると Lv${lv + 1} から 上げられる（ニライ諸島の 素材が いる）</p>` : `<div class="next"><small>Lv${lv + 1} に すると</small><p>${esc(v.next.fx)}</p></div>`;
+  return head + cook + now + nx + (v.build ? buildingHtml(f, v) : v.next ? startHtml(f, v) : "");
 }
 function render() {
   const t = TABS.find((x) => x.id === S.tab);
@@ -332,7 +365,7 @@ async function ask(b, a, body, msg) {
   const r = await busy(b, () => act(a, body));
   if (!r.ok && !r.wait) return toast(r.why || "できませんでした");
   load(await me());
-  if (r.ok) { if (a === "hideout.up") S.up = body.id; toast(msg(r)); } else toast(waitText);
+  if (r.ok) { if (r.done) S.up = body.id; toast(msg(r)); } else toast(waitText);
   render();
 }
 document.querySelector("main").addEventListener("click", async (e) => {
@@ -344,7 +377,11 @@ document.querySelector("main").addEventListener("click", async (e) => {
   if (b.dataset.m) { S.pick = S.pick === b.dataset.m ? null : b.dataset.m; render(); document.querySelector(`[data-m="${b.dataset.m}"]`)?.focus({ preventScroll: true }); return; }   // もう 一度 押すと とじる
   if (b.dataset.f) S.sel = b.dataset.f;
   if (b.dataset.take) return ask(b, "box.take", {}, (r) => `倉庫に 入れた：${r.took} こ${r.left ? `（のこりは 箱に）` : ""}`);
-  if (b.dataset.up) { const f = F(b.dataset.up); return ask(b, "hideout.up", { id: f.id }, () => `${f.name}が Lv${S.lv[f.id]} に なった！ ${f.lv[S.lv[f.id] - 1].fx}`); }
+  const nm = (id) => F(id).name, done = (id, r) => `${nm(id)}が Lv${r.done} に なった！ ${facFx(id, r.done)}`;
+  if (b.dataset.start) { const id = b.dataset.start; return ask(b, "fac.start", { id }, (r) => `${nm(id)} Lv${r.to} の 建設を 始めた（${fmt(r.paid)} クレジット）`); }
+  if (b.dataset.put) { const id = b.dataset.put; return ask(b, "fac.put", { id }, (r) => (r.done ? done(id, r) : `素材を ${fmt(r.put)} こ 入れた（素材 ${r.mats}%）`)); }
+  if (b.dataset.rush) { const id = b.dataset.rush; return ask(b, "fac.rush", { id }, (r) => (r.done ? done(id, r) : `グラナート建設に 頼んだ：のこり ${dur(r.left)}`)); }
+  if (b.dataset.fuel) { const id = b.dataset.fuel; return ask(b, "fac.fuel", { id, n: 1 }, (r) => (r.done ? done(id, r) : `燃料を 使った：のこり ${dur(r.left)}`)); }
   render();
   if (b.dataset.f) { document.querySelector(`[data-f="${b.dataset.f}"]`)?.focus({ preventScroll: true }); if (small()) document.getElementById("detail").scrollIntoView({ behavior: calm() ? "auto" : "smooth" }); }
 });
@@ -353,6 +390,25 @@ document.getElementById("tabs").addEventListener("keydown", (e) => {
   if (!e.target.dataset.tab || !["ArrowLeft", "ArrowRight"].includes(e.key)) return;
   const i = TABS.findIndex((t) => t.id === S.tab), d = e.key === "ArrowRight" ? 1 : -1; e.preventDefault(); pickTab(TABS[(i + d + TABS.length) % TABS.length].id);
 });
+document.querySelector("main").addEventListener("input", (e) => {
+  const el = e.target.closest("[data-knob]"); if (!el) return;
+  const id = el.dataset.knob, k = +el.value, f = F(id); S.dragId = id; S.drag = k;
+  const box = el.closest(".knob"); box.querySelector("b").textContent = `Lv${k}`; box.querySelector("small").textContent = `維持費 ${fmt(upkeep(id, k))}・${FEE_WHEN[f.kind]}`;
+  const fx = document.querySelector("#detail [data-fx]"); if (fx) fx.textContent = facFx(id, k);
+});
+document.querySelector("main").addEventListener("change", async (e) => {
+  const el = e.target.closest("[data-knob]"); if (!el) return;
+  const id = el.dataset.knob, k = +el.value; S.drag = null; S.dragId = null;
+  const r = await act("fac.knob", { id, lv: k });
+  if (!r.ok) { toast(r.why || "できませんでした"); return render(); }
+  load(await me()); toast(`${F(id).name}の つまみを Lv${k} に した（維持費 ${fmt(r.fee || 0)}）`); render();
+});
+// 建設中の 時間の 進みを 30 秒ごとに 描きなおす（つまみを 動かして いる 間は しない）。時間も 素材も そろったら 門番に 読みに いく（建て終わる）
+setInterval(async () => {
+  if (S.drag != null || !Object.values(S.fac).some((v) => v.build)) return;
+  if (Object.values(S.fac).some((v) => v.build && v.build.mr >= 1 && leftNow(v.build) <= 0)) load(await me());
+  render();
+}, 30000);
 addTkCss(); addSnackCss(); watchPad(() => document.querySelector(".stash .tk"));
 if (ME.denied || ME.ok === false) document.querySelector("main").innerHTML = `<section class="panel wallet"><h1>入れません</h1><span>${esc(ME.why || "もう 1 回 開いて ください")}</span>${ME.login ? `<a href="/">MONO LINK で ログイン</a>` : ""}</section>`;
 else render();

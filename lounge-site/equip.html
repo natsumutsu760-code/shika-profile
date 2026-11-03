@@ -211,10 +211,10 @@
 import "./lounge-en.js";   // 英語の 画面（MONO LINK の サイトの EN／日本語 と 同じ 決まり。英語の ときだけ 辞書を 読む）
 import { me, act, busy, waitText } from "./lounge-client.js";   // 持って いる 装備・付ける／はずすは 門番の 記録（見本では ブラウザの 中の ためしの 門番）
 import { mergeAtt, attHtml, attClick } from "./att-panel.js";   // 武器の アタッチメント（先っぽ・持ち手）
-import { mountWallet } from "./wallet-bar.js"; mountWallet();   // 上の 通貨の 札（玉・リソース・クレジット）と 両替
+import { mountWallet } from "./wallet-bar.js"; mountWallet();   // 上の 通貨の 札（玉・アメジスト・クレジット）と 両替
 import { petInfo, linkTabs, gateHtml, addGateCss, toast } from "./pet-head.js";
 import { TYPES } from "./skills.js";
-import { SLOTS, KINDS, OPS, baseOf, itemStats, itemPower, mainStats, hasFx, SCRAP_BALLS, SCRAP_CREDITS, recycleOf, keepInBulk, AUTO_SELL_STARS, opStarOf, opCount } from "./equip.js";
+import { SLOTS, KINDS, OPS, baseOf, itemStats, itemPower, mainStats, hasFx, recycleOf, keepInBulk, AUTO_SELL_STARS, opStarOf, opCount } from "./equip.js";
 import { DUNGEONS } from "./dungeons.js";
 import { SYNTH } from "./recipes.js";
 import { gearImg, watchIcons } from "./gear-icon.js";
@@ -247,7 +247,7 @@ const DOLL = ["head", "weapon", "off", "arm", "neck", "leg"], ACCS = ["acc1", "a
 const EMPTY = { off: "オフ\nハンド" };
 
 let ME = mergeAtt(await me()), MP = ME.pets && ME.pets[0];
-const V = { f: null, sort: "star", sel: null, slot: null, conf: null, bulk: false, bstar: 2, bhow: "balls", auto: false, ahow: null, rec: null, who: new URLSearchParams(location.search).get("who") || "pet" };
+const V = { f: null, sort: "star", sel: null, slot: null, conf: null, bulk: false, bstar: 2, bhow: "recycle", auto: false, rec: null, who: new URLSearchParams(location.search).get("who") || "pet" };
 // だれの 装備（鹿さんの決め、2026-10-25）：ペットと パーティの 2 体。部屋に いる 子でも 何か 付けて いれば 出す（はずせる ように）
 const mates = () => (ME.tamed || []).filter((c) => (ME.party || []).includes(c.uid) || Object.values(c.equip || {}).some(Boolean));
 const holder = () => (V.who !== "pet" && mates().find((c) => c.uid === V.who)) || MP;
@@ -317,7 +317,7 @@ function render() {
       </div>
     </section>
     <section class="panel" aria-label="持っている装備" id="list">
-      <div class="head"><h2>持っている装備</h2><span class="cnt ${own.length >= cap ? "full" : ""}"><b>${own.length}</b> / ${cap}${own.length >= cap * 0.9 ? `<a href="hideout.html?f=armory">増やす</a>` : ""}</span><button class="bulkbtn" data-bulk="1" aria-expanded="${V.bulk}">まとめて 手放す</button><button class="bulkbtn ${AS ? "on" : ""}" data-auto="1" aria-expanded="${V.auto}">自動で 売る${AS ? `<small>★${AS.star} 以下</small>` : ""}</button></div>
+      <div class="head"><h2>持っている装備</h2><span class="cnt ${own.length >= cap ? "full" : ""}"><b>${own.length}</b> / ${cap}${own.length >= cap * 0.9 ? `<a href="hideout.html?f=armory">増やす</a>` : ""}</span><button class="bulkbtn" data-bulk="1" aria-expanded="${V.bulk}">まとめて 手放す</button><button class="bulkbtn ${AS ? "on" : ""}" data-auto="1" aria-expanded="${V.auto}">自動で リサイクル${AS ? `<small>★${AS.star} 以下</small>` : ""}</button></div>
       ${V.bulk ? bulkHtml(own, W) : V.auto ? autoHtml() : ""}
       <div class="ptabs" role="tablist" aria-label="部位">${PARTS.map((k) => `<button role="tab" data-f="${k}" aria-selected="${V.f === k}" class="${n(k) ? "" : "zero"}">${PART_LABEL[k] || KINDS[k].label}<small>${n(k)}</small></button>`).join("")}</div>
       <div class="filters sorts" role="group" aria-label="ならべる"><span>ならべる</span>${SORTS.map(([k, l]) => `<button data-sort="${k}" aria-pressed="${V.sort === k}">${l}</button>`).join("")}</div>
@@ -400,13 +400,14 @@ async function doCore(b, a, body, done) {
   if (!r.ok) { paint(); return toast(r.wait ? waitText : r.why || "できませんでした"); }
   ME = mergeAtt(await me()); MP = ME.pets[0]; done(r); paint();
 }
-// ---------- 手放す（鹿さんの決め、2026-10-25）：玉・クレジットで 売る・リサイクルで 素材に。押し まちがえない ように 2 回 押す ----------
-const HOW = { balls: "玉で 売る", credits: "クレジットで 売る", recycle: "リサイクル" };
+// ---------- 手放す（鹿さんの決め、2026-10-25）：リサイクルで 素材に。押し まちがえない ように 2 回 押す ----------
+// 装備は 売れない（2026-10-28 の 決め。前は 玉・クレジットでも 売れた）
+const HOW = { recycle: "リサイクル" };
 const dName = (did) => (DUNGEONS.find((d) => d.id === did) || { name: "" }).name;
 function scrapHtml(it) {
   const rc = recycleOf(it), key = (how) => `${it.uid}:${how}`;
   const b = (how, label) => `<button class="sc ${V.conf === key(how) ? "go" : ""}" data-scrap="${how}" data-su="${it.uid}">${V.conf === key(how) ? "もう一度 押すと 手放す" : label}</button>`;
-  return `<div class="scrap"><span class="sh">手放す</span>${b("balls", `玉 ${SCRAP_BALLS[it.star]}`)}${b("credits", `クレジット ${SCRAP_CREDITS[it.star]}`)}${b("recycle", `素材 ${rc.n + rc.hidden} こ`)}
+  return `<div class="scrap"><span class="sh">手放す</span>${b("recycle", `リサイクル：素材 ${rc.n + rc.hidden} こ`)}
     <small>リサイクルは ${esc(dName(rc.did))}の 採取の 素材${rc.hidden ? "（かくし通路の 素材も 1 こ）" : ""}</small></div>`;
 }
 // まとめて：★N 以下（付けて いる 物・ミシック・合成の 装備は 入れない）
@@ -416,34 +417,32 @@ function bulkPick(own, W) {
 }
 function bulkHtml(own, W) {
   const { pick, worn, keep } = bulkPick(own, W), n = pick.length;
-  const value = V.bhow === "balls" ? `玉 ${pick.reduce((a, e) => a + SCRAP_BALLS[e.star], 0).toLocaleString("ja-JP")} で 売る` : V.bhow === "credits" ? `クレジット ${pick.reduce((a, e) => a + SCRAP_CREDITS[e.star], 0).toLocaleString("ja-JP")} で 売る` : `素材 ${pick.reduce((a, e) => { const r = recycleOf(e); return a + r.n + r.hidden; }, 0)} こに する`;
+  const value = `素材 ${pick.reduce((a, e) => { const r = recycleOf(e); return a + r.n + r.hidden; }, 0)} こに する`;
   const out = [worn ? `付けて いる ${worn} こ` : "", keep ? `ミシック・合成 ${keep} こ` : ""].filter(Boolean).join("・");
   return `<div class="bulk" role="group" aria-label="まとめて 手放す">
     <div class="brow"><span>この ★ 以下</span>${[1, 2, 3, 4, 5].map((k) => `<button data-bstar="${k}" aria-pressed="${V.bstar === k}">★${k}</button>`).join("")}</div>
-    <div class="brow"><span>手放し方</span>${Object.entries(HOW).map(([k, l]) => `<button data-bhow="${k}" aria-pressed="${V.bhow === k}">${l}</button>`).join("")}</div>
     <p class="bn"><b>${n}</b> こ（すべての 部位）${out ? `・${out}は 入れない` : ""}</p>
     <button class="jelly ${V.conf === "bulk" ? "warn" : ""}" data-bulkgo="1" ${n ? "" : "disabled"}>${V.conf === "bulk" ? `もう一度 押すと ${n} こ 手放す` : `${n} こを ${value}`}</button></div>`;
 }
-// 自動で 売る（鹿さんの頼み、2026-10-25）：派遣で 拾った ★N 以下の 装備を、持ち物に 入れずに 売る。もらう 物も えらぶ。押すと すぐ しまう
+// 自動で リサイクル（鹿さんの頼み、2026-10-25。2026-10-28 に 売るのを やめた）：派遣で 拾った ★N 以下の 装備を、持ち物に 入れずに 素材に。押すと すぐ しまう
 function autoHtml() {
-  const A = ME.autoSell, how = V.ahow || (A && A.how) || "credits";
-  return `<div class="bulk auto" role="group" aria-label="自動で 売る">
+  const A = ME.autoSell;
+  return `<div class="bulk auto" role="group" aria-label="自動で リサイクル">
     <div class="brow"><span>この ★ 以下</span><button data-astar="0" aria-pressed="${!A}">しない</button>${AUTO_SELL_STARS.map((k) => `<button data-astar="${k}" aria-pressed="${!!A && A.star === k}">★${k}</button>`).join("")}</div>
-    <div class="brow"><span>もらう 物</span>${Object.entries(HOW).map(([k, l]) => `<button data-ahow="${k}" aria-pressed="${how === k}">${l}</button>`).join("")}</div>
-    <p class="bn">派遣で 拾った 物だけ・ミシックなどは 売らない</p></div>`;
+    <p class="bn">派遣で 拾った 物だけ・ミシックなどは リサイクルしない</p></div>`;
 }
 async function setAuto(b, star, how) {
   const r = await busy(b, () => act("equip.auto", { star, how }));
   if (!r.ok) { paint(); return toast(r.wait ? waitText : r.why || "できませんでした"); }
-  ME.autoSell = r.autoSell; V.ahow = how; paint();
-  toast(r.autoSell ? `派遣で 拾った ★${r.autoSell.star} 以下を ${HOW[r.autoSell.how]}` : "自動で 売るのを やめた");
+  ME.autoSell = r.autoSell; paint();
+  toast(r.autoSell ? `派遣で 拾った ★${r.autoSell.star} 以下を リサイクル` : "自動で リサイクルするのを やめた");
 }
 async function doScrap(b, uids, how) {
   const r = await busy(b, () => act("equip.scrap", { how, uids }));
   V.conf = null;
   if (!r.ok) { paint(); return toast(r.wait ? waitText : r.why || "できませんでした"); }
   ME = mergeAtt(await me()); MP = ME.pets[0]; V.sel = null; document.body.classList.remove("sheet-on"); paint();
-  toast(how === "recycle" ? `${r.n} こ リサイクル：素材 ${r.mats.reduce((a, m) => a + m.n, 0)} こ${r.boxed ? `（あずかり箱に ${r.boxed} こ）` : ""}` : `${r.n} こ 売った：${how === "balls" ? "玉" : "クレジット"} ${r.value.toLocaleString("ja-JP")}`);
+  toast(`${r.n} こ リサイクル：素材 ${r.mats.reduce((a, m) => a + m.n, 0)} こ${r.boxed ? `（あずかり箱に ${r.boxed} こ）` : ""}`);
 }
 // だれの 装備：ペット ＋ なかま（いなければ 出さない）
 function whoHtml() {
@@ -467,10 +466,8 @@ document.body.addEventListener("click", async (e) => {
   if (d.recgo) return recGo(b);
   if (d.bulk) { V.bulk = !V.bulk; V.auto = false; return paint(); }
   if (d.auto) { V.auto = !V.auto; V.bulk = false; return paint(); }
-  if (d.astar) return setAuto(b, +d.astar, V.ahow || (ME.autoSell && ME.autoSell.how) || "credits");
-  if (d.ahow) { if (!ME.autoSell) { V.ahow = d.ahow; return paint(); } return setAuto(b, ME.autoSell.star, d.ahow); }   // しない の ときは えらぶ だけ
+  if (d.astar) return setAuto(b, +d.astar, "recycle");
   if (d.bstar) { V.bstar = +d.bstar; return paint(); }
-  if (d.bhow) { V.bhow = d.bhow; return paint(); }
   if (d.bulkgo) { if (V.conf !== "bulk") { V.conf = "bulk"; return paint(); } return doScrap(b, bulkPick(ME.own.equip || [], wornBy()).pick.map((e) => e.uid), V.bhow); }
   if (d.u || d.slot) V.rec = null;
   if (d.cmode) { V.core = V.core && V.core.uid === V.sel && V.core.mode === d.cmode ? null : { uid: V.sel, mode: d.cmode, csel: (coresOf()[0] || {}).uid }; V.conf = null; return paint(); }

@@ -4,7 +4,7 @@
 // size：床は [よこ, おく]（マス）、かべは はば（マス）。keep：しまえない（PC は DEEP LINK/: の 入口）
 
 export const N = 6;                                   // 部屋の マス（6×6 から。設備「部屋の拡張」で 8×8 → 10×10）
-export const PRICE = { 1: 5, 2: 15, 3: 40, 4: 120, 5: 300 };   // 値段（リソース）
+export const PRICE = { 1: 5, 2: 15, 3: 40, 4: 120, 5: 300 };   // 値段（アメジスト）
 export const HATCH = { x: 0, z: 5 };                  // 地下の 隠れ家への はしご（動かせない）
 
 export const FURN = [
@@ -71,7 +71,7 @@ export function cleanRoom(items, own, n = N) {
 // ---------- お店（鹿さんの決め：日替わりの 棚・カタログ・インテリアガチャ）----------
 export const SALE_IDS = FURN.filter((f) => f.star > 0).map((f) => f.id);   // お店に ならぶ 家具（設備と PC は べつ）
 export const DAILY_N = 3, DAILY_OFF = 0.2;                      // 日替わり：毎日 0 時（日本時間）に 3 つ。いつもの 2 割引き。みんな 同じ 品
-export const GACHA_COST = 10, GACHA_RATE = { 1: 50, 2: 30, 3: 14, 4: 5, 5: 1 };   // 1 回 10 リソース。かぶったら 2 こ目として 持てる
+export const GACHA_COST = 10, GACHA_RATE = { 1: 50, 2: 30, 3: 14, 4: 5, 5: 1 };   // 1 回 10 アメジスト。かぶったら 2 こ目として 持てる
 export const salePrice = (f) => Math.round(PRICE[f.star] * (1 - DAILY_OFF));
 export const jstDay = (t = Date.now()) => Math.floor((t + 9 * 3600e3) / 86400e3);
 const mul = (s) => () => { s = (s + 0x6D2B79F5) >>> 0; let t = s; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };

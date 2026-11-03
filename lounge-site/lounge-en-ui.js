@@ -5,19 +5,20 @@ const n1 = (n, one, many) => (n === "1" ? `1 ${one}` : `${n} ${many}`);
 export const WORDS = {
   "工事中": "Under construction", "MONO LINK の 大工事の あいだは、ラウンジの 部屋と ショップだけ 使えます": "While MONO LINK is under major construction, only your lounge room and the shop are open", "部屋へ": "To your room", "ショップへ": "To the shop", "工事中（MONO LINK の 大工事の あいだは、ラウンジの 部屋と ショップだけ 使えます）": "Under construction (while MONO LINK is under major construction, only your lounge room and the shop are open)",
   // ---- 通貨（wallet-bar.js）と 門番との やりとり（lounge-client.js） ----
-  "玉": "Balls", "リソース": "Resources", "クレジット": "Credits",
+  "玉": "Balls", "アメジスト": "Amethyst", "クレジット": "Credits",
   "（配信で 1 回 チャットすると わかります）": "(chat once on stream to see it)", "玉 （配信で 1 回 チャットすると わかります）": "Balls (chat once on stream to see them)",
-  "リソース （配信で 1 回 チャットすると わかります）": "Resources (chat once on stream to see them)", "クレジット （配信で 1 回 チャットすると わかります）": "Credits (chat once on stream to see them)",
+  "アメジスト （配信で 1 回 チャットすると わかります）": "Amethyst (chat once on stream to see them)", "クレジット （配信で 1 回 チャットすると わかります）": "Credits (chat once on stream to see them)",
   "持って いる お金": "Your money", "両替": "Exchange", "両替する": "Exchange",
-  "玉と リソースが まだ わかりません（配信で 1 回 チャットすると わかります）": "Balls and Resources aren't known yet (chat once on stream to see them)",
+  "玉と アメジストが まだ わかりません（配信で 1 回 チャットすると わかります）": "Balls and Amethyst aren't known yet (chat once on stream to see them)",
+  "玉が まだ わかりません（配信で 1 回 チャットすると わかります）": "Balls aren't known yet (chat once on stream to see them)",
   "とじる": "Close", "わたす": "Pay", "もらう": "Get", "数": "Amount", "ぜんぶ": "All", "わたす 玉": "Balls to pay", "わたす クレジット": "Credits to pay",
-  "リソースの 数": "Number of Resources", "1万": "10K", "から": "to", "10 の 倍数で（100 万まで）": "In multiples of 10 (up to 1M)", "リソースは 1〜100 こ": "1–100 Resources",
-  "手数料 1 割": "10% fee", "リソースは 売れない（両替は 買うだけ）": "Resources can't be sold (you can only buy them)", "できませんでした": "Couldn't do that",
+  "アメジストの 数": "Number of Amethyst", "1万": "10K", "から": "to", "10 の 倍数で（100 万まで）": "In multiples of 10 (up to 1M)", "アメジストは 1〜100 こ": "1–100 Amethyst",
+  "手数料 1 割": "10% fee", "アメジストは 売れない（両替は 買うだけ）": "Amethyst can't be sold (you can only buy them)", "できませんでした": "Couldn't do that",
   "ためしの 門番を 読めません（stream-layouts/ を まるごと 出す サーバーで 開いて ください）": "Can't load the test gatekeeper (open it from a server that serves all of stream-layouts/)",
   "入れません": "Can't enter", "門番に つながりません。もう 1 回 押して ください": "Can't reach the server. Please tap again",
   "たしかめて います…": "Checking…", "配信の 画面の 返事を 待って います。つぎに 開いた ときに 決まります": "Waiting for the stream to reply. It'll be settled next time you open this",
   // ---- ペットの 見出し（pet-head.js） ----
-  "ペット": "Pet", "ステータス": "Stats", "スキルツリー": "Skill Tree", "ガンビット": "Gambits", "装備": "Gear", "冒険": "Adventure", "なかま": "Companions", "闘技場": "Arena",
+  "ペット": "Pet", "ステータス": "Stats", "スキルツリー": "Skill Tree", "ガンビット": "Gambits", "装備": "Gear", "冒険": "Adventure", "なかま": "Companions", "闘技場": "Orbit Arena",
   "もう 1 回 開いて ください": "Please open it again", "MONO LINK で ログイン": "Log in to MONO LINK", "まず 1 匹目を むかえる": "Welcome your first pet",
   "9 つの 質問で、いっしょに 冒険する 子が 決まります": "9 questions decide who will adventure with you", "得意なツリー": "Best tree", "ドロウジー": "Drowsy", "パンクチュアル": "Punctual", "スウィフト": "Swift", "スタティック": "Static", "タフ": "Tough", "トランスルーセント": "Translucent", "スパイキー": "Spiky", "グリーディ": "Greedy", "マリアージュ": "Mariage", "スプーキー": "Spooky", "シャープ": "Sharp", "フレキシブル": "Flexible", "職業（どれも 同じくらい 合う）": "Jobs (all suit it about the same)", "性格診断へ": "Take the personality quiz",
   "冒険の 画面で えらべます": "You can choose it on the Adventure screen", "職業を えらぶ": "Choose a job",
@@ -39,7 +40,7 @@ export const WORDS = {
   "配信の 画面の 返事を 待って いる 買い物。つぎに 開いた ときに 決まります": "Purchases waiting for the stream to reply. They'll be settled next time you open this",
   "売り場": "Shop", "くわしく": "Details", "部屋に もどる": "Back to room", "きょうの # 品": "Today's # items", "ガチャの 中身": "Gacha contents", "# しゅるい": "# types",
   "カタログ": "Catalog", "# こ": "#", "レア": "Rarity", "安い順": "Cheapest", "インテリアガチャ": "Furniture Gacha", "かぶったら # こ目": "Duplicates become a #nd copy",
-  "# 回 まわす": "Pull ×#", "リソースが まだ わかりません（配信で 1 回 チャットすると わかります）": "Resources aren't known yet (chat once on stream to see them)",
+  "# 回 まわす": "Pull ×#", "アメジストが まだ わかりません（配信で 1 回 チャットすると わかります）": "Amethyst isn't known yet (chat once on stream to see them)",
   "部屋に 置く": "Place in room", "ガチャの #% の 中の 1 つ": "One of the #% in the gacha", "ガチャへ もどる": "Back to gacha", "買う": "Buy", "2 割引き": "20% off",
   "返事まち #": "Waiting #", "日替わり": "Daily", "ガチャ": "Gacha", "まわして います…": "Pulling…",
   // ---- はじめての 子（quiz.html） ----
@@ -57,17 +58,22 @@ export const WORDS = {
   "いつもの 順": "Default", "Lv の 順": "By Lv", "この 職業の 子は まだ いません": "No pets for this job yet", "この 職業の 子は みんな いっしょに います": "You have every pet for this job",
   "アメジスト": "Amethyst", "アメジストが まだ わかりません（配信で 1 回 チャットすると わかります）": "Amethyst isn't known yet (chat once on stream to see it)",
   "かえて います…": "Switching…", "かえられませんでした": "Couldn't switch", "ほかの子も むかえる": "Welcome more pets",
+  // 玉と クレジットの 交換の 案内（2026-10-28 の 決め：両替を やめて 鹿物語の チャットだけ）
+  "交換の 案内": "Exchange guide", "玉と クレジットの 交換の 案内": "How to exchange balls and credits", "交換は 配信の チャットで": "Exchange in stream chat",
+  "!貸し玉 数": "!貸し玉 amount", "!換金 数": "!換金 amount", "!アメジスト交換 数": "!アメジスト交換 amount",
 };
 
 export const RULES = [
   [/^玉 ([\d,]+)$/, (m) => n1(m[1], "ball", "balls")], [/^([\d,]+) ?玉$/, (m) => n1(m[1], "ball", "balls")], [/^\+([\d,]+) ?玉$/, (m) => "+" + n1(m[1], "ball", "balls")],
-  [/^リソース ([\d,]+)$/, (m) => n1(m[1], "Resource", "Resources")], [/^リソース \+([\d,]+)$/, (m) => "+" + n1(m[1], "Resource", "Resources")],
+  [/^アメジスト ([\d,]+)$/, (m) => n1(m[1], "Amethyst", "Amethyst")], [/^アメジスト \+([\d,]+)$/, (m) => "+" + n1(m[1], "Amethyst", "Amethyst")],
   [/^クレジット ([\d,]+)$/, (m) => n1(m[1], "credit", "credits")],
   [/^([\d.]+)億$/, (m) => `${+(+m[1] * 100).toFixed(1)}M`], [/^([\d,]+)万$/, (m) => `${+(+m[1].replace(/,/g, "") / 100).toFixed(2)}M`],
   // 足りない 物（「足りない：きれいな小石 あと 8、ゴブリンのナイフ あと 2、ほか 1 こ」）
   [/^足りない：(.+)$/, (m, p) => { const xs = m[1].split("、").map((x) => { let k = x.match(/^(.+) あと ([\d,]+)$/); if (k) { const a = p(k[1]); return a && `${a} ×${k[2]}`; } k = x.match(/^ほか ([\d,]+) こ$/); return k ? `+${k[1]} more` : p(x); }); return xs.every(Boolean) ? "Missing: " + xs.join(", ") : null; }],
-  [/^リソースが 足りない：あと ([\d,]+)$/, (m) => `Not enough Resources: ${m[1]} more`],
-  [/^リソース 1 ＝ (.+) ([\d,]+)（リソースは 売れない）$/, (m, p) => `1 Resource = ${m[2]} ${p(m[1])} (Resources can't be sold)`], [/^リソース 1 ＝ (.+) ([\d,]+)$/, (m, p) => `1 Resource = ${m[2]} ${p(m[1])}`], [/^リソース 1 → (.+) ([\d,]+)$/, (m, p) => `1 Resource → ${m[2]} ${p(m[1])}`],
+  [/^アメジストが 足りない：あと ([\d,]+)$/, (m) => `Not enough Amethyst: ${m[1]} more`],
+  [/^手数料 1 割・アメジストは 配信の !アメジスト交換（玉 ([\d,]+) → 1）$/, (m) => `10% fee · get Amethyst with !アメジスト交換 in stream chat (${m[1]} balls → 1)`],
+  [/^アメジストは 両替では 買えない（配信の チャットで !アメジスト交換：玉 ([\d,]+) → 1）$/, (m) => `You can't get Amethyst by exchange (type !アメジスト交換 in stream chat: ${m[1]} balls → 1)`],
+  [/^アメジスト 1 ＝ (.+) ([\d,]+)（アメジストは 売れない）$/, (m, p) => `1 Amethyst = ${m[2]} ${p(m[1])} (Amethyst can't be sold)`], [/^アメジスト 1 ＝ (.+) ([\d,]+)$/, (m, p) => `1 Amethyst = ${m[2]} ${p(m[1])}`], [/^アメジスト 1 → (.+) ([\d,]+)$/, (m, p) => `1 Amethyst → ${m[2]} ${p(m[1])}`],
   [/^(.+) の 部屋$/, (m) => `${m[1]}'s room`], [/^(.+) ／ (.+) の相棒$/, (m, p) => p(m[1]) && `${p(m[1])} / ${m[2]}'s partner`], [/^(.+) の相棒$/, (m) => `${m[1]}'s partner`],
   [/^(.+)の 職業を えらぶ$/, (m, p) => `Choose ${p(m[1]) || m[1]}'s job`],
   [/^(.+)を しまった$/, (m, p) => p(m[1]) && `Put away the ${p(m[1])}`],

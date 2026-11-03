@@ -1,8 +1,9 @@
 // プライベートラウンジ 5 だんかい目：DEEP LINK/:（商人の 友好度・品ぞろえ・タスク・とくべつな 品）
-// 決まりは docs/mono-link-pet-battle.md の「DEEP LINK/:」「タスク」「品ぞろえ」。品と タスクの 中身は 見本の deeplink.js・tasks.js（id・get・goal）
-// 1 人分の 記録（rec）だけを 見て かえる。玉と リソースは viewer.js が 帳簿で 払う・もらう（買うは 計画、売る・タスクの ごほうびは earn）
+// 決まりは docs/mono-link-deeplink-story.md（友好度 Lv100・章の プライマリータスク・ランダムと 毎日の タスク）。品と タスクの 中身は deeplink.js・tasks.js・primary-data.js（id・get・goal）
+// 1 人分の 記録（rec）だけを 見て かえる。アメジストは viewer.js が 帳簿で 払う（ヨルの 店）。クレジットは 記録の 中（take で 引き、払えなかったら refund で もどす）
 // 数は すべて 案
-import { TRADERS, SPECIAL, repLv, chainTask, dailyTask, TASK_TIDS, sellPrice, GATHER, floorRatio, OPS, BASES, SNACK_NEED, rankOf, CRAFT, SYNTH, craftOpen, synthOpen } from "./game.js";
+import { TRADERS, SPECIAL, chainTask, dailyTask, TASK_TIDS, sellPrice, GATHER, floorRatio, FLOORS, OPS, BASES, baseOf, SNACK_NEED, rankOf, CRAFT, SYNTH, craftOpen, synthOpen,
+  PRIMARY, PRI_REP, lvOf, curTask, isDone, unlockedBy, KEY_BY, DUNGEONS } from "./game.js";
 import { putMats, putEquip } from "./lounge-game.js";
 import { equippedUids } from "./lounge-pet.js";   // lounge-game.js も ここを 読む（どちらも 呼ぶ ときに 使うだけ なので 大丈夫）
 
@@ -14,14 +15,17 @@ const ONE_TRIP = 3;                                  // 「1 回の 派遣で」
 const has = (m, k) => typeof k === "string" && Object.prototype.hasOwnProperty.call(m, k);
 
 export function ensureTrade(rec) { rec.traders ||= {}; rec.perks ||= {}; rec.items ||= {}; rec.recipes ||= []; rec.tally ||= seedTally(rec); return rec; }
+// 装備の 部位：武器（アンビル）か 防具（あたま・くび。ピーコ）
+export const slotKind = (base) => ((baseOf(base) || {}).slot === "weapon" ? "weapon" : "armor");
 // ---------- これまでの 記録（鹿さんの決め、2026-10-25）：つながった タスクには まだ 出て いない ときの 分も 数える ----------
 // rec.tally：できごとの 合計。キーは goal と 同じ 形（型・行き先・敵・★ 以上）。じょうけんに 合った 派遣の 分は「キー#じょうけんの 番号」にも 足す
 // 商人ごとに 使った 分（t.used）を 引いた のこりを 数え、終えると その 分を 使う（同じ 商人の つぎの タスクに 使いまわさない）
 // 「1 回の 派遣で」は ためない（出てからの 派遣だけ）。毎日の タスクは その日の 分だけ（前と 同じ）。ためはじめは 入れた とき（ボスは 前の 分も わかる）
-const goalKey = (g) => g.type + (g.did ? ":" + g.did : "") + (g.tree ? ":" + g.tree : "") + (g.star ? "@" + g.star : "") + (g.cond != null ? "#" + g.cond : "");
+const goalKey = (g) => g.type + (g.did ? ":" + g.did : "") + (g.tree ? ":" + g.tree : "") + (g.slot ? "/" + g.slot : "") + (g.star ? "@" + g.star : "") + (g.cond != null ? "#" + g.cond : "");
 const banked = (g) => !["fac", "floor", "deliver", "deliverEq"].includes(g.type) && g.cond !== ONE_TRIP;
 function evKeys(ev) {
-  const base = [ev.type, ev.did && ev.type + ":" + ev.did, ev.tree && ev.type + ":" + ev.tree, ...Array.from({ length: Math.min(5, ev.star || 0) }, (_, i) => ev.type + "@" + (i + 1))].filter(Boolean);
+  const stars = (pre) => Array.from({ length: Math.min(5, ev.star || 0) }, (_, i) => pre + "@" + (i + 1));
+  const base = [ev.type, ev.did && ev.type + ":" + ev.did, ev.tree && ev.type + ":" + ev.tree, ...stars(ev.type), ...(ev.slot ? [ev.type + "/" + ev.slot, ...stars(ev.type + "/" + ev.slot)] : [])].filter(Boolean);
   const conds = ev.trip ? CONDS_OK.map((ok, ci) => (ci !== ONE_TRIP && ok(ev.trip) ? ci : -1)).filter((ci) => ci >= 0) : [];
   return [...base, ...base.flatMap((k) => conds.map((ci) => k + "#" + ci))];
 }
@@ -30,26 +34,37 @@ const avail = (rec, t, g) => Math.max(0, (rec.tally[goalKey(g)] || 0) - ((t.used
 // 商人ごとの 記録。日が かわったら きょうの タスクと 品の のこりを もどす（日本時間 0 時。ボスの素材は 1 週ごと）
 export function traderOf(rec, tid, day) {
   const t = (rec.traders[tid] ||= { rep: 0, n: 1, cp: 0, day: 0, dn: 1, dp: 0, ddone: 0, bday: 0, buy: {}, bweek: 0, wbuy: {} });
+  t.pd ||= {};   // プライマリータスクを 終えた 印（章ごとに ビット）。pk・pp：いま やって いる タスクと その 数
   if (t.day !== day) { t.day = day; t.dn = t.n; t.dp = 0; t.ddone = 0; }   // きょうの タスクは その日の はじめの 進みで 決まる
   if (t.bday !== day) { t.bday = day; t.buy = {}; }
   const wk = Math.floor(day / 7); if (t.bweek !== wk) { t.bweek = wk; t.wbuy = {}; }
   return t;
 }
 export const tasksOf = (tid, t, day) => ({ chain: chainTask(tid, t.n), daily: dailyTask(tid, day, t.dn) });
+// 友好度 Lv（点の Lv を 章で 止める）
+export const lvNow = (tid, t) => lvOf(tid, t.rep, t.pd);
+const doneOf = (rec) => (tid) => ((rec.traders[tid] || {}).pd || {});
+// かくしダンジョンの 鍵：プライマリータスクの 第 4 章の ごほうび（前の つながった タスク #20・#30 を 過ぎた 人も 開く）
+export function hasKey(rec, did) {
+  const k = KEY_BY[did], d = DUNGEONS.find((x) => x.id === did), t = rec.traders && k && rec.traders[k[0]];
+  if (t && isDone(t.pd, k[1], k[2])) return true;
+  const h = d && d.hidden, o = h && rec.traders && rec.traders[h.trader];
+  return !!(o && h.n && o.n > h.n);
+}
 
 // ---------- タスクの 進み ----------
 const found = (rec, id, q) => rec.own.mats.filter((m) => m.id === id && m.q >= q && !m.b).reduce((a, m) => a + m.n, 0);   // 派遣で 拾った 物だけ
-const foundEq = (rec, star) => { const on = equippedUids(rec); return rec.own.equip.filter((e) => e.star >= star && !e.b && !on.has(e.uid)); };   // 付けて いる 物は のぞく
+const foundEq = (rec, star, slot) => { const on = equippedUids(rec); return rec.own.equip.filter((e) => e.star >= (star || 1) && !e.b && !on.has(e.uid) && (!slot || slotKind(e.base) === slot)); };   // 付けて いる 物は のぞく
 // いまの 進み。施設・階・納める は いまの ようすから、ほかは 数えた 数（t を わたすと つながった タスク：ためた 分の のこりも 数える）
 export function progressOf(rec, k, counted, t) {
   const g = k.goal;
   if (g.type === "fac") return (rec.hideout[g.fac] || 0) >= g.lv ? 1 : 0;
   if (g.type === "floor") { const p = rec.explore[g.did]; return p ? Math.floor(floorRatio(g.did, p, g.floor) * 100) : 0; }
   if (g.type === "deliver") return Math.min(k.need, found(rec, g.mat, g.q || 0));
-  if (g.type === "deliverEq") return Math.min(k.need, foundEq(rec, g.star).length);
+  if (g.type === "deliverEq") return Math.min(k.need, foundEq(rec, g.star, g.slot).length);
   return Math.min(k.need, t && banked(g) ? Math.max(counted, avail(rec, t, g)) : counted);
 }
-const hit = (g, ev) => g.type === ev.type && (!g.did || g.did === ev.did) && (!g.tree || g.tree === ev.tree) && (!g.star || (ev.star || 0) >= g.star);
+const hit = (g, ev) => g.type === ev.type && (!g.did || g.did === ev.did) && (!g.tree || g.tree === ev.tree) && (!g.slot || g.slot === ev.slot) && (!g.star || (ev.star || 0) >= g.star);
 // できごと（派遣の 結果・売る・作る・合成・おやつ）を タスクに 数える。ev：{ type, n, did, tree, star, trip }
 export function bump(rec, ev, day) {
   ensureTrade(rec);
@@ -63,20 +78,101 @@ export function bump(rec, ev, day) {
       if (g.cond != null && !(ev.trip && CONDS_OK[g.cond](ev.trip))) continue;
       t[key] = Math.min(k.need, g.cond === ONE_TRIP ? Math.max(t[key], ev.n) : t[key] + ev.n);
     }
+    priBump(rec, tid, t, ev);
   }
 }
-// 帰って きた 派遣の できごと
+// 帰って きた 派遣の できごと。st は tripStats（ins：保険・party：数・wstar：武器の ★・floor：着いた 階・inv・invwin・risen：起きあがり・used：使った 薬・meet：はじめて 会った 敵）
 export function tripEvents(rec, did, st, day) {
-  const trip = { wipe: st.wipe, rests: st.rests, tool: st.tool, run: st.run };
-  const evs = [{ type: "gather", n: st.gather, did }, { type: "chest", n: st.chests, did }, { type: "hchest", n: st.hchests, did }, { type: "rest", n: st.rests },
-    { type: "safe", n: st.wipe ? 0 : 1, did }, { type: "boss", n: st.boss, did },
+  const d = DUNGEONS.find((x) => x.id === did), isle = (d && d.isle) || 1;
+  const trip = { wipe: st.wipe, rests: st.rests, tool: st.tool, tools: st.tools || (st.tool ? [st.tool] : []), run: st.run, ins: st.ins || 0, party: st.party || 1, wstar: st.wstar || 0 };
+  const evs = [{ type: "gather", n: st.gather, did }, { type: "chest", n: st.chests, did }, { type: "hchest", n: st.hchests, did }, { type: "rest", n: st.rests, did },
+    { type: "safe", n: st.wipe ? 0 : 1, did }, { type: "boss", n: st.boss, did }, { type: "trip", n: 1, did }, { type: "reach", n: 1, did, floor: st.floor || 0 },
+    { type: "insured", n: st.ins ? 1 : 0, did }, { type: "invader", n: st.inv || 0 }, { type: "invwin", n: st.invwin || 0 }, { type: "revive", n: st.risen ? 1 : 0 },
+    { type: "itemuse", n: st.used || 0 }, { type: "meet", n: st.meet || 0, did },
     ...Object.entries(st.kills).map(([tree, n]) => ({ type: "kill", n, did, tree })), ...Object.entries(st.caught).map(([tree, n]) => ({ type: "capture", n, did, tree }))];
-  for (const ev of evs) if (ev.n > 0) bump(rec, { ...ev, trip }, day);
+  for (const ev of evs) if (ev.n > 0) bump(rec, { ...ev, isle, trip }, day);
+}
+
+// ---------- プライマリータスク（章の 物語。primary-data.js）----------
+// いま やって いる タスクだけを 数える（出て から の できごと。pk に その タスク、pp に 数）。納める・施設・階・作物の 図鑑などは いまの ようすで 見る
+const STATE = new Set(["deliver", "deliverAny", "deliverEq", "fac", "facN", "facAny", "floor", "explore", "bred", "and"]);
+const tripOk = (c, tr) => !c || (!!tr && (!c.safe || !tr.wipe) && (!c.norest || tr.rests === 0) && (!c.party || tr.party >= c.party) && (!c.ins || (tr.ins || 0) >= c.ins)
+  && (!c.tool || (tr.tools || []).includes(c.tool)) && (!c.wstar || (tr.wstar || 0) >= c.wstar));
+function hitP(g, ev) {
+  if (g.type !== ev.type) return false;
+  for (const k of ["did", "tree", "slot", "kind", "crop", "mat", "tid", "item", "own"]) if (g[k] != null && g[k] !== ev[k]) return false;
+  if (g.isle && g.isle !== ev.isle) return false;
+  if (g.star && !((ev.star || 0) >= g.star)) return false;
+  if (g.floor && !((ev.floor || 0) >= g.floor)) return false;
+  return tripOk(g.trip, ev.trip);
+}
+const pkey = (k) => k.c + ":" + k.no;
+function priBump(rec, tid, t, ev) {
+  if (!has(PRIMARY, tid) || !Number.isInteger(ev.n) || ev.n <= 0) return;
+  const k = curTask(tid, t.pd, lvNow(tid, t));
+  if (!k || STATE.has(k.goal.type) || !hitP(k.goal, ev)) return;
+  if (t.pk !== pkey(k)) { t.pk = pkey(k); t.pp = 0; }
+  t.pp = Math.min(k.need, k.goal.trip && k.goal.trip.one ? Math.max(t.pp, ev.n) : t.pp + ev.n);
+}
+// 作物の 図鑑（かけ合わせで 生んだ 物も のる）
+const bredOf = (rec, crop) => !!(rec.farmv && Array.isArray(rec.farmv.known) && rec.farmv.known.includes(crop));
+const explorePct = (rec, did) => { const p = rec.explore[did]; if (!p) return 0; let a = 0; for (let f = 1; f <= FLOORS; f++) a += floorRatio(did, p, f); return Math.floor((a / FLOORS) * 100); };
+const placeDids = (g) => (g.did ? [g.did] : g.isle ? DUNGEONS.filter((d) => (d.isle || 1) === g.isle).map((d) => d.id) : []);
+function partOk(rec, g) {   // 「and」の 1 つ（いまの ようす）
+  if (g.type === "deliver") return found(rec, g.mat, g.q || 0) >= g.need;
+  if (g.type === "deliverEq") return foundEq(rec, g.star, g.slot).length >= g.need;
+  if (g.type === "bred") return bredOf(rec, g.crop);
+  if (g.type === "boss") return (rec.tally["boss:" + g.did] || 0) > 0 || ((rec.explore[g.did] || {}).bossKills || 0) > 0;
+  return false;
+}
+export function priProgress(rec, tid, t, k) {
+  const g = k.goal;
+  if (g.type === "deliver") return Math.min(k.need, found(rec, g.mat, g.q || 0));
+  if (g.type === "deliverAny") return Math.min(k.need, g.mats.reduce((a, id) => a + found(rec, id, g.q || 0), 0));
+  if (g.type === "deliverEq") return Math.min(k.need, foundEq(rec, g.star, g.slot).length);
+  if (g.type === "fac") return (rec.hideout[g.fac] || 0) >= g.lv ? 1 : 0;
+  if (g.type === "facN") return Math.min(k.need, Object.values(rec.hideout || {}).filter((v) => v >= 1).length);
+  if (g.type === "facAny") return Math.min(k.need, Object.entries(rec.hideout || {}).filter(([id, v]) => id !== "radio" && v >= g.lv).length);   // 施設を N つ LvX に する（無線機は 1 段なので 数えない）
+  if (g.type === "floor") return Math.max(0, ...placeDids(g).map((did) => { const p = rec.explore[did]; return p ? Math.floor(floorRatio(did, p, g.floor) * 100) : 0; }));
+  if (g.type === "explore") return Math.min(k.need, Math.max(0, ...placeDids(g).map((did) => explorePct(rec, did))));
+  if (g.type === "bred") return bredOf(rec, g.crop) ? 1 : 0;
+  if (g.type === "and") return g.parts.filter((x) => partOk(rec, x)).length;
+  return Math.min(k.need, t.pk === pkey(k) ? t.pp || 0 : 0);
+}
+// 納める 物を 引く（品質の 低い 物から・拾った 物だけ）
+function takeFound(rec, id, q, n) {
+  let left = n;
+  for (const m of rec.own.mats.filter((x) => x.id === id && x.q >= (q || 0) && !x.b).sort((a, c) => a.q - c.q)) { const k = Math.min(left, m.n); m.n -= k; left -= k; if (!left) break; }
+  rec.own.mats = rec.own.mats.filter((m) => m.n > 0);
+}
+function takeEq(rec, g, n, uid) {
+  for (let i = 0; i < n; i++) { const list = foundEq(rec, g.star, g.slot), e = (i === 0 && list.find((x) => x.uid === uid)) || list.sort((a, c) => a.star - c.star)[0]; if (e) rec.own.equip = rec.own.equip.filter((x) => x !== e); }
+}
+// プライマリータスクを 終える。ごほうびは クレジット・友好度・品の 解放（終えた 印で 開く）・かくしダンジョンの 鍵
+export function primaryDone(rec, b, day) {
+  ensureTrade(rec);
+  if (typeof b.tid !== "string" || !has(PRIMARY, b.tid)) return { ok: false, why: "知らない 商人" };   // 「__proto__」などを 商人に しない
+  const t = traderOf(rec, b.tid, day), k = curTask(b.tid, t.pd, lvNow(b.tid, t));
+  if (!k) return { ok: false, why: "いまは プライマリータスクが ない" };
+  if (b.no != null && (b.c !== k.c || b.no !== k.no)) return { ok: false, why: "その タスクは いまの タスクでは ない" };
+  const now = priProgress(rec, b.tid, t, k);
+  if (now < k.need) return { ok: false, why: `まだ たりない（${now}/${k.need}${k.unit || ""}）` };
+  const g = k.goal;
+  if (g.type === "deliver") takeFound(rec, g.mat, g.q, k.need);
+  if (g.type === "deliverAny") { let left = k.need; for (const id of g.mats) { const n = Math.min(left, found(rec, id, g.q || 0)); if (n) takeFound(rec, id, g.q, n); left -= n; if (!left) break; } }
+  if (g.type === "deliverEq") takeEq(rec, g, k.need, b.uid);
+  if (g.type === "and") for (const x of g.parts) { if (x.type === "deliver" && !x.keep) takeFound(rec, x.mat, x.q, x.need); if (x.type === "deliverEq") takeEq(rec, x, x.need, b.uid); }
+  t.pd[k.c] = (t.pd[k.c] || 0) | (1 << (k.no - 1));
+  delete t.pk; delete t.pp;
+  const rep = PRI_REP(k.c);
+  t.rep += rep; rec.credits += k.credits || 0;
+  return { ok: true, rep, gain: k.credits || 0, ...(k.unlock ? { unlock: k.unlock } : {}), ...(k.key ? { key: k.key } : {}) };
 }
 
 // ---------- タスクを 終える（納める・報告する） ----------
 export function taskDone(rec, b, day, R) {
   ensureTrade(rec);
+  if (b.which === "primary") return primaryDone(rec, b, day);
   if (!TASK_TIDS.includes(b.tid)) return { ok: false, why: "知らない 商人" };
   const t = traderOf(rec, b.tid, day), which = b.which === "daily" ? "daily" : "chain", k = tasksOf(b.tid, t, day)[which], g = k.goal;
   if (which === "daily" && t.ddone) return { ok: false, why: "きょうの タスクは もう 終わった" };
@@ -88,7 +184,7 @@ export function taskDone(rec, b, day, R) {
     rec.own.mats = rec.own.mats.filter((m) => m.n > 0);
   }
   if (g.type === "deliverEq") {
-    const list = foundEq(rec, g.star), e = list.find((x) => x.uid === b.uid) || list.sort((a, c) => a.star - c.star)[0];
+    const list = foundEq(rec, g.star, g.slot), e = list.find((x) => x.uid === b.uid) || list.sort((a, c) => a.star - c.star)[0];
     rec.own.equip = rec.own.equip.filter((x) => x !== e);
   }
   const rw = k.reward;
@@ -96,7 +192,8 @@ export function taskDone(rec, b, day, R) {
   if (rw.get) grantGet(rec, rw.get, R, Date.now());
   if (which === "chain" && banked(g)) { const key = goalKey(g); (t.used ||= {})[key] = Math.min(rec.tally[key] || 0, (t.used[key] || 0) + k.need); }   // ためた 分を 使う
   if (which === "daily") t.ddone = 1; else { t.n++; t.cp = 0; }
-  return { ok: true, rep: rw.rep || 0, earn: [...(rw.balls ? [{ kind: "balls", d: rw.balls }] : []), ...(rw.res ? [{ kind: "res", d: rw.res }] : [])] };
+  rec.credits += rw.credits || 0;   // ごほうびは クレジット（前は 玉と アメジスト。アメジストは タスクから 出さない）
+  return { ok: true, rep: rw.rep || 0, gain: rw.credits || 0 };
 }
 
 // ---------- 品を 渡す ----------
@@ -113,17 +210,19 @@ function grantGet(rec, get, R, now) {
   if (get.snacks) rec.snacks += get.snacks;
   for (const [k, n] of Object.entries(get.items || {})) rec.items[k] = (rec.items[k] || 0) + n;
   for (const [k, n] of Object.entries(get.tools || {})) rec.tools[k] = (rec.tools[k] || 0) + n;
-  if (get.acc) putEquip(rec, [{ ...rollAcc(R, BASE_IDS[Math.floor(R() * BASE_IDS.length)], get.acc), b: 1 }], now);
+  if (get.acc) { const ids = get.slot ? BASE_IDS.filter((id) => slotKind(id) === get.slot) : BASE_IDS; putEquip(rec, [{ ...rollAcc(R, ids[Math.floor(R() * ids.length)], get.acc), b: 1 }], now); }
 }
 
 // ---------- 買う ----------
-// 品の 計画（玉か リソースで 払う）。pick：えらぶ 品（素材・アクセサリーの もと・レシピ）、pickOp：えらぶ OP（op は 頼みの 番号なので 名前を かえた）、n：数
+// 品の 計画（玉か アメジストで 払う）。pick：えらぶ 品（素材・アクセサリーの もと・レシピ）、pickOp：えらぶ OP（op は 頼みの 番号なので 名前を かえた）、n：数
 export function buyPlan(rec, b, day, R) {
   ensureTrade(rec);
   const shop = SHOPS.find((x) => x.id === b.tid), item = shop && shop.shop.find((x) => x.id === b.item);
+  if (item && item.soon) return { ok: false, why: `${item.soon}が できたら` };
   if (!item || !item.get) return { ok: false, why: "その 品は ない" };
   const t = traderOf(rec, shop.id, day), g = item.get;
-  if (shop !== SPECIAL && repLv(t.rep) < item.lv) return { ok: false, why: `友好度 Lv${item.lv} から 買える` };
+  if (!unlockedBy(item.id, doneOf(rec))) return { ok: false, why: "プライマリータスクを 進めると 買える" };
+  if (lvNow(shop.id, t) < item.lv) return { ok: false, why: `友好度 Lv${item.lv} から 買える` };
   if (g.perk && rec.perks[g.perk]) return { ok: false, why: "もう 買った" };
   const n = item.once || g.acc || g.recipe ? 1 : Number.isInteger(b.n) && b.n > 0 ? b.n : 1;
   const used = item.week ? t.wbuy[item.id] || 0 : t.buy[item.id] || 0, left = item.stock ? item.stock - used : Infinity;
@@ -144,8 +243,14 @@ export function buyPlan(rec, b, day, R) {
     grant.recipes = [b.pick];
   }
   if (g.perk) grant.perks = [g.perk];
-  const key = item.week ? "wbuy" : "buy";
-  return { costs: [{ kind: item.cur, d: -item.price * n }], why: `buy:${shop.id}:${item.id}`, grant, refund: { unbuy: [shop.id, key, item.id, n] },
+  const key = item.week ? "wbuy" : "buy", price = item.price * n;
+  grant.ev = { type: "buy", n: 1, tid: shop.id, item: item.id };   // プライマリータスク（ヨルの 店で 買う など）
+  if (item.cur === "credits") {   // クレジット：記録の 中で 引く（足りなければ ことわる）
+    if (rec.credits < price) return { ok: false, why: `足りない：クレジット あと ${(price - rec.credits).toLocaleString("ja-JP")}` };
+    return { costs: [], why: `buy:${shop.id}:${item.id}`, grant, refund: { unbuy: [shop.id, key, item.id, n], credits: price },
+      take: () => { t[key][item.id] = (t[key][item.id] || 0) + n; rec.credits -= price; }, info: { n } };
+  }
+  return { costs: [{ kind: item.cur, d: -price }], why: `buy:${shop.id}:${item.id}`, grant, refund: { unbuy: [shop.id, key, item.id, n] },
     take: () => { t[key][item.id] = (t[key][item.id] || 0) + n; }, info: { n } };
 }
 // 渡す（lounge-game.js の give から 呼ぶ）
@@ -166,24 +271,26 @@ export function sellAct(rec, b, day) {
   const list = Array.isArray(b.mats) ? b.mats.slice(0, 50) : [];
   if (!list.length) return { ok: false, why: "売る 素材を えらんで" };
   const mats = rec.own.mats.map((m) => ({ ...m }));
-  let balls = 0;
+  let credits = 0;   // 売った 値は クレジット（MONO LINK の 通貨。前は 玉）
   for (const x of list) {
     let left = Number.isInteger(x.n) && x.n > 0 ? x.n : 0;
     if (!left) return { ok: false, why: "数が ちがう" };
     for (const m of mats.filter((y) => y.id === x.id && y.q === (x.q || 0)).sort((a, c) => (c.b ? 1 : 0) - (a.b ? 1 : 0))) { const k = Math.min(left, m.n); m.n -= k; left -= k; if (!left) break; }
     if (left) return { ok: false, why: "その 素材が 足りない" };
-    balls += sellPrice({ id: x.id, q: x.q || 0 }) * x.n;
+    credits += sellPrice({ id: x.id, q: x.q || 0 }) * x.n;
   }
-  balls = Math.round(balls * (1 + (rec.perks.sell20 ? SELL_PERK.sell20 : rec.perks.sell10 ? SELL_PERK.sell10 : 0)));
+  credits = Math.round(credits * (1 + (rec.perks.sell20 ? SELL_PERK.sell20 : rec.perks.sell10 ? SELL_PERK.sell10 : 0)));
   rec.own.mats = mats.filter((m) => m.n > 0);
+  rec.credits += credits;
   traderOf(rec, "junk", day).rep += REP_TRADE;
   bump(rec, { type: "sell", n: 1 }, day);
-  return { ok: true, balls, earn: [{ kind: "balls", d: balls }] };
+  return { ok: true, got: credits };   // 答えの credits は 門番が いまの 持ち高を 付ける
 }
-// 同じ 行き先の 採取の素材 3 こ → ほしい 1 こ（友好度 Lv2 から）
+// 同じ 行き先の 採取の素材 3 こ → ほしい 1 こ（ガラクの 第 1 章を 終えると。前は 友好度 Lv2 から）
 export function tradeAct(rec, b, day) {
   ensureTrade(rec);
-  if (repLv(traderOf(rec, "junk", day).rep) < 2) return { ok: false, why: "友好度 Lv2 から" };
+  traderOf(rec, "junk", day);
+  if (!unlockedBy("j-trade", doneOf(rec))) return { ok: false, why: "ガラクの 第 1 章を 終えると 使える" };
   const did = Object.keys(GATHER).find((k) => GATHER[k].mats.some(([id]) => id === b.want));
   const give = Array.isArray(b.give) ? b.give : [], ids = new Set(did ? GATHER[did].mats.map(([id]) => id) : []);
   if (!did || give.reduce((a, x) => a + (Number.isInteger(x.n) && x.n > 0 ? x.n : 99), 0) !== 3 || !give.every((x) => ids.has(x.id))) return { ok: false, why: "同じ 行き先の 素材を 3 こ えらんで" };
@@ -227,12 +334,35 @@ export function useItem(rec, b) {
 // ---------- 見せる 形 ----------
 export function deeplinkView(rec, day) {
   ensureTrade(rec);
+  const dOf = doneOf(rec);
   const traders = SHOPS.map((s) => {
-    const t = traderOf(rec, s.id, day), lv = s === SPECIAL ? 1 : repLv(t.rep);
-    const shop = s.shop.map((it) => ({ id: it.id, lv: it.lv, price: it.price, cur: it.cur, open: lv >= it.lv, left: it.stock ? it.stock - ((it.week ? t.wbuy : t.buy)[it.id] || 0) : null, done: !!(it.get && it.get.perk && rec.perks[it.get.perk]) }));
-    if (s === SPECIAL) return { id: s.id, shop };
+    const t = traderOf(rec, s.id, day), lv = lvNow(s.id, t);
+    const shop = s.shop.map((it) => { const un = unlockedBy(it.id, dOf); return { id: it.id, lv: it.lv, price: it.price, cur: it.cur, open: !it.soon && un && lv >= it.lv, ...(un ? {} : { lock: 1 }), ...(it.soon ? { soon: it.soon } : {}),
+      left: it.stock ? it.stock - ((it.week ? t.wbuy : t.buy)[it.id] || 0) : null, done: !!(it.get && it.get.perk && rec.perks[it.get.perk]) }; });
     const ks = tasksOf(s.id, t, day), task = (k, c, done, tr) => ({ n: k.n, kind: k.kind, found: !!k.found, text: k.text, need: k.need, unit: k.unit, cond: k.condText || null, have: progressOf(rec, k, c, tr), reward: k.reward, done });
-    return { id: s.id, rep: t.rep, lv, chain: task(ks.chain, t.cp, false, t), daily: task(ks.daily, t.dp, !!t.ddone), shop };
+    // プライマリー：章ごとの 終えた 数と 止まって いる わけ（まだ ない しくみ）、いまの タスク
+    const chs = (PRIMARY[s.id] || []).map((C, i) => ({ c: i + 1, title: C.title, done: C.tasks.filter((k) => isDone(t.pd, i + 1, k.no)).length, n: C.tasks.length, sys: [...new Set(C.tasks.filter((k) => k.sys).map((k) => k.sys))], sysN: C.tasks.filter((k) => k.sys).length }));
+    const k = PRIMARY[s.id] ? curTask(s.id, t.pd, lv) : null;
+    const pri = k ? { c: k.c, no: k.no, say: k.say, text: k.text, need: k.need, unit: k.unit, have: priProgress(rec, s.id, t, k), credits: k.credits, rep: PRI_REP(k.c), ...(k.unlock ? { unlock: k.unlock } : {}), ...(k.key ? { key: k.key } : {}) } : null;
+    return { id: s.id, rep: t.rep, lv, pd: t.pd, chs, pri, chain: task(ks.chain, t.cp, false, t), daily: task(ks.daily, t.dp, !!t.ddone), shop };
   });
-  return { traders, perks: rec.perks, items: rec.items, recipes: rec.recipes };
+  const keys = DUNGEONS.filter((d) => d.hidden && hasKey(rec, d.id)).map((d) => d.id);
+  return { traders, perks: rec.perks, items: rec.items, recipes: rec.recipes, keys, ins: (rec.ins || []).map((x) => ({ at: x.at, n: x.mats.reduce((a, m) => a + m.n, 0), did: x.did })) };
 }
+// ほかの 画面の 操作が うまく いった ときの できごと（viewer.js の act の あとで 呼ぶ）。プライマリータスク・ランダムの タスクに 数える
+export function actEvents(rec, a, r, b, day) {
+  if (!r || !r.ok) return;
+  const evs = [];
+  if (a === "snack.craft") evs.push({ type: "cook", n: r.n || 1, ...(r.id === "snack3" ? { kind: "snack3" } : {}) });
+  else if (a === "smelt.take") evs.push({ type: "smelt", n: r.got || 0 });
+  else if (a === "ws.att") evs.push({ type: "oproll", n: 1, slot: "weapon" });   // 工房の 武器の アタッチメント（素材で ★と OP を 引く）
+  else if (a === "farmv.harvest") { if (r.crop) evs.push({ type: "harvest", n: 1, crop: r.crop }); for (const it of r.items || []) evs.push({ type: "harvest", n: it.n, mat: it.id }); }
+  else if (a === "mine.collect") evs.push({ type: "mine", n: 1 });
+  else if (a === "shop.buy") evs.push({ type: "furn", n: 1 });   // ラウンジの 家具（リンデン家具工房）
+  else if (a === "prize.buy") evs.push({ type: "prize", n: 1 });
+  else if (a === "arena.duel" && r.win) { const pet = rec.pets[0], u = pet && pet.equip && pet.equip.weapon, w = u && rec.own.equip.find((e) => e.uid === u); evs.push({ type: "arena", n: 1, ...(w && w.mk ? { own: "weapon" } : {}), star: w ? w.star : 0 }); }
+  else if (a === "trip.start" && r.enc && r.enc.win) evs.push({ type: "enc", n: 1 });
+  for (const ev of evs) if (ev.n > 0) bump(rec, ev, day);
+}
+// DEEP LINK/: を 開いた 日（プライマリータスク「DEEP LINK を 3 日 ひらく」）
+export function dlVisit(rec, day) { ensureTrade(rec); if (rec.dlv === day) return { ok: true }; rec.dlv = day; bump(rec, { type: "visit", n: 1 }, day); return { ok: true }; }

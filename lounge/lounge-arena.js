@@ -2,7 +2,7 @@
 // Viewer：arena.view・arena.foes・arena.duel・arena.entry（viewer.js の act から）。相手の いまの 強さは、相手の Viewer の /fighter（記録を 読むだけ。順番待ちを 通らないので、おたがいに 待って 止まらない）
 // Market（みんなの 箱）：名簿 "a:c:" + id・守りの 記録 "a:d:" + id・大会 "a:t:" + 日・大会の ペット "a:f:" + 日 + ":" + id
 //   受付中の 大会の 日 "a:open"・進めて いる 大会の 日 "a:runq"・さいごに 終わった 大会の 日 "a:last"。22:00 の アラームで 大会を 少しずつ 進める（CPU の 上限が あるので 1 回に 数試合）
-// ごほうび：デュエルは その場で（クレジットは 記録・リソースは 帳簿）。大会は Market の 送る 箱（"o:"）から Viewer の /inbox へ
+// ごほうび：デュエルは その場で（クレジットは 記録・アメジストは 帳簿）。大会は Market の 送る 箱（"o:"）から Viewer の /inbox へ
 import { DUEL, duelPay, pickFoes, TOUR, TOUR_PAY, tourDay, tourAt, bracketOf, bandMatches, matchSeed, simulate, fighterPower, ENC } from "./game.js";
 import { fighterOf } from "./lounge-game.js";
 import { hidden } from "./lounge-gate.js";   // 入れない 人は 相手に えらばない・大会から はずす・名前を 出さない
@@ -142,7 +142,7 @@ export async function arenaFetch(mk, url, b, now) {
     if ((cnt[foeId] || 0) < ENC.perDay) {
       const mid = `enc:${now}:${id}:${foeId}`;
       cnt[foeId] = (cnt[foeId] || 0) + 1; await st.put("a:ec", { day, n: cnt });
-      await st.put("o:" + mid, { to: foeId, mid, why: "enc", give: { credits: b.win ? 0 : ENC.winCredits }, earn: [{ kind: "res", d: ENC.res }] });
+      await st.put("o:" + mid, { to: foeId, mid, why: "enc", give: { credits: b.win ? 0 : ENC.winCredits }, earn: ENC.res ? [{ kind: "res", d: ENC.res }] : [] });
       await mk.wake(now);
     }
     return J({ ok: true });

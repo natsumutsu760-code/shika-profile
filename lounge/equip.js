@@ -140,7 +140,6 @@ export const UNIQUE_BASES = UNIQUES.map((u) => ({ ...u, unique: true }));
 export const baseOf = (id) => BASES.find((b) => b.id === id) || UPPER.find((b) => b.id === id) || MYTHICS.find((b) => b.id === id) || UNIQUE_BASES.find((b) => b.id === id) || comboOf(id);
 // 手放す（鹿さんの決め、2026-10-25）：売る 値段（★ごと。玉・クレジット）と リサイクル
 // リサイクル：★の 数 だけ その 装備の 素材の tier の 行き先の 採取の 素材（くじ）。★4・★5 は かくし通路の 素材も 1 こ。前からの 12 しゅるいと 合成の 装備は ハルス街道、ミシックは その 行き先
-export const SCRAP_BALLS = [0, 10, 25, 60, 150, 400], SCRAP_CREDITS = [0, 30, 80, 200, 500, 1200];
 export function recycleOf(it) {
   const b = baseOf(it.base), tier = b && b.combo ? MATS[b.mat].tier : b && b.mythic ? Math.max(0, DUNGEONS.findIndex((d) => d.mythic.id === b.id)) : b && b.unique ? Math.max(0, DUNGEONS.findIndex((d) => d.id === b.dungeon)) : 0;
   return { did: DUNGEONS[Math.min(DUNGEONS.length - 1, tier)].id, n: it.star, hidden: it.star >= 4 ? 1 : 0 };
@@ -149,7 +148,7 @@ export function recycleOf(it) {
 export const keepInBulk = (it) => { const b = baseOf(it.base); return !b || !!b.mythic || !!b.unique || UPPER.some((u) => u.id === b.id) || !!it.fx; };
 // 自動で 売る（鹿さんの頼み、2026-10-25）：派遣で 拾った ★N 以下の 装備を 持ち物に 入れずに 手放す。もらう 物は えらべる（手放すと 同じ 値段）
 // 売らない：まとめて 手放さない 物（ミシック・合成の 上・効果つき）・買った／もらった 物（b）。a：rec.autoSell = { star, how }
-export const AUTO_SELL_STARS = [1, 2, 3, 4], AUTO_SELL_HOW = ["credits", "balls", "recycle"];
+export const AUTO_SELL_STARS = [1, 2, 3, 4], AUTO_SELL_HOW = ["recycle"];   // 装備は 売れない。リサイクル（素材に もどす）だけ（2026-10-28 の 決め。前は 玉・クレジットでも 売れた）
 export const autoSellOf = (it, a) => !!a && a.star > 0 && it.star <= a.star && !it.b && !keepInBulk(it);
 export const hasFx = (it) => { const b = baseOf(it.base); return !!b?.fxp && (b.mythic || b.unique || !!it.fx); };
 
