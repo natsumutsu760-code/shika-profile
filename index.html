@@ -350,6 +350,9 @@ html:not([lang="en"]) .en-only { display: none !important; }
 .ware .pr small { font: 700 12px var(--jp); margin-left: 2px; }
 .ware .buy { margin-top: 4px; border: 0; border-radius: 999px; padding: 9px 16px; background: var(--ink); color: #fff; font: 700 14px/1 var(--num); cursor: pointer; }
 .ware .buy.done { background: var(--leaf); }
+.ware .buy.sure { background: var(--coral); }   /* 景品：もう 1 回 押すと 買う */
+.ware .vis.pz svg { width: 74px; height: 74px; }
+.shop-me.pz-msg { color: var(--ink); font-weight: 700; }
 .ware .buy:focus-visible { outline: 3px solid var(--sky); outline-offset: 2px; }
 
 /* ---- 掲示板：ふきだしが浮かぶ ---- */
@@ -1500,7 +1503,8 @@ body.live-on .floor::before, body.live-on .isle { animation: none; }
   }
   function drawShop() {
     var n = shopNow(), box = $("shop"); shopSlot = n ? n.slot : null;
-    if (!n) { box.innerHTML = '<div class="panel empty">お店の品物は、配信のときに並びます。</div>'; return; }
+    if (PZ && PZ.until <= Date.now()) { PZ = null; pzLoad(true).then(drawShop); }   // 景品が 入れ替わった：読みなおす
+    if (!n) { box.innerHTML = '<div class="panel empty">お店の品物は、配信のときに並びます。</div><div id="pz"></div>'; pzDraw(); return; }
     var v = (meName && findViewer(meName)) || (meLogin && findViewer(meLogin)) || null;
     box.innerHTML = '<div class="panel shop-top"><div><h3>いまのお店</h3><p>日本時間の 0・6・12・18 時に 5 品が入れ替わります。配信のチャットで「!購入 番号」と打つと、持ち玉で買えます。</p></div><div class="shop-clock" id="shop-clock"></div></div>'
       + (v ? '<p class="soft shop-me">' + esc(v.name) + ' さんの持ち玉は ' + fmt(v.balls) + ' 玉です。</p>' : "")
@@ -1508,8 +1512,10 @@ body.live-on .floor::before, body.live-on .isle { animation: none; }
         var has = v && ((v.own || {})[it.kind] || []).indexOf(it.id) >= 0;
         return '<div class="ware r' + it.r + '" style="animation:rise .5s var(--out) both;animation-delay:' + i * .06 + 's"><span class="no">' + it.no + '</span>' + (has ? '<span class="have">持っています</span>' : "")
           + wareVis(it) + '<span class="st">' + stars(it.r) + '</span><span class="k">' + KLAB[it.kind] + '</span><span class="nm">' + esc(it.name) + '</span><span class="pr">' + fmt(it.price) + '<small>玉</small></span>'
-          + '<button type="button" class="buy" data-copy="!購入 ' + it.no + '" aria-label="「!購入 ' + it.no + '」をコピー">!購入 ' + it.no + '</button></div>';
-      }).join("") + '</div>';
+          + (pzCos(it) ? '<button type="button" class="buy" data-pbuy="c:' + it.no + '">買う</button>'   // ログインして いれば その場で 買う（MONO LINK の 景品の 受付。配信中だけ）
+            : '<button type="button" class="buy" data-copy="!購入 ' + it.no + '" aria-label="「!購入 ' + it.no + '」をコピー">!購入 ' + it.no + '</button>') + '</div>';
+      }).join("") + '</div><div id="pz"></div>';
+    pzDraw();
     if (liveOpen) drawPanes();
     tickShop();
   }
@@ -1521,7 +1527,64 @@ body.live-on .floor::before, body.live-on .isle { animation: none; }
     el.innerHTML = two(Math.floor(ms / 3600000)) + ":" + two(Math.floor(ms / 60000) % 60) + ":" + two(Math.floor(ms / 1000) % 60) + "<small>次の入れ替えまで</small>";
   }
   setInterval(tickShop, 1000);
+  // ---- MONO LINK の 景品（パチンコの 景品。鹿さんの 決め 2026-11-03）：門番の prize.view・prize.buy。払うのは 持ち玉 ----
+  // 鍵・謎のお菓子は いつも、家具は 6 時間ごとに 入れ替わる（MONO LINK の 持ち物へ）。上の コスメ 5 品も ログインして いれば その場で 買える（配信中だけ）
+  // 新ペットの 公開までは 門番の ロックで 鹿さんと おたこまるさんだけ（ほかの 人には 出さない）
+  var PZ = null, pzAt = 0, pzMsg = "";
+  function pzApi(body) {
+    return fetch("/api/act", { method: "POST", cache: "no-store", headers: { Authorization: "Bearer " + (tk() || ""), "Content-Type": "application/json" }, body: JSON.stringify(body) })
+      .then(function (r) { return r.json(); }).catch(function () { return { ok: false, why: "いまは つながりません。少し 待って から もう 一度" }; });
+  }
+  function pzOp() { return "op-" + (window.crypto && crypto.randomUUID ? crypto.randomUUID().replace(/-/g, "") : Date.now().toString(36) + Math.random().toString(36).slice(2)).slice(0, 30); }
+  function pzLoad(force) {
+    if (!tk()) { PZ = null; return Promise.resolve(); }
+    if (!force && PZ && Date.now() - pzAt < 60000) return Promise.resolve();
+    return pzApi({ op: pzOp(), a: "prize.view" }).then(function (j) { PZ = j && j.ok ? j.prize : null; pzAt = Date.now(); });
+  }
+  function pzCos(it) { return !!(PZ && PZ.cos && PZ.cos.some(function (c) { return c.no === it.no && c.id === it.id; })); }
+  function pzPic(x) {
+    if (x.f) return '<div class="vis">🛋️</div>';
+    if (x.id === "mystery") return '<div class="vis pz"><svg viewBox="0 0 64 64" aria-hidden="true"><path d="M18 32 6 22v20z" fill="#B49CFF"/><path d="M46 32l12-10v20z" fill="#B49CFF"/><ellipse cx="32" cy="32" rx="15" ry="12" fill="#8E6CFF"/><text x="32" y="39" text-anchor="middle" font-size="19" font-weight="900" fill="#fff" font-family="sans-serif">?</text></svg></div>';
+    var c = esc(x.c || "#2EA8FF");
+    if (/^key_(bz|crate)$/.test(x.id)) return '<div class="vis pz"><svg viewBox="0 0 64 64" aria-hidden="true"><rect x="8" y="15" width="48" height="34" rx="6" fill="' + c + '"/><rect x="8" y="22" width="48" height="6" fill="rgba(0,0,0,.22)"/><rect x="14" y="34" width="15" height="9" rx="2" fill="#FFE07A"/><circle cx="47" cy="38" r="4.5" fill="rgba(255,255,255,.75)"/></svg></div>';
+    return '<div class="vis pz"><svg viewBox="0 0 64 64" aria-hidden="true"><circle cx="21" cy="32" r="13" fill="' + c + '"/><circle cx="21" cy="32" r="5.5" fill="#fff"/><rect x="31" y="28.5" width="27" height="7" rx="2" fill="' + c + '"/><rect x="46" y="35" width="4.5" height="9" fill="' + c + '"/><rect x="53" y="35" width="4.5" height="6" fill="' + c + '"/></svg></div>';
+  }
+  function pzList() {
+    if (!PZ) return [];
+    return PZ.always.map(function (x) { return { key: "a:" + x.id, id: x.id, c: x.c, name: x.name, k: /^key_/.test(x.id) ? "鍵" : "おやつ", price: x.price, have: x.have }; })
+      .concat(PZ.furn.map(function (x) { return { key: "f:" + x.id, id: x.id, f: 1, name: x.name, k: "家具・6 時間ごと", r: x.star, price: x.price, have: x.have }; }));
+  }
+  function pzDraw() {
+    var box = $("pz"); if (!box) return;
+    if (!PZ) { box.innerHTML = ""; return; }   // ログインして いない・景品を まだ 使えない（ロック）・読めない
+    box.innerHTML = '<div class="panel shop-top"><div><h3>MONO LINK の 景品</h3><p>持ち玉で 買って、MONO LINK の 持ち物に 入ります（2 回 押すと 決まります）</p></div></div>'
+      + (pzMsg ? '<p class="soft shop-me pz-msg" role="status">' + esc(pzMsg) + '</p>' : "")
+      + '<div class="wares">' + pzList().map(function (x) {
+        return '<div class="ware' + (x.r ? " r" + Math.min(x.r, 5) : "") + '">' + (x.have ? '<span class="have">×' + x.have + '</span>' : "") + pzPic(x)
+          + (x.r ? '<span class="st">' + stars(x.r) + '</span>' : "") + '<span class="k">' + esc(x.k) + '</span><span class="nm">' + esc(x.name) + '</span><span class="pr">' + fmt(x.price) + '<small>玉</small></span>'
+          + '<button type="button" class="buy" data-pbuy="' + esc(x.key) + '">買う</button></div>';
+      }).join("") + '</div>';
+  }
+  function pzBuy(b) {
+    if (!b.classList.contains("sure")) {   // 玉を 使うので 2 回 押して 決める
+      document.querySelectorAll(".ware .buy.sure").forEach(function (o) { o.classList.remove("sure"); o.textContent = "買う"; });
+      b.classList.add("sure"); b.textContent = "もう 1 回 押すと 買う"; clearTimeout(b._sure); b._sure = setTimeout(function () { b.classList.remove("sure"); b.textContent = "買う"; }, 3500); return;
+    }
+    clearTimeout(b._sure); b.disabled = true; b.textContent = "買って います…";
+    var k = b.dataset.pbuy, body;
+    if (k.indexOf("a:") === 0) body = { kind: "always", id: k.slice(2) };
+    else if (k.indexOf("f:") === 0) body = { kind: "furn", id: k.slice(2), slot: PZ.slot };
+    else { var c = (PZ.cos || []).filter(function (x) { return "c:" + x.no === k; })[0]; if (!c) { pzMsg = "お店の 品物が 入れ替わりました"; drawShop(); return; } body = { kind: "cos", id: c.id, no: c.no, ck: c.kind, price: c.price, slot: PZ.slot }; }
+    var nm = k.indexOf("c:") === 0 ? (PZ.cos.filter(function (x) { return "c:" + x.no === k; })[0] || {}).name : (pzList().filter(function (x) { return x.key === k; })[0] || {}).name;
+    body.op = pzOp(); body.a = "prize.buy";
+    pzApi(body).then(function (j) {
+      if (j && j.ok && j.prize) { PZ = j.prize; pzAt = Date.now(); }
+      pzMsg = j && j.ok ? "買いました：" + (nm || "") : j && j.wait ? "配信の 画面の 返事を 待って います（MONO LINK を つぎに 開いた ときに 決まります）" : (j && j.why) || "買えませんでした";
+      drawShop();
+    });
+  }
   $("shop").addEventListener("click", function (e) {
+    var pb = e.target.closest("[data-pbuy]"); if (pb && !pb.disabled) { pzBuy(pb); return; }
     var b = e.target.closest("[data-copy]"); if (!b) return;
     var t = b.dataset.copy; (navigator.clipboard ? navigator.clipboard.writeText(t) : Promise.reject()).then(function () { b.classList.add("done"); b.textContent = "コピーしました"; setTimeout(function () { b.classList.remove("done"); b.textContent = t; }, 1400); }, function () {});
   });
@@ -3054,6 +3117,7 @@ var ShikaWheel = (function () {
     upd.textContent = d.at ? "更新 " + new Date(d.at).toLocaleString("ja-JP", { month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" }) : "更新を待っています";
     $("names").innerHTML = d.viewers.map(function (x) { return '<option value="' + esc(x.name) + '">'; }).join("");
     buildPlaza(); drawBoard(); drawShop(); route();
+    pzLoad().then(drawShop);   // MONO LINK の 景品（ログインして いる 人だけ）
   }
   function done() { setTimeout(function () { $("boot").classList.add("off"); }, RM ? 0 : 900); }
   loopWake();
