@@ -2222,7 +2222,8 @@ if (location.hash === "#lcdcard" || location.hash === "#sitecard" || document.do
 
   // o：{ read(key, def), write(key, val), get(name, kind) → いまの 数, add(name, kind, d) → 足した 数（0 より 少なく しない）,
   //      onCut(name, kind, want, got), onClash(name, ownerId, otherId)（ほかの 人の 名前で 話した。診断に 残して 配信者に 見せる）,
-  //      askBalls(name, d, need, key) → Promise<{ ok, bal, got } | null>（handleAsync の とき。玉を しまう 鹿物語に 頼む。null は 返事が なかった） }
+  //      askBalls(name, d, need, key) → Promise<{ ok, bal, got } | null>（handleAsync の とき。玉を しまう 鹿物語に 頼む。null は 返事が なかった）,
+//      canGive(name, give) → { ok, why }・give(name, give)（頼みに 渡す 物〈景品の コスメ〉が ある とき。先に 渡せるか たしかめ、払えたら 渡す） }
   // 玉を しまって 書くのは 鹿物語（オーバーレイは 読む だけ）。オーバーレイでは handleAsync を 使い、玉は 鹿物語に 頼んで 返事を 待つ（オーバーレイでは handle を 使わない。handle は 玉も その場で 書ける ときの 道＝門番の テスト用）
   function ObsLedger(o) {
     var obj = function (v) { return v && typeof v === "object" && !Array.isArray(v); };
@@ -2281,7 +2282,7 @@ if (location.hash === "#lcdcard" || location.hash === "#sitecard" || document.do
     function prep(list, res) {
       var xs = list.map(function (it) {
         var op = String((it && it.op) || "").slice(0, 100), kind = it && (it.kind === "balls" || it.kind === "res") ? it.kind : "";
-        return op && kind ? { op: op, kind: kind, d: Math.trunc(+it.d) || 0, id: String(it.id || ""), need: !!it.need } : null;
+        return op && kind ? { op: op, kind: kind, d: Math.trunc(+it.d) || 0, id: String(it.id || ""), need: !!it.need, give: giveOf(it.give) } : null;
       }).filter(Boolean);
       if (!xs.length) return null;
       if (xs.some(function (x) { return idx[x.op]; })) {   // 2 回目は 1 回目の 答え
@@ -2291,10 +2292,23 @@ if (location.hash === "#lcdcard" || location.hash === "#sitecard" || document.do
       var name = nameOf(xs[0].id);
       if (!name || xs.some(function (x) { return x.id !== xs[0].id; })) { xs.forEach(function (x) { res.push({ op: x.op, ok: 0, why: "id" }); }); return null; }   // 知らない 人・名前の 持ち主で ない 人：覚えない（あとで わかれば 足せる）
       var sum = {}; xs.forEach(function (x) { sum[x.kind] = (sum[x.kind] || 0) + x.d; });
-      return { xs: xs, name: name, sum: sum, need: xs.some(function (x) { return x.need; }) };
+      return { xs: xs, name: name, sum: sum, need: xs.some(function (x) { return x.need; }), give: (xs.filter(function (x) { return x.give; })[0] || {}).give || null };
+    }
+    // 渡す 物（景品の コスメ。2026-11-03）：{ cos: { slot, no, kind, id, price } } の 形だけ
+    function giveOf(g) {
+      var c = g && g.cos;
+      return c && typeof c === "object" && isFinite(c.slot) && isFinite(c.no) && isFinite(c.price) ? { cos: { slot: Math.trunc(+c.slot), no: Math.trunc(+c.no), kind: String(c.kind || "").slice(0, 10), id: String(c.id || "").slice(0, 80), price: Math.trunc(+c.price) } } : null;
+    }
+    // 渡す 物が ある 仕事：先に 渡せるか たしかめ、だめなら 玉を 引かずに ことわる（答えも 覚える）
+    function giveNg(P, res) {
+      if (!P.give) return false;
+      var c = o.canGive ? o.canGive(P.name, P.give) : null, why = (c && !c.ok && c.why) || (c && c.ok ? "" : "give");
+      if (!why) return false;
+      P.xs.forEach(function (x) { remember(x.op, false, why); res.push({ op: x.op, ok: 0, why: why }); });
+      return true;
     }
     function unit(list, res) {
-      var P = prep(list, res); if (!P) return;
+      var P = prep(list, res); if (!P || giveNg(P, res)) return;
       var xs = P.xs, name = P.name, sum = P.sum;
       var short = P.need && Object.keys(sum).some(function (k) { return (+o.get(name, k) || 0) + sum[k] < 0; });
       if (short) { xs.forEach(function (x) { remember(x.op, false, "short"); res.push({ op: x.op, ok: 0, why: "short", bal: +o.get(name, x.kind) || 0 }); }); return; }
@@ -2303,6 +2317,7 @@ if (location.hash === "#lcdcard" || location.hash === "#sitecard" || document.do
         if (got !== x.d && o.onCut) o.onCut(name, x.kind, x.d, got);   // 0 で とめた（診断に 残す）
         res.push({ op: x.op, ok: 1, seq: remember(x.op, true), bal: bal + got });
       });
+      if (P.give && o.give) o.give(name, P.give);
     }
 
     // 玉を 鹿物語に 頼む 道。仕事は 1 つずつ じゅんばんに（2 つの 頼みが まざらない ように）
@@ -2328,7 +2343,7 @@ if (location.hash === "#lcdcard" || location.hash === "#sitecard" || document.do
       });
     }
     function unitAsync(list, res) {
-      var P = prep(list, res); if (!P) return Promise.resolve();
+      var P = prep(list, res); if (!P || giveNg(P, res)) return Promise.resolve();
       var xs = P.xs, name = P.name, sb = P.sum.balls || 0, sr = P.sum.res || 0, hasB = xs.some(function (x) { return x.kind === "balls"; });
       var shortAll = function (bal) { xs.forEach(function (x) { remember(x.op, false, "short"); res.push({ op: x.op, ok: 0, why: "short", bal: x.kind === "balls" ? bal : +o.get(name, "res") || 0 }); }); };
       if (P.need && sr && (+o.get(name, "res") || 0) + sr < 0) { shortAll(+o.get(name, "balls") || 0); return Promise.resolve(); }
@@ -2351,6 +2366,7 @@ if (location.hash === "#lcdcard" || location.hash === "#sitecard" || document.do
           if (got !== x.d && o.onCut) o.onCut(name, "res", x.d, got);
           res.push({ op: x.op, ok: 1, seq: remember(x.op, true), bal: bal + got });
         });
+        if (P.give && o.give) o.give(name, P.give);   // 払えたので 渡す（同じ op の 2 回目は 上の prep で 1 回目の 答えに なり、ここへ 来ない）
       }, function () {});   // 頼めなかった：答えない
     }
 
@@ -11100,6 +11116,15 @@ if (location.hash === "#lcdcard" || location.hash === "#sitecard" || document.do
   if (mode === "#panel") { document.body.classList.add("panel-mode"); initPanel(); return; }
   var obs = mode === "#obs", demo = !obs;
   if (obs) write("shika-ov-href", { href: location.href.split("#")[0], t: Date.now() }); // 鹿物語が液晶の中のカード（#lcdcard）に使う
+  // 大工事の あとの リセット（鹿さんの 決め 2026-11-03。docs/mono-link-release-plan.md）：みんなの アメジストを 0 に する（フラグメント・コスメ・玉は そのまま）
+  // AME_RESET を 1 つ 上げた 版を 配ると、配信画面が 開いた ときに 1 回だけ。ふだんは 0（ほかの 直しの 配布で 消さない）。上げる 前に 鹿さんの OK（カード）と 写し
+  var AME_RESET = 1, AME_RESET_KEY = "shika-ame-reset-v1";   // 2026-11-03 build 112 で 1（鹿さんの OK・カード）。次に 0 に する ときだけ 2 に
+  if (obs && AME_RESET > (+read(AME_RESET_KEY, 0) || 0)) {
+    var gAll = read(GACHA, {}) || {}, ameBak = {};
+    for (var gNm in gAll) if (gAll[gNm] && typeof gAll[gNm] === "object" && gAll[gNm].res) { ameBak[gNm] = gAll[gNm].res; gAll[gNm].res = 0; }
+    if (!read("shika-ame-reset-bak-v1", null)) write("shika-ame-reset-bak-v1", { gen: AME_RESET, at: Date.now(), res: ameBak });   // 0 に する 前の 数を 残す（もどせる ように。いちど 写したら 上書きしない）
+    gacha = gAll; write(GACHA, gAll); write(AME_RESET_KEY, AME_RESET);
+  }
   if (obs) {
     // 前に絵文字（👑・💎・🌈）や前のエンブレムで選んでいたアイコンを、いまのエンブレムに置き換える（鹿物語の表示も合わせるため）
     var embMig = false;
@@ -11678,7 +11703,7 @@ if (location.hash === "#lcdcard" || location.hash === "#sitecard" || document.do
   // ---------- 帯の 戦い（⑤ 派遣先で ばったり・④ 大会の ベスト 8 から。鹿さんの頼み、2026-10-25）----------
   // 門番（MONO LINK）の relay-pvp から { A, B, seed, kind, did, pay }（大会は { kind: "tour", fs, list } で まとめて 来る）。部品（battle-view.js と その 先）は 門番の /lounge/ から 読む（鹿物語の 中継と 同じ）
   // 帯の ふち（y=858）を 床に して 2 匹が 戦い、帯の 中に だれと だれか・結果を 出す。終わったら いつもの ページに もどす
-  var PVP_PLACE = { hals: "ハルス街道", morph: "モーフィアス遺跡", kurai: "暗い村", crystal: "水晶洞窟" }, pvpLib = null;
+  var PVP_PLACE = { hals: "ハルス街道", morph: "モーフィアス遺跡", kurai: "暗い村", crystal: "水晶洞窟", inoh: "イノーの浜", gama: "ガマの隠れ港", tida: "ティダ岬の灯台", atui: "アトゥイ号の沈没船", zan: "ザンの洞窟", ufu: "ウフ火山", kaji: "カジの海峡", nirai: "ニライ寺院", mabui: "マブイの幽霊船", kanai: "カナイの門" }, pvpLib = null;
   function pvpBand(e, res) {
     var on = !!e;
     document.querySelectorAll(".rotator .page").forEach(function (p) { p.classList.toggle("on", on ? p.dataset.page === "pvp" : p.dataset.page === PAGES[pageI].id); });
@@ -11686,11 +11711,13 @@ if (location.hash === "#lcdcard" || location.hash === "#sitecard" || document.do
     if (!on) return;
     var A = e.A, B = e.B, who = function (f) { return "<b>" + esc(f.owner || "") + "</b> の " + esc(f.name || ""); }, pay = e.pay || {};
     if (!res) {
+      if (e.kind === "inv") { $("pvp-h").innerHTML = "侵入者だ！<small>" + esc((PVP_PLACE[e.did] || "派遣先") + "に 高レベルの " + (B.name || "") + "（Lv" + (+B.lv || 0) + "）") + "</small>"; $("pvp-sub").innerHTML = who(A) + "　VS　<b>" + esc(B.name || "") + "</b>"; return; }   // 探索中の 侵入（鹿さんの決め、2026-10-28）
       $("pvp-h").innerHTML = (e.kind === "final" ? "闘技場の 大会・決勝！" : e.kind === "tour" ? "闘技場の 大会・" + esc(e.label) + "！" : "派遣先で ばったり！") + "<small>" + (e.kind === "final" ? "きょうの 優勝が 決まる" : e.kind === "tour" ? (e.no ? "第 " + (+e.no) + " 試合" : "") : esc((PVP_PLACE[e.did] || "派遣先") + "で 出会った")) + "</small>";
       $("pvp-sub").innerHTML = who(A) + "　VS　" + who(B);
       return;
     }
     var w = res.winner === 0 ? A : B;
+    if (e.kind === "inv") { var beat = res.winner === 0; $("pvp-h").innerHTML = esc(w.name || "") + " の 勝ち！<small>" + (beat ? "撃退" : "力つきた") + "</small>"; $("pvp-sub").innerHTML = beat ? who(A) + " が 侵入者を たおした！" + (e.caught ? "　<em>捕まえた！</em>" : "") : who(A) + " は 力つきた……（派遣は ここまで）"; return; }
     $("pvp-h").innerHTML = esc(w.name || "") + " の 勝ち！<small>" + (res.upset ? "下克上" : e.kind === "final" ? "優勝" : "勝負あり") + "</small>";
     $("pvp-sub").innerHTML = e.kind === "final" ? who(w) + " が 優勝！" : e.kind === "tour" ? who(w) + " が " + esc(e.next) + "へ！" : who(w) + " に <em>+" + (+pay.credits || 0) + " クレジット</em>・ふたりに <em>リソース +" + (+pay.res || 0) + "</em>（探索は そのまま）";
   }
@@ -12006,20 +12033,34 @@ if (location.hash === "#lcdcard" || location.hash === "#sitecard" || document.do
     return "お店（" + shopEnd(n) + "まで）：" + n.items.map(function (it) { return it.no + "番 " + stars(it.r) + EQ_KIND[it.kind].label + "「" + it.name + "」" + it.price.toLocaleString("ja-JP") + "玉"; }).join("　") + "（!購入 番号 で買えます）";
   }
   var lastShopReq = (read("shika-shop-req-v1", {}) || {}).id || "";
-  function shopBuy(q) {
-    var n = shopAt(shopSlot()), it = n.items.filter(function (x) { return x.no === +q.no; })[0], res = { id: q.id, name: q.name, ok: false, price: +q.price || 0, msg: "" };
-    if (!it || +q.slot !== n.slot || it.k !== q.k) res.msg = "お店の品物が入れ替わりました（!お店 で今の品物を見られます）";
-    else if (+q.price !== it.price) res.msg = "値段が合いませんでした";
+  // 品物を さがして 買えるか たしかめる → { it } か { code, msg }。q：{ slot, no, price, k（鹿物語の !購入）か kind・id（MONO LINK の ボタン。2026-11-03） }
+  function shopFind(name, q) {
+    var n = shopAt(shopSlot()), it = n.items.filter(function (x) { return x.no === +q.no; })[0];
+    if (!it || +q.slot !== n.slot || (q.k ? it.k !== q.k : it.kind !== q.kind || it.x[0] !== q.id)) return { code: "gone", msg: "お店の品物が入れ替わりました（!お店 で今の品物を見られます）" };
+    if (+q.price !== it.price) return { code: "price", msg: "値段が合いませんでした" };
     // 持っている物も買える（被り 1 つと同じ）。フォントとⅢの物は買えない
-    else if (gachaOf(q.name).g.indexOf(it.k) >= 0 && it.kind === "font") res.msg = EQ_KIND[it.kind].label + "「" + it.name + "」はもう持っています";
-    else if (gachaOf(q.name).g.indexOf(it.k) >= 0 && dupOf(q.name, it.k) >= 6) res.msg = EQ_KIND[it.kind].label + "「" + it.name + "」はもう Ⅲ まで進化しています";
-    else {
-      var o = gachaCopy(gachaOf(q.name)), gv = gachaGive(o, it); gacha[q.name] = o; write(GACHA, gacha);
-      res.ok = true; res.msg = EQ_KIND[it.kind].label + "「" + it.name + "」" + (gv.isNew ? "" : gv.up ? " " + EVO_MARK[gv.up] + " に進化" : "（被り）");
-      addSys(q.name + " さんがお店で " + EQ_KIND[it.kind].label + "「" + it.name + "」" + stars(it.r) + " を買いました（-" + it.price.toLocaleString("ja-JP") + "玉）"
-        + (gv.isNew ? "" : gv.up ? "　被って " + EVO_MARK[gv.up] + " に進化！" : "　被り（" + EVO_MARK[gv.lv] + "・次まで" + evoNext(gv.dup) + "）"));
-      if (gv.isNew) checkOwn(q.name); else { if (gv.up) alertShow("get", { name: q.name, kind: it.kind, x: it.x, r: it.r, evo: gv.up }); ballPub(); facePubSoon(); }
-    }
+    var own = gachaOf(name).g.indexOf(it.k) >= 0;
+    if (own && it.kind === "font") return { code: "own", msg: EQ_KIND[it.kind].label + "「" + it.name + "」はもう持っています" };
+    if (own && dupOf(name, it.k) >= 6) return { code: "max", msg: EQ_KIND[it.kind].label + "「" + it.name + "」はもう Ⅲ まで進化しています" };
+    return { it: it };
+  }
+  // 渡す（玉は もう 引いて ある）。where：買った 所（お店＝!購入・MONO LINK＝ボタン）
+  function shopGive(name, it, where) {
+    var o = gachaCopy(gachaOf(name)), gv = gachaGive(o, it); gacha[name] = o; write(GACHA, gacha);
+    addSys(name + " さんが" + (where || "お店") + "で " + EQ_KIND[it.kind].label + "「" + it.name + "」" + stars(it.r) + " を買いました（-" + it.price.toLocaleString("ja-JP") + "玉）"
+      + (gv.isNew ? "" : gv.up ? "　被って " + EVO_MARK[gv.up] + " に進化！" : "　被り（" + EVO_MARK[gv.lv] + "・次まで" + evoNext(gv.dup) + "）"));
+    if (gv.isNew) checkOwn(name); else { if (gv.up) alertShow("get", { name: name, kind: it.kind, x: it.x, r: it.r, evo: gv.up }); ballPub(); facePubSoon(); }
+    return gv;
+  }
+  // MONO LINK の ボタンで 買った 物（ラウンジの 帳簿の 頼みに のって 来る）：払えたら 頼んだ 時の 6 時間の 並びから 渡す（その あいだに 入れ替わっても なくさない）
+  function shopGiveLg(name, q) {
+    var it = shopAt(+q.slot).items.filter(function (x) { return x.no === +q.no && x.kind === q.kind && x.x[0] === q.id; })[0];
+    if (it) shopGive(name, it, " MONO LINK の景品"); else addSys(name + " さんの MONO LINK の景品が見つかりませんでした（配信者へ：診断を見てください）");
+  }
+  function shopBuy(q) {
+    var res = { id: q.id, name: q.name, ok: false, price: +q.price || 0, msg: "" }, f = shopFind(q.name, q);
+    if (!f.it) res.msg = f.msg;
+    else { var gv = shopGive(q.name, f.it); res.ok = true; res.msg = EQ_KIND[f.it.kind].label + "「" + f.it.name + "」" + (gv.isNew ? "" : gv.up ? " " + EVO_MARK[gv.up] + " に進化" : "（被り）"); }
     if (!res.ok) addSys(q.name + " さん、" + res.msg + "。玉は返しました");
     write("shika-shop-res-v1", res);
   }
@@ -12929,6 +12970,8 @@ if (location.hash === "#lcdcard" || location.hash === "#sitecard" || document.do
     get: function (name, kind) { return kind === "balls" ? Math.max(0, Math.floor(+((read("pachinko-wallet-v1", {}) || {})[name]) || 0)) : resOf(name); },
     add: function (name, kind, d) { if (kind !== "res") return 0; var o = gachaCopy(gachaOf(name)), b = o.res; o.res = Math.max(0, Math.min(1e9, b + d)); gacha[name] = o; write(GACHA, gacha); return o.res - b; },
     askBalls: lgAsk,
+    canGive: function (name, g) { var f = g && g.cos ? shopFind(name, g.cos) : { code: "gone" }; return f.it ? { ok: 1 } : { ok: 0, why: f.code }; },   // 景品の コスメ（MONO LINK の ボタン）
+    give: function (name, g) { if (g && g.cos) shopGiveLg(name, g.cos); },
     onClash: function (name, ownerId, otherId) {
       var c = lgClash[name] || { ids: [] };
       [ownerId, otherId].forEach(function (id) { if (!c.ids.some(function (x) { return x.id === id; })) c.ids.push({ id: id, login: lgLogin[id] || "" }); });

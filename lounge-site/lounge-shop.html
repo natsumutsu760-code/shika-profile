@@ -71,6 +71,15 @@
   @keyframes pop { from { transform:scale(.6); opacity:0; } to { transform:none; opacity:1; } }
   .toast { position:fixed; left:50%; bottom:24px; transform:translateX(-50%) translateY(14px); max-width:calc(100vw - 32px); padding:10px 18px; border-radius:18px; background:var(--ink); color:#fff; font:700 14px/1.4 var(--jp); opacity:0; transition:opacity .2s, transform .2s; pointer-events:none; text-align:center; z-index:9; }
   .toast.on { opacity:1; transform:translateX(-50%); }
+  /* 景品（パチンコ。鹿さんの 決め 2026-11-03）：払うのは 持ち玉 */
+  .card .pic, .stage.flat { display:grid; place-items:center; aspect-ratio:1 / 1; border-radius:12px; background:var(--space); overflow:hidden; }
+  .stage.flat { aspect-ratio:1 / 0.82; border-radius:18px; } .stage.flat svg, .stage.flat img { width:46%; } .stage.flat .fx { font-size:64px; } .stage.flat .sw { width:46%; }
+  .card .pic svg, .card .pic img { width:72%; } .card .pic img { image-rendering:auto; }
+  .fx { font:900 34px/1 var(--jp); color:var(--ink); } .fx.sm { font-size:13px; padding:0 6px; text-align:center; line-height:1.3; }
+  .sw { width:64%; aspect-ratio:1 / 1; border-radius:50%; box-shadow:inset 0 0 0 6px var(--pa, #fff); }
+  .pr.b, .price.b { color:#1E8FE0; } .pr.b::before, .price.b::before { content:""; display:inline-block; width:.62em; height:.62em; border-radius:50%; background:#2EA8FF; margin-right:4px; align-self:center; }
+  .note { margin:0; font:700 12.5px/1.45 var(--jp); color:var(--soft); }
+  .wait { padding:14px; border-radius:16px; background:var(--space); font:700 13px/1.5 var(--jp); color:var(--soft); text-align:center; }
   @media (max-width:860px) {
     /* スマホ：買う 所を 上に（えらぶと すぐ 変わる）、商品は 下に 3 つずつ */
     .shop { grid-template-columns:minmax(0, 1fr); }
@@ -81,14 +90,14 @@
     .nm b { font-size:16px; } .price { font-size:22px; }
     .buy { padding:12px; }
     .grid { grid-template-columns:repeat(3, minmax(0, 1fr)); gap:8px; } .card { padding:6px; border-radius:14px; } .card b { font-size:12px; } .card .pr { font-size:13px; } .card .have { top:9px; right:9px; }
-    .tab { padding:10px 12px; flex:1; justify-content:center; }
+    .tab { padding:10px 6px; flex:1; justify-content:center; white-space:nowrap; } .tab small { display:none; }   /* タブ 4 つを 1 行に（景品を 足した とき） */
     .bar h1 { font-size:17px; }
   }
   @media (prefers-reduced-motion:reduce) { .got li { animation:none; } }
 </style>
 </head>
 <body>
-<header class="top"><a href="/" style="color:inherit;text-decoration:none" aria-label="MONO LINK の サイトへ"><b>MONO LINK<i>://</i></b></a><small><a href="lounge-room.html" style="color:inherit">プライベートラウンジ</a> ／ 家具の お店</small></header>
+<header class="top"><a href="/" style="color:inherit;text-decoration:none" aria-label="MONO LINK の サイトへ"><b>MONO LINK<i>://</i></b></a><small><a href="lounge-room.html" style="color:inherit">プライベートラウンジ</a> ／ お店</small></header>
 <main>
   <div class="bar"><h1>家具の お店</h1><span class="pend" id="pend" hidden title="配信の 画面の 返事を 待って いる 買い物。つぎに 開いた ときに 決まります"></span><a class="back" href="lounge-room.html?edit">部屋に もどる</a></div>
   <div class="tabs" role="tablist" aria-label="売り場" id="tabs"></div>
@@ -103,6 +112,7 @@
 import "./lounge-en.js";   // 英語の 画面（MONO LINK の サイトの EN／日本語 と 同じ 決まり。英語の ときだけ 辞書を 読む）
 import * as THREE from "three";
 import { F, kit, PRICE, SALE, DAILY_OFF, GACHA_COST, GACHA_RATE, salePrice, jstDay, dailyOf } from "./lounge-furniture.js";
+import { PRIZE_ALWAYS, prizeOf, isKey } from "./prizes.js";   // パチンコの 景品（いつも 並ぶ 7。入れ替わる 家具と コスメは 門番が 返す）
 import { me, act, busy, waitText } from "./lounge-client.js";   // 買う・ガチャは 門番に 頼む（見本では ブラウザの 中の ためしの 門番）
 import { mountWallet } from "./wallet-bar.js"; mountWallet();   // 上の 通貨の 札（玉・リソース・クレジット）と 両替
 
@@ -112,8 +122,8 @@ const fmt = (n) => n.toLocaleString("ja-JP");
 const stars = (n) => `<span class="stars">${"★".repeat(n)}</span>`;
 const sizeText = (f) => (f.place === "wall" ? `壁・はば ${f.size}` : `${f.place === "rug" ? "しく 物" : "床"}・${f.size[0]}×${f.size[1]}`);
 // 持ち物と リソースは 門番から（known：OBS の 記録で まだ わからない 人は 買えない・waiting：返事を 待って いる 買い物）
-const W = { res: 0, own: {}, known: true, waiting: 0 };
-async function refresh() { const m = await me(); if (m.denied || !m.wallet) { W.known = false; return m; } W.res = m.wallet.res; W.known = m.wallet.known; W.own = m.own.furniture; W.waiting = m.waiting || 0; return m; }
+const W = { res: 0, balls: 0, own: {}, known: true, waiting: 0, lock: false };
+async function refresh() { const m = await me(); if (m.denied || !m.wallet) { W.known = false; return m; } W.res = m.wallet.res; W.balls = m.wallet.balls || 0; W.known = m.wallet.known; W.own = m.own.furniture; W.waiting = m.waiting || 0; W.lock = !!m.lock; return m; }
 const ME = await refresh();
 // 入れない 人（ログインが 切れた・フォローして いない など）：理由と、ログインの 道だけ 出して ここで とめる
 if (ME.denied || ME.ok === false) {
@@ -121,7 +131,8 @@ if (ME.denied || ME.ok === false) {
   window.ready = true; await new Promise(() => {});
 }
 const TODAY = dailyOf(jstDay()), isDaily = (f) => TODAY.includes(f);
-const S = { t: ["daily", "catalog", "gacha"].includes(q.get("t")) ? q.get("t") : "daily", sel: null, kind: "all", star: 0, sort: "cheap", got: [] };
+const S = { t: ["daily", "catalog", "gacha", "prize"].includes(q.get("t")) ? q.get("t") : "daily", sel: null, kind: "all", star: 0, sort: "cheap", got: [], pk: "always", pz: null };   // pk：景品の 枠（always・rot）・pz：えらんだ 景品
+if (S.t === "prize" && W.lock) S.t = "daily";   // 景品は 新ペットの 公開まで 2 人だけ（ロックの 人には タブも 出さない）
 const priceOf = (f) => (S.t === "daily" && isDaily(f) ? salePrice(f) : PRICE[f.star]);
 
 // ---------- 3D：商品の 絵（いちどに 作って 画像に）と、右で まわる 家具 ----------
@@ -155,6 +166,7 @@ const card = (f) => { const have = W.own[f.id] || 0, sale = S.t === "daily";
   return `<li><button class="card" data-sel="${f.id}" aria-pressed="${S.sel === f}"><img src="${IMG[f.id]}" alt="">${have ? `<span class="have">×${have}</span>` : ""}
     <b>${esc(f.name)}</b>${stars(f.star)}<span class="pr">${fmt(priceOf(f))}${sale ? `<s>${fmt(PRICE[f.star])}</s>` : ""}</span></button></li>`; };
 function leftHtml() {
+  if (S.t === "prize") return prizeLeft();
   if (S.t === "daily") return `<div class="head"><h2>きょうの 3 品</h2><small id="cd"></small></div><ul class="grid">${TODAY.map(card).join("")}</ul>`;
   // ガチャの 中身：★ごとに 名前だけ（押すと 右で 見られる）。仕事は「まわす」なので 短く
   if (S.t === "gacha") return `<div class="head"><h2>ガチャの 中身</h2><small>${SALE.length} しゅるい</small></div><div class="inside">${[5, 4, 3, 2, 1].map((s) => { const l = SALE.filter((f) => f.star === s);
@@ -171,8 +183,56 @@ function leftHtml() {
     <ul class="grid">${vis.map(card).join("")}</ul>`;
 }
 
+// ---------- 景品（パチンコ。シーズンラインナップ。払うのは 持ち玉）----------
+// いつも 並ぶ 7（鍵 6 と 謎のお菓子）と、6 時間ごとに 入れ替わる 7（コスメ 5〈配信の 画面が 決める〉と 家具 2）
+let PZ = null;   // 門番の prize.view
+async function loadPrize() { const r = await act("prize.view"); PZ = r && r.ok ? r.prize : null; }
+const COS = { skin: "スキン", icon: "アイコン", ep: "二つ名", font: "フォント", ball: "玉スキン" };
+const keyPic = (p) => isKey(p.id) && /^key_(bz|crate)$/.test(p.id)
+  ? `<svg viewBox="0 0 64 64" aria-hidden="true"><rect x="8" y="15" width="48" height="34" rx="6" fill="${p.c}"/><rect x="8" y="22" width="48" height="6" fill="rgba(0,0,0,.22)"/><rect x="14" y="34" width="15" height="9" rx="2" fill="#FFE07A"/><circle cx="47" cy="38" r="4.5" fill="rgba(255,255,255,.75)"/></svg>`
+  : isKey(p.id) ? `<svg viewBox="0 0 64 64" aria-hidden="true"><circle cx="21" cy="32" r="13" fill="${p.c}"/><circle cx="21" cy="32" r="5.5" fill="#fff"/><rect x="31" y="28.5" width="27" height="7" rx="2" fill="${p.c}"/><rect x="46" y="35" width="4.5" height="9" fill="${p.c}"/><rect x="53" y="35" width="4.5" height="6" fill="${p.c}"/></svg>`
+  : `<svg viewBox="0 0 64 64" aria-hidden="true"><path d="M18 32 6 22v20z" fill="#B49CFF"/><path d="M46 32l12-10v20z" fill="#B49CFF"/><ellipse cx="32" cy="32" rx="15" ry="12" fill="#8E6CFF"/><text x="32" y="39" text-anchor="middle" font-size="19" font-weight="900" fill="#fff" font-family="sans-serif">?</text></svg>`;
+const cosPic = (c) => c.img ? `<img src="${esc(c.img)}" alt="">` : c.kind === "skin" ? `<span class="sw" style="background:${esc(c.bg || "#DCE3F0")};--pa:${esc(c.pa || "#fff")}"></span>`
+  : c.kind === "font" ? `<span class="fx" style="font-family:${esc(c.family || "inherit")}">あ</span>` : c.kind === "icon" ? `<span class="fx">${esc(c.id)}</span>` : `<span class="fx sm">${esc(c.name)}</span>`;
+// 景品を 1 つの 形に（kind：always・furn・cos）
+function prizeItems(pk) {
+  if (!PZ) return [];
+  if (pk === "always") return PZ.always.map((x) => ({ kind: "always", key: "a:" + x.id, id: x.id, name: prizeOf(x.id).name, price: x.price, have: x.have, pic: keyPic(prizeOf(x.id)), sub: prizeOf(x.id).note }));
+  return [...PZ.furn.map((x) => ({ kind: "furn", key: "f:" + x.id, id: x.id, name: F(x.id).name, star: x.star, price: x.price, have: W.own[x.id] || 0, f: F(x.id), sub: `家具・${sizeText(F(x.id))}` })),
+    ...(PZ.cos || []).map((c) => ({ kind: "cos", key: "c:" + c.no, id: c.id, no: c.no, ck: c.kind, name: c.name, star: c.r, price: c.price, pic: cosPic(c), sub: `コスメ・${COS[c.kind] || c.kind}（配信中に 買える）` }))];
+}
+const prizeOfKey = (k) => [...prizeItems("always"), ...prizeItems("rot")].find((x) => x.key === k) || null;
+const pcard = (x) => `<li><button class="card" data-psel="${x.key}" aria-pressed="${S.pz === x.key}">${x.f ? `<img src="${IMG[x.id]}" alt="">` : `<span class="pic">${x.pic}</span>`}${x.have ? `<span class="have">×${x.have}</span>` : ""}
+  <b>${esc(x.name)}</b>${x.star ? stars(x.star) : ""}<span class="pr b">${fmt(x.price)}</span></button></li>`;
+function prizeLeft() {
+  if (!PZ) return `<div class="head"><h2>パチンコの 景品</h2></div><p class="wait">景品を 読みこめませんでした（もう 一度 開いて ください）</p>`;
+  const list = prizeItems(S.pk), rotN = prizeItems("rot").length;
+  const chip = (k, t, n) => `<button class="chip" data-pk="${k}" aria-pressed="${S.pk === k}">${t}<small>${n}</small></button>`;
+  return `<div class="head"><h2>パチンコの 景品</h2><small id="pcd"></small></div>
+    <div class="filters" role="group" aria-label="枠"><div class="frow"><span>枠</span><div>${chip("always", "いつも", PZ.always.length)}${chip("rot", "6 時間ごと", rotN)}</div></div></div>
+    <ul class="grid">${list.map(pcard).join("")}</ul>${S.pk === "rot" && !PZ.cos ? `<p class="note" style="margin-top:10px">コスメは 配信の 画面が 動くと ならぶ</p>` : ""}`;
+}
+function prizeDetail() {
+  const x = prizeOfKey(S.pz); if (!x) return "";
+  const lack = x.price - W.balls;
+  return `${x.f ? `<div class="stage"></div>` : `<div class="stage flat">${x.pic}</div>`}
+    <div class="nm"><b>${esc(x.name)}</b>${x.star ? stars(x.star) : ""}<span>${x.have ? `持っている ×${x.have}` : ""}</span></div>
+    <p class="note">${esc(x.sub)}${isKey(x.id) && x.kind === "always" ? "（クローラー・ボーダーゾーンが 開いたら 使える）" : ""}</p>
+    <div class="price b">${fmt(x.price)}<small>玉</small></div>
+    <button class="buy" data-pbuy="${x.key}" ${lack > 0 || !W.known ? "disabled" : ""}>買う</button>
+    ${!W.known ? `<p class="why">玉が まだ わかりません（配信で 1 回 チャットすると わかります）</p>` : lack > 0 ? `<p class="why">玉が 足りない：あと ${fmt(lack)}</p>` : x.kind === "furn" && x.have ? `<a class="goroom" href="lounge-room.html?edit">部屋に 置く</a>` : ""}`;
+}
+async function buyPrize(b, x) {
+  const body = x.kind === "always" ? { kind: "always", id: x.id } : x.kind === "furn" ? { kind: "furn", id: x.id, slot: PZ.slot } : { kind: "cos", id: x.id, no: x.no, ck: x.ck, price: x.price, slot: PZ.slot };
+  const r = await busy(b, () => act("prize.buy", body));
+  if (r.ok && r.prize) PZ = r.prize;
+  await done(r);
+  toast(r.ok ? `買った：${x.name}${x.kind === "furn" ? "（もようがえの 持ち物に 入った）" : x.kind === "cos" ? "（配信の 画面で 付けかえられる）" : "（持ち物に 入った）"}` : r.wait ? waitText : r.why);
+}
+
 // ---------- 右：くわしく・買う（ガチャは まわす）----------
 function detailHtml() {
+  if (S.t === "prize") return prizeDetail();
   if (S.t === "gacha" && !S.sel) {
     const can1 = W.res >= GACHA_COST, can10 = W.res >= GACHA_COST * 10;
     return `<div class="nm"><b>インテリアガチャ</b><span>かぶったら 2 こ目</span></div>
@@ -193,13 +253,17 @@ function detailHtml() {
 
 function render() {
   const pend = document.getElementById("pend"); pend.hidden = !W.waiting; pend.textContent = `返事まち ${W.waiting}`;
-  document.getElementById("tabs").innerHTML = [["daily", "日替わり", TODAY.length], ["catalog", "カタログ", SALE.length], ["gacha", "ガチャ", null]].map(([k, t, n]) =>
+  document.querySelector(".bar h1").textContent = S.t === "prize" ? "パチンコの 景品" : "家具の お店";
+  document.getElementById("tabs").innerHTML = [["daily", "日替わり", TODAY.length], ["catalog", "カタログ", SALE.length], ["gacha", "ガチャ", null], ...(W.lock ? [] : [["prize", "景品", null]])].map(([k, t, n]) =>
     `<button class="tab" role="tab" data-t="${k}" aria-selected="${S.t === k}">${t}${n === null ? "" : `<small>${n}</small>`}</button>`).join("");
   document.getElementById("left").innerHTML = leftHtml();
   const D = document.getElementById("detail"); D.innerHTML = detailHtml(); D.classList.toggle("nostage", !D.querySelector(".stage"));
   if (S.sel) mountStage(S.sel); else LV = null;
-  countdown();
+  countdown(); pcountdown();
 }
+// 景品の 入れ替わりまで（日本時間の 0・6・12・18 時）。入れ替わったら 読みなおす
+function pcountdown() { const el = document.getElementById("pcd"); if (!el || !PZ) return; const ms = PZ.until - Date.now(); if (ms <= 0) { loadPrize().then(render); return; } const h = Math.floor(ms / 3600e3), m = Math.floor((ms % 3600e3) / 60e3); el.textContent = `あと ${h}:${String(m).padStart(2, "0")} で 入れ替わる`; }
+setInterval(pcountdown, 30000);
 // 日替わりが かわるまで（日本時間の 0 時）
 function countdown() { const el = document.getElementById("cd"); if (!el) return; const ms = (jstDay() + 1) * 86400e3 - 9 * 3600e3 - Date.now(), h = Math.floor(ms / 3600e3), m = Math.floor((ms % 3600e3) / 60e3); el.textContent = `あと ${h}:${String(m).padStart(2, "0")} で 入れかわる`; }
 setInterval(countdown, 30000);
@@ -207,7 +271,11 @@ setInterval(countdown, 30000);
 let tid; const toast = (t) => { const el = document.getElementById("toast"); el.textContent = t; el.classList.add("on"); clearTimeout(tid); tid = setTimeout(() => el.classList.remove("on"), 2400); };
 document.querySelector("main").addEventListener("click", (e) => {
   const b = e.target.closest("button"); if (!b || b.disabled) return;
+  if (b.dataset.t === "prize") { S.t = "prize"; S.sel = null; (PZ ? Promise.resolve() : loadPrize()).then(() => { if (!S.pz && PZ) S.pz = prizeItems(S.pk)[0].key; S.sel = (prizeOfKey(S.pz) || {}).f || null; render(); }); return; }
   if (b.dataset.t) { S.t = b.dataset.t; S.sel = S.t === "gacha" ? null : S.t === "daily" ? TODAY[0] : (S.sel && !isDaily(S.sel) ? S.sel : SALE[0]); return render(); }
+  if (b.dataset.pk) { S.pk = b.dataset.pk; const l = prizeItems(S.pk); if (!l.some((x) => x.key === S.pz)) S.pz = l[0] ? l[0].key : null; S.sel = (prizeOfKey(S.pz) || {}).f || null; return render(); }
+  if (b.dataset.psel) { S.pz = b.dataset.psel; S.sel = (prizeOfKey(S.pz) || {}).f || null; return render(); }
+  if (b.dataset.pbuy) { const x = prizeOfKey(b.dataset.pbuy); if (x) buyPrize(b, x); return; }
   if (b.dataset.kind) { S.kind = b.dataset.kind; return render(); }
   if (b.dataset.star !== undefined) { S.star = +b.dataset.star; return render(); }
   if (b.dataset.sort) { S.sort = b.dataset.sort; return render(); }
@@ -236,6 +304,7 @@ const calm = matchMedia("(prefers-reduced-motion:reduce)").matches;
 function tick(t) { if (LV) { if (!LV.wall && !calm) LV.pivot.rotation.y = t / 2200; live.render(LV.sc, LV.cam); } requestAnimationFrame(tick); }
 addEventListener("resize", () => { if (S.sel) mountStage(S.sel); });
 S.sel = S.t === "daily" ? TODAY[0] : S.t === "catalog" ? SALE[0] : null;
+if (S.t === "prize") { await loadPrize(); if (PZ) { S.pz = prizeItems(S.pk)[0].key; S.sel = null; } }
 render(); requestAnimationFrame(tick);
 window.ready = true; window.S = S;
 </script>

@@ -5,7 +5,7 @@
 // ほかの 頼みが 入ると、同じ 人が すばやく 2 回 押した とき 2 重に 使えて しまうので
 // 派遣の 計算は 出かけた あと アラームで 戦い 1 回ずつ（Cloudflare の 無料の プランは 1 回 10 ミリ秒まで）。とちゅうは「sim」に しまう
 import { cleanRoom, STARTER_OWN, STARTER_ROOM, N, SALE_IDS, priceOn, jstDay, pullId, GACHA_COST } from "./lounge-rules.js";
-import { locked, lockedAct, LOCK_WHY } from "./lounge-lock.js";   // 大工事の あいだの ロック
+import { locked, lockedAct, lockWhy, lockKind } from "./lounge-lock.js";   // 大工事の あいだの ロック
 import { emptyLedger, balanceOf, trimSent, toObs, settle } from "./ledger.js";
 import { buyPlan, sellAct, tradeAct, taskDone, useItem, deeplinkView } from "./lounge-trade.js";
 import { reqPostPlan, takeFor, items } from "./lounge-req.js";
@@ -15,27 +15,35 @@ import { relayEntry } from "./lounge-relay.js";   // 配信の 中継（鹿物�
 import { swapPlan } from "./lounge-money.js";   // 両替（玉・クレジット・リソース）
 import { coreTake, coreSet } from "./lounge-core.js";   // ブランクコア（OP を 抜く・付ける）
 import { tameFuse, tameSp } from "./lounge-fuse.js";   // モンスターの 配合・なかまの スキルポイント
-import { wsMake, wsAtt, attSet, attOff, attDrop } from "./lounge-workshop.js";   // 工房（道具・アタッチメント）
-import { farmPlant, farmHarvest, farmSpr, mineSet, mineCollect, mineLeave, farmView } from "./lounge-farm.js";   // 畑と 坑道
+import { wsMake, wsAtt, wsProc, attSet, attOff, attDrop, smeltPut, smeltTake, smeltStop } from "./lounge-workshop.js";   // 工房（道具・アタッチメント・精錬）
+import { mineSet, mineCollect, mineUse, mineLeave, mineView } from "./lounge-mine.js";   // 坑道（前の 隠れ家の 畑は 2026-11-03 に 消して 新しい 農園に まとめた）
+import { farmvPlant, farmvHarvest, farmvSpr, farmvSoil, farmvSkin, farmvView } from "./lounge-farmv.js";   // 新しい 農園（3D の 畑。鹿さんの 決め 2026-11-03）
+import { nutCraft, nutFeed, nutDetox, nutBreak } from "./lounge-nutrition.js";   // 詳細ステータス・栄養
 import { statPut } from "./lounge-stats.js";   // 記録の まとめ（OBS の コスメの 条件。かわった ときだけ Lounge へ）
-import { ensure, give, FURN_MAX, petFirst, petJob, tripStart, tripCalc, tripDone, tripCollect, payWaiting, tripView, hideoutPlan, craftPlan, synthPlan, boxTake, dropOld, stashCap, tameFeedPlan, tameJoin, tameBack, researchPlan, snackCraft, autoSellSet, equipCap, loopNew, loopSet, loopSeen, loopAfter, loopStep, equipScrap } from "./lounge-game.js";
+import { ensure, give, FURN_MAX, petFirst, petJob, petUnlockPlan, petSwitch, tripStart, tripCalc, tripDone, invadeRelay, tripCollect, payWaiting, tripView, hideoutPlan, craftPlan, synthPlan, boxTake, dropOld, stashCap, tameFeedPlan, tameJoin, tameBack, researchPlan, extractPlan, snackCraft, autoSellSet, equipCap, loopNew, loopSet, loopSeen, loopAfter, loopStep, equipScrap } from "./lounge-game.js";
 import { arenaFighter, ensureArena, duelCheck, duelDone, arenaMine, encReady, encPick, encDone } from "./lounge-arena.js";   // 闘技場・派遣先の 戦い
 import { hidden } from "./lounge-gate.js";
+import { resetOld, resetDue, RESET_GEN } from "./lounge-reset.js";
+import { prizeView, prizePlan } from "./lounge-prize.js";   // パチンコの 景品（シーズンラインナップ。鹿さんの 決め 2026-11-03）   // 大工事の あとの リセット（鹿さんの 決め 2026-11-03）
 
 const OPS_KEEP = 200;            // おぼえて おく op（2 回 来たら 1 回目の 答えを 返す）
 const RATE = { n: 5, ms: 1000 }; // 1 人 1 秒に 5 回まで
 const LABEL = { balls: "玉", res: "リソース" };
-export const MONEY = /^(shop\.|hideout\.up$|bench\.|trip\.collect$|trip\.start$|tame\.feed$|tame\.research$|trader\.|task\.|req\.|pet\.respec$|pet\.rejob$|money\.|arena\.duel$)/;   // 玉か リソースが うごく やること（答えに いまの 数を つける）
+// オーバーレイが 景品の コスメを 渡せなかった わけ（obs-ledger.js の canGive の why）
+const GIVE_WHY = { gone: "お店の 品物が 入れ替わりました", price: "値段が 合いませんでした", own: "その コスメは もう 持って いる", max: "その コスメは もう Ⅲ まで 進化して いる", give: "配信の 画面が 景品を 渡せませんでした" };
+export const MONEY = /^(shop\.|hideout\.up$|bench\.|trip\.collect$|trip\.start$|tame\.feed$|tame\.research$|tame\.extract$|trader\.|task\.|req\.|pet\.respec$|pet\.rejob$|pet\.unlock$|money\.|arena\.duel$|prize\.)/;   // 玉か リソースが うごく やること（答えに いまの 数を つける）
 const PLANS = {
   "hideout.up": (rec, b) => hideoutPlan(rec, b, rec.ledger.unknown),
   "bench.craft": (rec, b) => craftPlan(rec, b, rand),
   "bench.synth": (rec, b) => synthPlan(rec, b, rand),
   "tame.feed": (rec, b) => tameFeedPlan(rec, b, rec.ledger.unknown),
   "tame.research": (rec, b) => researchPlan(rec, b, rec.ledger.unknown),
+  "tame.extract": (rec, b) => extractPlan(rec, b, rec.ledger.unknown),   // 進化した スキルを 取り出す（なかまと おわかれ）
   "trader.buy": (rec, b) => buyPlan(rec, b, jstDay(), rand),
   "money.swap": (rec, b) => swapPlan(rec, b),
   "pet.respec": (rec, b) => respecPlan(rec, b, jstDay()),
   "pet.rejob": (rec, b) => respecPlan(rec, b, jstDay()),
+  "pet.unlock": (rec, b) => petUnlockPlan(rec, b, rec.ledger.unknown, rand),   // 2 匹目は 無料（計画を 作らずに その場で むかえる）、3 匹目から アメジスト
   "req.post": (rec, b, env) => reqPostPlan(rec, b, String((env && env.NG_WORDS) || "").split(",").map((w) => w.trim()).filter(Boolean)),   // 門番だけが 持つ NG ことば
 };
 const res = (o, status = 200) => new Response(JSON.stringify(o), { status, headers: { "Content-Type": "application/json" } });
@@ -45,7 +53,16 @@ export class Viewer {
   constructor(state, env) { this.state = state; this.env = env; this.hits = []; this.q = Promise.resolve(); }
 
   run(fn) { const p = this.q.then(fn); this.q = p.catch(() => {}); return p; }
-  async load() { const rec = (await this.state.storage.get("rec")) || null; if (rec) { rec.ledger ||= emptyLedger(); ensure(rec); } return rec; }
+  async load() {
+    const rec = (await this.state.storage.get("rec")) || null;
+    if (rec) {
+      rec.ledger ||= emptyLedger();
+      // 大工事の あとの リセット（lounge-reset.js）：消す 前に 記録を まるごと 写す（bak:reset番号。いちど 写したら 上書きしない＝リセット前の 形を 残す）
+      if (resetDue(rec)) { const k = "bak:reset" + RESET_GEN; if (!(await this.state.storage.get(k))) await this.state.storage.put(k, { at: Date.now(), rec: JSON.parse(JSON.stringify(rec)) }); resetOld(rec); await this.save(rec); }
+      ensure(rec);
+    }
+    return rec;
+  }
   async save(rec) { await this.state.storage.put("rec", rec); await statPut(this, rec); }
   lounge() { return this.env.LOUNGE.get(this.env.LOUNGE.idFromName("lounge")); }
   // 配信の 中継：出かけた 派遣を Lounge に あずける（put）・本当の 帰る 時間（end）・うけとった（del）。つながらなくても 派遣は そのまま
@@ -57,7 +74,7 @@ export class Viewer {
   // はじめての 人は ここで 記録を 作る。名前は 来る たびに 新しく する（前の 名前は names に 残す）
   async init(who) {
     const had = await this.load(), now = Date.now();
-    const rec = had || { v: 1, id: who.id, login: who.login, name: who.login, nameAt: 0, names: [], at: now,
+    const rec = had || { v: 1, id: who.id, login: who.login, name: who.login, nameAt: 0, names: [], at: now, resetGen: RESET_GEN,
       room: { size: N, light: "day", items: STARTER_ROOM.map((x) => ({ ...x })) }, own: { furniture: { ...STARTER_OWN } }, ops: [], ledger: emptyLedger() };
     let changed = !had;
     if (who.login && who.login !== rec.login) { rec.login = who.login; changed = true; }
@@ -81,6 +98,7 @@ export class Viewer {
     const rec = await this.load();   // 記録を 読むのは 終わった ときだけ
     if (rec && tripDone(rec, sim)) {
       await this.save(rec); const t = rec.trips.find((x) => x.uid === sim.uid); if (t) await this.relay("end", { id: rec.id, uid: t.uid, end: t.end });
+      const iv = invadeRelay(rec, sim); if (iv && !hidden(await this.env.DB.get("gate", "json"), rec.id)) await this.relay("pvp", iv);   // 侵入の 戦い：配信中なら 帯で
       await this.state.storage.delete("sim");
       if (t && rec.loop && rec.loop.on) await this.state.storage.setAlarm(Math.max(Date.now(), t.end));   // 周回：帰る 時間に うけとって つぎへ
       return;
@@ -98,7 +116,7 @@ export class Viewer {
     for (const e of s.r.earn || []) await this.earn(rec, e.kind, e.d, "trip.loop");   // ボスの リソースは 帳簿へ
     let next = s.next;
     if (next && next.pay) {   // 費用の ある 行き先：1 回ごとに 玉を 払う（財布は いまの 配信の 記録から。払えなければ 周回を 止める）
-      let st = null; const pl = { costs: [{ kind: "balls", d: -next.pay }], why: "trip:" + next.body.did, grant: {}, refund: {}, take: () => { st = tripStart(rec, next.body, now, next.seed); if (st.ok) pl.refund.voidTrip = st.trip.uid; } };
+      let st = null; const pl = { costs: [{ kind: "balls", d: -next.pay }], why: "trip:" + next.body.did, grant: {}, refund: {}, take: () => { st = tripStart(rec, next.body, now, next.seed, false, next.who); if (st.ok) pl.refund.voidTrip = st.trip.uid; } };
       const c = await this.charge(rec, pl, await this.freshWallet(rec));
       if (st && st.ok) rec.loop.n++; else if (rec.loop) { rec.loop.on = false; rec.loop.stop = (st && st.why) || c.why || "玉が 足りない"; }
       next = st;
@@ -137,7 +155,9 @@ export class Viewer {
     if (!costs.length) { take(); this.give(rec, plan.grant); return { ok: true }; }
     const ops = costs.map((c) => ({ op: this.nextLop(rec), kind: c.kind, d: c.d, need: 1 })), grp = ops.length > 1 ? ops[0].op : null;
     if (grp) ops.forEach((o) => (o.grp = grp));
+    if (plan.give) ops[0].give = plan.give;   // オーバーレイが 渡す 物（景品の コスメ）。払えた ときだけ 渡る
     const a = await this.ask(rec, ops), need = (k) => ops.reduce((x, o) => x + (o.kind === k ? o.d : 0), 0);
+    if (a.offline && plan.online) return { ok: false, why: "コスメは 配信中だけ 買える（配信の 画面が 渡す）" };
     if (a.offline) {
       for (const k of new Set(ops.map((o) => o.kind))) {
         const bal = balanceOf(L, wallet, k);
@@ -158,10 +178,11 @@ export class Viewer {
         const i = rs.findIndex((r) => r && r.bal >= 0 && r.bal + need(ops[rs.indexOf(r)].kind) < 0), o = ops[i];
         return { ok: false, why: o ? `足りない：${LABEL[o.kind]} あと ${-(rs[i].bal + need(o.kind))}` : "足りない" };
       }
+      if (ng && GIVE_WHY[ng.why]) return { ok: false, why: GIVE_WHY[ng.why] };   // オーバーレイが 渡せなかった（玉は 引いて いない）
       if (ng) return { ok: false, why: "配信の 画面が まだ あなたを 知りません（配信で 1 回 チャットすると なおります）" };
     }
     take();   // 5 秒 返事が ない：素材などは 先に 取って おき、物は まだ 渡さない（払えなかったら refund で もどす）
-    ops.forEach((o, i) => L.unknown.push({ op: o.op, kind: o.kind, d: o.d, why: plan.why, at: now, ...(grp ? { grp } : {}), ...(i === 0 ? { grant: plan.grant, refund: plan.refund } : {}) }));
+    ops.forEach((o, i) => L.unknown.push({ op: o.op, kind: o.kind, d: o.d, why: plan.why, at: now, ...(grp ? { grp } : {}), ...(i === 0 ? { grant: plan.grant, refund: plan.refund, ...(plan.give ? { give: plan.give } : {}) } : {}) }));
     await this.mark(rec);
     return { ok: false, wait: true, why: "配信の 画面が こたえませんでした。つぎに つながった ときに 決まります（2 回 へる ことは ありません）" };
   }
@@ -270,7 +291,7 @@ export class Viewer {
     const rec = await this.load(); if (!rec) return { ok: false, why: "記録が ない" };
     const op = typeof body.op === "string" && /^[\w-]{8,64}$/.test(body.op) ? body.op : "";
     if (!op) return { ok: false, why: "op が ない" };
-    if (lockedAct(rec, body.a, this.env)) return { ok: false, lock: true, why: LOCK_WHY };   // 工事中（部屋・ショップ・両替の ほかは 止める）
+    if (lockedAct(rec, body.a, this.env)) return { ok: false, lock: true, lockKind: lockKind(), why: lockWhy() };   // 工事中（部屋・ショップ・両替の ほかは 止める）
     const money = MONEY.test(String(body.a)), out = (r) => ({ ...(money && wallet ? { ...r, wallet: this.purse(rec, wallet) } : r), credits: rec.credits }), now = Date.now();   // クレジットは いつも つける（上の 通貨の 札）
     if (wallet) trimSent(rec.ledger, wallet);
     const done = rec.ops.find((x) => x.op === op); if (done) return out(done.r);   // 2 回目は 1 回目の 答え
@@ -287,6 +308,12 @@ export class Viewer {
       if (!id) r = { ok: false, why: "売って いない 品" };
       else if ((rec.own.furniture[id] || 0) >= FURN_MAX) r = { ok: false, why: "もう 持てない（" + FURN_MAX + " こまで）" };
       else { r = await this.charge(rec, { costs: [{ kind: "res", d: -priceOn(id, jstDay()) }], why: "shop:" + id, grant: { furniture: { [id]: 1 } } }, wallet); if (r.ok) r.got = [id]; }
+    } else if (body.a === "prize.view") {
+      r = { ok: true, prize: prizeView(rec, await this.env.DB.get("data", "json"), now) };
+    } else if (body.a === "prize.buy") {
+      const data = await this.env.DB.get("data", "json"), pl = prizePlan(rec, body, data, now);
+      if (!pl.costs) r = { ok: false, why: pl.why };
+      else { r = await this.charge(rec, pl, wallet); if (r.ok) r = { ...r, prize: prizeView(rec, data, now) }; }
     } else if (body.a === "shop.gacha") {
       const n = body.n === 10 ? 10 : body.n === 1 ? 1 : 0;
       if (!n) r = { ok: false, why: "1 回か 10 回" };
@@ -298,6 +325,7 @@ export class Viewer {
       }
     } else if (body.a === "pet.first") r = petFirst(rec, body, rand);
     else if (body.a === "pet.job") r = petJob(rec, body);
+    else if (body.a === "pet.switch") r = petSwitch(rec, body);   // いまの 子を かえる
     else if (body.a === "pet.take") r = petTake(rec, body);
     else if (body.a === "pet.grow") r = petGrow(rec, body);
     else if (body.a === "pet.sub") r = petSub(rec, body);
@@ -337,14 +365,25 @@ export class Viewer {
     else if (body.a === "snack.craft") r = snackCraft(rec, body);
     else if (body.a === "ws.make") r = wsMake(rec, body, now);
     else if (body.a === "ws.att") r = wsAtt(rec, body, rand, now);
+    else if (body.a === "ws.proc") r = wsProc(rec, body, now);           // 加工：作物 → 布・建材
+    else if (body.a === "smelt.put") r = smeltPut(rec, body, now);     // 精錬：炉に 入れる・受けとる・やめる
+    else if (body.a === "smelt.take") r = smeltTake(rec, body, now);
+    else if (body.a === "smelt.stop") r = smeltStop(rec, body, now);
     else if (body.a === "att.set") r = attSet(rec, body);
     else if (body.a === "att.off") r = attOff(rec, body);
     else if (body.a === "att.drop") r = attDrop(rec, body);
-    else if (body.a === "farm.plant") r = farmPlant(rec, body, now);
-    else if (body.a === "farm.harvest") r = farmHarvest(rec, rand, now);
-    else if (body.a === "farm.spr") r = farmSpr(rec, body);
+    else if (body.a === "farmv.view") { const v = farmvView(rec, now, rand); r = v ? { ok: true, farmv: v } : { ok: false, why: "農園は まだ 開いて いない" }; }   // 開いた とき：時間を 進めて しまう
+    else if (body.a === "farmv.plant" || body.a === "farmv.harvest" || body.a === "farmv.spr" || body.a === "farmv.soil" || body.a === "farmv.skin") {
+      const fn = { "farmv.plant": farmvPlant, "farmv.harvest": farmvHarvest, "farmv.spr": farmvSpr, "farmv.soil": farmvSoil, "farmv.skin": farmvSkin }[body.a];
+      r = fn(rec, body, now, rand); if (r.ok) r = { ...r, farmv: farmvView(rec, now) };
+    }
     else if (body.a === "mine.set") r = mineSet(rec, body, rand, now);
     else if (body.a === "mine.collect") r = mineCollect(rec, rand, now);
+    else if (body.a === "mine.use") r = mineUse(rec, body, now);   // つるはし・ランプ（12 時間）
+    else if (body.a === "nut.craft") r = nutCraft(rec, body);   // 栄養の おやつ（詳細ステータス。開いてから）
+    else if (body.a === "nut.feed") r = nutFeed(rec, body, rand, now);
+    else if (body.a === "nut.detox") r = nutDetox(rec, body, now);
+    else if (body.a === "nut.break") r = nutBreak(rec, body, now);
     else if (body.a === "equip.scrap") r = equipScrap(rec, body, now, rand);   // 装備を 手放す（玉は 下の earn で 帳簿へ）
     else if (body.a === "tame.fuse") r = tameFuse(rec, body, rand, (uid) => mineLeave(rec, uid, rand, now));   // モンスターの 配合（親 2 体 → 子 1 体。坑道で 掘って いた 親は 掘った 分を 渡す）
     else if (body.a === "tame.sp") r = tameSp(rec, body);   // なかまの スキルポイント（手で 振る・自動の 入り切り）
@@ -379,9 +418,9 @@ export class Viewer {
   view(rec) { return { name: rec.name, login: rec.login, room: rec.room }; }
   mine(rec, w) {
     const now = Date.now(); dropOld(rec, now);
-    return { id: rec.id, lock: locked(rec, this.env), login: rec.login, name: rec.name, nameAt: rec.nameAt, names: rec.names, room: rec.room, own: rec.own, wallet: this.purse(rec, w), waiting: rec.ledger.unknown.length,
+    return { id: rec.id, lock: locked(rec, this.env), lockKind: lockKind(), login: rec.login, name: rec.name, nameAt: rec.nameAt, names: rec.names, room: rec.room, own: rec.own, wallet: this.purse(rec, w), waiting: rec.ledger.unknown.length,
       pets: rec.pets.map((p) => ({ ...p, ...(p.type ? { sp: { all: spTotal(p.lv), left: spTotal(p.lv) - spUsed(p) }, freeLeft: freeTotal(p.lv) - Object.values(p.free || {}).reduce((a, v) => a + v, 0), build: fighterOf(p, rec), resetPrice: RESET_PRICE(p.lv) } : {}) })),
-      tamed: rec.tamed, party: rec.party, farm: farmView(rec, now), loop: rec.loop || null, lab: rec.lab, hideout: rec.hideout, credits: rec.credits, snacks: rec.snacks, tools: rec.tools, explore: rec.explore, seen: rec.seen,
+      tamed: rec.tamed, party: rec.party, mine: mineView(rec, now), farmv: farmvView(rec, now), smelt: rec.smelt || [], loop: rec.loop || null, lab: rec.lab, hideout: rec.hideout, credits: rec.credits, snacks: rec.snacks, tools: rec.tools, explore: rec.explore, seen: rec.seen, met: rec.met,
       stash: { cap: stashCap(rec) }, equipCap: equipCap(rec), autoSell: rec.autoSell || null, trips: rec.trips.map((t) => tripView(t, now)), deeplink: deeplinkView(rec, jstDay(now)), req: { mine: rec.req.mine, sending: rec.req.out.length } };
   }
 

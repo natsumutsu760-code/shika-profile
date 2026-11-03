@@ -160,7 +160,7 @@
 <script type="module">
 import { t, enReady } from "./lounge-en.js";   // 英語の 画面（MONO LINK の サイトの EN／日本語 と 同じ 決まり。英語の ときだけ 辞書を 読む）。起動の 文字送りは 訳してから 打つ
 import { TRADERS, SPECIAL, REP_LV, repLv, REQ_FEE, REQ_MAX, REQ_LIMITS, NOTE_PRESETS, NOTE_MAX, NOTE_HIDE_AT, noteBlock, RES_VALUE } from "./deeplink.js";
-import { MAT_NAME, GATHER, sellPrice, MAT_FROM, HIDDEN_MAT, matIsle } from "./materials.js";
+import { MAT_NAME, GATHER, sellPrice, MAT_FROM, HIDDEN_MAT, BAR_SELL, matIsle, matOpen } from "./materials.js";   // matOpen：大工事の 畑が つながる まで 作物は 出さない
 import { matPic } from "./mat-icons.js";
 import { BASES, OPS, baseOf } from "./equip.js";
 import { CRAFT, SYNTH } from "./recipes.js";
@@ -235,7 +235,7 @@ function pickHtml(t, it) {
 const sellMult = () => 1 + (D.perks.sell20 ? 0.2 : D.perks.sell10 ? 0.1 : 0);
 // 売る 素材の しゅるい（倉庫と 同じ 分け方）。タブで 1 つずつ（縦に 長く ならない ように。鹿さんの声、2026-10-25）
 const SELL_KINDS = [["gather", "採取"], ["rare", "レア"], ["enemy", "敵"]];
-const sellKind = (id) => (MAT_FROM[id] ? "enemy" : HIDDEN_MAT.has(id) ? "rare" : "gather");
+const sellKind = (id) => (MAT_FROM[id] ? "enemy" : HIDDEN_MAT.has(id) || BAR_SELL[id] ? "rare" : "gather");   // 延べ棒は レアの タブ
 function sellHtml() {
   const all = matsBy(), cnt = (k) => all.filter((m) => sellKind(m.id) === k).length;
   if (!SELL_KINDS.some(([k]) => k === S.sk) || (!cnt(S.sk) && all.length)) S.sk = (SELL_KINDS.find(([k]) => cnt(k)) || SELL_KINDS[0])[0];
@@ -294,7 +294,7 @@ function boardHtml() {
       <span class="prog ${full ? "full" : ""}"><i><b style="width:${Math.min(100, (have / need) * 100)}%"></b></i>持っている ${have} / ${need}　${leftText(r.until)}</span>
       <span class="sub">お礼　<span class="rw">${reqReward(r.reward)}</span></span></div>
       <div class="act"><button class="btn" data-req="${esc(r.rid)}" ${full ? "" : "disabled"}>届ける</button></div></li>`; }).join("");
-  const mats = Object.entries(MAT_NAME).filter(([id]) => matIsle(id) <= ISLAND_OPEN), sending = ME.req && ME.req.mine && !mineP;   // まだ 開いて いない 島の 素材は 出さない
+  const mats = Object.entries(MAT_NAME).filter(([id]) => matIsle(id) <= ISLAND_OPEN && matOpen(id)), sending = ME.req && ME.req.mine && !mineP;   // まだ 開いて いない 島の 素材は 出さない
   const mine = mineP ? `<div class="post mine"><h3>いま 出している 依頼</h3>
       <p class="mrow">${wantText(mineP.want)}　お礼 <span class="rw">${reqReward(mineP.reward)}</span>　${leftText(mineP.until)}</p>${mineP.note ? `<p class="mrow">「${esc(mineP.note.text)}」</p>` : ""}
       <div class="f"><button class="btn" data-cancel="1">取り下げる</button><span>依頼は 1 人 ${REQ_MAX} つまで</span></div></div>`

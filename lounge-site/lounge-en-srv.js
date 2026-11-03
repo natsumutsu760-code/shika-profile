@@ -22,6 +22,13 @@ export const WORDS = {
   // 畑と 坑道
   "畑が まだ ない（隠れ家で 作る）": "No Farm yet (build it in the Hideout)", "植える 物を えらんで": "Choose what to plant", "マスを えらんで": "Choose plots", "もう 植えて ある マスが ある": "Some plots are already planted",
   "まだ とれる マスが ない": "Nothing to harvest yet", "列を えらんで": "Choose a row", "スプリンクラーを えらんで": "Choose a sprinkler", "その スプリンクラーを 持って いない（工房で 作る）": "You don't have that sprinkler (make it at the Workshop)",
+  // 詳細ステータス・栄養（2026-10-31）
+  "詳細ステータスは まだ 開いて いない": "Detailed stats aren't open yet", "作る おやつを えらんで": "Choose a treat to make", "おやつを えらんで": "Choose a treat", "食べさせる 数を えらんで": "Choose how many to feed",
+  "キャップに 届いて いる（謎のお菓子で 上限突破）": "Reached the cap (break the limit with a Mystery Sweet)", "おなかが いっぱい（あと # 分で 食べられる）": "Too full (can eat again in # min)",
+  "デトックス茶を 持って いない（工房で 作る）": "You don't have Detox Tea (make it at the Workshop)", "まだ 栄養が ない": "No nutrition yet",
+  "キャップに 届いたら デトックス茶は 使えない（謎のお菓子で 上限突破）": "Detox Tea can't be used once you reach the cap (break the limit with a Mystery Sweet)",
+  "謎のお菓子を 持って いない（派遣で ごく まれに 見つかる）": "You don't have a Mystery Sweet (very rarely found on expeditions)", "キャップに 届いて から（いま 栄養 # / #）": "Only after reaching the cap (nutrition now # / #)",
+  "知らない 肥料": "Unknown fertilizer", "肥料が 足りない：あと #": "Not enough fertilizer: # more", "使う 物を えらんで": "Choose what to use", "持って いない（工房で 作る）": "You don't have it (make it at the Workshop)",
   "坑道が まだ ない（隠れ家で 作る）": "No Mine yet (build it in the Hideout)", "その 子は 掘って いない": "That companion isn't digging", "その 子は いない": "That companion isn't here", "もう 掘って いる": "Already digging",
   "パーティの 子は 掘れない（部屋に もどすと 掘れる）": "Party members can't dig (send them back to the room first)", "いまは 出かけて いる": "Out on an expedition right now",
   "掘る 場所が いっぱい（坑道の Lv で ふえる）": "All digging spots are taken (Mine level adds more)", "まだ 掘れて いない（1 時間ごとに たまる）": "Nothing dug up yet (it accumulates hourly)",
@@ -33,7 +40,7 @@ export const WORDS = {
   "前の おやつが まだ 決まって いない（配信の 画面の 返事を 待って いる）": "Your last treat isn't settled yet (waiting for the stream to reply)", "あげる 数を えらんで": "Choose how many to give",
   "作る 物を えらんで": "Choose what to make", "おやつ工房が まだ ない（隠れ家で 作る）": "No Treat Kitchen yet (build it in the Hideout)", "作る 数を えらんで": "Choose how many to make", "もう パーティに いる": "Already in the party",
   "まだ なかよしゲージが いっぱいで ない": "The friendship gauge isn't full yet", "パーティが いっぱい（だれかを 部屋に もどすと 入れられる）": "Party is full (send someone back to the room first)", "パーティに いない": "Not in the party",
-  "もう 研究ずみ": "Already researched", "前の 研究が まだ 決まって いない（配信の 画面の 返事を 待って いる）": "Your last research isn't settled yet (waiting for the stream to reply)",
+  "取り出せるのは 進化した スキル（＋）だけ": "Only evolved skills (＋) can be extracted", "もう 取り出して ある（ペットの サブツリーに 付けられる）": "Already extracted (add it as a pet subtree)", "出かけて いる 子は 取り出せない（帰って から）": "A companion on a trip can't be extracted (wait until it's back)", "坑道で 掘って いる 子は 取り出せない（坑道から もどして から）": "A companion digging in the mine can't be extracted (bring it back first)", "前の 取り出しが まだ 決まって いない（配信の 画面の 返事を 待って いる）": "Your last extraction isn't settled yet (waiting for the stream to reply)", "もう 研究ずみ": "Already researched", "前の 研究が まだ 決まって いない（配信の 画面の 返事を 待って いる）": "Your last research isn't settled yet (waiting for the stream to reply)",
   "さきに 職業を えらんで": "Choose a job first", "もう 出かけて いる": "Already out on an expedition", "行き先か 時間が ちがう": "Invalid destination or time", "知らない 道具": "Unknown tool", "その 道具を 持って いない": "You don't have that tool",
   "敵を えらんで": "Choose an enemy", "その 階には まだ 行けない": "You can't go to that floor yet", "出かけて いない": "Not out on an expedition", "まだ 帰って いない（もう 少し）": "Not back yet (almost)",
   "回数を えらんで": "Choose how many times", "出発する ときに えらんで": "Choose when setting out", "手放し方を えらんで": "Choose how to discard", "手放す 装備を えらんで": "Choose gear to discard",
@@ -61,6 +68,11 @@ export const WORDS = {
   // 工房
   "工房が まだ ない（隠れ家で 作る）": "No Workshop yet (build it in the Hideout)", "作る アタッチメントを えらんで": "Choose an attachment to make", "その アタッチメントは ない": "That attachment doesn't exist",
   "付けられるのは 武器だけ": "Only weapons can take attachments", "その 武器を 持って いる 子が 出かけて いる": "Whoever holds that weapon is out on an expedition", "武器に 付いて いる（はずして から）": "It's on a weapon (remove it first)",
+  // ペットの 解放・いまの 子（lounge-game.js の petUnlockPlan・petSwitch）
+  "まず 1 匹目を むかえて（性格診断）": "Welcome your first pet first (personality quiz)", "知らない 子": "Unknown pet", "もう いっしょに いる": "Already with you", "もう みんな いる": "You already have everyone",
+  "前の 子の 支払いを たしかめて います（配信の 画面が こたえたら むかえられます）": "Checking the payment for the previous pet (you can welcome another once the stream replies)",
+  // 工房の 精錬（lounge-workshop.js の smeltPut・smeltTake・smeltStop）
+  "炉を えらんで": "Choose a furnace", "その 炉は 使って いる": "That furnace is in use", "作る 延べ棒を えらんで": "Choose an ingot", "入れる 数は 1〜# 本": "Load 1–#", "その 炉は 空いて いる": "That furnace is empty",
 };
 
 export const RULES = [
@@ -73,4 +85,5 @@ export const RULES = [
   [/^(.+)は もう 付いて いる（入れかえなら できる）$/, (m, p) => p(m[1]) && `${p(m[1])} is already on it (you can replace it)`], [/^(.+)は もう 付いて いる（同じ OP と 入れかえて）$/, (m, p) => p(m[1]) && `${p(m[1])} is already on it (replace the same OP)`],
   [/^ガンビットは (\d+) こまで$/, (m) => `Up to ${m[1]} gambits`], [/^作る 数は 1〜(\d+)$/, (m) => `Make 1–${m[1]}`],
   [/^付けて いない アタッチメントが いっぱい（(\d+) こ）。いらない 物を すてて から$/, (m) => `Unattached attachments are full (${m[1]}). Discard some first`],
+  [/^まだ できて いない（あと (\d+) 分）$/, (m) => `Not ready yet (${m[1]} min left)`],
 ];

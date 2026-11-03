@@ -3,6 +3,8 @@
 // 敵の素材：敵ごとに 1 種類。品質 1〜5 は深い階ほど上がる（希少な敵は ＋1、ボスはいつも 5）
 // 使いみち：作業台での装備の作成・合成、施設の強化、DEEP LINK/: のタスク、ラウンジの家具、売って玉にする
 
+import { CROPS, CROP_MATS, farmOpen } from "./crops.js";
+
 export const GATHER = {
   hals: { mats: [["herb", "薬草"], ["pebble", "きれいな小石"], ["straw", "麦わら"], ["berry", "野いちご"]], hidden: ["clover", "四つ葉のクローバー"] },
   morph: { mats: [["brick", "古いレンガ"], ["sleepmoss", "ねむり苔"], ["stardust", "星の砂"], ["oldcloth", "色あせた布"]], hidden: ["dreamshard", "夢のかけら"] },
@@ -20,6 +22,37 @@ export const GATHER = {
   mabui: { isle: 2, mats: [["blacksail", "黒い帆"], ["onibi", "青い鬼火"], ["shipbell", "古い船鐘"], ["bonechip", "骨の破片"]], hidden: ["logbook", "船長の日誌"] },
   kanai: { isle: 2, mats: [["abyssmud", "深海の泥"], ["glowbubble", "光る泡"], ["abyssstone", "深海の石"], ["oldgear", "古代の歯車"]], hidden: ["gatestone", "門の鍵石"] },
 };
+// クローラーの スクラップ類（漁れる マス：残骸・キャビネット・個人ロッカー。docs/mono-link-crawler-missions.md）。鹿さんの OK、2026-10-30
+// 使い道は 装備開発と 施設の 素材。売ると 安い。鉱石では ない（鉱石は 坑道と ドルン鉱業だけ）。会社の 物は その 会社の 施設の 迷宮だけ、rare は 残骸から まれに
+export const SCRAP = {
+  wreck: [["scrap_iron", "鉄くず"], ["bent_plate", "曲がった鉄板"], ["burnt_wire", "焼けた配線"], ["armor_chip", "装甲の破片"], ["cracked_board", "割れた基板"], ["small_motor", "小さなモーター"]],
+  cabinet: [["screw_box", "ねじの小箱"], ["glass_tube", "割れたガラス管"], ["spare_fuse", "予備のヒューズ"], ["dead_terminal", "壊れた端末"]],
+  locker: [["spare_battery", "使いかけの電池"], ["work_cloth", "作業着の布"], ["old_padlock", "錆びた南京錠"], ["broken_watch", "止まった腕時計"]],
+  sva: [["empty_casing", "空の薬莢"], ["barrel_scrap", "砲身の切れはし"]],
+  harmonia: [["used_filter", "使用済みフィルター"], ["empty_ampoule", "空のアンプル"]],
+  tcu: [["insulation_scrap", "断熱材のくず"], ["fiber_offcut", "防護繊維の端切れ"]],
+  rare: [["control_part", "制御装置のかけら"], ["power_cell", "小さな動力セル"]],
+};
+export const SCRAP_RARE = new Set(SCRAP.rare.map(([id]) => id));
+export const SCRAP_MAT = new Set(Object.values(SCRAP).flatMap((l) => l.map(([id]) => id)));
+// ボーダーゾーンだけの 素材（docs/mono-link-border-zone.md）。鹿さんの 決め、2026-10-30：Claude の 案 18 こに 鹿さんの 13 こを 足して 割り振った
+// どこでも 7・領地ごと（SVA・ハルモニア・TCU）6・境界 6。使い道は 装備開発と 施設の 素材。島の 素材は ボーダーゾーンでは 出ない
+export const BORDER = {
+  any: [["scorched_soil", "焦げた土"], ["barbed_wire", "錆びた有刺線"], ["carapace_shard", "ユニットの甲殻片"], ["chip_shard", "制御チップのかけら"], ["waste_root", "荒れ地の根"], ["weathered_canvas", "雨ざらしの帆布"], ["small_circuit", "小さな回路基盤"]],
+  sva: [["shell_fragment", "砲弾の破片"], ["slag", "精錬くず"], ["black_oil", "黒い油"], ["vacuum_tube", "真空管"], ["broken_motor", "破損したモーター"], ["liquefied_gas", "液化ガス"]],
+  harmonia: [["culture_medium", "試験場の培地"], ["feral_grain", "野生化した穂"], ["leftover_serum", "残った薬液"], ["acrylic_sheet", "アクリル材"], ["polymer_chip", "ポリマー片"], ["plastic_scrap", "プラスチック"]],
+  tcu: [["rampart_stone", "防壁の石材"], ["old_girder", "古い鉄骨"], ["rampart_plaster", "城壁の漆喰"], ["kevlar_fiber", "ケブラー繊維"], ["extinguisher", "消火材"], ["rubber_scrap", "ゴム片"]],
+  edge: [["mixed_alloy", "まざり合金"], ["molten_marker", "溶けた境界標"], ["torn_flag", "裂けた旗布"], ["solder_resist", "ソルダーレジスト"], ["sync_board", "同期盤"], ["cpu_chip", "CPUチップ"]],
+};
+export const BORDER_MAT = new Set(Object.values(BORDER).flatMap((l) => l.map(([id]) => id)));
+// 鉱石と 延べ棒（鹿さんの 決め、2026-10-31。docs/mono-link-crafting.md）。鉱石は 坑道（farm.js の MINE_FIND）と 採掘の 会社 DRN だけ。延べ棒は 工房の 炉で 精錬する（workshop.js の SMELT）
+// 鉄鉱石は 前から ある 素材（水晶洞窟の 採取・坑道）なので ここには 入れない
+export const ORE = [["coal", "石炭"], ["copperore", "銅鉱石"], ["silverore", "銀鉱石"], ["goldore", "金鉱石"]];
+export const BARS = [["copper_bar", "銅の延べ棒"], ["iron_bar", "鉄の延べ棒"], ["silver_bar", "銀の延べ棒"], ["gold_bar", "金の延べ棒"]];
+export const ORE_MAT = new Set([...ORE, ...BARS].map(([id]) => id));
+// 工房で 作物を 加工した 素材（鹿さんの 決め、2026-10-31。docs/mono-link-crafting.md）：綿・麻 → 布、竹・わら → 建材。workshop.js の WS_PROC
+export const CLOTH = [["cotton_cloth", "綿の布"], ["flax_cloth", "麻の布"], ["sky_cloth", "天の布"], ["whitesand_cloth", "白砂の布"], ["sylph_sail", "シルフ帆布"], ["pearl_silk", "真珠絹"]];
+export const LUMBER = [["bamboo_lumber", "竹の建材"], ["nightbamboo_lumber", "夜竹の建材"], ["blackbamboo_lumber", "黒竹の建材"], ["stormbamboo_lumber", "嵐竹の建材"], ["straw_bundle", "わら束"]];
 // 敵の素材（キーは敵のツリーの id）
 const ENEMY_MAT1 = {
   e_hare: ["hare_horn", "ウサギの角"], e_thief: ["goblin_knife", "ゴブリンのナイフ"], e_watch: ["kobold_fur", "コボルトの毛"], e_bard: ["old_score", "古い楽譜"], e_boss_thief: ["crown_shard", "王冠のかけら"],
@@ -42,7 +75,7 @@ const ENEMY_MAT2 = {
 };
 export const ENEMY_MAT = { ...ENEMY_MAT1, ...ENEMY_MAT2 };
 // 素材が 何番目の 島の 物か（書いて いない 物は 1）。まだ 開いて いない 島の 素材は 一覧に 出さない（matIsle(id) <= ISLAND_OPEN）
-export const MAT_ISLE = Object.fromEntries([...Object.values(GATHER).filter((g) => g.isle).flatMap((g) => [...g.mats, g.hidden].map(([id]) => [id, g.isle])), ...Object.values(ENEMY_MAT2).map(([id]) => [id, 2])]);
+export const MAT_ISLE = Object.fromEntries([...Object.values(GATHER).filter((g) => g.isle).flatMap((g) => [...g.mats, g.hidden].map(([id]) => [id, g.isle])), ...Object.values(ENEMY_MAT2).map(([id]) => [id, 2]), ["goldore", 2], ["gold_bar", 2]]);   // 金は 坑道 Lv4（ニライ諸島）から
 export const matIsle = (id) => MAT_ISLE[id] || 1;
 
 // 採取ポイント 1 か所で 1〜2 こ（70%・30%）。その階の 2 種類から半々。かくし通路の採取ポイントは、レア 1 こ ＋ その階の素材 1 こ
@@ -52,22 +85,90 @@ export const floorMats = (did, n) => { const m = GATHER[did].mats; return [m[(n 
 export const ENEMY_DROP = { 通常: 0.3, 希少: 1, ボス: 1 };
 export const QUALITY = { 1: { 1: 100 }, 2: { 1: 60, 2: 40 }, 3: { 2: 60, 3: 40 }, 4: { 3: 60, 4: 40 }, 5: { 4: 60, 5: 40 } };
 // 売ると玉（品質が高いほど高い）
-export const SELL = { gather: 20, hidden: 150, enemy: (q) => 10 * 2 ** (q - 1) };
+export const SELL = { gather: 20, hidden: 150, enemy: (q) => 10 * 2 ** (q - 1), scrap: 6, scrapRare: 60 };  // スクラップは 売ると 安い（鹿さんの 決め、2026-10-30）
+
+// 素材の 売値（クレジット。大工事の 経済で SELL と 入れかえる。鹿さんの 頼み、2026-10-29：素材ごとに 名前に 見合った 値を 端数まで・高い 物ほど 採れにくく 落ちにくく）
+// 採取の 素材と かくし通路の レアは そのままの 値。敵の 素材は 品質 1 の 値で、品質で QMULT 倍（品質 4・5 で 大きく はねる）。ボスの 素材は いつも 品質 5
+export const VALUE = {
+  // 採取（島 1）
+  herb: 2, pebble: 1, straw: 2, berry: 3, clover: 16,
+  brick: 3, sleepmoss: 5, stardust: 7, oldcloth: 4, dreamshard: 36,
+  oldnail: 4, nightbloom: 7, wellwater: 4, candle: 5, moondrop: 41,
+  crystalbit: 7, glowstone: 6, deepwater: 4, ironore: 5, rainbowcrystal: 46,
+  // 採取（島 2）
+  whitesand: 3, seashell: 5, coconut: 7, aasa: 6, pinkcoral: 43,
+  sailcloth: 11, emptybottle: 5, rustchain: 9, oldcoin: 29, mapscrap: 64,
+  seagrass: 6, lampglass: 10, capestone: 7, akabanaa: 9, suncrystal: 58,
+  shipwood: 10, barnacle: 6, rustfitting: 9, brasspart: 17, sunkengold: 67,
+  pearl: 31, fallwater: 8, bluestone: 15, glowmoss: 13, mermaidtear: 100,
+  ash: 5, sulfur: 11, obsidian: 19, lavarock: 13, fireheart: 86,
+  driftwood: 9, thunderstone: 23, seafeather: 13, stormcloud: 26, windorb: 110,
+  marble: 13, bluecoral: 17, holyshell: 21, oldbell: 12, seagodpearl: 117,
+  blacksail: 10, onibi: 16, shipbell: 14, bonechip: 6, logbook: 84,
+  abyssmud: 8, glowbubble: 17, abyssstone: 15, oldgear: 21, gatestone: 104,
+  // 敵の 素材（品質 1。行き先ごとに 敵 3・希少・ボス）
+  hare_horn: 3, goblin_knife: 4, kobold_fur: 3, old_score: 8, crown_shard: 5,
+  golem_stone: 5, ghost_cloth: 6, mimic_tooth: 7, dream_feather: 17, sleep_hourglass: 10,
+  wolf_fang: 7, shadow_shard: 9, poison_vial: 8, light_drop: 18, midnight_bell: 12,
+  crystal_scale: 7, bat_wing: 6, slime_core: 8, rainbow_shell: 15, dragon_crystal: 13,
+  crab_claw: 8, gull_feather: 7, sahagin_scale: 10, rainbow_fin: 16, king_shell: 9,
+  pirate_bandana: 15, parrot_feather: 13, barrel_hoop: 12, old_compass: 23, red_beard: 14,
+  keeper_key: 13, harpy_talon: 11, shisa_tile: 12, glimmer_dust: 20, fog_core: 13,
+  sailor_bone: 12, barnacle_plate: 14, jelly_gel: 16, gold_claw: 24, octo_ink: 14,
+  siren_scale: 21, eel_skin: 15, clam_shell: 17, song_pearl: 34, queen_comb: 20,
+  lava_scale: 17, hidama_ember: 19, obsidian_core: 20, firechick_down: 28, salamander_tail: 17,
+  thunder_feather: 25, whirl_pearl: 22, storm_plank: 20, vane_feather: 30, irabu_fang: 21,
+  guard_crest: 17, trident_tip: 19, priest_scale: 18, white_fin: 29, seagod_scale: 22,
+  ghost_rope: 12, majimun_mask: 15, doll_button: 10, cat_bell: 24, captain_hat: 16,
+  angler_lamp: 17, squid_beak: 15, giant_shell: 18, deep_glow: 29, gate_shard: 19,
+  // クローラーの スクラップ類（どの 会社でも・会社ごと・まれ）
+  scrap_iron: 2, bent_plate: 3, burnt_wire: 4, armor_chip: 6, cracked_board: 8, small_motor: 12,
+  screw_box: 3, glass_tube: 4, spare_fuse: 5, dead_terminal: 9,
+  spare_battery: 4, work_cloth: 4, old_padlock: 5, broken_watch: 7,
+  empty_casing: 5, barrel_scrap: 11, used_filter: 6, empty_ampoule: 8, insulation_scrap: 4, fiber_offcut: 12,
+  control_part: 40, power_cell: 45,
+  // ボーダーゾーンの 素材（どこでも・SVA・ハルモニア・TCU・境界）
+  scorched_soil: 6, barbed_wire: 9, carapace_shard: 14, chip_shard: 22, waste_root: 8, weathered_canvas: 10, small_circuit: 18,
+  shell_fragment: 12, slag: 7, black_oil: 15, vacuum_tube: 24, broken_motor: 20, liquefied_gas: 26,
+  culture_medium: 14, feral_grain: 9, leftover_serum: 18, acrylic_sheet: 13, polymer_chip: 16, plastic_scrap: 7,
+  rampart_stone: 8, old_girder: 15, rampart_plaster: 7, kevlar_fiber: 26, extinguisher: 12, rubber_scrap: 6,
+  mixed_alloy: 30, molten_marker: 25, torn_flag: 18, solder_resist: 28, sync_board: 40, cpu_chip: 55,
+  // 鉱石と 延べ棒（延べ棒は 鉱石 3 こ ＋ 石炭 の 値に 少し 上乗せ）
+  coal: 3, copperore: 4, silverore: 12, goldore: 30,
+  copper_bar: 17, iron_bar: 20, silver_bar: 46, gold_bar: 104,
+  // 布と 建材（作物 3 この 相場に 少し 上乗せ）
+  cotton_cloth: 32, flax_cloth: 115, sky_cloth: 145, whitesand_cloth: 145, sylph_sail: 170, pearl_silk: 250,
+  bamboo_lumber: 40, nightbamboo_lumber: 130, blackbamboo_lumber: 170, stormbamboo_lumber: 145, straw_bundle: 8,
+};
+export const QMULT = [1, 1, 1.7, 3.1, 6.3, 13.7];
+export const matValue = (m) => Math.round((VALUE[m.id] || 0) * (MAT_FROM[m.id] ? QMULT[m.q || 1] : GATHER_Q[m.q || 0] || 1));
+// 採れやすさ：同じ 階の 2 種類は、値の √ に 反比例して 選ばれる（r は 0〜1 の 乱数 1 つ。前と 同じ 数だけ 乱数を 使う）
+export const gatherPick = (two, r) => { const a = 1 / Math.sqrt(VALUE[two[0][0]] || 1), b = 1 / Math.sqrt(VALUE[two[1][0]] || 1); return two[r < a / (a + b) ? 0 : 1]; };
+// 落としやすさ：ふつうの 敵は 30% を 基準に、値が 高い 素材ほど 下がる（12〜40%）。希少と ボスは いつも 落とす
+export const dropRate = (rk, id) => (rk === "通常" ? Math.min(0.4, Math.max(0.12, ENEMY_DROP.通常 * (10 / (VALUE[id] || 10)) ** 0.35)) : ENEMY_DROP[rk]);
 
 // 素材の名前（id から）
-export const MAT_NAME = Object.fromEntries([...Object.values(GATHER).flatMap((g) => [...g.mats, g.hidden]), ...Object.values(ENEMY_MAT)]);
+export const MAT_NAME = Object.fromEntries([...Object.values(GATHER).flatMap((g) => [...g.mats, g.hidden]), ...Object.values(ENEMY_MAT), ...Object.values(SCRAP).flat(), ...Object.values(BORDER).flat(), ...ORE, ...BARS, ...CLOTH, ...LUMBER]);
+export const MAT_NAME_BASE = { ...MAT_NAME };   // 作物を 足す 前（tools/crop-check.mjs が「いまの 素材」と して 見る）
+// 作物（大工事の 農業）と 作物から できる 素材の 名前も（前から ある 素材は その まま。並びは うしろに 足す）
+for (const [id, name] of [...CROPS.map((c) => [c.id, c.name]), ...CROP_MATS.map((m) => [m.id, m.name])]) if (!(id in MAT_NAME)) MAT_NAME[id] = name;
+// 大工事の 農業の 畑が つながる まで 手に 入らない 素材（前から ない 作物・作物から できる 物・布・建材。わら束も 使い道が 畑の あとなので 加工は 畑から）。依頼の 板などに 出さない
+export const FARM_MAT = new Set([...CROPS.map((c) => c.id), ...CROP_MATS.map((m) => m.id), ...CLOTH.map(([id]) => id), ...LUMBER.map(([id]) => id)].filter((id) => !Object.values(GATHER).some((g) => [...g.mats, g.hidden].some(([x]) => x === id))));
+export const matOpen = (id) => farmOpen() || !FARM_MAT.has(id);
 // どの敵の素材か（ドット絵を出すため）
 export const MAT_FROM = Object.fromEntries(Object.entries(ENEMY_MAT).map(([tree, [id]]) => [id, tree]));
 export const HIDDEN_MAT = new Set(Object.values(GATHER).map((g) => g.hidden[0]));
 // 畑で とれた 物（採取の 素材に 品質 1〜5）は 品質が 高いほど 高く 売れる（鹿さんの頼み、2026-10-25。拾った 物は 品質 0）
 export const GATHER_Q = [1, 1.5, 2, 3, 4, 6];
-export const sellPrice = (m) => (MAT_FROM[m.id] ? SELL.enemy(m.q || 1) : Math.round((HIDDEN_MAT.has(m.id) ? SELL.hidden : SELL.gather) * (GATHER_Q[m.q || 0] || 1)));
+// 延べ棒は 高めに 売れる（鹿さんの 決め、2026-10-31：金の延べ棒を 売れる ように。数は Claude の 案。前は 採取と 同じ 20 玉）
+export const BAR_SELL = { copper_bar: 40, iron_bar: 50, silver_bar: 120, gold_bar: 300 };
+export const sellPrice = (m) => (BAR_SELL[m.id] ? BAR_SELL[m.id] : MAT_FROM[m.id] ? SELL.enemy(m.q || 1) : SCRAP_MAT.has(m.id) ? (SCRAP_RARE.has(m.id) ? SELL.scrapRare : SELL.scrap) : Math.round((HIDDEN_MAT.has(m.id) ? SELL.hidden : SELL.gather) * (GATHER_Q[m.q || 0] || 1)));
 
 // 倉庫が いっぱいの とき（鹿さんの決め、2026-10-23）：入らない分は あずかり箱へ。7 日の うちに 倉庫を あければ うけとれる（すぎると なくなる）
 // 倉庫は どの しゅるいも 置ける。上限は 1 しゅるい（素材の id。品質ちがいも あわせて）ごとの 数（鹿さんの決め、2026-10-25。STORAGE_CAP）
 // 同じ しゅるいの 中では いい物から 入れる（敵の素材は 品質の 高い順）。入らない 分は 箱へ
 export const BOX_DAYS = 7;
-const rankMat = (m) => (HIDDEN_MAT.has(m.id) ? 100 : MAT_FROM[m.id] ? 10 + (m.q || 1) : 0);
+const rankMat = (m) => (HIDDEN_MAT.has(m.id) || SCRAP_RARE.has(m.id) ? 100 : MAT_FROM[m.id] ? 10 + (m.q || 1) : 0);
 // cap：1 しゅるいの 上限、have：いま 倉庫に ある 数（id → こ。stashHave）
 export function toStash(mats, cap, have = {}) {
   const stash = [], box = [], room = {};

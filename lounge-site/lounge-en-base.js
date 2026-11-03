@@ -45,7 +45,7 @@ export const WORDS = {
   "作る 物": "Make", "道具・品": "Tools & items", "作れる #": "Craftable #", "品質 # 以上": "Quality #+", "武器に 付ける ›": "Attach to a weapon ›", "派遣の 道具": "Expedition tool", "品": "Item",
   "付く OP": "Possible OPs", "OP の 数": "Number of OPs", "★1〜3 は 1 つ・★4 は 2 つ（作る たびに くじ）": "★1–3 get 1, ★4 gets 2 (random each time)", "工房 Lv# から 作れる": "Unlocks at Workshop Lv#",
   "工房が まだ ない": "No Workshop yet", "隠れ家で 工房を 作る": "Build a Workshop in the Hideout", "作れるだけ": "As many as possible",
-  // ---- 畑と 坑道（farm.html） ----
+  // ---- 坑道（mine.html。前は 畑と 坑道の farm.html） ----
   "# 時間": "# h", "# 分": "# min", "品質 #〜#": "Quality #–#", "あき": "Empty", "とれる": "Ready", "畑が まだ ない": "No Farm yet", "隠れ家で 畑を 作る ›": "Build a Farm in the Hideout ›",
   "とる（# マス）": "Harvest (# plots)", "つぎに とれる：": "Next harvest:", "あと #": "# left", "あと # 日": "# days left", "あと # 時間": "# h left", "あと # 分": "# min left", "あと # 時間 # 分": "#h #m left",
   "＋ 畑 Lv# で # マス ふえる": "+ #2 more plots at Farm Lv#1", "＋ 地下の 拡張 Lv# で もう # 列": "+ #2 more row at Basement Expansion Lv#1", "植える": "Plant", "畑を 作ると 植えられる": "Build a Farm to plant",
@@ -55,8 +55,22 @@ export const WORDS = {
   "掘れる 物": "Can dig up", "掘らせる なかま": "Digging companions", "坑道を 作ると 掘らせられる": "Build a Mine to start digging", "掘る 場所が いっぱい": "All digging spots are taken",
   "掘れる なかまが いない（パーティに いない 子が 掘れる）": "No companions can dig (companions not in your party can)", "下の 一覧から えらぶ": "Choose from the list below",
   "Lv の 高い順": "Highest Lv", "Lv の 低い順": "Lowest Lv", "掘らせる": "Send to dig", "置いて います…": "Placing…", "はずして 持ち物に もどした": "Removed and returned to inventory",
+  // 戦いの アイテム（2026-10-31）
+  "爆弾": "Bombs", "戦いの 薬": "Battle Potions", "アイテム": "Item", "戦いの アイテム（派遣で 使う）": "Battle items (used on expeditions)", "のこり #": "# left",
+  // 肥料・つるはし・ランプ（2026-10-31）
+  "肥料": "Fertilizer", "上の 肥料": "Better Fertilizer", "肥料を 持って いない": "No fertilizer", "肥料 あと #": "# more fertilizer",
+  "つるはし": "Pickaxe", "ランプ": "Lamp", "掘る 数 ×#": "Digs ×#", "銀・金が # 倍": "Silver & gold ×#", "使う": "Use", "のばす": "Extend", "坑道 Lv# から": "From Mine Lv#",
+  "使って います…": "Using…", "つるはしを 使った": "Used the Pickaxe", "ランプを 使った": "Used the Lamp",
   "もどして います…": "Returning…", "とって います…": "Harvesting…", "とれた！": "Harvested!", "うけとって います…": "Collecting…", "掘れた！": "Dug up!", "坑道へ 送って います…": "Sending to the Mine…", "植えて います…": "Planting…",
   "畑": "Farm", "坑道": "Mine", "畑・坑道": "Farm · Mine", "工房": "Workshop", "作業台": "Workbench",
+  // 工房の 加工（作物 → 布・建材）
+  "加工": "Processing", "建材": "Lumber", "薬": "Medicine", "エンチャント": "Enchants", "お守り": "Charms", "派遣の 道具": "Expedition tools",
+  // 工房の 精錬（workshop.html。鹿さんの 決め、2026-10-31）
+  "精錬": "Smelting", "受けとれる #": "Ready #", "空いて いる": "Empty", "炉 #": "Furnace #", "炉": "Furnaces", "延べ棒": "Ingots", "入れる 延べ棒を えらぶ": "Choose an ingot to smelt",
+  "受けとる": "Collect", "受けとる（# 本）": "Collect (#)", "入れる 数": "Amount", "本 できた": "done", "ぜんぶ できた": "All done", "炉が 空いて いない": "No free furnace",
+  "鉱石は 坑道で 掘る ›": "Dig ore in the Mine ›", "できた 延べ棒を 受けとると 炉が 空く": "Collect finished ingots to free a furnace",
+  "入れて います…": "Loading…", "入れられませんでした": "Couldn't load it", "受けとって います…": "Collecting…", "受けとれませんでした": "Couldn't collect",
+  "やめて います…": "Stopping…", "やめられませんでした": "Couldn't stop", "もう 1 回 押すと やめる（まだの 分の 鉱石は もどる）": "Tap again to stop (unsmelted ore is returned)",
 };
 
 export const RULES = [
@@ -104,7 +118,21 @@ export const RULES = [
   [/^(.+)を 持って いない（(.+)の 採取で とれる）$/, (m, p) => p(m[1]) && p(m[2]) && `You don't have ${p(m[1])} (gather it in ${p(m[2])})`],
   [/^(\d+)〜(\d+) こ・(.+)（スプリンクラーで 上がる）$/, (m, p) => `${m[1]}–${m[2]} · ${P(p, m[3])} (sprinklers raise it)`], [/^・持って いる (\d+)$/, (m) => ` · own ${m[1]}`],
   [/^つぎに 掘れる まで あと (.+)$/, (m, p) => `Next dig in ${P(p, m[1])}`], [/^いっぱい（(\d+) こ）・うけとると また 掘る$/, (m) => `Full (${m[1]}) · collect to keep digging`],
-  [/^(\d+) こ たまった・いっぱい まで あと (\d+)$/, (m) => `${m[1]} stored · ${m[2]} until full`], [/^(.+)に 掘らせる$/, (m, p) => `Send ${P(p, m[1])} to dig`],
+  [/^([\d,]+) こ たまった・いっぱい まで あと (.+)$/, (m, p) => `${m[1]} stored · full in ${P(p, m[2])}`], [/^(.+)に 掘らせる$/, (m, p) => `Send ${P(p, m[1])} to dig`],
   [/^(.+)を 置いた$/, (m, p) => p(m[1]) && `Placed the ${p(m[1])}`], [/^(.+)が もどった(.*)$/, (m, p) => `${P(p, m[1])} came back${m[2] ? " " + P(p, m[2]) : ""}`],
   [/^(.+)が 掘りはじめた$/, (m, p) => `${P(p, m[1])} started digging`], [/^(.+)を (\d+) マスに 植えた$/, (m, p) => p(m[1]) && `Planted ${p(m[1])} in ${m[2]} plots`],
+  [/^(.+) (\d+) → 1 こ$/, (m, p) => p(m[1]) && `${p(m[1])} ×${m[2]} → 1`],   // 工房の 加工
+  [/^(パン|薬草あめ|ジャム|串焼き|苔ようかん|コーヒー|麦茶|草餅|笹だんご|ハーブクッキー|チョコ|星の パン|ラテ|よもぎ団子|タルト|クッキー|ココナッツ|天ぷら|黒糖|ジュース|ニライ麦茶|ビターチョコ|キャンディ|ゼリー|パイ|シャーベット|プリン)が 足りない：あと (\d+)$/, (m, p) => `Not enough ${P(p, m[1])}: ${m[2]} more`],   // 栄養の おやつ
+  // 研究の 葉（2026-10-31）
+  [/^リソース ([\d,]+) ＋ (.+) (\d+) で サブツリーに つけられる（この子は のこる）$/, (m, p) => p(m[2]) && `Costs ${m[1]} Resources + ${m[3]} ${p(m[2])} to add as a subtree (this companion stays)`],
+  [/^(.+) あと (\d+)（畑で 育てる）$/, (m, p) => p(m[1]) && `${m[2]} more ${p(m[1])} (grow it on the farm)`],
+  [/^＋ (.+) (\d+)）$/, (m, p) => p(m[1]) && `+ ${m[2]} ${p(m[1])})`], [/^研究する（リソース ([\d,]+) ＋ (.+) (\d+)）$/, (m, p) => p(m[2]) && `Research (${m[1]} Resources + ${m[3]} ${p(m[2])})`],
+  [/^なかまの画面で 研究（リソース ([\d,]+) ＋ (.+) (\d+)）・懐柔できる$/, (m, p) => p(m[2]) && `Research it on the Companions screen (${m[1]} Resources + ${m[3]} ${p(m[2])}) to tame it`],
+  // 工房の 精錬
+  [/^1 本 (.+)$/, (m, p) => p(m[1]) && `${p(m[1])} each`],
+  [/^つぎの 1 本 あと (.+)・ぜんぶ (.+)$/, (m, p) => p(m[1]) && `Next in ${p(m[1])} · all by ${m[2]}`],
+  [/^炉 (\d) に 入れる（(\d+) 本・(.+)）$/, (m, p) => p(m[3]) && `Load Furnace ${m[1]} (${m[2]} · ${p(m[3])})`],
+  [/^炉 (\d) に 入れた（ぜんぶ (.+)）$/, (m) => `Loaded Furnace ${m[1]} (all by ${m[2]})`],
+  [/^(.+)を (\d+) 本 受けとった(?:（倉庫が いっぱいで (\d+) 本は あずかり箱へ）)?$/, (m, p) => p(m[1]) && `Collected ${p(m[1])} ×${m[2]}${m[3] ? ` (storage full: ${m[3]} went to the holding box)` : ""}`],
+  [/^やめた（(?:(\d+) 本 受けとり、)?(\d+) 本ぶんの 鉱石を もどした）$/, (m) => `Stopped (${m[1] ? `collected ${m[1]}, ` : ""}returned ore for ${m[2]})`],
 ];

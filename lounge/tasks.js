@@ -2,6 +2,7 @@
 // ・つながった タスク：1 つ おわると 次が 出る。終わりは ない（chainTask(商人, n) が n こ目を 決まりから 作る。同じ n なら いつも 同じ）
 // ・毎日の タスク：商人 1 人に 1 日 1 つ（dailyTask(商人, 日, 進み)）
 // ・しゅるい：納める（派遣で 拾った物だけ）・たおす・探索・捕まえる・作る・施設・ほか。じょうけんつき（力つきずに など）も 混ざる
+// ・希少な 敵は たおす・捕まえるの 対象に しない（希少で ある 意味が なくなる。鹿さんの決め、2026-10-28）
 // ・先へ 行くほど 行き先が 深く、数と ごほうびが 大きくなる
 import { DUNGEONS, TOOLS } from "./dungeons.js";
 import { GATHER, ENEMY_MAT, MAT_NAME } from "./materials.js";
@@ -30,7 +31,6 @@ const COND_RATE = 0.25, COND_MULT = 1.5;
 export const CHAIN_BALLS = [120, 30, 30], DAILY_BALLS = [60, 6, 20];
 
 // 商人ごとの タスクの 型。(R, n, d) → { kind, text, need, unit, found?, goal }。d は 行き先。goal は 門番が 数える 中身（type と 行き先・敵・品質 など）
-const foes = (d) => [...d.foes, d.rare];
 const T = {
   junk: [
     (R, n, d) => { const [id, name] = pick(R, GATHER[d.id].mats); return { kind: "納める", text: `${name}を 納める`, need: Math.round(5 * grow(n)), unit: "こ", found: true, mat: id, goal: { type: "deliver", mat: id, q: 0 } }; },
@@ -61,8 +61,7 @@ const T = {
   ],
   hunter: [
     (R, n, d) => { const f = pick(R, d.foes); return { kind: "たおす", text: `${f.name}を たおす`, need: Math.round(8 * grow(n)), unit: "たい", cond: true, goal: { type: "kill", tree: f.tree } }; },
-    (R, n, d) => n >= 4 ? ((f) => ({ kind: "捕まえる", text: `${f.name}を 捕まえる`, need: 1 + Math.floor(n / 25), unit: "たい", goal: { type: "capture", tree: f.tree } }))(pick(R, foes(d))) : null,
-    (R, n, d) => ({ kind: "たおす", text: `希少な ${d.rare.name}を たおす`, need: Math.round(2 * grow(n) ** 0.7), unit: "たい", cond: true, goal: { type: "kill", tree: d.rare.tree } }),
+    (R, n, d) => n >= 4 ? ((f) => ({ kind: "捕まえる", text: `${f.name}を 捕まえる`, need: 1 + Math.floor(n / 25), unit: "たい", goal: { type: "capture", tree: f.tree } }))(pick(R, d.foes)) : null,
     (R, n, d) => n >= 5 ? { kind: "たおす", text: `ボスの ${d.boss.name}を たおす`, need: 1 + Math.floor(n / 30), unit: "回", cond: true, goal: { type: "boss", did: d.id } } : null,
   ],
 };

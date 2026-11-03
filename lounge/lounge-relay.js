@@ -16,7 +16,7 @@ export function relayEntry(rec, t) {
   const mates = t.party.slice(1).map((u) => rec.tamed.find((c) => c.uid === u)).filter(Boolean);
   return {
     id: rec.id, uid: t.uid, name: rec.name, pet: { name: pet.name, qid: pet.qid, species: pet.species, type: pet.type, lv: pet.lv },
-    did: t.did, run: t.run, purpose: t.purpose, target: t.target, tool: t.tool, floor: t.floor || 0, seed: t.seed, start: t.start, end: t.end, calc: !!t.calc, med: t.med || 0, st: t.st ? 1 : 0,   // floor：えらんだ 出発の 階（0 は ふつう）。med・st：出かけた ときの 救護室の Lv・地図室 Lv1 から（同じ 計算に する）
+    did: t.did, run: t.run, purpose: t.purpose, target: t.target, tool: t.tool, ...(t.tools ? { tools: t.tools } : {}), floor: t.floor || 0, seed: t.seed, start: t.start, end: t.end, calc: !!t.calc, med: t.med || 0, st: t.st ? 1 : 0,   // floor：えらんだ 出発の 階（0 は ふつう）。med・st：出かけた ときの 救護室の Lv・地図室 Lv1 から（同じ 計算に する）
     party: t.team ? t.team.map((c, k) => (k ? c : { ...c, owner: rec.name })) : [{ ...fighterOf(pet, rec), owner: rec.name }, ...mates.map((c) => mateOf(c, rec))], progress: rec.explore[t.did] || null,
   };
 }
@@ -38,7 +38,7 @@ export async function relayFetch(lounge, url, req) {
     } else {
       if (!b || !b.A || !b.B || !Number.isFinite(+b.seed)) return J({ error: "pvp" }, 400);
       const pay = b.pay && typeof b.pay === "object" ? { credits: Math.max(0, Math.floor(+b.pay.credits || 0)), res: Math.max(0, Math.floor(+b.pay.res || 0)) } : null;   // 帯に 出す ごほうびの 数
-      m = JSON.stringify({ t: "pvp", kind: b.kind === "final" ? "final" : "enc", A: b.A, B: b.B, seed: +b.seed, did: String(b.did || ""), day: String(b.day || ""), pay });
+      m = JSON.stringify({ t: "pvp", kind: b.kind === "final" ? "final" : b.kind === "inv" ? "inv" : "enc", A: b.A, B: b.B, seed: +b.seed, did: String(b.did || ""), day: String(b.day || ""), pay, caught: !!b.caught });   // inv：探索中の 侵入
     }
     let sent = 0; for (const ws of lounge.obsSockets()) { try { ws.send(m); sent++; } catch (e) {} }
     return J({ ok: true, sent });

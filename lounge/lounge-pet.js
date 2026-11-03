@@ -4,7 +4,8 @@
 // - ノードは 自分で 取る か、自動（ふつうは 左の 道。分岐は えらべる）。自動に して おくと Lv が 上がる たびに 取る
 // - 職業を かえると 前の 職業の 技から 1 つだけ 持ちこせる。振り直しと 職業を かえるのは 1 日 1 回 無料、2 回目から 玉（鹿さんの決め、2026-10-24。値段は 案）
 // - 装備は あたま・くび・うで・あし・武器・オフハンド・アクセサリー ×3 の 9 枠（鹿さんの決め、2026-10-25。前の「おまけ」は 武器）。なかまも 付けられる。付けて いる 装備は 合成・納める・依頼の お礼に 使えない
-import { PETS, PLANS, gambitSlots, SHAPE, SP_PER_LV, SET_SLOTS, TREE_SLOTS, FREE_PER_LV, BASE_STATS, canTake, autoTake, learned, growthStats, ENEMY_TREES, SKILL, EFFECTS, COND_TEXT, baseOf, tamedOf, SLOTS, OLD_SLOT, withAtt, fighterPower, REC_MODES, REC_SCOPES, recommend } from "./game.js";
+import { COUNTS } from "./main-trees.js";
+import { PETS, PLANS, gambitSlots, SHAPE, SP_PER_LV, SET_SLOTS, TREE_SLOTS, FREE_PER_LV, BASE_STATS, canTake, autoTake, learned, growthStats, ENEMY_TREES, SKILL, EFFECTS, COND_TEXT, baseOf, tamedOf, SLOTS, OLD_SLOT, withAtt, fighterPower, REC_MODES, REC_SCOPES, recommend, isBItem } from "./game.js";
 
 export const RESET_PRICE = (lv) => lv * 100;   // 2 回目からの 振り直し・職業を かえる 玉（案）
 export const STYLES = ["attack", "defense", "balance", "mp"];   // オートの 作戦：こうげき重視・防御重視・バランス・MP を大事に
@@ -123,7 +124,7 @@ export function petStat(rec, b) {
   pet.free = Object.fromEntries(Object.entries(all).filter(([, v]) => v > 0));
   return { ok: true };
 }
-// ガンビット（null で お手本に もどす）。条件は battle-sim.js の COND、行動は 覚えた 技・こうげき・ぼうぎょ
+// ガンビット（null で お手本に もどす）。条件は battle-sim.js の COND、行動は 覚えた 技・こうげき・ぼうぎょ・戦いの アイテム
 export function petGambits(rec, b) {
   const pet = petOf(rec);
   if (!pet || !pet.type) return { ok: false, why: "さきに 職業を えらんで" };
@@ -134,9 +135,12 @@ export function petGambits(rec, b) {
   for (const g of b.list) {
     const c = g && Array.isArray(g.if) ? g.if[0] : "", v = g && Array.isArray(g.if) ? g.if[1] : undefined;
     if (!has(COND_TEXT, c)) return { ok: false, why: "知らない 条件" };
-    if (NUM_COND.has(c) ? !(Number.isInteger(v) && v >= 1 && v <= 100) : FX_COND.has(c) ? !has(EFFECTS, v) : v !== undefined) return { ok: false, why: "条件の 数が ちがう" };
-    if (!(skills.has(g.do) || g.do === "kogeki" || g.do === "bougyo")) return { ok: false, why: "覚えて いない 技" };
-    out.push({ if: v === undefined ? [c] : [c, v], do: g.do, ...(g.on === false ? { on: false } : {}) });
+    const cntOk = (x) => Array.isArray(x) && x.length === 2 && has(COUNTS, x[0]) && Number.isInteger(x[1]) && x[1] >= 1 && x[1] <= 100;   // カウント：[名前, 1〜100]
+    if (c === "cntAtLeast" ? !cntOk(v) : NUM_COND.has(c) ? !(Number.isInteger(v) && v >= 1 && v <= 100) : FX_COND.has(c) ? !has(EFFECTS, v) : v !== undefined) return { ok: false, why: "条件の 数が ちがう" };
+    if (!(skills.has(g.do) || g.do === "kogeki" || g.do === "bougyo" || isBItem(g.do))) return { ok: false, why: "覚えて いない 技" };   // 戦いの アイテムも（2026-10-31）
+    const opts = SKILL[g.do]?.choose;   // 技の 中で えらぶ 物（肥料を もらう など）：その 技に ある 物だけ
+    if (g.opt !== undefined && !(opts && typeof g.opt === "string" && opts.some((o) => o.key === g.opt))) return { ok: false, why: "えらぶ 物が ちがう" };
+    out.push({ if: v === undefined ? [c] : c === "cntAtLeast" ? [c, [v[0], v[1]]] : [c, v], do: g.do, ...(g.opt !== undefined ? { opt: g.opt } : {}), ...(g.on === false ? { on: false } : {}) });
   }
   pet.gambits = out;
   return { ok: true };

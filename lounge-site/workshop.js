@@ -2,6 +2,9 @@
 // スタック数（1 しゅるい 50〜400）を 増やした ぶん、素材を たくさん 使う（1 回 20〜30 こ）
 // 支払いは 素材 ＋ クレジット（玉・リソースは 使わない）。工房の Lv で 作れる 物と アタッチメントの ★が かわる
 import { OPS } from "./equip.js";
+import { farmOpen } from "./crops.js";
+import { detailOpen } from "./nutrition.js";   // 詳細ステータス（デトックス茶）
+import { BITEM_RECIPES } from "./battle-items.js";   // 戦いの アイテム（爆弾・薬）
 
 // ---------- 道具・品（数を えらんで まとめて 作れる） ----------
 // to：もらう 物（tools は 派遣に 持っていく 道具、items は 品）。lv：工房の Lv
@@ -9,12 +12,70 @@ export const WS_ITEMS = [
   { id: "lure", name: "おとりの笛", note: "派遣の 道具：えらんだ 敵と 出会いやすい", lv: 1, to: { tools: { lure: 1 } }, mats: [["straw", 8], ["oldnail", 4], ["hare_horn", 1]], credits: 80 },
   { id: "net", name: "捕獲ネット", note: "派遣の 道具：捕まえる 確率 2 倍", lv: 1, to: { tools: { net: 1 } }, mats: [["oldcloth", 8], ["straw", 12], ["kobold_fur", 2]], credits: 200 },
   { id: "sprinkler", name: "スプリンクラー", note: "畑に 置くと まわりの 作物の 品質が 上がる", lv: 1, to: { items: { sprinkler: 1 } }, mats: [["oldnail", 12], ["pebble", 15], ["wellwater", 8]], credits: 300 },
-  { id: "tea", name: "元気のお茶", note: "派遣の 道具：力つきても 1 回だけ 全回復", lv: 2, to: { tools: { tea: 1 } }, mats: [["herb", 20], ["nightbloom", 10], ["deepwater", 10], ["dream_feather", 1, 2]], credits: 600 },
+  { id: "tea", name: "元気のお茶", note: "派遣の 道具：力つきても 1 回だけ 全回復", lv: 2, to: { tools: { tea: 1 } }, mats: [["herb", 5]], credits: 1500 },   // 薬草 5（鹿さんの 決め、2026-10-31。前は 薬草 20・夜咲き草 10・地底の水 10・夢見の羽）
   { id: "sprinkler2", name: "上の スプリンクラー", note: "品質が もっと 上がる・とどく 広さも 広い", lv: 2, to: { items: { sprinkler2: 1 } }, mats: [["ironore", 15], ["oldnail", 20], ["deepwater", 10]], credits: 900 },
   { id: "sprinkler3", name: "星の スプリンクラー", note: "いちばん 品質が 上がる", lv: 3, to: { items: { sprinkler3: 1 } }, mats: [["crystalbit", 20], ["glowstone", 15], ["rainbow_shell", 1, 3]], credits: 3000 },
   { id: "blankcore", name: "ブランクコア", note: "装備から OP を 1 つ 抜き出す（抜いた 装備は なくなる。コアは 別の 装備に 付ける）", lv: 2, to: { items: { blankcore: 1 } }, mats: [["crystalbit", 8], ["glowstone", 8], ["slime_core", 1, 2]], credits: 1500 },   // 鹿さんの決め、2026-10-25
+  // 畑と 坑道で 使う 物（鹿さんの 決め、2026-10-31。docs/mono-link-crafting.md。数は Claude の 案）：肥料（1 回で 4 こ）・つるはし・ランプ
+  { id: "fert", name: "肥料", note: "畑：植える ときに まくと 育つ 時間 −30%（1 マス 1 こ）", lv: 1, to: { items: { fert: 4 } }, mats: [["straw", 8], ["sleepmoss", 2]], credits: 100 },
+  { id: "fert2", name: "上の 肥料", note: "畑：育つ 時間 −30%・品質も スプリンクラー 1 段ぶん 上がる", lv: 2, to: { items: { fert2: 4 } }, mats: [["salt_hay", 4], ["wellcap", 4], ["deep_mushroom", 2]], credits: 300, farm: true },
+  // デトックス茶（鹿さんの 決め、2026-10-31）：詳細ステータスを リセット（キャップに 届く 前だけ。届いたら 謎のお菓子で 上限突破）
+  { id: "detox", name: "デトックス茶", note: "ペット・なかま：詳細ステータスを リセット（キャップに 届く 前だけ）", lv: 1, to: { items: { detox: 1 } }, mats: [["shadow_mugwort", 2], ["inn_wheat", 2]], credits: 200, farm: true, detail: true },
+  { id: "pickaxe", name: "つるはし", note: "坑道：使うと 12 時間、掘る 数 ×1.3", lv: 1, to: { items: { pickaxe: 1 } }, mats: [["iron_bar", 2], ["oldnail", 6], ["brick", 4]], credits: 200 },
+  { id: "lamp", name: "ランプ", note: "坑道：使うと 12 時間、銀鉱石と 金鉱石が 2 倍 出やすい", lv: 1, to: { items: { lamp: 1 } }, mats: [["copper_bar", 2], ["candle", 6], ["glowstone", 2]], credits: 300 },
+  // 薬・エンチャント・お守り（鹿さんの 決め、2026-10-31。docs/mono-link-crafting.md）。島 1 で ぜんぶ 作れ、島 2（工房 Lv4）で 上の 版。farm：作物が いる（大工事の 畑が つながってから）
+  { id: "tea_heal", name: "元気のお茶（癒し草）", note: "派遣の 道具：力つきても 1 回だけ 全回復", lv: 2, to: { tools: { tea: 1 } }, mats: [["healherb", 3]], credits: 1500, farm: true },
+  { id: "cure", name: "気つけ薬", note: "派遣の 道具：1 回だけ 状態異常を 防ぐ", lv: 2, to: { tools: { cure: 1 } }, mats: [["herb", 2], ["healherb", 2]], credits: 300, farm: true },
+  { id: "cure2", name: "上の 気つけ薬", note: "派遣の 道具：1 回 防ぐ ＋ 状態異常に 強い ＋10%", lv: 4, to: { tools: { cure2: 1 } }, mats: [["sannin", 2], ["herb", 2]], credits: 900, farm: true },
+  { id: "revive", name: "起こし薬", note: "派遣の 道具：倒れた 子が 1 回 HP 3 割で 起きる", lv: 2, to: { tools: { revive: 1 } }, mats: [["shadow_mugwort", 2], ["healherb", 2]], credits: 400, farm: true },
+  { id: "revive2", name: "上の 起こし薬", note: "派遣の 道具：倒れた 子が 1 回 HP 5 割で 起きる", lv: 4, to: { tools: { revive2: 1 } }, mats: [["ryugu_ginger", 2], ["shadow_mugwort", 1]], credits: 1200, farm: true },
+  { id: "incense", name: "はじまりの香", note: "派遣の 道具：さいしょの 戦いの はじめに 再生", lv: 1, to: { tools: { incense: 1 } }, mats: [["healherb", 1], ["sleepmoss", 2]], credits: 200, farm: true },
+  { id: "incense2", name: "上の はじまりの香", note: "派遣の 道具：さいしょの 戦いの はじめに 強い 再生", lv: 4, to: { tools: { incense2: 1 } }, mats: [["sannin", 1], ["ryugu_ginger", 1]], credits: 700, farm: true },
+  { id: "ench_burn", name: "炎上の エンチャント", note: "派遣の 道具：当たると 5% で 炎上", lv: 2, to: { tools: { ench_burn: 1 } }, mats: [["herb", 4], ["light_drop", 1]], credits: 300 },
+  { id: "ench_frost", name: "凍傷の エンチャント", note: "派遣の 道具：当たると 5% で 凍傷", lv: 2, to: { tools: { ench_frost: 1 } }, mats: [["herb", 4], ["crystal_scale", 1]], credits: 300 },
+  { id: "ench_poison", name: "毒の エンチャント", note: "派遣の 道具：当たると 5% で 毒", lv: 2, to: { tools: { ench_poison: 1 } }, mats: [["herb", 4], ["poison_vial", 1]], credits: 300 },
+  { id: "ench_sick", name: "体調不良の エンチャント", note: "派遣の 道具：当たると 5% で 体調不良", lv: 2, to: { tools: { ench_sick: 1 } }, mats: [["herb", 4], ["ghost_cloth", 1]], credits: 300 },
+  { id: "charm_sleep", name: "眠りよけの お守り", note: "派遣の 道具：眠りに かかりにくい", lv: 2, to: { tools: { charm_sleep: 1 } }, mats: [["cotton_cloth", 1], ["herb", 2], ["dream_feather", 1]], credits: 300, farm: true },
+  { id: "charm_poison", name: "毒よけの お守り", note: "派遣の 道具：毒に かかりにくい", lv: 2, to: { tools: { charm_poison: 1 } }, mats: [["cotton_cloth", 1], ["herb", 2], ["poison_vial", 1]], credits: 300, farm: true },
+  { id: "charm_burn", name: "炎上よけの お守り", note: "派遣の 道具：炎上に かかりにくい", lv: 2, to: { tools: { charm_burn: 1 } }, mats: [["cotton_cloth", 1], ["herb", 2], ["light_drop", 1]], credits: 300, farm: true },
+  { id: "charm_frost", name: "凍傷よけの お守り", note: "派遣の 道具：凍傷に かかりにくい", lv: 2, to: { tools: { charm_frost: 1 } }, mats: [["cotton_cloth", 1], ["herb", 2], ["crystal_scale", 1]], credits: 300, farm: true },
+  { id: "charm_para", name: "麻痺よけの お守り", note: "派遣の 道具：麻痺に かかりにくい", lv: 2, to: { tools: { charm_para: 1 } }, mats: [["cotton_cloth", 1], ["herb", 2], ["bat_wing", 1]], credits: 300, farm: true },
+  { id: "charm_stun", name: "気絶よけの お守り", note: "派遣の 道具：気絶に かかりにくい", lv: 2, to: { tools: { charm_stun: 1 } }, mats: [["cotton_cloth", 1], ["herb", 2], ["golem_stone", 1]], credits: 300, farm: true },
+  ...BITEM_RECIPES,   // 戦いで 使う アイテム（鹿さんの 決め、2026-10-31。battle-items.js。ガンビットで 使う）
 ];
+export const wsOpen = (r) => (!r.farm || farmOpen()) && (!r.detail || detailOpen());   // 作物の いる 物は 大工事の 畑が つながってから。詳細ステータスの 物は 開いてから
 export const WS_MAX = 20;   // 道具・品を 1 回に 作れる 数
+
+// ---------- 加工（鹿さんの 決め、2026-10-31。docs/mono-link-crafting.md）：作物 3 こ → 布・建材 1 こ（すぐ できる）----------
+// 布は お守り・防具の 開発・施設、建材は 施設に 使う。作物も 使い道も 大工事の 畑が つながってから なので、それまでは 出さない（FARM_OPEN）
+// key：レシピの 名前（同じ 物を 2 とおりで 作る ときだけ id と ちがう）
+export const WS_PROC = [
+  { id: "cotton_cloth", mats: [["cloudcotton", 3]] }, { id: "flax_cloth", mats: [["starflax", 3]] }, { id: "sky_cloth", mats: [["skycotton", 3]] },
+  { id: "whitesand_cloth", mats: [["whitesand_cotton", 3]] }, { id: "sylph_sail", mats: [["sylph_linen", 3]] }, { id: "pearl_silk", mats: [["pearl_silkcotton", 3]] },
+  { id: "bamboo_lumber", mats: [["iron_bamboo", 3]] }, { id: "nightbamboo_lumber", mats: [["night_bamboo", 3]] }, { id: "blackbamboo_lumber", mats: [["black_bamboo", 3]] },
+  { id: "stormbamboo_lumber", mats: [["storm_bamboo", 3]] }, { id: "straw_bundle", mats: [["straw", 3]] }, { id: "straw_bundle", key: "straw_bundle_hay", mats: [["salt_hay", 1]] },
+].map((r) => ({ key: r.key || r.id, ...r }));
+export const PROC_MAX = 50;   // 1 回に 作れる 数
+export const procOpen = () => farmOpen();
+export const procOf = (key) => WS_PROC.find((r) => r.key === key) || null;
+
+// ---------- 精錬（鹿さんの 決め、2026-10-31。docs/mono-link-crafting.md）：鉱石 → 延べ棒 ----------
+// 炉は 工房の Lv の 数（1〜4）。1 つの 炉に 同じ 延べ棒を 何本でも 入れて、本数 × 時間（1 本ずつ 順に できる）。素材は 入れた ときに 取る
+// min：1 本の 時間（分。下書き）。暖炉（家具）で 早く なる 決めは 家具の 効果を 入れる ときに
+export const SMELT = [
+  { id: "copper_bar", mats: [["copperore", 3], ["coal", 1]], min: 60 },
+  { id: "iron_bar", mats: [["ironore", 3], ["coal", 1]], min: 60 },
+  { id: "silver_bar", mats: [["silverore", 3], ["coal", 2]], min: 180 },
+  { id: "gold_bar", mats: [["goldore", 3], ["coal", 2]], min: 360 },
+];
+export const SMELT_MAX = 50;   // 1 つの 炉に 1 回で 入れられる 本数
+export const furnaces = (wsLv) => Math.max(0, Math.min(4, wsLv || 0));
+export const smeltOf = (id) => SMELT.find((x) => x.id === id) || null;
+// 炉の ようす。f：{ id, n, at }（at：いま 作って いる 1 本目を 入れた 時刻）。done：できた 本数・next：つぎの 1 本が できる 時刻・end：ぜんぶ できる 時刻
+export function smeltDone(f, now) {
+  const ms = smeltOf(f.id).min * 60000, done = Math.max(0, Math.min(f.n, Math.floor((now - f.at) / ms)));
+  return { done, left: f.n - done, next: done < f.n ? f.at + (done + 1) * ms : 0, end: f.at + f.n * ms };
+}
 
 // ---------- 武器の アタッチメント ----------
 // 武器 1 つに 先っぽ・持ち手 の 2 つ。作る たびに ★と OP が くじ（同じ レシピでも 毎回 ちがう）

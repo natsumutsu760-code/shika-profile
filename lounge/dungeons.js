@@ -32,6 +32,9 @@ export const PURPOSES = {
 // 宝箱の装備の★（階ごと）。かくし通路の宝箱は★が 1 つ上。ボスをたおすと 1 つ（★3〜5）とリソース、まれにミシック
 export const CHEST_STAR = { 1: { 1: 85, 2: 15 }, 2: { 1: 60, 2: 35, 3: 5 }, 3: { 1: 30, 2: 50, 3: 20 }, 4: { 2: 55, 3: 38, 4: 7 }, 5: { 2: 40, 3: 45, 4: 15 } };
 export const BOSS_STAR = { 3: 55, 4: 40, 5: 5 }, MYTHIC = 0.01, BOSS_RESOURCE = 2;
+// 侵入（鹿さんの決め、2026-10-28）：派遣 1 回に 1% で、S〜EX の 配合限定の 高レベル体が 入って きて 先頭の ペットに 1 対 1 で 挑む
+// Lv は 島ごとに 100 ずつ（島 1 は 100 台・島 2 は 200 台。下 2 けたは くじ）。たおすと 5% で 捕まえる（Lv1 で なかまに）。負けたら ふつうの 戦いと 同じく 力つきて 帰る
+export const INVADE = { rate: 0.01, capture: 0.05, lvStep: 100, ranks: [6, 7] };
 // 経験値：たおした敵の Lv × EXP_PER_LV。パーティの全員が同じだけもらう
 export const EXP_PER_LV = 0.3;
 // クレジット：派遣のゲームの中のお金（鹿さんの決め、2026-10-22）。施設の強化などに使う。たおした敵の Lv × 2、宝箱 1 こで 20〜60 × 階（かくし通路は 2 倍）、ボス 300
@@ -48,11 +51,34 @@ export const RARE_RATE = 0.08;
 export const GROUP = { 1: 50, 2: 35, 3: 15 };
 // 懐柔のおやつ：戦いに勝つと SNACK_DROP の確率で 1 こ拾う（探索にして、1 分あたりは前とだいたい同じ）。買うと 1 こ SNACK_PRICE 玉。なかよしゲージは SNACK_NEED こでいっぱい（鹿さんの OK、2026-10-21）
 // 派遣に 持っていく 道具（じゅんびで 1 つ えらぶ。使うと なくなる。商人の店で 買う。鹿さんの決め、2026-10-22）
+export const TOOL_MAX = 3;
+// 持って いく 道具の 一覧（opts.tools か、前の 形の opts.tool）。知らない 物と 重なりは のぞいて 3 つまで
+export const toolList = (o = {}) => [...new Set(Array.isArray(o.tools) ? o.tools : o.tool ? [o.tool] : [])].filter((id) => TOOLS[id]).slice(0, TOOL_MAX);
 export const TOOLS = {
   lure: { name: "おとりの笛", text: "えらんだ 敵と 出会いやすい", shop: "ホーク" },
   net: { name: "捕獲ネット", text: "捕まえる 確率が 2 倍", shop: "ホーク" },
-  tea: { name: "元気のお茶", text: "力つきても 1 回だけ、全回復して つづける", shop: "ウール先生" },
+  tea: { name: "元気のお茶", text: "力つきても 1 回だけ、全回復して つづける", shop: "ウール先生", keep: true },
+  // 1 回の 派遣に 持って いける 道具は ちがう 物を 3 つまで（鹿さんの 決め、2026-10-31。前は 1 つ。TOOL_MAX）
+  // 薬・エンチャント・お守り（鹿さんの 決め、2026-10-31。docs/mono-link-crafting.md）：工房で 作る。（前の メモ：持って いける 数は まだ 決めて いない）
+  // keep：使わなかったら 帰りに もどる。cure・revive：派遣の あいだ 1 回だけ（気つけ薬・起こし薬）。regen：さいしょの 戦いの はじめに 再生の 量。onHit・resist：派遣の あいだ ずっと
+  cure: { name: "気つけ薬", text: "派遣の あいだ 1 回だけ、かかりそうに なった 状態異常を 防ぐ", keep: true, kind: "薬", cure: true },
+  cure2: { name: "上の 気つけ薬", text: "派遣の あいだ 1 回だけ 状態異常を 防ぐ。ずっと 状態異常に 強い ＋10%", keep: true, kind: "薬", cure: true, statusRes: 10 },
+  revive: { name: "起こし薬", text: "派遣の あいだ 1 回だけ、倒れた 子が HP 3 割で 起きあがる", keep: true, kind: "薬", revive: 0.3 },
+  revive2: { name: "上の 起こし薬", text: "派遣の あいだ 1 回だけ、倒れた 子が HP 5 割で 起きあがる", keep: true, kind: "薬", revive: 0.5 },
+  incense: { name: "はじまりの香", text: "さいしょの 戦いの はじめに みんなに 再生（HP が 少しずつ もどる）", kind: "薬", regen: 16 },
+  incense2: { name: "上の はじまりの香", text: "さいしょの 戦いの はじめに みんなに 強い 再生", kind: "薬", regen: 24 },
+  ench_burn: { name: "炎上の エンチャント", text: "派遣の あいだ、攻撃が 当たると 5% で 炎上", kind: "エンチャント", onHit: "burn" },
+  ench_frost: { name: "凍傷の エンチャント", text: "派遣の あいだ、攻撃が 当たると 5% で 凍傷", kind: "エンチャント", onHit: "frostbite" },
+  ench_poison: { name: "毒の エンチャント", text: "派遣の あいだ、攻撃が 当たると 5% で 毒", kind: "エンチャント", onHit: "poison" },
+  ench_sick: { name: "体調不良の エンチャント", text: "派遣の あいだ、攻撃が 当たると 5% で 体調不良", kind: "エンチャント", onHit: "sickness" },
+  charm_sleep: { name: "眠りよけの お守り", text: "派遣の あいだ、眠りに かかりにくい（＋30%。無効では ない）", kind: "お守り", resist: "sleep" },
+  charm_poison: { name: "毒よけの お守り", text: "派遣の あいだ、毒に かかりにくい（＋30%）", kind: "お守り", resist: "poison" },
+  charm_burn: { name: "炎上よけの お守り", text: "派遣の あいだ、炎上に かかりにくい（＋30%）", kind: "お守り", resist: "burn" },
+  charm_frost: { name: "凍傷よけの お守り", text: "派遣の あいだ、凍傷に かかりにくい（＋30%）", kind: "お守り", resist: "frostbite" },
+  charm_para: { name: "麻痺よけの お守り", text: "派遣の あいだ、麻痺に かかりにくい（＋30%）", kind: "お守り", resist: "paralysis" },
+  charm_stun: { name: "気絶よけの お守り", text: "派遣の あいだ、気絶に かかりにくい（＋30%）", kind: "お守り", resist: "stun" },
 };
+export const ENCH_RATE = 0.05, ENCH_AMT = 2, CHARM_RES = 30;   // エンチャント：当たると 5% で 量 2・お守り：その 状態異常の 耐性 ＋30（%）
 export const LURE_SHARE = { 通常: 0.5, 希少: 0.12 }, NET_MULT = 2;   // 笛：出会う敵の 半分が えらんだ敵（希少な敵は 12%）。ネット：捕まえる 確率 ×2
 export const SNACK_DROP = 0.08, SNACK_PRICE = 50;
 export const SNACK_NEED = { 通常: 10, 希少: 30, ボス: 100, 配合: 30 };   // 配合：配合限定の 子（なかよしで 生まれる）

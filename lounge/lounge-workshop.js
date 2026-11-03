@@ -1,8 +1,8 @@
 // 工房（鹿さんの頼み、2026-10-25）：道具・品を 作る（ws.make）・武器の アタッチメントを 作る（ws.att）・付ける（att.set）・はずす（att.off）・すてる（att.drop）
 // 決まりの 中身は 見本の lounge-proto/workshop.js。支払いは 素材 ＋ クレジット（帳簿を 使わない ので その場で 決まる）
 // アタッチメントは 記録の own.att に { uid, base, star, ops, on }（on：付けて いる 武器の uid か null）。武器が 合成・売る・届けるで なくなっても、アタッチメントは のこる（付いて いない 扱い）
-import { WS_ITEMS, WS_MAX, ATT_MAX, attBase, rollAtt, baseOf } from "./game.js";
-import { takeMats, applyTake, give } from "./lounge-game.js";
+import { WS_ITEMS, wsOpen, WS_MAX, ATT_MAX, attBase, rollAtt, baseOf, SMELT_MAX, furnaces, smeltOf, smeltDone, PROC_MAX, procOpen, procOf } from "./game.js";
+import { takeMats, applyTake, give, putMats } from "./lounge-game.js";
 
 const newUid = (rec, p) => p + (++rec.uidN).toString(36);
 export const ensureWs = (rec) => { rec.own.att ||= []; return rec; };
@@ -19,7 +19,7 @@ export function wsMake(rec, b, now = Date.now()) {
   ensureWs(rec);
   const lv = rec.hideout.workshop || 0, r = WS_ITEMS.find((x) => x.id === b.id);
   if (!lv) return { ok: false, why: "工房が まだ ない（隠れ家で 作る）" };
-  if (!r) return { ok: false, why: "作る 物を えらんで" };
+  if (!r || !wsOpen(r)) return { ok: false, why: "作る 物を えらんで" };   // 作物の いる 物は 大工事の 畑が つながってから
   if (lv < r.lv) return { ok: false, why: `工房 Lv${r.lv} から 作れる` };
   const n = Number.isInteger(b.n) && b.n >= 1 && b.n <= WS_MAX ? b.n : 0;
   if (!n) return { ok: false, why: `作る 数は 1〜${WS_MAX}` };
@@ -47,6 +47,81 @@ export function wsAtt(rec, b, R, now = Date.now()) {
   const att = { uid: newUid(rec, "a"), ...rollAtt(R, base, lv), on: null };
   rec.own.att.push(att);
   return { ok: true, att };
+}
+
+// ---------- 加工（鹿さんの 決め、2026-10-31）：作物 → 布・建材（すぐ できる）。b：{ key, n } ----------
+// 買った 作物（b）から 作った 物にも b（精錬と 同じ）
+export function wsProc(rec, b, now = Date.now()) {
+  if (!rec.hideout.workshop) return { ok: false, why: "工房が まだ ない（隠れ家で 作る）" };
+  const r = procOf(b.key);
+  if (!r || !procOpen(r)) return { ok: false, why: "作る 物を えらんで" };
+  const n = Number.isInteger(b.n) && b.n >= 1 && b.n <= PROC_MAX ? b.n : 0;
+  if (!n) return { ok: false, why: `作る 数は 1〜${PROC_MAX}` };
+  const t = takeMats(rec, r.mats.map(([id, k]) => [id, k * n, 0]), { now });
+  if (t.why) return { ok: false, why: t.why };
+  applyTake(rec, t.picks);
+  const fl = useUnits(t.picks.map((p) => ({ ...p })), r.mats, n), put = putMats(rec, barsOf(r.id, n, fl), now);
+  return { ok: true, id: r.id, n, boxed: put.box.reduce((a, m) => a + m.n, 0) };
+}
+
+// ---------- 精錬（鹿さんの 決め、2026-10-31）：炉に 鉱石を 入れる（smelt.put）・できた 延べ棒を 受けとる（smelt.take）・やめる（smelt.stop）----------
+// rec.smelt[炉の 番号] ＝ { id：延べ棒, n：のこりの 本数, at：いま 作って いる 1 本目を 入れた 時刻, in：まだ 使って いない 素材〈id・q・b〉 } か null。延べ棒は 倉庫へ（いっぱいなら あずかり箱）
+// 買った 素材の 印（b：商人の タスクで「派遣で 拾った 物」に 数えない）を 消さない：1 本ずつ 前から 使い、買った 素材を 使った 延べ棒にも b。やめて もどす 素材も 元の 印・品質の まま
+const slotOf = (rec, b) => (Number.isInteger(b.slot) && b.slot >= 0 && b.slot < furnaces(rec.hideout.workshop) ? b.slot : -1);
+export function smeltPut(rec, b, now = Date.now()) {
+  rec.smelt ||= [];
+  if (!rec.hideout.workshop) return { ok: false, why: "工房が まだ ない（隠れ家で 作る）" };
+  const i = slotOf(rec, b), r = smeltOf(b.id);
+  if (i < 0) return { ok: false, why: "炉を えらんで" };
+  if (rec.smelt[i]) return { ok: false, why: "その 炉は 使って いる" };
+  if (!r) return { ok: false, why: "作る 延べ棒を えらんで" };
+  const n = Number.isInteger(b.n) && b.n >= 1 && b.n <= SMELT_MAX ? b.n : 0;
+  if (!n) return { ok: false, why: `入れる 数は 1〜${SMELT_MAX} 本` };
+  const t = takeMats(rec, r.mats.map(([id, k]) => [id, k * n, 0]), { now });
+  if (t.why) return { ok: false, why: t.why };
+  applyTake(rec, t.picks);
+  rec.smelt[i] = { id: r.id, n, at: now, in: t.picks.map((p) => ({ id: p.id, q: p.q, n: p.n, ...(p.b ? { b: 1 } : {}) })) };   // takeMats は 同じ 品質なら 買った 物から 取る
+  return { ok: true, slot: i, end: smeltDone(rec.smelt[i], now).end };
+}
+// 素材の 並び（list：id・q・n・b）から、1 つ ぶん（mats）ずつ k 回 前から 使う。買った 素材（b）を 使った 回数を かえす（list は 減る）
+function useUnits(list, mats, k) {
+  let flagged = 0;
+  for (let j = 0; j < k; j++) {
+    let fl = false;
+    for (const [id, c] of mats) { let left = c; for (const p of list) { if (p.id !== id || !p.n || !left) continue; const x = Math.min(left, p.n); p.n -= x; left -= x; if (p.b) fl = true; } }
+    if (fl) flagged++;
+  }
+  return flagged;
+}
+// k 本 ぶんの 素材を f.in の 前から 使う（前の 記録で in が ない 炉は 拾った 物 あつかい）
+function useIn(f, k) {
+  if (!f.in) return 0;
+  const n = useUnits(f.in, smeltOf(f.id).mats, k);
+  f.in = f.in.filter((p) => p.n > 0);
+  return n;
+}
+const barsOf = (id, n, flagged) => [...(n - flagged ? [{ id, q: 0, n: n - flagged }] : []), ...(flagged ? [{ id, q: 0, n: flagged, b: 1 }] : [])];
+// できた 分を 受けとる（のこりは その まま 続く）
+export function smeltTake(rec, b, now = Date.now()) {
+  rec.smelt ||= [];
+  const i = slotOf(rec, b), f = i >= 0 && rec.smelt[i];
+  if (!f) return { ok: false, why: "その 炉は 空いて いる" };
+  const d = smeltDone(f, now);
+  if (!d.done) return { ok: false, why: `まだ できて いない（あと ${Math.ceil((d.next - now) / 60000)} 分）` };
+  const g = { ...f, in: f.in && f.in.map((p) => ({ ...p })) }, put = putMats(rec, barsOf(f.id, d.done, useIn(g, d.done)), now);
+  if (d.left) rec.smelt[i] = { ...g, n: d.left, at: f.at + d.done * smeltOf(f.id).min * 60000 }; else rec.smelt[i] = null;
+  return { ok: true, id: f.id, got: d.done, boxed: put.box.reduce((a, m) => a + m.n, 0) };
+}
+// やめる：できた 分は 受けとり、まだの 分の 鉱石と 石炭は もどす（とちゅうの 1 本も もどす）
+export function smeltStop(rec, b, now = Date.now()) {
+  rec.smelt ||= [];
+  const i = slotOf(rec, b), f = i >= 0 && rec.smelt[i];
+  if (!f) return { ok: false, why: "その 炉は 空いて いる" };
+  const d = smeltDone(f, now), g = { ...f, in: f.in && f.in.map((p) => ({ ...p })) }, bars = barsOf(f.id, d.done, useIn(g, d.done));
+  const back = g.in || smeltOf(f.id).mats.map(([id, k]) => ({ id, q: 0, n: k * d.left }));   // のこりの 素材は 入れた ときの 印・品質の まま
+  const put = putMats(rec, [...bars, ...back], now);
+  rec.smelt[i] = null;
+  return { ok: true, id: f.id, got: d.done, back: d.left, boxed: put.box.reduce((a, m) => a + m.n, 0) };
 }
 
 // 武器に 付ける（同じ 場所に 付いて いた 物は はずれる）。b：{ att, weapon }

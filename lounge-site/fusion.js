@@ -6,12 +6,19 @@ import { DUNGEONS_ALL, SNACK_NEED } from "./dungeons.js";
 import { ENEMY_TREES, evoOf } from "./enemy-trees.js";
 import { tamedOf } from "./dungeon-sim.js";
 import { SUB_MAX, TREE_FULL, FUSE_LV, treesOf, spTotal, spSplit, sexOf, sexOk } from "./monster.js";
-import { ROSTER, SPECIAL, FOUR } from "./fusion-only.js";   // 配合限定 80 種・特殊配合・4 体配合
+import { ROSTER, SPECIAL, FOUR } from "./fusion-only.js";   // 配合限定 240 種・特殊配合・4 体配合
+import { farmOpen } from "./crops.js";   // 研究の 葉は 大工事の 畑で とれる
 
-// ---------- ランク（初代 DQMJ と 同じ 8 段）。野生の 種族は 出て くる Lv で 決める ----------
-export const RANKS = ["F", "E", "D", "C", "B", "A", "S", "SS"];
-const RANK_LV = [8, 16, 26, 36, 46, 56, 66];   // この Lv より 下なら その ランク（F は 8 未満 … SS は 66 以上）
-export const rankByLv = (lv) => { const i = RANK_LV.findIndex((x) => lv < x); return i < 0 ? RANKS.length - 1 : i; };
+// ---------- ランク（8 段。いちばん 上は EX。鹿さんの決め、2026-10-28：前は SS） ----------
+export const RANKS = ["F", "E", "D", "C", "B", "A", "S", "EX"];
+// 野生の ランク（鹿さんの決め、2026-10-28）：雑魚は F〜C、希少と ボスは D〜A。S・EX は 配合限定と 探索中の 侵入だけ
+// 行き先の Lv の 順に、島 1 の 前半 F・後半 E、島 2 の 前半 D・後半 C。希少と ボスは その 2 つ 上
+const WILD_TIER = {};
+for (const isle of [1, 2]) {
+  const ds = DUNGEONS_ALL.filter((d) => (d.isle || 1) === isle).sort((a, b) => a.lv - b.lv);
+  ds.forEach((d, i) => { WILD_TIER[d.id] = (isle - 1) * 2 + (i >= ds.length / 2 ? 1 : 0); });
+}
+const wildRank = (d, kind) => WILD_TIER[d.id] + (kind === "通常" ? 0 : 2);
 
 // ---------- 系統：ヴェルヴェットの 16 大種族（鹿さんから もらった 仕様書の とおり、2026-10-25） ----------
 // 系統は 配合の 候補を 決める ためだけ（戦いの 相性は ない。ヴェルヴェットと 同じ）
@@ -52,13 +59,23 @@ export const raceOf = (tree) => RACE[tree];
 // ---------- 種族（野生 ＋ 配合限定）と 位階 ----------
 // 配合限定（fusion-only.js）。ツリーが できて いる 子だけ。生まれ方が「特殊」「4体」の 子は はしごに 入らない（only）
 export const FUSION_ONLY = ROSTER.filter((s) => ENEMY_TREES[s.tree]).map(({ tree, name, type, fam, rank, lv, how }) => ({ tree, name, type, fam, rank, lv, ...(how === "位階" ? {} : { only: how }) }));
-const wild = DUNGEONS_ALL.flatMap((d) => [...d.foes, d.rare, d.boss].map((f) => ({ tree: f.tree, name: f.name, type: f.type, lv: f.lv, fam: RACE[f.tree] || "humanoid", rank: rankByLv(f.lv), wild: true })));
+const wild = DUNGEONS_ALL.flatMap((d) => [...d.foes.map((f) => [f, "通常"]), [d.rare, "希少"], [d.boss, "ボス"]].map(([f, kind]) => ({ tree: f.tree, name: f.name, type: f.type, lv: f.lv, fam: RACE[f.tree] || "humanoid", rank: wildRank(d, kind), wild: true })));
 export const SPECIES = [...wild, ...FUSION_ONLY.map((s) => ({ ...s, wild: false }))]
   .sort((a, b) => a.rank - b.rank || a.lv - b.lv || (a.tree < b.tree ? -1 : 1))
   .map((s, i) => ({ ...s, pos: i + 1 }));   // 位階（通し番号。大きいほど 上）
 const BY_TREE = new Map(SPECIES.map((s) => [s.tree, s]));
 export const speciesOf = (tree) => BY_TREE.get(tree) || null;
 export const famOf = (tree) => (speciesOf(tree) || {}).fam;
+// 上の 研究に 葉が いる（鹿さんの 決め、2026-10-31。docs/mono-link-crafting.md）：希少・ボス・配合の 敵の ツリーは、島 1 は 夢幻樹の葉・島 2 は 世界樹の葉も いる（アメジストは その まま）
+// 枚数は Claude の 案。配合の 子は S・EX だけ・島 2（世界樹の葉）。葉は 大工事の 畑で とれるので、畑が つながるまでは いらない（いまの 研究の まま）
+export const RESEARCH_LEAF = { 希少: 1, ボス: 2, 配合: 1 };
+export function researchLeaf(tree) {
+  const T = ENEMY_TREES[tree];
+  if (!T || !RESEARCH_LEAF[T.rank] || !farmOpen()) return null;
+  if (T.rank === "配合" && !((speciesOf(tree) || {}).rank >= 6)) return null;   // 配合の 子は S・EX だけ（鹿さんの 決め、2026-10-31。480 しゅるい ぜんぶだと 重い）
+  const isle = T.rank === "配合" ? 2 : (DUNGEONS_ALL.find((d) => d.id === T.dungeon) || {}).isle || 1;
+  return [isle === 2 ? "worldtree_leaf" : "dreamtree_leaf", RESEARCH_LEAF[T.rank]];
+}
 const ladder = (fam) => SPECIES.filter((s) => s.fam === fam && !s.only);
 
 // ---------- 特殊配合・4 体配合 ----------

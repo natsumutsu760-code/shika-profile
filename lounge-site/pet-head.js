@@ -27,12 +27,18 @@ export function linkTabs(root = document) {
     const u = TAB_URL[b.textContent.trim()];
     if (u && b.getAttribute("aria-selected") !== "true") b.addEventListener("click", () => { location.href = u; });
   });
+  // いまの 子を かえる・2 匹目から むかえる（鹿さんの 決め、2026-10-31）：上の 札の Lv の 横に（どの ペットの 画面でも 同じ）
+  if (!document.getElementById("swap-css")) { const st = document.createElement("style"); st.id = "swap-css"; st.textContent = SWAP_CSS; document.head.appendChild(st); }
+  root.querySelectorAll(".panel.pet .meta").forEach((m) => { if (!m.querySelector(".swap")) m.insertAdjacentHTML("beforeend", `<a class="swap" href="pet-pick.html">${SWAP_ICON}かえる</a>`); });
 }
+const SWAP_ICON = `<svg viewBox="0 0 20 20" aria-hidden="true"><path d="M4 7h11l-3-3M16 13H5l3 3" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>`;   // wallet-bar.js の 両替と 同じ 形
+const SWAP_CSS = `.panel.pet .meta .swap { display:inline-flex; align-items:center; gap:3px; margin-left:2px; padding:4px 9px 4px 7px; border-radius:999px; border:1.5px solid #DCE3F0; background:#fff; color:#1B2340; font:700 12px/1 "Zen Maru Gothic", sans-serif; text-decoration:none; white-space:nowrap; }
+  .panel.pet .meta .swap svg { width:13px; height:13px; } .panel.pet .meta .swap:hover { border-color:#2EA8FF; color:#1E6FB0; }`;
 // まだ ペットが いない・職業が まだ の ときの 案内（どの ペットの 画面でも 同じ）
 export function gateHtml(ME, esc) {
   const mp = ME.pets && ME.pets[0];
   if (ME.denied || ME.ok === false) return `<section class="panel gate"><h2>入れません</h2><p>${esc(ME.why || "もう 1 回 開いて ください")}</p>${ME.login ? `<a class="jelly sky go" href="/">MONO LINK で ログイン</a>` : ""}</section>`;
-  if (!mp) return `<section class="panel gate"><h2>まず 1 匹目を むかえる</h2><p>6 つの 質問で、いっしょに 冒険する 子が 決まります</p><a class="jelly sky go" href="quiz.html">性格診断へ</a></section>`;
+  if (!mp) return `<section class="panel gate"><h2>まず 1 匹目を むかえる</h2><p>9 つの 質問で、いっしょに 冒険する 子が 決まります</p><a class="jelly sky go" href="quiz.html">性格診断へ</a></section>`;
   if (!mp.type) return `<section class="panel gate"><h2>${esc(mp.name)}の 職業を えらぶ</h2><p>冒険の 画面で えらべます</p><a class="jelly sky go" href="dungeon.html">職業を えらぶ</a></section>`;
   return "";
 }

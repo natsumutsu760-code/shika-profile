@@ -38,6 +38,11 @@ export const SPECIES3 = {
   kurage: { label: "くらげ", note: "浮かぶ・夜に光る" },
   saboten: { label: "サボテン", note: "鉢ごと歩く" },
   chokin: { label: "ちょきんばこ", note: "リソースをためる" },
+  // 2026-10-31 に ふやした 4 匹（docs/mono-link-new-pets.md）
+  tako: { label: "タコ", note: "料理好き・フライパン" },
+  ittan: { label: "一反木綿", note: "アルミの板・顔に紙" },
+  ebi: { label: "黒いエビ", note: "装甲の板・むらさきの光" },
+  beagle: { label: "ビーグル", note: "散歩係・首輪と迷子札" },
 };
 
 // ---------- しか：鹿さんの分身。ひょろ長い手足、小さな頭に大きな角、ねむそうな半目 ----------
@@ -298,7 +303,181 @@ function chokin() {
   return g;
 }
 
-const BUILD = { shika, pelican, mouse, tv, mogura, kurage, saboten, chokin };
+// ---------- タコ（たこちー）：料理好きで偉そうだけど熱血。大きな 丸い 頭に つり目と 太い 眉。前の 2 本は 腕（右で フライパン）、後ろの 2 本で 立つ。残りの 4 本は 後ろに ----------
+function tako() {
+  const g = new THREE.Group(), red = toy("#FF6B4F", 0.42), deep = toy("#E0503A", 0.45), pan = toy("#2E2B33", 0.32, { metalness: 0.5 }), grip = toy("#7B4A2B", 0.45), egg = toy("#FFFFFF", 0.3), yolk = toy("#FFC52E", 0.25);
+  const H = new THREE.Group(); H.position.set(0, 0.44, 0); g.add(H);
+  put(H, ball(0.21, 1, 1.02, 0.96), red);
+  const eyes = [];
+  [-1, 1].forEach((k) => {
+    const E = stick(H, ell(V(0, 0, 0), 0.21, 0.214, 0.2, V(0.36 * k, -0.08, 0.93)), 0.004); eyes.push(E);
+    put(E, ball(0.046, 1.1, 1.2, 0.45), WHITE); put(E, ball(0.022, 1, 1.15, 0.5), DARK, -0.004 * k, 0.0, 0.014); put(E, ball(0.007), WHITE, -0.012 * k, 0.01, 0.026);
+    const lid = put(E, new THREE.SphereGeometry(0.0475, 24, 12, 0, Math.PI * 2, 0, Math.PI * 0.32), red); lid.scale.set(1.12, 1.22, 0.5); lid.position.y = 0.006; lid.rotation.z = 0.42 * k;   // 上まぶた（上の 3 分の 1 だけ）。外がわが 上がる＝つり目
+    put(E, cap(0.013, 0.05), DARK, 0.002 * k, 0.07, 0.012).rotation.z = Math.PI / 2 - 0.45 * k;                                         // 太く 短い 眉（内がわが 下がる）
+  });
+  const Mo = stick(H, ell(V(0, 0, 0), 0.21, 0.214, 0.2, V(0, -0.5, 0.86)), -0.008);                                                     // とがらせた 口
+  put(Mo, cyl(0.02, 0.026, 0.045, 24), deep, 0, 0, 0.022).rotation.x = Math.PI / 2; put(Mo, ball(0.012, 1, 1, 0.4), DARK, 0, 0, 0.045);
+  const limb = (pts, r = 0.046) => { const G = new THREE.Group(); put(G, tube(pts, r, 14, 24), red); put(G, ball(r * 1.05), red, pts.at(-1).x, pts.at(-1).y, pts.at(-1).z); return G; };
+  const feet = [-1, 1].map((k) => { const F = limb([V(0.07 * k, 0.3, 0), V(0.08 * k, 0.17, 0.01), V(0.09 * k, 0.07, 0.03), V(0.13 * k, 0.045, 0.07)], 0.05); g.add(F); return F; });   // 後ろの 2 本で 立つ
+  const back = [[-0.1, -0.13], [-0.035, -0.16], [0.035, -0.16], [0.1, -0.13]].map(([x, z]) => { const B = limb([V(x * 0.5, 0.3, z * 0.6), V(x * 0.9, 0.16, z * 1.1), V(x * 1.2, 0.06, z * 1.45), V(x * 1.4, 0.05, z * 1.8)], 0.036); g.add(B); return B; });   // 残りの 4 本は 後ろ
+  const L = limb([V(-0.14, 0.36, 0.05), V(-0.24, 0.33, 0.05), V(-0.27, 0.27, 0.0), V(-0.2, 0.24, -0.04)], 0.044); g.add(L);                      // 左の 腕は 腰に 当てる（偉そう）
+  const A = new THREE.Group(); A.position.set(0.14, 0.36, 0.05); g.add(A);                                                                  // 右の 腕で フライパン
+  put(A, tube([V(0, 0, 0), V(0.08, -0.03, 0.04), V(0.15, -0.02, 0.08), V(0.19, 0.03, 0.1)], 0.046, 14, 24), red); put(A, ball(0.048), red, 0.19, 0.03, 0.1);
+  const P = new THREE.Group(); P.position.set(0.19, 0.03, 0.1); P.rotation.y = 0.7; A.add(P);
+  put(P, cap(0.012, 0.09), grip, 0, 0, 0.05).rotation.x = Math.PI / 2;
+  put(P, cyl(0.1, 0.085, 0.025, 32), pan, 0, 0, 0.19); put(P, cyl(0.088, 0.088, 0.004, 32), toy("#45414C", 0.4, { metalness: 0.4 }), 0, 0.012, 0.19);
+  const Eg = new THREE.Group(); Eg.position.set(0, 0.016, 0.19); P.add(Eg);
+  put(Eg, ball(0.05, 1, 0.22, 0.9), egg); put(Eg, ball(0.018, 1, 0.7, 1), yolk, 0.006, 0.01, 0);
+  g.userData.tick = (t) => {
+    H.position.y = 0.44 + 0.008 * wave(t, 2.1); H.rotation.z = 0.04 * wave(t, 1.1);
+    L.rotation.z = 0.08 * wave(t, 1.6); back.forEach((B, i) => (B.rotation.y = 0.06 * wave(t, 1.7, i)));
+    feet.forEach((F, i) => (F.position.y = 0.012 * Math.max(0, wave(t, 2.2, i * Math.PI))));
+    A.rotation.z = 0.05 * wave(t, 1.2);
+    const ph = t % 4.2, f = ph < 0.8 ? ph / 0.8 : 0;                                                                                        // ときどき 中身を 返す
+    P.rotation.x = -0.35 * pulse(t, 4.2, 0.22);
+    Eg.position.y = 0.016 + 0.2 * Math.sin(f * Math.PI); Eg.rotation.x = f * Math.PI;
+    blink(eyes, t, 0.6, 3.1);
+  };
+  g.userData.anchors = { face: { parent: H, pos: V(0, -0.03, 0.19), s: 0.085 }, head: { parent: H, pos: V(0, 0.2, -0.01), s: 0.13 }, neck: { parent: g, pos: V(0, 0.27, 0.13), s: 0.1 }, hand: { parent: A, pos: V(0.19, 0.03, 0.1), s: 0.18 } };
+  return g;
+}
+
+// ---------- 一反木綿（ペラ）：短い アルミの 板が 関節で つながった メカ。顔に 白い 紙（MiToさんの トプ画と 同じ：斜めの 紙・輪の 目・斜めの 線の 口） ----------
+function ittan() {
+  const g = new THREE.Group(), alu = toy("#DCE1E7", 0.3, { metalness: 0.15 }), hinge = toy("#7A828E", 0.32, { metalness: 0.2 });   // 映りこむ 景色が ない ので 金属は 弱く
+  const paper = new THREE.MeshStandardMaterial({ color: "#FFFFFF", roughness: 0.75, side: THREE.DoubleSide });
+  const F = new THREE.Group(); F.position.set(0, 0.2, 0); g.add(F);                                                    // 浮かぶ
+  const T = new THREE.Group(); T.position.set(0, 0.6, 0); F.add(T);
+  put(T, rbox(0.26, 0.24, 0.022, 0.012), alu);
+  const Pp = new THREE.Group(); Pp.position.set(0, 0.0, 0.0125); Pp.rotation.z = 0.42; T.add(Pp);                      // 顔の 紙
+  put(Pp, new THREE.PlaneGeometry(0.17, 0.13), paper);
+  [[-0.04, 0.02], [0.035, 0.03]].forEach(([x, y]) => put(Pp, new THREE.TorusGeometry(0.011, 0.0028, 8, 24), DARK, x, y, 0.002));
+  put(Pp, tube([V(-0.012, -0.03, 0.002), V(0.028, -0.018, 0.002)], 0.0022, 6, 4), DARK);
+  const joints = [], rest = [0.18, -0.3, 0.28, -0.2];
+  let parent = T, top = -0.12;
+  [0.24, 0.22, 0.19, 0.15].forEach((w, i) => {
+    const J = new THREE.Group(); J.position.set(0, top - 0.008, 0); parent.add(J); joints.push(J);
+    put(J, cyl(0.011, 0.011, w * 0.7, 16), hinge).rotation.z = Math.PI / 2;
+    put(J, rbox(w, 0.12, 0.018, 0.01), alu, 0, -0.07, 0);
+    parent = J; top = -0.13;
+  });
+  const arms = [-1, 1].map((k) => {
+    const R = new THREE.Group(); R.position.set(0.135 * k, 0.05, 0); T.add(R);
+    put(R, cyl(0.01, 0.01, 0.05, 12), hinge);
+    put(R, rbox(0.12, 0.055, 0.016, 0.01), alu, 0.065 * k, 0, 0); return R;
+  });
+  g.userData.tick = (t) => {
+    F.position.y = 0.2 + 0.03 * wave(t, 1.4);
+    joints.forEach((J, i) => (J.rotation.x = rest[i] + 0.2 * Math.round(wave(t, 2.6, -i * 0.9) * 2) / 2));          // カタカタ（段で 動く）
+    T.rotation.z = 0.05 * wave(t, 1.1);
+    Pp.rotation.x = -0.35 * pulse(t, 5.3, 0.5);
+    arms.forEach((R, i) => (R.rotation.z = (i ? -1 : 1) * (0.45 + 0.15 * Math.round(wave(t, 2.2, i) * 2) / 2)));
+  };
+  g.userData.anchors = { face: { parent: T, pos: V(0, 0.01, 0.03), s: 0.08 }, head: { parent: T, pos: V(0, 0.14, 0), s: 0.12 }, neck: { parent: T, pos: V(0, -0.12, 0.03), s: 0.1 }, hand: { parent: arms[1], pos: V(0.13, 0, 0.02), s: 0.16 } };
+  return g;
+}
+
+// ---------- 黒い エビ（クロトラ）：メカで エッジデザイン。横長の 流線形（鹿さんの 写真の 形）。のこぎりの 額の 角・長い 頭の 殻・大きな 丸い 目（むらさきの 瞳＝センサー）・
+//            重なる 6 枚の 黒い 板（すきまが むらさきに 光る）・尾は 後ろへ のびて 先だけ 下・尾の 扇 ----------
+function ebi() {
+  const g = new THREE.Group(), B = new THREE.Group(); B.scale.setScalar(1.3); g.add(B);                                                  // はねる ときは B だけ 動かす。横長で 背が 低いので 1.3 倍（ほかの 子と 見た目の 大きさを そろえる）
+  const armor = toy("#2B2834", 0.48, { metalness: 0.25 }), edge = toy("#46414F", 0.45, { metalness: 0.25 }), leg = toy("#5C566A", 0.45);   // つやを 抑える（つやつやの 黒は 虫に 見える）
+  const glow = toy("#C08CFF", 0.3, { emissive: "#9B4DFF", emissiveIntensity: 1.4 });
+  // 頭の 殻（横に つぶした 回転体。前ほど 細い）。z が 前
+  const shell = new THREE.LatheGeometry([[0, -0.2], [0.05, -0.19], [0.085, -0.13], [0.095, -0.03], [0.09, 0.07], [0.07, 0.14], [0.04, 0.19], [0, 0.21]].map(([r, y]) => new THREE.Vector2(r, y)), 32);
+  shell.rotateX(Math.PI / 2); shell.scale(0.9, 1, 1);
+  const Hd = new THREE.Group(); Hd.position.set(0, 0.14, 0.13); Hd.rotation.x = 0.06; B.add(Hd);   // 床すれすれ（足は 少し のぞく だけ）
+  put(Hd, shell, armor);
+  put(Hd, rbox(0.02, 0.03, 0.3, 0.008), edge, 0, 0.088, -0.02);                                                                         // 背の すじ
+  [-1, 1].forEach((k) => put(Hd, tube([V(0.084 * k, 0.0, -0.17), V(0.09 * k, -0.01, -0.03), V(0.078 * k, -0.005, 0.1), V(0.05 * k, 0.0, 0.17)], 0.004, 6, 24), glow));   // 横の むらさきの 線
+  // のこぎりの 額の 角（横から 見た 刃の 形を 押し出す）
+  const rs = new THREE.Shape(); rs.moveTo(0, 0); [[0.04, 0.03], [0.05, 0.015], [0.09, 0.036], [0.1, 0.02], [0.14, 0.038], [0.15, 0.022], [0.19, 0.035], [0.27, 0.018], [0.27, 0.012], [0.12, -0.012], [0, -0.02]].forEach(([x, y]) => rs.lineTo(x, y));
+  const rg = new THREE.ExtrudeGeometry(rs, { depth: 0.014, bevelEnabled: false }); rg.translate(0, 0, -0.007); rg.rotateY(-Math.PI / 2);
+  put(Hd, rg, edge, 0, 0.06, 0.13).rotation.x = -0.12;
+  // 大きな 丸い 目。瞳が むらさきに 光る センサー
+  const irises = [];
+  [-1, 1].forEach((k) => {
+    const E = new THREE.Group(); E.position.set(0.062 * k, 0.06, 0.15); E.rotation.y = 0.55 * k; Hd.add(E);
+    put(E, cyl(0.016, 0.02, 0.03, 12), armor, 0, 0, -0.012).rotation.x = Math.PI / 2;
+    put(E, ball(0.052), toy("#141218", 0.2)); irises.push(put(E, ball(0.03, 1, 1, 0.45), glow, 0, 0, 0.04)); put(E, ball(0.011), WHITE, -0.016, 0.018, 0.048);
+  });
+  // 触角（前の 下へ のびて、先が 少し 垂れる）と 短い 触角
+  const ants = [-1, 1].map((k) => { const An = new THREE.Group(); An.position.set(0.012 * k, 0.015, 0.2); Hd.add(An); put(An, tube([V(0, 0, 0), V(0.006 * k, 0.0, 0.06), V(0.012 * k, -0.04, 0.12), V(0.016 * k, -0.09, 0.15)], 0.0035, 6, 24), leg); return An; });
+  [-1, 1].forEach((k) => put(Hd, tube([V(0.02 * k, 0.01, 0.19), V(0.035 * k, 0.03, 0.27), V(0.04 * k, 0.025, 0.32)], 0.006, 6, 12), edge));
+  // 歩く 足（殻の 下から 少し のぞく だけ。長い 足が 見えると 虫か 四つ足の 動物に 見える）
+  [0.08, 0.0, -0.08].forEach((z) => [-1, 1].forEach((k) => put(B, tube([V(0.035 * k, 0.07, z + 0.13), V(0.05 * k, 0.035, z + 0.15), V(0.05 * k, 0.005, z + 0.17)], 0.011, 6, 8), leg)));
+  // おなか：重なる 6 枚の 板。後ろへ のびて、先だけ 下へ
+  const c = new THREE.CatmullRomCurve3([V(0, 0.15, -0.06), V(0, 0.16, -0.16), V(0, 0.145, -0.25), V(0, 0.11, -0.33), V(0, 0.06, -0.38), V(0, 0.02, -0.4)]);
+  const segs = [];
+  for (let s = 0; s < 6; s++) {
+    const u = s / 6 + 0.04, p = c.getPoint(u), tg = c.getTangent(u).negate(), h = 0.16 - s * 0.013, w = 0.15 - s * 0.012;
+    const S = new THREE.Group(); S.position.copy(p); S.quaternion.setFromUnitVectors(V(0, 0, 1), tg); B.add(S); segs.push(S);
+    const sh = put(S, cyl(h / 2, h / 2 * 0.9, 0.1, 28), armor, 0, 0, 0.0); sh.rotation.x = Math.PI / 2; sh.scale.set(w / h, 1, 1);          // 丸い 断面の 板（後ろが 太く、次の 板に かぶさる）
+    const rim = put(S, new THREE.TorusGeometry(h / 2 * 0.9, 0.006, 6, 28), edge, 0, 0, -0.05); rim.scale.set(w / h, 1, 1);                   // 板の ふち
+    const gl = put(S, new THREE.TorusGeometry(h / 2 * 0.86, 0.004, 6, 28), glow, 0, 0, 0.052); gl.scale.set(w / h, 1, 1);                    // すきまの 細い 光
+    [-1, 1].forEach((k) => { const pl = put(S, rbox(0.01, h * 0.42, 0.085, 0.005), edge, (w / 2 - 0.004) * k, -h * 0.3, 0.0); pl.rotation.x = -0.2; });   // 横の 板
+    put(S, new THREE.ConeGeometry(0.011, 0.03, 4), edge, 0, h / 2 + 0.006, -0.025).rotation.x = -1.0;                                      // 背の 小さな とがり
+    put(S, new THREE.BoxGeometry(0.012, 0.02, 0.03), leg, 0.03, -h / 2 - 0.006, 0.0); put(S, new THREE.BoxGeometry(0.012, 0.02, 0.03), leg, -0.03, -h / 2 - 0.006, 0.0);   // 小さな 泳ぐ 足
+  }
+  // 尾の 扇（下で 開く）
+  const fan = new THREE.Group(); fan.position.copy(c.getPoint(1)); fan.quaternion.setFromUnitVectors(V(0, 0, 1), c.getTangent(1).negate()); B.add(fan);
+  [-0.55, -0.25, 0, 0.25, 0.55].forEach((a, i) => { const f = put(fan, rbox(0.04, 0.012, 0.11, 0.006), i === 2 ? armor : edge, Math.sin(a) * 0.035, 0, -0.05); f.rotation.y = a; });
+  put(fan, rbox(0.03, 0.014, 0.012, 0.004), glow, 0, 0.004, -0.004);
+  g.userData.tick = (t) => {
+    const sc = (t % 3.4) / 0.8, dx = sc < 1 ? 0.011 * Math.sin(sc * Math.PI * 2) : 0;                                                  // ときどき センサー（瞳）が 横に 走る
+    irises.forEach((I) => (I.position.x = dx));
+    glow.emissiveIntensity = 1.25 + 0.35 * wave(t, 2);
+    ants.forEach((An, i) => (An.rotation.y = 0.1 * wave(t, 1.3, i * 1.5)));
+    segs.forEach((S, i) => (S.rotation.x = 0.015 * wave(t, 1.6, i * 0.6)));
+    const ph = t % 6.5, hop = ph < 0.35 ? ph / 0.35 : ph < 2 ? 1 - (ph - 0.35) / 1.65 : 0;                                             // たまに ぴょんと 後ろに はねる
+    B.position.z = -0.2 * hop; B.position.y = ph < 0.35 ? 0.1 * Math.sin((ph / 0.35) * Math.PI) : 0;
+    fan.rotation.x = ph < 0.35 ? 0.9 * Math.sin((ph / 0.35) * Math.PI) : 0;
+  };
+  g.userData.anchors = { face: { parent: Hd, pos: V(0, 0.04, 0.2), s: 0.07 }, head: { parent: Hd, pos: V(0, 0.1, 0.02), s: 0.1 }, neck: { parent: B, pos: V(0, 0.09, 0.25), s: 0.09 }, hand: { parent: B, pos: V(0.05, 0.01, 0.25), s: 0.12 } };
+  return g;
+}
+
+// ---------- ビーグル（テク）：元気すぎる 散歩係。白・茶・黒の 3 色（背中に 黒い 鞍）、大きな たれ耳、赤い 首輪と 骨の 迷子札 ----------
+function beagle() {
+  const g = new THREE.Group(), B = new THREE.Group(); g.add(B);
+  const white = toy("#FFF8EF", 0.4), tan = toy("#D9873A", 0.38), ear = toy("#B9692A", 0.4), black = toy("#2A2423", 0.38), nose = toy("#1E1A22", 0.25), pink = toy("#FF7E9D", 0.35), collar = toy("#E8393C", 0.32), gold = toy("#FFD24A", 0.25, { metalness: 0.45 });
+  put(B, ball(0.15, 1, 0.85, 1.45), tan, 0, 0.3, -0.02);
+  put(B, ball(0.135, 0.92, 0.7, 1.3), white, 0, 0.262, 0.0);
+  put(B, new THREE.SphereGeometry(0.156, 32, 12, 0, Math.PI * 2, 0, Math.PI * 0.36), black, 0, 0.3, -0.04).scale.set(1.02, 0.88, 1.42);   // 黒い 鞍
+  put(B, ball(0.08, 1, 1.1, 0.6), white, 0, 0.33, 0.17);
+  const legs = [[0.08, 0.13], [-0.08, 0.13], [0.08, -0.15], [-0.08, -0.15]].map(([x, z]) => {
+    const L = new THREE.Group(); L.position.set(x, 0, z); B.add(L);
+    put(L, cap(0.038, 0.12), white, 0, 0.12, 0); put(L, ball(0.045, 1, 0.6, 1.2), white, 0, 0.025, 0.01); return L;
+  });
+  const T = new THREE.Group(); T.position.set(0, 0.37, -0.22); T.rotation.x = -0.45; B.add(T);                         // しっぽ（先が 白）
+  put(T, tube([V(0, 0, 0), V(0, 0.08, -0.01), V(0, 0.15, -0.03)], 0.018), tan); put(T, ball(0.024, 1, 1.3, 1), white, 0, 0.16, -0.035);
+  const H = new THREE.Group(); H.position.set(0, 0.5, 0.2); B.add(H);
+  put(H, ball(0.12, 1, 0.95, 1), tan);
+  put(H, ball(0.034, 1, 2.3, 0.6), white, 0, 0.035, 0.1);                                                               // 鼻すじの 白
+  put(H, ball(0.07, 1, 0.78, 1.1), white, 0, -0.045, 0.1);
+  const nz = put(H, ball(0.025, 1.3, 1, 1), nose, 0, -0.025, 0.177);
+  put(H, ball(0.02, 1, 0.35, 1.3), pink, 0.012, -0.09, 0.15).rotation.x = 0.5;                                        // 出した 舌
+  const eyes = [];
+  [-1, 1].forEach((k) => { const E = stick(H, ell(V(0, 0, 0), 0.12, 0.114, 0.12, V(0.4 * k, 0.28, 0.87)), 0.004); eyes.push(E); put(E, ball(0.024, 1, 1.15, 0.55), DARK); put(E, ball(0.008), WHITE, -0.008, 0.009, 0.012); });
+  const ears = [-1, 1].map((k) => { const R = new THREE.Group(); R.position.set(0.105 * k, 0.04, -0.01); H.add(R); put(R, ball(0.06, 0.42, 1.55, 1.05), ear, 0.02 * k, -0.08, 0); return R; });
+  put(B, new THREE.TorusGeometry(0.078, 0.016, 10, 32), collar, 0, 0.43, 0.15).rotation.x = Math.PI / 2 - 0.55;   // 赤い 首輪
+  const Tg = new THREE.Group(); Tg.position.set(0, 0.37, 0.22); B.add(Tg);                                              // 骨の 形の 迷子札
+  put(Tg, cap(0.009, 0.035), gold).rotation.z = Math.PI / 2;
+  [[-1, -1], [-1, 1], [1, -1], [1, 1]].forEach(([a, b]) => put(Tg, ball(0.012), gold, 0.026 * a, 0.008 * b, 0));
+  g.userData.tick = (t) => {
+    T.rotation.z = 0.55 * wave(t, 14);                                                                                  // しっぽを ずっと ふる
+    const p = pulse(t, 4.6, 1.3);                                                                                       // ときどき くんくん して 足ぶみ
+    H.rotation.x = 0.28 * p; nz.scale.setScalar(1 + 0.25 * p * Math.abs(wave(t, 24)));
+    legs.forEach((L, i) => (L.position.y = 0.025 * p * Math.max(0, wave(t, 11, i === 0 || i === 3 ? 0 : Math.PI))));   // 対角の 足が いっしょに
+    ears.forEach((R, i) => (R.rotation.z = (0.12 + 0.07 * wave(t, 3, i)) * (i ? 1 : -1)));
+    B.position.y = 0.006 * Math.abs(wave(t, 7));
+    blink(eyes, t, 0.9, 3.5);
+  };
+  g.userData.anchors = { face: { parent: H, pos: V(0, 0.02, 0.12), s: 0.075 }, head: { parent: H, pos: V(0, 0.115, 0), s: 0.1 }, neck: { parent: B, pos: V(0, 0.42, 0.2), s: 0.09 }, hand: { parent: B, pos: V(0.08, 0.03, 0.15), s: 0.14 } };
+  return g;
+}
+
+const BUILD = { shika, pelican, mouse, tv, mogura, kurage, saboten, chokin, tako, ittan, ebi, beagle };
 export function makePet3(species) { const g = (BUILD[species] || shika)(); g.userData.species = species; return g; }
 // 部品は 商人（traders3d.js）でも 使う
 export { V, ball, tube, cap, cyl, rbox, toy, put, ell, stick, DARK, WHITE, dotEye, wave, pulse, blink };

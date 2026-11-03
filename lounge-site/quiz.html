@@ -6,7 +6,7 @@
 <title>First Pet Quiz</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Zen+Maru+Gothic:wght@500;700;900&display=swap">
 <style>
-  /* MONO LINK のラウンジ：最初の 1 匹（性格診断）の画面の見本。6 問に答えると、はこがとどいて、あけると合う子が出てくる
+  /* MONO LINK のラウンジ：最初の 1 匹（性格診断）の画面の見本。9 問に答えると、はこがとどいて、あけると合う子が出てくる
      ?view=q&n=3（3 問目）・?view=box・?view=result&pet=nemu・?view=tie&pets=nemu,yura・?answers=0,1,2,3,0,1（答えを入れて、はこまで進む）
      部品と色はステータス・ガンビット・冒険の画面と同じ */
   :root {
@@ -44,9 +44,9 @@
   .intro p { margin:12px auto 22px; max-width:30em; color:var(--soft); font-weight:700; }
   .intro .from { margin-top:18px; font:700 12px/1.6 var(--jp); color:var(--soft); }
 
-  /* 進みぐあい：答えるたびに消印が押される（6 問の順番なので番号を付ける） */
-  .stamps { display:flex; gap:8px; justify-content:center; margin-bottom:18px; padding:0; list-style:none; }
-  .stamps li { width:34px; height:34px; border-radius:50%; display:grid; place-items:center; font:600 15px/1 var(--num); color:var(--soft); border:2px dashed var(--line); }
+  /* 進みぐあい：答えるたびに消印が押される（9 問の順番なので番号を付ける。スマホでも 1 行に 9 こ 入る 大きさ） */
+  .stamps { display:flex; flex-wrap:wrap; gap:6px; justify-content:center; margin-bottom:18px; padding:0; list-style:none; }
+  .stamps li { width:30px; height:30px; border-radius:50%; display:grid; place-items:center; font:600 15px/1 var(--num); color:var(--soft); border:2px dashed var(--line); }
   .stamps li.now { color:var(--ink); border:2.5px solid var(--ink); }
   .stamps li.done { color:#fff; border:0; background:var(--coral); box-shadow:inset 0 0 0 3px rgba(255,255,255,.55), inset 0 0 0 5px var(--coral); transform:rotate(-12deg); }
   .q h2:focus { outline:none; }
@@ -88,6 +88,7 @@
   .jobs { margin-top:16px; display:flex; flex-wrap:wrap; gap:8px; justify-content:center; align-items:center; font:700 13px/1 var(--jp); color:var(--soft); }
   .jobs span { color:var(--ink); background:#fff; border:1.5px solid var(--line); border-radius:999px; padding:7px 12px; }
   .meet .btns { margin-top:24px; display:flex; gap:12px; justify-content:center; flex-wrap:wrap; }
+  .meet .btns a.jelly { display:inline-block; text-decoration:none; }
 
   /* 同点：はこが 2〜3 個とどく */
   .tie h1 { font:900 clamp(21px, 5.6vw, 26px)/1.45 var(--jp); text-align:center; }
@@ -110,7 +111,7 @@
   <section class="card intro" id="intro">
     <div class="mail"><img src="img/pet-pelican.png" alt=""></div>
     <h1>あなたに合う子が、<br>1 匹やってきます</h1>
-    <p>6 つの質問に答えてください。正しい答えはありません。思ったとおりに選んでください。</p>
+    <p>9 つの質問に答えてください。正しい答えはありません。思ったとおりに選んでください。</p>
     <button class="jelly sky" id="start">はじめる</button>
     <p class="from">とどけるのは郵便屋さんのポスケです</p>
   </section>
@@ -134,8 +135,8 @@
     <div class="meet" id="meet" hidden>
       <p class="trait" id="trait"></p>
       <div class="diary"><small id="diaryHead"></small><span id="diary"></span></div>
-      <p class="jobs">合う職業 <span id="job1"></span><span id="job2"></span></p>
-      <div class="btns"><button class="jelly sky" id="begin">この子とはじめる</button><button class="jelly light" id="again">答えなおす</button></div>
+      <p class="jobs">得意なツリー <span id="tree"></span></p>
+      <div class="btns"><button class="jelly sky" id="begin">この子とはじめる</button><button class="jelly light" id="again">答えなおす</button><a class="jelly light" id="more" href="pet-pick.html" hidden>ほかの子も むかえる</a></div>
       <p class="why" id="why" role="status"></p>
     </div>
   </section>
@@ -190,7 +191,7 @@ function renderMeet() {
   $("trait").textContent = P.trait;
   $("diaryHead").textContent = `${P.name}の日記（さいしょの日）`;
   $("diary").textContent = P.diary;
-  $("job1").textContent = P.jobs[0]; $("job2").textContent = P.jobs[1];
+  $("tree").textContent = P.tree;
   $("meet").hidden = false;
 }
 function renderTie(ids) {
@@ -210,7 +211,7 @@ $("begin").onclick = async () => {
   if (HAVE) { location.href = "lounge-room.html"; return; }
   const r = await busy($("begin"), () => act("pet.first", { answers, pick: picked }), "むかえて います…");
   if (!r.ok) { $("why").textContent = r.why || "むかえられませんでした"; return; }
-  HAVE = r.pet; $("begin").textContent = "ラウンジへ"; $("again").hidden = true; $("why").textContent = "";
+  HAVE = r.pet; $("begin").textContent = "ラウンジへ"; $("again").hidden = true; $("more").hidden = false; $("why").textContent = "";
 };
 $("choices").onclick = (e) => { const b = e.target.closest("button"); if (!b) return; picked = b.dataset.id; renderBox(); };
 
@@ -222,7 +223,7 @@ const U = new URLSearchParams(location.search), view = U.get("view");
 if (HAVE && !view && !U.get("answers")) {
   picked = HAVE.qid; renderBox(); $("box").className = "box open"; $("open").hidden = true;
   $("arriveTitle").textContent = `${PETS[picked].name}が 待って います`; $("arriveSub").textContent = PETS[picked].label;
-  renderMeet(); $("again").hidden = true; $("begin").textContent = "ラウンジへ";
+  renderMeet(); $("again").hidden = true; $("begin").textContent = "ラウンジへ"; $("more").hidden = false;   // 2 匹目からは ペットを えらぶ 画面で（2 匹目は 無料）
 }
 else if (U.get("answers")) { answers = U.get("answers").split(",").map(Number).slice(0, QUIZ.length); finish(); }
 else if (view === "q") { const n = Math.min(QUIZ.length, Math.max(1, +(U.get("n") || 1))); answers = Array(n - 1).fill(0); renderQuestion(); }

@@ -237,9 +237,10 @@
 <script type="module">
 import "./lounge-en.js";   // 英語の 画面（MONO LINK の サイトの EN／日本語 と 同じ 決まり。英語の ときだけ 辞書を 読む）
 import { nodesOf, stateOf, learned, JOB_TREES, SP_PER_LV, statValue, treeOf, SHAPE } from "./trees.js";
-import { SKILL, TYPES, TREES } from "./skills.js";
+import { SKILL, TYPES, TREES, TREE_IDS } from "./skills.js";
 import { ENEMY_TREES } from "./enemy-trees.js";
 import { DUNGEONS, RESEARCH, CAPTURE, ISLAND_OPEN, canGo } from "./dungeons.js";
+import { researchLeaf } from "./fusion.js"; import { MAT_NAME } from "./materials.js";   // 研究の 葉（大工事の 畑が つながってから）
 import { EFFECTS } from "./effects.js";
 import { spriteURL } from "./sprites.js";
 import { me, act, busy, waitText } from "./lounge-client.js";   // ペットの ツリーは 門番の 記録（見本では ブラウザの 中の ためしの 門番）
@@ -294,7 +295,7 @@ function rejobHtml() {
   if (UI.rejob === null) return "";
   const mine = learned(MP.type, new Set((MP.taken || {})[MP.type] || []), MP.seed).skills;
   return `<div class="rejob"><h3>職業を かえる<span class="lab2">（${priceText()}。ツリーと 手で 振った ステータスは もどる）</span></h3>
-    <div class="chips" role="group" aria-label="かえる 職業">${Object.keys(TYPES).map((t) => `<button data-job="${t}" aria-pressed="${UI.rejob === t}" style="--c:${TYPES[t].color}" ${t === MP.type ? "disabled" : ""}><i></i>${TYPES[t].label}${t === MP.type ? "（いま）" : ""}</button>`).join("")}</div>
+    <div class="chips" role="group" aria-label="かえる 職業">${TREE_IDS.map((t) => `<button data-job="${t}" aria-pressed="${UI.rejob === t}" style="--c:${TYPES[t].color}" ${t === MP.type ? "disabled" : ""}><i></i>${TYPES[t].label}${t === MP.type ? "（いま）" : ""}</button>`).join("")}</div>
     <span class="lab2">持ちこす 技（1 つ）</span>
     <div class="chips" role="group" aria-label="持ちこす 技"><button data-carry="" aria-pressed="${!UI.carry}">持ちこさない</button>${mine.map((id) => `<button data-carry="${id}" aria-pressed="${UI.carry === id}">${esc(SKILL[id].name)}</button>`).join("")}</div>
     <div class="go2"><span class="sp"></span><button class="btn2" data-do="rejob-no">やめる</button><button class="take" data-do="rejob" ${UI.rejob ? "" : "disabled"}>${UI.rejob ? `${TYPES[UI.rejob].label}に かえる` : "職業を えらんで"}</button></div></div>`;
@@ -428,12 +429,13 @@ function labOf() {
 function renderLab() {
   const ST = { done: "研究ずみ", cap: "捕まえた", seen: "出会った", none: "？？？" }, LAB = labOf();
   const inIsle = (id) => isleDungeons().some((d) => d.id === ENEMY_TREES[id].dungeon), here = Object.keys(LAB).filter(inIsle);
+  const leafTxt = (t) => { const l = researchLeaf(t); return l ? ` ＋ ${MAT_NAME[l[0]]} ${l[1]}` : ""; };
   const pick = ENEMY_TREES[UI.e] ? UI.e : ENEMY_TREES[q.get("e")] && inIsle(q.get("e")) ? q.get("e") : here.find((id) => LAB[id] === "cap") || here[0] || "e_hare", P = ENEMY_TREES[pick], st = LAB[pick], cost = RESEARCH[P.rank];
   const mon = ([id, t]) => { const v = LAB[id]; return `<button class="mon ${v} ${id === pick ? "sel" : ""}" data-e="${id}" style="--c:${TYPES[t.type].color}">${t.rank === "通常" ? "" : `<span class="rk ${t.rank === "希少" ? "r" : ""}">${t.rank}</span>`}<span class="orb spr"><img src="${spriteURL(id)}" alt=""></span><b>${v === "none" ? "？？？" : esc(t.enemy)}</b><span class="st">${ST[v]}</span></button>`; };
   const groups = isleDungeons().map((d) => `<h3 class="dg" style="--dc:${d.color}">${esc(d.name)}<small>${Object.entries(ENEMY_TREES).filter(([id, t]) => t.dungeon === d.id && (LAB[id] === "done" || LAB[id] === "cap")).length} / 5 捕まえた</small></h3><div class="dex">${Object.entries(ENEMY_TREES).filter(([, t]) => t.dungeon === d.id).map(mon).join("")}</div>`).join("");
   const KI = { waza: "技", itazura: "技", passive: "常" };
   const list = P.list.filter((x) => ["S1", "S2", "S4", "P1", "S8"].includes(x.slot)).sort((a, b) => ["S1", "S2", "P1", "S4", "S8"].indexOf(a.slot) - ["S1", "S2", "P1", "S4", "S8"].indexOf(b.slot));
-  const go = st === "cap" ? `<p>研究すると、飼っているペットみんなが このツリーを サブツリーに付けられる</p><button class="take" data-do="lab" data-t="${pick}">研究する（リソース <b>${cost}</b>）</button>`
+  const go = st === "cap" ? `<p>研究すると、飼っているペットみんなが このツリーを サブツリーに付けられる</p><button class="take" data-do="lab" data-t="${pick}">研究する（リソース <b>${cost}</b>${leafTxt(pick)}）</button>`
     : st === "done" ? `<p>研究ずみ。ペットのスキルツリーの画面で サブツリーに付けられる</p>` : `<p>まだ捕まえていない。派遣で たおすと ${(CAPTURE[P.rank] * 100).toFixed(1)}% で捕まえる（1 体ごと。「指定の敵だけ」で 探しに行ける）</p>`;
   return `<section class="panel"><div class="res"><div class="bar" style="margin:0"><h2>図鑑と研究<span>派遣で捕まえた敵を研究すると、その敵のスキルツリーが使えるようになる</span></h2></div></div>
     <div class="lab"><div>

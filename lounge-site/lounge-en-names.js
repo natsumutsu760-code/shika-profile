@@ -1,11 +1,14 @@
 // 英語の 名前（id ごと。鹿さんの頼み、2026-10-25：ラウンジ・派遣まわりの 英語ローカライズ）
 // lounge-en-dict.js が データの 日本語の 名前と ならべて「日本語 → 英語」の 辞書に する（日本語の 名前を かえても、id が 同じなら 英語は そのまま）
 // ここに ない id（新しく 足した 敵・素材 など）は 日本語の まま 出る。足すのは id と 英語だけ
+import { NUT_SNACKS, DETAIL } from "./nutrition.js";
+import { BITEMS, BITEM_NOTE, BITEM_NOTE_EN } from "./battle-items.js";
 import { EFFECTS } from "./effects.js";
 import { ENEMY_TREES } from "./enemy-trees.js";
 import { TYPES, COMMON, TREES } from "./skills.js";
 import { DUNGEONS, PURPOSES, TOOLS, RUNS } from "./dungeons.js";
-import { GATHER, ENEMY_MAT } from "./materials.js";
+import { GATHER, ENEMY_MAT, SCRAP, BORDER, ORE, BARS, CLOTH, LUMBER } from "./materials.js";
+import { CROPS, CROP_MATS } from "./crops.js";   // 作物（大工事の 農業）の 英語は 作物の 表の en
 import { KINDS, SLOTS, FORMS, MATS, COLS, BASES, UPPER, OPS } from "./equip.js";
 import { FACILITIES, SNACK_RECIPES, PC } from "./facilities.js";
 import { WS_ITEMS, ATT_KINDS, ATT_BASES } from "./workshop.js";
@@ -14,6 +17,8 @@ import { PETS, QUIZ } from "./quiz.js";
 import { TRADERS, SPECIAL } from "./deeplink.js";
 import { DUNGEON2_EN, MYTHIC2_EN, TREE2_EN, SKILL2_EN } from "./lounge-en-isle2.js";   // ニライ諸島（2 つめの 島）の 名前
 import { TREE3_EN, SKILL3_EN } from "./lounge-en-fusion.js";   // 配合限定の モンスター
+import { MAIN_TYPE_EN, MAIN_SKILL_EN, MAIN_TEXT_EN, COUNT_EN, OPT_EN } from "./lounge-en-trees.js";   // メインの ツリー 12 本
+import { COUNTS } from "./main-trees.js";
 
 const SL = { hp: "HP", mp: "MP", atk: "ATK", def: "DEF", int: "INT", res: "RES", agi: "AGI", dex: "DEX", luk: "LUK" };
 
@@ -48,6 +53,24 @@ export const MAT_EN = {
   guard_crest: "Guard's Crest", trident_tip: "Trident Tip", priest_scale: "Priest's Scale", white_fin: "White Fin", seagod_scale: "Sea God's Scale",
   ghost_rope: "Ghost Rope", majimun_mask: "Majimun Mask", doll_button: "Doll's Button", cat_bell: "Cat's Bell", captain_hat: "Captain's Hat",
   angler_lamp: "Anglerfish Lure", squid_beak: "Squid Beak", giant_shell: "Giant's Shell", deep_glow: "Deep-Sea Glow", gate_shard: "Gate Shard",
+  // クローラーの スクラップ類
+  scrap_iron: "Scrap Iron", bent_plate: "Bent Plate", burnt_wire: "Burnt Wiring", armor_chip: "Armor Fragment", cracked_board: "Cracked Circuit Board", small_motor: "Small Motor",
+  screw_box: "Box of Screws", glass_tube: "Broken Glass Tube", spare_fuse: "Spare Fuse", dead_terminal: "Broken Terminal",
+  spare_battery: "Half-Used Battery", work_cloth: "Workwear Cloth", old_padlock: "Rusty Padlock", broken_watch: "Stopped Wristwatch",
+  empty_casing: "Spent Casing", barrel_scrap: "Barrel Offcut", used_filter: "Used Filter", empty_ampoule: "Empty Ampoule", insulation_scrap: "Insulation Scraps", fiber_offcut: "Armor Fiber Offcut",
+  control_part: "Control Unit Fragment", power_cell: "Small Power Cell",
+  // ボーダーゾーンの 素材（どこでも・SVA・ハルモニア・TCU・境界）
+  scorched_soil: "Scorched Soil", barbed_wire: "Rusted Barbed Wire", carapace_shard: "Unit Carapace Shard", chip_shard: "Control Chip Fragment", waste_root: "Wasteland Root", weathered_canvas: "Weathered Canvas", small_circuit: "Small Circuit Board",
+  shell_fragment: "Shell Fragment", slag: "Slag", black_oil: "Black Oil", vacuum_tube: "Vacuum Tube", broken_motor: "Broken Motor", liquefied_gas: "Liquefied Gas",
+  culture_medium: "Test-Site Culture Medium", feral_grain: "Feral Grain", leftover_serum: "Leftover Serum", acrylic_sheet: "Acrylic Sheet", polymer_chip: "Polymer Fragment", plastic_scrap: "Plastic",
+  rampart_stone: "Rampart Stone", old_girder: "Old Girder", rampart_plaster: "Rampart Plaster", kevlar_fiber: "Kevlar Fiber", extinguisher: "Fire Suppressant", rubber_scrap: "Rubber Scrap",
+  mixed_alloy: "Mixed Alloy", molten_marker: "Molten Border Marker", torn_flag: "Torn Flag Cloth", solder_resist: "Solder Resist", sync_board: "Sync Board", cpu_chip: "CPU Chip",
+  // 鉱石と 延べ棒（坑道・工房の 精錬）
+  coal: "Coal", copperore: "Copper Ore", silverore: "Silver Ore", goldore: "Gold Ore",
+  copper_bar: "Copper Ingot", iron_bar: "Iron Ingot", silver_bar: "Silver Ingot", gold_bar: "Gold Ingot",
+  // 布と 建材（工房の 加工）
+  cotton_cloth: "Cotton Cloth", flax_cloth: "Flax Cloth", sky_cloth: "Sky Cloth", whitesand_cloth: "White-Sand Cloth", sylph_sail: "Sylph Sailcloth", pearl_silk: "Pearl Silk",
+  bamboo_lumber: "Bamboo Lumber", nightbamboo_lumber: "Night Bamboo Lumber", blackbamboo_lumber: "Black Bamboo Lumber", stormbamboo_lumber: "Storm Bamboo Lumber", straw_bundle: "Straw Bundle",
 };
 
 // ---- 行き先と 敵（敵は ツリーの id で） ----
@@ -128,7 +151,7 @@ export const SKILL_EN = {
 // 職業の 技の 説明（手で 書いた 文なので id ごと）
 export const SKILL_TEXT_EN = {
   kogeki: "Power 8. Strength uses the highest of ATK, INT and DEX",
-  bougyo: "Guard (half direct damage until your next turn), MP +2",
+  bougyo: "Guard (half damage until your next turn, damage over time too), MP +2",
   yamakan: "A wild swing. Power 13. Strength uses LUK (luck) instead of ATK. Crit +20%",
   udemakuri: "Charge (next direct attack ×2) and Focus (3 turns. Recover 20% of max MP after acting)",
   chop: "Power 22. Acts last next turn",
@@ -144,13 +167,13 @@ export const SKILL_TEXT_EN = {
   kokozo: "Critical damage +30%",
   nori: "Moves +10% if you hit last turn",
   kajiba: "ATK +30% when your HP is 30% or less",
-  bakuchiku: "Power 6 × 3 (each hit rolls to land)",
+  bakuchiku: "Power 5 × 3 (each hit rolls to land)",
   note: "Charge (next direct attack ×2) and Focus (1 turn. Recover 20% of max MP after acting)",
   kamifubuki: "Throw all the saved-up paper. Power 14. Strength uses current MP instead of INT (more MP, more power)",
   lighter: "Power 20. Scalds the foe (3 turns. Direct damage taken ×1.1)",
-  kutsushita: "The smell inflicts Sickness +5 (INT-based damage over time. 30% chance of Fatigue)",
+  kutsushita: "The smell inflicts Sickness +7 (INT-based damage over time. 30% chance of Fatigue)",
   mushimegane: "Power 12. Ignores half the foe's RES",
-  tamago: "Poison +7, Rot (3 turns. Healing turns into damage)",
+  tamago: "Poison +8, Rot (3 turns. Healing turns into damage)",
   hanabi: "Power 44",
   monoshiri: "INT +3%",
   hirameki: "Prank crit +12%",
@@ -160,21 +183,21 @@ export const SKILL_TEXT_EN = {
   oyatsu: "MP +1 every turn",
   kaigi: "Focus at battle start (3–5 turns. Recover 20% MP after acting)",
   chokomaka: "Two quick pokes (Power 8 × 2). Strength uses AGI (speed). Always acts first",
-  kancho: "Power 9 (DEX). Ignores 30% of the foe's RES. Paralysis +30 (0.5% chance per point to be unable to move)",
-  hanakuso: "Power 4 (DEX). Blinds the foe (3 turns. Move accuracy halved). Picking your nose calms you down: Focus (2 turns)",
+  kancho: "Power 10 (DEX). Ignores 30% of the foe's RES. Paralysis +30 (0.5% chance per point to be unable to move)",
+  hanakuso: "Power 3 (DEX). Blinds the foe (3 turns. Move accuracy halved). Picking your nose calms you down: Focus (2 turns)",
   banana: "Pops Paralysis. Power 4 (DEX), +1 power per 5 Paralysis on the foe. On hit, clears Paralysis; if it was 30+, 65% chance they slip and are Stunned (1 turn)",
-  patchin: "Pops Blind. Power 4 (DEX), +6 power per turn of Blind left. On hit, clears Blind; 70% chance of Daze (2 turns)",
-  kinoko: "Poison +8 (damage of max HP × amount% at the start of each turn). An upset stomach causes Rot (2 turns. Healing turns into damage)",
-  kori: "Power 6 (DEX). Frostbite +2. If Frostbite is 4+, 60% chance to Freeze (1 turn)",
+  patchin: "Pops Blind. Power 3 (DEX), +6 power per turn of Blind left. On hit, clears Blind; 75% chance of Daze (2 turns)",
+  kinoko: "Poison +9 (damage of max HP × amount% at the start of each turn). An upset stomach causes Rot (2 turns. Healing turns into damage)",
+  kori: "Power 10 (DEX). Frostbite +2. If Frostbite is 4+, 60% chance to Freeze (1 turn)",
   decopin: "Power 6 (DEX). +4 power per debuff on the foe. On hit, pops and clears all of the foe's debuffs",
   sekkachi: "AGI +10%",
   ijiwaru: "Damage dealt +6% per debuff on the foe (up to +30%)",
   shibire: "Paralysis you inflict +50%. Numb foes can't put power into it, so Counter and Thorns damage they return is halved",
   metsubushi: "Blind you inflict +1 turn. Crit +10% vs. Blinded foes",
   mawaru: "Poison you inflict deals ×1.2 damage",
-  shitsukoi: "Debuffs you inflict last +1 turn",
+  shitsukoi: "Debuffs you inflict last +3 turns",
   tensai: "Debuffs you inflict ignore half of the foe's resistance and Immunity",
-  okashi: "Heal 35% HP. The excess becomes Overheal (5 turns)",
+  okashi: "Heal 39% HP. The excess becomes Overheal (5 turns)",
   sekkyo: "A long, nagging lecture. Power 15. Strength uses RES (patience) instead of INT",
   mizu: "Power 12. Removes 1 buff from the foe (healing and MP buffs first). Soaked: Fatigue (1 turn. Removes Focus; lose 10% MP at the start of each turn)",
   genetsu: "Cleanse (remove all your debuffs), heal 20% HP, Immunity +22",
@@ -182,23 +205,23 @@ export const SKILL_TEXT_EN = {
   negi: "Cleanse (remove all your debuffs), Regen +13 (heal max HP × amount% at the start of each turn, then the amount halves)",
   bansoko: "Shield (absorbs damage up to 28% of max HP)",
   hirune: "Cleanse and fully heal HP. Then you fall asleep (1 turn. 50% chance to wake when hit)",
-  kuishinbo: "Healing +5%. You eat so happily that when your own moves heal you, the foe gets jealous and takes damage equal to 18% of the heal",
+  kuishinbo: "Healing +5%. You eat so happily that when your own moves heal you, the foe gets jealous and takes damage equal to 20% of the heal",
   hayane: "Heal 0.6% HP every turn",
   ugai: "Immunity +15 at battle start",
   radio: "Stat-up buffs you cast on yourself last +2 turns",
   atsugi: "RES +10%. All bundled up: Prank damage taken −15% (works even if RES is ignored)",
   bansokoP: "Your Shields +55%",
   akiramenai: "Once per match, when HP hits 0, get back up with 30% HP",
-  peekaboo: "Protect your face. Guard (half direct damage until your next turn), Armor +13 and Ward +13 (halve each time you're hit). Catch your breath: Focus (2 turns)",
+  peekaboo: "Protect your face. Guard (half damage until your next turn, damage over time too), Armor +13 and Ward +13 (halve each time you're hit). Catch your breath: Focus (2 turns)",
   manju: "Power 16. Strength uses DEF instead of ATK. Each push builds power: Pierce +5 (adds 5 to your next direct attack)",
-  clinch: "Grab on: foe ATK Down 45 and INT Down 30 (2 turns). The squeeze causes Fatigue (2 turns. Removes Focus; lose 10% MP at the start of each turn)",
+  clinch: "Grab on: foe ATK Down 60 and INT Down 30 (2 turns). The squeeze causes Fatigue (2 turns. Removes Focus; lose 10% MP at the start of each turn)",
   tomoe: "Brace first: Counter (until your next turn, throw back 90% of direct damage taken). Always acts first",
   ground: "Pin them down. 60% chance: for 2 turns neither side can move and the foe loses 7.5% HP each turn (40% chance they break free)",
   noshikakari: "Flop on top of them. Power 10. Strength uses your max HP instead of ATK (heavier hurts more: 4 HP = 1 ATK)",
   danboru: "Barrier +1 (blocks 1 direct attack)",
   kotatsu: "Armor +50, Ward +50, Regen +20",
   ishiatama: "Immunity +60 at battle start (blocks debuffs 60% of the time. 2–3 turns)",
-  funbari: "Rebirth at battle start (once, hang on with 1 HP)",
+  funbari: "Rebirth at battle start (once, revive with 1 HP when defeated)",
   togefuku: "Thorns +80 at battle start (when hit directly, return ATK × amount%, then the amount halves). Counter damage also adds 17% of DEF",
   newaza: "Pin damage ×1.1",
   minokonashi: "Evasion +12%",
@@ -235,6 +258,7 @@ export const FX_EN = {
   clarity: ["Clarity", "Attacks always crit"],
   mastery: ["Mastery", "On a move crit, add DEX × amount%, then the amount halves"],
   haste: ["Haste", "Multi-hit moves get +1–3 hits (damage split across hits)"],
+  moody: ["Moody", "Each time your biggest Stat Up changes, its effect bursts (same table as Sniff Sniff)"],
   charge: ["Charge", "Next direct attack deals ×2 damage"],
   poison: ["Poison", "At the start of each turn, take max HP × amount% damage"],
   venom: ["Venom", "Take 20% of max HP as damage after acting"],
@@ -303,6 +327,22 @@ export const TOOL_EN = {
   lure: ["Lure Whistle", "Meet the chosen enemy more often"],
   net: ["Capture Net", "Double capture chance"],
   tea: ["Pep Tea", "If everyone falls, fully heal once and keep going"],
+  cure: ["Smelling Salts", "Once per expedition, blocks a status ailment about to land"],
+  cure2: ["Strong Smelling Salts", "Blocks a status ailment once per expedition. +10% status resistance throughout"],
+  revive: ["Wake-up Draught", "Once per expedition, a fallen member gets back up with 30% HP"],
+  revive2: ["Strong Wake-up Draught", "Once per expedition, a fallen member gets back up with 50% HP"],
+  incense: ["Opening Incense", "At the start of the first battle, everyone gains Regeneration (HP slowly returns)"],
+  incense2: ["Strong Opening Incense", "At the start of the first battle, everyone gains strong Regeneration"],
+  ench_burn: ["Burn Enchant", "During the expedition, hits have a 5% chance to inflict Burn"],
+  ench_frost: ["Frostbite Enchant", "During the expedition, hits have a 5% chance to inflict Frostbite"],
+  ench_poison: ["Poison Enchant", "During the expedition, hits have a 5% chance to inflict Poison"],
+  ench_sick: ["Sickness Enchant", "During the expedition, hits have a 5% chance to inflict Sickness"],
+  charm_sleep: ["Sleep Ward Charm", "During the expedition, harder to fall asleep (+30%, not immunity)"],
+  charm_poison: ["Poison Ward Charm", "During the expedition, harder to be poisoned (+30%)"],
+  charm_burn: ["Burn Ward Charm", "During the expedition, harder to catch Burn (+30%)"],
+  charm_frost: ["Frostbite Ward Charm", "During the expedition, harder to catch Frostbite (+30%)"],
+  charm_para: ["Paralysis Ward Charm", "During the expedition, harder to be paralyzed (+30%)"],
+  charm_stun: ["Stun Ward Charm", "During the expedition, harder to be stunned (+30%)"],
 };
 
 // ---- 装備 ----
@@ -352,9 +392,8 @@ export const FAC_EN = {
   gym: ["Training Room", "More expedition XP", ["Expedition XP +10%", "Expedition XP +20%", "Expedition XP +30%", "Expedition XP +40%"]],
   storage: ["Storage", "Hold more of each item type (starts at 50)", ["Up to 100 per type", "Up to 200 per type", "Up to 400 per type", "Up to 800 per type"]],
   armory: ["Armory", "Hold more gear (starts at 200)", ["Hold up to 300 gear", "Hold up to 500 gear", "Hold up to 800 gear", "Hold up to 1,200 gear"]],
-  dig: ["Basement Expansion", "Dig the basement deeper and add new facilities", ["Expands deeper (Workshop and Farm can be built)", "Even deeper (dig the Mine)", "All the way down (more farm plots and mine slots)", "Down to the island bedrock (one more farm row and mine slot)"]],
+  dig: ["Basement Expansion", "Dig the basement deeper and add new facilities", ["Expands deeper (the Workshop can be built)", "Even deeper (dig the Mine)", "All the way down (more mine slots)", "Down to the island bedrock (one more mine slot)"]],
   workshop: ["Workshop", "Make tools and weapon attachments from materials", ["Make tools, sprinklers and attachments (★1–2)", "★3 attachments · Pep Tea · Better Sprinkler", "★4 attachments (2 OPs) · Star Sprinkler", "★5 attachments (3 OPs)"]],
-  farm: ["Farm", "Plant and grow plant materials (sprinklers raise quality)", ["Grow on 4 plots (1 row)", "8 plots · grow time −20%", "12 plots · grow time −35%", "16 plots · grow time −50%"]],
   mine: ["Mine", "Companions not in your party dig ore and junk", ["1 companion can dig (Shiny Pebble, Old Brick, Old Nail, Iron Ore)", "2 companions · Candle, Faded Cloth and Crystal Shard can appear", "3 companions · Glowstone, and sometimes Rainbow Crystal", "4 companions · Nirai Isles stones (Cape Stone, Blue Stone, Obsidian, Thunder Stone) can appear"]],
   radio: ["Radio", "Pick up island signals and send a boat to other islands", ["Travel to the Nirai Isles · Other facilities can reach Lv4"]],
 };
@@ -365,6 +404,18 @@ export const WS_EN = {
   sprinkler: ["Sprinkler", "Raises the quality of nearby crops on the farm"], tea: ["Pep Tea", "Expedition tool: if everyone falls, fully heal once"],
   sprinkler2: ["Better Sprinkler", "Raises quality more, and reaches farther"], sprinkler3: ["Star Sprinkler", "Raises quality the most"],
   blankcore: ["Blank Core", "Extracts 1 OP from a piece of gear (the gear is used up; put the core on other gear)"],
+  tea_heal: ["Pep Tea (Healing Herb)", "Expedition tool: if everyone falls, fully heal once"],
+  cure: ["Smelling Salts", "Expedition tool: blocks a status ailment once"], cure2: ["Strong Smelling Salts", "Expedition tool: blocks once + 10% status resistance"],
+  revive: ["Wake-up Draught", "Expedition tool: a fallen member gets up once with 30% HP"], revive2: ["Strong Wake-up Draught", "Expedition tool: a fallen member gets up once with 50% HP"],
+  incense: ["Opening Incense", "Expedition tool: Regeneration at the start of the first battle"], incense2: ["Strong Opening Incense", "Expedition tool: strong Regeneration at the start of the first battle"],
+  ench_burn: ["Burn Enchant", "Expedition tool: 5% chance to Burn on hit"], ench_frost: ["Frostbite Enchant", "Expedition tool: 5% chance to Frostbite on hit"],
+  ench_poison: ["Poison Enchant", "Expedition tool: 5% chance to Poison on hit"], ench_sick: ["Sickness Enchant", "Expedition tool: 5% chance to cause Sickness on hit"],
+  charm_sleep: ["Sleep Ward Charm", "Expedition tool: harder to fall asleep"], charm_poison: ["Poison Ward Charm", "Expedition tool: harder to be poisoned"],
+  charm_burn: ["Burn Ward Charm", "Expedition tool: harder to catch Burn"], charm_frost: ["Frostbite Ward Charm", "Expedition tool: harder to catch Frostbite"],
+  charm_para: ["Paralysis Ward Charm", "Expedition tool: harder to be paralyzed"], charm_stun: ["Stun Ward Charm", "Expedition tool: harder to be stunned"],
+  fert: ["Fertilizer", "Farm: spread when planting to cut grow time by 30% (1 per plot)"], fert2: ["Better Fertilizer", "Farm: grow time −30%, and quality goes up one sprinkler tier"],
+  detox: ["Detox Tea", "Pets & companions: reset detailed stats (only before reaching the cap)"],
+  pickaxe: ["Pickaxe", "Mine: for 12 hours, dig ×1.3"], lamp: ["Lamp", "Mine: for 12 hours, silver and gold ore are twice as likely"],
 };
 export const ATTK_EN = { tip: "Tip", grip: "Grip" };
 export const ATT_EN = { spike: "Spike Cap", lens: "Magnifier", bulb: "Tiny Bulb", rubber: "Rubber Cap", tape: "Grip Tape", strap: "Strap", weight: "Weight", bell: "Bell" };
@@ -384,6 +435,10 @@ export const PET_EN = {
   yura: ["Yura", "Jellyfish", "Forgets what it wanted to say mid-sentence. Glows at night and gets way too excited", "Something happened today, I think. Sway, sway."],
   chiku: ["Chiku", "Cactus", "Acts quiet and cool… but stands nearby the whole time, waiting to be petted", "……. (Got petted 3 times today)"],
   charin: ["Charin", "Piggy Bank", "A big eater. Eats any coin. Eats too much and gets too heavy to move", "Tried to eat a button. It wasn't a coin. Got shaken. Went jingle jingle."],
+  takochi: ["Takochi", "Octopus", "Loves cooking. Bossy but hot-blooded. Always holds a frying pan in one of its legs", "My cooking was the best again today. (Burnt it)"],
+  pera: ["Pera", "Ittan-momen", "An ittan-momen made of aluminum plates, with a paper stuck on its face. Hangs from the ceiling at midnight", "I'm not fluttering. I'm clattering."],
+  kurotora: ["Kurotora", "Black Shrimp", "A calm, matter-of-fact mecha shrimp. Patrols in silence and only reports", "No anomalies. ……End of report."],
+  teku: ["Teku", "Beagle", "A far-too-energetic walk buddy. Can't sit still and invites everyone on walks", "Went for a walk. Went again. Can still go."],
 };
 export const QUIZ_EN = [
   ["On a day off, what do you do in the morning?", ["Turn off the alarm and go back to sleep", "Get up early and get things done first", "Pick up yesterday's game right away", "Breakfast first. And seconds"]],
@@ -392,8 +447,11 @@ export const QUIZ_EN = [
   ["What happens when you get praised?", ["Say 'Thank you very much!' really loudly", "So happy you run around the room 3 times", "Say nothing. But stay close, hoping for more praise", "Forget you were praised right away"]],
   ["If you could get a reward, which one?", ["Something shiny", "A toy that glows at night", "A sunny seat by the window", "A tunnel for shortcuts"]],
   ["What do you do on nights you can't sleep?", ["Never happens. Out like a light", "Neatly pack tomorrow's things", "Toss and turn 20 times", "Secretly turn on an old game"]],
+  ["You're invited for a walk. What do you do?", ["Already waiting at the door", "Decide the route and when to be back before leaving", "Go only if it's a windy day", "Buy ingredients on the way back and cook dinner"]],
+  ["A rainy evening. What do you do?", ["Make warm soup and serve everyone", "Quietly peek outside from behind the shoji screen", "Silently record how much it rains", "Open an umbrella and go for a walk anyway"]],
+  ["You hear a scary story. Then what?", ["Start telling your own: \"Mine is scarier\"", "Calmly say, \"There's an explanation\"", "Get scared and run to someone", "Say \"I'm not scared!\" while holding up a frying pan"]],
 ];
-export const SPECIES_EN = { shika: "Deer", pelican: "Pelican", mouse: "Mouse", tv: "CRT TV", mogura: "Mole", kurage: "Jellyfish", saboten: "Cactus", chokin: "Piggy Bank" };
+export const SPECIES_EN = { shika: "Deer", pelican: "Pelican", mouse: "Mouse", tv: "CRT TV", mogura: "Mole", kurage: "Jellyfish", saboten: "Cactus", chokin: "Piggy Bank", tako: "Octopus", ittan: "Ittan-momen", ebi: "Black Shrimp", beagle: "Beagle" };
 
 // ---- DEEP LINK/: の 店の 人 ----
 export const TRADER_EN = {
@@ -423,7 +481,8 @@ export const SHOP_EN = {
 };
 
 // ニライ諸島の 名前を はじめの 島の 表に 足す（id で 引く）
-Object.assign(DUNGEON_EN, DUNGEON2_EN); Object.assign(MYTHIC_EN, MYTHIC2_EN); Object.assign(ENEMY_EN, TREE2_EN, TREE3_EN); Object.assign(SKILL_EN, SKILL2_EN, SKILL3_EN);
+Object.assign(DUNGEON_EN, DUNGEON2_EN); Object.assign(MYTHIC_EN, MYTHIC2_EN); Object.assign(ENEMY_EN, TREE2_EN, TREE3_EN); Object.assign(SKILL_EN, SKILL2_EN, SKILL3_EN, MAIN_SKILL_EN); Object.assign(TYPE_EN, MAIN_TYPE_EN);
+for (const list of Object.values(TREES)) for (const s of list) if (MAIN_TEXT_EN[s.id]) SKILL_TEXT_EN[s.id] = MAIN_TEXT_EN[s.id](s);   // 12 本の 説明は データの 数から 作る
 
 // ---- 日本語 → 英語 の 組み立て ----
 export function nameWords() {
@@ -431,6 +490,13 @@ export function nameWords() {
   // 素材
   for (const g of Object.values(GATHER)) { for (const [id, ja] of g.mats) put(ja, MAT_EN[id]); put(g.hidden[1], MAT_EN[g.hidden[0]]); }
   for (const [id, ja] of Object.values(ENEMY_MAT)) put(ja, MAT_EN[id]);
+  for (const [id, ja] of Object.values(SCRAP).flat()) put(ja, MAT_EN[id]);
+  for (const [id, ja] of Object.values(BORDER).flat()) put(ja, MAT_EN[id]);
+  for (const [id, ja] of [...ORE, ...BARS, ...CLOTH, ...LUMBER]) put(ja, MAT_EN[id]);
+  for (const c of [...CROPS, ...CROP_MATS]) put(c.name, c.en);
+  for (const x of NUT_SNACKS) put(x.name, x.en);   // 栄養の おやつ
+  for (const x of Object.values(DETAIL)) put(x.label, x.en);   // 詳細ステータス
+  put("謎のお菓子", "Mystery Sweet"); put("デトックス茶", "Detox Tea");
   // 行き先・敵・ミシック
   for (const d of DUNGEONS) {
     const e = DUNGEON_EN[d.id]; if (e) { put(d.name, e.name); put(d.text, e.text); }
@@ -443,7 +509,8 @@ export function nameWords() {
   }
   // 職業の 技
   for (const [id, s] of Object.entries(COMMON)) { put(s.name, SKILL_EN[id]); put(s.text, SKILL_TEXT_EN[id]); }
-  for (const list of Object.values(TREES)) for (const s of list) { put(s.name, SKILL_EN[s.id]); put(s.text, SKILL_TEXT_EN[s.id]); }
+  for (const list of Object.values(TREES)) for (const s of list) { put(s.name, SKILL_EN[s.id]); put(s.text, SKILL_TEXT_EN[s.id]); for (const o of s.choose || []) put(o.name, OPT_EN[o.name]); }
+  for (const [id, j] of Object.entries(COUNTS)) put(j, COUNT_EN[id]);   // カウント
   for (const [id, t] of Object.entries(TYPES)) { const e = TYPE_EN[id]; if (e) { put(t.label, e[0]); put(t.role, e[1]); } }
   // 状態
   for (const [id, x] of Object.entries(EFFECTS)) { const e = FX_EN[id]; if (e) { put(x.label, e[0]); put(x.text, e[1]); } }
@@ -464,6 +531,7 @@ export function nameWords() {
   for (const r of SNACK_RECIPES) put(r.name, SNACK_EN[r.id]);
   put(PC.text, PC_EN[1]);
   for (const w of WS_ITEMS) { const e = WS_EN[w.id]; if (e) { put(w.name, e[0]); put(w.note, e[1]); } }
+  for (const b of Object.values(BITEMS)) { put(b.name, b.en[0]); put(b.text, b.en[1]); put(BITEM_NOTE(b), BITEM_NOTE_EN(b)); }   // 戦いの アイテム
   for (const [id, k] of Object.entries(ATT_KINDS)) put(k.label, ATTK_EN[id]);
   for (const a of ATT_BASES) put(a.name, ATT_EN[a.id]);
   for (const f of FURN) put(f.name, FURN_EN[f.id]);

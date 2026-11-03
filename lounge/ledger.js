@@ -19,7 +19,7 @@ export function balanceOf(L, wallet, kind) {
 export function trimSent(L, wallet) { if (wallet && wallet.known) L.sent = L.sent.filter((x) => x.seq > (wallet.lg || 0)); }
 
 // OBS に 送る 分（pending は かならず 足す・unknown は 足りれば 足す）。pending を 先に
-export const toObs = (L) => [...L.pending.map((x) => ({ op: x.op, kind: x.kind, d: x.d })), ...L.unknown.map((x) => ({ op: x.op, kind: x.kind, d: x.d, need: 1, ...(x.grp ? { grp: x.grp } : {}) }))];
+export const toObs = (L) => [...L.pending.map((x) => ({ op: x.op, kind: x.kind, d: x.d })), ...L.unknown.map((x) => ({ op: x.op, kind: x.kind, d: x.d, need: 1, ...(x.grp ? { grp: x.grp } : {}), ...(x.give ? { give: x.give } : {}) }))];   // give：オーバーレイが 渡す 物（景品の コスメ）
 
 // OBS の 返事（res：[{ op, ok, seq, why }]）を 帳簿に 入れる。give は 物を 渡す 関数。のこりの 数を 返す
 // pending が ok で なかった（OBS が その 人を まだ 知らない）ときは のこして つぎに また 送る

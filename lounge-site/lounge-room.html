@@ -107,7 +107,7 @@
 <script type="module">
 import "./lounge-en.js";   // 英語の 画面（MONO LINK の サイトの EN／日本語 と 同じ 決まり。英語の ときだけ 辞書を 読む）
 import * as THREE from "three";
-import { N, FURN, F, kit, buildHatch, HATCH, dims, cellsOf, fits } from "./lounge-furniture.js";
+import { N, FURN, F, kit, buildHatch, HATCH, buildGardenDoor, GARDEN, dims, cellsOf, fits } from "./lounge-furniture.js";
 import { me, act, busy } from "./lounge-client.js";   // 部屋の 置き方・昼と夜は 門番に しまう（見本では ブラウザの 中の ためしの 門番）
 import { mountWallet } from "./wallet-bar.js"; mountWallet();   // 上の 通貨の 札（玉・リソース・クレジット）と 両替
 import { makePet3, SPECIES3 } from "./pets.js";
@@ -121,6 +121,7 @@ if (ME.denied || ME.ok === false) {
   document.querySelector("main").innerHTML = `<section class="panel" style="max-width:520px;margin:24px auto;text-align:center;padding:28px 24px"><h2 style="margin:0 0 8px">入れません</h2><p>${String(ME.why || "もう 1 回 開いて ください").replace(/[&<>"]/g, "")}</p>${ME.login ? `<p><a href="/">MONO LINK で ログイン</a></p>` : ""}</section>`;
   window.ready = true; await new Promise(() => {});
 }
+const GDN = !ME.lock && !!ME.farmv;   // 庭への扉（新しい 農園）：農園が 開いて いて、ロックで とめられて いない 人だけ（いまは 鹿さんと おたこまるさん）
 const MP = ME.pets && ME.pets[0];   // 1 匹目（まだ いなければ 部屋には いない。ふだは「ペットを むかえる」）
 let OWN = (ME.own && ME.own.furniture) || {};   // お店（lounge-shop.html）で 買うと ふえる
 let uidN = 0;
@@ -179,6 +180,7 @@ function buildRoom() {
   K.box(room, N + 0.3, 4, 0.3, wallM, -0.15, -0.2, -N / 2 - 0.15); K.box(room, 0.3, 4, N, wallM, -N / 2 - 0.15, -0.2, 0);
   K.box(room, N, 0.08, 0.04, K.glow("#2EA8FF"), 0, 0.02, -N / 2 + 0.02); K.box(room, 0.04, 0.08, N, K.glow("#8E6CFF"), -N / 2 + 0.02, 0.02, 0);
   const h = new THREE.Group(); buildHatch(K, h); h.position.set(HATCH.x - N / 2 + 0.5, 0, HATCH.z - N / 2 + 0.5); room.add(h);
+  if (GDN) { const gd = new THREE.Group(); buildGardenDoor(K, gd); gd.position.set(N / 2 + GARDEN.x, 0, -N / 2 + GARDEN.z); gd.traverse((m) => { m.userData.garden = true; }); room.add(gd); }
   if (S.night) { const p1 = new THREE.PointLight("#8E6CFF", 5, 6); p1.position.set(1, 2, -1.5); scene.add(p1); }
   for (const it of S.items) { const g = make(it); groups.set(it.uid, g); scene.add(g); }
   if (PET_SP) { pet.g = makePet3(PET_SP); pet.g.traverse((m) => { if (m.isMesh) m.castShadow = true; }); pet.g.visible = !S.edit; pet.g.rotation.y = pet.face; scene.add(pet.g); }
@@ -192,20 +194,24 @@ function marks() {
 }
 
 function size() {
-  const w = view.clientWidth, h = view.clientHeight, asp = w / h, s = Math.max(4.4, 4.65 / asp);
-  Object.assign(cam, { left: -s * asp, right: s * asp, top: s, bottom: -s }); cam.updateProjectionMatrix(); cam.updateMatrixWorld(); renderer.setSize(w, h, false);
+  // 庭への扉が ある ときは、右に 出た 扉まで 入る ように 少し 広く・右へ ずらして 写す（PC は もともと 入る）
+  const w = view.clientWidth, h = view.clientHeight, asp = w / h, s = Math.max(4.4, (GDN ? 4.85 : 4.65) / asp), cx = GDN ? 0.32 : 0;
+  Object.assign(cam, { left: cx - s * asp, right: cx + s * asp, top: s, bottom: -s }); cam.updateProjectionMatrix(); cam.updateMatrixWorld(); renderer.setSize(w, h, false);
   tags();
 }
 // ふだ（ふつうの とき）：PC → DEEP LINK/:、はしご → 地下の 隠れ家、ペット → ペットの 画面（冒険。まだ いなければ 性格診断）。部屋が まんなか（鹿さんの決め、2026-10-24）
-const tagEls = [["pc", "deeplink.html", "DEEP LINK/:"], ["hatch", "hideout-room.html", "地下へ"], ["pet", MP ? "dungeon.html" : "quiz.html", MP ? "ペット" : "ペットを むかえる"]].map(([k, href, txt]) => { const a = document.createElement("a"); a.className = "tag"; a.href = href; a.textContent = txt; view.appendChild(a); return { k, a }; });
+// 庭への扉 → 新しい 農園（鹿さんの 決め、2026-11-03）
+const tagEls = [["pc", "deeplink.html", "DEEP LINK/:"], ["hatch", "hideout-room.html", "地下へ"], ...(GDN ? [["garden", "garden.html", "庭へ"]] : []), ["pet", MP ? "dungeon.html" : "quiz.html", MP ? "ペット" : "ペットを むかえる"]].map(([k, href, txt]) => { const a = document.createElement("a"); a.className = "tag"; a.href = href; a.textContent = txt; view.appendChild(a); return { k, a }; });
 function tags() {
   const w = view.clientWidth, h = view.clientHeight;
   for (const t of tagEls) {
     if (t.k === "pet") { petTag(); continue; }
     let p;
     if (t.k === "hatch") p = new THREE.Vector3(HATCH.x - N / 2 + 0.5, 0.75, HATCH.z - N / 2 + 0.5);
+    else if (t.k === "garden") p = new THREE.Vector3(N / 2 + GARDEN.x, 2.6, -N / 2 + GARDEN.z);
     else { const it = S.items.find((o) => o.id === "pc"); t.a.hidden = !it; if (!it) continue; const g = groups.get(it.uid); p = g.position.clone().setY(1.6); }
-    const v = p.project(cam); t.a.style.left = `${((v.x + 1) / 2) * w}px`; t.a.style.top = `${((1 - v.y) / 2) * h}px`;
+    const v = p.project(cam), hw = t.a.offsetWidth / 2 + 4;   // 札は 画面の 中に おさめる（スマホで 右はしの 庭への扉の 札が 切れない ように）
+    t.a.style.left = `${Math.min(w - hw, Math.max(hw, ((v.x + 1) / 2) * w))}px`; t.a.style.top = `${((1 - v.y) / 2) * h}px`;
   }
 }
 
@@ -234,7 +240,7 @@ view.addEventListener("pointermove", (e) => {
 view.addEventListener("click", (e) => {
   if (e.target.closest(".tag")) return; aim(e);
   if (!S.edit && pet.g && ray.intersectObject(pet.g, true).length) return pat(performance.now() / 1000);
-  if (!S.edit) { const hit = ray.intersectObjects([...groups.values()], true)[0], it = hit && S.items.find((o) => o.uid === hit.object.userData.uid); if (it && it.id === "pc") location.href = "deeplink.html"; return; }
+  if (!S.edit) { const hit = ray.intersectObjects([...groups.values(), ...(GDN ? [room] : [])], true)[0]; if (hit && hit.object.userData.garden) { location.href = "garden.html"; return; } const it = hit && S.items.find((o) => o.uid === hit.object.userData.uid); if (it && it.id === "pc") location.href = "deeplink.html"; return; }
   if (S.hold) {
     const at = spot() || S.hold.at; if (!at) return; const it = { ...at, id: S.hold.id, uid: S.hold.from || ++uidN };
     if (!fitsHere(it, -1)) return toast(F(it.id).place === "wall" ? "ここは ほかの 物と かさなる" : "ここには 置けない");

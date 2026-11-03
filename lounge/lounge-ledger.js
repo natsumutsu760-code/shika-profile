@@ -10,9 +10,15 @@ const viewerOf = (env, id) => env.VIEWER.get(env.VIEWER.idFromName("v:" + id));
 const idOk = (v) => (/^\d{1,20}$/.test(String(v || "")) ? String(v) : "");
 
 // 運んで よい 形だけ。op は 「その 人の id:」で はじまる 物だけ（ほかの 人の 分は 運ばない）
+// オーバーレイが 渡す 物（いまは 景品の コスメだけ）：形を そろえる。ちがう 形は のせない
+function cleanGive(g) {
+  const c = g && g.cos;
+  if (!c || !Number.isInteger(c.slot) || !Number.isInteger(c.no) || !Number.isInteger(c.price) || typeof c.kind !== "string" || c.kind.length > 10 || typeof c.id !== "string" || c.id.length > 80) return null;
+  return { cos: { slot: c.slot, no: c.no, kind: c.kind, id: c.id, price: c.price } };
+}
 function cleanItems(list, id) {
   return (Array.isArray(list) ? list : []).slice(0, 500).filter((x) => x && typeof x.op === "string" && x.op.length <= 100 && x.op.startsWith(id + ":") && (x.kind === "balls" || x.kind === "res") && Number.isInteger(x.d) && Math.abs(x.d) <= 1e7)
-    .map((x) => ({ op: x.op, id, kind: x.kind, d: x.d, need: x.need ? 1 : 0, ...(typeof x.grp === "string" && x.grp.length <= 100 && x.grp.startsWith(id + ":") ? { grp: x.grp } : {}) }));
+    .map((x) => ({ op: x.op, id, kind: x.kind, d: x.d, need: x.need ? 1 : 0, ...(typeof x.grp === "string" && x.grp.length <= 100 && x.grp.startsWith(id + ":") ? { grp: x.grp } : {}), ...(cleanGive(x.give) ? { give: cleanGive(x.give) } : {}) }));
 }
 function lgSocket(lounge) {
   return lounge.obsSockets().filter((w) => lounge.att(w).lg).sort((a, b) => (lounge.att(b).at || 0) - (lounge.att(a).at || 0))[0] || null;

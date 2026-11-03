@@ -130,6 +130,21 @@ export function buildHatch(K, g) {
   K.box(g, 0.5, 0.04, 0.05, K.mat("#C9D3EA"), 0, 0.5, -0.32);
   K.light(g, "#FFB547", 3, 2.5, 0, 0.3, 0);
 }
+// 庭への扉（新しい 農園 garden.html の 入口。鹿さんの 決め 2026-11-03）。おくの かべの 右の はしの 先に、かべと 同じ 向きで 立てる
+// 床の 外なので 家具の 置き方は かわらず、床の どの マスも かくさない。正面は +z（部屋の 手前）
+export const GARDEN = { x: 0.62, z: 0.04 };   // 右の はし（x = N/2）と おくの かべ（z = -N/2）からの 位置
+export function buildGardenDoor(K, g) {
+  K.box(g, 1.3, 0.12, 0.9, K.mat("#7FD06A"), 0, -0.12, 0.42);                                 // 芝生（扉の 手前）
+  [-0.52, 0.52].forEach((x) => K.box(g, 0.12, 2.1, 0.12, K.mat("#8A5A36"), x, 0, 0));         // 柱
+  K.box(g, 1.2, 0.14, 0.16, K.mat("#8A5A36"), 0, 2.08, 0);                                    // 上の 横木
+  K.box(g, 0.9, 1.92, 0.08, K.mat("#C98B55"), 0, 0.04, 0.02);                                 // 扉
+  [0.5, 1.25].forEach((y) => K.box(g, 0.82, 0.06, 0.1, K.mat("#A8703F"), 0, y, 0.03));        // 扉の 横板
+  K.box(g, 0.5, 0.32, 0.1, K.glow("#FFE3B8", 0.8), 0, 1.45, 0.04);                             // 小窓（夜は ともる）
+  K.box(g, 0.08, 0.08, 0.14, K.mat("#FFC21A"), 0.3, 0.95, 0.08);                               // とって
+  [[-0.5, 0.62], [0.52, 0.66], [0.25, 0.75]].forEach(([x, z]) => {                             // 草の かたまり
+    const l = new THREE.Mesh(new THREE.IcosahedronGeometry(0.18, 0), K.mat("#22CC88")); l.position.set(x, 0.12, z); l.castShadow = true; g.add(l); });
+  K.light(g, "#FFE3B8", 2, 2.2, 0, 1.5, 0.4);
+}
 
 // ---------- お店：決まりは lounge-rules.js。ここでは 3D の 形つきの 家具を 返す ----------
 export const SALE = FURN.filter((f) => f.star > 0);

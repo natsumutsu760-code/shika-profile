@@ -4,6 +4,7 @@
 // 前から ある 12 しゅるい（麦わら帽子 など）と 合成の 上の装備・ミシックは 名前の ある 装備として そのまま 使える
 // 強さ：枠ごとの 重み（w）で もとの強さと OP の 数を へらし、ぜんぶ 付けた ときの 合計を 前の 3 枠と 同じくらいに する（鹿さんの決め）
 import { DUNGEONS } from "./dungeons.js";
+import { UNIQUES } from "./unique-equip.js";
 
 // 部位（しゅるい）。アクセサリーは 枠が 3 つ
 export const KINDS = {
@@ -134,21 +135,23 @@ export const UPPER = [
 ];
 // ミシック：行き先ごとに 1 つ（中身は dungeons.js）。もとの強さは ★5 と同じ・OP 5 つ・効果は いつも 付く
 export const MYTHICS = DUNGEONS.map((d) => ({ ...d.mythic, mythic: true }));
-export const baseOf = (id) => BASES.find((b) => b.id === id) || UPPER.find((b) => b.id === id) || MYTHICS.find((b) => b.id === id) || comboOf(id);
+// ユニーク：行き先ごとの 専用装備（unique-equip.js）。★5・OP は ミシックと 同じ。効果は いつも 付く
+export const UNIQUE_BASES = UNIQUES.map((u) => ({ ...u, unique: true }));
+export const baseOf = (id) => BASES.find((b) => b.id === id) || UPPER.find((b) => b.id === id) || MYTHICS.find((b) => b.id === id) || UNIQUE_BASES.find((b) => b.id === id) || comboOf(id);
 // 手放す（鹿さんの決め、2026-10-25）：売る 値段（★ごと。玉・クレジット）と リサイクル
 // リサイクル：★の 数 だけ その 装備の 素材の tier の 行き先の 採取の 素材（くじ）。★4・★5 は かくし通路の 素材も 1 こ。前からの 12 しゅるいと 合成の 装備は ハルス街道、ミシックは その 行き先
 export const SCRAP_BALLS = [0, 10, 25, 60, 150, 400], SCRAP_CREDITS = [0, 30, 80, 200, 500, 1200];
 export function recycleOf(it) {
-  const b = baseOf(it.base), tier = b && b.combo ? MATS[b.mat].tier : b && b.mythic ? Math.max(0, DUNGEONS.findIndex((d) => d.mythic.id === b.id)) : 0;
+  const b = baseOf(it.base), tier = b && b.combo ? MATS[b.mat].tier : b && b.mythic ? Math.max(0, DUNGEONS.findIndex((d) => d.mythic.id === b.id)) : b && b.unique ? Math.max(0, DUNGEONS.findIndex((d) => d.id === b.dungeon)) : 0;
   return { did: DUNGEONS[Math.min(DUNGEONS.length - 1, tier)].id, n: it.star, hidden: it.star >= 4 ? 1 : 0 };
 }
 // まとめて 手放す ときに 入れない：ミシック・合成の 上の 装備・とくべつな 効果つき（付けて いる 物は 画面と 門番で 別に 見る）
-export const keepInBulk = (it) => { const b = baseOf(it.base); return !b || !!b.mythic || UPPER.some((u) => u.id === b.id) || !!it.fx; };
+export const keepInBulk = (it) => { const b = baseOf(it.base); return !b || !!b.mythic || !!b.unique || UPPER.some((u) => u.id === b.id) || !!it.fx; };
 // 自動で 売る（鹿さんの頼み、2026-10-25）：派遣で 拾った ★N 以下の 装備を 持ち物に 入れずに 手放す。もらう 物は えらべる（手放すと 同じ 値段）
 // 売らない：まとめて 手放さない 物（ミシック・合成の 上・効果つき）・買った／もらった 物（b）。a：rec.autoSell = { star, how }
 export const AUTO_SELL_STARS = [1, 2, 3, 4], AUTO_SELL_HOW = ["credits", "balls", "recycle"];
 export const autoSellOf = (it, a) => !!a && a.star > 0 && it.star <= a.star && !it.b && !keepInBulk(it);
-export const hasFx = (it) => { const b = baseOf(it.base); return !!b?.fxp && (b.mythic || !!it.fx); };
+export const hasFx = (it) => { const b = baseOf(it.base); return !!b?.fxp && (b.mythic || b.unique || !!it.fx); };
 
 // OP：★の数だけ付く（★1 は 1 つ … ★5 は 5 つ）。数字はその装備の★で決まる（左から ★1〜★5）。from は付きはじめる★
 export const OPS = {
@@ -199,6 +202,6 @@ export function itemStats(it) {
 export function itemPower(it) {
   const s = itemStats(it); let p = 0;
   for (const [k, v] of Object.entries(s)) p += k === "hp" ? v / 4 : k === "mp" ? v / 2 : ["atk", "def", "int", "res", "agi", "dex", "luk"].includes(k) ? v : ["mpRegen", "firstStrike", "endure", "focusStart"].includes(k) ? 4 * v : v * 0.5;
-  if (hasFx(it)) p += baseOf(it.base).mythic ? 8 : 4;   // とくべつな効果は OP の 先手・根性と 同じくらいの ねうち（ミシックは その 倍）
+  if (hasFx(it)) p += baseOf(it.base).mythic || baseOf(it.base).unique ? 8 : 4;   // とくべつな効果は OP の 先手・根性と 同じくらいの ねうち（ミシックは その 倍）
   return p;
 }

@@ -65,6 +65,7 @@
 
   .side { display:grid; gap:12px; }
   .card { border:1.5px solid var(--line); border-radius:18px; padding:12px 14px; background:#fff; }
+  .nutlink { display:grid; gap:2px; text-decoration:none; color:var(--ink); font:900 15px/1.3 var(--jp); } .nutlink small { font:700 12px/1.4 var(--jp); color:var(--soft); } .nutlink::after { content:"→"; justify-self:end; margin-top:-22px; color:#E58A2E; }
   .card h3 { font:900 15px/1.3 var(--jp); display:flex; align-items:center; gap:8px; }
   .card h3 small { font:700 11px/1.3 var(--jp); color:var(--soft); }
   .card p { margin-top:6px; font:500 13px/1.6 var(--jp); }
@@ -118,18 +119,19 @@
 <script type="module">
 import "./lounge-en.js";   // 英語の 画面（MONO LINK の サイトの EN／日本語 と 同じ 決まり。英語の ときだけ 辞書を 読む）
 import { growthParts, buildPet, learned, APTITUDE, APT_MUL, jobFit, JOB_GROWTH } from "./trees.js";
-import { TYPES } from "./skills.js";
+import { TYPES, TREE_IDS } from "./skills.js";
 import { itemStats } from "./equip.js";
 
 import { me, act, busy, waitText } from "./lounge-client.js";   // ペットの 記録と ステータスを 振るのは 門番（見本では ブラウザの 中の ためしの 門番）
 import { mountWallet } from "./wallet-bar.js"; mountWallet();   // 上の 通貨の 札（玉・リソース・クレジット）と 両替
 import { petInfo, linkTabs, gateHtml, addGateCss, toast } from "./pet-head.js";
+import { detailOpen } from "./nutrition.js";   // 栄養（詳細ステータス）の 入口は 開いてから
 
 const q = new URLSearchParams(location.search), view = q.get("view") || "pet";
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
 const KEYS = ["hp", "mp", "atk", "def", "int", "res", "agi", "dex", "luk"];
 const SL = { hp: "HP", mp: "MP", atk: "ATK", def: "DEF", int: "INT", res: "RES", agi: "AGI", dex: "DEX", luk: "LUK" };
-const JOBS = ["attacker", "caster", "technician", "healer", "defender"];
+const JOBS = TREE_IDS;   // メインの ツリー 12 本
 const fitWord = (f) => (f >= 1.04 ? "とても合う" : f >= 1.015 ? "合う" : f > 0.985 ? "ふつう" : "合わない");
 const rk = (r) => `<span class="rk ${r}" aria-label="適正 ${r}">${r}</span>`;
 const pct = (m) => (m === 1 ? "×1" : `×${m}`);
@@ -184,6 +186,7 @@ function renderPet() {
       <p class="note">1 ポイントで HP +4・MP +2・ほかは +1。そこに適正の倍率がかかる（S なら ×1.15）。へらすのは スキルツリーの 振り直しで（1 日 1 回 無料）</p>
     </section>
     <aside class="side">
+      ${detailOpen() ? `<a class="card nutlink" href="nutrition.html">栄養<small>おやつで 詳細ステータスを 育てる</small></a>` : ""}
       <div class="card"><h3>${esc(MP.name)}の適正<small>${esc(info.label)}はみんな同じ</small></h3>
         <div class="aptg">${KEYS.map((k) => `<div>${rk(A[k])}${SL[k]}</div>`).join("")}</div>
         <p>${esc(why)}</p>

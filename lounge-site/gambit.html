@@ -174,7 +174,8 @@ const WHO = { me: ["自分", ""], foe: ["相手", "foe"], turn: ["ターン", "t
 const isNum = (k) => typeof CD[k][2] === "number", isFx = (k) => typeof CD[k][2] === "string";
 const condHtml = (g) => { const [k, v] = g.if, c = CD[k] || CD.always; return `${c[0] === "etc" ? "" : `<span class="who ${WHO[c[0]][1]}">${WHO[c[0]][0]}</span>`}${c[1](v)}`; };
 const STYLES = [["attack", "こうげき重視"], ["defense", "防御重視"], ["balance", "バランス"], ["mp", "MP を大事に"]];
-const kindOf = (id) => (SKILL[id].type === null ? ["通常", "plain"] : SKILL[id].kind === "itazura" ? ["イタズラ", "magic"] : ["技", "skill"]);
+const kindOf = (id) => (SKILL[id].item ? ["アイテム", "plain"] : SKILL[id].type === null ? ["通常", "plain"] : SKILL[id].kind === "itazura" ? ["イタズラ", "magic"] : ["技", "skill"]);
+const bagHave = (id) => ((ME.deeplink && ME.deeplink.items) || {})[id] || 0;   // 戦いの アイテム（派遣に 持って いく。工房で 作る）
 
 let ME = await me(), MP = ME.pets && ME.pets[0];
 const W = { list: [], style: "balance", dirty: false, row: -1, sheet: null, pick: null, val: null, seed: 1, reset: false };
@@ -192,11 +193,11 @@ function rowHtml(g, i) {
   const [kn, kc] = kindOf(g.do);
   return `<li class="g ${g.on === false ? "off" : ""}" ${W.row === i ? 'style="border-color:var(--ink);box-shadow:0 0 0 3px rgba(27,35,64,.12)"' : ""}><button class="no" data-row="${i}" aria-label="${i + 1} 番を えらぶ（並べかえ・けす）" style="border:0">${i + 1}</button><button class="sw" role="switch" data-sw="${i}" aria-checked="${g.on !== false}" aria-label="${i + 1} をつかう"></button>
     <button class="cond" data-cond="${i}">${condHtml(g)}</button><span class="arr"></span>
-    <button class="act ${kc}" data-act="${i}"><span class="kind">${kn}</span><span class="nm">${esc(SKILL[g.do].name)}</span>${g.do === MP.carry ? `<span class="carry">持ちこし</span>` : ""}<span class="mp">MP <b>${SKILL[g.do].mp}</b></span></button><span class="grip"></span></li>`;
+    <button class="act ${kc}" data-act="${i}"><span class="kind">${kn}</span><span class="nm">${esc(SKILL[g.do].name)}</span>${g.do === MP.carry ? `<span class="carry">持ちこし</span>` : ""}${SKILL[g.do].item ? `<span class="mp">のこり <b>${bagHave(g.do)}</b></span>` : `<span class="mp">MP <b>${SKILL[g.do].mp}</b></span>`}</button><span class="grip"></span></li>`;
 }
 // ためしに戦う：練習用の かかし（同じ Lv の ディフェンダー）と。いま 画面で なおした ガンビットで
 function testHtml() {
-  const A = { ...MP.build, gambits: W.list, auto: W.style, owner: ME.name }, B = { ...petAt("defender", MP.lv), name: "練習用のかかし", owner: "VR", species: null };
+  const A = { ...MP.build, gambits: W.list, auto: W.style, owner: ME.name }, B = { ...petAt("spiky", MP.lv), name: "練習用のかかし", owner: "VR", species: null };
   const EV = simulate(A, B, W.seed), END = EV.at(-1), acts = EV.filter((e) => e.type === "act" && e.who === 0 && !e.sim), used = {};
   for (const e of EV) if (e.type === "act" && e.who === 0) used[e.by] = (used[e.by] || 0) + 1;
   const li = acts.slice(0, 9).map((e) => { const hits = (e.hits || []).filter((h) => h.dmg > 0).map((h) => h.dmg);
@@ -241,7 +242,10 @@ function sheetHtml() {
   const i = W.row, g = W.list[i];
   if (W.sheet === "act") {
     const list = ["kogeki", "bougyo", ...skillsOf().filter((id) => SKILL[id] && SKILL[id].kind !== "passive")];
-    return `<h3>${i + 1} 番で する ことを えらぶ</h3><p>覚えて いる 技と、こうげき・ぼうぎょ</p><div class="opts">${list.map((id) => { const [kn] = kindOf(id); return `<button data-pickact="${id}" aria-pressed="${g.do === id}">${esc(SKILL[id].name)} <small style="color:var(--soft);font:700 11px/1 var(--jp)">${kn}・MP ${SKILL[id].mp}</small></button>`; }).join("")}</div>`;
+    // 戦いの アイテム：持って いる 物（と いま えらんで いる 物）だけ。派遣で 使う（闘技場では 使わない）
+    const bag = Object.keys(SKILL).filter((id) => SKILL[id].item && (bagHave(id) > 0 || g.do === id));
+    return `<h3>${i + 1} 番で する ことを えらぶ</h3><p>覚えて いる 技と、こうげき・ぼうぎょ</p><div class="opts">${list.map((id) => { const [kn] = kindOf(id); return `<button data-pickact="${id}" aria-pressed="${g.do === id}">${esc(SKILL[id].name)} <small style="color:var(--soft);font:700 11px/1 var(--jp)">${kn}・MP ${SKILL[id].mp}</small></button>`; }).join("")}</div>
+      ${bag.length ? `<h4 style="--c:var(--leaf)"><i></i>戦いの アイテム（派遣で 使う）</h4><div class="opts">${bag.map((id) => `<button data-pickact="${id}" aria-pressed="${g.do === id}">${esc(SKILL[id].name)} <small style="color:var(--soft);font:700 11px/1 var(--jp)">のこり ${bagHave(id)}</small></button>`).join("")}</div>` : ""}`;
   }
   const k = W.pick || g.if[0], v = W.val, groups = [["me", "--soft"], ["foe", "--coral"], ["turn", "--sky"], ["etc", "--leaf"]];
   const val = isNum(k) ? `<div class="opts" style="margin-top:12px;align-items:center"><span style="font:700 13px/1 var(--jp)">数</span><button data-val="-1">−</button><b style="font:600 22px/1 var(--num);min-width:48px;text-align:center">${v}</b><button data-val="1">＋</button></div>`

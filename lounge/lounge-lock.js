@@ -5,5 +5,11 @@ export const LOCK = true;
 export const LOCK_PASS = new Set(["420214272", "1140507103"]);   // おたこまる・鹿さん（配信者。門番の gate.owner と 同じ）
 const OPEN = /^(room\.|shop\.|money\.)/;            // 止めない やること
 export const LOCK_WHY = "工事中（MONO LINK の 大工事の あいだは、ラウンジの 部屋と ショップだけ 使えます）";
-export const locked = (rec, env) => LOCK && !(env && env.LOCK_OFF) && !LOCK_PASS.has(String(rec.id));
+// 新しい ペットと 農園は、大工事の ロックが とけても みんなに 開くまで 2 人だけ（鹿さんの 決め 2026-11-03。docs/mono-link-release-plan.md）
+// PET_OPEN を true に すると みんなに 開く（新ペットの 公開。その 前に パチンコの 景品を シーズンラインナップに そろえる）
+export const PET_OPEN = false;
+export const PET_WHY = "準備中（新しい ペットと 農園は、公開まで もう 少し お待ちください。ラウンジの 部屋と ショップは 使えます）";
+export const locked = (rec, env) => (LOCK || !PET_OPEN) && !(env && env.LOCK_OFF) && !LOCK_PASS.has(String(rec.id));
+export const lockKind = () => (LOCK ? "build" : "pet");   // 画面の 文の えらび（工事中 ／ 準備中）
+export const lockWhy = () => (LOCK ? LOCK_WHY : PET_WHY);
 export const lockedAct = (rec, a, env) => locked(rec, env) && !OPEN.test(String(a));

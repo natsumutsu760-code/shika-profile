@@ -1,6 +1,16 @@
 // 英語の 名前：配合限定の モンスター（fusion-only.js）の ツリーと 技・パッシブ。lounge-en-names.js が 読んで 表に 足す
 // TREE3_EN：ツリー id → [モンスターの 名前, ツリーの 名前]。SKILL3_EN：技・パッシブの id → 名前（パッシブの 説明は lounge-en-fx.js の 形の 決まり）
 
+// 追加 160 種（2026-10-28。ランクごとの ファイル）
+import { TREE_EN as T_F, SKILL_EN as S_F } from "./lounge-en-fusion-f.js";
+import { TREE_EN as T_E, SKILL_EN as S_E } from "./lounge-en-fusion-e.js";
+import { TREE_EN as T_D, SKILL_EN as S_D } from "./lounge-en-fusion-d.js";
+import { TREE_EN as T_C, SKILL_EN as S_C } from "./lounge-en-fusion-c.js";
+import { TREE_EN as T_B, SKILL_EN as S_B } from "./lounge-en-fusion-b.js";
+import { TREE_EN as T_A, SKILL_EN as S_A } from "./lounge-en-fusion-a.js";
+import { TREE_EN as T_S, SKILL_EN as S_S } from "./lounge-en-fusion-s.js";
+import { TREE_EN as T_EX, SKILL_EN as S_EX } from "./lounge-en-fusion-ex.js";
+
 export const TREE3_EN = {
   f_puchijelly: ["Petit Jelly", "Wobbling Afterimage"],
   f_babydragon: ["Baby Dragon", "Little Dragon Fire"],
@@ -1286,3 +1296,6 @@ export const SKILL3_EN = {
   f_ae_kuraisoko: "Dark Depths",
   f_ae_shinenkaranozoku: "Watcher from the Abyss",
 };
+
+Object.assign(TREE3_EN, T_F, T_E, T_D, T_C, T_B, T_A, T_S, T_EX);
+Object.assign(SKILL3_EN, S_F, S_E, S_D, S_C, S_B, S_A, S_S, S_EX);

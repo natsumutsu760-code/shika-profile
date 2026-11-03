@@ -8,7 +8,8 @@
 <style>
   /* MONO LINK のラウンジ：工房（鹿さんの頼み、2026-10-25）。地下の 拡張 Lv1 の あとに 作れる 設備
      素材から 道具・スプリンクラー と、武器の アタッチメントを 作る。アタッチメントは 作る たびに ★と OP が くじ
-     作業台の 画面と 同じ 形：タブ（道具・アタッチメント）で えらび、下（スマホ）／右で 使う物と「作る」。データは workshop.js */
+     作業台の 画面と 同じ 形：タブ（道具・アタッチメント・精錬）で えらび、下（スマホ）／右で 使う物と「作る」。データは workshop.js
+     精錬（鹿さんの 決め、2026-10-31）：炉（工房の Lv の 数）に 鉱石を 入れると、時間で 延べ棒が できる。炉を えらぶと 受けとる・やめる */
   :root {
     --space:#F6F8FC; --ink:#1B2340; --soft:#6A7394; --line:#DCE3F0;
     --sky:#2EA8FF; --coral:#FF5A64; --sun:#FFC21A; --leaf:#22CC88; --violet:#8E6CFF; --gold:#E0A21C; --ws:#E0662E;
@@ -47,6 +48,14 @@
   .node.wait { border-style:dashed; background:repeating-linear-gradient(45deg, #F8FAFD 0 6px, #fff 6px 12px); } .node.wait b { color:#8C94AE; } .node.wait .ic svg { filter:grayscale(1) opacity(.45); }
   .node[aria-pressed="true"] { box-shadow:0 0 0 3px var(--sky); }
   .sec { margin:12px 2px 8px; font:900 12px/1.2 var(--jp); color:var(--soft); } .sec:first-of-type { margin-top:0; }
+  .node .ic img, .detail header .ic img { width:30px; height:30px; image-rendering:pixelated; } .detail header .ic img { width:42px; height:42px; }
+  .node.empty { border-style:dashed; } .node.busy small { color:var(--soft); }
+  .prog { height:10px; border-radius:99px; background:#EDF1F8; overflow:hidden; } .prog i { display:block; height:100%; border-radius:99px; background:var(--ws); }
+  .furn-now { display:grid; gap:6px; font:700 13px/1.5 var(--jp); } .furn-now b { font:600 18px/1 var(--num); }
+  .picks { display:flex; flex-wrap:wrap; gap:6px; } .picks button { display:inline-flex; align-items:center; gap:6px; padding:6px 12px 6px 6px; border-radius:999px; border:1.5px solid var(--line); background:#fff; font:800 13px/1 var(--jp); } .picks img { width:24px; height:24px; image-rendering:pixelated; }
+  .sub-act { border:0; background:none; padding:4px; font:800 12.5px/1.4 var(--jp); color:var(--soft); text-decoration:underline; text-underline-offset:3px; justify-self:center; }
+  .sub-act.arm { color:var(--coral); }
+  .more { justify-self:center; font:900 13px/1 var(--jp); color:#1E6FB0; text-decoration:none; }
 
   .detail { display:grid; gap:12px; scroll-margin:12px; }
   .detail header { display:grid; grid-template-columns:58px minmax(0, 1fr); gap:12px; align-items:center; }
@@ -95,10 +104,13 @@
 <p class="toast" id="toast" role="status"></p>
 <script type="module">
 import "./lounge-en.js";   // 英語の 画面（MONO LINK の サイトの EN／日本語 と 同じ 決まり。英語の ときだけ 辞書を 読む）
-import { WS_ITEMS, WS_MAX, ATT_BASES, ATT_KINDS, ATT_STAR, attOpN } from "./workshop.js";
+import { WS_ITEMS, wsOpen, WS_MAX, ATT_BASES, ATT_KINDS, ATT_STAR, attOpN, SMELT, SMELT_MAX, furnaces, smeltOf, smeltDone, WS_PROC, PROC_MAX, procOpen, procOf } from "./workshop.js";
 import { OPS } from "./equip.js";
+import { TOOLS } from "./dungeons.js";
 import { MAT_NAME, HIDDEN_MAT } from "./materials.js";
 import { matPic } from "./mat-icons.js";
+import { CROP, CROP_MATS } from "./crops.js";
+import { cropPic } from "./crop-art.js";   // 作物（大工事の 農業）の 絵は 作物の 絵から
 import { wsIcon } from "./ws-icons.js";
 import { me, act, busy } from "./lounge-client.js";   // 工房の Lv・素材・クレジット・作る は 門番から（くじも 門番が 引く）
 import { mountWallet } from "./wallet-bar.js"; mountWallet();   // 上の 通貨の 札（玉・リソース・クレジット）と 両替
@@ -107,50 +119,93 @@ const q = new URLSearchParams(location.search);
 const fmt = (n) => Number(n).toLocaleString("ja-JP");
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
 const stars = (n) => `<span class="stars" aria-label="★${n}">${"★".repeat(n)}<s>${"★".repeat(4 - n)}</s></span>`;
-const TABS = [["item", "道具・品"], ["att", "アタッチメント"]];
-const S = { lv: 0, cr: 0, mats: [], loose: 0, tab: q.get("t") === "att" ? "att" : "item", sel: null, n: 1, made: null };
+const TABS = [["item", "道具・品"], ...(procOpen() ? [["proc", "加工"]] : []), ["att", "アタッチメント"], ["smelt", "精錬"]];   // 加工は 大工事の 畑が つながってから
+const CROP_MAT = Object.fromEntries(CROP_MATS.map((m) => [m.id, m]));
+const pic = (id) => matPic(id) || (CROP[id] || CROP_MAT[id] ? cropPic(CROP[id] || CROP_MAT[id], "ripe") : "");   // 素材の 絵（作物は 作物の 絵）
+const S = { lv: 0, cr: 0, mats: [], loose: 0, smelt: [], tab: ["att", "smelt", ...(procOpen() ? ["proc"] : [])].includes(q.get("t")) ? q.get("t") : "item", sel: null, n: 1, made: null, stopArm: -1 };
 let ME = null;
 function load(m) {
-  ME = m; S.lv = (m.hideout || {}).workshop || 0; S.cr = m.credits || 0; S.mats = (m.own && m.own.mats) || [];
+  ME = m; S.lv = (m.hideout || {}).workshop || 0; S.cr = m.credits || 0; S.mats = (m.own && m.own.mats) || []; S.smelt = m.smelt || [];
   const eq = new Set(((m.own && m.own.equip) || []).map((e) => e.uid));
   S.loose = ((m.own && m.own.att) || []).filter((a) => !a.on || !eq.has(a.on)).length;
 }
 load(await me());
 const have = (id, qMin = 0) => S.mats.filter((m) => m.id === id && (m.q || 0) >= qMin).reduce((a, m) => a + m.n, 0);
-const R = (k) => (k.startsWith("i:") ? WS_ITEMS.find((x) => x.id === k.slice(2)) : ATT_BASES.find((x) => x.id === k.slice(2)));
-const keysOf = (tab) => (tab === "item" ? WS_ITEMS.map((x) => "i:" + x.id) : ATT_BASES.map((x) => "a:" + x.id));
+// k：i:道具・p:加工（作物 → 布・建材。大工事の 畑が つながってから）・a:アタッチメント・s:延べ棒（精錬の レシピ）・f:炉の 番号
+const procR = (key) => { const r = procOf(key); return r && { ...r, name: MAT_NAME[r.id] + (r.key !== r.id ? `（${MAT_NAME[r.mats[0][0]]}）` : ""), note: `${r.mats.map(([id, c]) => `${MAT_NAME[id]} ${c}`).join("・")} → 1 こ`, lv: 1, credits: 0 }; };
+const R = (k) => (k.startsWith("i:") ? WS_ITEMS.find((x) => x.id === k.slice(2)) : k.startsWith("p:") ? procR(k.slice(2)) : k.startsWith("a:") ? ATT_BASES.find((x) => x.id === k.slice(2))
+  : k.startsWith("s:") ? (smeltOf(k.slice(2)) && { ...smeltOf(k.slice(2)), name: MAT_NAME[k.slice(2)] }) : /^f:\d$/.test(k) && +k.slice(2) < furnaces(S.lv) ? { id: "furnace", i: +k.slice(2) } : null);
+const keysOf = (tab) => (tab === "item" ? WS_ITEMS.filter(wsOpen).map((x) => "i:" + x.id) : tab === "proc" ? WS_PROC.map((x) => "p:" + x.key) : tab === "att" ? ATT_BASES.map((x) => "a:" + x.id)
+  : [...Array.from({ length: furnaces(S.lv) }, (_, i) => "f:" + i), ...SMELT.map((x) => "s:" + x.id)]);
 S.sel = R(q.get("k") || "") ? q.get("k") : keysOf(S.tab)[0];
 // 作れる 数（素材・クレジット・1 回の 上限）
-const canN = (k) => { const r = R(k); let n = k.startsWith("i:") ? WS_MAX : 1; for (const [id, k2, qm] of r.mats) n = Math.min(n, Math.floor(have(id, qm || 0) / k2)); return Math.max(0, Math.min(n, Math.floor(S.cr / r.credits))); };
-const stateOf = (k) => (!S.lv || (k.startsWith("i:") && R(k).lv > S.lv) ? "wait" : canN(k) > 0 ? "can" : "short");
-const WORD = { can: (k) => (k.startsWith("i:") ? `作れる ${canN(k)}` : "作れる"), short: () => "足りない", wait: (k) => (S.lv ? `Lv${R(k).lv} から` : "") };
+const canN = (k) => { const r = R(k); if (k.startsWith("p:")) return Math.max(0, Math.min(PROC_MAX, ...r.mats.map(([id, c]) => Math.floor(have(id) / c)))); if (k.startsWith("s:")) return Math.max(0, Math.min(SMELT_MAX, ...r.mats.map(([id, c]) => Math.floor(have(id) / c)))); let n = k.startsWith("i:") ? WS_MAX : 1; for (const [id, k2, qm] of r.mats) n = Math.min(n, Math.floor(have(id, qm || 0) / k2)); return Math.max(0, Math.min(n, Math.floor(S.cr / r.credits))); };
+const furnOf = (k) => { const f = S.smelt[+k.slice(2)]; return f ? { f, d: smeltDone(f, Date.now()) } : null; };
+const stateOf = (k) => (k.startsWith("f:") ? (!furnOf(k) ? "empty" : furnOf(k).d.done ? "can" : "busy") : !S.lv || (k.startsWith("i:") && R(k).lv > S.lv) ? "wait" : canN(k) > 0 ? "can" : "short");
+// 時間（分・時間）と 時刻（きょう で なければ 日付も）
+const dur = (ms) => { const m = Math.max(1, Math.ceil(ms / 60000)); return m < 60 ? `${m} 分` : `${Math.floor(m / 60)} 時間${m % 60 ? ` ${m % 60} 分` : ""}`; };
+const clock = (t) => { const d = new Date(t), hm = `${d.getHours()}:${String(d.getMinutes()).padStart(2, "0")}`; return d.toDateString() === new Date().toDateString() ? hm : `${d.getMonth() + 1}/${d.getDate()} ${hm}`; };
+const FURN_SVG = `<svg viewBox="0 0 32 32" aria-hidden="true"><path d="M5 29V13a11 11 0 0 1 22 0v16Z" fill="#B65A3A"/><path d="M5 18h22M5 23h22M11 13v5M21 13v5M16 18v5" stroke="#8A3E24" stroke-width="1.6"/><path d="M10 29v-6a6 6 0 0 1 12 0v6Z" fill="#3A2A2A"/><path d="M16 21c-2 2.5-3 4-1.5 6.5h3C19 25 18 23.5 16 21Z" fill="#FFB43A"/></svg>`;
+const picOf = (k) => (k.startsWith("p:") ? `<img src="${pic(R(k).id)}" alt="">` : k.startsWith("s:") ? `<img src="${pic(k.slice(2))}" alt="">` : k.startsWith("f:") ? (furnOf(k) ? `<img src="${matPic(furnOf(k).f.id)}" alt="">` : FURN_SVG) : wsIcon(R(k).id));
+const WORD = { can: (k) => (k.startsWith("f:") ? `受けとれる ${furnOf(k).d.done}` : /^[ips]:/.test(k) ? `作れる ${canN(k)}` : "作れる"), short: () => "足りない", wait: (k) => (S.lv && R(k).lv ? `Lv${R(k).lv} から` : ""),
+  empty: () => "空いて いる", busy: (k) => `あと ${dur(furnOf(k).d.next - Date.now())}` };   // 何を 作って いるかは 絵で わかる
 
 function node(k) {
   const r = R(k), st = stateOf(k);
-  return `<button class="node ${st}" data-k="${k}" aria-pressed="${S.sel === k}"><span class="ic">${wsIcon(r.id)}</span><span><b>${esc(r.name)}</b><small>${WORD[st](k)}</small></span></button>`;
+  const name = k.startsWith("f:") ? `炉 ${r.i + 1}` : r.name;
+  return `<button class="node ${st}" data-k="${k}" aria-pressed="${S.sel === k}"><span class="ic">${picOf(k)}</span><span><b>${esc(name)}</b><small>${esc(WORD[st](k))}</small></span></button>`;
 }
 function listHtml() {
-  if (S.tab === "item") return `<div class="grid">${keysOf("item").map(node).join("")}</div>`;
+  if (S.tab === "item") {   // 道具・品は しゅるいで 分ける（派遣の 道具・品・薬・エンチャント・お守り）
+    const groupOf = (k) => { const t = R(k).to.tools; return t ? TOOLS[Object.keys(t)[0]].kind || "派遣の 道具" : R(k).group || "品"; }, ks = keysOf("item"), gs = [...new Set(ks.map(groupOf))];
+    return gs.map((g) => `<p class="sec">${esc(g)}</p><div class="grid">${ks.filter((k) => groupOf(k) === g).map(node).join("")}</div>`).join("");
+  }
+  if (S.tab === "proc") { const ks = keysOf("proc"), cloth = new Set(["cotton_cloth", "flax_cloth", "sky_cloth", "whitesand_cloth", "sylph_sail", "pearl_silk"]); return `<p class="sec">布</p><div class="grid">${ks.filter((k) => cloth.has(R(k).id)).map(node).join("")}</div><p class="sec">建材</p><div class="grid">${ks.filter((k) => !cloth.has(R(k).id)).map(node).join("")}</div>`; }
+  if (S.tab === "smelt") { const ks = keysOf("smelt"), fs = ks.filter((k) => k.startsWith("f:")); return (fs.length ? `<p class="sec">炉</p><div class="grid">${fs.map(node).join("")}</div>` : "") + `<p class="sec">延べ棒</p><div class="grid">${ks.filter((k) => k.startsWith("s:")).map(node).join("")}</div>`; }
   return Object.entries(ATT_KINDS).map(([kind, K]) => `<p class="sec">${K.label}</p><div class="grid">${ATT_BASES.filter((b) => b.kind === kind).map((b) => node("a:" + b.id)).join("")}</div>`).join("");
 }
-const tabsHtml = () => TABS.map(([t, label]) => { const n = keysOf(t).filter((k) => stateOf(k) === "can").length; return `<button role="tab" data-tab="${t}" aria-selected="${S.tab === t}">${label}${n ? `<em>${n}</em>` : ""}</button>`; }).join("");
+// タブの 丸：作れる 数（精錬は 受けとれる 炉の 数）
+const tabsHtml = () => TABS.map(([t, label]) => { const n = keysOf(t).filter((k) => stateOf(k) === "can" && (t !== "smelt" || k.startsWith("f:"))).length; return `<button role="tab" data-tab="${t}" aria-selected="${S.tab === t}">${label}${n ? `<em>${n}</em>` : ""}</button>`; }).join("");
 function rowHtml(x) {
-  const pic = x.c ? `<i class="dot c"></i>` : HIDDEN_MAT.has(x.id) && !matPic(x.id) ? `<i class="dot hd"></i>` : `<img src="${matPic(x.id)}" alt="">`;   // 絵の ある 素材は 絵（ニライ諸島の 敵の 素材・かくし通路も。絵が なければ 点）
-  return `<li class="${x.have < x.need ? "ng" : ""}">${pic}<span>${x.c ? "クレジット" : esc(MAT_NAME[x.id])}${x.q > 1 ? `<small>品質 ${x.q} 以上</small>` : ""}</span><span class="n">${fmt(x.have)} / ${fmt(x.need)}</span></li>`;
+  const img = x.c ? `<i class="dot c"></i>` : HIDDEN_MAT.has(x.id) && !pic(x.id) ? `<i class="dot hd"></i>` : `<img src="${pic(x.id)}" alt="">`;   // 絵の ある 素材は 絵（ニライ諸島の 敵の 素材・かくし通路・作物も。絵が なければ 点）
+  return `<li class="${x.have < x.need ? "ng" : ""}">${img}<span>${x.c ? "クレジット" : esc(MAT_NAME[x.id])}${x.q > 1 ? `<small>品質 ${x.q} 以上</small>` : ""}</span><span class="n">${fmt(x.have)} / ${fmt(x.need)}</span></li>`;
 }
 function madeHtml() {
   if (!S.made) return "";
   const a = S.made, b = ATT_BASES.find((x) => x.id === a.base);
   return `<div class="made"><span class="ic">${wsIcon(a.base)}</span><div><h3><small>できた！</small>${esc(b.name)} ${stars(a.star)}</h3><ul>${a.ops.map((o) => `<li>${esc(OPS[o].fmt(OPS[o].v[a.star - 1]))}</li>`).join("")}</ul><a href="equip.html">武器に 付ける ›</a></div></div>`;
 }
+// 精錬：延べ棒を えらぶと 使う物と「炉に 入れる」、炉を えらぶと できた 数と「受けとる」
+function smeltDetail(k) {
+  if (!S.lv) return `<div class="lockbox"><p>工房が まだ ない</p><a href="hideout.html?f=workshop">隠れ家で 工房を 作る</a></div>`;
+  if (k.startsWith("f:")) {
+    const i = +k.slice(2), x = furnOf(k), head = `<header><span class="ic">${picOf(k)}</span><div><span class="tag">炉 ${i + 1}</span><h2>${x ? esc(MAT_NAME[x.f.id]) : "空いて いる"}</h2></div></header>`;
+    if (!x) return head + `<div><span class="need-h">入れる 延べ棒を えらぶ</span><div class="picks">${SMELT.map((r) => `<button data-k="s:${r.id}"><img src="${matPic(r.id)}" alt="">${esc(MAT_NAME[r.id])}</button>`).join("")}</div></div>`;
+    const { f, d } = x, now = Date.now();
+    return head + `<div class="furn-now"><span><b>${d.done} / ${d.done + d.left}</b> 本 できた</span><div class="prog"><i style="width:${Math.round((d.done / (d.done + d.left)) * 100)}%"></i></div>
+      <span>${d.left ? `つぎの 1 本 あと ${dur(d.next - now)}・ぜんぶ ${clock(d.end)}` : "ぜんぶ できた"}</span></div>
+      <button class="jelly" data-take="${i}" ${d.done ? "" : "disabled"}>受けとる${d.done ? `（${d.done} 本）` : ""}</button>
+      ${d.left ? `<button class="sub-act${S.stopArm === i ? " arm" : ""}" data-stop="${i}">${S.stopArm === i ? "もう 1 回 押すと やめる（まだの 分の 鉱石は もどる）" : "やめる"}</button>` : ""}`;
+  }
+  const r = R(k), n = Math.max(1, Math.min(S.n, SMELT_MAX)), max = canN(k), free = Array.from({ length: furnaces(S.lv) }, (_, i) => i).find((i) => !S.smelt[i]);
+  const head = `<header><span class="ic">${picOf(k)}</span><div><span class="tag">精錬</span><h2>${esc(r.name)}</h2><p>1 本 ${dur(r.min * 60000)}</p></div></header>`;
+  const rows = r.mats.map(([id, c]) => ({ id, q: 0, need: c * n, have: have(id) })), lack = rows.filter((x) => x.have < x.need);
+  const why = lack.slice(0, 2).map((x) => `${MAT_NAME[x.id]} あと ${fmt(x.need - x.have)}`).join("、");
+  const qty = `<div class="qty" role="group" aria-label="入れる 数"><span>入れる 数</span>${[1, 5, 10].map((v) => `<button data-n="${v}" aria-pressed="${n === v}">${v}</button>`).join("")}<button data-n="max" aria-pressed="${max > 1 && n === max && ![1, 5, 10].includes(n)}" ${max > 1 ? "" : "disabled"}>${max > 1 ? `ぜんぶ ${max}` : "ぜんぶ"}</button></div>`;
+  return head + qty + `<div><span class="need-h">使う物</span><ul class="need">${[...lack, ...rows.filter((x) => x.have >= x.need)].map(rowHtml).join("")}</ul></div>
+    <button class="jelly" data-smelt="${r.id}" ${lack.length || free === undefined ? "disabled" : ""}>${free === undefined ? "炉が 空いて いない" : `炉 ${free + 1} に 入れる（${n} 本・${dur(n * r.min * 60000)}）`}</button>
+    ${lack.length ? `<p class="why">足りない：${esc(why)}</p><a class="more" href="hideout.html?f=mine">鉱石は 坑道で 掘る ›</a>` : free === undefined ? `<p class="why">できた 延べ棒を 受けとると 炉が 空く</p>` : ""}`;
+}
 function detailHtml() {
-  const k = S.sel, r = R(k), st = stateOf(k), isItem = k.startsWith("i:");
-  const head = `<header><span class="ic">${wsIcon(r.id)}</span><div><span class="tag">${isItem ? (r.to.tools ? "派遣の 道具" : "品") : `武器の ${ATT_KINDS[r.kind].label}`}</span><h2>${esc(r.name)}</h2>${isItem ? `<p>${esc(r.note)}</p>` : ""}</div></header>`;
+  const k = S.sel;
+  if (S.tab === "smelt") return smeltDetail(k);
+  const r = R(k), st = stateOf(k), isItem = /^[ip]:/.test(k), cap = k.startsWith("p:") ? PROC_MAX : WS_MAX;   // p：加工（作物 → 布・建材）は 道具と 同じ 形
+  const head = `<header><span class="ic">${picOf(k)}</span><div><span class="tag">${k.startsWith("p:") ? "加工" : isItem ? (r.to.tools ? "派遣の 道具" : r.group || "品") : `武器の ${ATT_KINDS[r.kind].label}`}</span><h2>${esc(r.name)}</h2>${isItem ? `<p>${esc(r.note)}</p>` : ""}</div></header>`;
   const facts = isItem ? "" : `<div class="facts"><div><span class="l">付く OP</span><span class="chips">${r.pool.map((o) => `<span>${esc(OPS[o].label)}${(OPS[o].from || 1) > 1 ? `（★${OPS[o].from} から）` : ""}</span>`).join("")}</span></div>
     ${S.lv ? `<div><span class="l">★ くじ</span><span class="odds">${Object.entries(ATT_STAR[S.lv]).map(([s, p]) => `<em><i>★${s}</i> ${p}%</em>`).join("")}</span></div>` : ""}<div><span class="l">OP の 数</span><span>★1〜3 は 1 つ・★4 は 2 つ（作る たびに くじ）</span></div></div>`;
   if (st === "wait") return madeHtml() + head + facts + (S.lv ? `<div class="lockbox"><p>工房 Lv${r.lv} から 作れる</p><a href="hideout.html?f=workshop">工房を Lv${r.lv} に する</a></div>` : `<div class="lockbox"><p>工房が まだ ない</p><a href="hideout.html?f=workshop">隠れ家で 工房を 作る</a></div>`);
-  const n = isItem ? Math.max(1, Math.min(S.n, WS_MAX)) : 1, max = canN(k);
-  const rows = [...r.mats.map(([id, c, qm]) => ({ id, q: qm || 0, need: c * n, have: have(id, qm || 0) })), { c: 1, need: r.credits * n, have: S.cr }];
+  const n = isItem ? Math.max(1, Math.min(S.n, cap)) : 1, max = canN(k);
+  const rows = [...r.mats.map(([id, c, qm]) => ({ id, q: qm || 0, need: c * n, have: have(id, qm || 0) })), ...(r.credits ? [{ c: 1, need: r.credits * n, have: S.cr }] : [])];
   const lack = rows.filter((x) => x.have < x.need), sorted = [...lack, ...rows.filter((x) => x.have >= x.need)];
   const why = lack.slice(0, 2).map((x) => `${x.c ? "クレジット" : MAT_NAME[x.id]} あと ${fmt(x.need - x.have)}`).join("、") + (lack.length > 2 ? `、ほか ${lack.length - 2} こ` : "");
   const qty = isItem ? `<div class="qty" role="group" aria-label="作る 数"><span>作る 数</span>${[1, 5, 10].map((v) => `<button data-n="${v}" aria-pressed="${n === v}">${v}</button>`).join("")}<button data-n="max" aria-pressed="${max > 1 && n === max && ![1, 5, 10].includes(n)}" ${max > 1 ? "" : "disabled"}>作れるだけ${max > 1 ? `（${max}）` : ""}</button></div>` : "";
@@ -165,8 +220,8 @@ function render() {
 let tid;
 const toast = (t) => { const el = document.getElementById("toast"); el.textContent = t; el.classList.add("on"); clearTimeout(tid); tid = setTimeout(() => el.classList.remove("on"), 4200); };
 async function make(b, k) {
-  const isItem = k.startsWith("i:"), r = R(k), n = isItem ? Math.max(1, Math.min(S.n, WS_MAX)) : 1;
-  const res = await busy(b, () => (isItem ? act("ws.make", { id: r.id, n }) : act("ws.att", { base: r.id })), "作って います…");
+  const isItem = /^[ip]:/.test(k), r = R(k), n = isItem ? Math.max(1, Math.min(S.n, k.startsWith("p:") ? PROC_MAX : WS_MAX)) : 1;
+  const res = await busy(b, () => (k.startsWith("p:") ? act("ws.proc", { key: r.key, n }) : isItem ? act("ws.make", { id: r.id, n }) : act("ws.att", { base: r.id })), "作って います…");
   if (!res.ok) return toast(res.why || "できませんでした");
   load(await me());
   if (isItem) { S.made = null; toast(`${r.name}を ${n} こ 作った`); } else S.made = res.att;
@@ -174,14 +229,31 @@ async function make(b, k) {
 }
 document.querySelector("main").addEventListener("click", async (e) => {
   const b = e.target.closest("button"); if (!b || b.disabled) return;
-  if (b.dataset.tab) { S.tab = b.dataset.tab; S.sel = keysOf(S.tab)[0]; S.made = null; S.n = 1; return render(); }
-  if (b.dataset.k) { if (S.sel !== b.dataset.k) { S.made = null; S.n = 1; } S.sel = b.dataset.k; render(); document.querySelector(`[data-k="${S.sel}"]`)?.focus({ preventScroll: true });
+  if (b.dataset.tab) { S.tab = b.dataset.tab; S.sel = keysOf(S.tab)[0]; S.made = null; S.n = 1; S.stopArm = -1; return render(); }
+  if (b.dataset.smelt) {   // 炉に 入れる（空いて いる いちばん 前の 炉）
+    const slot = Array.from({ length: furnaces(S.lv) }, (_, i) => i).find((i) => !S.smelt[i]), n = Math.max(1, Math.min(S.n, SMELT_MAX));
+    const res = await busy(b, () => act("smelt.put", { slot, id: b.dataset.smelt, n }), "入れて います…");
+    if (!res.ok) return toast(res.why || "入れられませんでした");
+    load(await me()); S.sel = "f:" + slot; S.n = 1; render(); return toast(`炉 ${slot + 1} に 入れた（ぜんぶ ${clock(res.end)}）`);
+  }
+  if (b.dataset.take) {
+    const res = await busy(b, () => act("smelt.take", { slot: +b.dataset.take }), "受けとって います…");
+    if (!res.ok) return toast(res.why || "受けとれませんでした");
+    load(await me()); render(); return toast(`${MAT_NAME[res.id]}を ${res.got} 本 受けとった${res.boxed ? `（倉庫が いっぱいで ${res.boxed} 本は あずかり箱へ）` : ""}`);
+  }
+  if (b.dataset.stop) {   // やめるは 2 回 押す（まちがえて 押しても 止まらない）
+    const i = +b.dataset.stop; if (S.stopArm !== i) { S.stopArm = i; return render(); }
+    const res = await busy(b, () => act("smelt.stop", { slot: i }), "やめて います…"); S.stopArm = -1;
+    if (!res.ok) return toast(res.why || "やめられませんでした");
+    load(await me()); render(); return toast(`やめた（${res.got ? `${res.got} 本 受けとり、` : ""}${res.back} 本ぶんの 鉱石を もどした）`);
+  }
+  if (b.dataset.k) { if (S.sel !== b.dataset.k) { S.made = null; S.n = 1; S.stopArm = -1; } S.sel = b.dataset.k; if (b.dataset.k.startsWith("s:") && S.tab !== "smelt") S.tab = "smelt"; render(); document.querySelector(`[data-k="${S.sel}"]`)?.focus({ preventScroll: true });
     if (matchMedia("(max-width:860px)").matches) document.getElementById("detail").scrollIntoView({ block: "start", behavior: matchMedia("(prefers-reduced-motion:reduce)").matches ? "auto" : "smooth" }); return; }
   if (b.dataset.n) { S.n = b.dataset.n === "max" ? canN(S.sel) : +b.dataset.n; return render(); }
   if (b.dataset.do) await make(b, b.dataset.do);
 });
 if (ME.denied || ME.ok === false) document.querySelector("main").innerHTML = `<section class="panel head"><h1>入れません</h1><span>${esc(ME.why || "もう 1 回 開いて ください")}</span>${ME.login ? `<a href="/">MONO LINK で ログイン</a>` : ""}</section>`;
-else render();
+else { render(); setInterval(() => { if (S.tab === "smelt") render(); }, 30000); }   // 精錬の のこり時間を 動かす
 window.ready = true;
 </script>
 </body>

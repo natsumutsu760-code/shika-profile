@@ -5,15 +5,18 @@
 // PC は置くだけ（Lv なし。はじめから DEEP LINK/: のぜんぶに入れる）
 // 効果・必要な物の数はすべて案（鹿さんとこれから決める）。画面の見本は hideout.html
 // need の mats：[素材の id, 数, 品質（敵の素材で 品質 2 以上が いるときだけ。その品質以上）]。fac：[施設の id, Lv]
+// 延べ棒（鹿さんの 決め、2026-10-31。docs/mono-link-crafting.md）：鉄鉱石を 20 こ 以上 使う 所は 鉄の延べ棒（鉱石 3 こ ＝ 1 本）、上の Lv は 銀の延べ棒も。坑道より 前に いる 所（地下の 拡張 Lv2）と 少しの 所は 鉱石の まま
+//   石炭が 坑道でしか 出ないので、坑道（地下の 拡張 Lv2）より 前に いる 施設に 延べ棒を 入れると 進めなく なる。金の延べ棒は 坑道 Lv4 の あとに いる 施設が まだ ないので 装備開発で 使う
 import { GATHER, ENEMY_MAT } from "./materials.js";
 import { DUNGEONS, ISLAND_OPEN } from "./dungeons.js";
+import { FARM_OPEN } from "./crops.js";
 
 const ALL = [
   { id: "bench", name: "作業台", text: "装備を 作る・合成する", lv: [
     { fx: "装備を 作れる（★1〜2 が 出る）", need: { mats: [["pebble", 8], ["goblin_knife", 2]], credits: 400, balls: 300 } },
     { fx: "合成（上の装備を 作る）が できる・★3 も 出る", need: { mats: [["brick", 12], ["golem_stone", 4, 2], ["oldnail", 8]], credits: 2000, balls: 1500, res: 1, fac: [["storage", 1]] } },
     { fx: "★4 も 出る・合成の 玉が 半分", need: { mats: [["ironore", 15], ["crystalbit", 10], ["dragon_crystal", 1, 5], ["crown_shard", 1, 5]], credits: 8000, balls: 6000, res: 4, fac: [["lab", 2]] } },
-    { isle: 2, fx: "★5 も 出る・合成でも ★5 が 出やすい", need: { mats: [["brasspart", 30], ["rustfitting", 30], ["obsidian_core", 4, 3], ["salamander_tail", 1, 5]], credits: 20000, balls: 12000, res: 8, fac: [["lab", 3]] } },
+    { isle: 2, fx: "★5 も 出る・合成でも ★5 が 出やすい", need: { mats: [["brasspart", 30], ["rustfitting", 30], ["silver_bar", 6], ["gold_bar", 3], ["obsidian_core", 4, 3], ["salamander_tail", 1, 5]], credits: 20000, balls: 12000, res: 8, fac: [["lab", 3], ["mine", 4]] } },
   ] },
   { id: "lab", name: "研究所", text: "捕まえた敵の 研究が 安くなる", lv: [
     { fx: "研究の リソース −20%", need: { mats: [["old_score", 1], ["stardust", 5]], credits: 600, balls: 300 } },
@@ -54,34 +57,29 @@ const ALL = [
   // 武器庫（鹿さんの頼み、2026-10-25：武器の スタッシュも 強化できる ように）。装備を 持てる 数（EQUIP_CAP）
   { id: "armory", name: "武器庫", text: "装備を 持てる 数が 増える（はじめは 200 こ）", lv: [
     { fx: "装備 300 こ まで 持てる", need: { mats: [["oldnail", 20], ["brick", 15], ["goblin_knife", 3]], credits: 1000, balls: 800 } },
-    { fx: "装備 500 こ まで 持てる", need: { mats: [["ironore", 30], ["oldcloth", 20], ["wolf_fang", 4, 2]], credits: 5000, balls: 3000, res: 1, fac: [["bench", 1]] } },
-    { fx: "装備 800 こ まで 持てる", need: { mats: [["ironore", 80], ["crystalbit", 40], ["crystal_scale", 3, 4]], credits: 15000, balls: 8000, res: 4, fac: [["storage", 2]] } },
-    { isle: 2, fx: "装備 1,200 こ まで 持てる", need: { mats: [["rustchain", 60], ["brasspart", 40], ["trident_tip", 4, 4]], credits: 35000, balls: 16000, res: 8, fac: [["storage", 3]] } },
+    { fx: "装備 500 こ まで 持てる", need: { mats: [["iron_bar", 10], ["oldcloth", 20], ["wolf_fang", 4, 2]], credits: 5000, balls: 3000, res: 1, fac: [["bench", 1]] } },
+    { fx: "装備 800 こ まで 持てる", need: { mats: [["iron_bar", 20], ["silver_bar", 3], ["crystalbit", 40], ["crystal_scale", 3, 4]], credits: 15000, balls: 8000, res: 4, fac: [["storage", 2]] } },
+    { isle: 2, fx: "装備 1,200 こ まで 持てる", need: { mats: [["rustchain", 60], ["brasspart", 40], ["gold_bar", 2], ["trident_tip", 4, 4]], credits: 35000, balls: 16000, res: 8, fac: [["storage", 3], ["mine", 4]] } },
   ] },
   // 地下の 拡張と 新しい 設備（鹿さんの頼み、2026-10-25。いまの 部屋を 奥へ 広げる 形。スタック数を 増やした ぶん 素材を たくさん 使う）
   { id: "dig", name: "地下の 拡張", text: "地下を 奥へ 広げて、新しい 設備を 置く", lv: [
-    { fx: "奥に 広がる（工房・畑を 置ける）", need: { mats: [["pebble", 40], ["brick", 30], ["oldnail", 20]], credits: 3000, balls: 2000 } },
+    { fx: "奥に 広がる（工房を 置ける）", need: { mats: [["pebble", 40], ["brick", 30], ["oldnail", 20]], credits: 3000, balls: 2000 } },
     { fx: "もっと 奥へ（坑道を 掘れる）", need: { mats: [["brick", 80], ["ironore", 40], ["oldcloth", 40], ["golem_stone", 6, 2]], credits: 10000, balls: 6000, res: 2, fac: [["bench", 1]] } },
-    { fx: "いちばん 奥まで（畑の マス・坑道の 枠が ふえる）", need: { mats: [["ironore", 120], ["crystalbit", 60], ["glowstone", 60], ["dragon_crystal", 1, 5]], credits: 30000, balls: 15000, res: 6, fac: [["storage", 2]] } },
-    { isle: 2, fx: "島の 岩盤まで（畑の マスと 坑道の 枠が もう 1 つずつ ふえる）", need: { mats: [["capestone", 120], ["marble", 80], ["obsidian", 60], ["shisa_tile", 6, 4]], credits: 70000, balls: 30000, res: 10, fac: [["storage", 3]] } },
+    { fx: "いちばん 奥まで（坑道の 枠が ふえる）", need: { mats: [["iron_bar", 30], ["silver_bar", 5], ["crystalbit", 60], ["glowstone", 60], ["dragon_crystal", 1, 5]], credits: 30000, balls: 15000, res: 6, fac: [["storage", 2]] } },
+    { isle: 2, fx: "島の 岩盤まで（坑道の 枠が もう 1 つ ふえる）", need: { mats: [["capestone", 120], ["marble", 80], ["obsidian", 60], ["shisa_tile", 6, 4]], credits: 70000, balls: 30000, res: 10, fac: [["storage", 3]] } },
   ] },
   { id: "workshop", name: "工房", text: "素材から 道具と 武器の アタッチメントを 作る", lv: [
     { fx: "道具・スプリンクラー・アタッチメント（★1〜2）を 作れる", need: { mats: [["oldnail", 20], ["brick", 20], ["candle", 10], ["goblin_knife", 3]], credits: 1500, balls: 1000, fac: [["dig", 1]] } },
-    { fx: "アタッチメント ★3 も 出る・元気のお茶・上の スプリンクラー", need: { mats: [["ironore", 40], ["oldcloth", 30], ["wolf_fang", 4, 2], ["light_drop", 2, 2]], credits: 6000, balls: 4000, res: 2, fac: [["bench", 2]] } },
+    { fx: "アタッチメント ★3 も 出る・元気のお茶・上の スプリンクラー", need: { mats: [["iron_bar", 10], ["copper_bar", 4], ["oldcloth", 30], ["wolf_fang", 4, 2], ["light_drop", 2, 2]], credits: 6000, balls: 4000, res: 2, fac: [["bench", 2]] } },
     { fx: "アタッチメント ★4 も 出る（OP 2 つ）・星の スプリンクラー", need: { mats: [["crystalbit", 60], ["glowstone", 40], ["crystal_scale", 4, 4], ["midnight_bell", 1, 5]], credits: 18000, balls: 10000, res: 5, fac: [["dig", 2]] } },
-    { isle: 2, fx: "アタッチメント ★5 も 出る（OP 3 つ）", need: { mats: [["thunderstone", 40], ["oldbell", 20], ["whirl_pearl", 4, 4], ["suncrystal", 1]], credits: 40000, balls: 20000, res: 9, fac: [["dig", 3]] } },
+    { isle: 2, fx: "アタッチメント ★5 も 出る（OP 3 つ）", need: { mats: [["thunderstone", 40], ["oldbell", 20], ["silver_bar", 8], ["gold_bar", 4], ["whirl_pearl", 4, 4], ["suncrystal", 1]], credits: 40000, balls: 20000, res: 9, fac: [["dig", 3], ["mine", 4]] } },
   ] },
-  { id: "farm", name: "畑", text: "植物の 素材を 植えて 増やす（スプリンクラーで 品質が 上がる）", lv: [
-    { fx: "4 マス（1 列）で 育てられる", need: { mats: [["pebble", 30], ["straw", 30], ["wellwater", 20], ["herb", 10]], credits: 2000, balls: 1500, fac: [["dig", 1]] } },
-    { fx: "8 マス・育つ 時間 −20%", need: { mats: [["brick", 40], ["sleepmoss", 30], ["nightbloom", 20], ["kobold_fur", 4, 2]], credits: 8000, balls: 5000, res: 2 } },
-    { fx: "12 マス・育つ 時間 −35%", need: { mats: [["ironore", 40], ["deepwater", 40], ["clover", 4], ["rainbow_shell", 2, 3]], credits: 20000, balls: 12000, res: 4, fac: [["dig", 2]] } },
-    { isle: 2, fx: "16 マス・育つ 時間 −50%", need: { mats: [["whitesand", 60], ["seagrass", 40], ["fallwater", 40], ["gull_feather", 6, 3], ["pinkcoral", 2]], credits: 45000, balls: 24000, res: 8, fac: [["dig", 3]] } },
-  ] },
+  // 畑（施設）は 2026-11-03 に 消した。農業は 新しい 農園（部屋の 庭への扉 → garden.html。鹿さんの 決め）
   { id: "mine", name: "坑道", text: "パーティに いない なかまが 鉱石と ガラクタを 掘る", lv: [
-    { fx: "なかま 1 体が 掘れる（小石・レンガ・釘・鉄鉱石）", need: { mats: [["brick", 50], ["oldnail", 40], ["oldcloth", 30], ["golem_stone", 4, 2]], credits: 6000, balls: 4000, res: 1, fac: [["dig", 2]] } },
-    { fx: "2 体・ろうそく・布・水晶のかけらも 出る", need: { mats: [["ironore", 60], ["candle", 30], ["wolf_fang", 6, 3]], credits: 15000, balls: 8000, res: 3 } },
-    { fx: "3 体・光る石・ときどき 虹水晶", need: { mats: [["ironore", 120], ["crystalbit", 60], ["bat_wing", 6, 4], ["dragon_crystal", 1, 5]], credits: 30000, balls: 15000, res: 6, fac: [["dig", 3]] } },
-    { isle: 2, fx: "4 体・ニライ諸島の 石（岬の石・青い石・黒曜石・雷の石）も 出る", need: { mats: [["obsidian", 60], ["sulfur", 40], ["hidama_ember", 6, 4], ["fireheart", 1]], credits: 70000, balls: 30000, res: 10, fac: [["dig", 4]] } },
+    { fx: "なかま 1 体が 掘れる（小石・レンガ・釘・鉄鉱石・銅鉱石・石炭）", need: { mats: [["brick", 50], ["oldnail", 40], ["oldcloth", 30], ["golem_stone", 4, 2]], credits: 6000, balls: 4000, res: 1, fac: [["dig", 2]] } },
+    { fx: "2 体・ろうそく・布・水晶のかけら・銀鉱石（少し）も 出る", need: { mats: [["iron_bar", 16], ["copper_bar", 6], ["candle", 30], ["wolf_fang", 6, 3]], credits: 15000, balls: 8000, res: 3 } },
+    { fx: "3 体・光る石・銀鉱石が ふえる・ときどき 虹水晶", need: { mats: [["iron_bar", 30], ["silver_bar", 5], ["crystalbit", 60], ["bat_wing", 6, 4], ["dragon_crystal", 1, 5]], credits: 30000, balls: 15000, res: 6, fac: [["dig", 3]] } },
+    { isle: 2, fx: "4 体・ニライ諸島の 石（岬の石・青い石・黒曜石・雷の石）と 金鉱石も 出る", need: { mats: [["obsidian", 60], ["sulfur", 40], ["silver_bar", 10], ["hidama_ember", 6, 4], ["fireheart", 1]], credits: 70000, balls: 30000, res: 10, fac: [["dig", 4]] } },
   ] },
   // 無線機（ニライ諸島の 設定資料：docs/mono-link-island2.md。いる 物は 軽め＝鹿さんの決め）。作ると その人は ニライ諸島へ 行けて、ほかの 施設の Lv4 が 開く
   { id: "radio", name: "無線機", isle: 2, text: "島の 電波を ひろって、ほかの 島へ 船を 出す", lv: [
@@ -89,8 +87,24 @@ const ALL = [
   ] },
 ];
 // ゲームに 出て いる 島の 分だけ（まだ 出て いない 島の 施設と Lv は ない 物と する）。ALL は 試験と 資料の ため
+// 大工事で 農業の 畑が つながったら、施設に 布・建材を 入れる（鹿さんの 決め、2026-10-31。docs/mono-link-crafting.md）。坑道より 前の Lv は かえない
+// [施設, Lv の 番号（0 から）, 取りかえる 素材（null は 足すだけ）, 布・建材, 数]。天の布・真珠絹は 装備開発の いちばん 上で 使う
+// 金の延べ棒は 作業台・武器庫・工房の 島 2 の 段に 使う（鹿さんの 決め、2026-10-31。どの 施設に 何こは Claude の 案）。金鉱石は 坑道 Lv4 から なので 坑道 Lv4 を 先に。地下の 拡張には 入れない（坑道 Lv4 が 地下の 拡張 Lv4 を 待つ ため、まわって 進めなく なる）
+export const FARM_SWAP = [
+  ["armory", 1, "oldcloth", "cotton_cloth", 6], ["workshop", 1, "oldcloth", "cotton_cloth", 8], ["medic", 2, null, "flax_cloth", 6],
+  ["storage", 2, null, "straw_bundle", 10], ["dig", 2, null, "bamboo_lumber", 12], ["mine", 1, null, "bamboo_lumber", 8],
+  ["gym", 2, null, "nightbamboo_lumber", 8], ["lab", 2, null, "blackbamboo_lumber", 6],
+  ["armory", 3, null, "sylph_sail", 6], ["medic", 3, null, "whitesand_cloth", 6], ["dig", 3, null, "stormbamboo_lumber", 12], ["mine", 3, null, "stormbamboo_lumber", 8],
+];
+export const withFarm = (list) => list.map((f) => ({ ...f, lv: f.lv.map((l, i) => {
+  const sw = FARM_SWAP.filter(([id, k]) => id === f.id && k === i); if (!sw.length) return l;
+  let mats = [...l.need.mats];
+  for (const [, , from, to, n] of sw) { if (from) mats = mats.filter(([id]) => id !== from); mats.push([to, n]); }
+  return { ...l, need: { ...l.need, mats } };
+}) }));
 export const FACILITIES_ALL = ALL;
-export const FACILITIES = ALL.filter((f) => (f.isle || 1) <= ISLAND_OPEN).map((f) => ({ ...f, lv: f.lv.filter((l) => (l.isle || 1) <= ISLAND_OPEN) }));
+export const FACILITIES_FARM = withFarm(ALL);   // 畑が つながった あとの 形（試験と 資料。FARM_OPEN が true に なると FACILITIES が これに なる）
+export const FACILITIES = (FARM_OPEN ? FACILITIES_FARM : ALL).filter((f) => (f.isle || 1) <= ISLAND_OPEN).map((f) => ({ ...f, lv: f.lv.filter((l) => (l.isle || 1) <= ISLAND_OPEN) }));
 // その人が 行ける 島の 数（無線機が あれば 2）と、その人が 上げられる Lv の 上限（hide：rec.hideout）
 export const isleOf = (hide, open = ISLAND_OPEN) => (open >= 2 && ((hide || {}).radio || 0) >= 1 ? 2 : 1);
 export const facCap = (f, hide, open = ISLAND_OPEN) => ((f.isle || 1) > open ? 0 : f.lv.filter((l) => (l.isle || 1) <= isleOf(hide, open)).length);

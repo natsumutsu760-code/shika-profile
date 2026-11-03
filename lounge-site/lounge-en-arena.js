@@ -51,7 +51,8 @@ export const RULES = [
   [/^(.+) は免疫で(.+)を防いだ$/, (m, p) => FX(p, m[2]) && `${P(p, m[1])}'s Immunity blocked ${FX(p, m[2])}`], [/^(.+) は(.+)を防いだ$/, (m, p) => FX(p, m[2]) && `${P(p, m[1])} blocked ${FX(p, m[2])}`],
   [/^(.+) は(.+)に強い$/, (m, p) => FX(p, m[2]) && `${P(p, m[1])} resists ${FX(p, m[2])}`], [/^(.+)と打ち消しあった$/, (m, p) => FX(p, m[1]) && `Canceled out with ${FX(p, m[1])}`],
   [/^(.+)が消えた$/, (m, p) => FX(p, m[1]) && `${FX(p, m[1])} wore off`], [/^凍傷がしみて (\d+)$/, (m) => `Frostbite stings: ${m[1]}`],
-  [/^(.+) は輪廻で踏みとどまった！$/, (m, p) => `${P(p, m[1])} hung on thanks to Rebirth!`], [/^(.+) はあきらめない！ 立ち上がった$/, (m, p) => `${P(p, m[1])} never gives up! Got back up`],
+  [/^(.+) は 気つけ薬で (.+)を 防いだ$/, (m, p) => p(m[2]) && `${P(p, m[1])} blocked ${p(m[2])} with Smelling Salts`], [/^(.+) は 起こし薬で 立ち上がった$/, (m, p) => `${P(p, m[1])} got back up with a Wake-up Draught`],   // 派遣の 道具
+  [/^(.+) は輪廻で踏みとどまった！$/, (m, p) => `${P(p, m[1])} hung on thanks to Rebirth!`], [/^(.+) は輪廻で復活した！$/, (m, p) => `${P(p, m[1])} revived thanks to Rebirth!`], [/^(.+) が (.+) の 身代わりに なった$/, (m, p) => `${P(p, m[1])} took the hit for ${P(p, m[2])}`], [/^(.+) はあきらめない！ 立ち上がった$/, (m, p) => `${P(p, m[1])} never gives up! Got back up`],
   [/^腐敗で (\d+) のダメージに変わった$/, (m) => `Rot turned it into ${m[1]} damage`], [/^(.+) は幻影でかわした$/, (m, p) => `${P(p, m[1])} dodged with Mirage`], [/^(.+) のバリアが防いだ$/, (m, p) => `${P(p, m[1])}'s Barrier blocked it`],
   [/^(.+) に ひびが 入った（会心の 分 (\d+) は あとから）$/, (m, p) => `${P(p, m[1])} cracked (${m[2]} crit damage comes later)`], [/^(.+) の凍結がとけて (\d+)$/, (m, p) => `${P(p, m[1])} thawed out: ${m[2]}`],
   [/^(.+) は目をさました$/, (m, p) => `${P(p, m[1])} woke up`], [/^(.+) のカウンター！ (\d+) 返した$/, (m, p) => `${P(p, m[1])} countered! Returned ${m[2]}`],

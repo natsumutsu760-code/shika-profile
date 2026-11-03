@@ -4,8 +4,8 @@
 //   take：いま 取る 物（素材・クレジット・装備）。払えた とき・返事を 待つ ときに 取る（待つ あいだに ほかで 使われない ように）
 //   grant：払えたら 渡す 物。refund：返事を 待った すえに 払えなかったら もどす 物（どちらも しまえる 形の データ）
 // 数は すべて 案（鹿さんと これから 決める）
-import { PETS, QUIZ, score, PLANS, petAt, tripInit, tripStep, tripResult, floorsOpen, newProgress, diaryOf, dungeonRatio, tamedOf, rankOf, rng, DUNGEONS, canGo, tripCost, RUNS, TICK, TOOLS, PURPOSES, SNACK_NEED, SNACK_PRICE, RESEARCH, MAP_STAIRS,
-  FACILITIES, STORAGE_CAP, EQUIP_CAP, SNACK_RECIPES, snackMats, snackMade, SNACK_CRAFT_MAX, facCap, toStash, stashHave, BOX_DAYS, MAT_NAME, CRAFT, SYNTH, craftOpen, synthOpen, synthBalls, rollCraft, rollSynth, sexOf, sexByUid, OPS, BOSS_CORE, baseOf, comboOf, opCount, SCRAP_BALLS, SCRAP_CREDITS, recycleOf, AUTO_SELL_STARS, AUTO_SELL_HOW, autoSellOf, GATHER, mapExtra } from "./game.js";
+import { PETS, QUIZ, score, unlockCost, PLANS, ENEMY_TREES, petAt, tripInit, tripStep, tripResult, floorsOpen, newProgress, diaryOf, dungeonRatio, tamedOf, rankOf, rng, DUNGEONS, canGo, tripCost, RUNS, TICK, TOOLS, TOOL_MAX, PURPOSES, SNACK_NEED, SNACK_PRICE, RESEARCH, researchLeaf, detailOpen, nutAway, mysteryRoll, bagOf, MAP_STAIRS,
+  FACILITIES, STORAGE_CAP, EQUIP_CAP, SNACK_RECIPES, snackMats, snackMade, SNACK_CRAFT_MAX, facCap, toStash, stashHave, BOX_DAYS, MAT_NAME, MAT_FROM, CRAFT, SYNTH, craftOpen, synthOpen, synthBalls, rollCraft, rollSynth, sexOf, sexByUid, OPS, BOSS_CORE, baseOf, comboOf, opCount, SCRAP_BALLS, SCRAP_CREDITS, recycleOf, AUTO_SELL_STARS, AUTO_SELL_HOW, autoSellOf, GATHER, mapExtra, invaderFighter } from "./game.js";
 import { jstDay } from "./lounge-rules.js";
 import { ensureTrade, giveTrade, bump, tripEvents } from "./lounge-trade.js";
 import { ensureReq, giveReq } from "./lounge-req.js";
@@ -27,6 +27,7 @@ const DAY = 864e5;
 export function ensure(rec) {
   rec.pets ||= []; rec.tamed ||= []; rec.hideout ||= {}; rec.credits ||= 0; rec.snacks ||= 0; rec.tools ||= { lure: 0, net: 0, tea: 0 };
   rec.explore ||= {}; rec.trips ||= []; rec.seen ||= []; rec.uidN ||= 0; rec.party ||= []; rec.lab ||= [];
+  rec.met ||= metOf(rec);
   for (const c of rec.tamed || []) c.sex ||= sexByUid(c.uid);   // 配合の 性別（前から いる 子は uid で 決まった くじ）
   rec.own.mats ||= []; rec.own.box ||= []; rec.own.equip ||= [];
   rec.pets.forEach(ensurePet); rec.tamed.forEach((c) => (c.equip ||= {}));
@@ -34,6 +35,12 @@ export function ensure(rec) {
   return ensureReq(ensureTrade(rec));
 }
 const newUid = (rec, p) => p + (++rec.uidN).toString(36);
+// 会った ことの ある 敵（探索の 地図で 名前を 見せる。鹿さんの決め、2026-10-28）。前からの 記録は、拾った 敵の 素材・なかま・研究・たおした ボスから 決める
+function metOf(rec) {
+  const m = new Set([...rec.seen.map((id) => MAT_FROM[id]), ...rec.tamed.map((c) => c.tree), ...rec.lab]);
+  for (const d of DUNGEONS) if (rec.explore[d.id] && rec.explore[d.id].bossKills) m.add(d.boss.tree);
+  return [...m].filter(Boolean);
+}
 const see = (rec, ids) => { for (const id of ids) if (!rec.seen.includes(id)) rec.seen.push(id); };   // 手に 入れた ことの ある 素材・装備（レシピが 出る）
 const matName = (id) => MAT_NAME[id] || id;
 const facName = (id) => (FACILITIES.find((f) => f.id === id) || { name: id }).name;
@@ -114,15 +121,17 @@ export function give(rec, g, now) {
   if (g.hideout) { const f = FACILITIES.find((x) => x.id === g.hideout); rec.hideout[g.hideout] = Math.min(f ? f.lv.length : 3, (rec.hideout[g.hideout] || 0) + 1); }   // 上限は その 施設の Lv の 数（前は 3 で 止まり、Lv4 は 払うだけで 上がらなかった。2026-10-26）
   if (g.tame) { const c = rec.tamed.find((x) => x.uid === g.tame[0]); if (c) c.gauge = Math.min(SNACK_NEED[rankOf(c)], c.gauge + g.tame[1]); }
   if (g.lab && !rec.lab.includes(g.lab)) rec.lab.push(g.lab);
+  if (g.bye) { const u = g.bye; rec.tamed = rec.tamed.filter((x) => x.uid !== u); rec.party = rec.party.filter((x) => x !== u); if (rec.mine) rec.mine.on = rec.mine.on.filter((w) => w.uid !== u); }   // 進化した スキルを 取り出した なかまと おわかれ
   if (g.voidTrip) { const t = rec.trips.find((x) => x.uid === g.voidTrip); if (t && !t.done) t.void = 1; }   // 派遣の 玉が あとで 払えなかったと わかった（返事が おくれた とき）：その 派遣の 収穫は なし
   giveTrade(rec, g, now);                        // 友好度・とくべつな 品・道具・レシピ・買い取りの 上乗せ・売りきれの もどし
   giveReq(rec, g, now);                          // みんなの依頼（送る・やめる・もらった 物・もどった 物）
   givePet(rec, g);                               // 振り直し・職業を かえる
+  if (g.pet) addPet(rec, g.pet);                 // アメジストで むかえた 子（払えたと わかった とき）
   if (g.ev) bump(rec, g.ev, jstDay(now));        // タスクに 数える（作る・合成・おやつ。物を 渡せた ときだけ）
 }
 
 // ---------- ペット（1 匹目・職業） ----------
-// 性格診断の 答え（6 問・0〜3）から 来る子を 決める。同点なら pick（はこを えらぶ）
+// 性格診断の 答え（9 問・0〜3）から 来る子を 決める。同点なら pick（はこを えらぶ）
 export function petFirst(rec, b, R) {
   if (rec.pets.length) return { ok: false, why: "もう ペットが いる" };
   const a = Array.isArray(b.answers) && b.answers.length === QUIZ.length && b.answers.every((n, i) => Number.isInteger(n) && n >= 0 && n < QUIZ[i].a.length) ? b.answers : null;
@@ -143,6 +152,34 @@ export function petJob(rec, b) {
   pet.type = b.type; pet.taken = { [b.type]: [] }; ensurePet(pet);
   if (pet.grow.auto) autoFill(pet);
   return { ok: true };
+}
+// ---------- 2 匹目からの 解放と いまの 子（鹿さんの 決め、2026-10-31）----------
+// 12 匹から えらぶ。2 匹目は 無料（すぐ）、3 匹目から アメジスト（UNLOCK）。Lv・職業・ツリーは 1 匹ずつ べつ（Lv1 から）
+// いまの 子は 1 匹：部屋・配信の 戦い・派遣は rec.pets[0]。かえると その 子を 先頭に うつす（ほかの 計算は 1 匹目を 見た まま）
+export function petUnlockPlan(rec, b, unknown = [], R = Math.random) {
+  if (!rec.pets.length) return { ok: false, why: "まず 1 匹目を むかえて（性格診断）" };
+  const qid = typeof b.qid === "string" && Object.prototype.hasOwnProperty.call(PETS, b.qid) ? b.qid : "";
+  if (!qid) return { ok: false, why: "知らない 子" };
+  if (rec.pets.some((p) => p.qid === qid)) return { ok: false, why: "もう いっしょに いる" };
+  if (unknown.some((x) => x.grant && x.grant.pet)) return { ok: false, wait: true, why: "前の 子の 支払いを たしかめて います（配信の 画面が こたえたら むかえられます）" };   // 返事待ちの あいだに 同じ 値段で 2 匹 払わない
+  const cost = unlockCost(rec.pets.length), pet = { qid, seed: Math.floor(R() * 2 ** 31) };
+  if (cost == null) return { ok: false, why: "もう みんな いる" };
+  if (!cost) { const p = addPet(rec, pet); return { ok: true, pet: p, cost: 0 }; }
+  return { costs: [{ kind: "res", d: -cost }], why: "pet:" + qid, grant: { pet }, info: { qid, cost } };
+}
+// むかえた 子を 記録に 入れる（いまの 子は かえない）。もう いる 子なら 何も しない
+function addPet(rec, g) {
+  if (!PETS[g.qid] || rec.pets.some((p) => p.qid === g.qid)) return null;
+  const pet = { uid: newUid(rec, "p"), qid: g.qid, species: PETS[g.qid].sp, name: PETS[g.qid].name, type: null, lv: 1, exp: 0, seed: g.seed };
+  ensurePet(pet); rec.pets.push(pet);
+  return pet;
+}
+// いまの 子を かえる。いつでも かえられる。出かけて いる 子は その まま 派遣を つづける（周回も その 子で つづく）
+export function petSwitch(rec, b) {
+  const i = rec.pets.findIndex((p) => p.uid === b.uid);
+  if (i < 0) return { ok: false, why: "その 子は いない" };
+  if (i) rec.pets.unshift(...rec.pets.splice(i, 1));
+  return { ok: true, pet: rec.pets[0].uid };
 }
 export { fighterOf, mateOf };   // 戦う ときの ペット・なかま（lounge-pet.js）
 
@@ -195,7 +232,25 @@ export function researchPlan(rec, b, unknown = []) {
   if (rec.lab.includes(c.tree)) return { ok: false, why: "もう 研究ずみ" };
   if (unknown.some((u) => u.grant && u.grant.lab === c.tree)) return { ok: false, why: "前の 研究が まだ 決まって いない（配信の 画面の 返事を 待って いる）" };
   const cost = Math.ceil(RESEARCH[rankOf(c)] * (1 - LAB_OFF[rec.hideout.lab || 0]));
-  return { costs: [{ kind: "res", d: -cost }], why: "lab:" + c.tree, grant: { lab: c.tree }, info: { cost } };
+  const leaf = researchLeaf(c.tree), t = leaf && takeMats(rec, [leaf], { box: true });   // 希少・ボス・配合は 葉も（大工事の 畑が つながってから）
+  if (t && t.why) return { ok: false, why: t.why };
+  return { costs: [{ kind: "res", d: -cost }], why: "lab:" + c.tree, grant: { lab: c.tree }, info: { cost, ...(leaf ? { leaf } : {}) },
+    ...(t ? { take: () => applyTake(rec, t.picks), refund: { mats: t.picks.filter((p) => !p.box).map(({ id, q, n, b }) => ({ id, q, n, ...(b ? { b: 1 } : {}) })), box: t.picks.filter((p) => p.box).map(({ id, q, n, b, until }) => ({ id, q, n, ...(b ? { b: 1 } : {}), until })) } } : {}) };
+}
+// 進化した スキル（配合で 受けついだ「＋」の ツリー）を 取り出す（鹿さんの決め、2026-10-25）：なかまとは おわかれ・リソース 200（研究所の Lv で 安く なる）
+//   取り出した ツリーは 研究ずみ（rec.lab）に なり、どの ペットでも サブツリーに 付けられる。なかまが いなく なるのは 払えた とき（grant.bye）
+//   付けて いた 装備は 持ち物に のこる（配合と 同じ）。出かけて いる 子・坑道で 掘って いる 子は 先に もどす
+export const EXTRACT_RES = 200;
+export function extractPlan(rec, b, unknown = []) {
+  const c = rec.tamed.find((x) => x.uid === b.uid), id = String(b.tree || "");
+  if (!c) return { ok: false, why: "その 子は いない" };
+  if (!(c.subs || []).includes(id) || !ENEMY_TREES[id] || !ENEMY_TREES[id].evo) return { ok: false, why: "取り出せるのは 進化した スキル（＋）だけ" };
+  if (rec.lab.includes(id)) return { ok: false, why: "もう 取り出して ある（ペットの サブツリーに 付けられる）" };
+  if (rec.trips.some((t) => !t.done && t.party.includes(c.uid))) return { ok: false, why: "出かけて いる 子は 取り出せない（帰って から）" };
+  if (rec.mine && rec.mine.on.some((w) => w.uid === c.uid)) return { ok: false, why: "坑道で 掘って いる 子は 取り出せない（坑道から もどして から）" };
+  if (unknown.some((u) => u.grant && (u.grant.lab === id || u.grant.bye === c.uid))) return { ok: false, why: "前の 取り出しが まだ 決まって いない（配信の 画面の 返事を 待って いる）" };
+  const cost = Math.ceil(EXTRACT_RES * (1 - LAB_OFF[rec.hideout.lab || 0]));
+  return { costs: [{ kind: "res", d: -cost }], why: "ext:" + id, grant: { lab: id, bye: c.uid }, info: { cost, tree: id } };
 }
 
 // ---------- 派遣 ----------
@@ -211,8 +266,9 @@ function mythicItem(m, R) {
 //   ここでは 出かける ときの ようす（パーティ・探索の 進み）だけ 決めて、sim（とちゅうの 計算）を 返す。viewer.js が しまって 続きを 計算する
 //   計算が 終わるまでは calc: true。帰る 時間（end）は 時間 いっぱいの つもりに して おき、終わったら 本当の 時間に する
 // check：たしかめるだけ（玉を 払う 前に。記録は かえない）
-export function tripStart(rec, b, now, seed, check = false) {
-  const pet = rec.pets[0];
+// who：出かける 子の uid（周回だけ。出かけた 子の まま つづける）。ないときは いまの 子（ブラウザからは えらばせない）
+export function tripStart(rec, b, now, seed, check = false, who = null) {
+  const pet = (who && rec.pets.find((p) => p.uid === who)) || rec.pets[0];
   if (!pet) return { ok: false, why: "まだ ペットが いない" };
   if (!pet.type) return { ok: false, why: "さきに 職業を えらんで" };
   if (rec.trips.some((t) => !t.done)) return { ok: false, why: "もう 出かけて いる" };
@@ -222,10 +278,13 @@ export function tripStart(rec, b, now, seed, check = false) {
   const go = canGo(d, rec.hideout, (tid) => (rec.traders && rec.traders[tid] ? rec.traders[tid].n : 1));   // 島 2 は 無線機・かくしは 商人の タスクの 先
   if (!go.ok) return { ok: false, why: go.why };
   const purpose = own(PURPOSES, b.purpose) ? b.purpose : "explore";
-  const tool = b.tool == null || b.tool === "" ? null : own(TOOLS, b.tool) ? b.tool : undefined;
-  if (tool === undefined) return { ok: false, why: "知らない 道具" };
-  if (tool && !(rec.tools[tool] > 0)) return { ok: false, why: "その 道具を 持って いない" };
-  const trees = [...d.foes, d.rare].map((f) => f.tree), wantFoe = purpose === "target" || tool === "lure";
+  // 道具は ちがう 物を 3 つまで（鹿さんの 決め、2026-10-31。b.tools。前の 形の b.tool も 受ける）
+  const raw = Array.isArray(b.tools) ? b.tools : b.tool == null || b.tool === "" ? [] : [b.tool];
+  if (raw.some((id) => !own(TOOLS, id))) return { ok: false, why: "知らない 道具" };
+  const tools = [...new Set(raw)], tool = tools[0] || null;
+  if (tools.length > TOOL_MAX) return { ok: false, why: `道具は ${TOOL_MAX} つまで` };
+  if (tools.some((id) => !(rec.tools[id] > 0))) return { ok: false, why: "その 道具を 持って いない" };
+  const trees = [...d.foes, d.rare].map((f) => f.tree), wantFoe = purpose === "target" || tools.includes("lure");
   const target = wantFoe && trees.includes(b.target) ? b.target : null;
   if (wantFoe && !target) return { ok: false, why: "敵を えらんで" };
   const prog = rec.explore[d.id] || newProgress(), mates = rec.party.map((u) => rec.tamed.find((c) => c.uid === u)).filter(Boolean);
@@ -233,9 +292,11 @@ export function tripStart(rec, b, now, seed, check = false) {
   if (floor && !(Number.isInteger(floor) && floor >= 1 && floor <= floorsOpen(d.id, prog))) return { ok: false, why: "その 階には まだ 行けない" };
   if (check) return { ok: true, cost: tripCost(d) };
   const team = [fighterOf(pet, rec), ...mates.map((c) => mateOf(c, rec))];
-  const S = tripInit(team, d.id, run, seed, { purpose, target, tool, floor, progress: prog, lite: true, medic: rec.hideout.medic || 0, stairs: (rec.hideout.maproom || 0) >= MAP_STAIRS });   // 出かけた ときの ようすで 計算する（救護室・地図室も 出かけた ときの Lv）
-  if (tool) rec.tools[tool]--;   // 道具は 持って いく ときに あずかる（お茶は 使わなかったら 帰りに もどす）
-  const t = { uid: newUid(rec, "r"), did: d.id, run, purpose, target, tool, ...(floor ? { floor } : {}), party: [pet.uid, ...mates.map((c) => c.uid)], team, seed, ...(rec.hideout.maproom ? { map: rec.hideout.maproom } : {}), ...(rec.hideout.medic ? { med: rec.hideout.medic } : {}), ...((rec.hideout.maproom || 0) >= MAP_STAIRS ? { st: 1 } : {}), start: now, end: now + S.budget * TICK * 1000, done: false, calc: true };   // floor は えらんだ ときだけ（画面も 同じ 階で 計算しなおす）
+  const bag = bagOf(rec.items);   // 戦いの アイテム：持って いる 物を ぜんぶ 持って いく（ガンビットで 使う。使わなかった 物は 帰りに もどる）
+  const S = tripInit(team, d.id, run, seed, { purpose, target, tools, floor, progress: prog, lite: true, medic: rec.hideout.medic || 0, stairs: (rec.hideout.maproom || 0) >= MAP_STAIRS, ...(bag ? { items: bag } : {}) });   // 出かけた ときの ようすで 計算する（救護室・地図室も 出かけた ときの Lv）
+  for (const id of tools) rec.tools[id]--;   // 道具は 持って いく ときに あずかる（お茶・薬は 使わなかったら 帰りに もどす）
+  if (bag) for (const [k, n] of Object.entries(bag)) rec.items[k] -= n;   // 袋も あずかる
+  const t = { uid: newUid(rec, "r"), did: d.id, run, purpose, target, tool, ...(tools.length > 1 ? { tools } : {}), ...(floor ? { floor } : {}), party: [pet.uid, ...mates.map((c) => c.uid)], team, seed, ...(bag ? { bag } : {}), ...(rec.hideout.maproom ? { map: rec.hideout.maproom } : {}), ...(rec.hideout.medic ? { med: rec.hideout.medic } : {}), ...((rec.hideout.maproom || 0) >= MAP_STAIRS ? { st: 1 } : {}), start: now, end: now + S.budget * TICK * 1000, done: false, calc: true };   // floor は えらんだ ときだけ（画面も 同じ 階で 計算しなおす）
   // team：出かけた ときの 戦う 形。出かけて いる あいだも スキルツリー・振り分け・ガンビットは かえられるので、画面と 中継は これで 計算しなおす（いまの 形だと 門番と ずれる）
   rec.trips.push(t);
   return { ok: true, trip: tripView(t, now), sim: { uid: t.uid, r0: dungeonRatio(d.id, prog), S } };
@@ -243,19 +304,30 @@ export function tripStart(rec, b, now, seed, check = false) {
 // 派遣の 計算を 少し 進める（戦い max 回まで）。終わったら true。sim は その場で かわる（しまうのは viewer.js。記録 rec は 読まない）
 export const tripCalc = (sim, max = 1) => tripStep(sim.S, max);
 // 計算が 終わった 派遣の 中身（got）と 本当の 帰る 時間を 決める（その 派遣が なければ false）
+// 侵入の 戦いを オーバーレイの 帯で 見せる 材料（派遣の 計算が 終わった ときに 門番が 送る。帯は simulate(A, B, seed) で 同じ 戦いを 見せる）
+export function invadeRelay(rec, sim) {
+  const v = sim.S && sim.S.inv, t = rec.trips.find((x) => x.uid === sim.uid), lead = v && sim.S.team[v.who];
+  if (!v || !v.done || !t || !lead) return null;
+  return { kind: "inv", A: { ...lead.c, owner: rec.name || "" }, B: invaderFighter(v), seed: v.seed, did: t.did, caught: !!v.caught };
+}
 export function tripDone(rec, sim) {
   const t = rec.trips.find((x) => x.uid === sim.uid && x.calc);
   if (!t || !tripStep(sim.S, 0)) return false;
   const res = tripResult(sim.S), d = res.dungeon, seed = t.seed, tool = t.tool, run = t.run, pet = rec.pets.find((p) => p.uid === t.party[0]) || rec.pets[0];
-  if (tool === "tea" && !res.toolUsed) rec.tools.tea++;   // 使わなかった お茶は もどす（笛と ネットは 持って いくと なくなる）
+  const tools = t.tools || (tool ? [tool] : []);
+  for (const id of tools) if (TOOLS[id] && TOOLS[id].keep && !(res.toolsUsed ? res.toolsUsed[id] : res.toolUsed)) rec.tools[id] = (rec.tools[id] || 0) + 1;   // 使わなかった お茶・気つけ薬・起こし薬は もどす（笛と ネットは 持って いくと なくなる）
   t.got = {
     exp: res.exp, credits: res.credits, snacks: res.snacks, resource: res.resource,
     materials: res.materials.map(({ id, q, n }) => ({ id, q: q || 0, n })),
-    equip: [...res.drops.map(({ base, star, ops }) => ({ base, star, ops })), ...(res.mythic ? [mythicItem(res.mythic, rng((seed ^ 0x5bd1e995) >>> 0))] : [])],
+    seeds: { ...(res.seeds || {}) },   // 採取で 拾った 種（農園。鹿さんの 決め 2026-11-03）
+    equip: [...res.drops.map(({ base, star, ops }) => ({ base, star, ops })), ...(res.mythic ? [mythicItem(res.mythic, rng((seed ^ 0x5bd1e995) >>> 0))] : []), ...(res.unique ? [mythicItem(res.unique, rng((seed ^ 0x2f6e2b1) >>> 0))] : [])],
     captured: res.captured.map((f) => ({ tree: f.tree, type: f.type, lv: f.lv, name: f.name })),
-    mythic: res.mythic ? res.mythic.id : null, toolUsed: !!res.toolUsed, reason: res.reason, boss: res.bossDefeated, kills: res.kills, wins: res.wins,
+    met: [...new Set(res.battles.flatMap((b) => b.foes.map((f) => f.tree)))],   // 会った 敵（勝ち負けに よらず）
+    inv: res.invader ? { tree: res.invader.tree, name: res.invader.name, lv: res.invader.lv, win: !!res.invader.win, caught: !!res.invader.caught } : null,   // 侵入（結晶核は 結晶が できたら 渡す）
+    ...(Object.keys(res.itemsUsed || {}).length ? { itemsUsed: res.itemsUsed } : {}),   // 戦いの アイテムを 使った 数
+    mythic: res.mythic ? res.mythic.id : null, unique: res.unique ? res.unique.id : null, toolUsed: !!res.toolUsed, reason: res.reason, boss: res.bossDefeated, kills: res.kills, wins: res.wins,
     ratio: [sim.r0, dungeonRatio(d.id, res.progress)], diary: diaryOf(pet ? pet.species : "shika", res), progress: res.progress,
-    stats: tripStats(res, run, tool),   // タスクに 数える できごと
+    stats: tripStats(res, run, tools),   // タスクに 数える できごと
   };
   // 地図室（出かけた ときの Lv）：Lv2 から 採取の 素材、Lv3 から ふつうの 敵の 素材が ふえる。派遣の くじとは べつの 種（画面の 計算しなおしが ずれない）
   const mx = t.map >= 2 ? mapExtra(t.map, t.got.materials, d.id, rng((seed ^ 0x2545f491) >>> 0)) : null;
@@ -264,12 +336,12 @@ export function tripDone(rec, sim) {
   delete t.calc;
   return true;
 }
-function tripStats(res, run, tool) {
+function tripStats(res, run, tools) {
   const kills = {}, caught = {};
   for (const b of res.battles) for (const f of b.win ? b.foes : (b.kill || []).map((k) => b.foes[k])) kills[f.tree] = (kills[f.tree] || 0) + 1;   // 負けた 戦いで たおせた 敵も 数える
   for (const f of res.captured) caught[f.tree] = (caught[f.tree] || 0) + 1;
   const ch = res.chests.filter((c) => !c.boss);
-  return { kills, caught, gather: res.gathered.length, chests: ch.length, hchests: ch.filter((c) => c.hidden).length, rests: res.rests, wipe: res.reason === "wipe", boss: res.bossDefeated ? 1 : 0, run, tool };
+  return { kills, caught, gather: res.gathered.length, chests: ch.length, hchests: ch.filter((c) => c.hidden).length, rests: res.rests, wipe: res.reason === "wipe", boss: res.bossDefeated ? 1 : 0, run, tool: tools[0] || null, tools };   // tool：前からの「道具なし」の じょうけん
 }
 // 帰って きた 派遣の ごほうびを うけとる。リソース（ボス）は earn で 帳簿へ
 // 玉の 支払いの 返事を まだ 待って いる 派遣か（返事が おくれて 出発した とき。帳簿の unknown に その 派遣の voidTrip が ある）
@@ -281,12 +353,13 @@ export function tripCollect(rec, b, now) {
   if (t.calc) return { ok: false, why: "まだ 帰って いない（もう 少し）" };
   if (payWaiting(rec, t)) return { ok: false, wait: true, why: "派遣の 玉の 支払いを たしかめて います（配信の 画面が こたえたら 受けとれます）" };   // 払えなかったと あとで わかったら 収穫は なし（voidTrip）。受けとった あとでは 取り消せないので 待つ
   const g = t.got, pet = rec.pets.find((p) => p.uid === t.party[0]);
-  if (t.void) Object.assign(g, { exp: 0, credits: 0, snacks: 0, resource: 0, materials: [], equip: [], captured: [], mythic: null, stats: null });   // 玉が 払えなかった 派遣：収穫は なし（探索の 進みは のこす）
+  if (t.void) Object.assign(g, { exp: 0, credits: 0, snacks: 0, resource: 0, materials: [], seeds: {}, equip: [], captured: [], mythic: null, unique: null, stats: null });   // 玉が 払えなかった 派遣：収穫は なし（探索の 進みは のこす）
   const exp = Math.round(g.exp * (1 + 0.1 * (rec.hideout.gym || 0)));   // トレーニング室：＋10%・20%・30%（Lv4 は 40%）。なかまも ペットと 同じだけ もらう
   const ups = t.party.map((u) => rec.pets.find((p) => p.uid === u) || rec.tamed.find((c) => c.uid === u)).filter(Boolean).map((x) => ({ uid: x.uid, up: levelUp(x, exp), lv: x.lv }));
   for (const p of rec.pets) if (p.type && p.grow && p.grow.auto) autoFill(p);   // 自動なら ふえた SP で ノードを 取る
   const up = ups.length && pet && ups[0].uid === pet.uid ? ups[0].up : 0;
   rec.credits += g.credits; rec.snacks += g.snacks;
+  if (g.seeds) { rec.seeds ||= {}; for (const [id, n] of Object.entries(g.seeds)) if (n > 0) rec.seeds[id] = (rec.seeds[id] || 0) + n; }   // 種は 農園の 袋へ
   dropOld(rec, now);
   const put = putMats(rec, g.materials, now);
   // 自動で 売る（設定した ★以下・派遣で 拾った 物だけ）。売った 物は 持ち物に 入れない。結果に のこす（t.sold）
@@ -299,15 +372,21 @@ export function tripCollect(rec, b, now) {
     g.equip = g.equip.filter((it) => !sell.includes(it)); t.sold = sold;
   }
   putEquip(rec, g.equip, now);
+  if (t.bag) { rec.items ||= {}; for (const [k, n] of Object.entries(t.bag)) { const left = n - ((g.itemsUsed || {})[k] || 0); if (left > 0) rec.items[k] = (rec.items[k] || 0) + left; } }   // 使わなかった 戦いの アイテムを もどす
+  // 詳細ステータス（鹿さんの 決め、2026-10-31。開いてから）：派遣中は 満腹度が 早く へる・勝つ たびに ごく まれに 謎のお菓子（べつの 種）
+  const mystery = detailOpen() && !t.void ? mysteryRoll(rng(((t.seed || 1) ^ 0x6a09e667) >>> 0), g.wins) : 0;
+  if (detailOpen()) for (const u of t.party) { const x = rec.pets.find((p) => p.uid === u) || rec.tamed.find((c) => c.uid === u); if (x) nutAway(x, t.end - t.start, now); }
+  if (mystery) { rec.items ||= {}; rec.items.mystery = (rec.items.mystery || 0) + mystery; t.mystery = mystery; }
   const cores = g.stats && g.stats.boss && rng((t.seed || 1) + 91)() < BOSS_CORE ? 1 : 0;   // ボスから まれに ブランクコア（派遣の くじとは べつの 種。画面の 計算しなおしが ずれない）
   if (cores) { rec.items ||= {}; rec.items.blankcore = (rec.items.blankcore || 0) + cores; t.cores = cores; }
   g.captured.forEach((f, i) => rec.tamed.push({ uid: newUid(rec, "t"), ...f, exp: 0, gauge: 0, sex: sexOf(rng((t.seed || 1) + 131 + i)()) }));   // となりの 部屋で 待つ（おやつで 懐柔する）。性別は くじ（♂ 48%・♀ 48%・両性 4%。配合で 使う）
+  for (const tr of g.met || []) if (!rec.met.includes(tr)) rec.met.push(tr);
   rec.explore[t.did] = g.progress;
   delete g.progress;   // 進みは explore に うつした（記録を 小さく）
   if (g.stats) tripEvents(rec, t.did, g.stats, jstDay(now));   // DEEP LINK/: の タスクに 数える
   t.done = true; t.at = now; delete t.team;
   rec.trips = [...rec.trips.filter((x) => !x.done), ...rec.trips.filter((x) => x.done).slice(-TRIP_KEEP)];
-  return { ok: true, exp, up, lv: pet ? pet.lv : 0, ups, boxed: put.box.reduce((a, m) => a + m.n, 0) + boxS, sold, cores, earn: [...(g.resource ? [{ kind: "res", d: g.resource }] : []), ...earnS] };
+  return { ok: true, exp, up, lv: pet ? pet.lv : 0, ups, boxed: put.box.reduce((a, m) => a + m.n, 0) + boxS, sold, cores, ...(mystery ? { mystery } : {}), ...(g.itemsUsed ? { used: Object.values(g.itemsUsed).reduce((a, n) => a + n, 0) } : {}), earn: [...(g.resource ? [{ kind: "res", d: g.resource }] : []), ...earnS] };
 }
 // ---------- 周回（鹿さんの決め、2026-10-25）：帰って きたら 門番が うけとって、同じ 行き先・時間・目的・階で また 出発。画面を とじても 回る ----------
 // 回数は 3・5・10・ずっと（0）。倉庫が いっぱいに なったら（入りきらない 素材が あずかり箱に 入ったら）止める。道具は 持って いる 間は 毎回、なければ なしで
@@ -317,7 +396,7 @@ const emptySum = () => ({ n: 0, exp: 0, up: 0, credits: 0, snacks: 0, resource: 
 // 出発した ときに：周回を えらんで いれば はじめる（えらんで いなければ 前の 周回は おわり）
 export function loopNew(rec, b, now) {
   const t = rec.trips.find((x) => !x.done);
-  rec.loop = t && LOOP_COUNTS.includes(b.loop) ? { on: true, max: b.loop, n: 1, cfg: { did: t.did, run: t.run, purpose: t.purpose, target: t.target, tool: t.tool, floor: t.floor || 0 }, sum: emptySum(), stop: null, at: now } : null;
+  rec.loop = t && LOOP_COUNTS.includes(b.loop) ? { on: true, max: b.loop, n: 1, cfg: { did: t.did, run: t.run, purpose: t.purpose, target: t.target, tool: t.tool, ...(t.tools ? { tools: t.tools } : {}), floor: t.floor || 0, pet: t.party[0] }, sum: emptySum(), stop: null, at: now } : null;
 }
 // 周回の ボタン：on で はじめる（出かけて いる 派遣を 1 回めに）・off で 止める（いまの 派遣が 帰ったら おわり）
 export function loopSet(rec, b, now) {
@@ -326,7 +405,7 @@ export function loopSet(rec, b, now) {
   const t = rec.trips.find((x) => !x.done);
   if (!t) return { ok: false, why: "出発する ときに えらんで" };
   const sum = rec.loop && rec.loop.sum && rec.loop.sum.n ? rec.loop.sum : emptySum();   // まだ 見て いない まとめは のこす。回して いる 途中に 回数だけ かえる ときは 何回めかも のこす
-  rec.loop = { on: true, max: b.count, n: rec.loop && rec.loop.on ? rec.loop.n : 1, cfg: { did: t.did, run: t.run, purpose: t.purpose, target: t.target, tool: t.tool, floor: t.floor || 0 }, sum, stop: null, at: now };
+  rec.loop = { on: true, max: b.count, n: rec.loop && rec.loop.on ? rec.loop.n : 1, cfg: { did: t.did, run: t.run, purpose: t.purpose, target: t.target, tool: t.tool, ...(t.tools ? { tools: t.tools } : {}), floor: t.floor || 0, pet: t.party[0] }, sum, stop: null, at: now };
   return { ok: true };
 }
 // まとめを 見た（止まって いれば 周回の 記録も 消す）
@@ -338,11 +417,11 @@ export function loopAfter(rec, g, r, now, seed) {
   S.mats += g.materials.reduce((a, m) => a + m.n, 0); S.equip += g.equip.length; S.sold = (S.sold || 0) + (r.sold ? r.sold.n : 0); S.caught += g.captured.length; S.wipes += g.reason === "wipe" ? 1 : 0; S.boxed += r.boxed || 0;
   if (r.boxed) { L.on = false; L.stop = "full"; return null; }   // 倉庫が いっぱい（日が たつと 消える あずかり箱に 入れつづけない）
   if (L.max && L.n >= L.max) { L.on = false; L.stop = "count"; return null; }
-  const tool = L.cfg.tool && rec.tools[L.cfg.tool] > 0 ? L.cfg.tool : null, body = { ...L.cfg, tool };
-  const chk = tripStart(rec, body, now, seed, true);
+  const tools = (L.cfg.tools || (L.cfg.tool ? [L.cfg.tool] : [])).filter((id) => rec.tools[id] > 0), body = { ...L.cfg, tool: undefined, tools }, who = L.cfg.pet || null;   // 切れた 道具は 持たずに つづける   // いまの 子を かえても、周回は 出かけた 子で つづける
+  const chk = tripStart(rec, body, now, seed, true, who);
   if (!chk.ok) { L.on = false; L.stop = chk.why; return null; }
-  if (chk.cost) return { ok: true, pay: chk.cost, body, seed };   // 費用の ある 行き先（ニライ諸島）：玉を 払ってから 出発（viewer.js の loopTick）
-  const s = tripStart(rec, body, now, seed);
+  if (chk.cost) return { ok: true, pay: chk.cost, body, seed, who };   // 費用の ある 行き先（ニライ諸島）：玉を 払ってから 出発（viewer.js の loopTick）
+  const s = tripStart(rec, body, now, seed, false, who);
   if (!s.ok) { L.on = false; L.stop = s.why; return null; }
   L.n++;
   return s;

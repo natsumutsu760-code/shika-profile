@@ -2,55 +2,18 @@
 // 派遣で敵を捕まえて、リソースで研究すると、ペットのサブツリーとして付けられる
 // どの敵もテーマの状態異常を 1 つ持ち、「付ける技」と「はじけさせる技」が入っている。技の名前は RPG 風（ゲームの中のモンスターなので）
 // 技の説明は fx から自動で作る（describe）。数字はすべて仮
-import { EFFECTS } from "./effects.js";
+import { describe, D, F, M, H, CURE, DIS, MPD, SH, S, P, G } from "./tree-kit.js";
+// 配合限定の 追加 160 種（2026-10-28。ランクごとの ファイル）
+import { TREES as FU_F } from "./enemy-trees-fusion-f.js";
+import { TREES as FU_E } from "./enemy-trees-fusion-e.js";
+import { TREES as FU_D } from "./enemy-trees-fusion-d.js";
+import { TREES as FU_C } from "./enemy-trees-fusion-c.js";
+import { TREES as FU_B } from "./enemy-trees-fusion-b.js";
+import { TREES as FU_A } from "./enemy-trees-fusion-a.js";
+import { TREES as FU_S } from "./enemy-trees-fusion-s.js";
+import { TREES as FU_EX } from "./enemy-trees-fusion-ex.js";
 
-const SL = { hp: "HP", mp: "MP", atk: "ATK", def: "DEF", int: "INT", res: "RES", agi: "AGI", dex: "DEX", luk: "LUK" };
-const NUM = ["", "1", "2", "3", "4", "5", "6", "7", "8", "9"];
-// ---------- 効果の書き方（短く）----------
-const D = (pow, o = {}) => ({ t: "dmg", pow, ...o });                                       // ダメージ
-const F = (id, a, o = {}) => ({ t: "fx", id, who: "foe", ...(typeof a === "number" && EFFECTS[id].dur === "stack" ? { amt: a } : a != null ? { turns: a } : {}), ...o });   // 相手に
-const M = (id, a, o = {}) => ({ t: "fx", id, who: "me", ...(typeof a === "number" && EFFECTS[id].dur !== "turn" && EFFECTS[id].dur !== "once" ? { amt: a } : a != null ? { turns: a } : {}), ...o });   // 自分に
-const H = (pct) => ({ t: "heal", pct }), CURE = { t: "cure" }, DIS = (n) => ({ t: "dispel", n }), MPD = (n) => ({ t: "mpDrain", n }), SH = (pct) => ({ t: "shield", pct });
-
-// fx から説明文を作る
-export function describe(fx) {
-  const out = [];
-  for (const x of fx) {
-    if (x.t === "dmg") {
-      let s = x.consume ? `${EFFECTS[x.consume].label}をはじけさせる。威力 ${x.pow}` : `威力 ${x.pow}`;
-      if (x.hits) s += ` × ${x.hits}`;
-      if (x.stat) s += `（${SL[x.stat]}）`;
-      if (x.perAmt) s += `、${EFFECTS[x.consume].label}の量 ${Math.round(1 / x.perAmt)} につき威力 +1`;
-      if (x.perTurn) s += `、残りターン 1 につき威力 +${x.perTurn}`;
-      if (x.burst) s += `、残りの${EFFECTS[x.consume].label}のダメージを一度に与える`;
-      if (x.ignore) s += x.ignore >= 1 ? "。相手の守りを無視" : `。相手の守りを ${Math.round(x.ignore * 10)} 割無視`;
-      if (x.sure) s += "。かならず当たる";
-      if (x.vsFx) s += "。" + Object.entries(x.vsFx).map(([id, v]) => `${EFFECTS[id].label}の相手には ${v >= 1 ? `${v + 1} 倍` : `+${Math.round(v * 100)}%`}`).join("・");
-      if (x.drain) s += `。与えたダメージの ${Math.round(x.drain * 100)}% を回復`;
-      if (x.recoil) s += `。与えたダメージの ${Math.round(x.recoil * 100)}% を自分も受ける`;
-      out.push(s);
-    } else if (x.t === "fx") {
-      const E = EFFECTS[x.id], who = x.who === "me" ? "自分に" : "";
-      let s = `${who}${E.label}${x.amt != null ? ` +${x.amt}` : ""}${x.turns != null ? `（${x.turns} ターン）` : ""}`;
-      if (x.id === "counter" && x.amt) s = `カウンター（受けた直接ダメージの ${x.amt}% を返す）`;
-      if (x.chance) s = `${Math.round(x.chance * 100)}% で${s}`;
-      if (x.atLeast) s = `${EFFECTS[x.atLeast.id].label}が ${x.atLeast.n} 以上なら${s}`;
-      if (x.ifConsumed != null) s = `はじけさせたら${s}`;
-      if (x.ifCrit) s = `会心のとき${s}`;
-      out.push(s);
-    } else if (x.t === "heal") out.push(x.pct >= 1 ? "HP を全回復" : `HP を ${Math.round(x.pct * 100)}% 回復`);
-    else if (x.t === "cure") out.push("浄化（自分のデバフを全部消す）");
-    else if (x.t === "dispel") out.push(x.n >= 99 ? "相手のバフを全部消す" : `相手のバフを ${NUM[x.n]} つ消す`);
-    else if (x.t === "mpDrain") out.push(`相手の MP −${x.n}`);
-    else if (x.t === "shield") out.push(`シールド（最大 HP の ${Math.round(x.pct * 100)}%）`);
-  }
-  return out.join("。");
-}
-
-// 技とパッシブ（slot は S1〜S8・P1〜P7。S4・S5 と S6・S7 は分岐の左右）
-const S = (n, id, name, kind, mp, fx, o = {}) => ({ slot: `S${n}`, id, name, kind, mp, fx, text: describe(fx), ...o });
-const P = (n, id, name, text, p) => ({ slot: `P${n}`, id, name, kind: "passive", text, p });
-const G = (cond, v, skill) => ({ if: v === undefined ? [cond] : [cond, v], do: skill });
+export { describe };
 
 export const ENEMY_TREES = {
   // ===== ハルス街道 =====
@@ -1717,7 +1680,7 @@ export const ENEMY_TREES = {
     ],
     plan: [G("first", undefined, "f_wy_ikaku"), G("mpAtLeast", 13, "f_wy_ryuseitsuki"), G("every", 3, "f_wy_kyukoka"), G("selfNotHas", "pierce", "f_wy_tsumetogi"), G("selfHas", "pierce", "f_wy_renzuki"), G("always", undefined, "f_wy_tsukisashi")] },
 
-  // マミー：輪廻で 踏みとどまる 墓守。起きあがれる うちは 捨て身で 抱きつく
+  // マミー：輪廻で 復活する 墓守。起きあがれる うちは 捨て身で 抱きつく
   f_mummy: { name: "起きあがる墓守", enemy: "マミー", dungeon: null, rank: "配合", type: "defender", main: "def", sub: "hp", theme: "reincarnation",
     list: [
       S(1, "f_mm_hotaiuchi", "包帯打ち", "waza", 3, [D(8, { stat: "def" })]),
@@ -3105,6 +3068,8 @@ export const ENEMY_TREES = {
     ],
     plan: [G("first", undefined, "f_hh_yurerushokudai"), G("mpAtLeast", 10, "f_hh_kuzureochiru"), G("every", 2, "f_hh_shikakegaeshi"), G("foeNotHas", "confusion", "f_hh_yurerushokudai"), G("every", 3, "f_hh_boreinosawagi"), G("always", undefined, "f_hh_tobirabatan")] },
 };
+
+Object.assign(ENEMY_TREES, FU_F, FU_E, FU_D, FU_C, FU_B, FU_A, FU_S, FU_EX);
 
 // スキルツリーの 進化（配合。docs/mono-link-haigou.md・イルルカ／ジョーカー3 の スキルの 派生）：最大まで 振った ツリーは 配合で「＋」が 受けつぐ 候補に 出る
 // 「＋」は 同じ 技で 威力 1.3 倍（技の 名前にも ＋）。id は もとの id ＋ EVO。行き先は なし（図鑑には 出ない・捕まえられない）

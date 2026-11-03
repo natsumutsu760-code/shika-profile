@@ -16,7 +16,7 @@ export const WORDS = {
   "これまでの冒険": "Past adventures", "帰ってきた": "Returned", "力つきた": "Fell", "ときどき 前の 素材": "sometimes earlier materials",
   "まだ 見ていない マスを うめる": "Fill in unseen tiles", "ボスの 部屋へ まっすぐ": "Straight to the boss room", "採取ポイントを 回る": "Visit gathering spots", "えらんだ 敵とだけ 戦う": "Fight only the chosen enemy",
   "戦う敵": "Enemy to fight", "笛で よぶ敵": "Enemy to lure", "ボスを たおせそう": "Chance to beat the boss", "採取ポイント": "Gathering spots", "か所くらい": "spots or so", "回 出会えそう": "encounters likely",
-  "くらい": "or so", "行き先を えらびなおす": "Choose another destination", "目的と時間": "Goal & time", "目的": "Goal", "出発する 階": "Starting floor", "時間": "Time", "持っていく 道具": "Tool to bring",
+  "くらい": "or so", "行き先を えらびなおす": "Choose another destination", "目的と時間": "Goal & time", "目的": "Goal", "出発する 階": "Starting floor", "# つまで": "up to #", "道具は # つまで": "Up to # tools", "時間": "Time", "持っていく 道具": "Tool to bring",
   "出発": "Set out", "1 つ": "1", "なし": "None", "パーティ": "Party", "見通し": "Outlook", "力つきる": "Wipe", "分": "min", "# 歩": "# steps",
   "ボスの": "Boss", "たち": "and co.", "オ": "A", "# 階の地図": "Floor # map", "力つきた……": "Everyone fell……", "探索を おえた": "Done exploring", "ボスを たおした": "Beat the boss", "採取を おえた": "Done gathering",
   "かくし通路を 見つけた": "Found a hidden passage", "戦っている": "Fighting", "休憩中": "Resting", "探索中": "Exploring", "# 階を 探索中": "Exploring floor #", "HP と MP が もどっている": "Recovering HP and MP",
@@ -39,6 +39,7 @@ export const WORDS = {
   "が とどいた": "arrived", "は たべられなかった": "couldn't be eaten", "ゴーグルを つけた": "Put on the goggles", "ねた": "Slept", "手紙は ぶじ": "The letters are safe", "ゴーグル ゴーグル": "Goggles goggles", "かった かった": "Won won", "まけた まけた": "Lost lost",
   "むかしの ゲームの方が よかった": "Old games were better", "むかしは もっと かんたんだった": "It used to be easier", "かった": "Won", "まけた": "Lost",
   "ゴーグルの中で ゆらゆら": "Swaying inside the goggles", "なにかに まけた きがする": "Feels like I lost to something", "ゆらゆら": "Sway, sway", "チャリチャリ いった": "Went jingle jingle", "なにか": "something",
+  "こげても ボクは さいこうだった": "Got burnt, but I was the best", "わしは まだ カタカタ しとる": "I'm still clattering", "異常なし": "No anomalies", "……以上": "……End of report", "撤退": "Withdrew", "まだ いける": "Can still go", "もういっかい いく": "Going again",
   // ---- タスク（tasks.js） ----
   "力つきずに 帰る 派遣で": "on an expedition where nobody falls", "休憩を しない 派遣で": "on an expedition without resting", "道具を 持たない 派遣で": "on an expedition without tools",
   "1 回の 派遣で": "in a single expedition", "10 分 コースで": "on the 10-min course", "ほか": "Other", "素材を 売る": "Sell materials", "派遣で 休憩する": "Rest on expeditions",
@@ -47,6 +48,7 @@ export const WORDS = {
 };
 
 export const RULES = [
+  [/^(.+)で 状態異常を 防いだ$/, (m, p) => p(m[1]) && `Blocked a status ailment with ${p(m[1])}`], [/^(.+)で 立ちあがった$/, (m, p) => p(m[1]) && `Got back up with ${p(m[1])}`],   // 派遣の 道具（気つけ薬・起こし薬）
   [/^(.+)の つながった タスク #(\d+) の ごほうびで 行ける$/, (m, p) => `Unlocked by finishing task #${m[2]} in ${P(p, m[1])}'s chain`],   // かくしの 行き先（canGo）
   // 行き先・日付
   [/^(.+)（おすすめ Lv(\d+)）$/, (m, p) => p(m[1]) && `${p(m[1])} (Recommended Lv${m[2]})`],
@@ -73,7 +75,7 @@ export const RULES = [
   [/^ボスを たおした (\d+) 回$/, (m) => `Beat the boss ${m[1]} times`],
   [/^(\d+) 戦 勝った・(\d+) たい たおした・休憩 (\d+) 回$/, (m) => `Won ${m[1]} · beat ${m[2]} · rested ${m[3]} times`],
   // 結果の 知らせ（<b> で 分かれた 字）
-  [/^・装備 (\d+) こ 売った（(.+)）$/, (m, p) => ` · sold ${m[1]} gear (${P(p, m[2])})`], [/^・ボスから ブランクコア ×(\d+)$/, (m) => ` · Blank Core ×${m[1]} from the boss`],
+  [/^・装備 (\d+) こ 売った（(.+)）$/, (m, p) => ` · sold ${m[1]} gear (${P(p, m[2])})`], [/^・戦いの アイテムを (\d+) こ 使った$/, (m) => ` · used ${m[1]} battle item${m[1] === "1" ? "" : "s"}`], [/^・ボスから ブランクコア ×(\d+)$/, (m) => ` · Blank Core ×${m[1]} from the boss`],
   [/^・(\d+) こ あずかり箱へ$/, (m) => ` · ${m[1]} to the holding box`], [/^・装備 (\d+) こ$/, (m) => ` · ${m[1]} gear`],
   [/^派遣先で ばったり！ (.+?) の (.+)に (勝った|負けた)（(.*)$/, (m, p) => `Ran into ${m[1]}'s ${P(p, m[2])} on the expedition! You ${m[3] === "勝った" ? "won" : "lost"} (${P(p, m[4])} `],
   // 戦いの 出会い
@@ -86,6 +88,10 @@ export const RULES = [
   [/^(.+)が 起きあがった$/, (m, p) => `${P(p, m[1])} got back up`],   // 救護室 Lv3 から（名前は 人が つけた 物も あるので そのまま でも よい）
   [/^(.+)を 捕まえた！$/, (m, p) => p(m[1]) && `Caught ${p(m[1])}!`], [/^★ミシック★ (.+)を 手に入れた！$/, (m, p) => p(m[1]) && `★Mythic★ Got ${p(m[1])}!`],
   // 日記（文ごと）
+  [/^ボクが (.+)を 料理して やった$/, (m, p) => p(m[1]) && `I cooked up ${p(m[1])}`], [/^(.+)で (.+)に まけた$/, (m, p) => p(m[1]) && `Lost to ${P(p, m[2])} in ${p(m[1])}`],
+  [/^わしは (.+)を カタカタ とおった$/, (m, p) => p(m[1]) && `I clattered through ${p(m[1])}`], [/^(.+)で (.+)に 折り目を つけられた$/, (m, p) => p(m[1]) && `Got creased by ${P(p, m[2])} in ${p(m[1])}`],
+  [/^(.+)を 巡回$/, (m, p) => p(m[1]) && `Patrolled ${p(m[1])}`], [/^(\d+)たい 撃破$/, (m) => `Destroyed ${m[1]}`], [/^(.+)にて (.+)と 交戦$/, (m, p) => p(m[1]) && `Engaged ${P(p, m[2])} at ${p(m[1])}`],
+  [/^(.+)を さんぽ した$/, (m, p) => p(m[1]) && `Took a walk through ${p(m[1])}`], [/^(.+)で (.+)に おいかけられた$/, (m, p) => p(m[1]) && `Got chased by ${P(p, m[2])} in ${p(m[1])}`],
   [/^(.+)で ねた$/, (m, p) => p(m[1]) && `Slept in ${p(m[1])}`], [/^おきたら (\d+)たい たおしてた$/, (m) => `Woke up having beaten ${m[1]}`],
   [/^(.+)に まけてた$/, (m, p) => `Had lost to ${P(p, m[1])}`], [/^(.+)へ 配達に 行った$/, (m, p) => p(m[1]) && `Went to ${p(m[1])} on a delivery`],
   [/^(\d+)たい たおした$/, (m) => `Beat ${m[1]}`], [/^(.+)で (.+)に つかまった$/, (m, p) => p(m[1]) && `Got caught by ${P(p, m[2])} in ${p(m[1])}`],

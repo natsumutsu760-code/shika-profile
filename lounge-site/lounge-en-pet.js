@@ -3,6 +3,16 @@
 const P = (p, s) => p(s) || s;
 
 export const WORDS = {
+  // 栄養の 画面（nutrition.html。2026-10-31）
+  "栄養": "Nutrition", "／ 栄養": "/ Nutrition", "満腹度": "Fullness", "詳細ステータス": "Detailed Stats", "だれに": "Who", "あげる": "Feed", "満腹度と おやつ": "Fullness & treats",
+  "詳細ステータスは 大工事で 開く 予定です。": "Detailed Stats will open with the big update.", "まだ ペットが いません。": "No pet yet.",
+  "おなか いっぱい（あと # 分で 食べられる）": "Full (can eat again in # min)", "腹八分目まで あと #": "# more to “just right”", "腹八分目：ときどき 栄養が 多く 入る": "Just right: sometimes gives extra nutrition",
+  "おやつが ない（「作る」で 作物から 作る）": "No treats (make them from crops in “Craft”)", "おなかが いっぱい（あと # 分）": "Full (# min left)",
+  "おやつを あげる": "Feed a treat", "謎のお菓子で 上限突破（キャップ ＋#%）": "Break the limit with a Mystery Sweet (cap +#%)", "デトックス茶で リセット": "Reset with Detox Tea",
+  "まだ ない。おやつを あげると 育つ": "None yet. Feed treats to grow them", "あげて います…": "Feeding…", "（腹八分目で ＋#）": " (+# from “just right”)",
+  "リセットして います…": "Resetting…", "詳細ステータスを リセットした": "Detailed Stats reset", "上限突破して います…": "Breaking the limit…", "上限突破：キャップ #% に": "Limit broken: cap is now #%",
+  "おやつで 詳細ステータスを 育てる": "Grow Detailed Stats with treats", "ぜんぶ 見る（#）": "See all (#)", "数": "Qty", "おやつ工房が まだ ない（隠れ家で 作る）": "No treat kitchen yet (build it in the hideout)",
+  "足りない：# あと #": "Missing: # ×#",
   // ---- なかま（tame.html） ----
   "（すっかり なかよし。いっしょに 行きたそうに こっちを 見ている）": "(Best friends now. Looking at you like it wants to come along)",
   "もぐもぐ！（すこし 近くに すわった）": "Munch munch! (sat a little closer)", "……もぐ。（まだ 少し はなれて 見ている）": "……munch. (still watching from a little way off)",
@@ -80,7 +90,7 @@ export const WORDS = {
   "かえられませんでした": "Couldn't change it", "保存できませんでした": "Couldn't save", "ガンビットを 保存した": "Gambits saved", "お手本に もどした": "Reset to example", "（動けない）": "(can't move)",
   // ---- 配合と サブスキル（tame.html。鹿さんの決め、2026-10-25） ----
   "スキル": "Skills", "配合": "Fusion", "配合できる 子 # 体": "Ready to fuse: #", "捕まえた子": "Captured", "# 体": "#", "両性": "Both",
-  "ポイント": "points", "自動で 振る": "Auto-assign", "自分の ツリー": "Own tree", "サブスキル #": "Sub skill #", "サブスキル #・進化": "Sub skill # · Evolved", "配合で 受けつぐ": "Inherited through fusion",
+  "取り出す リソース #": "Extract · # Resources", "おわかれして 取り出す・もう 一度 押す": "Say goodbye & extract · tap again", "ポイント": "points", "自動で 振る": "Auto-assign", "自分の ツリー": "Own tree", "サブスキル #": "Sub skill #", "サブスキル #・進化": "Sub skill # · Evolved", "配合で 受けつぐ": "Inherited through fusion",
   "技 # / #": "Skills # / #", "自分の ツリーから 最大まで → サブスキル # → # の 順に 振る": "Fills its own tree first, then sub skill #1 → #2",
   "振った ポイントは もどせない": "Assigned points can't be refunded", "出かけて いる あいだは 振れない（帰って から）": "Can't assign while away (after it returns)",
   "手で 振る（いまの 振り方は そのまま）": "Manual (current points stay as they are)", "自動で 振る（のこりを 自分の ツリーから）": "Auto (the rest go to its own tree first)",
@@ -100,6 +110,10 @@ export const WORDS = {
 };
 
 export const RULES = [
+  // 栄養の 画面（名前が 入る 文）
+  [/^(.+)を あげる$/, (m, p) => `Feed ${P(p, m[1])}`], [/^(.+)を 作る$/, (m, p) => `Make ${P(p, m[1])}`],
+  [/^(.+)を (\d+) こ あげた：(.+) ＋([\d.]+)%(?:（腹八分目で ＋(\d+)）)?$/, (m, p) => `Fed ${P(p, m[1])} ×${m[2]}: ${P(p, m[3])} +${m[4]}%${m[5] ? ` (+${m[5]} from “just right”)` : ""}`],
+  [/^(.+)を (\d+) こ 作った$/, (m, p) => `Made ${P(p, m[1])} ×${m[2]}`],
   // 配合と サブスキル（名前が 入る 文）
   [/^近親配合（双子・きょうだいどうし）：(ATK|DEF|INT|RES|AGI|DEX|LUK)の 受けつぎが 50%・ほかの 力は 8 割$/, (m) => `Inbreeding (twins or siblings): ${m[1]} inherited at 50%, other stats at 80%`],
   [/^(.+?)(?:＋(\d+))?が 双子で 生まれた（(.+)）$/, (m, p) => `${P(p, m[1])}${m[2] ? "+" + m[2] : ""} was born as twins (${P(p, m[3])})`],
@@ -130,6 +144,7 @@ export const RULES = [
   [/^SP が 足りない（あと (\d+)）$/, (m) => `Not enough SP (${m[1]} more)`], [/^能力の足し分　(.+)$/, (m, p) => `Stat bonus: ${P(p, m[1])}`],
   [/^分岐(①|②)$/, (m) => `Branch ${m[1]}`], [/^分岐(①|②)は (左|右)の 道で 自動に 取る(.*)$/, (m, p) => `Branch ${m[1]}: auto takes the ${m[2] === "左" ? "left" : "right"} path${m[3] ? " " + P(p, m[3]) : ""}`],
   [/^サブツリー (\d) に「(.+)」を 付けた$/, (m, p) => `Added “${P(p, m[2])}” as subtree ${m[1]}`], [/^「(.+)」を はずした（SP が もどった）$/, (m, p) => `Removed “${P(p, m[1])}” (SP returned)`],
+  [/^「(.+)」を 取り出した。(.+)は 旅立った（リソース (\d+)）$/, (m, p) => `Extracted “${P(p, m[1])}”. ${P(p, m[2])} has left to travel (${m[3]} Resources)`],
   [/^取った：(.+)$/, (m, p) => `Learned: ${P(p, m[1])}`], [/^研究した：「(.+)」（リソース (\d+)）$/, (m, p) => `Researched: “${P(p, m[1])}” (${m[2]} Resources)`],
   [/^まだ捕まえていない。派遣で たおすと ([\d.]+)% で捕まえる（1 体ごと。「指定の敵だけ」で 探しに行ける）$/, (m) => `Not captured yet. Each defeat on an expedition has a ${m[1]}% capture chance (use “Target Only” to hunt it)`],
   [/^(.+)の$/, (m, p) => p(m[1]) && `From ${p(m[1])}:`], [/^を捕まえて研究した$/, () => "captured and researched"],

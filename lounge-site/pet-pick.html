@@ -1,0 +1,212 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pet Pick</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Zen+Maru+Gothic:wght@500;700;900&display=swap">
+<style>
+  /* MONO LINK のラウンジ：ペットを えらぶ（2 匹目からの 解放と いまの 子。鹿さんの 決め、2026-10-31）
+     12 匹から えらぶ。2 匹目は 無料、3 匹目から アメジスト（quiz.js の UNLOCK）。いまの 子は 1 匹で、部屋・配信の 戦い・派遣に 出る
+     左で えらぶ・右で 決める（スマホは 決める 所が 上）。?pick=qid で えらんだ 子から 開く。決まりは docs/mono-link-pet-battle.md の「2 匹目からの 解放」 */
+  :root {
+    --space:#F6F8FC; --ink:#1B2340; --soft:#6A7394; --line:#DCE3F0;
+    --sky:#2EA8FF; --coral:#FF5A64; --sun:#FFC21A; --leaf:#22CC88; --violet:#8E6CFF;
+    --jp:"Zen Maru Gothic", "Hiragino Maru Gothic ProN", sans-serif; --num:"Fredoka", "Zen Maru Gothic", sans-serif;
+    --lift:0 18px 40px -18px rgba(27,35,64,.35), 0 2px 0 rgba(27,35,64,.06);
+  }
+  * { box-sizing:border-box; }
+  body { margin:0; min-height:100vh; background:radial-gradient(120% 80% at 50% 0%, #FFFFFF 0%, var(--space) 55%, #EAF0FA 100%); color:var(--ink); font:500 16px/1.65 var(--jp); word-break:auto-phrase; text-wrap:pretty; }
+  button { font:inherit; color:inherit; cursor:pointer; } button:disabled { cursor:not-allowed; }
+  :focus-visible { outline:3px solid var(--sky); outline-offset:3px; border-radius:12px; }
+  h1, h2, p { margin:0; }
+  .top { display:flex; align-items:center; gap:10px; padding:12px clamp(16px, 4vw, 40px); }
+  .top b { font:700 22px/1 var(--num); letter-spacing:.06em; } .top b i { font-style:normal; color:var(--sky); }
+  .top small { font:700 13px/1 var(--jp); color:var(--soft); margin-left:6px; }
+  main { max-width:1040px; margin:0 auto; padding:0 clamp(16px, 4vw, 40px) 40px; }
+  .panel { background:rgba(255,255,255,.9); border-radius:26px; box-shadow:var(--lift); padding:clamp(14px, 2.4vw, 20px); }
+  .wrap { display:grid; grid-template-columns:minmax(0, 1fr) 340px; gap:16px; align-items:start; }
+  .jelly { border:0; border-radius:999px; padding:14px 18px; font:900 16px/1 var(--jp); background:var(--ink); color:#fff; box-shadow:0 5px 0 rgba(27,35,64,.25); }
+  .jelly.sky { background:var(--sky); box-shadow:0 5px 0 rgba(46,168,255,.3); }
+  .jelly:disabled { background:#C9D1E2; box-shadow:0 5px 0 #E3E8F2; color:#fff; }
+  .jelly[aria-busy="true"] { opacity:.7; cursor:progress; }
+  .badge { display:inline-flex; align-items:center; gap:5px; border-radius:999px; padding:4px 10px 4px 5px; font:700 12px/1 var(--jp); color:#fff; background:var(--c); white-space:nowrap; }
+  .badge::before { content:""; width:11px; height:11px; border-radius:50%; background:#fff; opacity:.85; }
+  .gem { display:inline-flex; align-items:center; gap:3px; font:600 1em/1 var(--num); white-space:nowrap; } .gem svg { width:1.05em; height:1.05em; }
+
+  /* しぼりこみ（なかまの 画面と 同じ 形：うすい 箱の 中に ラベル＋チップ） */
+  .fbox { display:grid; gap:6px; padding:8px 10px; border-radius:16px; background:var(--space); margin-bottom:12px; }
+  .frow { display:flex; align-items:center; gap:5px; flex-wrap:wrap; }
+  .frow > span { font:900 11px/1 var(--jp); color:var(--soft); min-width:4.5em; }
+  .chip { border:1.5px solid var(--line); background:#fff; border-radius:999px; padding:5px 10px; font:700 12px/1 var(--jp); display:inline-flex; align-items:center; gap:5px; }
+  .chip i { width:9px; height:9px; border-radius:3px; background:var(--c); }
+  .chip small { font:600 11px/1 var(--num); color:var(--soft); }
+  .chip[aria-pressed="true"] { background:var(--ink); border-color:var(--ink); color:#fff; } .chip[aria-pressed="true"] small { color:rgba(255,255,255,.7); }
+  .chip:disabled { opacity:.4; }
+
+  /* 12 匹（見出しは いっしょに いる・まだ） */
+  .list h2 { display:flex; align-items:baseline; gap:8px; font:900 15px/1.3 var(--jp); margin:4px 0 8px; }
+  .list h2 small { font:600 13px/1 var(--num); color:var(--soft); }
+  .list h2 .next { margin-left:auto; font:700 12px/1 var(--jp); color:var(--soft); }
+  .list h2 .next .gem { color:var(--ink); font-size:14px; }
+  .dex { list-style:none; margin:0 0 14px; padding:0; display:grid; grid-template-columns:repeat(auto-fill, minmax(96px, 1fr)); gap:8px; }
+  .dex:last-child { margin-bottom:0; }
+  .dx { position:relative; width:100%; display:grid; justify-items:center; gap:3px; padding:8px 4px 10px; border:2px solid transparent; background:none; border-radius:18px; text-align:center; }
+  .dx[aria-pressed="true"] { background:#EAF5FF; border-color:var(--sky); }
+  .dx .face { width:72px; height:72px; border-radius:50%; overflow:hidden; display:flex; justify-content:center; background:radial-gradient(circle at 50% 38%, #fff 0, #E4F7EE 80%); }
+  .dx .face img { height:118%; margin-top:2%; }
+  .dx.locked .face { background:radial-gradient(circle at 50% 38%, #fff 0, #ECEFF6 80%); }
+  .dx.locked .face img { filter:grayscale(.85) brightness(1.06) opacity(.75); }
+  .dx b { max-width:100%; font:700 13px/1.25 var(--jp); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .dx small { font:700 11px/1 var(--jp); color:var(--soft); } .dx small.lv { font:600 12px/1 var(--num); }
+  .dx .now { position:absolute; top:4px; right:6px; padding:3px 7px; border-radius:99px; background:var(--sky); color:#fff; font:900 10px/1 var(--jp); }
+  .empty { margin:0 0 14px; padding:14px; border-radius:16px; border:2px dashed var(--line); font:700 12px/1.5 var(--jp); color:var(--soft); text-align:center; }
+
+  /* えらんだ 子（決める 所） */
+  .side { position:sticky; top:12px; display:grid; gap:10px; text-align:center; scroll-margin-top:10px; }
+  .side .pic { width:100%; height:200px; border-radius:20px; display:flex; justify-content:center; background:radial-gradient(circle at 50% 42%, #fff 0, #E4F7EE 78%); overflow:hidden; }
+  .side .pic img { height:112%; margin-top:2%; }
+  .side.locked .pic { background:radial-gradient(circle at 50% 42%, #fff 0, #ECEFF6 78%); }
+  .side h1 { font:900 24px/1.2 var(--jp); display:flex; justify-content:center; align-items:baseline; gap:8px; flex-wrap:wrap; }
+  .side h1 small { font:700 13px/1 var(--jp); color:var(--soft); }
+  .side .meta { display:flex; justify-content:center; align-items:center; gap:6px; flex-wrap:wrap; font:700 12px/1.4 var(--jp); color:var(--soft); }
+  .side .meta .lv { font:600 15px/1 var(--num); color:var(--ink); } .side .meta .lv small { font:700 11px/1 var(--jp); color:var(--soft); margin-right:2px; }
+  .side .trait { font:700 13px/1.6 var(--jp); color:var(--soft); }
+  .side .jelly { width:100%; }
+  .side .why { min-height:1.4em; font:700 12px/1.4 var(--jp); color:#C2364F; } .side .why:empty { min-height:0; }
+  .side .state { font:900 14px/1.4 var(--jp); color:var(--sky); padding:10px 0 4px; }
+
+
+  @media (max-width:760px) {
+    .wrap { grid-template-columns:1fr; }
+    .side { order:-1; position:static; grid-template-columns:110px minmax(0, 1fr); text-align:left; gap:4px 12px; align-items:center; }
+    .side .pic { grid-row:span 3; width:110px; height:120px; border-radius:18px; }
+    .side h1, .side .meta { justify-content:flex-start; }
+    .side h1 { font-size:21px; }
+    .side .trait { grid-column:1 / -1; font-size:12.5px; }
+    .side .jelly, .side .why, .side .state { grid-column:1 / -1; }
+    .dex { grid-template-columns:repeat(4, minmax(0, 1fr)); gap:4px; }
+    .dx { padding:6px 0 8px; } .dx .face { width:60px; height:60px; } .dx b { font-size:12px; }
+  }
+  @media (max-width:370px) { .dex { grid-template-columns:repeat(3, minmax(0, 1fr)); } }
+</style>
+</head>
+<body>
+<header class="top"><a href="/" style="color:inherit;text-decoration:none" aria-label="MONO LINK の サイトへ"><b>MONO LINK<i>://</i></b></a><small><a href="lounge-room.html" style="color:inherit">ラウンジ</a> ／ <a href="dungeon.html" style="color:inherit">ペット</a> ／ えらぶ</small></header>
+<main>
+  <div id="gate"></div>
+  <div class="wrap" id="wrap" hidden>
+    <section class="panel list" aria-label="12 匹">
+      <div class="fbox">
+        <div class="frow" id="fJob"><span>合う 職業</span></div>
+        <div class="frow" id="fSort"><span>ならべる</span></div>
+      </div>
+      <div id="groups"></div>
+    </section>
+    <section class="panel side" id="side" aria-live="polite"></section>
+  </div>
+</main>
+<script type="module">
+import "./lounge-en.js";   // 英語の 画面（MONO LINK の サイトの EN／日本語 と 同じ 決まり。英語の ときだけ 辞書を 読む）
+import { me, act, busy, waitText } from "./lounge-client.js";
+import { PETS, UNLOCK } from "./quiz.js";
+import { TYPES } from "./skills.js";
+import { gateHtml, addGateCss, toast } from "./pet-head.js";
+import { mountWallet } from "./wallet-bar.js"; mountWallet();   // 上の 通貨の 札（玉・アメジスト・クレジット）と 両替
+
+addGateCss();   // 案内と トーストの 見た目
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
+const GEM = `<svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 1.5 17 8 10 18.5 3 8Z" fill="#8E6CFF"/><path d="M10 1.5 13 8H7Z" fill="#fff" opacity=".45"/></svg>`;   // アメジスト（wallet-bar.js と 同じ 形）
+const gem = (n) => `<span class="gem">${GEM}${Number(n).toLocaleString("ja-JP")}</span>`;
+const JOB = Object.fromEntries(Object.entries(TYPES).map(([k, t]) => [t.label, { id: k, ...t }]));   // 合う 職業（PETS の jobs は 日本語の 名前）
+const ORDER = Object.keys(PETS);
+const SORTS = [["base", "いつもの 順"], ["lv", "Lv の 順"]];
+
+let ME = null, sel = null, job = "", sort = "base";
+const mine = (q) => ME.pets.find((p) => p.qid === q);
+const away = (p) => !!p && (ME.trips || []).some((t) => !t.done && t.party && t.party[0] === p.uid);   // 出かけて いる 子
+const cost = () => UNLOCK[ME.pets.length];
+const res = () => (ME.wallet && ME.wallet.known ? ME.wallet.res : null);
+
+function paintFilters() {
+  const n = (j) => ORDER.filter((q) => !j || PETS[q].jobs.includes(j)).length;
+  $("fJob").innerHTML = `<span>合う 職業</span>` + [["", "すべて"], ...Object.keys(JOB).map((j) => [j, j])].map(([j, l]) =>
+    `<button class="chip" data-job="${esc(j)}" aria-pressed="${job === j}" ${n(j) ? "" : "disabled"}>${j ? `<i style="--c:${JOB[j].color}"></i>` : ""}${esc(l)}<small>${n(j)}</small></button>`).join("");
+  $("fSort").innerHTML = `<span>ならべる</span>` + SORTS.map(([k, l]) => `<button class="chip" data-sort="${k}" aria-pressed="${sort === k}">${esc(l)}</button>`).join("");
+}
+function card(q) {
+  const P = PETS[q], p = mine(q), now = p && ME.pets[0].uid === p.uid;
+  return `<li><button class="dx${p ? "" : " locked"}" data-q="${q}" aria-pressed="${sel === q}">${now ? `<span class="now">いまの 子</span>` : ""}
+    <span class="face"><img src="${P.img}" alt=""></span><b>${esc(P.name)}</b>${p ? `<small class="lv">Lv ${Number(p.lv) || 1}</small>` : `<small>${esc(P.label)}</small>`}</button></li>`;
+}
+function paintList() {
+  const show = ORDER.filter((q) => !job || PETS[q].jobs.includes(job));
+  const have = show.filter((q) => mine(q)), wait = show.filter((q) => !mine(q));
+  if (sort === "lv") have.sort((a, b) => mine(b).lv - mine(a).lv || ORDER.indexOf(a) - ORDER.indexOf(b));
+  const c = cost();
+  $("groups").innerHTML =
+    `<h2>いっしょに いる <small>${have.length}</small></h2>` + (have.length ? `<ul class="dex">${have.map(card).join("")}</ul>` : `<p class="empty">この 職業の 子は まだ いません</p>`) +
+    (ME.pets.length < ORDER.length ? `<h2>まだ 会って いない <small>${wait.length}</small><span class="next">つぎの 子 ${c ? gem(c) : "無料"}</span></h2>` + (wait.length ? `<ul class="dex">${wait.map(card).join("")}</ul>` : `<p class="empty">この 職業の 子は みんな いっしょに います</p>`) : "");
+}
+function paintSide() {
+  const P = PETS[sel], p = mine(sel), now = p && ME.pets[0].uid === p.uid, T = p && p.type && TYPES[p.type], c = cost(), have = res();
+  const jobs = P.jobs.length ? P.jobs.map((j) => `<span class="badge" style="--c:${JOB[j].color}">${esc(j)}</span>`).join("") : `<span>どの 職業も 同じくらい</span>`;
+  let foot = "";
+  if (now) foot = `<p class="state">いまの 子です${away(p) ? "（出かけて います）" : ""}</p>`;
+  else if (p) foot = `<button class="jelly sky" id="go" data-do="switch">いまの 子に する</button><p class="why">${away(ME.pets[0]) ? `${esc(ME.pets[0].name)}は 出かけた まま 派遣を つづけます` : ""}</p>`;
+  else {
+    const short = c && have != null && have < c ? c - have : 0;
+    foot = `<button class="jelly sky" id="go" data-do="unlock" ${short || (c && have == null) ? "disabled" : ""}>むかえる ${c ? gem(c) : "（無料）"}</button>`
+      + `<p class="why">${short ? `足りない：アメジスト あと ${short}` : c && have == null ? "アメジストが まだ わかりません（配信で 1 回 チャットすると わかります）" : ""}</p>`;
+  }
+  $("side").className = "panel side" + (p ? "" : " locked");
+  $("side").innerHTML = `<div class="pic"><img src="${P.img}" alt="${esc(P.label)}の${esc(P.name)}"></div>
+    <h1>${esc(P.name)}<small>${esc(P.label)}</small></h1>
+    <div class="meta">${p ? `<span class="lv"><small>Lv</small>${Number(p.lv) || 1}</span>${T ? `<span class="badge" style="--c:${T.color}">${esc(T.label)}</span>` : `<span>職業は まだ</span>`}` : `<span>得意なツリー <b>${esc(P.tree)}</b></span>`}</div>
+    <div class="meta">${p ? `<span>得意なツリー <b>${esc(P.tree)}</b></span>` : jobs}</div>
+    <p class="trait">${esc(P.trait)}</p>${foot}`;
+}
+const paint = () => { paintFilters(); paintList(); paintSide(); };
+
+async function load() {
+  ME = await me();
+  if (ME.denied || ME.ok === false || !(ME.pets && ME.pets.length)) { $("gate").innerHTML = gateHtml(ME, esc); $("wrap").hidden = true; return false; }   // 職業が まだ でも えらべる（1 匹目が いれば）
+  $("gate").innerHTML = ""; $("wrap").hidden = false;
+  return true;
+}
+// はじめに えらぶ 子：?pick → 1 匹だけなら まだの 子（2 匹目は 無料）→ いまの 子
+async function start() {
+  if (!(await load())) return;
+  const q = new URLSearchParams(location.search).get("pick");
+  sel = PETS[q] ? q : ME.pets.length === 1 ? ORDER.find((x) => !mine(x)) : ME.pets[0].qid;
+  paint();
+}
+
+document.addEventListener("click", async (e) => {
+  const b = e.target.closest("button"); if (!b || b.disabled) return;
+  if (b.dataset.job != null) { job = b.dataset.job; paint(); return; }
+  if (b.dataset.sort) { sort = b.dataset.sort; paint(); return; }
+  if (b.dataset.q) {
+    sel = b.dataset.q; paint();
+    if (matchMedia("(max-width:760px)").matches) $("side").scrollIntoView({ behavior: matchMedia("(prefers-reduced-motion:reduce)").matches ? "auto" : "smooth", block: "start" });   // スマホ：決める 所へ
+    return;
+  }
+  if (b.id !== "go") return;
+  const q = sel, P = PETS[q];
+  if (b.dataset.do === "unlock") {
+    const r = await busy(b, () => act("pet.unlock", { qid: q }), "むかえて います…");
+    if (!r.ok) { toast(r.why || (r.wait ? waitText : "むかえられませんでした")); await load(); paint(); return; }
+    await load(); paint(); toast(`${P.name}がやってきた！`);
+  } else {
+    const p = mine(q); if (!p) return;
+    const r = await busy(b, () => act("pet.switch", { uid: p.uid }), "かえて います…");
+    if (!r.ok) { toast(r.why || "かえられませんでした"); return; }
+    await load(); paint(); toast(`いまの 子：${P.name}`);
+  }
+});
+await start();
+window.ready = true;
+</script>
+</body>
+</html>

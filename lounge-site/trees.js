@@ -3,6 +3,7 @@
 // SP はレベルが 1 上がるごとに 10。ノードの中身（技・パッシブ）は skills.js の slot、能力上昇の数字はこのゲームの大きさに合わせて小さくする
 import { TREES } from "./skills.js";
 import { ENEMY_TREES } from "./enemy-trees.js";
+import { MAIN_TREES } from "./main-trees.js";
 
 export const SP_PER_LV = 10, TREE_SLOTS = 4, SET_SLOTS = 6;
 // 能力上昇ノードの数字：もとの表の値 × 倍率（このゲームのステータスは小さいので）。個体差で +0〜50%
@@ -44,24 +45,21 @@ export const SHAPE = [
 const NODE = Object.fromEntries(SHAPE.map((n) => [n.id, n]));
 const OPPOSITE = { L1: "R1", R1: "L1", L2: "R2", R2: "L2" };
 
-// 職業ツリー：主能力・副能力（このゲームのステータス名）。技とパッシブは skills.js の slot から
-export const JOB_TREES = {
-  attacker: { name: "アタッカー", main: "atk", sub: "dex" },
-  caster: { name: "キャスター", main: "int", sub: "mp" },
-  technician: { name: "テクニシャン", main: "dex", sub: "agi" },
-  healer: { name: "ヒーラー", main: "int", sub: "res" },
-  defender: { name: "ディフェンダー", main: "def", sub: "res" },
-};
+// メインの ツリー 12 本：主能力・副能力（このゲームの ステータス名）。技と パッシブは skills.js（main-trees.js）の slot から
+// フレキシブルは 育て方で 変わる：主能力は 攻め（ATK・DEX・INT）の いちばん 高い 物、副能力は 守り（RES・DEF・AGI）の いちばん 高い 物（鹿さんの 決め、2026-10-31）
+export const JOB_TREES = Object.fromEntries(Object.entries(MAIN_TREES).map(([id, t]) => [id, { name: t.name, main: t.main, sub: t.sub }]));
+const BEST = { bestOff: ["atk", "dex", "int"], bestDef: ["res", "def", "agi"] };
+export const statKeyOf = (k, stats) => (BEST[k] ? (stats ? BEST[k].reduce((a, b) => (stats[b] > stats[a] ? b : a)) : BEST[k][0]) : k);
 // ツリーの情報（名前・主能力・副能力・技とパッシブの一覧）。職業ツリーでも敵ツリーでも同じ形で返す
 export const treeOf = (id) => JOB_TREES[id] ? { ...JOB_TREES[id], id, job: true, list: TREES[id] } : { ...ENEMY_TREES[id], id, job: false };
 // ツリー 1 本の 30 ノードに中身を入れる
-export function nodesOf(treeId) {
+export function nodesOf(treeId, stats) {
   const T = treeOf(treeId), list = T.list;
   return SHAPE.map((n) => {
     const x = { ...n };
     if (n.kind === "skill") x.skill = list.find((s) => s.slot === `S${n.n}`)?.id;
     if (n.kind === "passive") x.passive = list.find((s) => s.slot === `P${n.n}`)?.id;
-    if (n.kind === "stat") x.key = n.stat === "main" ? T.main : n.stat === "sub" ? T.sub : "hp";
+    if (n.kind === "stat") x.key = statKeyOf(n.stat === "main" ? T.main : n.stat === "sub" ? T.sub : "hp", stats);
     return x;
   });
 }
@@ -100,9 +98,9 @@ function variance(seed, treeId, nodeId) {
 export const baseValue = (n) => Math.max(1, Math.round(n.v * (STAT_SCALE[n.key] ?? STAT_SCALE.other)));
 export const statValue = (n, seed, treeId) => Math.round(baseValue(n) * (1 + variance(seed, treeId, n.id)));
 // 取ったノードから、覚えた技・パッシブ・能力の足し分・ガンビットの枠を集める
-export function learned(treeId, taken, seed) {
+export function learned(treeId, taken, seed, stats) {
   const out = { skills: [], passives: [], stats: {}, keywords: 0, master: false };
-  for (const n of nodesOf(treeId)) {
+  for (const n of nodesOf(treeId, stats)) {
     if (!taken.has(n.id)) continue;
     if (n.kind === "skill" && n.skill) out.skills.push(n.skill);
     if (n.kind === "passive" && n.passive) out.passives.push(n.passive);
@@ -117,14 +115,27 @@ export function learned(treeId, taken, seed) {
 // レベルが 1 上がるごとに 3 ポイント：2 ポイントは職業の重みで自動、1 ポイントは飼い主が好きに振る（1 ポイントで HP +4・MP +2・ほかは +1）
 // 種類ごとのステータス適正（2026-10-20 に決めた）：伸びる分に S ×1.15・A ×1.075・B ×1・C ×0.925・D ×0.85 をかける
 // どの子も S 1・A 2・B 3・C 2・D 1 で、倍率の合計は同じ（9.0）。得意なステータスに合う職業を選ぶと少し強い
-export const BASE_STATS = { hp: 50, mp: 16, atk: 7, def: 7, int: 7, res: 7, agi: 7, dex: 7, luk: 7 };
-export const UNIT = { hp: 4, mp: 2 };
+export const BASE_STATS = { hp: 72, mp: 16, atk: 7, def: 7, int: 7, res: 7, agi: 7, dex: 7, luk: 7 };
+export const UNIT = { hp: 5.5, mp: 2 };
 export const JOB_GROWTH = {
   attacker: { atk: 16, dex: 8, hp: 5, agi: 5, def: 4, luk: 4, mp: 3 },
   caster: { int: 14, mp: 4, hp: 6, res: 6, dex: 6, agi: 6 },
   technician: { dex: 14, agi: 8, res: 4, atk: 4, hp: 6, def: 4, luk: 2, mp: 4 },
   healer: { int: 10, res: 8, mp: 6, hp: 8, def: 6, agi: 4 },
   defender: { hp: 8, def: 10, res: 8, atk: 6, agi: 6, dex: 4, mp: 3 },
+  // メインの ツリー 12 本（鹿さんの 決め、2026-10-31：主能力を いちばん 大きく、副能力を 次に、もとの 子の 合う 適正（S・A）を 少し 足す。数は 仮）
+  drowsy: { hp: 10, int: 9, mp: 5, atk: 2, agi: 2, dex: 2, def: 2, res: 1, luk: 1 },
+  punctual: { dex: 15, hp: 6, def: 5, mp: 4, atk: 3, int: 3, res: 2, agi: 3, luk: 2 },
+  swift: { agi: 14, dex: 8, hp: 13, mp: 3, def: 4, luk: 4, int: 2, res: 2 },
+  static: { int: 17, res: 8, def: 7, mp: 2, hp: 5, atk: 3, agi: 2, dex: 1, luk: 1 },
+  tough: { atk: 15, hp: 5, def: 3, mp: 6, res: 4, int: 3, agi: 2, dex: 1, luk: 2 },
+  translucent: { int: 16, agi: 10, hp: 6, mp: 6, def: 4, res: 3, atk: 1, dex: 2, luk: 1 },
+  spiky: { def: 11, res: 9, mp: 7, hp: 3, atk: 1, int: 2, agi: 2, dex: 3, luk: 1 },
+  greedy: { atk: 16, hp: 15, luk: 7, mp: 5, def: 4, int: 2, res: 1, agi: 2 },
+  mariage: { atk: 14, hp: 15, int: 8, def: 5, res: 4, dex: 2, agi: 2, mp: 1, luk: 1 },
+  spooky: { dex: 15, int: 9, hp: 8, def: 7, agi: 3, mp: 2, atk: 2, luk: 1, res: 1 },
+  sharp: { int: 15, res: 8, hp: 9, def: 9, atk: 3, agi: 3, dex: 1, luk: 1 },
+  flexible: { hp: 5, def: 4, mp: 6, atk: 4, int: 3, agi: 4, dex: 3, res: 4, luk: 2 },
 };
 export const AUTO_PER_LV = 2, FREE_PER_LV = 1;
 export const APT_MUL = { S: 1.15, A: 1.075, B: 1, C: 0.925, D: 0.85 };
@@ -138,6 +149,11 @@ export const APTITUDE = {
   kurage: apt("mp:S int:A agi:A hp:B res:B dex:B atk:C luk:C def:D"),     // ユラ：夜に光る。光でびっくりさせる。ふわふわよける。風に流される。体がやわらかい
   saboten: apt("def:S hp:A res:A atk:B dex:B int:B luk:C mp:C agi:D"),    // チク：トゲと水ため。鉢ごとなので遅い
   chokin: apt("atk:S hp:A luk:A mp:B int:B dex:B res:C agi:C def:D"),     // チャリン：コインでずっしり重い体当たり。コインの運。食べすぎて動けない。ハンマーで割れる
+  // 2026-10-31 に ふやした 4 匹（鹿さんの 決め。docs/mono-link-new-pets.md）
+  tako: apt("atk:S int:A dex:A hp:B agi:B luk:B def:C res:C mp:D"),      // たこちー：魔法も 物理も 自在。MP は 少ない
+  ittan: apt("dex:S int:A agi:A hp:B res:B luk:B mp:C atk:C def:D"),    // ペラ：器用な アルミの 板。うすいので DEF が D
+  ebi: apt("int:S def:A res:A hp:B mp:B dex:B agi:C atk:C luk:D"),      // クロトラ：シールドと レーザー。淡白で 運に たよらない
+  beagle: apt("hp:B mp:B atk:B def:B int:B res:B agi:B dex:B luk:B"),   // テク：能力は ぜんぶ 平均的（鹿さんの 原案）
 };
 export const aptMul = (species, k) => APT_MUL[APTITUDE[species]?.[k] || "B"];
 // 合う職業：職業の重みで自動に伸びる分に、適正の倍率をかけた平均（1 より大きいほど合う）
@@ -170,7 +186,7 @@ export function buildPet(type, lv, o = {}) {
   const trees = [[o.main || type, total - subSp, o.branch], ...subs];
   const stats = growthStats(type, lv, o.free, o.species), out = { learnedSkills: [], passives: [], keywords: 0, taken: {} };
   for (const [id, sp, branch] of trees) {
-    const { taken } = autoTake(sp, branch), L = learned(id, taken, o.seed);
+    const { taken } = autoTake(sp, branch), L = learned(id, taken, o.seed, stats);
     for (const [k, v] of Object.entries(L.stats)) stats[k] += v;
     out.learnedSkills.push(...L.skills); out.passives.push(...L.passives); out.keywords += L.keywords; out.taken[id] = taken;
   }

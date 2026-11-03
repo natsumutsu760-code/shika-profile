@@ -49,7 +49,8 @@ function lockScreen(j) {
   if (!j || !j.lock || OPEN_PAGE || document.getElementById("ml-lock")) return;
   const d = document.createElement("div"); d.id = "ml-lock"; d.setAttribute("role", "alert");
   d.style.cssText = "position:fixed;inset:0;z-index:9999;display:grid;place-items:center;padding:16px;background:rgba(244,247,252,.97);color:#1B2340;text-align:center;font:700 15px/1.7 'Zen Maru Gothic',system-ui,sans-serif";
-  d.innerHTML = '<div><b style="display:block;font-size:24px;margin-bottom:6px">工事中</b><p style="margin:0 0 14px">MONO LINK の 大工事の あいだは、ラウンジの 部屋と ショップだけ 使えます</p><div id="ml-dev"></div><p style="margin:0;display:flex;gap:10px;justify-content:center"><a href="lounge-room.html" style="padding:8px 16px;border-radius:99px;background:#2EA8FF;color:#fff;text-decoration:none">部屋へ</a><a href="lounge-shop.html" style="padding:8px 16px;border-radius:99px;border:1.5px solid #DCE3F0;color:#1B2340;text-decoration:none">ショップへ</a></p></div>';
+  const pet = j.lockKind === "pet";   // 大工事の ロックが とけた あと、新しい ペットと 農園を みんなに 開く までは「準備中」（鹿さんの 決め 2026-11-03）
+  d.innerHTML = '<div><b style="display:block;font-size:24px;margin-bottom:6px">' + (pet ? "準備中" : "工事中") + '</b><p style="margin:0 0 14px">' + (pet ? "新しい ペットと 農園は、公開まで もう 少し お待ちください。ラウンジの 部屋と ショップは 使えます" : "MONO LINK の 大工事の あいだは、ラウンジの 部屋と ショップだけ 使えます") + '</p><div id="ml-dev"></div><p style="margin:0;display:flex;gap:10px;justify-content:center"><a href="lounge-room.html" style="padding:8px 16px;border-radius:99px;background:#2EA8FF;color:#fff;text-decoration:none">部屋へ</a><a href="lounge-shop.html" style="padding:8px 16px;border-radius:99px;border:1.5px solid #DCE3F0;color:#1B2340;text-decoration:none">ショップへ</a></p></div>';
   document.body.append(d);
   progressInto(d.querySelector("#ml-dev"));
 }

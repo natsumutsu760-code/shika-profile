@@ -182,7 +182,7 @@ const ICON = { bench: '<path d="M4 20l9-9"/><path d="M12 5l7 7-3 3-7-7z"/>', lab
   radio: '<rect x="4" y="9" width="16" height="11" rx="2"/><path d="M8 9l9-5"/><circle cx="9" cy="14.5" r="2.5"/><path d="M15 13h2M15 16h2"/>' };
 const icon = (id) => `<span class="ico ${id === "pc" ? "dark" : ""}" style="--c:${COLOR[id] || "#000"}" aria-hidden="true"><svg viewBox="0 0 24 24">${ICON[id]}</svg></span>`;
 // タブ：施設を 使いみちで 分ける
-const TABS = [{ id: "make", name: "つくる", facs: ["bench", "workshop", "snack", "lab"] }, { id: "trip", name: "派遣", facs: ["maproom", "medic", "gym", "radio"] }, { id: "dig", name: "拡張", facs: ["dig", "farm", "mine"] }, { id: "store", name: "倉庫", facs: ["storage", "armory"] }]   // 拡張：地下を 奥へ 広げる・広げた 所の 畑と 坑道（鹿さんの決め、2026-10-25）
+const TABS = [{ id: "make", name: "つくる", facs: ["bench", "workshop", "snack", "lab"] }, { id: "trip", name: "派遣", facs: ["maproom", "medic", "gym", "radio"] }, { id: "dig", name: "拡張", facs: ["dig", "mine"] }, { id: "store", name: "倉庫", facs: ["storage", "armory"] }]   // 拡張：地下を 奥へ 広げる・広げた 所の 畑と 坑道（鹿さんの決め、2026-10-25）
   .map((t) => ({ ...t, facs: t.facs.filter((id) => FACILITIES.some((f) => f.id === id)) }));   // 無線機は ニライ諸島が 出てから（facilities.js）
 const tabOf = (fid) => TABS.find((t) => t.facs.includes(fid));
 // 倉庫の中の 分け方：しゅるい・行き先・ならべる（なかまの画面と 同じ形）
@@ -302,7 +302,7 @@ function rowHtml(r) {
 }
 function detailHtml() {
   const f = F(S.sel), c = check(f), lv = S.lv[f.id];
-  const head = `<header style="--c:${COLOR[f.id]}">${icon(f.id)}<div><h2>${f.name} ${lvp(f)}</h2><p>${esc(f.text)}</p></div></header>${f.id === "bench" && lv ? `<a class="use" href="bench.html">作業台を つかう</a>` : ""}${f.id === "armory" ? `<a class="use" href="equip.html">装備を 見る</a>` : ""}${f.id === "workshop" && lv ? `<a class="use" href="workshop.html">工房を つかう</a>` : ""}${f.id === "dig" && lv ? `<a class="use" href="hideout-room.html?all=1">広がった 地下を 見る</a>` : ""}${f.id === "farm" && lv ? `<a class="use" href="farm.html">畑を ひらく</a>` : ""}${f.id === "mine" && lv ? `<a class="use" href="farm.html?t=mine">坑道を ひらく</a>` : ""}${f.id === "snack" && lv ? `<section class="craft" aria-label="おやつを 作る"><span class="need-h">おやつを 作る</span>${snackCraftHtml(lv, S.inv)}</section>` : ""}`;   // おやつ工房：Lv1 から ここで 作る（なかまの 画面でも 同じ 物）
+  const head = `<header style="--c:${COLOR[f.id]}">${icon(f.id)}<div><h2>${f.name} ${lvp(f)}</h2><p>${esc(f.text)}</p></div></header>${f.id === "bench" && lv ? `<a class="use" href="bench.html">作業台を つかう</a>` : ""}${f.id === "armory" ? `<a class="use" href="equip.html">装備を 見る</a>` : ""}${f.id === "workshop" && lv ? `<a class="use" href="workshop.html">工房を つかう</a>` : ""}${f.id === "dig" && lv ? `<a class="use" href="hideout-room.html?all=1">広がった 地下を 見る</a>` : ""}${f.id === "mine" && lv ? `<a class="use" href="mine.html">坑道を ひらく</a>` : ""}${f.id === "snack" && lv ? `<section class="craft" aria-label="おやつを 作る"><span class="need-h">おやつを 作る</span>${snackCraftHtml(lv, S.inv)}</section>` : ""}`;   // おやつ工房：Lv1 から ここで 作る（なかまの 画面でも 同じ 物）
   const all = `<details><summary>Lv${f.lv.length} まで 見る</summary><ul class="lvs" style="--c:${COLOR[f.id]}">${f.lv.map((x, i) => `<li class="${i < lv ? "got" : ""}"><b>Lv${i + 1}</b><span>${esc(x.fx)}</span></li>`).join("")}</ul></details>`;
   if (c.max) return `${head}<p class="done">${c.more ? "" : "いちばん上の "}Lv${lv} です。いまは「${esc(f.lv[lv - 1].fx)}」</p>${c.more ? `<p class="soon">無線機を 作ると Lv${lv + 1} に できる</p>` : ""}${all}`;
   const lack = c.rows.filter((r) => r.have < r.need), rows = [...lack, ...c.rows.filter((r) => r.have >= r.need)];

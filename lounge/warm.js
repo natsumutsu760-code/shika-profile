@@ -7,7 +7,7 @@ import { tripInit, tripStep, tripResult, tamedOf, petAt, floorMap, DUNGEONS, FLO
 try {
   for (const d of DUNGEONS) for (let n = 1; n <= FLOORS; n++) floorMap(d.id, n);
   const d = DUNGEONS[0], eq = [{ base: "straw", star: 3, ops: ["hp", "evade", "dmgCut"] }, { base: "gold", star: 5, ops: ["hp", "endure", "focusStart", "crit", "drain"] }];
-  const party = [{ ...petAt("healer", 8), name: "warm", lv: 8, equip: eq }, tamedOf(d.foes[0], 8, eq), tamedOf(d.foes[1], 8, eq)];
+  const party = [{ ...petAt("drowsy", 8), name: "warm", lv: 8, equip: eq }, tamedOf(d.foes[0], 8, eq), tamedOf(d.foes[1], 8, eq)];
   const S = JSON.parse(JSON.stringify(tripInit(party, d.id, "long", 1, { lite: true })));
   while (!tripStep(S, 2));
   tripResult(S);

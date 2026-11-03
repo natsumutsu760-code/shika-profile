@@ -17,4 +17,35 @@ const ICONS = {
   bell: W(`<path d="M16 4a2 2 0 0 1 2 2v1a7 7 0 0 1 5 6.7V20l2.5 3H6.5L9 20v-6.3A7 7 0 0 1 14 7V6a2 2 0 0 1 2-2z" fill="#F3C24F" stroke="#9A6A12" stroke-width="1.6"/><circle cx="16" cy="25.5" r="2.4" fill="#9A6A12"/><path d="M12 13a4 4 0 0 1 3-3" fill="none" stroke="#FFF2C2" stroke-width="1.8"/>`),
   blankcore: W(`<path d="M16 3l11 6.5v13L16 29 5 22.5v-13z" fill="#EEE8FF" stroke="#6B4FD8" stroke-width="1.8"/><path d="M16 9l6 3.5v7L16 23l-6-3.5v-7z" fill="#fff" stroke="#B197FC" stroke-width="1.4" stroke-dasharray="2 1.6"/><path d="M8 10.5l3 1.8" stroke="#fff" stroke-width="1.6"/>`),   // ブランクコア（中が 空いた 結晶）
 };
+// 薬・エンチャント・お守り（鹿さんの 決め、2026-10-31）：形は 3 つ（小びん・光る 石・お守り袋）で 色だけ かえる。上の 版は 金の 星つき
+const STAR = `<path d="M25 2.5l1.4 2.8 3 .4-2.2 2.1.5 3-2.7-1.4-2.7 1.4.5-3-2.2-2.1 3-.4z" fill="#FFD43B" stroke="#9A6A12" stroke-width="1"/>`;
+const bottle = (c, d) => `<rect x="13" y="3.5" width="6" height="4" rx="1" fill="#C89A6A" stroke="#7A5530" stroke-width="1.3"/><path d="M12 8h8v3l4 4v9a4 4 0 0 1-4 4h-8a4 4 0 0 1-4-4v-9l4-4z" fill="${c}" stroke="${d}" stroke-width="1.6"/><path d="M11 17h10" stroke="#fff" stroke-width="1.6" opacity=".55"/>`;
+const gem = (c, d) => `<path d="M16 3l9 9-9 17-9-17z" fill="${c}" stroke="${d}" stroke-width="1.6"/><path d="M7 12h18M12 12l4-9 4 9-4 17z" fill="none" stroke="#fff" stroke-width="1" opacity=".6"/>`;
+const pouch = (c, d) => `<path d="M10 9h12l2 16a3 3 0 0 1-3 3H11a3 3 0 0 1-3-3z" fill="${c}" stroke="${d}" stroke-width="1.6"/><path d="M10 9c1-3 3-4 6-4s5 1 6 4" fill="none" stroke="${d}" stroke-width="1.6"/><rect x="12.5" y="14" width="7" height="8" rx="1" fill="#fff" opacity=".85"/><path d="M14 16.5h4M14 19h4" stroke="${d}" stroke-width="1"/>`;
+const ink = { burn: ["#FF8A5B", "#B8401A"], frost: ["#8FD3FF", "#2E7AB8"], poison: ["#B48CF0", "#6A3FB0"], sick: ["#A6D86A", "#4E7F22"], sleep: ["#9AA8FF", "#3F4FB8"], para: ["#FFE066", "#A8860A"], stun: ["#FFB3C7", "#B83A5E"] };
+Object.assign(ICONS, {
+  tea_heal: ICONS.tea,
+  cure: W(bottle("#7FE0B0", "#2C8A5A")), cure2: W(bottle("#7FE0B0", "#2C8A5A") + STAR),
+  revive: W(bottle("#FF9AA2", "#B83A4A")), revive2: W(bottle("#FF9AA2", "#B83A4A") + STAR),
+  incense: W(`<path d="M15 6v18" stroke="#8C5A38" stroke-width="2.4"/><path d="M15 6c-3-2 2-3 0-5M18 8c-2-2 2-3 0-5" fill="none" stroke="#B9C3D6" stroke-width="1.3"/><rect x="8" y="22" width="16" height="6" rx="2" fill="#C9A06A" stroke="#7A5530" stroke-width="1.5"/>`),
+  ...Object.fromEntries(["burn", "frost", "poison", "sick"].map((k) => ["ench_" + k, W(gem(...ink[k]))])),
+  ...Object.fromEntries(["sleep", "poison", "burn", "frost", "para", "stun"].map((k) => ["charm_" + k, W(pouch(...ink[k]))])),
+});
+// 畑と 坑道で 使う 物（肥料・つるはし・ランプ）
+const sack = (c, d) => `<path d="M9 9h14l2 16a3 3 0 0 1-3 3H10a3 3 0 0 1-3-3z" fill="${c}" stroke="${d}" stroke-width="1.6"/><path d="M11 9l2-4h6l2 4" fill="${c}" stroke="${d}" stroke-width="1.6"/><path d="M13 18c1-3 5-3 6 0M16 15v8" stroke="#3F8A2E" stroke-width="1.8" fill="none"/>`;
+Object.assign(ICONS, {
+  fert: W(sack("#D9B98A", "#8A6A3A")), fert2: W(sack("#E8D0A8", "#8A6A3A") + STAR),
+  pickaxe: W(`<path d="M6 10c5-5 15-5 20 0" fill="none" stroke="#8E9AAA" stroke-width="4"/><path d="M16 7v21" stroke="#8C5A38" stroke-width="3"/>`),
+  lamp: W(`<path d="M12 6h8M16 3v3" stroke="#7A5530" stroke-width="1.8"/><path d="M11 8h10l1 4H10z" fill="#C97A3A" stroke="#7A4A20" stroke-width="1.4"/><rect x="11" y="12" width="10" height="11" rx="2" fill="#FFE08A" stroke="#C97A3A" stroke-width="1.6"/><path d="M16 15c-2 2-2 4 0 6 2-2 2-4 0-6z" fill="#FF8A3A"/><rect x="10" y="23" width="12" height="4" rx="1.5" fill="#C97A3A" stroke="#7A4A20" stroke-width="1.4"/>`),
+});
+ICONS.incense2 = W(ICONS.incense.slice(ICONS.incense.indexOf(">") + 1, -6) + STAR);
+// 戦いの アイテム（鹿さんの 決め、2026-10-31）：爆弾は 丸い 玉に 導火線（色で 状態異常・大きさで 小中大）。薬は 小びんの 色（上の 版は 星）
+const bomb = (c, d, r) => `<circle cx="15" cy="${29 - r}" r="${r}" fill="${c}" stroke="${d}" stroke-width="1.6"/><path d="M${15 + r * 0.55} ${29 - r * 1.85}l3-3" stroke="#7A5530" stroke-width="2"/><path d="M${18 + r * 0.55} ${26 - r * 1.85}c1-2 3-2 3-4" fill="none" stroke="#FF8A3A" stroke-width="1.8"/><circle cx="${15 - r * 0.35}" cy="${29 - r * 1.35}" r="${r * 0.22}" fill="#fff" opacity=".55"/>`;
+const BOMB_INK = { plain: ["#4A5268", "#1B2340"], burn: ink.burn, frost: ink.frost, poison: ink.poison };
+for (const [k, [c, d]] of Object.entries(BOMB_INK)) for (const [sz, r] of [["s", 7], ["m", 9], ["l", 11]]) ICONS[`bomb_${k}_${sz}`] = W(bomb(c, d, r));
+Object.assign(ICONS, {
+  pot_hp: W(bottle("#FF7A8A", "#B8384A")), pot_hp2: W(bottle("#FF7A8A", "#B8384A") + STAR),
+  pot_mp: W(bottle("#7AA8FF", "#2E56B8")), pot_mp2: W(bottle("#7AA8FF", "#2E56B8") + STAR),
+  pot_atk: W(bottle("#FFB04A", "#B86A12")), pot_def: W(bottle("#9AA8BE", "#4A5468")), pot_agi: W(bottle("#7FE0D0", "#1E8A7A")),
+});
 export const wsIcon = (id) => ICONS[id] || W(`<circle cx="16" cy="16" r="10" fill="#DCE3F0"/>`);

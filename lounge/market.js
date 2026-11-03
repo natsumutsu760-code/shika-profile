@@ -6,6 +6,7 @@
 import { LIMIT_MS, KEEP_DONE, NOTE_HIDE_AT, fits, items } from "./lounge-req.js";
 import { arenaFetch, arenaAlarm } from "./lounge-arena.js";   // 闘技場（名簿・大会）も この 箱
 import { supportFetch } from "./lounge-support.js";   // おたこまるさんの 窓口の 記録も この 箱（KV の おくれで 上書きされない ように）
+import { marketReset } from "./lounge-reset.js";   // 大工事の あとの リセット（鹿さんの 決め 2026-11-03）
 
 const res = (o, status = 200) => new Response(JSON.stringify(o), { status, headers: { "Content-Type": "application/json" } });
 const RETRY_MS = 60e3;   // 知らせが とどかなかったら 1 分後に もう 1 回
@@ -15,6 +16,7 @@ export class Market {
 
   async load() {
     if (this.reqs) return;
+    if (await marketReset(this.state.storage)) await this.wake(Date.now());   // 大工事の あとの リセット（lounge-reset.js）。返す 玉を すぐ 送る
     this.reqs = Object.fromEntries([...(await this.state.storage.list({ prefix: "r:" })).values()].map((r) => [r.rid, r]));
   }
   put(r) { return this.state.storage.put("r:" + r.rid, r); }

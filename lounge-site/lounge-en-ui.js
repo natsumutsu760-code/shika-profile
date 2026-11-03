@@ -19,13 +19,13 @@ export const WORDS = {
   // ---- ペットの 見出し（pet-head.js） ----
   "ペット": "Pet", "ステータス": "Stats", "スキルツリー": "Skill Tree", "ガンビット": "Gambits", "装備": "Gear", "冒険": "Adventure", "なかま": "Companions", "闘技場": "Arena",
   "もう 1 回 開いて ください": "Please open it again", "MONO LINK で ログイン": "Log in to MONO LINK", "まず 1 匹目を むかえる": "Welcome your first pet",
-  "6 つの 質問で、いっしょに 冒険する 子が 決まります": "6 questions decide who will adventure with you", "性格診断へ": "Take the personality quiz",
+  "9 つの 質問で、いっしょに 冒険する 子が 決まります": "9 questions decide who will adventure with you", "得意なツリー": "Best tree", "ドロウジー": "Drowsy", "パンクチュアル": "Punctual", "スウィフト": "Swift", "スタティック": "Static", "タフ": "Tough", "トランスルーセント": "Translucent", "スパイキー": "Spiky", "グリーディ": "Greedy", "マリアージュ": "Mariage", "スプーキー": "Spooky", "シャープ": "Sharp", "フレキシブル": "Flexible", "職業（どれも 同じくらい 合う）": "Jobs (all suit it about the same)", "性格診断へ": "Take the personality quiz",
   "冒険の 画面で えらべます": "You can choose it on the Adventure screen", "職業を えらぶ": "Choose a job",
   "ラウンジ": "Lounge", "プライベートラウンジ": "Private Lounge", "MONO LINK の サイトへ": "To the MONO LINK site",
   // ---- 部屋（lounge-room.html） ----
   "部屋": "Room", "6×6 マスの 部屋。ペットを 押すと なでる": "A 6×6 room. Tap your pet to pet it", "もようがえ": "Redecorate", "家具の お店": "Furniture Shop",
   "☀ 昼": "☀ Day", "☾ 夜": "☾ Night", "昼": "Day", "夜": "Night", "照明：昼": "Lighting: Day", "照明：夜": "Lighting: Night",
-  "地下へ": "Down", "ペットを むかえる": "Welcome a pet",
+  "地下へ": "Down", "庭へ": "Garden", "ペットを むかえる": "Welcome a pet",
   "ここは ほかの 物と かさなる": "That overlaps something else", "ここには 置けない": "Can't place it here", "回すと ほかの 物に ぶつかる": "Rotating would bump into something",
   "すべて": "All", "床": "Floor", "壁": "Wall", "光る": "Glowing", "壁・はば #": "Wall · width #", "しく 物": "Rugs", "床・#×#": "Floor · #×#", "しく 物・#×#": "Rug · #×#",
   "やめる": "Cancel", "回す": "Rotate", "動かす": "Move", "しまう": "Put away", "PC は DEEP LINK/: の 入口なので しまえない": "The PC is the entrance to DEEP LINK/:, so it can't be put away",
@@ -51,6 +51,12 @@ export const WORDS = {
   "質問の進みぐあい": "Quiz progress", "ラウンジへ": "To the Lounge", "# 問目": "Q#", "（答えた）": "(answered)",
   "# 匹が、同じくらい合いそうです": "# pets look about equally suited", "むかえて います…": "Welcoming…", "むかえられませんでした": "Couldn't welcome them",
   "ガチャの #% の 中の # つ": "From the #1% tier of the gacha",
+  // ---- ペットを えらぶ（pet-pick.html・pet-head.js の「かえる」） ----
+  "いっしょに いる": "With you", "まだ 会って いない": "Not met yet", "つぎの 子": "Next pet", "つぎの 子 無料": "Next pet: free", "# 匹": "# pets", "無料": "Free", "いまの 子": "Current", "いまの 子です": "This is your current pet", "出かけて います": "out on an expedition",
+  "いまの 子に する": "Make current", "むかえる": "Welcome", "むかえる （無料）": "Welcome (free)", "どの 職業も 同じくらい": "Every job suits equally", "職業は まだ": "No job yet",
+  "いつもの 順": "Default", "Lv の 順": "By Lv", "この 職業の 子は まだ いません": "No pets for this job yet", "この 職業の 子は みんな いっしょに います": "You have every pet for this job",
+  "アメジスト": "Amethyst", "アメジストが まだ わかりません（配信で 1 回 チャットすると わかります）": "Amethyst isn't known yet (chat once on stream to see it)",
+  "かえて います…": "Switching…", "かえられませんでした": "Couldn't switch", "ほかの子も むかえる": "Welcome more pets",
 };
 
 export const RULES = [
@@ -73,5 +79,6 @@ export const RULES = [
   [/^とどけるのは郵便屋さんの(.+)です$/, (m, p) => `Delivered by ${p(m[1]) || m[1]} the mail carrier`],
   [/^(.+)が 待って います$/, (m, p) => `${p(m[1]) || m[1]} is waiting`],
   [/^(.+)がやってきた！$/, (m, p) => `${p(m[1]) || m[1]} is here!`],
+  [/^いまの 子：(.+)$/, (m, p) => `Current pet: ${p(m[1]) || m[1]}`], [/^(.+)は 出かけた まま 派遣を つづけます$/, (m, p) => `${p(m[1]) || m[1]} stays out on the expedition`],
   [/^(.+)の日記（さいしょの日）$/, (m, p) => `${p(m[1]) || m[1]}'s diary (day 1)`],
 ];

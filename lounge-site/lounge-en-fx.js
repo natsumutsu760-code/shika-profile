@@ -15,6 +15,7 @@ const or = (p, s) => { const parts = String(s).split("か").map((x) => p(x)); re
 
 export const WORDS = {
   "戦いのはじめに": "Start of battle:", "攻撃のとき": "On hit",
+  "カウンター（受けた直接ダメージの #% を返す）": "Counter (returns #% of direct damage taken)",   // 配合限定の ミラーゴースト・ナナシ など（2026-10-29）
 };
 
 export const RULES = [
