@@ -35,6 +35,9 @@ export const WORDS = {
   "決める（#）": "Confirm (#)", "おまかせに もどす": "Back to auto", "振れる ポイントが # ある": "# points to assign", "振れるポイント": "Points to assign", "自動": "Auto",
   "レベルが 1 上がるごとに 3 ポイント。2 つは職業の重みで自動、1 つは好きに振れる": "3 points per level: 2 go automatically by job weighting, 1 is yours to assign",
   "手動": "Manual", "振り方": "Assignment", "振れる": "To assign", "自動で 振る": "Auto assign on", "手動で 振る": "Manual assign on", "切りかえられませんでした": "Couldn't switch",
+  // ステータスの 通常／詳細（2026-11-05）
+  "詳細": "Detailed", "表示": "View", "攻め": "Offense", "守り": "Defense", "回復": "Recovery", "参照": "Scaling", "詳細ステータスの しゅるい": "Detailed stat type",
+  "栄養（おやつ）と 装備の OP の 合計": "Total from nutrition (treats) and gear OPs", "栄養 +#%": "Nutrition +#%", "装備 +#%": "Gear +#%", "栄養 #%": "Nutrition #%", "装備 #%": "Gear #%", "栄養 # / #": "Nutrition # / #", "おやつで 育てる": "Grow with treats",
   "レベルごとの 3 ポイントを ぜんぶ 職業の 重みで 振る": "All 3 points per level go by job weighting", "（手で 振った 分は そのまま）": " (points you assigned stay)",
   "レベルごとに 3 ポイント。2 つは 職業の 重みで 自動、1 つは 好きに 振れる": "3 points per level: 2 go automatically by job weighting, 1 is yours to assign",
   "もとの値": "Base", "職業で伸びた分": "From job", "手で振った分": "Assigned", "スキルツリー": "Skill Tree",
