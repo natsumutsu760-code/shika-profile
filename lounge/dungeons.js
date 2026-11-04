@@ -147,7 +147,7 @@ export const DUNGEONS_ALL = [
     rare: { name: "迷い光", type: "healer", lv: 43, tree: "e_glimmer" },
     boss: { name: "霧の巨人", type: "caster", lv: 47, tree: "e_boss_fog" },
     drops: ["helmet", "knit", "straw", "nabe", "bowtie", "omamori", "bib", "gold", "stick", "pikopiko", "mizudeppo", "kamifusen"],
-    mythic: { id: "tidaLens", slot: "off", name: "ティダのレンズ", text: "照らす：相手の 回避 −15%・DEX +20%・会心 +5%・盲目に ならない", main: { int: 0.7, dex: 0.5 }, fxp: { foeEvadeCut: 0.15, dexMul: 1.2, crit: 0.05, noFx: { blind: true } } },
+    mythic: { id: "tidaLens", slot: "off", name: "ティダのレンズ", text: "照らす：相手の 回避 −15%・DEX +20%・会心 +8%", main: { int: 0.7, dex: 0.5 }, fxp: { foeEvadeCut: 0.15, dexMul: 1.2, crit: 0.08 } },   // 前は「盲目に ならない」（無効）。無効を なくして 会心 +5% → +8%（2026-11-04）
   },
   {
     id: "atui", isle: 2, name: "アトゥイ号の沈没船", lv: 45, color: "#3D86B8", text: "浅い 海に 大きな 船が 沈んでいる",

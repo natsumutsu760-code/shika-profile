@@ -18,7 +18,7 @@ export const DUNGEON2_EN = {
 export const MYTHIC2_EN = {
   inohBangle: ["Inoh Coral Bangle", "Tide Pool: heal 1.5% HP at the start of your turn"],
   redbeardHat: ["Redbeard's Tricorn", "Captain's Hunch: Critical +12%, critical damage +30%"],
-  tidaLens: ["Lens of Tida", "Illuminate: foe evasion −15%, DEX +20%, Critical +5%; can't be Blinded"],
+  tidaLens: ["Lens of Tida", "Illuminate: foe evasion −15%, DEX +20%, Critical +8%"],
   atuiAnchor: ["Anchor of the Atui", "Heavy Blow: 20% chance on attack to Stun the foe (1 turn)"],
   zanHarp: ["Zan's Harp", "Healing Song: at the start of your turn, all allies heal 2% HP"],
   ufuGauntlet: ["Mount Ufu Gauntlet", "Hot Hands: 35% chance on attack to inflict Burn +6"],

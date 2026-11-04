@@ -175,7 +175,7 @@ import { TRADERS, SPECIAL, insPrice, REQ_FEE, REQ_MAX, REQ_LIMITS, NOTE_PRESETS,
 import { repAt, lvOfPts, LV_MAX, CH_LV, UNLOCK_BY } from "./primary.js";   // 友好度 Lv100・章の プライマリータスク
 import { MAT_NAME, GATHER, sellPrice, MAT_FROM, HIDDEN_MAT, BAR_SELL, matIsle, matOpen } from "./materials.js";   // matOpen：大工事の 畑が つながる まで 作物は 出さない
 import { matPic } from "./mat-icons.js";
-import { BASES, OPS, baseOf } from "./equip.js";
+import { BASES, OPS, ALL_OPS, baseOf } from "./equip.js";
 import { CRAFT, SYNTH } from "./recipes.js";
 import { DUNGEONS, TOOLS, ISLAND_OPEN } from "./dungeons.js";
 import { SPHERE_LOOK } from "./sphere.js";   // スフィアの 鑑定（ガラク。2026-11-04）
@@ -402,7 +402,7 @@ document.getElementById("term").addEventListener("click", async (e) => {
     return ask(b, "task.done", { tid: t.id, which: "primary", c, no }, (r) => `受けとった！ クレジット ＋${fmt(r.gain || 0)}${r.unlock ? `　店に「${itemName(r.unlock)}」が 並んだ` : ""}${r.key ? `　${DNAME[r.key] || r.key}へ 行ける` : ""}${view(t.id).lv > before ? `　友好度 Lv${view(t.id).lv} に なった` : ""}`); }
   if (d.task) { const before = view(t.id).lv; return ask(b, "task.done", { tid: t.id, which: d.task }, () => `受けとった！${view(t.id).lv > before ? `　友好度 Lv${view(t.id).lv} に なった` : ""}${d.task === "chain" ? `　次の タスク（#${view(t.id).chain.n}）が 出た` : ""}`); }
   if (d.look) { const x = ((ME.own && ME.own.spheres) || []).find((y) => !y.known && y.did === d.look); if (!x) return;
-    return ask(b, "sphere.look", { uid: x.uid }, (r) => `鑑定した：${OPS[r.sphere.op] ? OPS[r.sphere.op].label : r.sphere.op} ★${r.sphere.star}`); }
+    return ask(b, "sphere.look", { uid: x.uid }, (r) => `鑑定した：${ALL_OPS[r.sphere.op] ? ALL_OPS[r.sphere.op].label : r.sphere.op} ★${r.sphere.star}`); }
   if (d.item) { const sh = t, it = sh.shop.find((x) => x.id === d.item);
     if (it.sell || it.trade || it.pick) { S.open = S.open === it.id ? null : it.id; S.sell = {}; return render(); }
     return ask(b, "trader.buy", { tid: sh.id, item: it.id }, () => `買った：${it.name}${it.tool ? "（冒険の じゅんびで 持っていける）" : ""}`); }

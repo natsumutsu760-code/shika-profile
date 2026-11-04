@@ -10,6 +10,7 @@ import { DUNGEONS, PURPOSES, TOOLS, RUNS } from "./dungeons.js";
 import { GATHER, ENEMY_MAT, CRYSTAL, SCRAP, BORDER, ORE, BARS, CLOTH, LUMBER } from "./materials.js";
 import { CROPS, CROP_MATS } from "./crops.js";   // 作物（大工事の 農業）の 英語は 作物の 表の en
 import { KINDS, SLOTS, FORMS, MATS, COLS, BASES, UPPER, OPS } from "./equip.js";
+import { NEW_OPS } from "./op-defs.js";
 import { FACILITIES, SNACK_RECIPES, PC } from "./facilities.js";
 import { WS_ITEMS, ATT_KINDS, ATT_BASES } from "./workshop.js";
 import { FURN } from "./lounge-rules.js";
@@ -367,7 +368,7 @@ export const BASE_EN = {
   bowtie: ["Bow Tie"], omamori: ["Lucky Charm"], bib: ["Bib"], gold: ["Gold Necklace", "A little luckier"],
   stick: ["Wooden Stick"], pikopiko: ["Squeaky Hammer"], mizudeppo: ["Water Pistol"], kamifusen: ["Paper Balloon"],
   stonehelm: ["Stone Helm"], ghosthood: ["Spirit Cloth Hood"], kingstraw: ["King's Straw Hat", null, "Royal Dignity: at battle start, foe ATK and INT −15% (3 turns)"], crystalnabe: ["Crystal Pot Lid"],
-  fangchoker: ["Fang Choker"], dreamcharm: ["Dreaming Charm"], sleepbib: ["Sleepy Bib", null, "Sleepy Face: can't be put to sleep by foes"], nightgold: ["Midnight Necklace", null, "Midnight Bell: MP +1 every 3 turns"],
+  fangchoker: ["Fang Choker"], dreamcharm: ["Dreaming Charm"], sleepbib: ["Sleepy Bib", null, "Sleepy Face: heal 2% of max HP each turn"], nightgold: ["Midnight Necklace", null, "Midnight Bell: MP +1 every 3 turns"],
   goblinclub: ["Goblin Club"], mimichammer: ["Mimic Hammer"], lampgun: ["Lamplight Water Pistol"], dragonfusen: ["Dragon Crystal Balloon", null, "Dragon's Breath: first attack deals +30% damage"],
 };
 // OP の 文（OPS の fmt と 同じ 形で 英語）
@@ -380,6 +381,26 @@ export const OP_FMT_EN = {
 export const OP_EN = {
   wazaDmg: "Move Damage", itazuraDmg: "Prank Damage", crit: "Crit", critDmg: "Crit Damage", dmgCut: "Damage Taken", evade: "Evasion", drain: "Drain",
   statusRes: "Status Resistance", healUp: "Healing", mpRegen: "MP Regen", firstStrike: "First Strike", endure: "Endure", focusStart: "Focus",
+};
+// 新しい OP（スフィア・素材の OP 抽選。2026-11-04）
+export const NEW_OP_EN = {
+  hitPoison: ["Poison Strike", (x) => `${x}% chance to Poison with normal attacks`], hitBurn: ["Burn Strike", (x) => `${x}% chance to Burn with normal attacks`],
+  hitSickness: ["Sickness Strike", (x) => `${x}% chance to cause Sickness with normal attacks`], hitFrostbite: ["Frostbite Strike", (x) => `${x}% chance to cause Frostbite with normal attacks`],
+  hitScald: ["Scald Strike", (x) => `${x}% chance to Scald with normal attacks`], hitFatigue: ["Fatigue Strike", (x) => `${x}% chance to cause Fatigue with normal attacks`],
+  hitWeakness: ["Weakness Strike", (x) => `${x}% chance to cause Weakness with normal attacks`], hitParalysis: ["Paralysis Strike", (x) => `${x}% chance to Paralyze with normal attacks`],
+  hitBlind: ["Blind Strike", (x) => `${x}% chance to Blind with normal attacks`],
+  thornsOp: ["Counter", (x) => `When hit, deal ${x}% of ATK back`], pierceOp: ["Pierce", (x) => `Treat the foe's DEF/RES as ${x}% lower`], accuracy: ["Accuracy", (x) => `Foe evasion −${x}%`],
+  firstHitOp: ["First Strike Bonus", (x) => `First attack that lands +${x}%`], regenOp: ["Regeneration", (x) => `Heal ${x}% of max HP each turn`],
+  barrierOp: ["Opening Barrier", (x) => `Block ${x} attack${x === 1 ? "" : "s"} at battle start`], execute: ["Finisher", (x) => `+${x}% against foes at 30% HP or less`],
+  desperate: ["Last Stand", (x) => `Stronger the lower your HP (+${x}% at 1 HP)`], cureFast: ["Quick Recovery", (x) => `${x}% chance for status effects to end 1 turn early`],
+  critGuard: ["Crit Guard", (x) => `Critical damage taken −${x}%`], healRecv: ["Healing Received", (x) => `Healing received +${x}%`], mpSave: ["MP Saver", (x) => `Skill MP cost −${x}%`],
+  agiGuard: ["Parry", (x) => `${x}% chance to reduce direct damage again with AGI`], dexGuard: ["Deft Hands", (x) => `Add ${x}% of DEX to DEF and RES`],
+  resShield: ["Mind Shield", (x) => `Take ${x}% of physical damage with RES`], badLuck: ["Power of Misfortune", (x) => `Stronger with low LUK (+${x}% damage per LUK below your Lv, up to +20%)`],
+  whim: ["Whim", (x) => `Each turn, one of ATK/INT/AGI gets +${x}%`], gamble: ["Guard Gamble", (x) => `Damage taken: half the time −${x}%, half the time +${x / 2}%`],
+  crackOp: ["Cracks", () => "Extra damage from critical hits becomes cracks, taken over 3 turns"], avgGuard: ["Balanced Guard", () => "Take both physical and magic damage with the average of DEF and RES"],
+  ironThorns: ["Iron Thorns", () => "Counter damage uses DEF instead of ATK"], delayPain: ["Delayed Pain", () => "Take 20% of damage over the next 2 turns"],
+  hpCast: ["Life Chant", () => "When MP is short, pay twice the missing MP in HP to use skills"], swapPower: ["Topsy-Turvy", () => "Physical moves use INT, pranks use ATK"],
+  mirageOp: ["Mirage", (x) => `Mirage +${x} at battle start`], oasisOp: ["Oasis", (x) => `While below half HP, heal ${x}% of max HP each turn`], sandClock: ["Hourglass", () => "From turn 9, move damage +15%"],
 };
 
 // ---- 隠れ家・工房・家具 ----
@@ -529,6 +550,7 @@ export function nameWords() {
   COLS.forEach((c, i) => c && put(c.name, COL_EN[i]));
   for (const b of [...BASES, ...UPPER]) { const e = BASE_EN[b.id]; if (e) { put(b.name, e[0]); if (b.note) put(b.note, e[1]); if (b.fx) put(b.fx, e[2]); } }
   for (const [id, o] of Object.entries(OPS)) { if (OP_EN[id]) put(o.label, OP_EN[id]); const f = OP_FMT_EN[id]; if (f) for (const v of new Set(o.v)) if (v) put(o.fmt(v), f(v)); }
+  for (const [id, o] of Object.entries(NEW_OPS)) { const e = NEW_OP_EN[id]; if (!e) continue; put(o.label, e[0]); if (o.unique) put(o.fmt(), e[1]()); else for (const v of new Set(o.v)) if (v) put(o.fmt(v), e[1](v)); }
   // 隠れ家
   for (const f of FACILITIES) { const e = FAC_EN[f.id]; if (!e) continue; put(f.name, e[0]); put(f.text, e[1]); }
   for (const r of SNACK_RECIPES) put(r.name, SNACK_EN[r.id]);

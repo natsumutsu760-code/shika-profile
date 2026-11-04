@@ -16,7 +16,7 @@ export { FACILITIES, STORAGE_CAP, EQUIP_CAP, SNACK_RECIPES, snackMats, snackOpen
   labOff, labMs, snackMore, snackSave, wsMore, wsSave, gymMul, SYNTH_LV, SYNTH_HALF_LV, buildNeed, buildProg, buildMatRatio, buildTimeRatio, buildLeftMs, rushPrice, FUEL, MIGRATE_LV, facFx, buildOff, BUILD_PERK, barMineLv, benchStarMax, benchTopUp } from "./facilities.js";
 export { toStash, stashHave, BOX_DAYS, MAT_NAME, MAT_FROM, GATHER, sellPrice } from "./materials.js";
 export { CRAFT, SYNTH, craftOpen, synthOpen, synthCredits, rollCraft, rollSynth } from "./recipes.js";
-export { OPS, baseOf, BASES, SLOTS, KINDS, FORMS, MATS, COLS, OLD_SLOT, comboOf, opCount, recycleOf, AUTO_SELL_STARS, AUTO_SELL_HOW, autoSellOf, BOSS_CORE, CORE_MAX, opStarOf } from "./equip.js";
+export { OPS, ALL_OPS, opVal, baseOf, BASES, SLOTS, KINDS, FORMS, MATS, COLS, OLD_SLOT, comboOf, opCount, recycleOf, AUTO_SELL_STARS, AUTO_SELL_HOW, autoSellOf, BOSS_CORE, CORE_MAX, opStarOf } from "./equip.js";
 export { DEV_IDS, devBase, devNeed, devStarW, devWhere, CRYSTAL_GRADE, CRYSTAL_N } from "./equip-dev.js";   // 装備開発（2026-11-04 に つないだ）
 export { SPHERE_LOOK, SPHERE_MAX, opLive, DRAW, rollDraw } from "./sphere.js";   // 宝箱の スフィア
 export { TRADERS, SPECIAL, repLv, insPrice, INS_PLAN, REQ_FEE, RES_VALUE, NOTE_PRESETS, NOTE_MAX, NOTE_HIDE_AT, noteBlock } from "./deeplink.js";

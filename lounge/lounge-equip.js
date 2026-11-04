@@ -3,7 +3,7 @@
 // ・スフィアの 鑑定（sphere.look。DEEP LINK/: の ガラク）：中身（OP と ★）が 見える。SPHERE_LOOK クレジット
 // ・スフィアを はめる（sphere.set）：装備の 空いた OP の 枠だけ（入れかえは しない。抜くのは コア）。強さは スフィアの ★（コアと 同じ）
 // ・素材の OP 抽選（ws.draw。工房）：同じ 敵の 素材 5 こ（同じ 品質）＋ クレジット で 空いた 枠に OP を 1 つ。★は 素材の 品質
-import { baseOf, opCount, KINDS, OPS, facLv, ISLAND_OPEN, MAT_NAME, MAT_FROM, devNeed, devStarW, devWhere, CRYSTAL_GRADE, benchStarMax, benchTopUp, SPHERE_LOOK, opLive, DRAW, rollDraw } from "./game.js";
+import { baseOf, opCount, KINDS, ALL_OPS, facLv, ISLAND_OPEN, MAT_NAME, MAT_FROM, devNeed, devStarW, devWhere, CRYSTAL_GRADE, benchStarMax, benchTopUp, SPHERE_LOOK, opLive, DRAW, rollDraw } from "./game.js";
 import { takeMats, applyTake, makeFee, payUpkeep, feeWhy } from "./lounge-game.js";
 import { slotKind, bump } from "./lounge-trade.js";
 import { wornAway } from "./lounge-core.js";
@@ -49,11 +49,11 @@ export function sphereSet(rec, b, now = Date.now()) {
   if (!x) return { ok: false, why: "その スフィアは ない" };
   if (!x.known) return { ok: false, why: "鑑定して いない スフィアは はめられない（DEEP LINK/: の ガラクで 鑑定）" };
   if (!it) return { ok: false, why: "その 装備は ない" };
-  if (!OPS[x.op] || !opLive(x.op)) return { ok: false, why: "この OP は まだ 使えない" };
+  if (!ALL_OPS[x.op] || !opLive(x.op)) return { ok: false, why: "この OP は まだ 使えない" };
   if (wornAway(rec, it.uid)) return { ok: false, why: "出かけて いる 子の 装備は かえられない（帰って から）" };
   const kind = (baseOf(it.base) || {}).slot, n = opCount(KINDS[kind] ? kind : "weapon", it.star);
   if (it.ops.length >= n) return { ok: false, why: n ? "空いた OP の 枠が ない（スフィアは 空いた 枠に だけ はめる）" : "この 装備には OP の 枠が ない" };
-  if (it.ops.includes(x.op)) return { ok: false, why: `${OPS[x.op].label}は もう 付いて いる` };
+  if (it.ops.includes(x.op)) return { ok: false, why: `${ALL_OPS[x.op].label}は もう 付いて いる` };
   it.ops = [...it.ops, x.op];
   if (x.star !== it.star) it.opStar = { ...(it.opStar || {}), [it.ops.length - 1]: x.star };   // 強さは スフィアの ★（コアと 同じ しるし）
   rec.own.spheres = rec.own.spheres.filter((s) => s !== x);

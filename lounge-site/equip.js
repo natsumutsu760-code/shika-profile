@@ -5,7 +5,8 @@
 // 強さ：枠ごとの 重み（w）で もとの強さと OP の 数を へらし、ぜんぶ 付けた ときの 合計を 前の 3 枠と 同じくらいに する（鹿さんの決め）
 import { DUNGEONS } from "./dungeons.js";
 import { UNIQUES } from "./unique-equip.js";
-import { devBase, devStats } from "./equip-dev.js";   // 装備開発の 装備（id "dev.<敵>.<番号>"。2026-11-04 に つないだ）
+import { devBase, devStats } from "./equip-dev.js";
+import { NEW_OPS } from "./op-defs.js";   // 新しい OP 36（スフィア・素材の OP 抽選から 付く。戦いの 計算は battle-sim.js。2026-11-04）   // 装備開発の 装備（id "dev.<敵>.<番号>"。2026-11-04 に つないだ）
 
 // 部位（しゅるい）。アクセサリーは 枠が 3 つ
 export const KINDS = {
@@ -127,7 +128,7 @@ export const UPPER = [
   { id: "crystalnabe", slot: "head", name: "水晶の鍋ぶた", look: "nabe", main: { def: 2.1, agi: -0.3 } },
   { id: "fangchoker", slot: "neck", name: "牙のチョーカー", look: "bowtie", main: { hp: 1.5 } },
   { id: "dreamcharm", slot: "neck", name: "夢見のお守り", look: "omamori", main: { mp: 1.5 } },
-  { id: "sleepbib", slot: "neck", name: "眠りのよだれかけ", look: "bib", main: { hp: 0.75, mp: 0.75 }, fx: "ねむりがお：相手に ねむらされない", fxp: { noFx: { sleep: true } } },
+  { id: "sleepbib", slot: "neck", name: "眠りのよだれかけ", look: "bib", main: { hp: 0.75, mp: 0.75 }, fx: "ねむりがお：毎ターン 最大 HP の 2% を 回復", fxp: { hpRegen: 0.02 } },   // 前は「ねむらされない」（無効。鹿さんの 決め 2026-11-04 で 置きかえ）
   { id: "nightgold", slot: "neck", name: "夜ふけのネックレス", look: "gold", main: { hp: 1.05, luk: 0.75 }, fx: "夜ふけの鐘：3 ターンごとに MP +1", fxp: { bellMp: 1, bellEvery: 3 } },
   { id: "goblinclub", slot: "weapon", name: "ゴブリンこんぼう", look: "stick", main: { atk: 1.5 } },
   { id: "mimichammer", slot: "weapon", name: "ミミックハンマー", look: "pikopiko", main: { atk: 1.2, dex: 0.45 } },
@@ -179,6 +180,10 @@ export const OPS = {
   focusStart: { label: "集中", v: [0, 0, 1, 1, 1], from: 3, fmt: (x) => `戦いのはじめに集中（${x} ターン。動いたあとに MP 20% 回復）` },   // v は ターン数（前は 3〜5 ターンで、テクニシャンと ヒーラーに 強すぎた）
 };
 
+// いまの 22 ＋ 新しい 36。装備に 付いて いる OP の 名前・強さは ここから 引く（作る・合成・宝箱の くじは いまの 22 だけ ＝ OPS）
+// ユニーク OP（v が ない）は 強さ 1（あるか ないか）
+export const ALL_OPS = { ...OPS, ...NEW_OPS };
+export const opVal = (op, star) => { const o = ALL_OPS[op]; return !o ? 0 : o.unique ? 1 : o.v[Math.max(1, Math.min(5, star)) - 1]; };
 // 装備 1 つの数字をまとめる：もとの強さ（× 枠の 重み。いちばん 重い 能力は 0 に ならない ように 1 は のこす）＋ OP
 // もとの強さ（OP を 入れない 分）。画面の「もとの強さ」も ここから
 export function mainStats(it) {
@@ -197,14 +202,14 @@ export const opStarOf = (it, i) => (it.opStar && it.opStar[i]) || it.star;
 export function itemStats(it) {
   const out = mainStats(it), b = baseOf(it.base);
   if (b && b.dev) for (const [k, v] of Object.entries(b.fxs)) out[k] = (out[k] || 0) + v;   // 装備開発の 効果の うち OP と 同じ 数の 物（会心 +2% など）
-  it.ops.forEach((op, i) => { out[op] = (out[op] || 0) + OPS[op].v[opStarOf(it, i) - 1]; });   // コアで 付けた OP は 抜いた 装備の ★の 強さ
+  it.ops.forEach((op, i) => { if (ALL_OPS[op]) out[op] = (out[op] || 0) + opVal(op, opStarOf(it, i)); });   // コアで 付けた OP は 抜いた 装備の ★の 強さ
   for (const a of Array.isArray(it.att) ? it.att : []) for (const op of a.ops || []) if (OPS[op]) out[op] = (out[op] || 0) + OPS[op].v[a.star - 1];   // 武器の アタッチメント（workshop.js の withAtt で 入れた 写し）
   return out;
 }
 // 強さの目安（下克上の判定）に足す点：ステータスはそのまま、% の OP は 1% ＝ 0.5 点、特別な OP は 4 点
 export function itemPower(it) {
   const s = itemStats(it); let p = 0;
-  for (const [k, v] of Object.entries(s)) p += k === "hp" ? v / 4 : k === "mp" ? v / 2 : ["atk", "def", "int", "res", "agi", "dex", "luk"].includes(k) ? v : ["mpRegen", "firstStrike", "endure", "focusStart"].includes(k) ? 4 * v : v * 0.5;
+  for (const [k, v] of Object.entries(s)) p += k === "hp" ? v / 4 : k === "mp" ? v / 2 : ["atk", "def", "int", "res", "agi", "dex", "luk"].includes(k) ? v : ["mpRegen", "firstStrike", "endure", "focusStart"].includes(k) ? 4 * v : NEW_OPS[k] ? (NEW_OPS[k].unique ? 4 : 2) : v * 0.5;   // 新しい OP は 2 点（ユニークは 4 点）
   if (hasFx(it)) p += baseOf(it.base).mythic || baseOf(it.base).unique ? 8 : 4;   // とくべつな効果は OP の 先手・根性と 同じくらいの ねうち（ミシックは その 倍）
   return p;
 }

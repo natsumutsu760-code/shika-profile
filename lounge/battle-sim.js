@@ -5,6 +5,7 @@
 // バフ・デバフ（状態）は effects.js の決まりで重なる（量・持続ターン・上限・相殺）。技とパッシブの中身は skills.js。数字はすべて仮
 import { SKILL } from "./skills.js";
 import { itemStats, itemPower, baseOf, hasFx } from "./equip.js";
+import { HIT_AMT } from "./equip-dev.js";   // 追撃の OP の 量（装備開発の「当てると 状態異常」と 同じ）
 import { EFFECTS, PAIR, isBuff } from "./effects.js";
 import { COUNTS } from "./main-trees.js";
 
@@ -29,6 +30,18 @@ function passives(ids) {
   return P;
 }
 
+// 新しい OP（スフィア・素材の OP 抽選で 付く。op-defs.js。戦いの 計算は 2026-11-04）：もう ある 入れ物に 入る 物は そこへ、ほかは P[OP の 名前]
+const HIT_OPS = { hitPoison: "poison", hitBurn: "burn", hitSickness: "sickness", hitFrostbite: "frostbite", hitScald: "scald", hitFatigue: "fatigue", hitWeakness: "weakness", hitParalysis: "paralysis", hitBlind: "blind" };
+const NEWX = {
+  firstHitOp: (P, v) => { P.firstHit = (P.firstHit || 0) + v / 100; },          // 最初の一撃（竜の いぶきと 同じ）
+  regenOp: (P, v) => { P.hpRegen = (P.hpRegen || 0) + v / 100; },               // 自然回復
+  accuracy: (P, v) => { P.foeEvadeCut = (P.foeEvadeCut || 0) + v / 100; },       // 命中：相手の 回避 −N%
+  critGuard: (P, v) => { P.critTakenCut = (P.critTakenCut || 0) + v / 100; },    // 会心よけ
+  barrierOp: (P, v) => { if (v > 0) P.startFx = [...(P.startFx || []), ["barrier", v]]; },   // 開幕バリア
+  mirageOp: (P, v) => { P.startFx = [...(P.startFx || []), ["mirage", v]]; },     // 蜃気楼：はじめに 幻影
+  crackOp: (P) => { P.critSplit = Math.max(P.critSplit || 0, 3); },              // ひび（水晶の王冠と 同じ）
+};
+for (const [op, id] of Object.entries(HIT_OPS)) NEWX[op] = (P, v) => { P.kogekiFx = [...(P.kogekiFx || []), [id, v / 100]]; };   // 追撃：通常攻撃の N%
 // 装備：もとの強さと OP を足す（OP の % はパッシブと同じ入れ物に入れる）
 function withEquip(c) {
   const s = { ...c.stats }, P = passives(c.passives); let bonus = 0;
@@ -41,6 +54,7 @@ function withEquip(c) {
       else if (k === "endure") P.startFx = [...(P.startFx || []), ["reincarnation"]];             // 根性 ＝ 戦いのはじめに輪廻
       else if (k === "focusStart") P.startFx = [...(P.startFx || []), ["focus", undefined, v]];     // 集中 ＝ 戦いのはじめに集中（MP がもどる）。v は ターン数
       else if (k === "firstStrike") P.firstStrike = true;
+      else if (NEWX[k]) NEWX[k](P, v);                                                              // 新しい OP
       else P[k] = (P[k] || 0) + v;                                                                 // wazaDmg・itazuraDmg・critDmg・dmgCut・drain・statusRes
     }
     if (hasFx(it)) addP(P, baseOf(it.base).fxp);                                                  // 上の装備の とくべつな効果・ミシックの 効果
@@ -57,6 +71,7 @@ function withEquip(c) {
 export function makeFighter(c, side) {
   const { s, P, bonus } = withEquip(c);
   const base = { atk: s.atk * (P.atkMul || 1), def: s.def * (P.defMul || 1), int: s.int * (P.intMul || 1), res: s.res * (P.resMul || 1), agi: s.agi * (P.agiMul || 1), dex: s.dex * (P.dexMul || 1), luk: s.luk };
+  if (P.dexGuard) { base.def += base.dex * P.dexGuard / 100; base.res += base.dex * P.dexGuard / 100; }   // 手さばき：DEX の N% を 守りに
   const maxHp = Math.round(s.hp * (P.hpMul || 1));
   // startHp・startMp・startFx：ダンジョンで続けて戦うとき、前の戦いの残りから始める
   return { c, name: c.name, P, base, maxHp, hp: Math.min(maxHp, c.startHp ?? maxHp), maxMp: s.mp, mp: Math.min(s.mp, c.startMp ?? s.mp), power: powerOf(c.stats) + bonus,
@@ -77,6 +92,7 @@ function st(f, k) {
   if (k === "atk" && f.P.lowHpAtk && f.hp <= f.maxHp * 0.3) v *= 1 + f.P.lowHpAtk;
   if (k === "atk" && f.P.lateAtk && (f.turnNow || 0) > f.P.lateAtk.after) v *= 1 + f.P.lateAtk.v;   // 長い狩り：決まった ターンを 越えると
   if ((k === "def" || k === "res") && f.P.lowHpDef && f.hp <= f.maxHp * 0.5) v *= 1 + f.P.lowHpDef;
+  if (f.whimK === k && f.P.whim) v *= 1 + f.P.whim / 100;                                          // 気まぐれ（その ターンの 1 つ）
   return v;
 }
 const hpPct = (f) => (f.hp / f.maxHp) * 100;
@@ -121,7 +137,7 @@ export const mpCost = (me, id) => { let m = SKILL[id].mp; if (me.fx.activation) 
 const needOk = (me, fx, need) => (fx || []).every((x) => x.t !== "spend" || !x.need || (me.cnt?.[x.c] || 0) >= x.need) && Object.entries(need || {}).every(([c, n]) => (me.cnt?.[c] || 0) >= n);
 const optOk = (me, o) => needOk(me, o.fx, o.need);
 const cntOk = (me, sk) => needOk(me, sk.fx) && (!sk.choose || sk.choose.some((o) => optOk(me, o))) && !(sk.fx?.length && sk.fx.every((x) => x.once) && me.onceUsed?.[sk.id]);   // カウントを 使う 技は 足りる ときだけ・1 戦 1 回の 技は 使ったら おしまい
-export const usable = (me, id) => SKILL[id] && (SKILL[id].item ? !!(me.bag && me.bag[id] > 0 && (!me.bagCap || me.bagCap.n > 0)) : me.mp >= mpCost(me, id) && (!me.fx.silence || id === "kogeki") && cntOk(me, SKILL[id]));   // 戦いの アイテムは 袋に ある ときだけ（派遣の 味方。闘技場は 袋なし）
+export const usable = (me, id) => SKILL[id] && (SKILL[id].item ? !!(me.bag && me.bag[id] > 0 && (!me.bagCap || me.bagCap.n > 0)) : (me.mp >= mpCost(me, id) || (!!me.P?.hpCast && me.hp > 2 * (mpCost(me, id) - me.mp))) && (!me.fx.silence || id === "kogeki") && cntOk(me, SKILL[id]));   // 戦いの アイテムは 袋に ある ときだけ（派遣の 味方。闘技場は 袋なし）
 const hasT = (id, t) => SKILL[id].fx?.some((x) => x.t === t);
 const giveMe = (id) => SKILL[id].fx.some((x) => x.t === "fx" && x.who === "me" && isBuff(x.id));
 const giveFoe = (id) => SKILL[id].fx.some((x) => (x.t === "fx" && x.who === "foe") || x.t === "dispel" || x.t === "pin");
@@ -369,7 +385,7 @@ export function simulateTeams(SA, SB, seed, opts = {}) {
   }
   // 回復（腐敗ならダメージに変わる。あふれた分はオーバーヒールにためる）
   function heal(f, n, notes) {
-    n = Math.round(n); if (n <= 0) return 0;
+    n = Math.round(n * (1 + (f.P.healRecv || 0) / 100)); if (n <= 0) return 0;   // 受ける回復（新しい OP）
     if (f.fx.rot) { hurt(f, n, notes); notes.push(`腐敗で ${n} のダメージに変わった`); return -n; }
     const a = Math.min(f.maxHp - f.hp, n); f.hp += a;
     if (n > a && f.fx.overheal) f.fx.overheal.amt = Math.min(f.maxHp, f.fx.overheal.amt + n - a);
@@ -411,8 +427,11 @@ export function simulateTeams(SA, SB, seed, opts = {}) {
     if (graze < 1) e.notes.push("かすった");
     if (foe.fx.barrier) { foe.fx.barrier.amt--; if (foe.fx.barrier.amt <= 0) delete foe.fx.barrier; e.hits.push({ dmg: 0, blocked: true }); e.notes.push(`${foe.name} のバリアが防いだ`); return false; }
     const lukE = (f) => st(f, "luk") * (1 + (f.P.lukEff || 0) * (f.cnt.coin || 0));   // チャリンチャリン：LUK を 使う 効率が コイン 1 に つき +10%
-    const atk = x.stat === "best" ? Math.max(st(me, "atk"), st(me, "int"), st(me, "dex")) : x.stat === "atkint" ? Math.max(st(me, "atk"), st(me, "int")) : x.stat === "mpNow" ? me.mp * (x.statMul || 1) : x.stat === "hp" ? me.maxHp * (x.statMul || 1) : x.stat === "luk" ? lukE(me) * (x.statMul || 1) : x.stat ? st(me, x.stat) * (x.statMul || 1) : waza ? st(me, "atk") : st(me, "int");   // best：ATK・INT・DEX のいちばん高いもの（こうげき）
-    const grd = (waza ? st(foe, "def") : st(foe, "res")) * (1 - (x.ignore || 0));
+    const atk = x.stat === "best" ? Math.max(st(me, "atk"), st(me, "int"), st(me, "dex")) : x.stat === "atkint" ? Math.max(st(me, "atk"), st(me, "int")) : x.stat === "mpNow" ? me.mp * (x.statMul || 1) : x.stat === "hp" ? me.maxHp * (x.statMul || 1) : x.stat === "luk" ? lukE(me) * (x.statMul || 1) : x.stat ? st(me, x.stat) * (x.statMul || 1) : me.P.swapPower ? st(me, waza ? "int" : "atk") : waza ? st(me, "atk") : st(me, "int");   // best：ATK・INT・DEX のいちばん高いもの（こうげき）
+    // あべこべ（swapPower）：物理の 技は INT、イタズラは ATK（通常攻撃は もう「いちばん 高い 能力」なので かわらない。Claude の 読み、2026-11-04）
+    // 守り：平均の守り（DEF と RES の 平均）・知恵の盾（物理の N% を RES で）・貫通（相手の 守りを N% 少なく 見る）。新しい OP
+    const gD = st(foe, "def"), gR = st(foe, "res"), grd0 = foe.P.avgGuard ? (gD + gR) / 2 : waza ? (foe.P.resShield ? gD * (1 - foe.P.resShield / 100) + gR * (foe.P.resShield / 100) : gD) : gR;
+    const grd = grd0 * (1 - (x.ignore || 0)) * (1 - Math.min(0.5, (me.P.pierceOp || 0) / 100));
     const critVs = Object.entries(me.P.critVsFx || {}).reduce((a, [id, v]) => a + (foe.fx[id] ? v : 0), 0) + (me.P.critVsLowHp && foe.hp <= foe.maxHp * 0.5 ? me.P.critVsLowHp : 0) + pAdd(me, "crit", foe, sk.id);
     const crit = !x.noCrit && (x.crit || me.fx.clarity || foe.fx.daze || R() < 0.03 + st(me, "dex") * 0.004 + (me.P.crit || 0) + (!waza ? me.P.magicCrit || 0 : 0) + (x.critUp || 0) + critVs + (ganbari(me) ? gCrit : 0) + lukE(me) * ((x.critLuk || 0) + (me.P.critLuk || 0)));
     const cm = crit ? 1.5 + lukE(me) * (0.01 + (x.critDmgLuk || 0)) + (me.P.critDmg || 0) / 100 + (me.fx.clarity && me.P.clarityCritDmg ? me.P.clarityCritDmg / 100 : 0) : 1;
@@ -422,6 +441,12 @@ export function simulateTeams(SA, SB, seed, opts = {}) {
     if (x.hpPct) d += foe.maxHp * x.hpPct;   // 連打：1 発ごとに 相手の 最大 HP の 量% を 足す（打たれ強い 相手ほど 効く。鹿さんの 決め 2026-11-01）
     d *= 1 + (((waza ? me.P.wazaDmg : me.P.itazuraDmg) || 0) + (waza ? pAdd(me, "wazaDmg", foe, sk.id) : 0)) / 100;
     if (me.P.guardNext && me.lastId === "bougyo") d *= 1 + me.P.guardNext;                       // 防御した 次の 技
+    if (me.P.execute && foe.hp <= foe.maxHp * 0.3) d *= 1 + me.P.execute / 100;                    // とどめ（新しい OP）
+    if (me.P.desperate) d *= 1 + (me.P.desperate / 100) * (1 - me.hp / me.maxHp);                  // 背水
+    if (me.P.badLuck) d *= 1 + Math.min(20, Math.max(0, (me.c.lv || 1) - st(me, "luk")) * me.P.badLuck) / 100;   // 不運の力（最大 ＋20%）
+    if (waza && me.P.sandClock && curTurn >= 9) d *= 1.15;                                         // 砂時計：9 ターン目から 技 ＋15%
+    if (foe.P.gamble) d *= R() < 0.5 ? 1 - foe.P.gamble / 100 : 1 + foe.P.gamble / 200;            // 守りの賭け
+    if (foe.P.agiGuard && R() < foe.P.agiGuard / 100) d = soften(d, st(foe, "agi"));               // 受け流し：N% で AGI でも もう 一度 減らす
     if (crit && foe.P.critTakenCut) d *= 1 - foe.P.critTakenCut;                                   // 受ける 会心の ダメージを 減らす
     if (me.P.firstHit) { me.firstE ??= e; if (me.firstE === e) d *= 1 + me.P.firstHit; }             // 竜の いぶき：最初に 攻撃した 技（何回 当てても その技 ぜんぶ）
     { const dc = (foe.P.dmgCut || 0) + pAdd(foe, "dmgCut", me, sk.id); if (dc) d *= 1 - dc / 100; }
@@ -460,6 +485,7 @@ export function simulateTeams(SA, SB, seed, opts = {}) {
     if (x.addPierce) d += x.addPierce;                                                              // 掘り抜く
     d *= graze;
     d = Math.max(0, Math.round(d));   // 前の「最低 1 ダメージ」は やめた（鹿さんの 決め、2026-10-30）
+    if (foe.P.delayPain && d > 0 && foe.hp > 0) { const k = Math.round(d * 0.2); if (k > 0) { d -= k; const pn = (foe.pain ||= { left: 0, per: 0 }); pn.left += k; pn.per = Math.ceil(pn.left / 2); e.notes.push(`${foe.name} は 痛みを あとに まわした（${k}）`); } }   // 遅れの痛み：2 割を 次の 2 ターンに
     let rest = d;
     for (const sid of ["overheal", "shield"]) if (rest > 0 && foe.fx[sid]?.amt > 0) { const t = Math.min(rest, foe.fx[sid].amt); foe.fx[sid].amt -= t; rest -= t; e.absorbed = (e.absorbed || 0) + t; if (sid === "shield" && foe.fx.shield.amt <= 0) delete foe.fx.shield; }
     hurt(foe, rest, e.notes); e.hits.push({ dmg: d, crit });
@@ -483,10 +509,12 @@ export function simulateTeams(SA, SB, seed, opts = {}) {
       if (crit && me.P.critRegen) addFx(me, "regen", { amt: me.P.critRegen }, e.notes, me);        // 風通し
       if (crit && me.P.critVsDazeRegen && foe.fx.daze) addFx(me, "regen", { amt: me.P.critVsDazeRegen }, e.notes, me);   // 見て しまったな
     }
+    if (sk.id === "kogeki" && me.P.kogekiFx && foe.hp > 0) for (const [id, ch] of me.P.kogekiFx) if (foe.hp > 0 && R() < ch) { const [n, tu] = HIT_AMT[id] || [2]; if (addFx(foe, id, { amt: n, turns: tu, src: EFFECTS[id].src ? st(me, EFFECTS[id].src) : undefined }, e.notes, me)) e.tags.push(id); }   // 追撃の OP
+    if (foe.hp > 0 && me.hp > 0 && d > 0 && foe.P.thornsOp) { const t = Math.round(soften(st(foe, foe.P.ironThorns ? "def" : "atk") * foe.P.thornsOp / 100, st(me, "def"))); if (t > 0) { hurt(me, t, e.notes); e.back = (e.back || 0) + t; e.notes.push(`${foe.name} の 反撃 ${t}`); } }   // 反撃（鉄の棘なら DEF で）
     if (foe.hp > 0 && foe.fx.daze && !foe.fx.stun && R() < 0.1) addFx(foe, "stun", { turns: 1 }, e.notes, me);
     // しびれ上手（paraCounterCut）：麻痺している相手のカウンターと棘は弱い
     if (foe.hp > 0 && foe.fx.counter && rest > 0) { const back = Math.round((rest * (foe.fx.counter.amt ?? 50) / 100 + st(foe, "def") * (foe.P.counterDef || 0)) * (foe.fx.paralysis && me.P.paraCounterCut ? 1 - me.P.paraCounterCut : 1) * charge2(foe)); hurt(me, back, e.notes); e.back = (e.back || 0) + back; e.notes.push(`${foe.name} のカウンター！ ${back} 返した`); }
-    if (foe.hp > 0 && foe.fx.thorns) { const t = Math.round(soften((st(foe, "atk") * foe.fx.thorns.amt / 100 + st(foe, "def") * (foe.P.thornsDef || 0)) * (foe.P.thornsMul || 1), st(me, "def")) * (foe.fx.paralysis && me.P.paraCounterCut ? 1 - me.P.paraCounterCut : 1) * charge2(foe)); hurt(me, t, e.notes); e.thorns = (e.thorns || 0) + t; halve(foe, "thorns"); }
+    if (foe.hp > 0 && foe.fx.thorns) { const t = Math.round(soften((st(foe, foe.P.ironThorns ? "def" : "atk") * foe.fx.thorns.amt / 100 + st(foe, "def") * (foe.P.thornsDef || 0)) * (foe.P.thornsMul || 1), st(me, "def")) * (foe.fx.paralysis && me.P.paraCounterCut ? 1 - me.P.paraCounterCut : 1) * charge2(foe)); hurt(me, t, e.notes); e.thorns = (e.thorns || 0) + t; halve(foe, "thorns"); }
     if (x.toShield && x.drain && me.hp > 0) addFx(me, "shield", { amt: Math.max(1, Math.round(d * x.drain)) }, e.notes, me);   // 利息：吸った 分を シールドに
     else if ((me.P.drain || x.drain) && me.hp > 0) { const a = heal(me, d * ((me.P.drain || 0) / 100 + (x.drain || 0)), e.notes); if (a > 0) e.drain = (e.drain || 0) + a; }
     if (crit) e.critHit = true;
@@ -542,6 +570,8 @@ export function simulateTeams(SA, SB, seed, opts = {}) {
       if (me.hp > 0 && me.P.coinTick && (me.cnt.coin || 0) > 0) { me.cnt.coin--; addFx(me, "up_atk", { amt: me.P.coinTick }, tn, me); }   // こつこつ
       if (me.hp > 0 && me.drip?.left > 0) { me.drip.left--; const a = heal(me, me.maxHp * me.drip.pct, tn); if (a) tick.items.push({ who: i, heal: a, why: "水" }); }   // 水を はきだす（続けて 回復）
       if (me.hp > 0 && me.P.hpRegen) { const a = heal(me, me.maxHp * me.P.hpRegen, tn); if (a) tick.items.push({ who: i, heal: a }); }
+      if (me.hp > 0 && me.P.oasisOp && me.hp < me.maxHp / 2) { const a = heal(me, me.maxHp * me.P.oasisOp / 100, tn); if (a) tick.items.push({ who: i, heal: a, why: "オアシス" }); }   // オアシス（新しい OP）
+      if (me.P.whim) me.whimK = ["atk", "int", "agi"][Math.floor(R() * 3)];                       // 気まぐれ：この ターンの 1 つ
       if (me.P.teamRegen) for (const g of F) if (g.side === me.side && g.hp > 0) { const a = heal(g, g.maxHp * me.P.teamRegen, tn); if (a) tick.items.push({ who: F.indexOf(g), heal: a, why: "癒やしの歌" }); }   // ザンの竪琴：味方 全員
       if (me.P.waveEvery && turn % me.P.waveEvery === 0) for (const g of F) if (g.side !== me.side && g.hp > 0) {   // ニライの三叉槍：相手 全員に 水の こうげき（ATK か INT の 高い 方 → DEF と RES の 低い 方）
         let d = me.P.wavePow * Math.pow((Math.max(st(me, "atk"), st(me, "int")) + 10) / (Math.min(st(g, "def"), st(g, "res")) + 10), STAT_EXP) * (0.8 + R() * 0.4);
@@ -561,6 +591,7 @@ export function simulateTeams(SA, SB, seed, opts = {}) {
       for (const [id, ch, tu, need, n] of me.P.auraFxAt || []) if (me.hp > 0 && amt(foe, need) >= n && R() < ch && addFx(foe, id, { turns: tu }, tn, me)) tn.push(`${foe.name} は${EFFECTS[id].label}になった`);   // 根腐れ
       if (me.hp > 0) for (const en of me.P.rollFx || []) if (en.at === "turn") applyList(me, !en.chance || R() < en.chance ? en.fx : en.miss, tn);
       if (me.hp > 0 && me.P.turnFx) { const alone = !F.some((g) => g !== me && g.side === me.side && g.hp > 0); for (const en0 of me.P.turnFx) { const en = alone && en0.solo ? en0.solo : en0; if (en.has && !(me.fx[en.has] && (!en.n || amt(me, en.has) >= en.n))) continue; if (en.fx) addFx(me, en.fx[0], { amt: en.fx[1], turns: en.fx[2] }, tn, me); if (en.heal) { const a = heal(me, me.maxHp * en.heal, tn); if (a) tick.items.push({ who: i, heal: a }); } if (en.shield) addFx(me, "shield", { amt: Math.max(1, Math.round(me.maxHp * en.shield)) }, tn, me); } }
+      if (me.pain?.left > 0) { const k = Math.min(me.pain.left, me.pain.per); me.pain.left -= k; hurt(me, k, tn); tick.items.push({ who: i, dmg: k, why: "遅れの痛み" }); }   // 遅れの痛み（新しい OP）
       if (me.crack?.left > 0) { const c = me.crack, k0 = Math.min(c.left, c.per), k = Math.round(k0 * (me.fx.guard ? 0.5 * (1 - (me.P.guardBonus || 0)) : 1)); c.left -= k0; hurt(me, k, tn); tick.items.push({ who: i, dmg: k, why: "ひび" }); }   // 40% の 上限は かけない（もとは 直接の ダメージ）
       if (!quiet && (tick.items.length || tn.length)) { tick.notes = tn; tick.after = snap(); ev.push(tick); }
       if (me.hp <= 0) continue;
@@ -583,7 +614,10 @@ export function simulateTeams(SA, SB, seed, opts = {}) {
         if (me.fx.rot && hasT(id, "heal")) { const p2 = choose(me, foe, turn, R, rep === 1); id = p2.id; e.by = p2.by; want = p2.opt; }   // 動く前に腐敗にされたら、回復をやめて選びなおす
         if (!usable(me, id)) { id = "kogeki"; e.by = "auto"; }
         me.curId = id;
-        const sk = SKILL[id], cost = mpCost(me, id), boosted = me.boostOn && me.P.foeBuffBoost === id; me.mp -= cost;
+        const sk = SKILL[id], boosted = me.boostOn && me.P.foeBuffBoost === id; let cost = mpCost(me, id);
+        if (me.P.mpSave && cost > 0) { me.mpSaveAcc = (me.mpSaveAcc || 0) + cost * me.P.mpSave / 100; const sv = Math.floor(me.mpSaveAcc + 1e-9); if (sv) { me.mpSaveAcc -= sv; cost = Math.max(0, cost - sv); } }   // MP 節約（はしたは ためて 1 に なったら 引く）
+        me.mp -= cost;
+        if (me.mp < 0) { const hp = -me.mp * 2; me.mp = 0; me.hp = Math.max(1, me.hp - hp); e.notes.push(`${me.name} は 命を けずって 技を 出した（HP −${hp}）`); }   // 命の詠唱
         if (sk.item) { me.bag[id]--; me.bagCap.n--; itemsUsed[id] = (itemsUsed[id] || 0) + 1; }   // 戦いの アイテムは 1 こ 使う
         // 混乱：半分の確率で自分に使ってしまう
         const self = !!me.fx.confusion && R() < 0.5;

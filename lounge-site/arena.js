@@ -31,7 +31,8 @@ export function pickFoes(list, myId, myP, R) {
 // ---------- トーナメント ----------
 export const TOUR = { min: 6, max: 32, hour: 22 };
 // ごほうび（参加は 無料。鹿さんの決め）。4：ベスト 4（準決勝で 負けた 2 人）
-export const TOUR_PAY = { 1: { credits: 5000, res: 3 }, 2: { credits: 2500, res: 1 }, 4: { credits: 1000, res: 0 }, all: { credits: 200, res: 0 } };
+// 数は 通貨の 作り直しの 決め（2026-10-28。docs/mono-link-economy.md「毎晩の大会の賞金」探索 1 周の 稼ぎ 175 の 何周分か）：優勝 7,000（40 周分）＋アメジスト 3・準優勝 3,500＋1・ベスト 4 1,750・出た 人 350。前は 5,000・2,500・1,000・200
+export const TOUR_PAY = { 1: { credits: 7000, res: 3 }, 2: { credits: 3500, res: 1 }, 4: { credits: 1750, res: 0 }, all: { credits: 350, res: 0 } };
 const JST = 9 * 3600e3;
 const ymd = (ms) => new Date(ms + JST).toISOString().slice(0, 10);
 // 参加が 入る 大会の 日（日本時間で 22:00 より 前なら きょう、あとなら あした）

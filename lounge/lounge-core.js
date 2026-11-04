@@ -1,7 +1,7 @@
 // ブランクコア（鹿さんの決め、2026-10-25）：装備から OP を 1 つ 抜き出す（core.take）・コアを 別の 装備に 付ける（core.set）
 // 決まりの 中身は lounge-proto/equip.js の「ブランクコア」。ブランクコアは rec.items.blankcore（工房・ボス・ヨルの 店）、コアは rec.own.cores に { uid, op, star }
 // 抜くと 装備は なくなる（付いて いた アタッチメントは のこって 付いて いない に もどる）。付けた OP の 強さは 抜いた 装備の ★の まま（it.opStar）
-import { OPS, KINDS, baseOf, opCount, opStarOf, CORE_MAX } from "./game.js";
+import { ALL_OPS, KINDS, baseOf, opCount, opStarOf, CORE_MAX } from "./game.js";
 import { equippedUids } from "./lounge-pet.js";
 
 const newUid = (rec, p) => p + (++rec.uidN).toString(36);
@@ -34,17 +34,17 @@ export function coreSet(rec, b) {
   const core = rec.own.cores.find((c) => c.uid === b.core), it = rec.own.equip.find((e) => e.uid === b.uid);
   if (!core) return { ok: false, why: "その コアは ない" };
   if (!it) return { ok: false, why: "その 装備は ない" };
-  if (!OPS[core.op]) return { ok: false, why: "こわれた コア" };
+  if (!ALL_OPS[core.op]) return { ok: false, why: "こわれた コア" };
   if (wornAway(rec, it.uid)) return { ok: false, why: "出かけて いる 子の 装備は かえられない（帰って から）" };
   const n = opCount(kindOf(it), it.star), op = core.op;
   const opStar = { ...(it.opStar || {}) };
   if (b.i == null) {
     if (it.ops.length >= n) return { ok: false, why: "OP の 枠が いっぱい（入れかえる OP を えらんで）" };
-    if (it.ops.includes(op)) return { ok: false, why: `${OPS[op].label}は もう 付いて いる（入れかえなら できる）` };
+    if (it.ops.includes(op)) return { ok: false, why: `${ALL_OPS[op].label}は もう 付いて いる（入れかえなら できる）` };
     it.ops = [...it.ops, op]; opStar[it.ops.length - 1] = core.star;
   } else {
     if (!Number.isInteger(b.i) || b.i < 0 || b.i >= it.ops.length) return { ok: false, why: "入れかえる OP を えらんで" };
-    if (it.ops.some((o, k) => o === op && k !== b.i)) return { ok: false, why: `${OPS[op].label}は もう 付いて いる（同じ OP と 入れかえて）` };
+    if (it.ops.some((o, k) => o === op && k !== b.i)) return { ok: false, why: `${ALL_OPS[op].label}は もう 付いて いる（同じ OP と 入れかえて）` };
     it.ops = it.ops.map((o, k) => (k === b.i ? op : o)); opStar[b.i] = core.star;
   }
   for (const k of Object.keys(opStar)) if (opStar[k] === it.star || +k >= it.ops.length) delete opStar[k];   // 装備と 同じ ★なら しるしは いらない

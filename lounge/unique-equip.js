@@ -17,7 +17,7 @@ export const UNIQUES = [
   { id: "uqHalsClover", isle: 1, dungeon: "hals", slot: "acc", name: "四つ葉の護り", text: "幸運：受ける ダメージ −6%・回避 +6%", main: { luk: 0.9, hp: 0.3 }, fxp: { dmgCut: 6, evade: 0.06 }, look: "brooch.cloth.0" },
   { id: "uqMorphPillow", isle: 1, dungeon: "morph", slot: "off", name: "夢枕の本", text: "いい 夢：自分の 番の はじめに MP +1", main: { int: 0.8, res: 0.4 }, fxp: { mpRegen: 1 }, look: "book.leather.0" },
   { id: "uqMorphGlove", isle: 1, dungeon: "morph", slot: "arm", name: "うたたねの手ぶくろ", text: "さそいの 手：こうげきの とき 15% で 相手を ねむりに", main: { atk: 0.7, res: 0.5 }, fxp: { onHitFx: [["sleep", 0.15, undefined, 1]] }, look: "glove.cloth.0" },
-  { id: "uqMorphHood", isle: 1, dungeon: "morph", slot: "head", name: "まどろみのずきん", text: "ねむりしらず：ねむりと 混乱に ならない・RES +15%", main: { res: 1.0, hp: 0.3 }, fxp: { resMul: 1.15, noFx: { sleep: true, confusion: true } }, look: "hood.cloth.0" },
+  { id: "uqMorphHood", isle: 1, dungeon: "morph", slot: "head", name: "まどろみのずきん", text: "ねむりしらず：RES +25%", main: { res: 1.0, hp: 0.3 }, fxp: { resMul: 1.25 },   /* 前は「ねむりと 混乱に ならない・RES +15%」（無効）。鹿さんの 決め 2026-11-04 で RES +25% に */ look: "hood.cloth.0" },
   { id: "uqKuraiBell", isle: 1, dungeon: "kurai", slot: "neck", name: "村はずれの 鐘守", text: "弔いの 鐘：自分の 番の はじめに 味方 全員の HP 1.5% 回復", main: { hp: 1.1, mp: 0.4 }, fxp: { teamRegen: 0.015 }, look: "bib" },
   { id: "uqKuraiBlade", isle: 1, dungeon: "kurai", slot: "weapon", name: "夜ふけの 骨のかま", text: "血を すう：与えた ダメージの 8% を 吸う", main: { atk: 1.1 }, fxp: { drain: 8 }, look: "pikopiko" },
   { id: "uqCrystalGauntlet", isle: 1, dungeon: "crystal", slot: "arm", name: "水晶ごけの こて", text: "かたい 手：DEF +20%・受ける ダメージ −5%", main: { def: 1.0, atk: 0.3 }, fxp: { defMul: 1.2, dmgCut: 5 }, look: "gauntlet.iron.0" },
@@ -25,7 +25,7 @@ export const UNIQUES = [
   // ---- 島 2 ビサイ諸島（行き先ごとに 1 つ）----
   { id: "uqInohPearl", isle: 2, dungeon: "inoh", slot: "neck", name: "浅瀬の 真珠", text: "なぎ：自分の 番の はじめに HP 2% 回復・HP +15%", main: { hp: 1.0, res: 0.4 }, fxp: { hpMul: 1.15, hpRegen: 0.02 }, look: "gold" },
   { id: "uqGamaFlag", isle: 2, dungeon: "gama", slot: "acc", name: "海賊旗の 切れはし", text: "略奪：こうげきの ダメージ +10%・会心 +6%", main: { atk: 0.6, luk: 0.6 }, fxp: { atkMul: 1.1, crit: 0.06 }, look: "ring.iron.0" },
-  { id: "uqTidaMirror", isle: 2, dungeon: "tida", slot: "off", name: "霧ばらいの 鏡", text: "見とおす：相手の 回避 −10%・盲目に ならない・DEX +15%", main: { dex: 0.8, int: 0.5 }, fxp: { foeEvadeCut: 0.1, dexMul: 1.15, noFx: { blind: true } }, look: "lantern.iron.0" },
+  { id: "uqTidaMirror", isle: 2, dungeon: "tida", slot: "off", name: "霧ばらいの 鏡", text: "見とおす：相手の 回避 −10%・DEX +25%", main: { dex: 0.8, int: 0.5 }, fxp: { foeEvadeCut: 0.1, dexMul: 1.25 },   /* 前は「盲目に ならない・DEX +15%」（無効）。無効を なくして DEX +25%（2026-11-04） */ look: "lantern.iron.0" },
   { id: "uqAtuiSpear", isle: 2, dungeon: "atui", slot: "weapon", name: "タコ墨の 銛", text: "墨だまり：こうげきの とき 20% で 相手を 盲目に", main: { atk: 1.1, dex: 0.3 }, fxp: { onHitFx: [["blind", 0.2, undefined, 2]] }, look: "stick" },
   { id: "uqZanShell", isle: 2, dungeon: "zan", slot: "head", name: "人魚の 髪かざり", text: "うたの 加護：味方 全員の HP 1.5% 回復（自分の 番の はじめ）", main: { res: 0.7, mp: 0.7 }, fxp: { teamRegen: 0.015 }, look: "band.leather.0" },
   { id: "uqUfuBoots", isle: 2, dungeon: "ufu", slot: "leg", name: "溶岩あるきの ブーツ", text: "熱い 足あと：戦いのはじめ 相手の ATK −10%・自分は DEF +10%", main: { def: 0.7, agi: 0.5 }, fxp: { startFoeFx: [["down_atk", 10, 3]], defMul: 1.1 }, look: "boots.iron.0" },

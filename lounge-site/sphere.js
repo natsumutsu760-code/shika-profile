@@ -12,9 +12,11 @@ import { DUNGEONS_ALL } from "./dungeons.js";
 import { TREES3, ENEMY_MAT3 } from "./isle3-data.js";   // ミカネル島の 敵と 素材
 
 export const SPHERE_RATE = 0.03;
-// 新しい OP（33）は 戦いの 計算を 入れてから 出す（docs/mono-link-sphere.md）。それまでは いまの 22 だけ（得意な OP の うち 新しい 物は 抜いて 引く）
-export const NEW_OPS_LIVE = false;
-export const opLive = (op) => NEW_OPS_LIVE || op in OPS;
+// 新しい OP は 戦いの 計算を 入れてから 出す（docs/mono-link-sphere.md）。2026-11-04 に 計算を 入れた（battle-sim.js）
+// OP_HOLD：まだ 出さない 物。早い治り（cureFast）は「デバフを 受けた ときだけ はたらく」形なので、鹿さんに 聞くまで 止める（2026-11-04 の 決め「デバフを受ける前提の能力は弱いし再現性にかける」）
+export const NEW_OPS_LIVE = true;
+export const OP_HOLD = new Set(["cureFast"]);
+export const opLive = (op) => op in OPS || (NEW_OPS_LIVE && !OP_HOLD.has(op));
 // 鑑定（ガラク）の 値段・持てる 数（Claude の 案、2026-11-04）
 export const SPHERE_LOOK = 100, SPHERE_MAX = 100;
 export const SPHERE_ODDS = { land: 0.7 };
