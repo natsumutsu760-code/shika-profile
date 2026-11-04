@@ -5,6 +5,7 @@
 // 強さ：枠ごとの 重み（w）で もとの強さと OP の 数を へらし、ぜんぶ 付けた ときの 合計を 前の 3 枠と 同じくらいに する（鹿さんの決め）
 import { DUNGEONS } from "./dungeons.js";
 import { UNIQUES } from "./unique-equip.js";
+import { devBase, devStats } from "./equip-dev.js";   // 装備開発の 装備（id "dev.<敵>.<番号>"。2026-11-04 に つないだ）
 
 // 部位（しゅるい）。アクセサリーは 枠が 3 つ
 export const KINDS = {
@@ -137,20 +138,20 @@ export const UPPER = [
 export const MYTHICS = DUNGEONS.map((d) => ({ ...d.mythic, mythic: true }));
 // ユニーク：行き先ごとの 専用装備（unique-equip.js）。★5・OP は ミシックと 同じ。効果は いつも 付く
 export const UNIQUE_BASES = UNIQUES.map((u) => ({ ...u, unique: true }));
-export const baseOf = (id) => BASES.find((b) => b.id === id) || UPPER.find((b) => b.id === id) || MYTHICS.find((b) => b.id === id) || UNIQUE_BASES.find((b) => b.id === id) || comboOf(id);
+export const baseOf = (id) => BASES.find((b) => b.id === id) || UPPER.find((b) => b.id === id) || MYTHICS.find((b) => b.id === id) || UNIQUE_BASES.find((b) => b.id === id) || devBase(id) || comboOf(id);
 // 手放す（鹿さんの決め、2026-10-25）：売る 値段（★ごと。玉・クレジット）と リサイクル
 // リサイクル：★の 数 だけ その 装備の 素材の tier の 行き先の 採取の 素材（くじ）。★4・★5 は かくし通路の 素材も 1 こ。前からの 12 しゅるいと 合成の 装備は ハルス街道、ミシックは その 行き先
 export function recycleOf(it) {
-  const b = baseOf(it.base), tier = b && b.combo ? MATS[b.mat].tier : b && b.mythic ? Math.max(0, DUNGEONS.findIndex((d) => d.mythic.id === b.id)) : b && b.unique ? Math.max(0, DUNGEONS.findIndex((d) => d.id === b.dungeon)) : 0;
+  const b = baseOf(it.base), tier = b && b.combo ? MATS[b.mat].tier : b && b.mythic ? Math.max(0, DUNGEONS.findIndex((d) => d.mythic.id === b.id)) : b && b.unique ? Math.max(0, DUNGEONS.findIndex((d) => d.id === b.dungeon)) : b && b.dev ? Math.max(0, DUNGEONS.findIndex((d) => d.id === b.did)) : 0;   // 装備開発の 装備は その 敵の 行き先
   return { did: DUNGEONS[Math.min(DUNGEONS.length - 1, tier)].id, n: it.star, hidden: it.star >= 4 ? 1 : 0 };
 }
 // まとめて 手放す ときに 入れない：ミシック・合成の 上の 装備・とくべつな 効果つき（付けて いる 物は 画面と 門番で 別に 見る）
-export const keepInBulk = (it) => { const b = baseOf(it.base); return !b || !!b.mythic || !!b.unique || UPPER.some((u) => u.id === b.id) || !!it.fx; };
+export const keepInBulk = (it) => { const b = baseOf(it.base); return !b || !!b.mythic || !!b.unique || !!b.dev || UPPER.some((u) => u.id === b.id) || !!it.fx; };   // 装備開発の 装備も まとめて 手放さない（作るのに 手間が かかる）
 // 自動で 売る（鹿さんの頼み、2026-10-25）：派遣で 拾った ★N 以下の 装備を 持ち物に 入れずに 手放す。もらう 物は えらべる（手放すと 同じ 値段）
 // 売らない：まとめて 手放さない 物（ミシック・合成の 上・効果つき）・買った／もらった 物（b）。a：rec.autoSell = { star, how }
 export const AUTO_SELL_STARS = [1, 2, 3, 4], AUTO_SELL_HOW = ["recycle"];   // 装備は 売れない。リサイクル（素材に もどす）だけ（2026-10-28 の 決め。前は 玉・クレジットでも 売れた）
 export const autoSellOf = (it, a) => !!a && a.star > 0 && it.star <= a.star && !it.b && !keepInBulk(it);
-export const hasFx = (it) => { const b = baseOf(it.base); return !!b?.fxp && (b.mythic || b.unique || !!it.fx); };
+export const hasFx = (it) => { const b = baseOf(it.base); return !!b?.fxp && (b.mythic || b.unique || b.dev || !!it.fx); };   // 装備開発の 装備の 効果は いつも
 
 // OP：★の数だけ付く（★1 は 1 つ … ★5 は 5 つ）。数字はその装備の★で決まる（左から ★1〜★5）。from は付きはじめる★
 export const OPS = {
@@ -181,7 +182,9 @@ export const OPS = {
 // 装備 1 つの数字をまとめる：もとの強さ（× 枠の 重み。いちばん 重い 能力は 0 に ならない ように 1 は のこす）＋ OP
 // もとの強さ（OP を 入れない 分）。画面の「もとの強さ」も ここから
 export function mainStats(it) {
-  const base = baseOf(it.base), out = {}, sw = (KINDS[base.slot] || KINDS.weapon).w, top = Object.entries(base.main).sort((a, b) => b[1] - a[1])[0][0];
+  const base = baseOf(it.base), out = {};
+  if (base && base.dev) return devStats(base.form, base.st, it.star);   // 装備開発：決まった 能力（いまの 式の 2 倍。鹿さんの 決め）
+  const sw = (KINDS[base.slot] || KINDS.weapon).w, top = Object.entries(base.main).sort((a, b) => b[1] - a[1])[0][0];
   for (const [k, w] of Object.entries(base.main)) { const v = MAIN[it.star] * w * sw * (k === "hp" ? 4 : k === "mp" ? 2 : 1), r = Math.round(v); if (r || k === top) out[k] = r || Math.sign(v); }
   return out;
 }
@@ -192,7 +195,8 @@ export function mainStats(it) {
 export const BOSS_CORE = 0.05, CORE_MAX = 100;
 export const opStarOf = (it, i) => (it.opStar && it.opStar[i]) || it.star;
 export function itemStats(it) {
-  const out = mainStats(it);
+  const out = mainStats(it), b = baseOf(it.base);
+  if (b && b.dev) for (const [k, v] of Object.entries(b.fxs)) out[k] = (out[k] || 0) + v;   // 装備開発の 効果の うち OP と 同じ 数の 物（会心 +2% など）
   it.ops.forEach((op, i) => { out[op] = (out[op] || 0) + OPS[op].v[opStarOf(it, i) - 1]; });   // コアで 付けた OP は 抜いた 装備の ★の 強さ
   for (const a of Array.isArray(it.att) ? it.att : []) for (const op of a.ops || []) if (OPS[op]) out[op] = (out[op] || 0) + OPS[op].v[a.star - 1];   // 武器の アタッチメント（workshop.js の withAtt で 入れた 写し）
   return out;

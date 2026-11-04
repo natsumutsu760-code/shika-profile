@@ -7,7 +7,7 @@ import { equippedUids } from "./lounge-pet.js";
 const newUid = (rec, p) => p + (++rec.uidN).toString(36);
 const kindOf = (it) => { const b = baseOf(it.base); return b && KINDS[b.slot] ? b.slot : "weapon"; };
 // その 装備を 付けて いる 子が 出かけて いるか（出かけて いる あいだは 強さを かえない）
-function wornAway(rec, uid) {
+export function wornAway(rec, uid) {
   const who = [...rec.pets, ...rec.tamed].filter((x) => x.equip && Object.values(x.equip).includes(uid)).map((x) => x.uid);
   return who.length > 0 && rec.trips.some((t) => !t.done && t.party.some((u) => who.includes(u)));
 }

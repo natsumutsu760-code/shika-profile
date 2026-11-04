@@ -15,7 +15,8 @@ import { ENEMY_TREES } from "./enemy-trees.js";
 import { ROSTER } from "./fusion-only.js";
 import { BAG_USE_MAX } from "./battle-items.js";
 import { floorMap, reachOf, exploredRatio, keyOf, DIRS, GW, GH, FLOORS, T, isPass } from "./floors.js";
-import { GATHER, ENEMY_MAT, GATHER_N, floorMats, QUALITY, gatherPick, dropRate } from "./materials.js";
+import { GATHER, ENEMY_MAT, GATHER_N, floorMats, QUALITY, gatherPick, dropRate, CRYSTAL, CRYSTAL_DROP } from "./materials.js";
+import { SPHERE_RATE, rollSphere } from "./sphere.js";   // 宝箱の スフィア
 import { CROPS, farmOpen } from "./crops.js";   // 種（採取で たまに 拾う。鹿さんの 決め 2026-11-03）
 // 種：採取ポイント 1 つで この 割合で、その 行き先の 種（作物の 表の at）を SEED_N こ 拾う（Claude の 仮。1 回の 派遣で 回る 採取ポイントは 1 つ ほど）。農園が 開いて いる ときだけ
 export const SEED_RATE = 0.6, SEED_N = [1, 3];
@@ -90,7 +91,7 @@ export function tripInit(party, dungeonId, runKey, seed, opts = {}) {
   const prog = JSON.parse(JSON.stringify(opts.progress || newProgress()));
   const S = {
     lite: !!opts.lite, did: dungeonId, runKey, purpose, tool, tools, used: {}, fl: Number.isInteger(opts.floor) && opts.floor >= 1 && opts.floor <= floorsOpen(dungeonId, prog) ? opts.floor : 0, ti: purpose === "target" ? pick() : -1, li: tools.includes("lure") ? pick() : -1,
-    r: { R: seed * 2654435761 >>> 0, C: seed * 40503 + 7 >>> 0, M: seed * 69069 + 13 >>> 0, Q: seed * 2246822519 + 3 >>> 0, X: seed * 3266489917 + 11 >>> 0, SD: seed * 668265263 + 17 >>> 0 },   // C は希少な敵・捕獲・おやつ、M は素材、Q は ユニーク装備、X は 侵入（ほかの結果が変わらないように）
+    r: { R: seed * 2654435761 >>> 0, C: seed * 40503 + 7 >>> 0, M: seed * 69069 + 13 >>> 0, Q: seed * 2246822519 + 3 >>> 0, X: seed * 3266489917 + 11 >>> 0, SD: seed * 668265263 + 17 >>> 0, K: seed * 1597334677 + 19 >>> 0, SP: seed * 3812015801 + 23 >>> 0 },   // C は希少な敵・捕獲・おやつ、M は素材、Q は ユニーク装備、X は 侵入、K は 結晶、SP は スフィア（ほかの結果が変わらないように）
     prog, before: Array.from({ length: FLOORS }, (_, i) => floorRatio(dungeonId, prog, i + 1)), budget: Math.round(RUNS[runKey].sec / TICK),
     team: (Array.isArray(party) ? party : [party]).map((c) => { const v = vitalsOf(c); return { c, maxHp: v.maxHp, maxMp: v.maxMp, hp: v.maxHp, mp: v.maxMp, down: false }; }),
     nt: 0, track: [], log: [], battles: [], captured: [], chests: [], gathered: [], drops: [], mats: [], seeds: {},
@@ -118,7 +119,7 @@ export function tripResult(S) {
   const materials = S.mats.map(([, m]) => m).sort((a, b) => (a.q ? 1 : 0) - (b.q ? 1 : 0) || b.q - a.q || b.n - a.n);
   return { dungeon: d, run: RUNS[S.runKey], purpose: S.purpose, target: S.ti >= 0 ? [...d.foes, d.rare][S.ti] : null, tool: S.tool, tools: S.tools || (S.tool ? [S.tool] : []), toolUsed: S.toolUsed, toolsUsed: { ...(S.used || {}) }, battles: S.battles, wins: S.wins, kills: S.kills,
     cleared: S.reason !== "wipe", reason: S.reason, bossDefeated: S.bossDone, drops: S.drops, chests: S.chests, mythic: S.mythic ? d.mythic : null, unique: S.unique ? uniqueOf(S.unique) : null, resource: S.resource, exp: Math.max(1, Math.round(S.exp)), credits: S.credits,
-    captured: S.captured, snacks: S.snacks, materials, seeds: { ...(S.seeds || {}) }, gathered: S.gathered, traps: S.traps, rests: S.rests, steps: S.steps, startFloor: S.start, endFloor: S.floor, before: S.before, after, progress: S.prog,
+    captured: S.captured, snacks: S.snacks, materials, spheres: (S.spheres || []).map((x) => ({ ...x })), seeds: { ...(S.seeds || {}) }, gathered: S.gathered, traps: S.traps, rests: S.rests, steps: S.steps, startFloor: S.start, endFloor: S.floor, before: S.before, after, progress: S.prog,
     track: S.track, log: S.log, budget: S.budget, ticks: Math.min(S.budget, S.nt), down: S.team.filter((m) => m.down).map((m) => m.c.name), risen: S.risen || 0, invader: S.inv && S.inv.done ? S.inv : null, itemsUsed: S.bagUsed || {} };
 }
 
@@ -128,7 +129,7 @@ function machine(S) {
   const d = DUNGEONS.find((x) => x.id === S.did), dungeonId = S.did, purpose = S.purpose, P = PURPOSES[purpose], tools = S.tools || (S.tool ? [S.tool] : []), team = S.team, prog = S.prog;
   const has = (id) => tools.includes(id), usedOf = (id) => !!(S.used && S.used[id]), use = (id) => { (S.used ||= {})[id] = true; S.toolUsed = true; };   // 道具は 3 つまで。使った かは 1 つずつ
   const target = S.ti >= 0 ? [...d.foes, d.rare][S.ti] : null, lureFoe = S.li >= 0 ? [...d.foes, d.rare][S.li] : null;   // 持っていく 道具：笛は えらんだ敵を よぶ、ネットは 捕まえやすい、お茶は 1 回 全回復
-  const R = rngIn(S.r, "R"), C = rngIn(S.r, "C"), M = rngIn(S.r, "M"), Q = rngIn(S.r, "Q"), SD = rngIn(S.r, "SD");   // SD：種の くじ（べつの 乱数）   // Q：ユニーク装備の くじ（べつの 乱数なので、ほかの 結果は かわらない）
+  const R = rngIn(S.r, "R"), C = rngIn(S.r, "C"), M = rngIn(S.r, "M"), Q = rngIn(S.r, "Q"), SD = rngIn(S.r, "SD"), K = rngIn(S.r, "K");   // SD：種の くじ（べつの 乱数）   // Q：ユニーク装備の くじ（べつの 乱数なので、ほかの 結果は かわらない）
   let seen = new Set(S.seen), done = new Set(S.done), map = null, grid = null, reach = null, fought = 0;
   if (S.floor) { map = floorMap(dungeonId, S.floor); grid = map.grid.map((r) => r.slice()); if (S.hiddenOpen) for (const [x, y, t] of map.hidden) grid[y][x] = t; reach = reachOf(grid, map.start); }
   const say = (s, k = "ev") => { if (!S.lite) S.log.push({ t: S.tick, s, k }); };
@@ -223,7 +224,10 @@ function machine(S) {
     for (let i = 0; i < cost; i++) { snap("b", b); S.tick++; }
     const lvOf = (list) => list.reduce((s, f) => s + f.lv, 0);
     // 敵の素材：深い階ほど品質が高い（希少な敵 ＋1、ボスはいつも 5 を 2 こ）
-    const dropMats = (ks) => { for (const k of ks) { const f = g[k], rk = boss && k === 0 ? "ボス" : rankOf(f); if (M() >= dropRate(rk, ENEMY_MAT[f.tree][0])) continue;   // 高い 素材ほど 落ちにくい（鹿さんの 頼み、2026-10-29）
+    // 敵の 結晶（装備開発の 中心）：素材とは べつの くじ K（素材の くじの 順番は かわらない）
+    const dropCrystal = (f, rk) => { const c = CRYSTAL[f.tree]; if (!c || K() >= CRYSTAL_DROP[rk]) return;
+      const q = rk === "ボス" ? 5 : Math.min(5, pickW(K, QUALITY[S.floor]) + (rk === "希少" ? 1 : 0)); for (let i = 0; i < (rk === "ボス" ? 2 : 1); i++) addMat(c, q); };
+    const dropMats = (ks) => { for (const k of ks) { const f = g[k], rk = boss && k === 0 ? "ボス" : rankOf(f); dropCrystal(f, rk); if (M() >= dropRate(rk, ENEMY_MAT[f.tree][0])) continue;   // 高い 素材ほど 落ちにくい（鹿さんの 頼み、2026-10-29）
       const q = rk === "ボス" ? 5 : Math.min(5, pickW(M, QUALITY[S.floor]) + (rk === "希少" ? 1 : 0)); for (let i = 0; i < (rk === "ボス" ? 2 : 1); i++) addMat(ENEMY_MAT[f.tree], q); } };
     // 負けても、たおせた 敵は 勝った ときと 同じ（経験値・クレジット・素材）、たおせなかった 敵は 経験値の 半分（鹿さんの決め、2026-10-25）
     // 捕まえる・おやつ・ボスの ごほうびは 勝った ときだけ
@@ -273,8 +277,11 @@ function machine(S) {
       const sd = farmOpen() ? seedsAt(dungeonId) : [];
       if (sd.length && SD() < SEED_RATE) { const c = sd[Math.floor(SD() * sd.length)], n = SEED_N[0] + Math.floor(SD() * (SEED_N[1] - SEED_N[0] + 1)); S.seeds ||= {}; S.seeds[c.id] = (S.seeds[c.id] || 0) + n; say(`${c.name}の 種を ${n} こ 拾った`, "sys"); }
     }
-    else if (t === T.CHEST && !done.has(k)) { done.add(k); rollItem(R, d, Math.min(5, pickW(R, CHEST_STAR[S.floor]) + (hid ? 1 : 0)));   // 宝箱から 装備は 出さない（鹿さんの 決め 2026-10-29「宝箱からは装備のかわりにスフィア」。くじの 順番を かえない ため 引くだけ 引く。スフィアは つなぐまで まだ 出ない）
-      const cr = Math.round((CREDIT.chest[0] + M() * (CREDIT.chest[1] - CREDIT.chest[0])) * S.floor * (hid ? 2 : 1)); S.credits += cr; S.chests.push({ floor: S.floor, hidden: hid, credits: cr }); say(`${hid ? "かくし通路の " : ""}宝箱を あけた`); }
+    else if (t === T.CHEST && !done.has(k)) { done.add(k); rollItem(R, d, Math.min(5, pickW(R, CHEST_STAR[S.floor]) + (hid ? 1 : 0)));   // 宝箱から 装備は 出さない（鹿さんの 決め 2026-10-29「宝箱からは装備のかわりにスフィア」。くじの 順番を かえない ため 引くだけ 引く）
+      const cr = Math.round((CREDIT.chest[0] + M() * (CREDIT.chest[1] - CREDIT.chest[0])) * S.floor * (hid ? 2 : 1)); S.credits += cr;
+      // スフィア：宝箱 1 つに 3%（べつの くじ SP。中身〈OP と ★〉は ここで 決まり、ガラクの 鑑定で 見える。2026-11-04 に つないだ）
+      const SP = rngIn(S.r, "SP"), sp = SP() < SPHERE_RATE ? { ...rollSphere(d.id, SP), floor: S.floor } : null; if (sp) (S.spheres ||= []).push(sp);
+      S.chests.push({ floor: S.floor, hidden: hid, credits: cr, ...(sp ? { sphere: 1 } : {}) }); say(`${hid ? "かくし通路の " : ""}宝箱を あけた${sp ? "。スフィアが 入って いた！" : ""}`); }
     if (t !== T.START && t !== T.BOSS) {
       const rate = (t === T.ROOM ? ENCOUNTER.room : ENCOUNTER.path) * (target === d.rare ? P.rareEnc : P.enc);
       if (R() < rate) fight(group(), false);

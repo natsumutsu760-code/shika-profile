@@ -178,6 +178,7 @@ import { matPic } from "./mat-icons.js";
 import { BASES, OPS, baseOf } from "./equip.js";
 import { CRAFT, SYNTH } from "./recipes.js";
 import { DUNGEONS, TOOLS, ISLAND_OPEN } from "./dungeons.js";
+import { SPHERE_LOOK } from "./sphere.js";   // スフィアの 鑑定（ガラク。2026-11-04）
 import { me, act, busy, waitText, board, report, notedel } from "./lounge-client.js";   // 商人・タスク・お店・依頼の 板は 門番（見本では ブラウザの 中の ためしの 門番）
 import { mountWallet } from "./wallet-bar.js"; mountWallet({ host: document.getElementById("wallet"), theme: "dark" });   // 通貨の 札（玉・アメジスト・クレジット）と 両替
 
@@ -230,7 +231,7 @@ function traderHtml(t) {
       <div class="rep">友好度 <b>Lv${lv}</b> / ${LV_MAX}　${meter}<span class="meter"><i style="width:${top || !next ? 100 : ((rep - base) / (next - base)) * 100}%"></i></span></div></header>
     <p class="say">${esc(t.say)}</p>
     <div class="tabs" role="tablist"><button role="tab" data-tab="story" aria-selected="${S.tab === "story"}">物語${priN ? ` <span class="new">●</span>` : ""}</button><button role="tab" data-tab="tasks" aria-selected="${S.tab === "tasks"}">タスク ${list.filter((k) => !k.done).length}</button><button role="tab" data-tab="shop" aria-selected="${S.tab === "shop"}">ショップ ${t.shop.length}</button></div>
-    ${S.tab === "story" ? storyHtml(t, v) : S.tab === "tasks" ? `<ul class="rows">${tasks}</ul>` : shopHtml(t)}${sp && S.tab === "shop" ? `<p class="note">アメジストは 招待・毎晩の 大会・虹保留・!アメジスト交換（玉 500 → 1）で 手に 入る</p>` : ""}`;
+    ${S.tab === "story" ? storyHtml(t, v) : S.tab === "tasks" ? `<ul class="rows">${tasks}</ul>` : (t.id === "junk" ? lookHtml() : "") + shopHtml(t)}${sp && S.tab === "shop" ? `<p class="note">アメジストは 招待・毎晩の 大会・虹保留・!アメジスト交換（玉 500 → 1）で 手に 入る</p>` : ""}`;
 }
 // 物語（プライマリータスク）：いまの 章と いまの 1 つだけ 大きく。章の 一覧は しまう
 function storyHtml(t, v) {
@@ -263,6 +264,15 @@ function shopHtml(t) {
     return `<li><div class="t">${esc(it.name)}${it.tool ? `<span class="kd tool">持ち物</span>` : ""}<span class="sub">${esc(it.note)}</span></div>
       <div class="act">${it.sell || it.trade || it.soon ? "" : it.ins ? `<span class="price"><span class="c">${insRange()}</span><small class="stock">派遣に 出る ときに 掛ける</small></span>` : `<span class="price">${cur(it.cur, it.price)}<small class="stock ${out && !it.once ? "out" : ""}">${stockText(it, st)}</small></span>`}${locked ? `<span class="lock">${lockTxt}</span>` : it.ins ? "" : `<button class="btn" data-item="${it.id}" aria-expanded="${S.open === it.id}" ${cant ? "disabled" : ""}>${label}</button>`}</div></li>
       ${S.open === it.id && !locked ? `<li class="pnl">${it.sell ? sellHtml() : it.trade ? tradeHtml() : pickHtml(t, it)}</li>` : ""}`; }).join("")}</ul>`;
+}
+// スフィアの 鑑定（ガラク）：宝箱から 出た スフィアは 中身が わからない。行き先ごとに 1 行（数つき）。鑑定した 物は 装備の 画面で 空いた 枠に はめる
+function lookHtml() {
+  const all = (ME.own && ME.own.spheres) || [], unk = all.filter((x) => !x.known), known = all.length - unk.length;
+  if (!all.length) return "";
+  const by = DUNGEONS.map((d) => ({ d, n: unk.filter((x) => x.did === d.id).length })).filter((g) => g.n), poor = credits() < SPHERE_LOOK;
+  return `<div class="post"><h3>スフィアの 鑑定</h3>${by.length ? `<ul class="rows">${by.map(({ d, n }) => `<li><div class="t">${esc(d.name)}の スフィア<span class="sub">×${n}</span></div>
+      <div class="act"><span class="price"><span class="c">クレジット ${fmt(SPHERE_LOOK)}</span></span><button class="btn" data-look="${d.id}" ${poor ? "disabled" : ""}>鑑定する</button></div></li>`).join("")}</ul>` : `<p class="f">鑑定して いない スフィアは ない</p>`}
+    ${known ? `<p class="f">鑑定した スフィア ${known} こ　<a href="equip.html" style="color:var(--amber)">&gt; 装備の 空いた 枠に はめる</a></p>` : ""}</div>`;
 }
 // 保険料の はば（ふつう。行き先しだい）
 const insRange = () => { const p = DUNGEONS.map((d) => insPrice(d, 1, D.perks || {})); return `クレジット ${Math.min(...p)}〜${Math.max(...p)}`; };
@@ -391,6 +401,8 @@ document.getElementById("term").addEventListener("click", async (e) => {
   if (d.pri) { const [c, no] = d.pri.split(":").map(Number), before = view(t.id).lv;
     return ask(b, "task.done", { tid: t.id, which: "primary", c, no }, (r) => `受けとった！ クレジット ＋${fmt(r.gain || 0)}${r.unlock ? `　店に「${itemName(r.unlock)}」が 並んだ` : ""}${r.key ? `　${DNAME[r.key] || r.key}へ 行ける` : ""}${view(t.id).lv > before ? `　友好度 Lv${view(t.id).lv} に なった` : ""}`); }
   if (d.task) { const before = view(t.id).lv; return ask(b, "task.done", { tid: t.id, which: d.task }, () => `受けとった！${view(t.id).lv > before ? `　友好度 Lv${view(t.id).lv} に なった` : ""}${d.task === "chain" ? `　次の タスク（#${view(t.id).chain.n}）が 出た` : ""}`); }
+  if (d.look) { const x = ((ME.own && ME.own.spheres) || []).find((y) => !y.known && y.did === d.look); if (!x) return;
+    return ask(b, "sphere.look", { uid: x.uid }, (r) => `鑑定した：${OPS[r.sphere.op] ? OPS[r.sphere.op].label : r.sphere.op} ★${r.sphere.star}`); }
   if (d.item) { const sh = t, it = sh.shop.find((x) => x.id === d.item);
     if (it.sell || it.trade || it.pick) { S.open = S.open === it.id ? null : it.id; S.sell = {}; return render(); }
     return ask(b, "trader.buy", { tid: sh.id, item: it.id }, () => `買った：${it.name}${it.tool ? "（冒険の じゅんびで 持っていける）" : ""}`); }

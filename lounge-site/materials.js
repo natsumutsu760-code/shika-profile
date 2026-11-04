@@ -5,6 +5,7 @@
 
 import { CROPS, CROP_MATS, farmOpen } from "./crops.js";
 import { GATHER3, ENEMY_MAT3 } from "./isle3-data.js";   // ミカネル島（島 3）の 採取と 敵の 素材
+import { DUNGEONS_ALL } from "./dungeons.js";   // 敵の 結晶の 名前（敵の 名前 ＋ の結晶）
 
 export const GATHER = {
   hals: { mats: [["herb", "薬草"], ["pebble", "きれいな小石"], ["straw", "麦わら"], ["berry", "野いちご"]], hidden: ["clover", "四つ葉のクローバー"] },
@@ -76,8 +77,12 @@ const ENEMY_MAT2 = {
 };
 Object.assign(GATHER, GATHER3);
 export const ENEMY_MAT = { ...ENEMY_MAT1, ...ENEMY_MAT2, ...ENEMY_MAT3 };
+// 敵の 結晶（装備開発の 中心。鹿さんの 決め、2026-10-28「敵が 結晶を 落とす」）。敵ごとに 1 つ・名前は「敵の 名前 ＋ の結晶」・品質 1〜5 ＝ 結晶Ⅰ〜結晶核Ⅱ
+// id は xtal_<ツリーの id から e_ を 取った 物>。倉庫・売値・絵は 敵の 素材と 同じ あつかい（MAT_FROM に 入る）
+export const CRYSTAL = Object.fromEntries(DUNGEONS_ALL.flatMap((d) => [...d.foes, d.rare, d.boss]).map((f) => [f.tree, [`xtal_${f.tree.replace(/^e_/, "")}`, `${f.name}の結晶`]]));
+export const CRYSTAL_ISLE = Object.fromEntries(DUNGEONS_ALL.flatMap((d) => [...d.foes, d.rare, d.boss].map((f) => [CRYSTAL[f.tree][0], d.isle || 1])));
 // 素材が 何番目の 島の 物か（書いて いない 物は 1）。まだ 開いて いない 島の 素材は 一覧に 出さない（matIsle(id) <= ISLAND_OPEN）
-export const MAT_ISLE = Object.fromEntries([...Object.values(GATHER).filter((g) => g.isle).flatMap((g) => [...g.mats, g.hidden].map(([id]) => [id, g.isle])), ...Object.values(ENEMY_MAT2).map(([id]) => [id, 2]), ...Object.values(ENEMY_MAT3).map(([id]) => [id, 3]), ["goldore", 2], ["gold_bar", 2]]);   // 金は 坑道 Lv4（ビサイ諸島）から
+export const MAT_ISLE = Object.fromEntries([...Object.values(GATHER).filter((g) => g.isle).flatMap((g) => [...g.mats, g.hidden].map(([id]) => [id, g.isle])), ...Object.values(ENEMY_MAT2).map(([id]) => [id, 2]), ...Object.values(ENEMY_MAT3).map(([id]) => [id, 3]), ["goldore", 2], ["gold_bar", 2], ...Object.entries(CRYSTAL_ISLE)]);   // 金は 坑道 Lv4（ビサイ諸島）から
 export const matIsle = (id) => MAT_ISLE[id] || 1;
 
 // 採取ポイント 1 か所で 1〜2 こ（70%・30%）。その階の 2 種類から半々。かくし通路の採取ポイントは、レア 1 こ ＋ その階の素材 1 こ
@@ -85,6 +90,8 @@ export const GATHER_N = { 1: 70, 2: 30 };
 export const floorMats = (did, n) => { const m = GATHER[did].mats; return [m[(n - 1) % 4], m[n % 4]]; };
 // 敵の素材を落とす確率（たおした 1 体ごと）と、階ごとの品質
 export const ENEMY_DROP = { 通常: 0.3, 希少: 1, ボス: 1 };
+// 結晶の 落ちやすさ（敵 1 体ごと。素材とは べつの くじ）：通常 30%・希少と ボスは いつも（ボスは 2 こ）。品質は 素材と 同じ（深い 階ほど 高い・希少 ＋1・ボス 5）。Claude の 案（2026-11-04）
+export const CRYSTAL_DROP = { 通常: 0.3, 希少: 1, ボス: 1 };
 export const QUALITY = { 1: { 1: 100 }, 2: { 1: 60, 2: 40 }, 3: { 2: 60, 3: 40 }, 4: { 3: 60, 4: 40 }, 5: { 4: 60, 5: 40 } };
 // 売ると玉（品質が高いほど高い）
 export const SELL = { gather: 20, hidden: 150, enemy: (q) => 10 * 2 ** (q - 1), scrap: 6, scrapRare: 60 };  // スクラップは 売ると 安い（鹿さんの 決め、2026-10-30）
@@ -194,6 +201,8 @@ export const VALUE = {
   thunderhead: 18, thunder_shard: 24, wind_pearl: 31, vortex_sand: 52, wind_eye_orb: 114,
   storm_core: 17, gale_feather: 17, windwall_core: 17, breeze_feather: 31, djinn_bangle: 21,
 };
+// 結晶の 値は その 敵の 素材と 同じ（品質で QMULT 倍。Claude の 案）
+for (const [tree, [id]] of Object.entries(CRYSTAL)) if (!(id in VALUE)) VALUE[id] = VALUE[(ENEMY_MAT[tree] || [])[0]] || 10;
 export const QMULT = [1, 1, 1.7, 3.1, 6.3, 13.7];
 export const matValue = (m) => Math.round((VALUE[m.id] || 0) * (MAT_FROM[m.id] ? QMULT[m.q || 1] : GATHER_Q[m.q || 0] || 1));
 // 採れやすさ：同じ 階の 2 種類は、値の √ に 反比例して 選ばれる（r は 0〜1 の 乱数 1 つ。前と 同じ 数だけ 乱数を 使う）
@@ -202,7 +211,7 @@ export const gatherPick = (two, r) => { const a = 1 / Math.sqrt(VALUE[two[0][0]]
 export const dropRate = (rk, id) => (rk === "通常" ? Math.min(0.4, Math.max(0.12, ENEMY_DROP.通常 * (10 / (VALUE[id] || 10)) ** 0.35)) : ENEMY_DROP[rk]);
 
 // 素材の名前（id から）
-export const MAT_NAME = Object.fromEntries([...Object.values(GATHER).flatMap((g) => [...g.mats, g.hidden]), ...Object.values(ENEMY_MAT), ...Object.values(SCRAP).flat(), ...Object.values(BORDER).flat(), ...ORE, ...BARS, ...CLOTH, ...LUMBER]);
+export const MAT_NAME = Object.fromEntries([...Object.values(GATHER).flatMap((g) => [...g.mats, g.hidden]), ...Object.values(ENEMY_MAT), ...Object.values(CRYSTAL), ...Object.values(SCRAP).flat(), ...Object.values(BORDER).flat(), ...ORE, ...BARS, ...CLOTH, ...LUMBER]);
 export const MAT_NAME_BASE = { ...MAT_NAME };   // 作物を 足す 前（tools/crop-check.mjs が「いまの 素材」と して 見る）
 // 作物（大工事の 農業）と 作物から できる 素材の 名前も（前から ある 素材は その まま。並びは うしろに 足す）
 for (const [id, name] of [...CROPS.map((c) => [c.id, c.name]), ...CROP_MATS.map((m) => [m.id, m.name])]) if (!(id in MAT_NAME)) MAT_NAME[id] = name;
@@ -210,7 +219,7 @@ for (const [id, name] of [...CROPS.map((c) => [c.id, c.name]), ...CROP_MATS.map(
 export const FARM_MAT = new Set([...CROPS.map((c) => c.id), ...CROP_MATS.map((m) => m.id), ...CLOTH.map(([id]) => id), ...LUMBER.map(([id]) => id)].filter((id) => !Object.values(GATHER).some((g) => [...g.mats, g.hidden].some(([x]) => x === id))));
 export const matOpen = (id) => farmOpen() || !FARM_MAT.has(id);
 // どの敵の素材か（ドット絵を出すため）
-export const MAT_FROM = Object.fromEntries(Object.entries(ENEMY_MAT).map(([tree, [id]]) => [id, tree]));
+export const MAT_FROM = Object.fromEntries([...Object.entries(ENEMY_MAT), ...Object.entries(CRYSTAL)].map(([tree, [id]]) => [id, tree]));   // 結晶も 落とした 敵
 export const HIDDEN_MAT = new Set(Object.values(GATHER).map((g) => g.hidden[0]));
 // 畑で とれた 物（採取の 素材に 品質 1〜5）は 品質が 高いほど 高く 売れる（鹿さんの頼み、2026-10-25。拾った 物は 品質 0）
 export const GATHER_Q = [1, 1.5, 2, 3, 4, 6];

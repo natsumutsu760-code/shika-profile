@@ -1,0 +1,87 @@
+// 装備開発・スフィア（大工事。鹿さんと カードで 決めた 2026-10-28〜29。ゲームに つないだのは 2026-11-04、鹿さん「全部反映しろ」）
+// ・装備開発（bench.dev）：敵の 結晶（えらんだ 段）× 数 ＋ 添える 素材 ＋ クレジット。★は 作業台の Lv で 上限・結晶の 段で 中身。OP なし（枠は 空いて 出る）
+// ・スフィアの 鑑定（sphere.look。DEEP LINK/: の ガラク）：中身（OP と ★）が 見える。SPHERE_LOOK クレジット
+// ・スフィアを はめる（sphere.set）：装備の 空いた OP の 枠だけ（入れかえは しない。抜くのは コア）。強さは スフィアの ★（コアと 同じ）
+// ・素材の OP 抽選（ws.draw。工房）：同じ 敵の 素材 5 こ（同じ 品質）＋ クレジット で 空いた 枠に OP を 1 つ。★は 素材の 品質
+import { baseOf, opCount, KINDS, OPS, facLv, ISLAND_OPEN, MAT_NAME, MAT_FROM, devNeed, devStarW, devWhere, CRYSTAL_GRADE, benchStarMax, benchTopUp, SPHERE_LOOK, opLive, DRAW, rollDraw } from "./game.js";
+import { takeMats, applyTake, makeFee, payUpkeep, feeWhy } from "./lounge-game.js";
+import { slotKind, bump } from "./lounge-trade.js";
+import { wornAway } from "./lounge-core.js";
+import { jstDay } from "./lounge-rules.js";
+
+const pickW = (R, w) => { const t = Object.values(w).reduce((a, b) => a + b, 0); let x = R() * t; for (const [k, v] of Object.entries(w)) if ((x -= v) < 0) return +k; return +Object.keys(w)[0]; };
+const haveQ = (rec, id, q) => rec.own.mats.filter((m) => m.id === id && (m.q || 0) === q).reduce((a, m) => a + m.n, 0);
+
+// 装備開発。b：{ id："dev.<敵>.<番号>", q：使う 結晶の 段（1〜5） }
+export function devPlan(rec, b, R) {
+  const lv = facLv(rec, "bench"), fee = makeFee(rec, "bench"), id = String(b.id || ""), need = devNeed(id), base = need && baseOf(id), q = Math.floor(+b.q || 0);
+  if (!rec.hideout.bench) return { ok: false, why: "作業台が まだ ない（隠れ家で 作る）" };
+  if (lv < 1) return { ok: false, why: "作業台の つまみが 0（隠れ家で 上げる）" };
+  if (!need || base.isle > ISLAND_OPEN) return { ok: false, why: "知らない 装備" };
+  if (!rec.seen.includes(need.xtal)) return { ok: false, why: `${MAT_NAME[need.xtal]}を まだ 拾って いない（その 敵を たおすと 落とす）` };
+  if (lv < need.benchLv) return { ok: false, why: `この 装備は 作業台 Lv${need.benchLv} から` };
+  if (!(q >= 1 && q <= 5)) return { ok: false, why: "使う 結晶の 段を えらんで" };
+  const have = haveQ(rec, need.xtal, q);
+  if (have < need.n) return { ok: false, why: `素材が 足りない：${MAT_NAME[need.xtal]}（${CRYSTAL_GRADE[q]}）あと ${need.n - have}` };
+  if (fee + need.credits > (rec.credits || 0)) return { ok: false, why: feeWhy(fee + need.credits, rec, fee) };
+  const t = takeMats(rec, [[need.xtal, need.n, q], ...need.mats]);   // 結晶は えらんだ 段だけ（上で 数を たしかめた。品質の 低い 順に 取るので 上の 段は 使わない）
+  if (t.why) return { ok: false, why: t.why };
+  const star = pickW(R, devStarW(q, benchStarMax(lv), benchTopUp(lv))), item = { base: base.id, star, ops: [] };   // 先に 引いて おく（id は 表の 正しい 形）
+  return { costs: [], why: "dev:" + id, take: () => { rec.own.mats = t.mats; rec.credits -= need.credits; payUpkeep(rec, fee); },
+    grant: { equip: [{ ...item, mk: 1 }], ev: { type: "craft", n: 1, star, slot: slotKind(id), cry: q, cryOf: base.tree } },   // タスクの「開発する」に 数える（結晶の 段・どの 敵の 結晶か も）
+    refund: { mats: t.taken, credits: need.credits + fee }, item, info: { credits: need.credits, ...(fee ? { fee } : {}) } };
+}
+
+// 鑑定。b：{ uid：スフィア }
+export function sphereLook(rec, b, now = Date.now()) {
+  const x = (rec.own.spheres || []).find((s) => s.uid === b.uid);
+  if (!x) return { ok: false, why: "その スフィアは ない" };
+  if (x.known) return { ok: false, why: "もう 鑑定して ある" };
+  if ((rec.credits || 0) < SPHERE_LOOK) return { ok: false, why: feeWhy(SPHERE_LOOK, rec, 0) };
+  rec.credits -= SPHERE_LOOK; x.known = true;
+  bump(rec, { type: "appraise", n: 1, star: x.star }, jstDay(now));   // タスク「スフィアを 鑑定する」「鑑定で ★3 以上を 見つける」
+  return { ok: true, sphere: { ...x }, credits: SPHERE_LOOK };
+}
+
+// はめる。b：{ sphere：スフィアの uid, uid：装備 }
+export function sphereSet(rec, b, now = Date.now()) {
+  const x = (rec.own.spheres || []).find((s) => s.uid === b.sphere), it = rec.own.equip.find((e) => e.uid === b.uid);
+  if (!x) return { ok: false, why: "その スフィアは ない" };
+  if (!x.known) return { ok: false, why: "鑑定して いない スフィアは はめられない（DEEP LINK/: の ガラクで 鑑定）" };
+  if (!it) return { ok: false, why: "その 装備は ない" };
+  if (!OPS[x.op] || !opLive(x.op)) return { ok: false, why: "この OP は まだ 使えない" };
+  if (wornAway(rec, it.uid)) return { ok: false, why: "出かけて いる 子の 装備は かえられない（帰って から）" };
+  const kind = (baseOf(it.base) || {}).slot, n = opCount(KINDS[kind] ? kind : "weapon", it.star);
+  if (it.ops.length >= n) return { ok: false, why: n ? "空いた OP の 枠が ない（スフィアは 空いた 枠に だけ はめる）" : "この 装備には OP の 枠が ない" };
+  if (it.ops.includes(x.op)) return { ok: false, why: `${OPS[x.op].label}は もう 付いて いる` };
+  it.ops = [...it.ops, x.op];
+  if (x.star !== it.star) it.opStar = { ...(it.opStar || {}), [it.ops.length - 1]: x.star };   // 強さは スフィアの ★（コアと 同じ しるし）
+  rec.own.spheres = rec.own.spheres.filter((s) => s !== x);
+  bump(rec, { type: "sphere", n: 1, star: x.star, slot: slotKind(it.base) }, jstDay(now));   // タスク「スフィアを 防具／武器に はめる」
+  return { ok: true, uid: it.uid, op: x.op, star: x.star };
+}
+
+// 素材の OP 抽選（工房。鹿さんの 決め 2026-10-29）。b：{ uid：装備, mat：敵の 素材の id, q：品質 1〜5 }
+// 出る OP：その 素材の 付きやすい OP 5 割・その 敵の 行き先の 得意な OP 3 割・ほか 2 割（sphere.js の rollDraw）。もう 付いて いる OP は 出ない
+export function drawOp(rec, b, R, now = Date.now()) {
+  const it = rec.own.equip.find((e) => e.uid === b.uid), id = String(b.mat || ""), q = Math.floor(+b.q || 0);
+  const tree = Object.prototype.hasOwnProperty.call(MAT_FROM, id) && !id.startsWith("xtal_") ? MAT_FROM[id] : null, w = tree && devWhere(tree);
+  if (!rec.hideout.workshop) return { ok: false, why: "工房が まだ ない（隠れ家で 作る）" };
+  if (!it) return { ok: false, why: "その 装備は ない" };
+  if (!w || (w.d.isle || 1) > ISLAND_OPEN) return { ok: false, why: "使う 敵の 素材を えらんで" };
+  if (!(q >= 1 && q <= 5)) return { ok: false, why: "素材の 品質を えらんで" };
+  if (wornAway(rec, it.uid)) return { ok: false, why: "出かけて いる 子の 装備は かえられない（帰って から）" };
+  const kind = (baseOf(it.base) || {}).slot, n = opCount(KINDS[kind] ? kind : "weapon", it.star);
+  if (it.ops.length >= n) return { ok: false, why: n ? "空いた OP の 枠が ない（素材の OP 抽選は 空いた 枠に だけ）" : "この 装備には OP の 枠が ない" };
+  const have = haveQ(rec, id, q);
+  if (have < DRAW.mats) return { ok: false, why: `素材が 足りない：${MAT_NAME[id]}（品質 ${q}）あと ${DRAW.mats - have}` };
+  const fee = makeFee(rec, "workshop"), price = DRAW.credits[q - 1];
+  if (fee + price > (rec.credits || 0)) return { ok: false, why: feeWhy(fee + price, rec, fee) };
+  const t = takeMats(rec, [[id, DRAW.mats, q]], { now });   // えらんだ 品質だけ（上で 数を たしかめた）
+  if (t.why) return { ok: false, why: t.why };
+  applyTake(rec, t.picks); rec.credits -= price; payUpkeep(rec, fee, now);
+  const op = rollDraw(id, q, w.d.id, R, it.ops);
+  it.ops = [...it.ops, op];
+  if (q !== it.star) it.opStar = { ...(it.opStar || {}), [it.ops.length - 1]: q };   // 強さは 素材の 品質の ★
+  return { ok: true, uid: it.uid, op, star: q, slot: slotKind(it.base), credits: price, ...(fee ? { fee } : {}) };
+}

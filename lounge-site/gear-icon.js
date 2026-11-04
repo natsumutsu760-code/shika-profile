@@ -2,16 +2,18 @@
 // 使い方：gearImg(id) で <img> を 文字で 作って ページに 入れる。watchIcons() を 1 回 よんで おくと、入った 物から 撮って 入れかわる
 // three.js は 撮る ときに はじめて 読む（ページに importmap が いる）。WebGL が ない ときは 素材の 色の 丸に 形の 1 文字
 import { comboOf, baseOf, FORMS, MATS, COLS } from "./equip.js";
+import { spriteURL } from "./sprites.js";   // 装備開発の 装備は 絵を 作らない（鹿さんの 決め 2026-10-28）。その 敵の ドット絵を 出す
 
 const SIZE = 160, BLANK = "data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7";
 const done = new Map();
 let kit, busy = false, again = false;
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
 
-export const gearSrc = (id, dir = "img/") => (comboOf(id) ? done.get(id) || BLANK : `${dir}icon-${baseOf(id)?.look || id}.png`);
+export const gearSrc = (id, dir = "img/") => { const b = baseOf(id); return b && b.dev ? spriteURL(b.tree) : comboOf(id) ? done.get(id) || BLANK : `${dir}icon-${b?.look || id}.png`; };
 export function gearImg(id, { dir = "img/", alt = "", cls = "" } = {}) {
   const wait = comboOf(id) && !done.has(id);
-  return `<img${cls ? ` class="${esc(cls)}"` : ""} src="${gearSrc(id, dir)}" alt="${esc(alt)}"${wait ? ` data-gear="${esc(id)}"` : ""}>`;
+  const px = baseOf(id)?.dev ? ` style="image-rendering:pixelated"` : "";
+  return `<img${cls ? ` class="${esc(cls)}"` : ""} src="${gearSrc(id, dir)}" alt="${esc(alt)}"${px}${wait ? ` data-gear="${esc(id)}"` : ""}>`;
 }
 
 async function load() {

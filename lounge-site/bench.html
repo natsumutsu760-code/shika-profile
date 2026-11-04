@@ -110,11 +110,24 @@
   .made li.like-op { color:#1E6FB0; } .made li.like-op::before { content:"◆ "; }
   @keyframes pop { 30% { transform:scale(1.18) rotate(-6deg); } 100% { transform:none; } }
 
+  /* 開発（敵の 結晶で 作る。2026-11-04）：しぼりこみの 箱・結晶の 段・決まった 能力 */
+  .filt { display:grid; gap:6px; margin-bottom:12px; padding:10px 12px; border-radius:16px; background:var(--space); }
+  .filt div { display:flex; flex-wrap:wrap; align-items:center; gap:6px; } .filt span.l { font:900 11.5px/1 var(--jp); color:var(--soft); min-width:3.5em; }
+  .chip { border:1.5px solid var(--line); background:#fff; border-radius:999px; padding:5px 11px; font:700 12px/1 var(--jp); color:var(--soft); }
+  .chip[aria-pressed="true"] { background:var(--ink); border-color:var(--ink); color:#fff; } .chip:disabled { opacity:.4; } .chip em { font-style:normal; font:600 11px/1 var(--num); margin-left:4px; }
+  .node .ic img.px { image-rendering:pixelated; }
+  .devnote { font:700 12px/1.5 var(--jp); color:var(--soft); margin-top:10px; }
+  .grades { display:flex; flex-wrap:wrap; gap:6px; }
+  .grades button { border:1.5px solid var(--line); background:#fff; border-radius:12px; padding:6px 10px; font:700 12px/1.2 var(--jp); text-align:center; }
+  .grades button b { display:block; font:600 14px/1.2 var(--num); } .grades button[aria-pressed="true"] { border-color:var(--ink); box-shadow:0 0 0 2px var(--ink) inset; } .grades button.few b { color:var(--coral); }
+  .key .filt { flex:1 1 100%; margin-bottom:0; } .devrows { grid-template-columns:repeat(auto-fill, minmax(190px, 1fr)); }
+  .statline { font:700 13px/1.6 var(--jp); } .statline small { color:var(--soft); font-size:11.5px; margin-right:4px; }
   @media (max-width:860px) {
     .cols { grid-template-columns:minmax(0, 1fr); gap:14px; }
     .detail { grid-template-columns:minmax(0, 1fr); }
   }
-  @media (max-width:520px) { .wallet h1 { flex-basis:100%; } .row { grid-template-columns:minmax(0, 1fr) 18px minmax(0, 1.1fr); } }
+  @media (max-width:520px) { .devrows { grid-template-columns:repeat(2, minmax(0, 1fr)); gap:6px; } .devrows .node { grid-template-columns:28px minmax(0, 1fr); gap:5px; padding:5px 6px 5px 4px; } .devrows .node .ic { width:28px; height:28px; } .devrows .node .ic img { width:24px; height:24px; }
+    .wallet h1 { flex-basis:100%; } .row { grid-template-columns:minmax(0, 1fr) 18px minmax(0, 1.1fr); } }
   @media (prefers-reduced-motion:reduce) { .made .ic { animation:none; } }
   .toast { position:fixed; left:50%; bottom:24px; transform:translateX(-50%) translateY(16px); max-width:calc(100vw - 32px); padding:10px 18px; border-radius:20px; background:var(--ink); color:#fff; font:700 14px/1.4 var(--jp); opacity:0; transition:opacity .2s, transform .2s; pointer-events:none; text-align:center; z-index:5; }
   .toast.on { opacity:1; transform:translateX(-50%); }
@@ -125,17 +138,18 @@
 <header class="top"><a href="/" style="color:inherit;text-decoration:none" aria-label="MONO LINK の サイトへ"><b>MONO LINK<i>://</i></b></a><small><a href="lounge-room.html" style="color:inherit">ラウンジ</a> ／ <a href="hideout.html?f=bench" style="color:inherit">地下の 隠れ家</a> ／ 作業台</small></header>
 <main>
   <section class="panel wallet" aria-label="作業台"><h1>作業台 <small id="lv"></small></h1></section>
-  <section class="panel" aria-label="装備の木"><div class="gtabs" role="tablist" id="gtabs"></div><p class="key" id="key"></p><div class="cols" id="cols"></div></section>
+  <section class="panel" aria-label="装備の木"><div class="gtabs" role="tablist" id="gtabs"></div><div class="key" id="key"></div><div class="cols" id="cols"></div></section>
   <section class="panel detail" id="detail" aria-live="polite"></section>
 </main>
 <p class="toast" id="toast" role="status"></p>
 <script type="module">
 import "./lounge-en.js";   // 英語の 画面（MONO LINK の サイトの EN／日本語 と 同じ 決まり。英語の ときだけ 辞書を 読む）
-import { BASES, KINDS, FORMS, MATS, OPS, baseOf, comboOf, matsOf, opStarOf } from "./equip.js";
+import { BASES, KINDS, FORMS, MATS, OPS, baseOf, comboOf, matsOf, opStarOf, opCount } from "./equip.js";
 import { CRAFT, SYNTH, MAT_OP, craftStarW, synthStarW, BOSS_FX, craftOpen, synthOpen, synthCredits } from "./recipes.js";
-import { facLv, upkeep, SYNTH_LV } from "./facilities.js";   // 施設の 作り直し（2026-11-03）：作業台 Lv1〜100・つまみ・作るたびの 維持費・合成は Lv20 から
+import { facLv, upkeep, SYNTH_LV, benchStarMax, benchTopUp } from "./facilities.js";   // 施設の 作り直し（2026-11-03）：作業台 Lv1〜100・つまみ・作るたびの 維持費・合成は Lv20 から
 import { MAT_NAME, MAT_FROM, HIDDEN_MAT, GATHER, ENEMY_MAT } from "./materials.js";
-import { DUNGEONS } from "./dungeons.js";
+import { DUNGEONS, ISLAND_OPEN } from "./dungeons.js";
+import { DEV_IDS, devBase, devNeed, devStarW, devStats, CRYSTAL_GRADE } from "./equip-dev.js";   // 装備開発（敵の 結晶で 作る。2026-11-04 に つないだ）
 import { spriteURL } from "./sprites.js";
 import { me, act, busy, waitText } from "./lounge-client.js";   // 作業台の Lv・素材・装備・作る・合成は 門番から（くじも 門番が 引く）
 import { mountWallet } from "./wallet-bar.js"; mountWallet();   // 上の 通貨の 札（玉・アメジスト・クレジット）と 両替
@@ -156,13 +170,14 @@ function load(m) {
   ME = m;
   const on = new Set([...(m.pets || []), ...(m.tamed || [])].flatMap((x) => Object.values(x.equip || {})).filter(Boolean));
   S.built = (m.hideout || {}).bench || 0; S.lv = facLv(m, "bench"); S.cr = m.credits || 0; S.known = !!(m.wallet && m.wallet.known); S.balls = S.known ? m.wallet.balls : 0;
-  S.inv = {}; for (const x of (m.own && m.own.mats) || []) S.inv[x.id] = (S.inv[x.id] || 0) + x.n;
+  S.inv = {}; S.invQ = {}; for (const x of (m.own && m.own.mats) || []) { S.inv[x.id] = (S.inv[x.id] || 0) + x.n; const h = (S.invQ[x.id] ||= {}); h[x.q || 0] = (h[x.q || 0] || 0) + x.n; }   // 結晶は 段（品質）ごとに 使う
   S.eq = ((m.own && m.own.equip) || []).filter((e) => !on.has(e.uid));
   S.seen = new Set([...(m.seen || []), ...((m.deeplink && m.deeplink.recipes) || [])]);
 }
 load(await me());
 const R = (k) => (k.startsWith("c:") ? CRAFT.find((r) => r.base === k.slice(2)) : SYNTH.find((r) => r.out === k.slice(2)));
-S.sel = R(q.get("k") || "") ? q.get("k") : "c:helmet";
+const K0 = q.get("k") || "";
+S.sel = R(K0) || (K0.startsWith("d:") && DEV_IDS.includes(K0.slice(2))) ? K0 : "c:helmet";
 // タブ：部位の まとまり。形の レシピ（tier が ある 物）は 素材と 色が くじ なので、名前は 形だけ
 const GROUPS = [["wear", "身につける", ["head", "neck", "arm", "leg"]], ["hold", "手に持つ", ["weapon", "off"]], ["acc", "アクセサリー", ["acc"]]];
 const idOf = (k) => (k.startsWith("c:") ? R(k).base : R(k).out), formOf = (k) => (k.startsWith("c:") && R(k).tier != null ? comboOf(R(k).base) : null);
@@ -170,7 +185,87 @@ const titleOf = (k) => { const f = formOf(k); return f ? FORMS[f.form].name : ba
 const groupOf = (k) => GROUPS.find((g) => g[2].includes(baseOf(idOf(k)).slot))[0];
 const keysOf = (kind) => [...BASES.filter((b) => b.slot === kind).map((b) => "c:" + b.id), ...CRAFT.filter((r) => r.tier != null && comboOf(r.base).slot === kind).map((r) => "c:" + r.base)];
 const matsText = (tier) => { const name = (t) => matsOf(t).map((m) => MATS[m].name).join("・"); return tier > 0 ? `${name(tier)}（ときどき ${name(tier - 1)}）` : name(0); };
-S.tab = groupOf(S.sel);
+S.tab = S.sel.startsWith("d:") ? "dev" : groupOf(S.sel);
+
+// ---------- 開発（敵の 結晶で 作る。鹿さんの 決め 2026-10-28、つないだのは 2026-11-04）----------
+// 1 つの 敵に 3 つ。その 敵の 結晶を 拾うと 出る。結晶の 段（品質）を えらぶ と ★の 出やすさが かわる。作った 装備は OP なし（枠は 空いて 出る）
+const DEVS = DEV_IDS.filter((id) => devBase(id).isle <= ISLAND_OPEN), DEV_DUN = DUNGEONS.filter((d) => (d.isle || 1) <= ISLAND_OPEN);
+S.df = { isle: 0, kind: "all", sort: "where" }; S.q = 0;
+const SL = { hp: "HP", mp: "MP", atk: "ATK", def: "DEF", int: "INT", res: "RES", agi: "AGI", dex: "DEX", luk: "LUK" };
+const devOpen = (id) => S.seen.has(devNeed(id).xtal);
+const qHave = (xt, q) => (S.invQ[xt] || {})[q] || 0;
+const bestQ = (id) => { const n = devNeed(id); for (let q = 5; q >= 1; q--) if (qHave(n.xtal, q) >= n.n) return q; return 0; };
+const devFee = () => upkeep("bench", S.lv);
+function devState(id) {
+  const n = devNeed(id);
+  if (S.lv < 1) return "wait";
+  if (!devOpen(id)) return "lock";
+  if (S.lv < n.benchLv) return "lv";
+  return bestQ(id) && n.mats.every(([m, k]) => (S.inv[m] || 0) >= k) && S.cr >= n.credits + devFee() ? "can" : "short";
+}
+const devWord = (id, st) => (st === "can" ? "作れる" : st === "short" ? "足りない" : st === "lv" ? `作業台 Lv${devNeed(id).benchLv} から` : "");
+const statsText = (b, star) => Object.entries(devStats(b.form, b.st, star)).map(([k, v]) => `${SL[k]} ${v > 0 ? "+" : ""}${v}`).join("・");
+const inKind = (b, g) => g === "all" || GROUPS.find((x) => x[0] === g)[2].includes(b.slot);
+const devList = () => DEVS.filter((id) => devOpen(id) && (!S.df.isle || devBase(id).isle === S.df.isle) && inKind(devBase(id), S.df.kind));
+function devNode(id) {
+  const b = devBase(id), st = devState(id), w = devWord(id, st);
+  return `<button class="node ${st === "lv" ? "wait" : st}" data-k="d:${id}" aria-pressed="${S.sel === "d:" + id}"><span class="ic"><img class="px" src="${spriteURL(b.tree)}" alt=""></span><span><b>${esc(b.name)}</b><small>${esc(KINDS[b.slot].label)}${w ? "・" + esc(w) : ""}</small></span></button>`;
+}
+function devFiltHtml() {
+  const isles = [...new Set(DEV_DUN.map((d) => d.isle || 1))], open = DEVS.filter(devOpen);
+  const nIsle = (i) => open.filter((id) => !i || devBase(id).isle === i).length, nKind = (g) => open.filter((id) => (!S.df.isle || devBase(id).isle === S.df.isle) && inKind(devBase(id), g)).length;
+  const chip = (k, v, label, n) => `<button class="chip" data-df="${k}:${v}" aria-pressed="${S.df[k] === v}" ${n === 0 ? "disabled" : ""}>${label}${n != null ? `<em>${n}</em>` : ""}</button>`;
+  return `<div class="filt">${isles.length > 1 ? `<div><span class="l">島</span>${chip("isle", 0, "すべて", nIsle(0))}${isles.map((i) => chip("isle", i, `島 ${i}`, nIsle(i))).join("")}</div>` : ""}
+    <div><span class="l">部位</span>${chip("kind", "all", "すべて", nKind("all"))}${GROUPS.map(([g, label]) => chip("kind", g, label, nKind(g))).join("")}</div>
+    <div><span class="l">ならべる</span>${chip("sort", "where", "行き先の 順")}${chip("sort", "can", "作れる 順")}</div></div>`;
+}
+function devTreeHtml() {
+  const rank = { can: 0, short: 1, lv: 2 }, list = new Set(devList());
+  const groups = DEV_DUN.filter((d) => !S.df.isle || (d.isle || 1) === S.df.isle).map((d) => {
+    const ids = DEVS.filter((id) => devBase(id).did === d.id && list.has(id));
+    if (S.df.sort === "can") ids.sort((a, b) => rank[devState(a)] - rank[devState(b)]);
+    return { d, ids, can: ids.filter((id) => devState(id) === "can").length };
+  }).filter((g) => g.ids.length);
+  if (S.df.sort === "can") groups.sort((a, b) => b.can - a.can);
+  document.getElementById("cols").style.setProperty("--n", 1);
+  const hidden = DEVS.filter((id) => !devOpen(id) && (!S.df.isle || devBase(id).isle === S.df.isle)).length;
+  return (groups.length ? groups.map((g) => `<section class="col" aria-label="${esc(g.d.name)}"><h2>${esc(g.d.name)}${g.can ? `<small>作れる ${g.can}</small>` : ""}</h2><div class="rows devrows">${g.ids.map(devNode).join("")}</div></section>`).join("")
+    : `<p class="devnote">まだ 開発できる 装備が ない。派遣で 敵を たおすと 結晶を 落とし、その 敵の 装備が 出てくる</p>`) + (hidden ? `<p class="devnote">まだ 出て いない 開発 ${hidden} こ（その 敵の 結晶を 拾うと 出る）</p>` : "");
+}
+function devMadeHtml() {
+  const it = S.made, b = devBase(it.base);
+  return `<div class="made"><span class="ic"><img class="px" src="${spriteURL(b.tree)}" alt="" style="image-rendering:pixelated"></span><div><h3><small>できた！</small>${esc(b.name)} ${stars(it.star)}</h3>
+    <ul><li>${esc(statsText(b, it.star))}</li><li class="fx">${esc(b.fx)}</li><li>OP の 枠 ${opCount(b.slot, it.star)}（空き。スフィアを はめる）</li></ul></div></div>`;
+}
+function devDetailHtml() {
+  const id = S.sel.slice(2), b = devBase(id), n = devNeed(id), st = devState(id), fee = devFee();
+  if (!(S.q >= 1 && S.q <= 5)) S.q = bestQ(id) || [5, 4, 3, 2, 1].find((q) => qHave(n.xtal, q) > 0) || 1;
+  const head = `<div><header><span class="ic"><img class="px" src="${spriteURL(b.tree)}" alt="" style="width:46px;height:46px;image-rendering:pixelated"></span><div><span class="tag up">開発</span><span class="tag">${KINDS[b.slot].label}</span><h2>${esc(b.name)}</h2></div></header>
+    <div class="facts"><div><span class="l">決まった 能力</span><span class="statline">${[1, 3, 5].map((x) => `<small>★${x}</small>${esc(statsText(b, x))}`).join("<br>")}</span></div>
+      <div><span class="l">効果</span><span class="fx">${esc(b.fx)}</span></div>
+      <div><span class="l">OP の 枠</span><span>空いて 出る（スフィアを はめる）</span></div>
+      ${st === "wait" || st === "lock" ? "" : `<div><span class="l">★ くじ</span>${oddsHtml(devStarW(S.q, benchStarMax(S.lv), benchTopUp(S.lv)))}</div>`}</div></div>`;
+  let body;
+  if (st === "wait") body = `<div class="lockbox wait"><p>作業台が まだ ない</p><a href="hideout.html?f=bench">隠れ家で 作業台を 作る</a></div>`;
+  else if (st === "lock") body = `<div class="lockbox"><p>${esc(MAT_NAME[n.xtal])}を 拾うと 出てくる</p></div>`;
+  else if (st === "lv") body = `<div class="lockbox wait"><p>この 装備は 作業台 Lv${n.benchLv} から 作れる</p><a href="hideout.html?f=bench">作業台を 上げる</a></div>`;
+  else {
+    const rows = [{ kind: "mat", id: n.xtal, need: n.n, have: qHave(n.xtal, S.q), sub: CRYSTAL_GRADE[S.q] }, ...n.mats.map(([m, k]) => ({ kind: "mat", id: m, need: k, have: S.inv[m] || 0 })), { kind: "c", need: n.credits + fee, have: S.cr, fee }];
+    const lack = rows.filter((x) => x.have < x.need), sorted = [...lack, ...rows.filter((x) => x.have >= x.need)];
+    const why = lack.slice(0, 2).map((x) => (x.kind === "c" ? `クレジット あと ${fmt(x.need - x.have)}` : `${MAT_NAME[x.id]}${x.sub ? `（${x.sub}）` : ""} あと ${x.need - x.have}`)).join("、") + (lack.length > 2 ? `、ほか ${lack.length - 2} こ` : "");
+    body = `<div><span class="need-h">使う 結晶の 段</span><div class="grades">${[1, 2, 3, 4, 5].map((x) => { const h = qHave(n.xtal, x); return `<button data-q="${x}" aria-pressed="${S.q === x}" class="${h < n.n ? "few" : ""}">${CRYSTAL_GRADE[x]}<b>${h}/${n.n}</b></button>`; }).join("")}</div>
+      <span class="need-h" style="margin-top:12px">使う物</span><ul class="need">${sorted.map(rowHtml).join("")}</ul>
+      <button class="jelly go" data-dev="${id}" ${lack.length ? "disabled" : ""}>開発する</button>${lack.length ? `<p class="why">足りない：${esc(why)}</p>` : ""}</div>`;
+  }
+  return (S.made && String(S.made.base).startsWith("dev.") ? devMadeHtml() : "") + head + body;
+}
+async function makeDev(b, id) {
+  const res = await busy(b, () => act("bench.dev", { id, q: S.q }), "開発して います…");
+  if (!res.ok && !res.wait) return toast(res.why || "できませんでした");
+  load(await me());
+  if (res.ok) { S.made = res.item; S.q = 0; } else toast(waitText);   // 作ったら 結晶の 段は いちばん 良い 段に えらび直す
+  render();
+}
 
 const owned = (id) => S.eq.filter((e) => e.base === id).sort((a, b) => a.star - b.star);
 // 使う物の 行：装備（合成だけ）・素材・クレジット（作る・合成の 値段と 維持費を あわせて 1 行。前は 玉）
@@ -197,6 +292,7 @@ function node(k) {
 }
 // 1 行が もとの装備 → 上の装備。形の レシピは 合成が ないので 1 つ だけ
 function treeHtml() {
+  if (S.tab === "dev") return devTreeHtml();
   const kinds = GROUPS.find((g) => g[0] === S.tab)[2];
   document.getElementById("cols").style.setProperty("--n", Math.min(2, kinds.length));
   return kinds.map((kind) => `<section class="col" aria-label="${KINDS[kind].label}"><h2>${KINDS[kind].label}<small>${KINDS[kind].role}</small></h2><div class="rows">${
@@ -205,15 +301,17 @@ function treeHtml() {
 }
 function tabsHtml() {
   return GROUPS.map(([g, label, kinds]) => { const n = kinds.flatMap(keysOf).flatMap((k) => { const sy = SYNTH.find((x) => x.main === idOf(k)); return sy ? [k, "s:" + sy.out] : [k]; }).filter((k) => stateOf(k) === "can").length;
-    return `<button role="tab" data-tab="${g}" aria-selected="${S.tab === g}">${label}${n ? `<em>${n}</em>` : ""}</button>`; }).join("");
+    return `<button role="tab" data-tab="${g}" aria-selected="${S.tab === g}">${label}${n ? `<em>${n}</em>` : ""}</button>`; }).join("")
+    + (() => { const n = DEVS.filter((id) => devState(id) === "can").length; return `<button role="tab" data-tab="dev" aria-selected="${S.tab === "dev"}">開発${n ? `<em>${n}</em>` : ""}</button>`; })();   // 敵の 結晶で 作る
 }
 function keyHtml() {
+  if (S.tab === "dev") return devFiltHtml();
   const all = [...CRAFT.map((r) => "c:" + r.base), ...SYNTH.map((r) => "s:" + r.out)].map(stateOf), n = (s) => all.filter((x) => x === s).length;
   return `<span class="k-can"><i></i>作れる・合成できる <b>${n("can")}</b></span><span class="k-short"><i></i>足りない <b>${n("short")}</b></span><span class="k-lock"><i></i>レシピ まだ <b>${n("lock") + n("wait")}</b></span>`;
 }
 function rowHtml(x) {
   let pic = `<i class="dot c"></i>`, name = "クレジット", sub = x.fee ? `維持費 ${fmt(x.fee)} こみ` : "";
-  if (x.kind === "mat") { const en = MAT_FROM[x.id]; pic = en ? `<img class="px" src="${spriteURL(en)}" alt="">` : `<i class="dot ${HIDDEN_MAT.has(x.id) ? "hd" : ""}"></i>`; name = MAT_NAME[x.id]; }
+  if (x.kind === "mat") { const en = MAT_FROM[x.id]; pic = en ? `<img class="px" src="${spriteURL(en)}" alt="">` : `<i class="dot ${HIDDEN_MAT.has(x.id) ? "hd" : ""}"></i>`; name = MAT_NAME[x.id]; if (x.sub) sub = x.sub; }
   if (x.kind === "eq") { const o = owned(x.id); pic = gearImg(x.id); name = baseOf(x.id).name; sub = o.length ? `★${o[0].star} を 使う（★の 低い物から）` : "持っていない"; }
   return `<li class="${x.have < x.need ? "ng" : ""}">${pic}<span>${esc(name)}${sub ? `<small>${sub}</small>` : ""}</span><span class="n">${x.kind === "eq" ? `${x.have} こ` : x.unknown ? `？ / ${fmt(x.need)}` : `${fmt(x.have)} / ${fmt(x.need)}`}</span></li>`;
 }
@@ -225,6 +323,8 @@ function madeHtml() {
     <ul>${it.ops.map((o, i) => `<li class="${likes.includes(o) ? "like-op" : ""}">${esc(OPS[o].fmt(OPS[o].v[opStarOf(it, i) - 1]))}</li>`).join("")}</ul>${it.fx ? `<p class="fx">とくべつな効果：${esc(b.fx)}</p>` : ""}</div></div>`;
 }
 function detailHtml() {
+  if (S.sel.startsWith("d:")) return devDetailHtml();
+  if (S.tab === "dev") return `<p class="devnote">左の 一覧から えらぶ</p>`;
   const k = S.sel, r = R(k), up = k.startsWith("s:"), id = up ? r.out : r.base, b = baseOf(id), st = stateOf(k), fm = formOf(k);
   const likes = r.mats.map(([m]) => MAT_OP[m]).filter(Boolean);
   const head = `<div><header><span class="ic">${gearImg(id)}</span><div><span class="tag ${up ? (r.boss ? "boss" : "up") : ""}">${up ? (r.boss ? "合成・ボスの素材" : "合成") : "作る"}</span><span class="tag">${KINDS[b.slot].label}</span><h2>${esc(titleOf(k))}</h2></div></header>
@@ -266,8 +366,16 @@ let tid;
 const toast = (t) => { const el = document.getElementById("toast"); el.textContent = t; el.classList.add("on"); clearTimeout(tid); tid = setTimeout(() => el.classList.remove("on"), 4200); };
 document.querySelector("main").addEventListener("click", async (e) => {
   const b = e.target.closest("button"); if (!b || b.disabled) return;
-  if (b.dataset.tab) { S.tab = b.dataset.tab; return render(); }
-  if (b.dataset.k) { if (S.sel !== b.dataset.k) S.made = null; S.sel = b.dataset.k; render(); document.querySelector(`[data-k="${S.sel}"]`)?.focus({ preventScroll: true });
+  if (b.dataset.tab) {   // タブを かえたら、えらぶ 物も その タブの 先頭に
+    S.tab = b.dataset.tab; S.made = null;
+    if (S.tab === "dev" && !S.sel.startsWith("d:")) { const f = devList()[0]; if (f) { S.sel = "d:" + f; S.q = 0; } }
+    if (S.tab !== "dev" && (S.sel.startsWith("d:") || groupOf(S.sel) !== S.tab)) S.sel = keysOf(GROUPS.find((g) => g[0] === S.tab)[2][0])[0];
+    return render();
+  }
+  if (b.dataset.df) { const [k, v] = b.dataset.df.split(":"); S.df[k] = k === "isle" ? +v : v; return render(); }
+  if (b.dataset.q) { S.q = +b.dataset.q; return render(); }
+  if (b.dataset.dev) return makeDev(b, b.dataset.dev);
+  if (b.dataset.k) { if (S.sel !== b.dataset.k) { S.made = null; S.q = 0; } S.sel = b.dataset.k; render(); document.querySelector(`[data-k="${S.sel}"]`)?.focus({ preventScroll: true });
     document.getElementById("detail").scrollIntoView({ block: "nearest", behavior: matchMedia("(prefers-reduced-motion:reduce)").matches ? "auto" : "smooth" }); return; }
   if (b.dataset.do) await make(b, b.dataset.do);
 });

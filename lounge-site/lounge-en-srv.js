@@ -3,6 +3,11 @@
 const P = (p, s) => p(s) || s;
 
 export const WORDS = {
+  // 装備開発・スフィア（2026-11-04）
+  "使う 敵の 素材を えらんで": "Choose an enemy material", "素材の 品質を えらんで": "Choose the material quality", "空いた OP の 枠が ない（素材の OP 抽選は 空いた 枠に だけ）": "No empty OP slot (material draws only fill empty slots)", "工房が まだ ない（隠れ家で 作る）": "No Workshop yet (build it in the Hideout)",
+  "知らない 装備": "Unknown gear", "使う 結晶の 段を えらんで": "Choose a crystal grade", "その スフィアは ない": "That Sphere doesn't exist", "もう 鑑定して ある": "Already appraised",
+  "鑑定して いない スフィアは はめられない（DEEP LINK/: の ガラクで 鑑定）": "Unappraised Spheres can't be set (appraise them with Garak in DEEP LINK/:)", "この OP は まだ 使えない": "This OP isn't available yet",
+  "空いた OP の 枠が ない（スフィアは 空いた 枠に だけ はめる）": "No empty OP slot (Spheres only go into empty slots)",
   // 門番の 入口・頼み
   "こわれた 頼み": "Broken request", "こわれた頼み": "Broken request", "依頼を えらんで": "Choose a request", "配信者と モデレーターだけ": "Streamer and moderators only", "op が ない": "Missing op",
   "知らない やること": "Unknown action", "1 秒に 5 回まで": "Up to 5 times per second", "記録が ない": "No record", "昼か 夜": "Day or night", "1 回か 10 回": "1 or 10 pulls", "売って いない 品": "Not for sale",
@@ -91,6 +96,10 @@ export const WORDS = {
 };
 
 export const RULES = [
+  [/^素材が 足りない：(.+)（(結晶Ⅰ|結晶Ⅱ|結晶Ⅲ|結晶核Ⅰ|結晶核Ⅱ)）あと (\d+)$/, (m, p) => `Not enough materials: ${p(m[1]) || m[1]} (${p(m[2])}) ${m[3]} more`],
+  [/^(.+)は もう 付いて いる$/, (m, p) => p(m[1]) && `${p(m[1])} is already on it`],
+  [/^(.+)を まだ 拾って いない（その 敵を たおすと 落とす）$/, (m, p) => `You haven't picked up ${p(m[1]) || m[1]} yet (defeat that enemy to get it)`],
+  [/^この 装備は 作業台 Lv(\d+) から$/, (m) => `This gear needs Workbench Lv${m[1]}`],
   [/^素材が 足りない：(.+)$/, (m, p) => { const xs = m[1].split("・").map((x) => { const k = x.match(/^(.+?)(?:（品質 (\d) 以上）)? あと (\d+)$/); return k && p(k[1]) && `${p(k[1])}${k[2] ? ` (Q${k[2]}+)` : ""} ×${k[3]}`; }); return xs.every(Boolean) ? "Not enough materials: " + xs.join(", ") : null; }],
   [/^まだ 帰って いない（あと (\d+) 秒）$/, (m) => `Not back yet (${m[1]} s left)`], [/^(.+) Lv(\d) が いる$/, (m, p) => p(m[1]) && `Needs ${p(m[1])} Lv${m[2]}`],
   [/^もう 持てない（(\d+) こまで）$/, (m) => `Can't hold more (max ${m[1]})`], [/^まだ たりない（(\d+)\/(\d+)(.*)）$/, (m, p) => `Not enough yet (${m[1]}/${m[2]}${m[3] ? " " + P(p, m[3]) : ""})`],

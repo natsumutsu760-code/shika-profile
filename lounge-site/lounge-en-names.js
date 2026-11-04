@@ -7,7 +7,7 @@ import { EFFECTS } from "./effects.js";
 import { ENEMY_TREES } from "./enemy-trees.js";
 import { TYPES, COMMON, TREES } from "./skills.js";
 import { DUNGEONS, PURPOSES, TOOLS, RUNS } from "./dungeons.js";
-import { GATHER, ENEMY_MAT, SCRAP, BORDER, ORE, BARS, CLOTH, LUMBER } from "./materials.js";
+import { GATHER, ENEMY_MAT, CRYSTAL, SCRAP, BORDER, ORE, BARS, CLOTH, LUMBER } from "./materials.js";
 import { CROPS, CROP_MATS } from "./crops.js";   // 作物（大工事の 農業）の 英語は 作物の 表の en
 import { KINDS, SLOTS, FORMS, MATS, COLS, BASES, UPPER, OPS } from "./equip.js";
 import { FACILITIES, SNACK_RECIPES, PC } from "./facilities.js";
@@ -481,6 +481,8 @@ export const SHOP_EN = {
 
 // ビサイ諸島の 名前を はじめの 島の 表に 足す（id で 引く）
 Object.assign(DUNGEON_EN, DUNGEON2_EN); Object.assign(MYTHIC_EN, MYTHIC2_EN); Object.assign(ENEMY_EN, TREE2_EN, TREE3_EN); Object.assign(SKILL_EN, SKILL2_EN, SKILL3_EN, MAIN_SKILL_EN); Object.assign(TYPE_EN, MAIN_TYPE_EN);
+// 敵の 結晶（「ホーンラビットの結晶」→「Horn Rabbit Crystal」。敵の 英語が ある 物だけ）
+for (const [tree, [id]] of Object.entries(CRYSTAL)) { const e = (ENEMY_EN[tree] || [])[0]; if (e && !MAT_EN[id]) MAT_EN[id] = `${e} Crystal`; }
 for (const list of Object.values(TREES)) for (const s of list) if (MAIN_TEXT_EN[s.id]) SKILL_TEXT_EN[s.id] = MAIN_TEXT_EN[s.id](s);   // 12 本の 説明は データの 数から 作る
 
 // ---- 日本語 → 英語 の 組み立て ----
@@ -489,6 +491,8 @@ export function nameWords() {
   // 素材
   for (const g of Object.values(GATHER)) { for (const [id, ja] of g.mats) put(ja, MAT_EN[id]); put(g.hidden[1], MAT_EN[g.hidden[0]]); }
   for (const [id, ja] of Object.values(ENEMY_MAT)) put(ja, MAT_EN[id]);
+  for (const [id, ja] of Object.values(CRYSTAL)) put(ja, MAT_EN[id]);
+  ["結晶Ⅰ", "結晶Ⅱ", "結晶Ⅲ", "結晶核Ⅰ", "結晶核Ⅱ"].forEach((ja, i) => put(ja, ["Crystal I", "Crystal II", "Crystal III", "Crystal Core I", "Crystal Core II"][i]));
   for (const [id, ja] of Object.values(SCRAP).flat()) put(ja, MAT_EN[id]);
   for (const [id, ja] of Object.values(BORDER).flat()) put(ja, MAT_EN[id]);
   for (const [id, ja] of [...ORE, ...BARS, ...CLOTH, ...LUMBER]) put(ja, MAT_EN[id]);

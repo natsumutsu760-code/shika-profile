@@ -4,6 +4,21 @@ const P = (p, s) => p(s) || s;
 const n1 = (n, one, many) => (n === "1" ? `1 ${one}` : `${n} ${many}`);
 
 export const WORDS = {
+  // ---- 装備開発・結晶・スフィア（2026-11-04） ----
+  "素材で 引く": "Draw with materials", "工房・同じ 敵の 素材 # こ（同じ 品質）で 空いた 枠に OP を 1 つ": "Workshop · # of one enemy material (same quality) draws 1 OP into an empty slot",
+  "品質の 同じ 敵の 素材が # こ そろうと 引ける（★は 素材の 品質）": "Collect # enemy materials of the same quality to draw (★ = material quality)", "引く": "Draw", "使う 素材": "Material to use",
+  "開発": "Develop", "島": "Island", "部位": "Slot", "行き先の 順": "By destination", "作れる 順": "Craftable first", "作れる #": "Craftable #", "作業台 Lv# から": "Needs Workbench Lv#",
+  "まだ 出て いない 開発 # こ（その 敵の 結晶を 拾うと 出る）": "# designs not found yet (pick up that enemy's crystal to reveal them)",
+  "まだ 開発できる 装備が ない。派遣で 敵を たおすと 結晶を 落とし、その 敵の 装備が 出てくる": "Nothing to develop yet. Defeat enemies on expeditions to get their crystals and unlock their gear",
+  "決まった 能力": "Fixed stats", "効果": "Effect", "OP の 枠": "OP slots", "空いて 出る（スフィアを はめる）": "Come empty (fill them with Spheres)", "使う 結晶の 段": "Crystal grade",
+  "開発する": "Develop", "開発して います…": "Developing…", "OP の 枠 #（空き。スフィアを はめる）": "OP slots # (empty — fill them with Spheres)", "左の 一覧から えらぶ": "Pick one from the list",
+  "この 装備は 作業台 Lv# から 作れる": "This gear needs Workbench Lv#", "作業台を 上げる": "Upgrade the workbench",
+  "スフィア": "Sphere", "空いた 枠": "Empty slots", "・鑑定した スフィア": " · Appraised Spheres", "はめた スフィアは はずせない（抜くのは コア）": "Set Spheres can't be removed (use a core to extract)",
+  "もう一度 押すと はめる": "Press again to set", "空いた 枠が ない（スフィアは 空いた 枠に だけ はめる）": "No empty slot (Spheres only go into empty slots)", "この 装備には OP の 枠が ない": "This gear has no OP slots",
+  "はめられる スフィアが ない（同じ OP は 2 つ 付けない）": "No Sphere fits (the same OP can't be added twice)", "DEEP LINK/: の ガラク": "Garak in DEEP LINK/:",
+  "スフィアの 鑑定": "Sphere appraisal", "鑑定する": "Appraise", "鑑定して いない スフィアは ない": "No unappraised Spheres", "> 装備の 空いた 枠に はめる": "> Set them into empty gear slots",
+  "届いた装備・スフィア": "Gear & Spheres received", "中身は DEEP LINK/: の ガラクで 鑑定（空いた OP の 枠に はめる）": "Appraise them with Garak in DEEP LINK/: (set into empty OP slots)",
+  "今回は 装備も スフィアも 出なかった（装備は ボスから、スフィアは 宝箱から まれに）": "No gear or Spheres this time (gear comes from bosses, Spheres rarely from chests)",
   // ---- 装備（equip.html） ----
   "アクセ": "Acc", "オフ ハンド": "Off-hand", "★の多い順": "Most ★", "新しい順": "Newest", "（そうび中）": "(equipped)", "装": "G", "ペ": "P", "仲": "C",
   "の 宝箱か": "chests or the", "で 手に 入る": "", "まだ 装備が ない。": "No gear yet.", "出かけて いる あいだは かえられない": "Can't change while out on an expedition",
@@ -94,6 +109,21 @@ export const WORDS = {
 };
 
 export const RULES = [
+  [/^★(\d) の OP(?:・付きやすい：(.+?))?・クレジット ([\d,]+)(?:（維持費 (\d+) こみ）)?$/, (m, p) => `★${m[1]} OP${m[2] ? ` · likely: ${p(m[2]) || m[2]}` : ""} · ${m[3]} credits${m[4] ? ` (incl. ${m[4]} upkeep)` : ""}`],
+  [/^(.+) ★(\d) が 付いた$/, (m, p) => `${p(m[1]) || m[1]} ★${m[2]} added`],
+  [/^・宝箱から スフィア ×(\d+)$/, (m) => ` · ${m[1]} Sphere${m[1] === "1" ? "" : "s"} from chests`],
+  // 装備開発の 効果（equip-dev.js の devFxText）・スフィア
+  [/^攻撃が 当たると (\d+)% で (.+)$/, (m, p) => { const x = p(m[2]); return x ? `${m[1]}% chance to inflict ${x} on hit` : null; }],
+  [/^戦いの はじめに (ATK|DEF|INT|RES|AGI|DEX) \+(\d+)%（(\d+) ターン）$/, (m) => `At battle start: ${m[1]} +${m[2]}% (${m[3]} turns)`],
+  [/^戦いの はじめに (.+) (\d+)$/, (m, p) => { const x = p(m[1]); return x ? `At battle start: ${x} ${m[2]}` : null; }],
+  [/^(会心|会心の ダメージ|回避|状態異常に 強い|回復する 量|イタズラの ダメージ|技の ダメージ) \+(\d+)%$/, (m) => `${{ 会心: "Crit", "会心の ダメージ": "Crit damage", 回避: "Evasion", "状態異常に 強い": "Status resistance", "回復する 量": "Healing", "イタズラの ダメージ": "Prank damage", "技の ダメージ": "Skill damage" }[m[1]]} +${m[2]}%`],
+  [/^受ける ダメージ −(\d+)%$/, (m) => `Damage taken −${m[1]}%`], [/^与えた ダメージの (\d+)% を 回復$/, (m) => `Heal ${m[1]}% of damage dealt`],
+  [/^最初の 攻撃の ダメージ \+(\d+)%$/, (m) => `First attack damage +${m[1]}%`], [/^毎ターン 最大 HP の ([\d.]+)% を 回復$/, (m) => `Heal ${m[1]}% of max HP each turn`], [/^(\d+) ターンごとに MP \+1$/, (m) => `MP +1 every ${m[1]} turns`],
+  [/^(.+)の スフィア$/, (m, p) => { const x = p(m[1]); return x ? `Sphere from ${x}` : null; }],
+  [/^鑑定した スフィア (\d+) こ$/, (m) => `${m[1]} appraised Sphere${m[1] === "1" ? "" : "s"}`],
+  [/^鑑定して いない スフィア (\d+) こ（$/, (m) => `${m[1]} unappraised (`], [/^で 鑑定）$/, () => ")"],
+  [/^★(\d) で 付けた$/, (m) => `set at ★${m[1]}`],
+  [/^鑑定した：(.+) ★(\d)$/, (m, p) => `Appraised: ${p(m[1]) || m[1]} ★${m[2]}`], [/^(.+) ★(\d) の スフィアを はめた$/, (m, p) => `Set a ${p(m[1]) || m[1]} ★${m[2]} Sphere`],
   // 施設の 作り直し（2026-11-03）
   [/^(.+) Lv(\d+) の 建設を 始めた（([\d,]+) クレジット）$/, (m, p) => p(m[1]) && `Started building ${p(m[1])} Lv${m[2]} (${m[3]} credits)`],
   [/^(.+)の つまみを Lv(\d+) に した（維持費 ([\d,]+)）$/, (m, p) => p(m[1]) && `Set the ${p(m[1])} dial to Lv${m[2]} (upkeep ${m[3]})`],

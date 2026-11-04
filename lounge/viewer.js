@@ -16,6 +16,7 @@ import "./warm.js";   // 派遣の 計算を 温めて おく（はじめの 1 �
 import { relayEntry } from "./lounge-relay.js";   // 配信の 中継（鹿物語の ランキングの 窓）に あずける 派遣の 材料
 import { swapPlan, cashDo } from "./lounge-money.js";   // 両替（玉・クレジット・アメジスト）
 import { coreTake, coreSet } from "./lounge-core.js";   // ブランクコア（OP を 抜く・付ける）
+import { devPlan, sphereLook, sphereSet, drawOp } from "./lounge-equip.js";   // 装備開発・スフィア（2026-11-04）
 import { tameFuse, tameSp } from "./lounge-fuse.js";   // モンスターの 配合・なかまの スキルポイント
 import { wsMake, wsAtt, wsProc, attSet, attOff, attDrop, smeltPut, smeltTake, smeltStop } from "./lounge-workshop.js";   // 工房（道具・アタッチメント・精錬）
 import { mineSet, mineCollect, mineUse, mineLeave, mineView } from "./lounge-mine.js";   // 坑道（前の 隠れ家の 畑は 2026-11-03 に 消して 新しい 農園に まとめた）
@@ -34,9 +35,12 @@ const LABEL = { balls: "玉", res: "アメジスト" };
 // オーバーレイが 景品の コスメを 渡せなかった わけ（obs-ledger.js の canGive の why）
 const GIVE_WHY = { gone: "お店の 品物が 入れ替わりました", price: "値段が 合いませんでした", own: "その コスメは もう 持って いる", max: "その コスメは もう Ⅲ まで 進化して いる", give: "配信の 画面が 景品を 渡せませんでした" };
 export const MONEY = /^(shop\.|hideout\.up$|bench\.|trip\.collect$|trip\.start$|tame\.feed$|tame\.research$|tame\.extract$|trader\.|task\.|req\.|pet\.respec$|pet\.rejob$|pet\.unlock$|money\.|arena\.duel$|prize\.)/;   // 玉か アメジストが うごく やること（答えに いまの 数を つける）
+// 画面へ 送る 持ち物：鑑定して いない スフィアは 中身（OP・★）を 送らない（ガラクの 鑑定で 見える）
+const ownView = (own) => (own && Array.isArray(own.spheres) && own.spheres.some((x) => !x.known) ? { ...own, spheres: own.spheres.map((x) => (x.known ? x : { uid: x.uid, did: x.did, known: false })) } : own);
 const PLANS = {
   "bench.craft": (rec, b) => craftPlan(rec, b, rand),
   "bench.synth": (rec, b) => synthPlan(rec, b, rand),
+  "bench.dev": (rec, b) => devPlan(rec, b, rand),   // 装備開発（敵の 結晶で 作る。lounge-equip.js）
   "tame.feed": (rec, b) => tameFeedPlan(rec, b, rec.ledger.unknown),
   "tame.research": (rec, b) => researchPlan(rec, b, rec.ledger.unknown),
   "tame.extract": (rec, b) => extractPlan(rec, b, rec.ledger.unknown),   // 進化した スキルを 取り出す（なかまと おわかれ）
@@ -383,6 +387,9 @@ export class Viewer {
     else if (body.a === "tame.sp") r = tameSp(rec, body);   // なかまの スキルポイント（手で 振る・自動の 入り切り）
     else if (body.a === "core.take") r = coreTake(rec, body);   // ブランクコア：装備から OP を 抜く（装備は なくなる）
     else if (body.a === "core.set") r = coreSet(rec, body);     // コアを 別の 装備に 付ける
+    else if (body.a === "sphere.look") r = sphereLook(rec, body, now);   // スフィアの 鑑定（ガラク）
+    else if (body.a === "sphere.set") r = sphereSet(rec, body, now);     // スフィアを 空いた OP の 枠に はめる
+    else if (body.a === "ws.draw") r = drawOp(rec, body, rand, now);     // 工房：素材で 空いた 枠に OP を 引く
     else if (body.a === "equip.auto") r = autoSellSet(rec, body);   // 派遣で 拾った ★N 以下の 装備を 自動で 売る 設定
     else if (/^arena\.(view|foes|duel|entry|match|enc)$/.test(String(body.a))) r = await this.arena(rec, body, now);
     else if (typeof body.a === "string" && Object.prototype.hasOwnProperty.call(PLANS, body.a)) {   // お金が いる やること：計画を 作って 帳簿で 払う（「constructor」などは 通さない）
@@ -413,7 +420,7 @@ export class Viewer {
   view(rec) { return { name: rec.name, login: rec.login, room: rec.room }; }
   mine(rec, w) {
     const now = Date.now(); dropOld(rec, now); facMigrate(rec); facDue(rec, now);
-    return { id: rec.id, lock: locked(rec, this.env), lockKind: lockKind(), login: rec.login, name: rec.name, nameAt: rec.nameAt, names: rec.names, room: rec.room, own: rec.own, wallet: this.purse(rec, w), waiting: rec.ledger.unknown.length,
+    return { id: rec.id, lock: locked(rec, this.env), lockKind: lockKind(), login: rec.login, name: rec.name, nameAt: rec.nameAt, names: rec.names, room: rec.room, own: ownView(rec.own), wallet: this.purse(rec, w), waiting: rec.ledger.unknown.length,
       pets: rec.pets.map((p) => ({ ...p, ...(p.type ? { sp: { all: spTotal(p.lv), left: spTotal(p.lv) - spUsed(p) }, freeLeft: freeIsAuto(p) ? 0 : freeTotal(p.lv) - Object.values(p.free || {}).reduce((a, v) => a + v, 0), build: fighterOf(p, rec), resetPrice: RESET_PRICE(p.lv) } : {}) })),
       tamed: rec.tamed, party: rec.party, mine: mineView(rec, now), farmv: farmvView(rec, now), smelt: rec.smelt || [], loop: rec.loop || null, lab: rec.lab, labQ: rec.labQ || [], hideout: rec.hideout, knob: rec.knob || {}, fac: facView(rec, now), credits: rec.credits, snacks: rec.snacks, tools: rec.tools, explore: rec.explore, seen: rec.seen, met: rec.met,
       stash: { cap: stashCap(rec) }, equipCap: equipCap(rec), autoSell: rec.autoSell || null, trips: rec.trips.map((t) => tripView(t, now)), deeplink: deeplinkView(rec, jstDay(now)), req: { mine: rec.req.mine, sending: rec.req.out.length } };

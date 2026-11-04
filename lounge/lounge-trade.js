@@ -104,6 +104,8 @@ function hitP(g, ev) {
   if (g.isle && g.isle !== ev.isle) return false;
   if (g.star && !((ev.star || 0) >= g.star)) return false;
   if (g.floor && !((ev.floor || 0) >= g.floor)) return false;
+  if (g.cry && !((ev.cry || 0) >= g.cry)) return false;          // 結晶Ⅱ 以上を 使って 開発する（装備開発）
+  if (g.cryOf && g.cryOf !== ev.cryOf) return false;              // 〇〇の 結晶で 開発する
   return tripOk(g.trip, ev.trip);
 }
 const pkey = (k) => k.c + ":" + k.no;
@@ -356,6 +358,7 @@ export function actEvents(rec, a, r, b, day) {
   if (a === "snack.craft") evs.push({ type: "cook", n: r.n || 1, ...(r.id === "snack3" ? { kind: "snack3" } : {}) });
   else if (a === "smelt.take") evs.push({ type: "smelt", n: r.got || 0 });
   else if (a === "ws.att") evs.push({ type: "oproll", n: 1, slot: "weapon" });   // 工房の 武器の アタッチメント（素材で ★と OP を 引く）
+  else if (a === "ws.draw") evs.push({ type: "oproll", n: 1, slot: r.slot });   // 工房の 素材の OP 抽選（空いた 枠）
   else if (a === "farmv.harvest") { if (r.crop) evs.push({ type: "harvest", n: 1, crop: r.crop }); for (const it of r.items || []) evs.push({ type: "harvest", n: it.n, mat: it.id }); }
   else if (a === "mine.collect") evs.push({ type: "mine", n: 1 });
   else if (a === "shop.buy") evs.push({ type: "furn", n: 1 });   // ラウンジの 家具（リンデン家具工房）

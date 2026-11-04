@@ -217,6 +217,9 @@ import { TYPES } from "./skills.js";
 import { SLOTS, KINDS, OPS, baseOf, itemStats, itemPower, mainStats, hasFx, recycleOf, keepInBulk, AUTO_SELL_STARS, opStarOf, opCount } from "./equip.js";
 import { DUNGEONS } from "./dungeons.js";
 import { SYNTH } from "./recipes.js";
+import { DRAW, MAT_OP } from "./sphere.js";   // 工房の 素材の OP 抽選（2026-11-04）
+import { MAT_NAME, MAT_FROM, ENEMY_MAT } from "./materials.js";
+import { facLv, upkeep } from "./facilities.js";
 import { gearImg, watchIcons } from "./gear-icon.js";
 import { addTkCss, padGrids, watchPad } from "./stash-grid.js";
 import { spriteURL } from "./sprites.js";
@@ -230,7 +233,7 @@ const EQUIP_MAX = 200;   // 武器庫 Lv0 の 数（門番の equipCap が 来�
 const stars = (n) => `<span class="stars">${"★".repeat(n)}</span>`;
 const sign = (v) => (v < 0 ? `−${Math.abs(v)}` : `+${v}`);
 const SPECIAL = new Set(["mpRegen", "firstStrike", "endure", "focusStart"]);
-const opLine = (it, o, i) => { const st = opStarOf(it, i); return esc(OPS[o].fmt(OPS[o].v[st - 1])) + (st !== it.star ? `<small class="cst">コア ★${st}</small>` : ""); };
+const opLine = (it, o, i) => { const st = opStarOf(it, i); return esc(OPS[o].fmt(OPS[o].v[st - 1])) + (st !== it.star ? `<small class="cst">★${st} で 付けた</small>` : ""); };
 const mainLine = (it) => Object.entries(mainStats(it)).map(([k, v]) => `${SL[k]} ${sign(v)}`).join("・");
 // 数の ちがい（ステータスと % の OP。とくべつな OP は 一覧で 見る）
 const diffOf = (a, b) => { const x = a ? itemStats(a) : {}, y = b ? itemStats(b) : {}, out = [];
@@ -297,7 +300,7 @@ function render() {
       ${hasFx(it) ? `<p class="note">とくべつな効果：${esc(b.fx || b.text || "")}</p>` : ""}
       ${cmp ? `<div class="cmp"><h3>いまの ${esc(baseOf(now.base).name)} ★${now.star} とくらべると</h3>${cmp.length ? cmp.map(([k, d]) => `<div class="${d > 0 ? "up" : "dn"}"><span>${nameOf(k)}</span><b>${val(k, d)}</b></div>`).join("") : `<p class="note">数は おなじ</p>`}</div>` : ""}
       ${b.slot === "weapon" ? attHtml(ME, it, { away: !!busyAway }) : ""}
-      <div class="btns">${btn}${sy ? `<a class="linkish" href="bench.html?k=s:${sy.out}">作業台で 合成する</a>` : ""}</div>${coreHtml(it, w, busyAway)}${w ? "" : scrapHtml(it)}`;
+      <div class="btns">${btn}${sy ? `<a class="linkish" href="bench.html?k=s:${sy.out}">作業台で 合成する</a>` : ""}</div>${sphereHtml(it, busyAway)}${drawHtml(it, busyAway)}${coreHtml(it, w, busyAway)}${w ? "" : scrapHtml(it)}`;
   }
   if (V.rec) det = recHtml();
   return `
@@ -394,6 +397,40 @@ function coreHtml(it, w, busyAway) {
   return `<div class="core"><div class="crow"><span class="sh">コア</span><span class="cn">ブランクコア <b>${bn}</b>・コア <b>${cs.length}</b></span>
       <button data-cmode="take" aria-pressed="${mode === "take"}" ${bn ? "" : "disabled"}>OP を 抜く</button><button data-cmode="set" aria-pressed="${mode === "set"}" ${cs.length ? "" : "disabled"}>コアを 付ける</button></div>${body}</div>`;
 }
+// ---------- スフィア（宝箱 3%。鹿さんの 決め 2026-10-29、つないだのは 2026-11-04）：鑑定した スフィアを 空いた OP の 枠に はめる（入れかえは しない） ----------
+// 強さは スフィアの ★。同じ OP と ★の スフィアは 1 つの ボタンに まとめる
+function sphereHtml(it, busyAway) {
+  const all = (ME.own && ME.own.spheres) || [], ks = all.filter((x) => x.known), b = baseOf(it.base), n = opCount(b.slot, it.star), free = Math.max(0, n - it.ops.length);
+  if (!all.length) return "";
+  const head = `<div class="crow"><span class="sh">スフィア</span><span class="cn">空いた 枠 <b>${free}</b>・鑑定した スフィア <b>${ks.length}</b></span></div>`;
+  const unk = all.length - ks.length, look = unk ? `<small>鑑定して いない スフィア ${unk} こ（<a href="deeplink.html?go=junk&tab=shop">DEEP LINK/: の ガラク</a>で 鑑定）</small>` : "";
+  let body;
+  if (!free) body = `<small>${n ? "空いた 枠が ない（スフィアは 空いた 枠に だけ はめる）" : "この 装備には OP の 枠が ない"}</small>`;
+  else if (busyAway) body = `<small>出かけて いる あいだは かえられない</small>`;
+  else {
+    const g = new Map(); for (const x of ks) if (!it.ops.includes(x.op) && OPS[x.op]) { const k = `${x.op}:${x.star}`; g.set(k, { ...(g.get(k) || { x, n: 0 }), n: (g.get(k) || { n: 0 }).n + 1 }); }
+    const list = [...g.values()].sort((a, c) => c.x.star - a.x.star), key = (u) => `${it.uid}:sp:${u}`;
+    body = list.length ? `<div class="crow">${list.map(({ x, n: k }) => `<button class="${V.conf === key(x.uid) ? "go" : ""}" data-sphere="${x.uid}">${V.conf === key(x.uid) ? "もう一度 押すと はめる" : `${esc(OPS[x.op].label)} ★${x.star}（${esc(OPS[x.op].fmt(OPS[x.op].v[x.star - 1]))}）${k > 1 ? ` ×${k}` : ""}`}</button>`).join("")}</div><small>はめた スフィアは はずせない（抜くのは コア）</small>`
+      : ks.length ? `<small>はめられる スフィアが ない（同じ OP は 2 つ 付けない）</small>` : "";
+  }
+  return `<div class="core">${head}${body}${look}</div>`;
+}
+// ---------- 素材の OP 抽選（工房。鹿さんの 決め 2026-10-29）：同じ 敵の 素材 5 こ（同じ 品質）＋ クレジットで 空いた 枠に OP を 1 つ。★は 素材の 品質 ----------
+const ENEMY_IDS = new Set(Object.values(ENEMY_MAT).map(([id]) => id));
+function drawHtml(it, busyAway) {
+  if (!(ME.hideout || {}).workshop) return "";   // 工房が できてから
+  const b = baseOf(it.base), n = opCount(b.slot, it.star), free = n - it.ops.length;
+  if (free <= 0 || busyAway) return "";
+  const by = new Map(); for (const m of (ME.own && ME.own.mats) || []) if (ENEMY_IDS.has(m.id) && m.q) { const k = `${m.id}:${m.q}`; by.set(k, (by.get(k) || 0) + m.n); }
+  const list = [...by.entries()].filter(([, k]) => k >= DRAW.mats).sort((a, c) => +c[0].split(":")[1] - +a[0].split(":")[1]);
+  const head = `<div class="crow"><span class="sh">素材で 引く</span><span class="cn">工房・同じ 敵の 素材 ${DRAW.mats} こ（同じ 品質）で 空いた 枠に OP を 1 つ</span></div>`;
+  if (!list.length) return `<div class="core">${head}<small>品質の 同じ 敵の 素材が ${DRAW.mats} こ そろうと 引ける（★は 素材の 品質）</small></div>`;
+  if (!list.some(([k]) => k === V.draw)) V.draw = list[0][0];
+  const [id, q] = V.draw.split(":"), qq = +q, fav = MAT_OP[id], fee = upkeep("workshop", facLv(ME, "workshop")), price = DRAW.credits[qq - 1] + fee;
+  return `<div class="core">${head}<div class="crow"><select data-draw="1" aria-label="使う 素材">${list.map(([k, c]) => { const [m, x] = k.split(":"); return `<option value="${k}" ${k === V.draw ? "selected" : ""}>${esc(MAT_NAME[m])}（品質 ${x}）×${c}</option>`; }).join("")}</select></div>
+    <small>★${qq} の OP${fav && OPS[fav] ? `・付きやすい：${esc(OPS[fav].label)}` : ""}・クレジット ${price.toLocaleString("ja-JP")}${fee ? `（維持費 ${fee} こみ）` : ""}</small>
+    <div class="crow"><button data-dodraw="1" ${(ME.credits || 0) < price ? "disabled" : ""}>引く</button></div></div>`;
+}
 async function doCore(b, a, body, done) {
   const r = await busy(b, () => act(a, body));
   V.conf = null;
@@ -453,12 +490,13 @@ function whoHtml() {
 function paint() { document.getElementById("app").innerHTML = render(); linkTabs(); const tk = document.querySelector("#list .tk"); if (tk) padGrids(tk); }
 addGateCss(); addTkCss(); watchPad(() => document.querySelector("#list .tk"));
 const small = () => matchMedia("(max-width:820px)").matches;
+document.body.addEventListener("change", (e) => { if (e.target.dataset && e.target.dataset.draw) { V.draw = e.target.value; paint(); } });   // 素材の OP 抽選の 素材
 document.body.addEventListener("click", async (e) => {
   if (e.target.id === "dim") { V.rec = null; document.body.classList.remove("sheet-on"); return paint(); }
   const b = e.target.closest("button"); if (!b || b.disabled) return;
   const d = b.dataset;
   if (await attClick(b, ME, async (fresh) => { if (fresh) { ME = mergeAtt(await me()); MP = ME.pets[0]; } paint(); }, toast)) return;   // アタッチメント
-  if (!d.scrap && !d.bulkgo && d.ctake == null && d.cset == null && V.conf) V.conf = null;   // ほかを 押したら 2 回めの 待ちを やめる
+  if (!d.scrap && !d.bulkgo && d.ctake == null && d.cset == null && !d.sphere && V.conf) V.conf = null;   // ほかを 押したら 2 回めの 待ちを やめる
   if (d.scrap) { const k = `${d.su}:${d.scrap}`; if (V.conf !== k) { V.conf = k; return paint(); } return doScrap(b, [d.su], d.scrap); }
   if (d.rec) { V.rec = V.rec ? null : { mode: recMode(), scope: "one" }; paint(); if (V.rec && small()) document.body.classList.add("sheet-on"); return; }   // おすすめ装備
   if (d.rk) { V.rec[d.rk] = d.rv; if (d.rk === "mode") try { localStorage.setItem("ml-rec-mode", d.rv); } catch (x) {} return paint(); }
@@ -470,6 +508,10 @@ document.body.addEventListener("click", async (e) => {
   if (d.bstar) { V.bstar = +d.bstar; return paint(); }
   if (d.bulkgo) { if (V.conf !== "bulk") { V.conf = "bulk"; return paint(); } return doScrap(b, bulkPick(ME.own.equip || [], wornBy()).pick.map((e) => e.uid), V.bhow); }
   if (d.u || d.slot) V.rec = null;
+  if (d.dodraw) { const [mat, q] = String(V.draw || "").split(":");
+    return doCore(b, "ws.draw", { uid: V.sel, mat, q: +q }, (r) => toast(`${OPS[r.op].label} ★${r.star} が 付いた`)); }
+  if (d.sphere) { const k = `${V.sel}:sp:${d.sphere}`; if (V.conf !== k) { V.conf = k; return paint(); }
+    return doCore(b, "sphere.set", { sphere: d.sphere, uid: V.sel }, (r) => toast(`${OPS[r.op].label} ★${r.star} の スフィアを はめた`)); }
   if (d.cmode) { V.core = V.core && V.core.uid === V.sel && V.core.mode === d.cmode ? null : { uid: V.sel, mode: d.cmode, csel: (coresOf()[0] || {}).uid }; V.conf = null; return paint(); }
   if (d.csel) { V.core.csel = d.csel; V.conf = null; return paint(); }
   if (d.ctake != null) { const k = `${V.sel}:core:${d.ctake}`; if (V.conf !== k) { V.conf = k; return paint(); }
