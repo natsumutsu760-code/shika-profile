@@ -12951,21 +12951,26 @@ if (location.hash === "#lcdcard" || location.hash === "#sitecard" || document.do
   // ---------- 鹿物語の !換金・!貸し玉（2026-10-28 の 決め。玉と クレジットの やりとりは チャットだけ）：鹿物語の 頼みを 門番に 運び、答えを 書く ----------
   // 頼み：shika-cash-req-v1 の list（鹿物語だけが 書く。{ id, name, kind: "cash"|"lend", n, t }）。答え：shika-cash-res-v1 の list（ここだけが 書く。{ id, ok, why, balls, credits }）
   // 門番に とどかなければ 30 秒ごとに 同じ id で やりなおす（門番の 箱は 同じ id に 同じ 答え。2 重に しない）。名前から Twitch の id は 帳簿（LG.uidOf）
-  var CASH_REQ = "shika-cash-req-v1", CASH_RES = "shika-cash-res-v1", cashSent = {};
+  // 1 回 門番に 送った 頼みは、その ときの id を CASH_UID に 覚えて 同じ id で やりなおす（あとで 名前から id が 引けなく なっても「わからない」と 答えない。答えると 鹿物語が 玉を 返し、門番は クレジットを 足して いて 2 重に なる）
+  var CASH_REQ = "shika-cash-req-v1", CASH_RES = "shika-cash-res-v1", CASH_UID = "shika-cash-uid-v1", cashSent = {};
   function cashAnswers() { var r = read(CASH_RES, null); return r && Array.isArray(r.list) ? r.list : []; }
   function cashPut(a) { var list = cashAnswers().filter(function (x) { return x && x.id !== a.id; }); list.push(a); write(CASH_RES, { list: list.slice(-60) }); delete cashSent[a.id]; }
   function cashPump() {
     if (!obs) return;
-    var q = read(CASH_REQ, null), list = q && Array.isArray(q.list) ? q.list : [], done = {}, now = Date.now();
+    var q = read(CASH_REQ, null), list = q && Array.isArray(q.list) ? q.list : [], done = {}, now = Date.now(), u0 = read(CASH_UID, null), uids = {}, live = {};
     cashAnswers().forEach(function (x) { if (x && typeof x.id === "string") done[x.id] = 1; });
+    list.forEach(function (x) { if (x && typeof x.id === "string") live[x.id] = 1; });
+    if (u0 && typeof u0 === "object") Object.keys(u0).forEach(function (k) { if (live[k] && typeof u0[k] === "string") uids[k] = u0[k]; });   // もう ない 頼みの 分は 消す
     list.forEach(function (x) {
       if (!x || typeof x.id !== "string" || x.id.length > 80 || done[x.id] || (cashSent[x.id] && now - cashSent[x.id] < 30000)) return;
       if (x.kind !== "cash" && x.kind !== "lend") return;
-      var uid = LG ? LG.uidOf(String(x.name || "").slice(0, 40)) : "";
-      if (!uid) { cashPut({ id: x.id, ok: 0, why: "MONO LINK の 人が わからない（チャットで 1 回 話すと わかる）" }); return; }
+      var uid = uids[x.id] || (LG ? LG.uidOf(String(x.name || "").slice(0, 40)) : "");
+      if (!uid) { cashPut({ id: x.id, ok: 0, why: "MONO LINK の 人が わからない（チャットで 1 回 話すと わかる）" }); return; }   // まだ 1 回も 送って いない 頼みだけ
       if (!remoteWs || remoteWs.readyState !== 1 || remoteState !== "on") return;   // 門番に つながったら 送る
+      uids[x.id] = uid; write(CASH_UID, uids);   // 送る 前に 覚える
       cashSent[x.id] = now; try { remoteWs.send(JSON.stringify({ t: "cash", rid: x.id, id: uid, kind: x.kind, n: Math.floor(+x.n) || 0 })); } catch (e) {}
     });
+    if (Object.keys(u0 || {}).length !== Object.keys(uids).length) write(CASH_UID, uids);
   }
   addEventListener("storage", function (e) { if (e.key === CASH_REQ) cashPump(); });
   if (obs) setInterval(cashPump, 10000);
