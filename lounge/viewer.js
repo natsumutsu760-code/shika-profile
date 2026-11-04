@@ -20,7 +20,7 @@ import { devPlan, sphereLook, sphereSet, drawOp } from "./lounge-equip.js";   //
 import { tameFuse, tameSp } from "./lounge-fuse.js";   // モンスターの 配合・なかまの スキルポイント
 import { wsMake, wsAtt, wsProc, attSet, attOff, attDrop, smeltPut, smeltTake, smeltStop } from "./lounge-workshop.js";   // 工房（道具・アタッチメント・精錬）
 import { mineSet, mineCollect, mineUse, mineLeave, mineView } from "./lounge-mine.js";   // 坑道（前の 隠れ家の 畑は 2026-11-03 に 消して 新しい 農園に まとめた）
-import { farmvPlant, farmvHarvest, farmvHarvestAll, farmvSpr, farmvSoil, farmvSkin, farmvView } from "./lounge-farmv.js";   // 新しい 農園（3D の 畑。鹿さんの 決め 2026-11-03）
+import { farmvPlant, farmvHarvest, farmvHarvestAll, farmvPreset, farmvPlantPreset, farmvSpr, farmvSoil, farmvSkin, farmvView } from "./lounge-farmv.js";   // 新しい 農園（3D の 畑。鹿さんの 決め 2026-11-03）
 import { nutCraft, nutFeed, nutDetox, nutBreak } from "./lounge-nutrition.js";   // 詳細ステータス・栄養
 import { statPut } from "./lounge-stats.js";   // 記録の まとめ（OBS の コスメの 条件。かわった ときだけ Lounge へ）
 import { ensure, give, insDue, FURN_MAX, petFirst, petJob, petUnlockPlan, petSwitch, tripStart, tripCalc, tripDone, invadeRelay, tripCollect, payWaiting, tripView, craftPlan, synthPlan, boxTake, dropOld, stashCap, tameFeedPlan, tameJoin, tameBack, researchPlan, extractPlan, snackCraft, autoSellSet, equipCap, loopNew, loopSet, loopSeen, loopAfter, loopStep, equipScrap } from "./lounge-game.js";
@@ -373,8 +373,8 @@ export class Viewer {
     else if (body.a === "att.off") r = attOff(rec, body);
     else if (body.a === "att.drop") r = attDrop(rec, body);
     else if (body.a === "farmv.view") { const v = farmvView(rec, now, rand); r = v ? { ok: true, farmv: v } : { ok: false, why: "農園は まだ 開いて いない" }; }   // 開いた とき：時間を 進めて しまう
-    else if (body.a === "farmv.plant" || body.a === "farmv.harvest" || body.a === "farmv.harvestAll" || body.a === "farmv.spr" || body.a === "farmv.soil" || body.a === "farmv.skin") {
-      const fn = { "farmv.plant": farmvPlant, "farmv.harvest": farmvHarvest, "farmv.harvestAll": farmvHarvestAll, "farmv.spr": farmvSpr, "farmv.soil": farmvSoil, "farmv.skin": farmvSkin }[body.a];
+    else if (body.a === "farmv.plant" || body.a === "farmv.harvest" || body.a === "farmv.harvestAll" || body.a === "farmv.preset" || body.a === "farmv.plantPreset" || body.a === "farmv.spr" || body.a === "farmv.soil" || body.a === "farmv.skin") {
+      const fn = { "farmv.plant": farmvPlant, "farmv.harvest": farmvHarvest, "farmv.harvestAll": farmvHarvestAll, "farmv.preset": farmvPreset, "farmv.plantPreset": farmvPlantPreset, "farmv.spr": farmvSpr, "farmv.soil": farmvSoil, "farmv.skin": farmvSkin }[body.a];
       r = fn(rec, body, now, rand); if (r.ok) r = { ...r, farmv: farmvView(rec, now) };
     }
     else if (body.a === "mine.set") r = mineSet(rec, body, rand, now);

@@ -71,6 +71,12 @@
   .seed img { width:40px; height:40px; image-rendering:pixelated; } .seed small { font:600 11px/1 var(--num); color:var(--soft); }
   .seed[aria-pressed="true"] { border-color:var(--leaf); background:#E8FBF2; }
   .slist .none { grid-column:1 / -1; margin:2px 0; font:700 13px/1.5 var(--jp); color:var(--soft); }
+  /* プリセット（鹿さんの 頼み 2026-11-05。カード「A 塗って組む」）：小さな マス目を 塗る */
+  .pgrid { display:grid; grid-template-columns:repeat(var(--w), 1fr); gap:4px; max-width:min(300px, calc(var(--w) * 58px)); margin:4px 0 10px; }
+  .pcell { aspect-ratio:1; border-radius:10px; border:1.5px dashed var(--line); background:#F6F3EC; padding:0; display:grid; place-items:center; }
+  .pcell img { width:78%; height:78%; image-rendering:pixelated; } .pcell.on { border-style:solid; border-color:#E2D9C6; background:#FFFBF2; }
+  .pslot { display:flex; gap:6px; margin-bottom:8px; } .pnote { font:700 12.5px/1.5 var(--jp); color:var(--soft); margin-top:8px; } .pnote.warn { color:var(--coral, #FF5A64); }
+  .pplant { margin-top:10px; }
   .toast { position:fixed; left:50%; bottom:24px; transform:translate(-50%, 140%); opacity:0; visibility:hidden; padding:12px 18px; border-radius:16px; background:var(--ink); color:#fff; font:900 14px/1.4 var(--jp); transition:transform .25s, opacity .25s, visibility .25s; z-index:20; max-width:calc(100vw - 32px); }
   .toast.on { transform:translate(-50%, 0); opacity:1; visibility:visible; }
 
@@ -105,7 +111,7 @@
     </nav>
   </div>
   <section id="tab-field" class="farm">
-    <div class="view" id="view"><canvas id="cv"></canvas><div class="opts" id="opts"></div><button class="allget" id="allget" hidden></button></div>
+    <div class="view" id="view"><canvas id="cv"></canvas><div class="opts" id="opts"></div><button class="allget" id="allget"></button></div>
     <div class="side" id="side"></div>
   </section>
   <section id="tab-book" class="book" hidden></section>
@@ -114,6 +120,7 @@
 <div class="toast" id="toast" role="status"></div>
 <script type="importmap">{ "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.169.0/build/three.module.js", "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.169.0/examples/jsm/" } }</script>
 <script type="module">
+import "./lounge-en.js";   // 英語の 画面（ラウンジの ページ ぜんぶ 英語に する 決め〈2026-10-25〉。農園は つながって いなかった：2026-11-05）
 import * as THREE from "three";
 import { makeFarm, SKINS } from "./farm3d.js";
 import { CROPS as CROPS_ALL, CROP, KIND, afterOf } from "./crops.js";
@@ -123,12 +130,13 @@ import { newField, fieldSize, inField, W, stageAt, plant, harvest, advance, setS
 import { wsIcon } from "./ws-icons.js";
 import { cropPic } from "./crop-art.js";
 import { matPic } from "./mat-icons.js";
+import { MAT_NAME } from "./materials.js";   // かわった 物（麦わら など）の 名前
 import { me, act } from "./lounge-client.js";   // 記録は 門番（見本では ブラウザの 中の ためしの 門番）
 
 // ---------- 記録（門番） ----------
 let S = null;
 let CRED = 0;   // クレジット（土を 買う）
-const take = (v, j) => { if (v) S = { field: v.field, known: v.known || [], skin: v.skin || "box", seeds: v.seeds || {}, tools: v.tools || {} }; if (j && typeof j.credits === "number") CRED = j.credits; };
+const take = (v, j) => { if (v) S = { field: v.field, known: v.known || [], skin: v.skin || "box", seeds: v.seeds || {}, tools: v.tools || {}, presets: v.presets || [null, null, null] }; if (j && typeof j.credits === "number") CRED = j.credits; };
 await me();
 { const j = await act("farmv.view"); take(j && j.farmv, j); }
 if (!S) { document.querySelector("main").innerHTML = '<section class="panel board">農園は まだ 開いて いません</section>'; throw new Error("closed"); }
@@ -147,10 +155,11 @@ let farm = null;
 function buildFarm() { if (farm) sc.remove(farm.group); farm = makeFarm({ skin: S.skin }); sc.add(farm.group); sc.background = new THREE.Color(farm.env.bg); view.style.background = farm.env.bg; farm.setFace(Math.atan2(OFF.x, OFF.z)); farm.show(S.field, now()); farm.select(SEL); }
 function size() { const w = view.clientWidth, h = view.clientHeight, a = w / h, s = a < 1.05 ? 4.6 / Math.min(1, a) : 3.8; cam.left = -s * a; cam.right = s * a; cam.top = s; cam.bottom = -s; cam.updateProjectionMatrix(); r.setSize(w, h, false); }
 const ray = new THREE.Raycaster();
-cv.addEventListener("click", (e) => { const b = cv.getBoundingClientRect(); ray.setFromCamera(new THREE.Vector2(((e.clientX - b.left) / b.width) * 2 - 1, -((e.clientY - b.top) / b.height) * 2 + 1), cam); const i = farm.pick(ray); if (i >= 0) { SEL = i; SOILV = false; farm.select(i); side(); } });
+cv.addEventListener("click", (e) => { const b = cv.getBoundingClientRect(); ray.setFromCamera(new THREE.Vector2(((e.clientX - b.left) / b.width) * 2 - 1, -((e.clientY - b.top) / b.height) * 2 + 1), cam); const i = farm.pick(ray); if (i >= 0) { SEL = i; SOILV = false; PRESETV = false; farm.select(i); side(); } });
 
 // ---------- 畑の 右の パネル ----------
-let SEL = 0, SEED = null, SEEDF = "all", SEEDOPEN = false, FSEL = null, SOILV = false;   // SEEDOPEN：スマホの たねの 引き出し・FSEL：まく 肥料・SOILV：土を えらぶ
+let SEL = 0, SEED = null, SEEDF = "all", SEEDOPEN = false, FSEL = null, SOILV = false;
+let PRESETV = false, PSLOT = 0, PE = null, PDIRTY = false, PPAINT = null, PFERT = null;   // プリセット：欄を 開く・えらんだ 番号・塗って いる 途中の マス・まだ 保存して いない・塗る 種（"" は 消す）・まく 肥料   // SEEDOPEN：スマホの たねの 引き出し・FSEL：まく 肥料・SOILV：土を えらぶ
 const TOOLN = { fert: "肥料", fert2: "上の 肥料", sprinkler: "スプリンクラー", sprinkler2: "上の スプリンクラー", sprinkler3: "星の スプリンクラー" };
 const qRange = (t) => { const k = Object.keys(SPR_Q[Math.min(3, t)]); return `品質 ${k[0]}〜${k[k.length - 1]}`; };
 const soilNote = (s) => s.byIsle ? "島 2 の 作物が よく 育つ・かけ合わせ ×1.5（島 1 は 育つ 速さ ×0.8）" : [s.speed && `育つ 速さ ×${s.speed}`, s.cross && `かけ合わせ ×${s.cross}`, s.grace && `実ってからの 猶予 ×${s.grace}`, s.color && `色ちがい ×${s.color}`, s.get && `とれる 数 ${s.get}`].filter(Boolean).join("・") || "得意も 弱い 所も ない";
@@ -159,6 +168,41 @@ function soilPanel() {
   return `<section class="panel" id="soilp"><div class="soilh"><h2>土を かえる</h2><button class="chip" data-soil-close="1">とじる</button></div>
     ${Object.entries(SOILS).map(([k, s]) => { const cur = k === f.soil, why = cur ? "いまの 土" : lock > 0 ? `あと ${fmt(lock)}` : s.lv && f.lv < s.lv ? `農業 Lv${s.lv} から` : s.price > CRED ? "クレジットが 足りない" : "";
       return `<div class="srow"><b>${s.name}</b><button class="chip" data-soil="${k}" ${why ? "disabled" : ""}>${cur ? "いま" : s.price ? `${s.price.toLocaleString()} クレジット` : "かえる"}</button><small>${soilNote(s)}${why && !cur ? `（${why}）` : ""}</small></div>`; }).join("")}</section>`;
+}
+// ---------- プリセット（鹿さんの 頼み 2026-11-05「プリセットを組んで植える機能を追加してください」→ カード「A 塗って組む」）----------
+// 3 つまで。いまの 畑の 広さの マス目を 塗る（種が なくても 組める）。「いまの 畑から」で 写す。植えるのは あいた マスだけ（門番の farmv.plantPreset）
+const presetOf = (k) => ({ ...(((S.presets || [])[k] || {}).cells || {}) });
+const paintable = () => CROPS.filter((c) => (S.seeds[c.id] || 0) > 0 || S.known.includes(c.id) || (c.kind === "seed" && c.lv <= S.field.lv));   // 図鑑に のって いない 品種は 出さない
+function presetNeed(cells) {   // 植えられる マスの 数と、足りない 種
+  const f = S.field, need = {}; let n = 0;
+  for (const [k, id] of Object.entries(cells)) { const i = +k; if (!inField(f.lv, i) || f.cells[i] || !CROP[id]) continue; if (CROP[id].kind === "seed" && f.lv < CROP[id].lv) continue; need[id] = (need[id] || 0) + 1; }
+  const short = [];
+  for (const [id, k] of Object.entries(need)) { const have = S.seeds[id] || 0; n += Math.min(k, have); if (have < k) short.push(`${CROP[id].name} あと ${k - have}`); }
+  return { n, short };
+}
+function presetPanel() {
+  if (!PE) PE = presetOf(PSLOT);
+  const f = S.field, [w, h] = fieldSize(f.lv), T = S.tools, ferts = Object.keys(FERT).filter((k) => T[k] > 0);
+  if (PFERT && !(T[PFERT] > 0)) PFERT = null;
+  const slots = [0, 1, 2].map((k) => { const n = k === PSLOT ? Object.keys(PE).length : Object.keys(presetOf(k)).length; return `<button class="chip" data-pslot="${k}" aria-pressed="${k === PSLOT}">${k + 1}<i>${n ? `${n} マス` : "空き"}</i></button>`; }).join("");
+  let grid = ""; for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) { const i = y * W + x, id = PE[i]; grid += `<button class="pcell ${id ? "on" : ""}" data-pcell="${i}" aria-label="${x + 1}-${y + 1}${id ? " " + CROP[id].name : ""}">${id ? `<img src="${cropPic(CROP[id], "ripe", { scale: 2 })}" alt="">` : ""}</button>`; }
+  const list = paintable(), sel = PPAINT === "" ? "消す" : PPAINT ? CROP[PPAINT].name : "";
+  const need = presetNeed(PE), empty = !Object.keys(PE).length;
+  return `<section class="panel" id="presetp"><div class="soilh"><h2>プリセット</h2><button class="chip" data-pre-close="1">とじる</button></div>
+    <div class="pslot">${slots}</div>
+    <div class="pgrid" style="--w:${w}">${grid}</div>
+    <div class="frow" style="margin-top:0"><span>塗る${sel ? `：${sel}` : ""}</span><button class="chip" data-paint="" aria-pressed="${PPAINT === ""}">消す</button><button class="chip" data-pcopy="1">いまの 畑から</button>${PDIRTY ? `<button class="chip" data-psave="1">保存</button>` : ""}</div>
+    <div class="slist" style="max-height:170px;margin-top:8px">${list.length ? list.map((c) => `<button class="seed" data-paint="${c.id}" aria-pressed="${PPAINT === c.id}"><img src="${cropPic(c, "ripe", { scale: 2 })}" alt="">${c.name}<small>×${S.seeds[c.id] || 0}</small></button>`).join("") : `<p class="none">種は 派遣の 採取で 拾う</p>`}</div>
+    ${ferts.length ? `<div class="frow"><span>肥料</span><button class="chip" data-pfert="" aria-pressed="${!PFERT}">なし</button>${ferts.map((k) => `<button class="chip" data-pfert="${k}" aria-pressed="${PFERT === k}">${TOOLN[k]}<i>${T[k]}</i></button>`).join("")}</div>` : ""}
+    <button class="jelly go pplant" data-pplant="1" ${need.n ? "" : "disabled"}>植える${need.n ? `（${need.n} マス）` : ""}</button>
+    ${need.short.length ? `<p class="pnote warn">足りない：${need.short.slice(0, 2).join("・")}${need.short.length > 2 ? ` ほか ${need.short.length - 2}` : ""}</p>` : empty ? `<p class="pnote">種を えらんで マスを 押すと 塗れる</p>` : !need.n ? `<p class="pnote">あいて いる マスが ない</p>` : ""}
+  </section>`;
+}
+async function presetSave() {
+  if (!PDIRTY) return true;
+  const j = await act("farmv.preset", { slot: PSLOT, cells: PE });
+  if (!j.ok) { toast(j.why); return false; }
+  take(j.farmv, j); PDIRTY = false; return true;
 }
 const fmt = (ms) => { const s = Math.max(0, Math.ceil(ms / 1000 / SPEED)), h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), x = s % 60; return h ? `${h}時間 ${m}分` : m ? `${m}分 ${x}秒` : `${x}秒`; };
 const needLv = (i) => { for (const [lv, w, h] of FIELD) if (i % W < w && Math.floor(i / W) < h) return lv; return 30; };
@@ -191,6 +235,7 @@ function side() {
     <div class="chips">${[["all", "ぜんぶ"], ["seed", "種から"], ["cross", "生まれた 品種"]].map(([k, l]) => `<button class="chip" data-sf="${k}" aria-pressed="${SEEDF === k}" ${counts[k] ? "" : "disabled"}>${l}<i>${counts[k]}</i></button>`).join("")}</div>
     <div class="slist">${shown.map((x) => `<button class="seed" data-seed="${x.id}" aria-pressed="${SEED === x.id}"><img src="${cropPic(x, "ripe", { scale: 2 })}" alt="">${x.name}<small>${x.h}h・×${S.seeds[x.id]}</small></button>`).join("") || '<p class="none">種が ない（派遣の 採取で 拾える）</p>'}</div></section>` : "";
   if (SOILV) { el.innerHTML = soilPanel(); return; }
+  if (PRESETV) { el.innerHTML = presetPanel(); return; }
   el.innerHTML = `<section class="panel"><div class="cell"><div class="pic">${pic === "svg" ? wsIcon(c.spr) : pic ? `<img src="${pic}" alt="">` : ""}</div><div><h2>${name}</h2><p>${sub}</p>${bar >= 0 ? `<div class="bar"><i style="width:${bar}%"></i></div>` : ""}</div></div>${act ? `<div class="act">${act}</div>` : ""}</section>${seeds}`;
 }
 document.getElementById("side").addEventListener("click", async (e) => {
@@ -200,8 +245,19 @@ document.getElementById("side").addEventListener("click", async (e) => {
   if (b.dataset.seed) { SEED = b.dataset.seed; SEEDOPEN = false; side(); return; }
   if (b.dataset.fert !== undefined) { FSEL = b.dataset.fert || null; side(); return; }
   if (b.dataset.soilClose) { SOILV = false; side(); return; }
-  busyF = true;
+  if (b.dataset.paint !== undefined) { PPAINT = PPAINT === b.dataset.paint ? null : b.dataset.paint; side(); return; }
+  if (b.dataset.pcell) { if (PPAINT == null) { toast("塗る 種を えらんで"); return; } const i = +b.dataset.pcell; if (PPAINT === "") delete PE[i]; else PE[i] = PPAINT; PDIRTY = true; side(); return; }
+  if (b.dataset.pcopy) { PE = {}; S.field.cells.forEach((c, i) => { if (c && !c.obj && !c.spr && CROP[c.id] && inField(S.field.lv, i)) PE[i] = c.id; }); PDIRTY = true; side(); return; }
+  if (b.dataset.pfert !== undefined) { PFERT = b.dataset.pfert || null; side(); return; }  busyF = true;
   try {
+    if (b.dataset.preClose) { if (await presetSave()) { PRESETV = false; PE = null; } }
+    if (b.dataset.pslot) { if (await presetSave()) { PSLOT = +b.dataset.pslot; PE = null; } }
+    if (b.dataset.psave) { if (await presetSave()) toast(`プリセット ${PSLOT + 1} に 保存した`); }
+    if (b.dataset.pplant && await presetSave()) {
+      const j = await act("farmv.plantPreset", { slot: PSLOT, ...(PFERT ? { fert: PFERT } : {}) });
+      if (!j.ok) toast(j.why);
+      else { take(j.farmv, j); PE = null; const sh = Object.entries(j.short || {}).map(([id, n]) => `${CROP[id].name} あと ${n}`); toast(`${j.planted} マス 植えた${j.fed ? `（肥料 ${j.fed}）` : ""}${sh.length ? `・足りない：${sh.slice(0, 2).join("・")}` : ""}`); }
+    }
     if (b.dataset.do === "plant" && SEED) {
       const j = await act("farmv.plant", { i: SEL, id: SEED, ...(FSEL ? { fert: FSEL } : {}) });
       if (!j.ok) toast(j.why); else { take(j.farmv, j); if (!(S.seeds[SEED] > 0)) SEED = null; }
@@ -240,12 +296,12 @@ document.getElementById("allget").addEventListener("click", async (e) => {
     else {
       take(j.farmv, j);
       for (const g of j.got) if (CROP[g.crop]) farm.pop(g.i, CROP[g.crop], g.color, clockS);
-      const by = {}; for (const g of j.got) by[g.crop] = (by[g.crop] || 0) + g.n;
-      const names = Object.entries(by).sort((a, x) => x[1] - a[1]).map(([id, n]) => `${CROP[id] ? CROP[id].name : id} ×${n}`);
+      const by = {}; for (const g of j.got) { const k = g.crop || g.mat; by[k] = (by[k] || 0) + g.n; }
+      const names = Object.entries(by).sort((a, x) => x[1] - a[1]).map(([id, n]) => `${CROP[id] ? CROP[id].name : MAT_NAME[id] || id} ×${n}`);
       const gold = j.got.filter((g) => g.color === "gold").length, rain = j.got.filter((g) => g.color === "rainbow").length;
-      toast(`${rain ? "LEGENDARY! " : gold ? "金色！ " : ""}${names.slice(0, 3).join("・")}${names.length > 3 ? ` ほか ${names.length - 3}` : ""}（倉庫へ）${j.seeds ? `・種 ×${j.seeds}` : ""}${j.news.length ? "・図鑑に のった！" : ""}${j.ups ? `・農業 Lv${j.lv}` : ""}`);
+      toast(`${rain ? "LEGENDARY! " : gold ? "金色！ " : ""}${names.length ? `${names.slice(0, 3).join("・")}${names.length > 3 ? ` ほか ${names.length - 3}` : ""}（倉庫へ）` : ""}${j.cleared ? `${names.length ? "・" : ""}枯れた 物 ${j.cleared} こを 片づけた` : ""}${j.seeds ? `・種 ×${j.seeds}` : ""}${j.news.length ? "・図鑑に のった！" : ""}${j.ups ? `・農業 Lv${j.lv}` : ""}`);
     }
-  } finally { busyF = false; b.disabled = false; }
+  } finally { busyF = false; }
   farm.show(S.field, now()); side(); head();
 });
 let tt; function toast(s) { const el = document.getElementById("toast"); el.textContent = s; el.classList.add("on"); clearTimeout(tt); tt = setTimeout(() => el.classList.remove("on"), 2600); }
@@ -253,13 +309,14 @@ let tt; function toast(s) { const el = document.getElementById("toast"); el.text
 // 3D の 下の えらぶ 物：土と スキン（押すと 次へ）
 function opts() {
   const f = S.field, s = SOILS[f.soil] || SOILS.normal;
-  document.getElementById("opts").innerHTML = `<button class="opt" data-o="soil"><small>土</small>${s.name}</button><button class="opt" data-o="skin"><small>スキン</small>${SKINS[S.skin].name}</button>${SPEED > 1 ? `<span class="opt"><small>見本</small>×${SPEED}</span>` : ""}`;
+  document.getElementById("opts").innerHTML = `<button class="opt" data-o="preset"><small>プリセット</small>植える</button><button class="opt" data-o="soil"><small>土</small>${s.name}</button><button class="opt" data-o="skin"><small>スキン</small>${SKINS[S.skin].name}</button>${SPEED > 1 ? `<span class="opt"><small>見本</small>×${SPEED}</span>` : ""}`;
 }
 document.getElementById("opts").addEventListener("click", async (e) => {
   const b = e.target.closest("button"); if (!b || busyF) return; busyF = true;
   try {
     if (b.dataset.o === "skin") { const k = Object.keys(SKINS), j = await act("farmv.skin", { skin: k[(k.indexOf(S.skin) + 1) % k.length] }); if (!j.ok) toast(j.why); else { take(j.farmv, j); buildFarm(); } }
-    if (b.dataset.o === "soil") { SOILV = !SOILV; if (SOILV && innerWidth <= 760) requestAnimationFrame(() => document.getElementById("side").scrollIntoView({ behavior: "smooth", block: "start" })); }   // 土は 右（スマホは 下）で えらんで 買う
+    if (b.dataset.o === "preset") { if (PRESETV && !(await presetSave())) return; PRESETV = !PRESETV; SOILV = false; PE = null; if (PRESETV && innerWidth <= 760) requestAnimationFrame(() => document.getElementById("side").scrollIntoView({ behavior: "smooth", block: "start" })); }   // プリセットは 右（スマホは 下）
+    if (b.dataset.o === "soil") { PRESETV = false; SOILV = !SOILV; if (SOILV && innerWidth <= 760) requestAnimationFrame(() => document.getElementById("side").scrollIntoView({ behavior: "smooth", block: "start" })); }   // 土は 右（スマホは 下）で えらんで 買う
   } finally { busyF = false; }
   opts(); side();
 });
@@ -270,9 +327,9 @@ function head() {
   document.getElementById("lv").innerHTML = `農業 <b>Lv${f.lv}</b><span class="xp" aria-label="経験"><i style="width:${Math.round((f.xp / xpNext(f.lv)) * 100)}%"></i></span><small style="color:var(--soft);font-weight:700">${w}×${h}</small>`;
   const ripe = f.cells.filter((c, i) => c && inField(f.lv, i) && (c.obj || (!c.spr && ["ripe", "over"].includes(stageAt(c, now(), f.soil).stage)))).length;
   document.querySelector('[data-tab="field"]').innerHTML = `畑${ripe ? `<span class="n" aria-label="とれる ${ripe}">${ripe}</span>` : ""}`;
-  // まとめて とる：実った 作物だけ（かわった 物は たたく ので 入れない。門番の farmv.harvestAll と 同じ）
-  const ready = f.cells.filter((c, i) => c && !c.spr && !c.obj && CROP[c.id] && inField(f.lv, i) && stageAt(c, now(), f.soil).stage === "ripe").length, ag = document.getElementById("allget");
-  ag.hidden = !ready; ag.innerHTML = `まとめて とる <b>${ready}</b>`;
+  // まとめて とる（カード「ぜんぶ」）：実った 物・かわった 物・放っておいた 物（門番の farmv.harvestAll と 同じ 数え方）。ボタンは いつも 出す（0 の ときは 押せない）
+  const ready = f.cells.filter((c, i) => c && !c.spr && inField(f.lv, i) && (c.obj || (CROP[c.id] && ["ripe", "over"].includes(stageAt(c, now(), f.soil).stage)))).length, ag = document.getElementById("allget");
+  ag.hidden = false; ag.disabled = !ready || busyF; ag.innerHTML = `まとめて とる <b>${ready}</b>`;
   document.querySelector('[data-tab="book"]').innerHTML = `図鑑<span class="n" style="background:var(--sky)">${S.known.length}/${CROPS.length}</span>`;
 }
 document.querySelector(".tabs").addEventListener("click", (e) => {
