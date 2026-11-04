@@ -15,7 +15,7 @@ import { WS_ITEMS, ATT_KINDS, ATT_BASES } from "./workshop.js";
 import { FURN } from "./lounge-rules.js";
 import { PETS, QUIZ } from "./quiz.js";
 import { TRADERS, SPECIAL } from "./deeplink.js";
-import { DUNGEON2_EN, MYTHIC2_EN, TREE2_EN, SKILL2_EN } from "./lounge-en-isle2.js";   // ニライ諸島（2 つめの 島）の 名前
+import { DUNGEON2_EN, MYTHIC2_EN, TREE2_EN, SKILL2_EN } from "./lounge-en-isle2.js";   // ビサイ諸島（2 つめの 島）の 名前
 import { TREE3_EN, SKILL3_EN } from "./lounge-en-fusion.js";   // 配合限定の モンスター
 import { MAIN_TYPE_EN, MAIN_SKILL_EN, MAIN_TEXT_EN, COUNT_EN, OPT_EN } from "./lounge-en-trees.js";   // メインの ツリー 12 本
 import { COUNTS } from "./main-trees.js";
@@ -32,7 +32,7 @@ export const MAT_EN = {
   golem_stone: "Golem Stone", ghost_cloth: "Spirit Cloth", mimic_tooth: "Mimic Tooth", dream_feather: "Dreaming Feather", sleep_hourglass: "Sleep Hourglass",
   wolf_fang: "Wolf Fang", shadow_shard: "Shadow Shard", poison_vial: "Poison Vial", light_drop: "Lamplight Drop", midnight_bell: "Midnight Bell",
   crystal_scale: "Crystal Scale", bat_wing: "Bat Wing", slime_core: "Slime Core", rainbow_shell: "Rainbow Shell Piece", dragon_crystal: "Dragon Crystal",
-  // ニライ諸島（2 つめの 島）
+  // ビサイ諸島（2 つめの 島）
   whitesand: "White Sand", seashell: "Tiny Seashell", coconut: "Coconut", aasa: "Aasa Seaweed", pinkcoral: "Pink Coral",
   sailcloth: "Old Sailcloth", emptybottle: "Empty Bottle", rustchain: "Rusty Chain", oldcoin: "Old Gold Coin", mapscrap: "Treasure Map Scrap",
   seagrass: "Sea Breeze Grass", lampglass: "Lighthouse Glass", capestone: "Cape Stone", akabanaa: "Akabanaa Hibiscus", suncrystal: "Sun Crystal",
@@ -479,7 +479,7 @@ export const SHOP_EN = {
   "y-core": ["Blank Core", "Extracts 1 OP from a piece of gear (the gear is used up)"], "y-charm": ["Lucky Charm (Crafting)", "Your next craft or fusion gets ★ +1"],
 };
 
-// ニライ諸島の 名前を はじめの 島の 表に 足す（id で 引く）
+// ビサイ諸島の 名前を はじめの 島の 表に 足す（id で 引く）
 Object.assign(DUNGEON_EN, DUNGEON2_EN); Object.assign(MYTHIC_EN, MYTHIC2_EN); Object.assign(ENEMY_EN, TREE2_EN, TREE3_EN); Object.assign(SKILL_EN, SKILL2_EN, SKILL3_EN, MAIN_SKILL_EN); Object.assign(TYPE_EN, MAIN_TYPE_EN);
 for (const list of Object.values(TREES)) for (const s of list) if (MAIN_TEXT_EN[s.id]) SKILL_TEXT_EN[s.id] = MAIN_TEXT_EN[s.id](s);   // 12 本の 説明は データの 数から 作る
 

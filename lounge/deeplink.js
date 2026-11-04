@@ -13,7 +13,7 @@ export { lvOfPts as repLv } from "./primary.js";
 
 // タスク：tasks.js が 決まりから 作る（つながりは 終わりが ない・毎日 1 つ）。プライマリータスク（章の 物語）は primary-data.js
 // 品の id と get は 門番が 渡す 中身（get：mat・snacks・items・tools・acc・recipe・perk。pick は えらべる 物の 一覧。q は 品質の くじ）
-const ISLE1 = DUNGEONS.filter((d) => (d.isle || 1) === 1);   // 店の 素材は はじめの 島の 分だけ（ニライ諸島の 素材は 島で 集める）
+const ISLE1 = DUNGEONS.filter((d) => (d.isle || 1) === 1);   // 店の 素材は はじめの 島の 分だけ（ビサイ諸島の 素材は 島で 集める）
 const FOE_MATS = ISLE1.flatMap((d) => d.foes.map((f) => ENEMY_MAT[f.tree][0]));   // ふつうの 敵の素材
 const ARMOR = BASES.filter((b) => b.slot !== "weapon").map((b) => b.id), WEAPON = BASES.filter((b) => b.slot === "weapon").map((b) => b.id);   // ピーコは あたま・くび、アンビルは 武器（鹿さんの 決め、2026-11-03）
 const ATT_MATS = [...new Set(ATT_BASES.flatMap((b) => b.mats.filter(([, n]) => n === 1).map(([id]) => id)))];   // アタッチメントに 1 こ いる 敵の 素材
@@ -95,7 +95,7 @@ export const TRADERS = [
       { id: "n-ins2", name: "手厚い 保険", note: "保険料 2 倍。失った 素材が ぜんぶ 30 分 あとに 届く", price: 500, cur: "credits", lv: 1, once: true, get: { perk: "ins2" } },
       { id: "n-cheap", name: "保険料 割引", note: "保険料 −20%", price: 1500, cur: "credits", lv: 1, once: true, get: { perk: "insCheap" } },
       { id: "n-fast", name: "支払いが すぐ 届く", note: "保険の 支払いを 待たずに うけとる", price: 3000, cur: "credits", lv: 1, once: true, get: { perk: "insFast" } },
-      { id: "n-ship", name: "船の 保険", note: "ニライ諸島の 保険料 −20%（割引と あわせて）", price: 5000, cur: "credits", lv: 1, once: true, get: { perk: "insShip" } },
+      { id: "n-ship", name: "船の 保険", note: "ビサイ諸島の 保険料 −20%（割引と あわせて）", price: 5000, cur: "credits", lv: 1, once: true, get: { perk: "insShip" } },
     ] },
 ];
 // 特別ショップ（ヨル）：アメジストで買う、ここだけの品（家具は ラウンジの お店で 買うので 置かない。鹿さんの決め）

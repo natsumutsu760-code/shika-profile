@@ -170,7 +170,7 @@ function listHtml() {
 // タブの 丸：作れる 数（精錬は 受けとれる 炉の 数）
 const tabsHtml = () => TABS.map(([t, label]) => { const n = keysOf(t).filter((k) => stateOf(k) === "can" && (t !== "smelt" || k.startsWith("f:"))).length; return `<button role="tab" data-tab="${t}" aria-selected="${S.tab === t}">${label}${n ? `<em>${n}</em>` : ""}</button>`; }).join("");
 function rowHtml(x) {
-  const img = x.c ? `<i class="dot c"></i>` : HIDDEN_MAT.has(x.id) && !pic(x.id) ? `<i class="dot hd"></i>` : `<img src="${pic(x.id)}" alt="">`;   // 絵の ある 素材は 絵（ニライ諸島の 敵の 素材・かくし通路・作物も。絵が なければ 点）
+  const img = x.c ? `<i class="dot c"></i>` : HIDDEN_MAT.has(x.id) && !pic(x.id) ? `<i class="dot hd"></i>` : `<img src="${pic(x.id)}" alt="">`;   // 絵の ある 素材は 絵（ビサイ諸島の 敵の 素材・かくし通路・作物も。絵が なければ 点）
   return `<li class="${x.have < x.need ? "ng" : ""}">${img}<span>${x.c ? (x.fee ? `クレジット<small>維持費 ${fmt(x.fee)} こみ</small>` : "クレジット") : esc(MAT_NAME[x.id])}${x.q > 1 ? `<small>品質 ${x.q} 以上</small>` : ""}</span><span class="n">${fmt(x.have)} / ${fmt(x.need)}</span></li>`;
 }
 function madeHtml() {

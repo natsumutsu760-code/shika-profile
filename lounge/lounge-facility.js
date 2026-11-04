@@ -55,7 +55,7 @@ export function facStart(rec, b, now) {
   if (rec.build[f.id]) return { ok: false, why: "いま 建てて いる" };
   const lv = rec.hideout[f.id] || 0, cap = facCap(f, rec.hideout);
   if (lv >= facMax(f)) return { ok: false, why: "もう いちばん 上" };
-  if (lv >= cap) return { ok: false, why: f.isle > 1 ? "まだ ない" : `Lv${lv + 1} は 無線機を 作って から（ニライ諸島の 素材が いる）` };
+  if (lv >= cap) return { ok: false, why: f.isle > 1 ? "まだ ない" : `Lv${lv + 1} は 無線機を 作って から（ビサイ諸島の 素材が いる）` };
   const L = lv + 1, need = buildNeed(f.id, L), ms = Math.round(need.ms * (1 - buildOff(rec.perks)));   // ボルトの 店の 割引
   if (need.credits > (rec.credits || 0)) return { ok: false, why: `クレジットが 足りない：あと ${fmt(need.credits - (rec.credits || 0))}` };
   rec.credits -= need.credits;

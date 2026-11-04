@@ -33,7 +33,7 @@ export const WORDS = {
   "装備開発・施設で 使う": "Used for gear development and facilities", "星麻を 織った 布": "Cloth woven from star flax", "天綿を 織った 布": "Cloth woven from sky cotton", "白砂綿を 織った 布": "Cloth woven from white-sand cotton",
   "保険（ふつう）": "Insurance (basic)", "派遣に 出る ときに 掛ける。力つきたら 失った 素材の 半分が 2 時間 あとに 届く": "Taken out when you set off. If you collapse, half of the lost materials arrive 2 hours later",
   "手厚い 保険": "Full insurance", "保険料 2 倍。失った 素材が ぜんぶ 30 分 あとに 届く": "Double premium. All lost materials arrive 30 minutes later", "保険料 割引": "Premium discount", "保険料 −20%": "Premium −20%",
-  "支払いが すぐ 届く": "Instant payouts", "保険の 支払いを 待たずに うけとる": "Get insurance payouts without waiting", "船の 保険": "Ship insurance", "ニライ諸島の 保険料 −20%（割引と あわせて）": "Nirai Islands premium −20% (stacks with the discount)",
+  "支払いが すぐ 届く": "Instant payouts", "保険の 支払いを 待たずに うけとる": "Get insurance payouts without waiting", "船の 保険": "Ship insurance", "ビサイ諸島の 保険料 −20%（割引と あわせて）": "Bisai Isles premium −20% (stacks with the discount)",
   "建設の 時間 −10%": "Build time −10%", "建設の 時間 −20%": "Build time −20%", "施設の 建設が 早く 進む": "Facility construction goes faster", "−10% と あわせて": "Stacks with −10%", "−10% と あわせて −20%": "−20% in total with −10%",
   "侵入の 呼び寄せ": "Call an intruder", "この 派遣の 侵入 1% → 20%": "Intruder chance 1% → 20% on this trip", "希少種の 呼び寄せ": "Call rare monsters", "この 派遣の 希少な 敵 ×3": "Rare enemies ×3 on this trip",
   "持っている素材を クレジットに かえる": "Turn your materials into credits", "1 こ 46": "46 each",

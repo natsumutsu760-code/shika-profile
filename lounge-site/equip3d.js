@@ -59,7 +59,7 @@ const MAKE = {
     put(g, new THREE.CylinderGeometry(0.88, 0.92, 0.32, 40, 1, true), toy("#FFC93C", 0.3, { side: THREE.DoubleSide }), 0, 0.16, 0);
     for (let i = 0; i < 7; i++) { const a = (i / 7) * Math.PI * 2, h = i % 2 ? 0.55 : 0.85, o = put(g, new THREE.OctahedronGeometry(0.2, 0), cr, Math.sin(a) * 0.88, 0.32 + h * 0.45, Math.cos(a) * 0.88); o.scale.set(0.8, h * 2.4, 0.8); }
     put(g, ball(0.12), toy("#FF5A8A", 0.15, { emissive: "#FF3A6A", emissiveIntensity: 0.4 }), 0, 0.18, 0.93); return g; },
-  // ---- ミシック（ニライ諸島。docs/mono-link-island2.md）----
+  // ---- ミシック（ビサイ諸島。docs/mono-link-island2.md）----
   inohBangle() { const g = new THREE.Group(), co = toy("#FF8FA6", 0.45), sh = toy("#FFF8F0", 0.35);   // うで：桃色の珊瑚と白い貝の腕輪
     put(g, new THREE.TorusGeometry(0.55, 0.14, 14, 40), co, 0, 0.6, 0);
     [[-0.5, 0.95, 0.3], [0.45, 1.0, -0.4], [0.05, 1.15, 0.1]].forEach(([x, y, r]) => { const b = put(g, cyl(0.035, 0.05, 0.36, 8), co, x, y, 0.05); b.rotation.z = r; put(g, ball(0.06), co, x - Math.sin(r) * 0.18, y + Math.cos(r) * 0.18, 0.05); });

@@ -77,7 +77,7 @@
   /* 2 つめの 島：絵は world2.jpg。船の 道は 細い 点線 */
   .wmap.isle2 { background-image:url(img/world2.jpg); }
   .road.sea.under { stroke:rgba(16,40,72,.35); stroke-width:7; } .road.sea.top { stroke:#EAF7FF; stroke-width:3; stroke-dasharray:1 9; }
-  /* 島の タブ（2 つめの 島が ゲームに 出て いる とき。右上。左上は ニライ諸島の ピンが 混むので） */
+  /* 島の タブ（2 つめの 島が ゲームに 出て いる とき。右上。左上は ビサイ諸島の ピンが 混むので） */
   .wisle { position:absolute; z-index:4; right:28px; top:9px; display:flex; gap:3px; padding:3px; border-radius:12px; background:rgba(20,24,38,.76); }
   .wisle button { border:0; background:transparent; color:#fff; font:400 13px/1 var(--game); padding:6px 10px; border-radius:9px; display:inline-flex; align-items:center; gap:5px; cursor:pointer; }
   .wisle button[aria-pressed="true"] { background:var(--cyan); color:var(--visor); }
@@ -110,7 +110,7 @@
   .detail h2 { font:900 22px/1.25 var(--jp); display:flex; align-items:center; gap:8px; }
   .detail h2::before { content:""; width:14px; height:14px; border-radius:5px; background:var(--dc); flex:none; }
   .detail h2 .rec { margin-left:auto; font:700 12px/1 var(--jp); color:var(--soft); white-space:nowrap; }
-  .detail h2 .rec.cost { margin-left:8px; padding:4px 8px; border-radius:99px; background:#FFF4D6; color:#8A5A00; }   /* 派遣の 費用（ニライ諸島） */
+  .detail h2 .rec.cost { margin-left:8px; padding:4px 8px; border-radius:99px; background:#FFF4D6; color:#8A5A00; }   /* 派遣の 費用（ビサイ諸島） */
   .detail .desc { margin-top:4px; font:700 13px/1.6 var(--jp); color:var(--soft); }
   .foes { list-style:none; margin:0; padding:0; display:flex; flex-wrap:wrap; gap:6px; }
   .foes li { display:inline-flex; align-items:center; gap:6px; padding:4px 10px 4px 7px; border-radius:999px; border:1.5px solid var(--line); background:#fff; font:700 12px/1.2 var(--jp); }
@@ -301,7 +301,7 @@
   /* ゴーグルの中：いまの階の地図。見たマスだけ見える（行き先ごとに色がちがう） */
   .th-hals { --fl:#D9C48E; --rm:#A9CC74; --wl:#3F5E38; --fog:#141C2A; } .th-morph { --fl:#BDB0E2; --rm:#D9CEF6; --wl:#3B305F; --fog:#151428; }
   .th-kurai { --fl:#6D729C; --rm:#8A90BC; --wl:#1F2340; --fog:#0C0E1A; } .th-crystal { --fl:#93CDE0; --rm:#BDEAF6; --wl:#1F3C4C; --fog:#0A1820; }
-  /* ニライ諸島の 階の 地図の 色（島の 絵と そろえる。床 fl・部屋 rm・かべ wl・まだ 見て いない 所 fog） */
+  /* ビサイ諸島の 階の 地図の 色（島の 絵と そろえる。床 fl・部屋 rm・かべ wl・まだ 見て いない 所 fog） */
   .th-inoh { --fl:#E6DAB2; --rm:#9FDCCB; --wl:#2E6B6A; --fog:#0E1C22; } .th-gama { --fl:#C9A97C; --rm:#E0C394; --wl:#4A3426; --fog:#160F0C; }
   .th-tida { --fl:#D8D2B8; --rm:#F0E2A4; --wl:#4E5A52; --fog:#151A1C; } .th-atui { --fl:#A88A64; --rm:#7DBCCB; --wl:#233E52; --fog:#0A1622; }
   .th-zan { --fl:#86A9C8; --rm:#B0CDEE; --wl:#22324E; --fog:#0B1222; } .th-ufu { --fl:#9A766A; --rm:#D07A56; --wl:#2E2026; --fog:#160C0C; }
@@ -513,7 +513,7 @@ function scene(id, k = "") {
         <path d="M262 150 L270 112 L282 118 L286 150Z" fill="#4AB3D6"/><path d="M270 112 L282 118 L278 150 L262 150Z" fill="#8FE0F5"/>
         <path d="M70 0 L78 28 L86 0Z M232 0 L240 22 L248 0Z" fill="#3E9CBE"/></g>
       <g fill="#fff"><path d="M100 80 l2 -5 l2 5 l5 2 l-5 2 l-2 5 l-2 -5 l-5 -2Z" opacity=".9"/><circle cx="222" cy="76" r="1.6"/><circle cx="60" cy="96" r="1.2"/><circle cx="250" cy="96" r="1.2"/></g>`,
-    // ===== ニライ諸島 =====
+    // ===== ビサイ諸島 =====
     inoh: `<defs><linearGradient id="${g("s")}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#6FD0FF"/><stop offset="1" stop-color="#DFF7FF"/></linearGradient></defs>
       <rect width="320" height="180" fill="url(#${g("s")})"/><circle cx="58" cy="38" r="16" fill="#FFF4B8"/>
       <g fill="#fff"><ellipse cx="210" cy="34" rx="24" ry="7"/><ellipse cx="224" cy="29" rx="13" ry="8"/></g>
@@ -599,7 +599,7 @@ const MAP_POS = { hals: [678, 423], morph: [659, 234], kurai: [953, 218], crysta
 // 道：スタートの町 → 街道の畑 → 台地の湖の島の遺跡 → 北東の高台の暗い村 → 東の海ぞいを南へ → 南東の雪山の水晶
 const ROAD = "M489 433 C500 431 526 423 557 422 C588 421 653 432 678 425 C703 418 706 403 708 382 C710 361 695 321 687 297 C679 273 646 245 659 236 C672 227 734 246 766 245 C798 244 823 235 854 231 C885 227 922 212 953 220 C984 228 1019 254 1038 281 C1057 308 1059 361 1068 385 C1077 409 1106 405 1094 423 C1082 441 1010 480 993 492";
 const CHIP_SIDE = { kurai: "r", gama: "rr b", mabui: "rr" };   // ピンの札を右にずらす（となりの札と重ならないように）
-// 2 つめの 島「ニライ諸島」：img/world2.jpg と pins2.json（モデリング専用スレッドが worldmap2.py で 作った）。村 → 桟橋は 陸、小島へは 船の 道。かくしの 道（hide）は 開くまで 出さない
+// 2 つめの 島「ビサイ諸島」：img/world2.jpg と pins2.json（モデリング専用スレッドが worldmap2.py で 作った）。村 → 桟橋は 陸、小島へは 船の 道。かくしの 道（hide）は 開くまで 出さない
 const HOME2 = [668, 577];
 const POS2 = { inoh: [420, 626], gama: [152, 386], tida: [1023, 446], atui: [1118, 651], zan: [652, 372], ufu: [286, 143], kaji: [1007, 242], nirai: [662, 220], mabui: [124, 289], kanai: [912, 750] };
 const ROUTE2 = [
@@ -616,7 +616,7 @@ const ROUTE2 = [
   { hide: "kanai", sea: true, d: "M709 670 C720 678 750 703 773 715 C796 727 825 737 848 743 C871 749 901 750 912 752" },
 ];
 // 最初の 島の 名前は「マッサラ島」（鹿さんの決め、2026-10-25）
-const ISLES = { 1: { name: "マッサラ島", home: HOME, homeName: "スタート", pos: MAP_POS }, 2: { name: "ニライ諸島", home: HOME2, homeName: "ニライ村", pos: POS2 } };
+const ISLES = { 1: { name: "マッサラ島", home: HOME, homeName: "スタート", pos: MAP_POS }, 2: { name: "ビサイ諸島", home: HOME2, homeName: "ニライ村", pos: POS2 } };
 const isleOf = (d) => d.isle || 1;
 // その人が 行けるか（門番と 同じ canGo）。島 2 は 無線機、かくしは 商人の つながった タスクの 先
 const chainN = (did) => ((ME.deeplink && ME.deeplink.keys) || []).includes(did);   // かくしダンジョンの 鍵（門番の hasKey）

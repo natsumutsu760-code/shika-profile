@@ -5,7 +5,7 @@
 // - 職業を かえると 前の 職業の 技から 1 つだけ 持ちこせる。振り直しと 職業を かえるのは 1 日 1 回 無料、2 回目から 玉（鹿さんの決め、2026-10-24。値段は 案）
 // - 装備は あたま・くび・うで・あし・武器・オフハンド・アクセサリー ×3 の 9 枠（鹿さんの決め、2026-10-25。前の「おまけ」は 武器）。なかまも 付けられる。付けて いる 装備は 合成・納める・依頼の お礼に 使えない
 import { COUNTS } from "./main-trees.js";
-import { PETS, PLANS, gambitSlots, SHAPE, SP_PER_LV, SET_SLOTS, TREE_SLOTS, FREE_PER_LV, BASE_STATS, canTake, autoTake, learned, growthStats, ENEMY_TREES, SKILL, EFFECTS, COND_TEXT, baseOf, tamedOf, SLOTS, OLD_SLOT, withAtt, fighterPower, REC_MODES, REC_SCOPES, recommend, isBItem } from "./game.js";
+import { PETS, PLANS, gambitSlots, SHAPE, SP_PER_LV, SET_SLOTS, TREE_SLOTS, FREE_PER_LV, BASE_STATS, canTake, autoTake, learned, growthStats, freeAlloc, freeIsAuto, ENEMY_TREES, SKILL, EFFECTS, COND_TEXT, baseOf, tamedOf, SLOTS, OLD_SLOT, withAtt, fighterPower, REC_MODES, REC_SCOPES, recommend, isBItem } from "./game.js";
 
 export const RESET_PRICE = (lv) => lv * 100;   // 2 回目からの 振り直し・職業を かえる クレジット（前は 玉。2026-10-28 の 決め「振り直し Lv×100 を 同じ 数の クレジット」）
 export const STYLES = ["attack", "defense", "balance", "mp"];   // オートの 作戦：こうげき重視・防御重視・バランス・MP を大事に
@@ -58,7 +58,7 @@ export const equippedUids = (rec) => new Set([...rec.pets, ...rec.tamed].flatMap
 // 戦う ときの ペット（battle-sim.js の 形。お手本の ままなら builds.js の petAt と 同じに なる）
 export function fighterOf(pet, rec) {
   ensurePet(pet);
-  const trees = [pet.type, ...pet.subs], stats = growthStats(pet.type, pet.lv, pet.free || undefined, pet.species), skills = [], passives = [];
+  const trees = [pet.type, ...pet.subs], stats = growthStats(pet.type, pet.lv, freeAlloc(pet.type, pet.lv, pet.free, freeIsAuto(pet)), pet.species), skills = [], passives = [];
   let keywords = 0;
   for (const id of trees) {
     const L = learned(id, new Set(pet.taken[id] || []), pet.seed);
@@ -117,6 +117,12 @@ export function petSub(rec, b) {
 export function petStat(rec, b) {
   const pet = petOf(rec);
   if (!pet || !pet.type) return { ok: false, why: "さきに 職業を えらんで" };
+  // 自動・手動の 切りかえ（手で 振った 分は どちらでも 消えない。へらすのは 振り直しだけ）
+  if (typeof b.auto === "boolean") {
+    if (b.auto) { if (pet.free != null) pet.freeAuto = true; }
+    else { if (pet.free == null) pet.free = {}; pet.freeAuto = false; }
+    return { ok: true };
+  }
   const f = b.free && typeof b.free === "object" ? b.free : null, old = pet.free || {};
   if (!f || !Object.keys(f).every((k) => has(BASE_STATS, k) && Number.isInteger(f[k]) && f[k] >= (old[k] || 0))) return { ok: false, why: "ふやす ことだけ できる（へらすのは 振り直し）" };
   const all = { ...old, ...f };   // 送られなかった ステータスも 前の まま 数える（少しずつ 送って 上限を こえない ように）
@@ -225,7 +231,7 @@ export function givePet(rec, g) {
     ensurePet(pet);
     const job = g.petRespec[1];
     if (job) { delete pet.taken[pet.type]; pet.type = job[0]; pet.carry = job[1]; pet.gambits = null; }
-    pet.taken = { [pet.type]: [] }; pet.subs.forEach((s) => (pet.taken[s] = [])); pet.free = null;
+    pet.taken = { [pet.type]: [] }; pet.subs.forEach((s) => (pet.taken[s] = [])); pet.free = freeIsAuto(pet) ? null : {};   // 手動の ままなら ポイントが もどって 振りなおせる
     if (pet.grow.auto) autoFill(pet);
   }
   if (g.petUnreset) { const pet = rec.pets.find((p) => p.uid === g.petUnreset[0]); if (pet && pet.reset.day === g.petUnreset[1]) pet.reset.n = Math.max(0, pet.reset.n - 1); }

@@ -22,7 +22,7 @@ export const UNIQUES = [
   { id: "uqKuraiBlade", isle: 1, dungeon: "kurai", slot: "weapon", name: "夜ふけの 骨のかま", text: "血を すう：与えた ダメージの 8% を 吸う", main: { atk: 1.1 }, fxp: { drain: 8 }, look: "pikopiko" },
   { id: "uqCrystalGauntlet", isle: 1, dungeon: "crystal", slot: "arm", name: "水晶ごけの こて", text: "かたい 手：DEF +20%・受ける ダメージ −5%", main: { def: 1.0, atk: 0.3 }, fxp: { defMul: 1.2, dmgCut: 5 }, look: "gauntlet.iron.0" },
   { id: "uqCrystalWand", isle: 1, dungeon: "crystal", slot: "weapon", name: "竜水晶の 杖", text: "光の 屈折：INT +20%・最初の 攻撃 +20%", main: { int: 1.1 }, fxp: { intMul: 1.2, firstHit: 0.2 }, look: "mizudeppo" },
-  // ---- 島 2 ニライ諸島（行き先ごとに 1 つ）----
+  // ---- 島 2 ビサイ諸島（行き先ごとに 1 つ）----
   { id: "uqInohPearl", isle: 2, dungeon: "inoh", slot: "neck", name: "浅瀬の 真珠", text: "なぎ：自分の 番の はじめに HP 2% 回復・HP +15%", main: { hp: 1.0, res: 0.4 }, fxp: { hpMul: 1.15, hpRegen: 0.02 }, look: "gold" },
   { id: "uqGamaFlag", isle: 2, dungeon: "gama", slot: "acc", name: "海賊旗の 切れはし", text: "略奪：こうげきの ダメージ +10%・会心 +6%", main: { atk: 0.6, luk: 0.6 }, fxp: { atkMul: 1.1, crit: 0.06 }, look: "ring.iron.0" },
   { id: "uqTidaMirror", isle: 2, dungeon: "tida", slot: "off", name: "霧ばらいの 鏡", text: "見とおす：相手の 回避 −10%・盲目に ならない・DEX +15%", main: { dex: 0.8, int: 0.5 }, fxp: { foeEvadeCut: 0.1, dexMul: 1.15, noFx: { blind: true } }, look: "lantern.iron.0" },

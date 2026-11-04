@@ -5,8 +5,8 @@ const P = (p, s) => p(s) || s;   // 名前（訳せなければ そのまま）
 
 export const WORDS = {
   "保険": "Insurance", "なし": "None", "ふつう": "Basic", "手厚い": "Full", "力つきると 集めた 素材を ぜんぶ 失う": "If you collapse, you lose all the materials you gathered", "手厚い 保険は ミネルバの 店で 開く": "Full insurance unlocks at Minerva's shop",
-  // 島（ニライ諸島）
-  "マッサラ島": "Massara Island", "ニライ諸島": "Nirai Isles", "ニライ村": "Nirai Village", "島": "Island", "隠れ家に 無線機を 作ると 行ける": "Build a Radio in your hideout to go here",
+  // 島（ビサイ諸島）
+  "マッサラ島": "Massara Island", "ビサイ諸島": "Bisai Isles", "ニライ村": "Nirai Village", "島": "Island", "隠れ家に 無線機を 作ると 行ける": "Build a Radio in your hideout to go here",
   // ---- 行き先を えらぶ ----
   "行き先": "Destination", "ワールドマップ": "World Map", "スタート": "Start", "Lv の色": "Lv colors", "らく": "Easy", "ちょうどいい": "Just right", "きびしい": "Tough", "むずかしい": "Hard", "あんしん": "Safe",
   "階": "F", "おすすめ": "Recommended", "まだ": "—", "はじめて": "First time", "ずっと": "Forever", "# 回": "×#", "この 派遣で おわり": "Ends after this trip", "周回": "Repeat",

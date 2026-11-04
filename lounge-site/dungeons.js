@@ -84,8 +84,8 @@ export const SNACK_DROP = 0.08, SNACK_PRICE = 50;
 export const SNACK_NEED = { 通常: 10, 希少: 30, ボス: 100, 配合: 30 };   // 配合：配合限定の 子（なかよしで 生まれる）
 export const CAPTURE = { 通常: 0.012, 希少: 0.012, ボス: 0.004 };   // たおした敵 1 体ごと（探索にして、1 分あたりは前とだいたい同じ 2% くらい）
 export const RESEARCH = { 通常: 10, 希少: 30, ボス: 100, 配合: 50 };
-// ゲームに 出て いる 島の 数。2 つめの 島（ニライ諸島。docs/mono-link-island2.md）の 行き先・敵の ツリー・絵が そろったので 2（2026-10-25）
-// 2 に すると：隠れ家に 無線機（作ると その人は ニライ諸島へ 行ける）・無線機の ある 人は 各施設の Lv4（島の 素材を 使う）が 出る（facilities.js）
+// ゲームに 出て いる 島の 数。2 つめの 島（ビサイ諸島。docs/mono-link-island2.md）の 行き先・敵の ツリー・絵が そろったので 2（2026-10-25）
+// 2 に すると：隠れ家に 無線機（作ると その人は ビサイ諸島へ 行ける）・無線機の ある 人は 各施設の Lv4（島の 素材を 使う）が 出る（facilities.js）
 export const ISLAND_OPEN = 2;
 // isle：何番目の 島か（書いて いない 物は 1）。hidden：かくし（DEEP LINK/: の 商人の つながった タスクを n 番まで 終えると 開く）
 export const DUNGEONS_ALL = [
@@ -121,7 +121,7 @@ export const DUNGEONS_ALL = [
     drops: ["helmet", "knit", "straw", "nabe", "bowtie", "omamori", "bib", "gold", "stick", "pikopiko", "mizudeppo", "kamifusen"],
     mythic: { id: "crystalCrown", slot: "head", name: "水晶の王冠", text: "水晶のからだ：受けるダメージ −8%、会心で ふえた 分は ひびに なり、3 ターンに 分けて 受ける", main: { def: 0.5, res: 0.5 }, fxp: { dmgCut: 8, critSplit: 3 } },
   },
-  // ===== 2 つめの 島「ニライ諸島」（設定資料：docs/mono-link-island2.md。無線機を 作った 人が 行ける。敵の Lv は 行き先の Lv −1〜+1・希少 +1・ボス +5） =====
+  // ===== 2 つめの 島「ビサイ諸島」（設定資料：docs/mono-link-island2.md。無線機を 作った 人が 行ける。敵の Lv は 行き先の Lv −1〜+1・希少 +1・ボス +5） =====
   {
     id: "inoh", isle: 2, name: "イノーの浜", lv: 35, color: "#3FC1B0", text: "白い 砂と サンゴ礁の 浅い 海。島の 冒険は ここから",
     foes: [{ name: "ヤシガニ", type: "defender", lv: 34, tree: "e_coconutcrab" }, { name: "ウミネコ", type: "technician", lv: 35, tree: "e_gull" }, { name: "サハギン", type: "attacker", lv: 36, tree: "e_sahagin" }],
@@ -203,7 +203,7 @@ export const DUNGEONS_ALL = [
     mythic: { id: "kanaiNecklace", slot: "neck", name: "カナイの首飾り", text: "水圧：受ける ダメージ −10%・戦いの はじめに 相手 全員の ATK −10%", main: { hp: 0.8, def: 0.5 }, fxp: { dmgCut: 10, startFoeFx: [["down_atk", 10]] } },
   },
 ];
-// 派遣の 費用（玉。鹿さんの決め、2026-10-25）：ニライ諸島は 1,000 から、Lv の 低い 順に 1 か所ごと +250（かくしも 入れて 10 か所。1,000〜3,250）。はじめの 島は ただ
+// 派遣の 費用（玉。鹿さんの決め、2026-10-25）：ビサイ諸島は 1,000 から、Lv の 低い 順に 1 か所ごと +250（かくしも 入れて 10 か所。1,000〜3,250）。はじめの 島は ただ
 // 1 回の 派遣ごと（1・3・10 分 同じ。周回は 1 回ごとに 払う）
 DUNGEONS_ALL.filter((d) => d.isle === 2).sort((a, b) => a.lv - b.lv).forEach((d, i) => (d.cost = 1000 + 250 * i));
 export const tripCost = (d) => (d && d.cost) || 0;

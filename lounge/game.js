@@ -2,7 +2,7 @@
 // 本物（shika-profile）に 入れる ときは copy-to.sh が 見本の ファイルを lounge/ に ならべ、ここの「./」を「./」に かえる
 export { PETS, QUIZ, score, UNLOCK, unlockCost } from "./quiz.js";
 export { PLANS, petAt, gambitSlots } from "./builds.js";
-export { SHAPE, SP_PER_LV, SET_SLOTS, TREE_SLOTS, FREE_PER_LV, BASE_STATS, canTake, autoTake, learned, growthStats } from "./trees.js";
+export { SHAPE, SP_PER_LV, SET_SLOTS, TREE_SLOTS, FREE_PER_LV, BASE_STATS, canTake, autoTake, learned, growthStats, freeAlloc, freeIsAuto } from "./trees.js";
 export { ENEMY_TREES } from "./enemy-trees.js";
 export { SKILL } from "./skills.js";
 export { EFFECTS } from "./effects.js";

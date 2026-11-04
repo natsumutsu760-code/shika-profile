@@ -175,6 +175,17 @@ export function growthStats(type, lv, free, species) {
   const { base, auto, hand } = growthParts(type, lv, free, species);
   return Object.fromEntries(Object.keys(base).map((k) => [k, Math.round(base[k] + auto[k] + hand[k])]));
 }
+// 手で 振る ポイントの 自動・手動（2026-11-04 鹿さん「ステータスの割り振り自動と手動の切り替えがないです」）
+// free が null：ぜんぶ 自動。auto：手で 振った 分は そのまま、のこりを 職業の 重みで 自動に。どちらでもない：手で 振った 分だけ（のこりは 振れる ポイント）
+export const freeIsAuto = (pet) => pet.free == null || pet.freeAuto === true;
+export function freeAlloc(type, lv, free, auto) {
+  if (!free) return undefined;
+  const rest = FREE_PER_LV * (lv - 1) - Object.values(free).reduce((a, b) => a + b, 0);
+  if (!auto || rest <= 0) return free;
+  const out = { ...free };
+  for (const [k, v] of Object.entries(spread(JOB_GROWTH[type], rest))) if (v) out[k] = (out[k] || 0) + v;
+  return out;
+}
 
 // ---------- ペット 1 匹を組み立てる（試作の計算用）----------
 // Lv までの SP を自動で振り、ステータス・覚えた技・パッシブを返す

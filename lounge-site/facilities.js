@@ -77,7 +77,7 @@ export function facFx(id, lv) {
     case "storage": return `1 しゅるい ${storageCap(lv)} こ まで`;
     case "armory": return `装備 ${equipCapOf(lv).toLocaleString("ja-JP")} こ まで`;
     case "mine": return lv ? `${mineSlotsOf(lv)} 体・1 時間に ${mineRateOf(lv).toFixed(1)} こ` : "まだ ない";
-    case "radio": return lv ? "ニライ諸島へ 行ける・ほかの 施設を Lv41 から 上げられる" : "まだ ない";
+    case "radio": return lv ? "ビサイ諸島へ 行ける・ほかの 施設を Lv41 から 上げられる" : "まだ ない";
   }
   return "";
 }

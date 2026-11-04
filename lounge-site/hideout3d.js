@@ -140,7 +140,7 @@ const ST = {
   },
 };
 // 畑の 畝 1 列（4 マス）。作物は 列ごとに 色を かえる。z：列の 位置
-// 無線機（ニライ諸島へ 行く 施設。Lv1 だけ）：木の つくえの 上の 古い 短波の 無線機・ヘッドホン・かべの アンテナ線と 小さな 海図
+// 無線機（ビサイ諸島へ 行く 施設。Lv1 だけ）：木の つくえの 上の 古い 短波の 無線機・ヘッドホン・かべの アンテナ線と 小さな 海図
 ST.radio = function radio(g, lv, fx) {
   if (!lv) return empty(g, 1.6, 0.9);
   legs(g, 1.4, 0.7, 0.78, "#5B4636"); box(g, 1.46, 0.08, 0.74, "#A8784A", 0, 0.78, 0);
@@ -166,7 +166,7 @@ ST.radio = function radio(g, lv, fx) {
   cyl(g, 0.02, 0.02, 0.6, W, -0.38, 1.3, wz); rod(g, 0.02, 0.3, W, -0.38, 1.3, wz + 0.15, "z", 5);
   cyl(g, 0.02, 0.02, 1.05, W, -0.38, 1.9, wz); rod(g, 0.02, 1.5, W, 0.05, 2.95, wz, "x", 5);
   [-0.38, 0.75].forEach((x) => ball(g, 0.045, "#F2EEE4", x, 2.95, wz, 6));
-  // 小さな 海図（ニライ諸島の かたち）：紙の 上に 本島と 小島 4 つ、北の 寺院に 赤い ピン
+  // 小さな 海図（ビサイ諸島の かたち）：紙の 上に 本島と 小島 4 つ、北の 寺院に 赤い ピン
   const Mp = new THREE.Group(); Mp.position.set(0.38, 1.62, wz + 0.02); g.add(Mp);
   box(Mp, 0.66, 0.46, 0.02, "#7A5636", 0, -0.23); box(Mp, 0.6, 0.4, 0.022, "#CFE4F0", 0, -0.2);
   const isle = (r, sx, sy, x, y, c = "#6FAE5A") => { const b = ball(Mp, r, c, x, y, 0.016, 8); b.scale.set(sx, sy, 0.12); return b; };
@@ -186,7 +186,7 @@ const PLACE = {
   mine: { x: 6, z: -10.4, r: 0, dig: 2 },   // 坑道（③。畑は 2026-11-03 に 消した）
   radio: { x: 0.75, z: 5.2, r: Math.PI / 2 },   // 無線機：左の かべ（作業台と おやつ工房の あいだ）
 };
-// ゲームに 出て いる 施設だけ 置く（ニライ諸島が 出る まで〈ISLAND_OPEN = 1〉は 無線機が FACILITIES に ないので 置かない・ふだも 出ない）
+// ゲームに 出て いる 施設だけ 置く（ビサイ諸島が 出る まで〈ISLAND_OPEN = 1〉は 無線機が FACILITIES に ないので 置かない・ふだも 出ない）
 export const SPOTS = Object.fromEntries(Object.entries(PLACE).filter(([id]) => FACILITIES.some((f) => f.id === id)));
 export const ROOM = { w: 12, d: 10, h: 3.4 };
 const LOW = 0.9;   // 拡張の あとの 奥の かべの 高さ

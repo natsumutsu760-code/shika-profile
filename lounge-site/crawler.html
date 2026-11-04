@@ -1,0 +1,743 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MONO LINK Crawler 先行体験版</title>
+<!-- クローラーの 先行体験版（第 1 章）。ブラウザだけで 1 人で 遊ぶ 見本（門番・3 人協力・保存は あと。2026-11-03 鹿さんの 決め）
+     決まりは crawler-game.js（歩く）・crawler-battle.js（コマンドの 戦い）・crawler-ch1.js（15 本の 目的と 台詞）。資料 docs/mono-link-story-ch1.md
+     ブリーフィングの 声は ../../video/public/briefing/ を 指すので、リポジトリの 根から 開く（例：npx serve . → /stream-layouts/lounge-proto/crawler.html）
+     ?m=<id> で その ミッションから・?reset=1 で 進みを 消す・?all=1 で 解析ツリー 32 本を ぜんぶ 見る（確かめ 用）・?intro=1 で はじまりを もう一度
+     報酬・ドロップは crawler-reward.js、解析ツリーの 中身は crawler-analysis-data.js（tools/crawler-analysis.mjs が 資料から 写す） -->
+<style>
+  :root { --bg: #0E0F12; --panel: #16181D; --line: #ffffff1c; --ink: #E8E6E0; --sub: #9C9BA4; --amber: #E8C25A; --alert: #E5484D; --ok: #5BCB7E; --blue: #7FB6E8; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: var(--bg); color: var(--ink); font-family: "Hiragino Sans", "Noto Sans JP", system-ui, sans-serif; }
+  button { font: inherit; color: inherit; cursor: pointer; }
+  button:focus-visible { outline: 2px solid var(--amber); outline-offset: 2px; }
+  [hidden] { display: none !important; }
+  .mono { font-family: ui-monospace, "JetBrains Mono", Menlo, monospace; letter-spacing: 0.06em; }
+  .scr { min-height: 100vh; }
+  /* はじめ・掲示板 */
+  #home { max-width: 980px; margin: 0 auto; padding: 28px 16px 60px; }
+  #home h1 { font-size: 22px; letter-spacing: 0.14em; margin: 0 0 4px; }
+  #home .lead { color: var(--sub); font-size: 13px; margin: 0 0 22px; }
+  .row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+  .chip { padding: 7px 12px; border-radius: 999px; border: 1px solid var(--line); background: var(--panel); font-size: 13px; }
+  .chip[aria-pressed="true"] { background: var(--ink); color: var(--bg); border-color: var(--ink); }
+  .prog { margin: 22px 0 10px; display: flex; justify-content: space-between; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+  .prog b { font-size: 15px; }
+  .prog span { color: var(--sub); font-size: 12px; }
+  .board { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px; }
+  .stage { grid-column: 1 / -1; color: var(--sub); font-size: 12px; letter-spacing: 0.2em; margin-top: 12px; }
+  .card { text-align: left; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; display: grid; gap: 6px; }
+  .card:hover { border-color: #ffffff44; }
+  .card .no { color: var(--sub); font-size: 12px; }
+  .card .t { font-size: 17px; font-weight: 700; letter-spacing: 0.08em; }
+  .card .c { font-size: 12px; color: var(--sub); }
+  .card .k { font-size: 12px; color: var(--amber); }
+  .card.done { opacity: 0.6; }
+  .card.done .no::after { content: "  ✓ 済み"; color: var(--ok); }
+  /* ブリーフィング */
+  #brief { max-width: 760px; margin: 0 auto; padding: 28px 16px 60px; }
+  #brief .head { color: var(--sub); font-size: 12px; letter-spacing: 0.16em; }
+  #brief h2 { margin: 6px 0 18px; font-size: 26px; letter-spacing: 0.12em; }
+  .sec { border-top: 1px solid var(--line); padding: 12px 0; opacity: 0.45; transition: opacity 0.3s; }
+  .sec.on { opacity: 1; }
+  .sec .l { color: var(--sub); font-size: 11px; letter-spacing: 0.2em; }
+  .sec .tt { font-size: 16px; font-weight: 700; letter-spacing: 0.08em; margin: 2px 0 6px; }
+  .sec p { margin: 4px 0; font-size: 15px; line-height: 1.7; white-space: pre-line; }
+  .sec p.on { color: var(--amber); }
+  .actions { display: flex; gap: 10px; margin-top: 22px; flex-wrap: wrap; }
+  .btn { padding: 11px 20px; border-radius: 8px; border: 1px solid var(--line); background: var(--panel); font-size: 15px; }
+  .btn.main { background: var(--amber); color: #1A1508; border-color: var(--amber); font-weight: 700; }
+  /* 歩く・戦う */
+  #play { display: grid; grid-template-columns: 1fr 300px; height: 100vh; }
+  #stage { position: relative; overflow: hidden; display: flex; flex-direction: column; }
+  #viewbox { position: relative; flex: 1; min-height: 0; }
+  #view { width: 100%; height: 100%; display: block; }
+  #obj { position: absolute; left: 14px; top: 12px; right: 14px; display: flex; justify-content: space-between; gap: 10px; pointer-events: none; }
+  #obj .o { background: #0E0F12C8; border-left: 3px solid var(--amber); padding: 6px 10px; font-size: 13px; line-height: 1.5; }
+  #obj .o .b { color: var(--sub); font-size: 12px; }
+  #obj .turn { background: #0E0F12C8; padding: 6px 10px; font-size: 13px; height: fit-content; }
+  #talk { position: absolute; left: 50%; bottom: 14px; transform: translateX(-50%); width: min(720px, calc(100% - 28px)); background: #0E0F12E0; border: 1px solid var(--line); border-radius: 8px; padding: 9px 14px; display: flex; gap: 12px; align-items: center; font-size: 15px; }
+  #talk .em { width: 26px; height: 26px; border-radius: 6px; flex-shrink: 0; display: grid; place-items: center; font-size: 11px; font-weight: 700; color: #111; }
+  #talk .who { color: var(--sub); font-size: 11px; letter-spacing: 0.12em; }
+  #note { position: absolute; left: 14px; bottom: 70px; font-size: 13px; color: var(--sub); background: #0E0F12B0; padding: 4px 8px; border-radius: 4px; }
+  #pad { display: flex; align-items: center; justify-content: center; gap: 18px; padding: 12px; border-top: 1px solid var(--line); background: var(--panel); flex-wrap: wrap; }
+  .dpad { display: grid; grid-template-columns: 56px 56px 56px; grid-template-rows: 48px 48px; gap: 6px; }
+  .dpad button, .side button { border: 1px solid var(--line); background: #1E2128; border-radius: 8px; font-size: 18px; }
+  .dpad button[aria-pressed="true"] { background: var(--amber); color: #1A1508; }
+  .side { display: grid; gap: 6px; }
+  .side button { padding: 8px 14px; font-size: 14px; }
+  #done { padding: 14px 26px; border-radius: 10px; background: var(--amber); color: #1A1508; border: 0; font-weight: 700; font-size: 16px; }
+  #done:disabled { opacity: 0.35; cursor: default; }
+  .opt { font-size: 12px; color: var(--sub); display: flex; gap: 6px; align-items: center; }
+  #rail { border-left: 1px solid var(--line); background: var(--panel); padding: 12px; overflow: auto; display: grid; gap: 14px; align-content: start; }
+  #rail h3 { margin: 0 0 6px; font-size: 11px; color: var(--sub); letter-spacing: 0.2em; font-weight: 400; }
+  #map { width: 100%; image-rendering: pixelated; display: block; border-radius: 6px; }
+  .mate { display: grid; grid-template-columns: 1fr auto; gap: 2px 8px; padding: 8px 0; border-top: 1px solid var(--line); font-size: 13px; }
+  .bar { grid-column: 1 / -1; height: 5px; background: #ffffff14; border-radius: 3px; overflow: hidden; }
+  .bar i { display: block; height: 100%; background: var(--ok); }
+  .bar.mp i { background: var(--blue); }
+  .items { display: flex; gap: 6px; flex-wrap: wrap; }
+  .items button { font-size: 12px; padding: 5px 8px; border-radius: 6px; border: 1px solid var(--line); background: #1E2128; }
+  /* 戦い（正面に 敵） */
+  #fight { position: absolute; inset: 0; background: linear-gradient(#0E0F1200, #0E0F12AA 70%); display: flex; flex-direction: column; justify-content: flex-end; }
+  #foes { display: flex; justify-content: center; align-items: flex-end; gap: 22px; padding: 0 16px 8px; flex: 1; }
+  .foe { display: grid; justify-items: center; gap: 4px; background: none; border: 0; padding: 4px; }
+  .foe img { width: 150px; height: 150px; object-fit: contain; image-rendering: pixelated; filter: drop-shadow(0 6px 10px #0008); }
+  .foe.pet img { image-rendering: auto; }
+  .foe .nm { font-size: 13px; letter-spacing: 0.08em; }
+  .foe .bar { width: 120px; }
+  .foe.tgt .nm::before { content: "▶ "; color: var(--amber); }
+  .foe.down { opacity: 0.25; }
+  #elite { text-align: center; font-size: 15px; min-height: 26px; padding: 0 16px; color: var(--amber); }
+  #blog { max-height: 96px; overflow: auto; font-size: 13px; color: var(--sub); padding: 4px 16px; text-align: center; }
+  #cmd { background: var(--panel); border-top: 1px solid var(--line); padding: 10px 12px; display: grid; gap: 8px; }
+  .tabs { display: flex; gap: 6px; align-items: center; }
+  .tabs button { padding: 5px 12px; border-radius: 999px; border: 1px solid var(--line); background: none; font-size: 13px; }
+  .tabs button[aria-pressed="true"] { background: var(--ink); color: var(--bg); }
+  .cmds { display: flex; gap: 8px; flex-wrap: wrap; }
+  .cmds button { padding: 10px 16px; border-radius: 8px; border: 1px solid var(--line); background: #1E2128; font-size: 15px; }
+  .cmds button:disabled { opacity: 0.35; cursor: default; }
+  .cmds .sub { font-size: 12px; color: var(--sub); display: block; }
+  .mates { display: flex; gap: 8px; flex-wrap: wrap; }
+  .mates .m { min-width: 150px; flex: 1; background: #1E2128; border-radius: 8px; padding: 6px 10px; font-size: 12px; display: grid; gap: 3px; }
+  .mates .m .st { color: var(--sub); }
+  /* 結果 */
+  #result { max-width: 640px; margin: 0 auto; padding: 60px 16px; text-align: center; }
+  #result h2 { font-size: 30px; letter-spacing: 0.2em; margin: 0 0 10px; }
+  #result .why { color: var(--sub); }
+  #result .order { margin: 26px auto 0; max-width: 520px; text-align: left; border-left: 3px solid #ffffff55; padding: 6px 14px; color: var(--ink); }
+  .rlist { margin: 22px auto 0; max-width: 520px; text-align: left; }
+  .rlist .r { display: flex; justify-content: space-between; gap: 14px; padding: 9px 0; border-top: 1px solid var(--line); font-size: 14px; }
+  .rlist .r > span:first-child { color: var(--sub); flex-shrink: 0; }
+  .rlist .r > span:last-child { text-align: right; }
+  .rlist .pbar { width: 120px; display: inline-block; vertical-align: middle; margin-left: 8px; }
+  /* ホームの タブ（掲示板・解析・持ち物。鹿さんの 決め、2026-11-04 案A） */
+  .top { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+  .wallet { font-size: 16px; }
+  .htabs { display: flex; gap: 4px; margin: 4px 0 18px; border-bottom: 1px solid var(--line); }
+  .htabs button { padding: 9px 14px; background: none; border: 0; border-bottom: 2px solid transparent; font-size: 14px; color: var(--sub); display: flex; gap: 6px; align-items: center; }
+  .htabs button[aria-selected="true"] { color: var(--ink); border-bottom-color: var(--amber); }
+  .badge { min-width: 18px; height: 18px; border-radius: 9px; background: var(--amber); color: #1A1508; font-size: 11px; font-weight: 700; display: inline-grid; place-items: center; padding: 0 5px; }
+  .split { display: grid; grid-template-columns: 290px 1fr; gap: 16px; align-items: start; }
+  .alist { display: grid; gap: 8px; }
+  .acard { text-align: left; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; display: grid; gap: 5px; }
+  .acard[aria-pressed="true"] { border-color: var(--amber); }
+  .acard .t { font-weight: 700; letter-spacing: 0.06em; }
+  .s { font-size: 12px; color: var(--sub); }
+  .pbar { height: 6px; background: #ffffff14; border-radius: 3px; overflow: hidden; display: block; }
+  .pbar i { display: block; height: 100%; background: var(--amber); }
+  .adet { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 16px 18px; }
+  .adet h3 { margin: 0; font-size: 22px; letter-spacing: 0.08em; }
+  .adet .desc { font-size: 14px; line-height: 1.7; margin: 10px 0 0; }
+  .adet .state { margin-top: 10px; font-size: 13px; color: var(--amber); }
+  .adet table { width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 12px; }
+  .adet td { padding: 6px 4px; border-top: 1px solid var(--line); vertical-align: top; line-height: 1.5; }
+  .adet td.sl { color: var(--sub); width: 30px; }
+  .adet td.nm { width: 30%; }
+  .adet td.mp { color: var(--blue); width: 52px; text-align: right; white-space: nowrap; }
+  .adet tr.sep td { color: var(--sub); font-size: 11px; letter-spacing: 0.2em; padding-top: 12px; }
+  .adet details { margin-top: 10px; font-size: 13px; color: var(--sub); }
+  details.locked { margin-top: 10px; }
+  details.locked summary { cursor: pointer; color: var(--sub); font-size: 13px; padding: 6px 0; }
+  details.locked div { font-size: 12px; color: var(--sub); line-height: 1.8; }
+  .empty { color: var(--sub); font-size: 14px; line-height: 1.7; padding: 8px 0; }
+  .filt { background: #ffffff08; border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; display: grid; gap: 8px; margin-bottom: 12px; }
+  .filt .row .lab { font-size: 12px; color: var(--sub); min-width: 48px; }
+  .chip:disabled { opacity: 0.35; cursor: default; }
+  .inv { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 8px; }
+  .inv .it { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; display: grid; gap: 3px; }
+  .inv .it .h { display: flex; justify-content: space-between; gap: 8px; font-size: 14px; }
+  .inv .rec { grid-column: 1 / -1; }
+  .inv .rec summary { cursor: pointer; list-style: none; display: grid; gap: 3px; }
+  .inv .rec[open] .s { display: none; }
+  .inv .rec p { margin: 6px 0 0; font-size: 14px; line-height: 1.7; }
+  .inv .rec p:first-of-type { color: var(--sub); font-size: 12px; }
+  /* 持ちこみ（出発の 前に 1 人 5 こまで。鹿さんの 決め） */
+  .bring { margin-top: 18px; border-top: 1px solid var(--line); padding-top: 12px; display: grid; gap: 8px; }
+  .bring .hd { display: flex; justify-content: space-between; font-size: 13px; color: var(--sub); }
+  .bring .row { gap: 8px; }
+  .bring .itm { display: flex; align-items: center; gap: 6px; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 4px 6px 4px 10px; font-size: 13px; }
+  .bring .itm button { width: 28px; height: 28px; border-radius: 6px; border: 1px solid var(--line); background: #1E2128; }
+  .bring .itm button:disabled { opacity: 0.3; cursor: default; }
+  .bring .itm b { min-width: 14px; text-align: center; font-family: ui-monospace, monospace; }
+  .ghead { grid-column: 1 / -1; color: var(--sub); font-size: 12px; letter-spacing: 0.2em; margin-top: 6px; }
+  /* はじまり（第 1 章の 前：UNKNOWN の 無線 → 誓約書に サイン。鹿さんの 決め、2026-11-04 カードで 案A） */
+  #intro { display: grid; place-items: center; padding: 24px 16px; }
+  /* 本番で 入れない とき（ログインが 切れて いる など） */
+  #gate { min-height: 100vh; display: grid; place-content: center; justify-items: center; gap: 14px; padding: 24px 16px; text-align: center; }
+  #gate h2 { margin: 0; font-size: 22px; } #gate p { margin: 0; color: var(--sub); max-width: 420px; line-height: 1.7; }
+  #gate a { text-decoration: none; }
+  .radio { width: min(640px, 100%); display: grid; gap: 22px; justify-items: center; cursor: pointer; }
+  .radio .rline { display: flex; gap: 14px; align-items: flex-start; width: 100%; background: #0E0F12E0; border: 1px solid var(--line); border-radius: 8px; padding: 14px 16px; }
+  .radio .em { width: 30px; height: 30px; border-radius: 6px; border: 1px dashed #ffffff44; flex-shrink: 0; }
+  .radio .who { color: var(--sub); font-size: 11px; letter-spacing: 0.16em; }
+  #rText { font-size: 17px; line-height: 1.8; min-height: 3.6em; }
+  .pledge { width: min(560px, 100%); }
+  .paper { background: #ECE7DC; color: #1B2333; border-radius: 4px; padding: 26px 26px 20px; box-shadow: 0 18px 40px #0008; }
+  .paper .ph { font-size: 11px; letter-spacing: 0.24em; color: #5A6172; }
+  .paper h2 { margin: 6px 0 16px; font-size: 24px; letter-spacing: 0.3em; }
+  .paper p { margin: 8px 0; font-size: 15px; line-height: 1.7; }
+  .paper .rec { margin-top: 14px; padding-top: 10px; border-top: 1px solid #1B233333; font-size: 15px; }
+  .sig { position: relative; margin: 14px 0 12px; border: 1px solid #1B233355; border-radius: 4px; background: #F6F2E9; }
+  .sig canvas { display: block; width: 100%; height: 140px; touch-action: none; cursor: crosshair; }
+  .sig span { position: absolute; left: 12px; bottom: 8px; font-size: 12px; color: #5A6172; pointer-events: none; }
+  .sig.inked span { display: none; }
+  .paper .row { justify-content: space-between; }
+  .paper .link { background: none; border: 0; color: #5A6172; font-size: 13px; text-decoration: underline; padding: 6px 0; }
+  .paper .btn.main:disabled { opacity: 0.4; cursor: default; }
+  #mtabs { display: none; }
+  @media (max-width: 860px) {
+    .split { grid-template-columns: 1fr; }
+    #play { grid-template-columns: 1fr; height: auto; }
+    #stage { height: auto; }
+    #viewbox { height: 58vh; flex: none; }
+    /* スマホ：地図と 仲間は 上の タブで 開く（鹿さんの 決め、2026-10-30） */
+    #mtabs { display: flex; gap: 6px; padding: 8px 12px; background: var(--panel); border-bottom: 1px solid var(--line); }
+    #mtabs button { padding: 6px 14px; border-radius: 999px; border: 1px solid var(--line); background: none; font-size: 13px; }
+    #mtabs button[aria-pressed="true"] { background: var(--ink); color: var(--bg); }
+    #rail { display: none; border-left: 0; border-bottom: 1px solid var(--line); }
+    #rail.open { display: grid; }
+    #rail.open > div { display: none; } #rail.open > div.on { display: block; } #rail.open #giveup { display: none; }
+    #rail.open.k-map > div:nth-child(1), #rail.open.k-party > div:nth-child(2), #rail.open.k-party > div:nth-child(3), #rail.open.k-log > div:nth-child(4) { display: block; }
+    #rail.open.k-log #giveup { display: block; }
+    #map { max-width: 320px; margin: 0 auto; }
+    /* 戦いの あいだは 画面いっぱい（敵の 絵が 切れない） */
+    #fight { position: fixed; inset: 0; z-index: 20; background: linear-gradient(#15171C, var(--bg)); }
+    .foe img { width: 110px; height: 110px; }
+    #note { bottom: 64px; }
+  }
+</style>
+<script type="importmap">{ "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.169.0/build/three.module.js", "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.169.0/examples/jsm/" } }</script>
+</head>
+<body>
+<section id="gate" hidden><h2>入れません</h2><p id="gateWhy"></p><a id="gateLogin" class="btn main" href="/" hidden>MONO LINK で ログイン</a></section>
+<section id="intro" class="scr" hidden>
+  <div id="introRadio" class="radio">
+    <div class="rline"><div class="em" aria-hidden="true"></div><div><div class="who mono">UNKNOWN</div><div id="rText"></div></div></div>
+    <button class="btn" id="rNext" hidden>受けとる</button>
+  </div>
+  <div id="introPledge" class="pledge" hidden>
+    <div class="paper">
+      <div class="ph mono">LINKERS ADMINISTRATION</div>
+      <h2>誓約書</h2>
+      <p>一、私は 登録された LINKER として、契約に 従い 任務を 果たします</p>
+      <p>一、任務の 中の 損失に ついて、管理機構は 責任を 負いません</p>
+      <p>一、私は、私の POM の 行いに 責任を 持ちます</p>
+      <div class="rec">推薦人：――</div>
+      <div class="sig"><canvas id="sigPad" aria-label="サインを 書く 欄"></canvas><span>ここに サイン</span></div>
+      <div class="row"><button class="link" id="sigClear">書きなおす</button><button class="btn main" id="sigOk" disabled>サインする</button></div>
+    </div>
+  </div>
+</section>
+
+<section id="home" class="scr">
+  <div class="top"><h1 class="mono">MONO LINK // CRAWLER</h1><b class="wallet mono" id="wallet"></b></div>
+  <p class="lead">第 1 章 REGISTRY 先行体験版。依頼を えらんで、ブリーフィングを 聞いて、迷宮へ。</p>
+  <div class="htabs" role="tablist"><button role="tab" data-t="board">掲示板</button><button role="tab" data-t="ana">解析<span class="badge" id="bAna" hidden></span></button><button role="tab" data-t="inv">持ち物<span class="badge" id="bInv" hidden></span></button></div>
+  <div id="tBoard">
+    <div><div class="opt" style="margin-bottom:6px" id="petLv">あなたの ペット</div><div class="row" id="pets"></div></div>
+    <div class="prog"><b id="progT"></b><span id="progS"></span></div>
+    <div class="board" id="board"></div>
+  </div>
+  <div id="tAna" hidden><div class="split"><div><div class="alist" id="alist"></div><details class="locked" id="alock"></details></div><div class="adet" id="adet"></div></div></div>
+  <div id="tInv" hidden><div class="filt" id="ifilt"></div><div class="inv" id="ilist"></div></div>
+</section>
+
+<section id="brief" class="scr" hidden>
+  <div class="head mono" id="bHead"></div>
+  <h2 id="bTitle"></h2>
+  <div class="opt" id="bPay" style="margin:-8px 0 14px"></div>
+  <div id="bSecs"></div>
+  <div class="bring" id="bring"></div>
+  <div class="actions">
+    <button class="btn main" id="accept">受諾して 出発</button>
+    <button class="btn" id="replay">もう一度 聞く</button>
+    <button class="btn" id="back1">掲示板へ</button>
+  </div>
+</section>
+
+<section id="play" hidden>
+  <div id="stage">
+    <div id="mtabs"><button data-k="map" aria-pressed="false">地図</button><button data-k="party" aria-pressed="false">仲間・道具</button><button data-k="log" aria-pressed="false">記録</button></div>
+    <div id="viewbox">
+      <canvas id="view"></canvas>
+      <div id="obj"><div class="o" id="objT"></div><div class="turn mono" id="turnT"></div></div>
+      <div id="note" hidden></div>
+      <div id="talk" hidden><div class="em" id="tEm"></div><div><div class="who mono" id="tWho"></div><div id="tText"></div></div></div>
+      <div id="fight" hidden>
+        <div id="foes"></div>
+        <div id="elite"></div>
+        <div id="blog"></div>
+        <div id="cmd">
+          <div class="tabs"><button id="tabB" aria-pressed="true">戦い</button><button id="tabF" aria-pressed="false">その場</button><span style="flex:1"></span><label class="opt"><input type="checkbox" id="auto"> オート（ガンビット）</label></div>
+          <div class="cmds" id="cmds"></div>
+          <div class="mates" id="bMates"></div>
+        </div>
+      </div>
+    </div>
+    <div id="pad">
+      <div class="dpad" aria-label="移動">
+        <button id="kL" title="左を 向く（A）">⟲</button><button id="kF" title="前へ（W）">▲</button><button id="kR" title="右を 向く（D）">⟳</button>
+        <button id="kSL" title="左へ 横歩き（Q）">◀</button><button id="kB" title="後ろへ（S）">▼</button><button id="kSR" title="右へ 横歩き（E）">▶</button>
+      </div>
+      <div class="side"><button id="kUse" title="前か 足もとの しかけを 使う（スペース）">使う</button><button id="kWait" title="その場で 1 ターン">待つ</button></div>
+      <div style="display:grid;gap:6px;justify-items:center"><button id="done">完了</button><label class="opt"><input type="checkbox" id="instant" checked> 押したら すぐ 進む</label></div>
+    </div>
+  </div>
+  <aside id="rail">
+    <div><h3>MAP</h3><canvas id="map"></canvas></div>
+    <div><h3>PARTY</h3><div id="mates"></div></div>
+    <div><h3>ITEMS</h3><div class="items" id="items"></div><div class="opt" id="loot" style="margin-top:8px"></div></div>
+    <div><h3>LOG</h3><div id="log" style="font-size:12px;color:var(--sub);display:grid;gap:3px"></div></div>
+    <button class="btn" id="giveup" style="font-size:13px">撤収する（失敗）</button>
+  </aside>
+</section>
+
+<section id="result" class="scr" hidden>
+  <h2 id="rTitle"></h2>
+  <div class="why" id="rWhy"></div>
+  <div class="rlist" id="rList"></div>
+  <div class="order" id="rOrder" hidden></div>
+  <div class="actions" style="justify-content:center"><button class="btn main" id="back2">掲示板へ</button></div>
+</section>
+
+<script type="module">
+import * as THREE from "three";
+import { makeMaze, CELL } from "./crawler3d.js";
+import { drawMap, COMPANY } from "./crawler-map.js";
+import { spriteURL } from "./sprites.js";
+import { makePOM } from "./pom3d.js";
+import { makePet3, SPECIES3 } from "./pets.js";
+import { MAIN_TREES } from "./main-trees.js";
+import { newRun, act, endBattle, useItem, visibleFrom, DIRV } from "./crawler-game.js";
+import { newBattle, look as lookBattle, commit, playerPet, linkerPet, commandsOf, retreatChance, skillName, CRAWL_ITEMS, BRING_MAX } from "./crawler-battle.js";
+import { MISSIONS, kindOf, offered, countDone, NEED, LV, LINKERS, AFTER, ELITE_LINES } from "./crawler-ch1.js";
+import { settle, payOf, BONUS_PAY, RECORDS, RECORD_TEXT, CODE_NEED, lvOf, expNeed, mercLv } from "./crawler-reward.js";
+import { ANALYSIS } from "./crawler-analysis-data.js";
+import { ELITE_TREES, eliteTreeOf } from "./crawler-elite-trees.js";
+import { SP_PER_LV } from "./trees.js";
+import { SCRAP } from "./materials.js";
+import { me, demoMode } from "./lounge-client.js";
+
+const $ = (id) => document.getElementById(id);
+const q = new URLSearchParams(location.search);
+// ---- 進み（この ブラウザだけの 便利な 記憶。正式な 保存は あと） ----
+const KEY = "monolink-crawler-ch1";
+let save = { pet: "drowsy", done: [] };
+try { if (q.get("reset") === "1") localStorage.removeItem(KEY); save = { ...save, ...JSON.parse(localStorage.getItem(KEY) || "{}") }; } catch {}
+const keep = () => { try { localStorage.setItem(KEY, JSON.stringify(save)); } catch {} };
+const show = (id) => { for (const s of ["intro", "home", "brief", "play", "result"]) $(s).hidden = s !== id; window.scrollTo(0, 0); };
+const GROUP_EN = { tcu: "TCU", harmonia: "HARMONIA", sva: "SVA", foundation: "FOUNDATION", linkers: "LINKERS" };
+const KIND_JA = { target: "殲滅", seize: "制圧", delivery: "運搬", recovery: "捜索", nest: "殲滅", hold: "防衛", escort: "護衛", demolish: "破壊", capture: "制圧", tracer: "追跡", vault: "破壊", runner: "追跡" };
+const STAGE_JA = { first: "1 本目", second: "2 本目", A: "段 A", B: "段 B", C: "段 C", D: "段 D", end: "章の 終わり" };
+const petImg = (sp) => `../../video/public/briefing/pets/${sp}/00.webp`;
+
+// ---- はじめ・掲示板 ----
+function home() {
+  const pets = $("pets"); pets.innerHTML = "";
+  for (const [t, T] of Object.entries(MAIN_TREES)) {
+    const b = document.createElement("button"); b.className = "chip"; b.textContent = `${T.name}（${SPECIES3[T.pet]?.label ?? T.pet}）`; b.setAttribute("aria-pressed", String(save.pet === t));
+    b.onclick = () => { save.pet = t; keep(); home(); }; pets.append(b);
+  }
+  $("wallet").textContent = `${(save.credits ?? 0).toLocaleString()} cr`;
+  { const lv = lvOf(save); $("petLv").textContent = `あなたの ペット（Lv ${lv}　次の Lv まで ${(expNeed(lv) - (save.xp ?? 0)).toLocaleString()}${save.sub && ELITE_TREES[save.sub] ? `　サブ：${ELITE_TREES[save.sub].name}` : ""}）`; }
+  drawTab();
+  const done = save.done, n = countDone(done);
+  $("progT").textContent = `${n} / ${NEED} 本　${done.includes("c1m14") ? "★ 1-14 済み" : "★ 1-14 まだ"}`;
+  $("progS").textContent = done.includes("c1m15") ? "第 1 章 完了" : "1-14 を ふくめて 9 本で 1-15 が 開く";
+  const bd = $("board"); bd.innerHTML = "";
+  let st = null;
+  for (const m of offered(done)) {
+    if (m.stage !== st) { st = m.stage; const h = document.createElement("div"); h.className = "stage mono"; h.textContent = STAGE_JA[st]; bd.append(h); }
+    const c = document.createElement("button"); c.className = "card" + (done.includes(m.id) ? " done" : "");
+    c.innerHTML = `<div class="no mono">${m.no}${m.star ? " ★" : ""}</div><div class="t mono">${m.title}</div><div class="c">${m.client.ja}（${GROUP_EN[m.group] ?? ""}）　${m.area.ja}</div><div class="k">${KIND_JA[m.kindName]}　${m.briefing.sections[0].sub}</div>`;
+    c.onclick = () => brief(m); bd.append(c);
+  }
+  show("home");
+}
+
+// ---- はじまり：UNKNOWN の 無線（字幕だけ・エンブレムは 空白）→ 誓約書に 指で サイン → 1-01 が 届く（台本 docs/mono-link-story-ch1.md の「はじまり」。文は 鹿さんの 文の まま）
+const RADIO = "ようこそ。本当のMONOLINKへ…。君は見込みがある。だから、我々から贈り物を送ろう。君を、歓迎する。";
+function intro() {
+  show("intro"); $("introRadio").hidden = false; $("introPledge").hidden = true; $("rNext").hidden = true;
+  const el = $("rText"); let i = 0, tm = 0; el.textContent = "";
+  const done = () => { i = RADIO.length; el.textContent = RADIO; $("rNext").hidden = false; clearInterval(tm); };
+  if (matchMedia("(prefers-reduced-motion: reduce)").matches) done(); else tm = setInterval(() => { el.textContent = RADIO.slice(0, ++i); if (i >= RADIO.length) done(); }, 70);
+  $("introRadio").onclick = (ev) => { if (ev.target.id !== "rNext" && i < RADIO.length) done(); }; // 押すと 字幕を 先に ぜんぶ 出す
+  $("rNext").onclick = () => { $("introRadio").hidden = true; $("introPledge").hidden = false; sigPad(); };
+}
+function sigPad() {
+  const cv = $("sigPad"), box = cv.parentElement, r = cv.getBoundingClientRect(), dpr = devicePixelRatio || 1;
+  cv.width = Math.round(r.width * dpr); cv.height = Math.round(r.height * dpr);
+  const g = cv.getContext("2d"); g.scale(dpr, dpr); g.lineWidth = 2.2; g.lineCap = "round"; g.lineJoin = "round"; g.strokeStyle = "#1B2333";
+  let down = false, len = 0, last = null;
+  const pt = (e) => { const b = cv.getBoundingClientRect(); return [e.clientX - b.left, e.clientY - b.top]; };
+  cv.onpointerdown = (e) => { down = true; last = pt(e); cv.setPointerCapture(e.pointerId); };
+  cv.onpointermove = (e) => { if (!down) return; const p = pt(e); g.beginPath(); g.moveTo(...last); g.lineTo(...p); g.stroke(); len += Math.hypot(p[0] - last[0], p[1] - last[1]); last = p; if (len > 60) { $("sigOk").disabled = false; box.classList.add("inked"); } };
+  cv.onpointerup = cv.onpointercancel = () => { down = false; };
+  $("sigClear").onclick = () => { g.clearRect(0, 0, cv.width, cv.height); len = 0; $("sigOk").disabled = true; box.classList.remove("inked"); };
+  $("sigOk").onclick = () => { save.signed = true; keep(); home(); };
+}
+
+// ---- タブ：掲示板・解析・持ち物（丸の 数は 前に 見た ときから ふえた 物） ----
+let htab = "board", aSel = null, iKind = "all", iSort = "n";
+const ALL = q.get("all") === "1"; // 見本の 確かめ：解析ツリー 32 本を ぜんぶ 見る
+const BUYER = { 鉱物: "SVA", 生体: "ハルモニア", 遺物: "TCU" };
+const subSp = (lv) => Math.round((SP_PER_LV * (lv - 1)) / 3); // サブツリーに 回す SP（ぜんぶの 3 分の 1。仮）
+const SCRAP_FROM = Object.fromEntries(Object.entries(SCRAP).flatMap(([k, list]) => list.map(([id]) => [id, { wreck: "残骸を 漁る", cabinet: "キャビネットを 漁る", locker: "ロッカーを 漁る", rare: "残骸を 漁る（まれ）" }[k] ?? `${{ sva: "SVA", harmonia: "ハルモニア", tcu: "TCU" }[k]} の 迷宮（漁る・完全成功）`])));
+document.querySelectorAll(".htabs button").forEach((b) => (b.onclick = () => { htab = b.dataset.t; drawTab(); }));
+function invList() {
+  const by = {};
+  for (const x of Object.values(save.mats ?? {})) { const g = (by[x.id] ??= { id: x.id, k: x.q ? "enemy" : "scrap", name: x.name, n: 0, qs: {} }); g.n += x.n; if (x.q) g.qs[x.q] = (g.qs[x.q] ?? 0) + x.n; }
+  const out = Object.values(by);
+  const sm = {}; for (const s of save.samples ?? []) { const g = (sm[s.name] ??= { k: "sample", name: s.name, fam: s.fam, n: 0 }); g.n += 1; }
+  out.push(...Object.values(sm), ...(save.records ?? []).map((r) => ({ k: "record", name: r, n: 1 })));
+  return out;
+}
+const newCodes = () => Object.entries(save.codes ?? {}).filter(([k, n]) => n > (save.seen?.codes?.[k] ?? 0)).length;
+const invTotal = () => invList().reduce((s, x) => s + x.n, 0);
+function drawTab() {
+  for (const [k, id] of [["board", "tBoard"], ["ana", "tAna"], ["inv", "tInv"]]) $(id).hidden = htab !== k;
+  document.querySelectorAll(".htabs button").forEach((b) => b.setAttribute("aria-selected", String(b.dataset.t === htab)));
+  if (htab === "ana") { drawAna(); save.seen = { ...save.seen, codes: { ...save.codes } }; keep(); }
+  if (htab === "inv") { drawInv(); save.seen = { ...save.seen, inv: invTotal() }; keep(); }
+  const a = newCodes(), i = Math.max(0, invTotal() - (save.seen?.inv ?? 0));
+  $("bAna").hidden = !a; $("bAna").textContent = a; $("bInv").hidden = !i; $("bInv").textContent = i;
+}
+function drawAna() {
+  const list = Object.values(ANALYSIS), got = list.filter((t) => ALL || (save.codes?.[t.name] ?? 0) > 0), rest = list.filter((t) => !got.includes(t));
+  if (!got.some((t) => t.name === aSel)) aSel = got[0]?.name ?? null;
+  $("alist").innerHTML = got.length ? got.map((t) => { const n = save.codes?.[t.name] ?? 0; return `<button class="acard" data-n="${t.name}" aria-pressed="${t.name === aSel}"><span class="t">${t.tree}</span><span class="s">${t.name}　${n} / ${CODE_NEED}</span><span class="pbar"><i style="width:${(n * 100) / CODE_NEED}%"></i></span></button>`; }).join("")
+    : `<div class="empty">精鋭の LINKER を 倒すと 解析コードが 手に 入る。第 1 章では ONE SHOE（1-04）・SPLINT（1-08）・GHOST NOTE（1-14）</div>`;
+  $("alock").hidden = !rest.length;
+  $("alock").innerHTML = `<summary>コードが まだ ない 精鋭 ${rest.length} 人</summary><div>${rest.map((t) => t.name).join("・")}</div>`;
+  document.querySelectorAll(".acard").forEach((b) => (b.onclick = () => { aSel = b.dataset.n; drawAna(); if (matchMedia("(max-width: 860px)").matches) $("adet").scrollIntoView({ behavior: "smooth", block: "start" }); }));
+  const t = ANALYSIS[aSel], box = $("adet");
+  box.hidden = !t; if (!t) return;
+  const n = save.codes?.[t.name] ?? 0, tr = (r) => `<tr><td class="sl mono">${r.slot}</td><td class="nm">${r.name}</td><td>${r.text}</td><td class="mp mono">${r.mp != null ? `MP ${r.mp}` : ""}</td></tr>`;
+  box.innerHTML = `<h3>${t.tree}</h3><div class="s mono">${t.en.toUpperCase()}　${t.meaning}</div><div class="s">${t.name}（${t.petJa}／${t.role}）　主 ${t.main}・副 ${t.sub}</div>
+    <div class="state">${n >= CODE_NEED ? "解析 100%：サブツリーに 付けられる" : `解析 ${(n * 100) / CODE_NEED}%：あと ${CODE_NEED - n} こで サブツリーに 付けられる`}</div>
+    ${n >= CODE_NEED || ALL ? `<button class="btn${save.sub === eliteTreeOf(t.name) ? "" : " main"}" id="subBtn" style="margin-top:10px">${save.sub === eliteTreeOf(t.name) ? "サブツリーから 外す" : "サブツリーに 付ける"}</button>` : ""}
+    <p class="desc">${t.desc}</p>
+    <table>${t.rows.filter((r) => r.slot[0] === "S").map(tr).join("")}<tr class="sep"><td colspan="4">パッシブ</td></tr>${t.rows.filter((r) => r.slot[0] === "P").map(tr).join("")}</table>
+    ${t.counter ? `<details><summary>対策</summary>${t.counter}</details>` : ""}`;
+  const sb = $("subBtn"); if (sb) sb.onclick = () => { const id = eliteTreeOf(t.name); save.sub = save.sub === id ? null : id; keep(); home(); htab = "ana"; drawTab(); };
+}
+function drawInv() {
+  const all = invList(), K = { enemy: "敵の 素材", scrap: "スクラップ", sample: "貴重サンプル", record: "記録" };
+  const cnt = (k) => all.filter((x) => k === "all" || x.k === k).length;
+  $("ifilt").innerHTML = `<div class="row"><span class="lab">しゅるい</span>${["all", ...Object.keys(K)].map((k) => `<button class="chip" data-k="${k}" aria-pressed="${iKind === k}" ${cnt(k) ? "" : "disabled"}>${k === "all" ? "すべて" : K[k]} ${cnt(k)}</button>`).join("")}</div>
+    <div class="row"><span class="lab">ならべる</span>${[["n", "多い 順"], ["name", "名前"]].map(([k, l]) => `<button class="chip" data-s="${k}" aria-pressed="${iSort === k}">${l}</button>`).join("")}</div>`;
+  document.querySelectorAll("#ifilt [data-k]").forEach((b) => (b.onclick = () => { iKind = b.dataset.k; drawInv(); }));
+  document.querySelectorAll("#ifilt [data-s]").forEach((b) => (b.onclick = () => { iSort = b.dataset.s; drawInv(); }));
+  if (!all.length) { $("ilist").innerHTML = `<div class="empty">ミッションで 手に 入れた 物が ここに たまる。敵の 素材・漁った スクラップ・貴重サンプル・完全成功の 記録</div>`; return; }
+  const sub = (x) => x.k === "enemy" ? Object.entries(x.qs).sort((a, b) => b[0] - a[0]).map(([q, n]) => `品質${q} ×${n}`).join("・") : x.k === "scrap" ? SCRAP_FROM[x.id] ?? "漁る" : x.k === "sample" ? `${x.fam}・★ 未鑑定（${BUYER[x.fam]} が 高く 買う）` : "押すと 読める";
+  let h = "";
+  for (const k of Object.keys(K)) {
+    if (iKind !== "all" && iKind !== k) continue;
+    const g = all.filter((x) => x.k === k).sort((a, b) => (iSort === "n" ? b.n - a.n : a.name.localeCompare(b.name, "ja")));
+    if (!g.length) continue;
+    h += `<div class="ghead">${K[k]}</div>` + g.map((x) => x.k === "record" ? `<details class="it rec"><summary><b>${x.name}</b><div class="s">${sub(x)}</div></summary>${(RECORD_TEXT[x.name] ?? []).map((l) => `<p>${l}</p>`).join("")}</details>`
+      : `<div class="it"><div class="h"><b>${x.name}</b><span class="mono">×${x.n}</span></div><div class="s">${sub(x)}</div></div>`).join("");
+  }
+  $("ilist").innerHTML = h;
+}
+
+// ---- ブリーフィング（声と 字幕。動画は video/ の Remotion で 作って ある） ----
+let audio = null, cur = null;
+function brief(m) {
+  cur = m;
+  $("bHead").textContent = `${m.no}　${m.client.en}　/　${m.area.grid}`;
+  $("bTitle").textContent = m.title;
+  const pay = payOf(m), first = !save.done.includes(m.id);
+  const late = !first && !save.full?.includes(m.id); // 完全成功が まだ：あとから でも 記録と 上乗せ分は 貰える
+  $("bPay").textContent = first ? `報酬 ${pay.toLocaleString()} cr　完全成功で +${Math.round(pay * BONUS_PAY).toLocaleString()} cr${RECORDS[m.id] ? `・記録「${RECORDS[m.id]}」` : "・会社の 素材"}`
+    : late ? `2 回目：経験値だけ。完全成功なら +${Math.round(pay * BONUS_PAY).toLocaleString()} cr${RECORDS[m.id] ? `・記録「${RECORDS[m.id]}」` : ""}` : "2 回目：経験値だけ（漁れる マスは 回れる）";
+  const B = m.briefing, box = $("bSecs"); box.innerHTML = "";
+  const lines = [];
+  const add = (label, title, sub, list) => {
+    const d = document.createElement("div"); d.className = "sec";
+    d.innerHTML = `<div class="l mono">${label}</div>${title ? `<div class="tt mono">${title}</div>` : ""}${sub ? `<div class="l mono">${sub}</div>` : ""}`;
+    for (const l of list) { const p = document.createElement("p"); p.textContent = l.text; d.append(p); lines.push({ l, p, d }); }
+    box.append(d);
+  };
+  add("BRIEFING", "", "", [B.intro]);
+  for (const s of B.sections) add(`${s.no}  ${s.label}`, s.title, s.sub, s.lines);
+  add("END", "", "", [B.end, B.signoff]);
+  show("brief");
+  const play = (i) => {
+    document.querySelectorAll(".sec p.on").forEach((e) => e.classList.remove("on"));
+    if (i >= lines.length) return;
+    const { l, p, d } = lines[i]; p.classList.add("on"); d.classList.add("on");
+    audio?.pause(); audio = new Audio(l.voice); audio.onended = () => setTimeout(() => play(i + 1), 380);
+    audio.play().catch(() => setTimeout(() => play(i + 1), 1800)); // 声が 読めない ときは 文だけ 進める
+  };
+  $("replay").onclick = () => { document.querySelectorAll(".sec").forEach((e) => e.classList.remove("on")); play(0); };
+  drawBring();
+  play(0);
+}
+// 持ちこみ：薬を 5 こまで（前に えらんだ 物を 覚える。先行体験版は 店の かわりに 無料。値段は まだ 決めて いない）
+const bringOf = () => save.bring ?? { mlv_patch_s: 2, mlv_patch_m: 2, mlv_revive: 1 };
+function drawBring() {
+  const b = bringOf(), n = Object.values(b).reduce((s, x) => s + x, 0);
+  $("bring").innerHTML = `<div class="hd"><span>持ちこみ</span><span class="mono">${n} / ${BRING_MAX}</span></div><div class="row">${Object.entries(CRAWL_ITEMS).map(([id, it]) => `<span class="itm" title="${it.text}">${it.name.replace("メルヴィル", "")}<button data-id="${id}" data-d="-1" ${b[id] ? "" : "disabled"} aria-label="へらす">−</button><b>${b[id] ?? 0}</b><button data-id="${id}" data-d="1" ${n < BRING_MAX ? "" : "disabled"} aria-label="ふやす">＋</button></span>`).join("")}</div>`;
+  document.querySelectorAll("#bring button").forEach((el) => (el.onclick = () => { const x = { ...bringOf() }; x[el.dataset.id] = Math.max(0, (x[el.dataset.id] ?? 0) + +el.dataset.d); save.bring = x; keep(); drawBring(); }));
+}
+$("accept").onclick = () => { audio?.pause(); start(cur); };
+$("back1").onclick = () => { audio?.pause(); home(); };
+
+// ---- 迷宮（3D） ----
+const renderer = new THREE.WebGLRenderer({ canvas: $("view"), antialias: true });
+renderer.setPixelRatio(Math.min(2, devicePixelRatio));
+const scene = new THREE.Scene(), cam = new THREE.PerspectiveCamera(62, 1, 0.05, 80);
+let mz = null, S = null, objs = new Map(), from = null, to = null, t0 = 0, plan = null;
+function build3d() {
+  if (mz) { scene.remove(mz.group); mz.group.traverse((o) => o.geometry?.dispose()); }
+  mz = makeMaze(S.rows, { theme: S.def.theme, meta: {} });
+  scene.add(mz.group); scene.background = mz.env.bg; scene.fog = mz.env.fog;
+  objs = new Map(); from = to = null;
+}
+function sync3d() {
+  for (const [k, v] of Object.entries(S.state)) { const [x, y] = k.split(",").map(Number); if (mz.get(x, y) !== v) mz.set(x, y, v); }
+  const vis = visibleFrom(S, S.me.x, S.me.y);
+  for (const f of S.foes) {
+    let o = objs.get(f.id);
+    if (!f.alive) { if (o) { o.visible = false; } continue; }
+    if (!o) {
+      if (f.pet) { o = makePOM(f.pet, { co: f.co ?? "sva" }); const bb = new THREE.Box3().setFromObject(o), h = bb.max.y - bb.min.y || 1, k = (f.elite ? 1.05 : 0.9) / h; o.scale.setScalar(k); o.userData.y0 = -bb.min.y * k; mz.group.add(o); }
+      else { o = mz.addBoard(spriteURL(f.sprite ?? S.def.monsters[0].sprite), f.x, f.y, { h: f.elite ? 1.7 : 1.35 }); o.userData.y0 = 0; }
+      objs.set(f.id, o);
+    }
+    const c = mz.center(f.x, f.y); o.position.set(c.x, o.userData.y0, c.z); o.visible = vis.has(`${f.x},${f.y}`);
+    if (f.pet) { const p = cam.position; o.rotation.y = Math.atan2(p.x - o.position.x, p.z - o.position.z); }
+  }
+  // 護衛の 相手（研究者）は 小さな 光の 柱で
+  if (S.obj.vip) { let v = objs.get("vip"); if (!v) { v = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.18, 1.3, 12), new THREE.MeshStandardMaterial({ color: "#F3E3B0", emissive: "#8A6A20" })); mz.group.add(v); objs.set("vip", v); } const c = mz.center(S.obj.vip.x, S.obj.vip.y); v.position.set(c.x, 0.65, c.z); v.visible = vis.has(`${S.obj.vip.x},${S.obj.vip.y}`) && !(S.obj.vip.x === S.me.x && S.obj.vip.y === S.me.y); }
+}
+const pose = () => mz.pose(S.me.x, S.me.y, S.me.d);
+function moved() { const now = performance.now() / 1000; const cp = cam.position.clone(), d = new THREE.Vector3(); cam.getWorldDirection(d); from = { pos: cp, look: cp.clone().add(d.multiplyScalar(CELL * 2.2)) }; to = pose(); t0 = now; }
+function place(now) {
+  if (!mz) return;
+  if (!to) { from = to = pose(); }
+  const k = Math.min(1, (now - t0) / 0.2), e = k * k * (3 - 2 * k);
+  cam.position.copy(from.pos.clone().lerp(to.pos, e)); cam.lookAt(from.look.clone().lerp(to.look, e));
+}
+function resize() { const b = $("viewbox").getBoundingClientRect(); renderer.setSize(b.width, b.height, false); cam.aspect = b.width / Math.max(1, b.height); cam.fov = cam.aspect < 1 ? 78 : 62; cam.updateProjectionMatrix(); }
+addEventListener("resize", resize);
+renderer.setAnimationLoop((ms) => {
+  if ($("play").hidden || !mz) return;
+  const t = ms / 1000; place(t); mz.tick(t, cam);
+  for (const o of objs.values()) o.userData?.tick?.(t);
+  renderer.render(scene, cam);
+  if (!window.ready) window.ready = true;
+});
+
+// ---- 走る ----
+function start(m) {
+  const lv = lvOf(save), me = playerPet(save.pet, lv, `${MAIN_TREES[save.pet].name}`, save.sub && ELITE_TREES[save.sub] ? [[save.sub, subSp(lv)]] : []);
+  const party = [me, ...(m.allies ?? []).map((n) => linkerPet(LINKERS[n].pet, mercLv(lv), n, n))].map((c, i) => ({ c, hp: null, mp: null, merc: i > 0 }));
+  S = newRun(m, { party, items: { ...bringOf() }, seed: (Date.now() % 100000) | 0, kind: kindOf(m), first: !save.done.includes(m.id) });
+  // HP・MP の 上限（戦う 形から）
+  for (const p of S.party) { const B = newBattle({ party: [p.c], foes: [p.c], seed: 1 }); lookBattle(B); p.maxHp = B.fighters[0].maxHp; p.maxMp = B.fighters[0].maxMp; p.hp = p.maxHp; p.mp = p.maxMp; }
+  show("play"); build3d(); resize(); refresh();
+}
+function refresh() {
+  sync3d();
+  const st = S.kind.status(S);
+  $("objT").innerHTML = `${st[0]}<div class="b">ボーナス：${st[1]}</div>`;
+  $("turnT").textContent = `TURN ${String(S.turn).padStart(3, "0")}`;
+  // 小さな 地図：見た 所・自分・見える 敵・足あと・研究者
+  const cv = $("map");
+  // 2 区画の 地図（昇降機で つなぐ 1-14）は いま いる 区画だけ 描く
+  const off = S.def.map.lifts ? Math.floor(S.me.y / 16) * 16 : 0, inF = (y) => y >= off && y < off + 16;
+  const sk = (k) => { const [x, y] = k.split(",").map(Number); return inF(y) ? `${x},${y - off}` : null; };
+  const seenF = off || S.def.map.lifts ? new Set([...S.seen].map(sk).filter(Boolean)) : S.seen, stateF = off || S.def.map.lifts ? Object.fromEntries(Object.entries(S.state).map(([k, v]) => [sk(k), v]).filter(([k]) => k)) : S.state;
+  drawMap(cv, S.def.map.lifts ? S.rows.slice(off, off + 16) : S.rows, { theme: S.def.theme, px: 14, seen: seenF, me: { ...S.me, y: S.me.y - off }, state: stateF, mates: [...(S.obj.vip ? [{ x: S.obj.vip.x, y: S.obj.vip.y, color: "#F3E3B0" }] : [])] });
+  const g = cv.getContext("2d"), vis = visibleFrom(S, S.me.x, S.me.y);
+  for (const p of S.obj.trail ?? []) if (S.seen.has(`${p.x},${p.y}`) && inF(p.y)) { g.fillStyle = "#E5484D88"; g.fillRect(p.x * 14 + 5, (p.y - off) * 14 + 5, 4, 4); }
+  for (const f of S.foes) if (f.alive && vis.has(`${f.x},${f.y}`) && inF(f.y)) { g.fillStyle = f.elite ? "#E8C25A" : "#E5484D"; g.beginPath(); g.arc(f.x * 14 + 7, (f.y - off) * 14 + 7, 4.5, 0, 7); g.fill(); }
+  // 仲間
+  $("mates").innerHTML = S.party.map((p) => `<div class="mate"><b>${p.c.name}</b><span class="mono">${p.hp} / ${p.maxHp}</span><div class="bar"><i style="width:${(100 * p.hp) / p.maxHp}%"></i></div><div class="bar mp"><i style="width:${(100 * p.mp) / p.maxMp}%"></i></div><span style="grid-column:1/-1;color:var(--sub);font-size:11px">${p.merc ? "傭兵（ガンビットで 自動）" : `Lv ${p.c.lv}　${SPECIES3[p.c.species]?.label ?? ""}`}</span></div>`).join("");
+  $("items").innerHTML = Object.entries(S.items).filter(([, n]) => n > 0).map(([id, n]) => `<button data-it="${id}" title="${CRAWL_ITEMS[id]?.text ?? ""}">${CRAWL_ITEMS[id]?.name.replace("メルヴィル", "") ?? id} ×${n}</button>`).join("") || `<span style="color:var(--sub);font-size:12px">なし</span>`;
+  document.querySelectorAll("#items button").forEach((b) => (b.onclick = () => { const who = b.dataset.it === "mlv_revive" ? Math.max(0, S.party.findIndex((p) => p.hp <= 0)) : S.party.reduce((a, p, i) => (p.hp > 0 && p.hp / p.maxHp < S.party[a].hp / S.party[a].maxHp ? i : a), 0); if (useItem(S, b.dataset.it, who)) refresh(); }));
+  const L = S.loot, nm = L.mats.reduce((s, x) => s + x.n, 0), nc = Object.values(L.codes).reduce((s, x) => s + x, 0);
+  $("loot").textContent = nm || L.samples.length || nc ? `拾った：${[nm && `素材 ${nm}`, L.samples.length && `サンプル ${L.samples.length}`, nc && `コード ${nc}`].filter(Boolean).join("・")}` : "";
+  $("log").innerHTML = S.log.slice(-6).reverse().map((l) => `<div>T${l.turn}　${l.text}</div>`).join("");
+  const last = S.log[S.log.length - 1];
+  $("note").hidden = !last || S.turn - last.turn > 1; if (last) $("note").textContent = last.text;
+  talkNext();
+  if (S.battle && $("fight").hidden) return openFight();
+  if (S.result) return setTimeout(result, 900);
+}
+// 台詞（エンブレムと 名前つきの 字幕。一度に 1 行）
+let talkT = 0;
+function talkNext() {
+  if (Date.now() < talkT) return;
+  const t = S.talk.shift();
+  if (!t) { $("talk").hidden = true; return; }
+  const col = t.emblem ? COMPANY[t.emblem]?.band ?? "#9C9BA4" : "#9C9BA4";
+  $("tEm").style.background = col; $("tEm").textContent = (t.who || "?").slice(0, 1);
+  $("tWho").textContent = t.who; $("tText").textContent = t.text; $("talk").hidden = false;
+  talkT = Date.now() + 3200; setTimeout(() => { talkT = 0; if (S) talkNext(); }, 3300);
+}
+$("talk").onclick = () => { talkT = 0; talkNext(); };
+// 動く：押したら すぐ（1 人の とき）／押して 完了（3 人の ときの 決まりの 形）
+function go(a) {
+  if (!S || S.result || S.battle) return;
+  if (a.t === "turn" || $("instant").checked) { act(S, a); if (a.t !== "turn") moved(); else moved(); refresh(); setPlan(null); return; }
+  setPlan(a);
+}
+function setPlan(a) { plan = a; for (const [id, k] of [["kF", "f"], ["kB", "b"], ["kSL", "l"], ["kSR", "r"]]) $(id).setAttribute("aria-pressed", String(!!a && a.t === "move" && a.dir === k)); $("done").disabled = !a && !$("instant").checked ? false : false; }
+$("done").onclick = () => { if (plan) { act(S, plan); moved(); setPlan(null); refresh(); } else go({ t: "wait" }); };
+$("kF").onclick = () => go({ t: "move", dir: "f" }); $("kB").onclick = () => go({ t: "move", dir: "b" });
+$("kSL").onclick = () => go({ t: "move", dir: "l" }); $("kSR").onclick = () => go({ t: "move", dir: "r" });
+$("kL").onclick = () => go({ t: "turn", k: -1 }); $("kR").onclick = () => go({ t: "turn", k: 1 });
+$("kUse").onclick = () => { if (S && !S.battle && !S.result) { act(S, { t: "use" }); refresh(); } };
+$("kWait").onclick = () => go({ t: "wait" });
+document.querySelectorAll("#mtabs button").forEach((b) => (b.onclick = () => {
+  const r = $("rail"), on = b.getAttribute("aria-pressed") !== "true";
+  document.querySelectorAll("#mtabs button").forEach((x) => x.setAttribute("aria-pressed", "false"));
+  r.className = on ? `open k-${b.dataset.k}` : "";
+  if (on) { b.setAttribute("aria-pressed", "true"); $("mtabs").after(r); } else $("play").append(r);
+}));
+$("giveup").onclick = () => { if (S && !S.result) { S.result = { ok: false, why: "撤収した" }; result(); } };
+addEventListener("keydown", (e) => {
+  if ($("play").hidden || !S) return;
+  const k = e.key.toLowerCase();
+  if (S.battle) { if (k === "enter") $("cmds").querySelector("button:not(:disabled)")?.click(); return; }
+  const map = { arrowup: ["move", "f"], w: ["move", "f"], arrowdown: ["move", "b"], s: ["move", "b"], q: ["move", "l"], e: ["move", "r"], arrowleft: ["turn", -1], a: ["turn", -1], arrowright: ["turn", 1], d: ["turn", 1] };
+  if (map[k]) { const [t, v] = map[k]; go(t === "move" ? { t, dir: v } : { t, k: v }); e.preventDefault(); }
+  else if (k === " ") { $("kUse").click(); e.preventDefault(); }
+  else if (k === "enter") { $("done").click(); e.preventDefault(); }
+});
+
+// ---- 戦い（正面に 敵。全員の コマンドを 入れて から AGI の 順） ----
+let B = null, tgt = null, tab = "b";
+function openFight() {
+  const b = S.battle, stun = { stun: { amt: 1, turns: 1 } };
+  const party = S.party.map((p) => ({ ...p.c, startHp: p.hp, startMp: p.mp, ...(b.first === "foe" ? { startFx: stun } : {}) }));
+  const foes = b.foes.map((f) => ({ ...f, ...(b.first === "me" ? { startFx: stun } : {}) }));
+  const bag = Object.fromEntries(Object.entries(S.items).filter(([id, n]) => n > 0));
+  B = newBattle({ party, foes, seed: S.seed + S.turn * 31, items: bag, elite: b.elite });
+  lookBattle(B); tgt = null;
+  $("fight").hidden = false; $("pad").style.visibility = "hidden";
+  $("blog").innerHTML = b.first === "me" ? "先制！ 敵は 最初の ターン 動けない" : b.first === "foe" ? "不意打ち！ こちらは 最初の ターン 動けない" : "";
+  $("elite").textContent = "";
+  drawFight();
+}
+function drawFight() {
+  const n = B.party.length;
+  $("foes").innerHTML = B.foes.map((f, j) => {
+    const i = n + j, s = B.now[i], mx = B.fighters[i].maxHp, pet = f.species;
+    const src = pet ? petImg(pet) : spriteURL(f.sprite ?? S.def.monsters[0].sprite);
+    return `<button class="foe${pet ? " pet" : ""}${s.hp <= 0 ? " down" : ""}${tgt === i ? " tgt" : ""}" data-i="${i}"><img src="${src}" alt=""><span class="nm mono">${f.name}</span><span class="bar"><i style="width:${(100 * Math.max(0, s.hp)) / mx}%;background:var(--alert)"></i></span></button>`;
+  }).join("");
+  document.querySelectorAll(".foe").forEach((el) => (el.onclick = () => { const i = +el.dataset.i; if (B.now[i].hp > 0) { tgt = i; drawFight(); } }));
+  $("bMates").innerHTML = B.party.map((c, i) => { const s = B.now[i], f = B.fighters[i]; return `<div class="m"><b>${c.name}</b><div class="bar"><i style="width:${(100 * Math.max(0, s.hp)) / f.maxHp}%"></i></div><div class="bar mp"><i style="width:${(100 * s.mp) / f.maxMp}%"></i></div><span class="st mono">${Math.max(0, s.hp)} / ${f.maxHp}　${i === 0 ? ($("auto").checked ? "オート" : "考え中") : "ガンビット"}</span></div>`; }).join("");
+  const C = commandsOf(B, 0), box = $("cmds");
+  $("tabB").setAttribute("aria-pressed", String(tab === "b")); $("tabF").setAttribute("aria-pressed", String(tab === "f"));
+  if (B.over) { box.innerHTML = `<button id="bEnd">${B.over === "win" ? "勝った — 進む" : "力つきた — 進む"}</button>`; $("bEnd").onclick = closeFight; return; }
+  if (tab === "f") { const fa = S.kind.field?.(S); box.innerHTML = fa ? `<button data-c="field" ${B.now[0].hp > 0 ? "" : "disabled"} title="${fa.text}">${fa.name}<span class="sub">${fa.text}</span></button>` : `<span style="color:var(--sub);font-size:13px">ここで 使える しかけは ない</span>`; box.querySelectorAll("button").forEach((b) => (b.onclick = () => turn("field"))); return; }
+  const me = B.now[0].hp > 0;
+  box.innerHTML = `<button data-c="kogeki" ${me ? "" : "disabled"}>攻撃</button>` +
+    C.abilities.map((a) => `<button data-c="${a.id}" ${a.ok && me ? "" : "disabled"} title="${a.text}">${a.name}<span class="sub">MP ${a.mp}</span></button>`).join("") +
+    `<button data-c="bougyo" ${me ? "" : "disabled"}>防御</button>` +
+    C.items.map((it) => `<button data-c="${it.id}" ${me ? "" : "disabled"} title="${it.text}">${it.name.replace("メルヴィル", "")}<span class="sub">×${it.n}</span></button>`).join("") +
+    `<button data-c="retreat" ${B.elite ? "disabled" : ""} title="${B.elite ? "精鋭と 大型ボスからは 撤退 できない" : `成功 ${Math.round(retreatChance(B) * 100)}%`}">撤退</button>`;
+  box.querySelectorAll("button").forEach((b) => (b.onclick = () => turn(b.dataset.c)));
+  if ($("auto").checked) setTimeout(() => B && !B.over && turn(null), 700);
+}
+function turn(c) {
+  if (c === "retreat") {
+    if (S.R() < retreatChance(B)) { $("blog").innerHTML = "撤退した"; B.now && endBattle(S, B, "retreat"); return shut(); }
+    c = "bougyo"; $("blog").innerHTML = "撤退に 失敗した";
+  }
+  let fieldDone = false;
+  if (c === "field") { const fa = S.kind.field?.(S); if (fa) { fa.run(); fieldDone = true; } c = "c_field"; } // その場の しかけ：迷宮の 側で はたらき、戦いでは 1 手 使う
+  const before = B.now.map((s) => s.hp);
+  const pk = c ? { 0: { id: c, ...(tgt != null ? { tgt } : {}) } } : {};
+  commit(B, pk);
+  if (fieldDone && S.result) { endBattle(S, B, "field"); return shut(); } // しかけで ミッションが 終わった（最後の 発電機・保管庫）
+  const lines = B.turnEv.map((e) => e.log).filter(Boolean);
+  $("blog").innerHTML = lines.map((l) => `<div>${l}</div>`).join("");
+  eliteLine(before);
+  if (tgt != null && B.now[tgt].hp <= 0) tgt = null;
+  drawFight();
+}
+// 精鋭の 台詞（節目：はじめ・HP が 半分を 切った とき・だれかが 力つきた とき。ときどき ランダム。資料の 4 場面 ＋ Claude の 案の fall）
+function eliteLine(before) {
+  const n = B.party.length, said = (who, text) => text && ($("elite").textContent = `${who}：${text}`);
+  const foeEl = S.battle?.foe?.elite && ELITE_LINES[S.battle.foe.name] ? S.battle.foe.name : null, foeI = n;
+  const mates = B.party.map((c, i) => [c.name, i]).filter(([nm, i]) => i > 0 && ELITE_LINES[nm] && B.now[i].hp > 0);
+  const fell = B.now.map((s, i) => before[i] > 0 && s.hp <= 0 ? i : -1).filter((i) => i >= 0);
+  if (foeEl && B.now[foeI].hp > 0 && B.now[foeI].hp < B.fighters[foeI].maxHp / 2 && !B.saidHalf) { B.saidHalf = true; return said(foeEl, ELITE_LINES[foeEl].fight); }
+  if (fell.length) {
+    const ourSide = fell.some((i) => i < n), theirSide = fell.some((i) => i >= n && i !== foeI);
+    if (foeEl && B.now[foeI].hp > 0 && (ourSide || theirSide)) return said(foeEl, ourSide ? ELITE_LINES[foeEl].fall?.foe : ELITE_LINES[foeEl].fall?.mate);
+    if (mates.length) { const [nm] = mates[0]; return said(nm, fell.some((i) => i >= n) ? ELITE_LINES[nm].fall?.foe : ELITE_LINES[nm].fall?.mate); }
+  }
+  if (Math.random() < 0.12) { // ときどき（いまの 台詞から。見せる だけなので 迷宮の くじは 使わない）
+    const pool = [...(foeEl && B.now[foeI].hp > 0 ? [[foeEl, ELITE_LINES[foeEl].fight], [foeEl, ELITE_LINES[foeEl].meet]] : []), ...mates.flatMap(([nm]) => [[nm, ELITE_LINES[nm].ally], [nm, ELITE_LINES[nm].fight]])].filter(([, x]) => x);
+    if (pool.length) { const [nm, x] = pool[Math.floor(Math.random() * pool.length)]; said(nm, x); }
+  }
+}
+function closeFight() { endBattle(S, B, B.over === "win" ? "win" : "lose"); shut(); }
+function shut() { $("fight").hidden = true; $("pad").style.visibility = ""; B = null; refresh(); }
+$("tabB").onclick = () => { tab = "b"; drawFight(); }; $("tabF").onclick = () => { tab = "f"; drawFight(); };
+$("auto").onchange = () => B && drawFight();
+
+// ---- 結果 ----
+function result() {
+  if ($("result").hidden === false) return;
+  const r = S.result, m = S.def;
+  $("rTitle").textContent = r.ok ? (r.bonus ? "完全成功" : "成功") : "失敗";
+  $("rTitle").style.color = r.ok ? "var(--ok)" : "var(--alert)";
+  $("rWhy").textContent = `${m.no} ${m.title}　${r.why}　（${S.turn} ターン）`;
+  const o = settle(S, save); // 財布へ（はじめての 成功なら done にも 入る）
+  if (r.ok && m.id === "c1m06") save.metSplint = true;
+  keep();
+  const row = (k, v) => `<div class="r"><span>${k}</span><span>${v}</span></div>`;
+  const mats = (list) => list.map((x) => `${x.name}${x.q ? `（品質 ${x.q}）` : ""} ×${x.n}`).join("、");
+  let h = "";
+  if (!o.ok) {
+    const L = o.lost, any = L.mats || L.samples || L.codes;
+    h += row("失った 物", any ? [L.mats && `素材 ${L.mats}`, L.samples && `貴重サンプル ${L.samples}`, L.codes && `解析コード ${L.codes}`].filter(Boolean).join("・") : "なし");
+  } else if (o.first) {
+    h += row("報酬金", `${o.pay.toLocaleString()} cr`);
+    if (o.bonusPay) h += row("完全成功", `+${o.bonusPay.toLocaleString()} cr`);
+    if (o.record) h += row("記録", `「${o.record}」`);
+    for (const [k, n] of Object.entries(o.codes)) { const c = save.codes[k]; h += row("解析コード", `${ANALYSIS[k].tree} +${n}　${c} / ${CODE_NEED}<span class="pbar"><i style="width:${(c * 100) / CODE_NEED}%"></i></span>`); }
+    for (const s of o.samples) h += row("貴重サンプル", `${s.name}（${s.fam}・★ 未鑑定）`);
+  } else if (o.late) {
+    h += row("完全成功", `+${o.bonusPay.toLocaleString()} cr`);
+    if (o.record) h += row("記録", `「${o.record}」`);
+  } else h += row("2 回目", "報酬は なし（経験値だけ）");
+  if (o.ok && o.mats.length) h += row("素材", mats(o.mats));
+  h += row("経験値", `+${o.exp}${o.lvUp ? `　Lv ${o.lv} に 上がった` : ""}`);
+  $("rList").innerHTML = h;
+  const order = r.ok && AFTER[m.id];
+  $("rOrder").hidden = !order; if (order) $("rOrder").innerHTML = `<div class="mono" style="color:var(--sub);font-size:11px;letter-spacing:.2em">ORDER</div>${order}`;
+  show("result");
+}
+$("back2").onclick = () => { S = null; home(); };
+
+// 1-08 で SPLINT に 前に 会った か（1-06 を 先に 終えて いれば 台詞が かわる）
+const _start = start;
+const direct = q.get("m") && MISSIONS.find((m) => m.id === q.get("m"));
+// 本番（MONO LINK の サイトの /lounge/crawler.html）では 門番に 聞く。大工事の あいだは 鹿さんと おたこまるさんだけ（鹿さんの カード、2026-11-04）
+// 工事中の 画面は lounge-client.js の me() が ほかの 画面と 同じ 形で 出す。見本（demoMode）では 聞かない
+const gate = demoMode ? null : await me();
+if (gate && (gate.denied || gate.ok === false)) {
+  show(null); $("gate").hidden = false; $("gateWhy").textContent = gate.why || "もう 1 回 開いて ください"; $("gateLogin").hidden = !gate.login;
+} else if (gate?.lock) show(null);   // 工事中の 画面は me() が 出した。後ろの ホームも しまう
+else {
+  if (direct) brief(direct); else if ((!save.signed && !save.done.length) || q.get("intro") === "1") intro(); else home(); // はじめての 人は はじまりから（?intro=1 で もう一度）
+}
+window.crawl = { get S() { return S; }, get B() { return B; }, act: (a) => { act(S, a); moved(); refresh(); } };
+</script>
+</body>
+</html>

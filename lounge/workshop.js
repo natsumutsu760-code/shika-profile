@@ -94,7 +94,7 @@ export const ATT_BASES = [
 ];
 export const attBase = (id) => ATT_BASES.find((b) => b.id === id) || null;
 // ★の くじ（工房の Lv ごと）。★4 だけ OP が 2 つ
-export const ATT_STAR = { 1: { 1: 70, 2: 30 }, 2: { 1: 35, 2: 45, 3: 20 }, 3: { 2: 40, 3: 40, 4: 20 }, 4: { 3: 35, 4: 45, 5: 20 } };   // Lv4 は ニライ諸島が 開いてから
+export const ATT_STAR = { 1: { 1: 70, 2: 30 }, 2: { 1: 35, 2: 45, 3: 20 }, 3: { 2: 40, 3: 40, 4: 20 }, 4: { 3: 35, 4: 45, 5: 20 } };   // Lv4 は ビサイ諸島が 開いてから
 export const attOpN = (star) => (star >= 5 ? 3 : star >= 4 ? 2 : 1);
 export const ATT_MAX = 60;   // 武器に 付けて いない アタッチメントを 持てる 数
 

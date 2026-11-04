@@ -45,7 +45,7 @@ export const WORDS = {
   "敵を えらんで": "Choose an enemy", "その 階には まだ 行けない": "You can't go to that floor yet", "出かけて いない": "Not out on an expedition", "まだ 帰って いない（もう 少し）": "Not back yet (almost)",
   "回数を えらんで": "Choose how many times", "出発する ときに えらんで": "Choose when setting out", "手放し方を えらんで": "Choose how to discard", "手放す 装備を えらんで": "Choose gear to discard",
   "付けて いる 装備は 手放せない（はずして から）": "Can't discard equipped gear (unequip it first)", "売る ★と もらう 物を えらんで": "Choose the ★ to sell and what to receive", "知らない 施設": "Unknown facility",
-  "もう いちばん 上の Lv": "Already at max Lv", "Lv# は 無線機を 作って から（ニライ諸島が 開くと 上げられる）": "Lv# needs the Radio first (it opens with the Nirai Isles)", "前の 強化が まだ 決まって いない（配信の 画面の 返事を 待って いる）": "Your last upgrade isn't settled yet (waiting for the stream to reply)",
+  "もう いちばん 上の Lv": "Already at max Lv", "Lv# は 無線機を 作って から（ビサイ諸島が 開くと 上げられる）": "Lv# needs the Radio first (it opens with the Bisai Isles)", "前の 強化が まだ 決まって いない（配信の 画面の 返事を 待って いる）": "Your last upgrade isn't settled yet (waiting for the stream to reply)",
   "作業台が まだ ない（隠れ家で 作る）": "No Workbench yet (build it in the Hideout)", "知らない レシピ": "Unknown recipe", "レシピが まだ 出て いない（素材を ぜんぶ 1 回 拾うと 出る）": "Recipe not unlocked yet (pick up each material once to unlock it)",
   "合成は 作業台 Lv2 から": "Fusion needs Workbench Lv2", "レシピが まだ 出て いない": "Recipe not unlocked yet", "合成する 装備を えらんで": "Choose gear to fuse", "付けて いる 装備は 合成できない（はずして から）": "Can't fuse equipped gear (unequip it first)",
   // スキルツリー・ガンビット
@@ -75,7 +75,7 @@ export const WORDS = {
   "炉を えらんで": "Choose a furnace", "その 炉は 使って いる": "That furnace is in use", "作る 延べ棒を えらんで": "Choose an ingot", "入れる 数は 1〜# 本": "Load 1–#", "その 炉は 空いて いる": "That furnace is empty",
   // 施設の 作り直し（2026-11-03）：建設・つまみ・維持費の 断り
   "いま 建てて いる": "Already under construction", "もう いちばん 上": "Already at max level", "建てて いない": "Not under construction",
-  "Lv# は 無線機を 作って から（ニライ諸島の 素材が いる）": "Lv# needs the Radio first (uses Nirai Isles materials)", "その 素材は いらない": "That material isn't needed",
+  "Lv# は 無線機を 作って から（ビサイ諸島の 素材が いる）": "Lv# needs the Radio first (uses Bisai Isles materials)", "その 素材は いらない": "That material isn't needed",
   "入れる 素材を 持って いない": "You have no materials to add", "時間は もう 足りて いる（素材を 入れると できる）": "The time is already done (add the materials to finish)",
   "燃料の 数を えらんで": "Choose how much fuel", "つまみの ない 施設": "This facility has no dial", "#〜# で えらんで": "Choose #–#",
   "クレジットが 足りない": "Not enough credits", "維持費が 足りない": "Not enough for upkeep", "クレジット あと #（つまみを 下げると 安い）": "# more credits (lower the dial to pay less)",

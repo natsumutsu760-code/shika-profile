@@ -34,13 +34,18 @@
   .badge { display:inline-flex; align-items:center; gap:5px; border-radius:999px; padding:4px 10px 4px 5px; font:700 12px/1 var(--jp); color:#fff; background:var(--c); }
   .badge::before { content:""; width:11px; height:11px; border-radius:50%; background:#fff; opacity:.85; }
   .lv { font:600 16px/1 var(--num); } .lv small { font:700 12px/1 var(--jp); color:var(--soft); margin-right:3px; }
-  .pts { justify-self:end; text-align:right; font:700 12px/1.2 var(--jp); color:var(--soft); }
+  .pts { justify-self:end; text-align:right; font:700 12px/1.2 var(--jp); color:var(--soft); white-space:nowrap; }
   .pts b { display:block; font:600 26px/1 var(--num); color:var(--sky); }
   .tabs { display:flex; gap:8px; margin:12px 0 10px; overflow-x:auto; padding-bottom:4px; }
   .tabs button { flex:none; border:1.5px solid var(--line); background:rgba(255,255,255,.9); border-radius:999px; padding:8px 16px; font:700 14px/1 var(--jp); }
   .tabs button[aria-selected="true"] { background:var(--ink); color:#fff; border-color:var(--ink); box-shadow:0 5px 0 rgba(27,35,64,.22); }
   .head { display:flex; align-items:baseline; gap:10px; flex-wrap:wrap; margin-bottom:10px; }
   .head h2 { font:900 20px/1.3 var(--jp); } .head span { font:700 12px/1.4 var(--jp); color:var(--soft); }
+  /* 振り方の 切りかえ（自動・手動）：見出しの 右 */
+  .mode { margin-left:auto; display:inline-flex; padding:3px; border-radius:999px; background:var(--space); align-self:center; }
+  .mode button { border:0; background:none; border-radius:999px; padding:7px 14px; font:900 13px/1 var(--jp); color:var(--soft); }
+  .mode button[aria-pressed="true"] { background:#fff; color:var(--ink); box-shadow:0 2px 0 var(--line); }
+  .head .sub { flex-basis:100%; }
 
   /* 適正のしるし：S・A・B・C・D */
   .rk { display:inline-grid; place-items:center; width:26px; height:26px; border-radius:8px; font:700 15px/1 var(--num); color:#fff; background:var(--r); box-shadow:inset 0 -2px 0 rgba(27,35,64,.18); }
@@ -57,6 +62,7 @@
   .bar i { display:block; height:100%; }
   .seg-base { background:#C9CFDD; } .seg-auto { background:var(--job); } .seg-hand { background:var(--sky); } .seg-tree { background:var(--amber); } .seg-eq { background:var(--violet); }
   .plus { width:36px; height:36px; border-radius:12px; border:0; background:var(--sky); color:#fff; font:700 20px/1 var(--num); box-shadow:0 4px 0 rgba(46,168,255,.3); }
+  .rows.auto .row { grid-template-columns:46px 26px 54px minmax(0, 1fr); }
   .row.S { border-color:#FFC2D3; background:linear-gradient(90deg, #FFF3F7, #fff 40%); }
   .row.D { background:linear-gradient(90deg, #F3F4FF, #fff 40%); }
   .legend { display:flex; flex-wrap:wrap; gap:12px; margin-top:10px; font:700 11px/1.2 var(--jp); color:var(--soft); }
@@ -107,6 +113,7 @@
     .pet .pic { width:48px; height:48px; border-radius:12px; } .pet h1 { font-size:20px; } .pet h1 small { font-size:12px; }
     .cols { grid-template-columns:minmax(0, 1fr); }
     .row { grid-template-columns:40px 24px 46px minmax(0, 1fr) 32px; gap:7px; padding:6px 6px 6px 10px; }
+    .rows.auto .row { grid-template-columns:40px 24px 46px minmax(0, 1fr); }
     .row .v { font-size:19px; } .plus { width:32px; height:32px; border-radius:10px; } .rk { width:24px; height:24px; font-size:14px; }
     .grid8 { grid-template-columns:repeat(2, minmax(0, 1fr)); }
   }
@@ -118,7 +125,7 @@
 <main id="app"></main>
 <script type="module">
 import "./lounge-en.js";   // 英語の 画面（MONO LINK の サイトの EN／日本語 と 同じ 決まり。英語の ときだけ 辞書を 読む）
-import { growthParts, buildPet, learned, APTITUDE, APT_MUL, jobFit, JOB_GROWTH } from "./trees.js";
+import { growthParts, freeAlloc, freeIsAuto, buildPet, learned, APTITUDE, APT_MUL, jobFit, JOB_GROWTH } from "./trees.js";
 import { TYPES, TREE_IDS } from "./skills.js";
 import { itemStats } from "./equip.js";
 
@@ -147,40 +154,41 @@ const PETS = [
   { sp: "chokin", name: "チャリン", label: "ちょきんばこ", img: "img/pet-chokin.png", why: "コインでずっしり重い体当たりで ATK。食いしんぼうで HP、コインの運で LUK。ハンマーで割れるので DEF はにがて" },
 ];
 
-// ペットは 門番の 1 匹目。手で 振る ポイント：free が null なら「おまかせ」（職業の 重みで 自動に 振って いる）
-// 自分で 振る：おまかせからは 0 から 好きに 配れる。決めた あとは ふやすだけ（へらすのは スキルツリーの 振り直しで）
+// ペットは 門番の 1 匹目。手で 振る ポイント（レベルごとに 1 つ）は 自動・手動を 切りかえる（2026-11-04 鹿さん「ステータスの割り振り自動と手動の切り替えがないです」）
+// 自動：手で 振った 分は そのまま、のこりを 職業の 重みで。手動：のこりを 好きに 振る。決めた あとは ふやすだけ（へらすのは スキルツリーの 振り直しで）
 let ME = await me(), MP = ME.pets && ME.pets[0];
-const P = { add: {}, edit: false };
+const P = { add: {} };
 const sumOf = (o) => Object.values(o || {}).reduce((a, v) => a + v, 0);
 function renderPet() {
   const gate = gateHtml(ME, esc); if (gate) return gate;
   const info = petInfo(MP), why = (PETS.find((x) => x.sp === MP.species) || {}).why || "", sp = MP.species, ty = TYPES[MP.type], A = APTITUDE[sp];
-  const auto = MP.free == null && !P.edit, base = MP.free == null ? {} : MP.free, cur = auto ? null : Object.fromEntries(KEYS.map((k) => [k, (base[k] || 0) + (P.add[k] || 0)]).filter(([, v]) => v > 0));
-  const G = growthParts(MP.type, MP.lv, cur, sp), left = auto ? 0 : G.freeAll - sumOf(cur), pend = sumOf(P.add);
+  const auto = freeIsAuto(MP), base = MP.free || {}, cur = Object.fromEntries(KEYS.map((k) => [k, (base[k] || 0) + (auto ? 0 : P.add[k] || 0)]).filter(([, v]) => v > 0));
+  const G = growthParts(MP.type, MP.lv, auto ? freeAlloc(MP.type, MP.lv, MP.free, true) : cur, sp), H = growthParts(MP.type, MP.lv, cur, sp).hand;   // 帯：手で 振った 分だけ 空色、自動で 振った 分は 職業の 色
+  const left = auto ? 0 : G.freeAll - sumOf(cur), pend = auto ? 0 : sumOf(P.add);
   const tree = {}; for (const id of [MP.type, ...(MP.subs || [])]) for (const [k, v] of Object.entries(learned(id, new Set((MP.taken || {})[id] || []), MP.seed).stats)) tree[k] = (tree[k] || 0) + v;
   const eq = {}; for (const u of Object.values(MP.equip || {})) { const it = (ME.own.equip || []).find((e) => e.uid === u); if (it) for (const [k, v] of Object.entries(itemStats(it))) if (KEYS.includes(k)) eq[k] = (eq[k] || 0) + v; }
   const MAXV = { hp: 160, mp: 50 };
   const rows = KEYS.map((k) => {
-    const parts = [["base", G.base[k]], ["auto", G.auto[k]], ["hand", G.hand[k]], ["tree", tree[k] || 0], ["eq", eq[k] || 0]], tot = Math.round(parts.reduce((a, [, v]) => a + v, 0)), mx = MAXV[k] || 44;
+    const parts = [["base", G.base[k]], ["auto", G.auto[k] + G.hand[k] - H[k]], ["hand", H[k]], ["tree", tree[k] || 0], ["eq", eq[k] || 0]], tot = Math.round(parts.reduce((a, [, v]) => a + v, 0)), mx = MAXV[k] || 44;
     return `<div class="row ${A[k]}"><span class="nm">${SL[k]}</span>${rk(A[k])}<span class="v">${tot}${P.add[k] ? `<em>+${P.add[k]}</em>` : `<small>${pct(APT_MUL[A[k]])}</small>`}</span>
       <span class="bar" role="img" aria-label="${SL[k]} ${tot}">${parts.filter(([, v]) => v > 0).map(([c, v]) => `<i class="seg-${c}" style="width:${(v / mx) * 100}%"></i>`).join("")}</span>
-      <button class="plus" data-k="${k}" aria-label="${SL[k]} に 1 ポイント振る" ${left > 0 ? "" : "disabled"}>+</button></div>`;
+      ${auto ? "" : `<button class="plus" data-k="${k}" aria-label="${SL[k]} に 1 ポイント振る" ${left > 0 ? "" : "disabled"}>+</button>`}</div>`;
   }).join("");
-  const foot = auto ? `<div class="pfoot"><span>いまは <b>おまかせ</b>（職業の 重みで 自動）</span><span class="sp"></span><button class="jelly light" data-do="edit">自分で 振る</button></div>`
-    : pend || P.edit ? `<div class="pfoot"><span>のこり <b>${left}</b></span><span class="sp"></span><button class="jelly light" data-do="undo">${P.edit && MP.free == null ? "おまかせに もどす" : "もどす"}</button><button class="jelly sky" data-do="save" ${pend ? "" : "disabled"}>決める（${pend}）</button></div>`
-    : left ? `<div class="pfoot"><span>振れる ポイントが <b>${left}</b> ある</span></div>` : "";
+  const foot = pend ? `<div class="pfoot"><span>のこり <b>${left}</b></span><span class="sp"></span><button class="jelly light" data-do="undo">もどす</button><button class="jelly sky" data-do="save">決める（${pend}）</button></div>`
+    : !auto && left ? `<div class="pfoot"><span>振れる ポイントが <b>${left}</b> ある</span></div>` : "";
   const fits = JOBS.map((t) => [t, jobFit(sp, t)]).sort((a, b) => b[1] - a[1]), fmin = 0.93, fmax = 1.08;
   return `
   <section class="panel pet" aria-label="ペット">
     <div class="pic"><img src="${info.img}" alt="${esc(info.label)}の${esc(MP.name)}"></div>
     <div><h1>${esc(MP.name)}<small>${esc(info.label)} ／ ${esc(ME.name)} の相棒</small></h1><div class="meta"><span class="badge" style="--c:${ty.color}">${ty.label}</span><span class="lv"><small>Lv</small>${MP.lv}</span></div></div>
-    <div class="pts">振れるポイント<b>${auto ? "自動" : left}</b></div>
+    ${!auto && left ? `<div class="pts">振れる<b>${left}</b></div>` : ""}
   </section>
   <nav class="tabs" role="tablist"><button role="tab" aria-selected="true">ステータス</button><button role="tab" aria-selected="false">スキルツリー</button><button role="tab" aria-selected="false">ガンビット</button><button role="tab" aria-selected="false">装備</button><button role="tab" aria-selected="false">冒険</button><button role="tab" aria-selected="false">なかま</button></nav>
   <div class="cols">
     <section class="panel" aria-label="ステータス" style="--job:${ty.color}">
-      <div class="head"><h2>ステータス</h2><span>レベルが 1 上がるごとに 3 ポイント。2 つは職業の重みで自動、1 つは好きに振れる</span></div>
-      <div class="rows">${rows}</div>
+      <div class="head"><h2>ステータス</h2><div class="mode" role="group" aria-label="振り方"><button data-mode="auto" aria-pressed="${auto}">自動</button><button data-mode="hand" aria-pressed="${!auto}">手動</button></div>
+        <span class="sub">${auto ? "レベルごとの 3 ポイントを ぜんぶ 職業の 重みで 振る" + (sumOf(base) ? "（手で 振った 分は そのまま）" : "") : "レベルごとに 3 ポイント。2 つは 職業の 重みで 自動、1 つは 好きに 振れる"}</span></div>
+      <div class="rows${auto ? " auto" : ""}">${rows}</div>
       ${foot}
       <div class="legend"><span style="--c:#C9CFDD">もとの値</span><span style="--c:${ty.color}">職業で伸びた分</span><span style="--c:var(--sky)">手で振った分</span><span style="--c:var(--amber)">スキルツリー</span><span style="--c:var(--violet)">装備</span></div>
       <p class="note">1 ポイントで HP +4・MP +2・ほかは +1。そこに適正の倍率がかかる（S なら ×1.15）。へらすのは スキルツリーの 振り直しで（1 日 1 回 無料）</p>
@@ -216,13 +224,18 @@ function paint() { document.getElementById("app").innerHTML = view === "all" ? r
 document.getElementById("app").addEventListener("click", async (e) => {
   const b = e.target.closest("button"); if (!b || b.disabled) return;
   if (b.dataset.k) { P.add[b.dataset.k] = (P.add[b.dataset.k] || 0) + 1; return paint(); }
-  if (b.dataset.do === "edit") { P.edit = true; P.add = {}; return paint(); }
-  if (b.dataset.do === "undo") { if (!sumOf(P.add)) P.edit = false; P.add = {}; return paint(); }
+  if (b.dataset.mode) {
+    const want = b.dataset.mode === "auto"; if (want === freeIsAuto(MP)) return;
+    const r = await busy(b, () => act("pet.stat", { auto: want }));
+    if (!r.ok) return toast(r.wait ? waitText : r.why || "切りかえられませんでした");
+    ME = await me(); MP = ME.pets[0]; P.add = {}; paint(); return toast(want ? "自動で 振る" : "手動で 振る");
+  }
+  if (b.dataset.do === "undo") { P.add = {}; return paint(); }
   if (b.dataset.do === "save") {
     const base = MP.free == null ? {} : MP.free, free = Object.fromEntries(KEYS.map((k) => [k, (base[k] || 0) + (P.add[k] || 0)]).filter(([, v]) => v > 0));
     const r = await busy(b, () => act("pet.stat", { free }));
     if (!r.ok) return toast(r.wait ? waitText : r.why || "決められませんでした");
-    ME = await me(); MP = ME.pets[0]; P.add = {}; P.edit = false; paint(); toast("ステータスを 振った");
+    ME = await me(); MP = ME.pets[0]; P.add = {}; paint(); toast("ステータスを 振った");
   }
 });
 paint();

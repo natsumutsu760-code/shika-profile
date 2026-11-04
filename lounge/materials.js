@@ -10,7 +10,7 @@ export const GATHER = {
   morph: { mats: [["brick", "古いレンガ"], ["sleepmoss", "ねむり苔"], ["stardust", "星の砂"], ["oldcloth", "色あせた布"]], hidden: ["dreamshard", "夢のかけら"] },
   kurai: { mats: [["oldnail", "古い釘"], ["nightbloom", "夜咲き草"], ["wellwater", "井戸の水"], ["candle", "ろうそく"]], hidden: ["moondrop", "月のしずく"] },
   crystal: { mats: [["crystalbit", "水晶のかけら"], ["glowstone", "光る石"], ["deepwater", "地底の水"], ["ironore", "鉄鉱石"]], hidden: ["rainbowcrystal", "虹水晶"] },
-  // 2 つめの 島（ニライ諸島。isle: 2）。id と 名前は docs/mono-link-island2.md の 表。行き先（DUNGEONS）は まだ ないので、いまは 施設の Lv4 で 使うだけ（dungeons.js の ISLAND_OPEN）
+  // 2 つめの 島（ビサイ諸島。isle: 2）。id と 名前は docs/mono-link-island2.md の 表。行き先（DUNGEONS）は まだ ないので、いまは 施設の Lv4 で 使うだけ（dungeons.js の ISLAND_OPEN）
   inoh: { isle: 2, mats: [["whitesand", "白い砂"], ["seashell", "小さな貝殻"], ["coconut", "ヤシの実"], ["aasa", "アーサ"]], hidden: ["pinkcoral", "桃色珊瑚"] },
   gama: { isle: 2, mats: [["sailcloth", "古い帆布"], ["emptybottle", "空きびん"], ["rustchain", "錆びた鎖"], ["oldcoin", "古い金貨"]], hidden: ["mapscrap", "宝の地図の切れはし"] },
   tida: { isle: 2, mats: [["seagrass", "潮風の草"], ["lampglass", "灯台のガラス"], ["capestone", "岬の石"], ["akabanaa", "アカバナー"]], hidden: ["suncrystal", "太陽の結晶"] },
@@ -60,7 +60,7 @@ const ENEMY_MAT1 = {
   e_wolf: ["wolf_fang", "狼の牙"], e_shade: ["shadow_shard", "影のかけら"], e_witch: ["poison_vial", "毒の小びん"], e_lantern: ["light_drop", "灯火のしずく"], e_boss_mayor: ["midnight_bell", "夜ふけの鐘"],
   e_lizard: ["crystal_scale", "水晶のうろこ"], e_bat: ["bat_wing", "コウモリの羽"], e_crystal: ["slime_core", "スライムの核"], e_turtle: ["rainbow_shell", "七色の甲羅片"], e_boss_crystal: ["dragon_crystal", "竜水晶"],
 };
-// ニライ諸島（行き先ごとに 敵 3・希少・ボスの 順。敵の ツリーは まだ ない。ドット絵は sprites.js に ある）
+// ビサイ諸島（行き先ごとに 敵 3・希少・ボスの 順。敵の ツリーは まだ ない。ドット絵は sprites.js に ある）
 const ENEMY_MAT2 = {
   e_coconutcrab: ["crab_claw", "ヤシガニのはさみ"], e_gull: ["gull_feather", "ウミネコの羽"], e_sahagin: ["sahagin_scale", "サハギンのうろこ"], e_clownfish: ["rainbow_fin", "虹色のひれ"], e_boss_crab: ["king_shell", "王のこうら"],
   e_pirate: ["pirate_bandana", "海賊のバンダナ"], e_parrot: ["parrot_feather", "オウムの羽"], e_barrel: ["barrel_hoop", "樽のたが"], e_mapseller: ["old_compass", "古いコンパス"], e_boss_redbeard: ["red_beard", "赤いひげ"],
@@ -75,7 +75,7 @@ const ENEMY_MAT2 = {
 };
 export const ENEMY_MAT = { ...ENEMY_MAT1, ...ENEMY_MAT2 };
 // 素材が 何番目の 島の 物か（書いて いない 物は 1）。まだ 開いて いない 島の 素材は 一覧に 出さない（matIsle(id) <= ISLAND_OPEN）
-export const MAT_ISLE = Object.fromEntries([...Object.values(GATHER).filter((g) => g.isle).flatMap((g) => [...g.mats, g.hidden].map(([id]) => [id, g.isle])), ...Object.values(ENEMY_MAT2).map(([id]) => [id, 2]), ["goldore", 2], ["gold_bar", 2]]);   // 金は 坑道 Lv4（ニライ諸島）から
+export const MAT_ISLE = Object.fromEntries([...Object.values(GATHER).filter((g) => g.isle).flatMap((g) => [...g.mats, g.hidden].map(([id]) => [id, g.isle])), ...Object.values(ENEMY_MAT2).map(([id]) => [id, 2]), ["goldore", 2], ["gold_bar", 2]]);   // 金は 坑道 Lv4（ビサイ諸島）から
 export const matIsle = (id) => MAT_ISLE[id] || 1;
 
 // 採取ポイント 1 か所で 1〜2 こ（70%・30%）。その階の 2 種類から半々。かくし通路の採取ポイントは、レア 1 こ ＋ その階の素材 1 こ

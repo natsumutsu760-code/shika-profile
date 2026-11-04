@@ -3281,4 +3281,4 @@ export function matIconURL(id) {
   return (cache[id] = cv.toDataURL());
 }
 // 素材の 絵：採取は ここの 絵、敵の 素材は 落とした 敵の 絵
-export const matPic = (id) => (MAT_ICONS[id] || !MAT_FROM[id] ? matIconURL(id) : spriteURL(MAT_FROM[id]));   // 敵の 素材も 専用の 絵が あれば それ（ニライ諸島から。ない 物は 落とした 敵の 絵）
+export const matPic = (id) => (MAT_ICONS[id] || !MAT_FROM[id] ? matIconURL(id) : spriteURL(MAT_FROM[id]));   // 敵の 素材も 専用の 絵が あれば それ（ビサイ諸島から。ない 物は 落とした 敵の 絵）

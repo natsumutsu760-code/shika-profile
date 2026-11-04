@@ -11,6 +11,7 @@ import { buyPlan, sellAct, tradeAct, taskDone, useItem, deeplinkView, actEvents,
 import { facMigrate, facDue, facStart, facPut, facRush, facFuel, facKnob, facView } from "./lounge-facility.js";   // 施設の 建設と つまみ（施設の 作り直し、2026-11-03）
 import { reqPostPlan, takeFor, items } from "./lounge-req.js";
 import { petTake, petGrow, petSub, petStat, petGambits, petStyle, equipSet, equipBest, respecPlan, fighterOf, spTotal, spUsed, freeTotal, RESET_PRICE } from "./lounge-pet.js";
+import { freeIsAuto } from "./trees.js";   // 手で 振る ポイントが 自動か
 import "./warm.js";   // 派遣の 計算を 温めて おく（はじめの 1 回が おそく ならない ように）
 import { relayEntry } from "./lounge-relay.js";   // 配信の 中継（鹿物語の ランキングの 窓）に あずける 派遣の 材料
 import { swapPlan, cashDo } from "./lounge-money.js";   // 両替（玉・クレジット・アメジスト）
@@ -114,7 +115,7 @@ export class Viewer {
     if (!s) { if (payWaiting(rec, t)) await this.state.storage.setAlarm(Date.now() + 5 * 60 * 1000); return; }   // 玉の 支払いの 返事待ち：あとで もう 1 回（返事が 来たら /acked からも 起こす）
     await this.relay("del", { id: rec.id, uid: s.uid });
     for (const e of s.r.earn || []) await this.earn(rec, e.kind, e.d, "trip.loop");   // ボスの アメジストは 帳簿へ
-    const next = s.next;   // ニライ諸島の 費用も クレジットで tripStart が 払う（払えなければ 周回が 止まる）
+    const next = s.next;   // ビサイ諸島の 費用も クレジットで tripStart が 払う（払えなければ 周回が 止まる）
     await this.loopGo(rec, next);
     await this.save(rec);
   }
@@ -328,7 +329,7 @@ export class Viewer {
     else if (body.a === "tame.equip") r = equipSet(rec, body.who ? body : { ...body, who: "-" });
     else if (body.a === "trip.start") {
       const seed = Math.floor(rand() * 2 ** 31);
-      r = tripStart(rec, body, now, seed);   // ニライ諸島の 費用は クレジットで その場で 払う（前は 玉で、配信の 画面の 返事を 待って いた。2026-10-28 の 決め）
+      r = tripStart(rec, body, now, seed);   // ビサイ諸島の 費用は クレジットで その場で 払う（前は 玉で、配信の 画面の 返事を 待って いた。2026-10-28 の 決め）
       if (r.ok) loopNew(rec, body, now);   // 周回（3・5・10・ずっと）を えらんで いれば はじめる
       if (r.sim) { await this.state.storage.put("sim", r.sim); await this.state.storage.setAlarm(Date.now()); delete r.sim; }   // 計算は アラームで 少しずつ
       if (r.ok) await this.relay("put", relayEntry(rec, rec.trips[rec.trips.length - 1]));
@@ -413,7 +414,7 @@ export class Viewer {
   mine(rec, w) {
     const now = Date.now(); dropOld(rec, now); facMigrate(rec); facDue(rec, now);
     return { id: rec.id, lock: locked(rec, this.env), lockKind: lockKind(), login: rec.login, name: rec.name, nameAt: rec.nameAt, names: rec.names, room: rec.room, own: rec.own, wallet: this.purse(rec, w), waiting: rec.ledger.unknown.length,
-      pets: rec.pets.map((p) => ({ ...p, ...(p.type ? { sp: { all: spTotal(p.lv), left: spTotal(p.lv) - spUsed(p) }, freeLeft: freeTotal(p.lv) - Object.values(p.free || {}).reduce((a, v) => a + v, 0), build: fighterOf(p, rec), resetPrice: RESET_PRICE(p.lv) } : {}) })),
+      pets: rec.pets.map((p) => ({ ...p, ...(p.type ? { sp: { all: spTotal(p.lv), left: spTotal(p.lv) - spUsed(p) }, freeLeft: freeIsAuto(p) ? 0 : freeTotal(p.lv) - Object.values(p.free || {}).reduce((a, v) => a + v, 0), build: fighterOf(p, rec), resetPrice: RESET_PRICE(p.lv) } : {}) })),
       tamed: rec.tamed, party: rec.party, mine: mineView(rec, now), farmv: farmvView(rec, now), smelt: rec.smelt || [], loop: rec.loop || null, lab: rec.lab, labQ: rec.labQ || [], hideout: rec.hideout, knob: rec.knob || {}, fac: facView(rec, now), credits: rec.credits, snacks: rec.snacks, tools: rec.tools, explore: rec.explore, seen: rec.seen, met: rec.met,
       stash: { cap: stashCap(rec) }, equipCap: equipCap(rec), autoSell: rec.autoSell || null, trips: rec.trips.map((t) => tripView(t, now)), deeplink: deeplinkView(rec, jstDay(now)), req: { mine: rec.req.mine, sending: rec.req.out.length } };
   }

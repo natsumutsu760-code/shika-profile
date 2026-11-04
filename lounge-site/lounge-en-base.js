@@ -77,7 +77,7 @@ export const WORDS = {
   "素材は 始めて から 少しずつ 入れられる": "You can add materials bit by bit after starting", "持って いる 素材を 入れる": "Add the materials you have", "手もち #": "have #",
   "時間は 足りた：素材を 入れると できる": "Time's up: add the materials to finish", "グラナート建設": "Granat Construction", "グラナート建設に 頼んだ": "Hired Granat Construction",
   "燃料 # 本": "# fuel", "燃料を 使った": "Used fuel", "# 時間 # 分": "# h # min", "やれる こと #": "# things to do",
-  "無線機を 作ると Lv# から 上げられる（ニライ諸島の 素材が いる）": "Build the Radio to raise it from Lv# (needs Nirai Isles materials)",
+  "無線機を 作ると Lv# から 上げられる（ビサイ諸島の 素材が いる）": "Build the Radio to raise it from Lv# (needs Bisai Isles materials)",
   "つまみ": "Dial", "つまみ Lv#": "Dial Lv#", "いま": "Now", "いま（つまみ Lv#）": "Now (dial Lv#)", "つまみを 回す": "Turn the dial",
   "つまみを Lv# 以上に すると 作れる": "Set the dial to Lv# or higher to make this", "つまみを Lv# 以上に すると 合成できる": "Set the dial to Lv# or higher to fuse",
   "作る たび": "per craft", "派遣ごと": "per trip", "うけとる たび": "per collection", "維持費 #": "Upkeep #", "維持費 # クレジット": "Upkeep: # credits", "維持費 # こみ": "incl. # upkeep",
@@ -89,7 +89,7 @@ export const WORDS = {
   "素材 −#%": "Materials −#%", "研究の アメジストと 時間 −#%": "Research Amethyst & time −#%", "採取と 敵の 素材 ＋#%": "Gathering & enemy materials +#%",
   "着いた 階の 階段が 見える": "Shows the stairs on each floor you reach", "休憩の 回復 ×#": "Rest recovery ×#", "倒れた 子が HP #% で 起きる": "Fallen members get up with #% HP",
   "派遣の 経験値 ＋#%": "Expedition XP +#%", "# しゅるい # こ まで": "Up to #2 per type", "装備 # こ まで": "Up to # gear", "# 体": "# diggers",
-  "# 時間に # こ": "#2 per #1 h", "# 時間 # こ": "#2 per #1 h", "ニライ諸島へ 行ける": "Travel to the Nirai Isles", "ほかの 施設を Lv# から 上げられる": "Other facilities can be raised from Lv#",
+  "# 時間に # こ": "#2 per #1 h", "# 時間 # こ": "#2 per #1 h", "ビサイ諸島へ 行ける": "Travel to the Bisai Isles", "ほかの 施設を Lv# から 上げられる": "Other facilities can be raised from Lv#",
   "自動で リサイクル": "Auto-recycle", "自動で リサイクルするのを やめた": "Auto-recycle turned off", "派遣で 拾った 物だけ・ミシックなどは リサイクルしない": "Expedition drops only · Mythics etc. aren't recycled",
 };
 

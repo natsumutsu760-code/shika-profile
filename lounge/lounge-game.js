@@ -330,7 +330,7 @@ export function tripStart(rec, b, now, seed, check = false, who = null) {
   // 保険（ミネルバ・AMB。出発の 前に 掛ける。鹿さんの 決め、2026-10-29）：1 ふつう・2 手厚い（ミネルバの 店で 開く）。保険料は クレジット
   const ins = b.ins === 2 ? 2 : b.ins === 1 ? 1 : 0, prem = ins ? insPrice(d, ins, rec.perks || {}) : 0;
   if (ins === 2 && !(rec.perks && rec.perks.ins2)) return { ok: false, why: "手厚い 保険は ミネルバの 店で 開く" };
-  const fee = tripCost(d);   // 行き先の 費用（ニライ諸島。前は 玉。2026-10-28 の 決め「同じ 数の クレジット」）
+  const fee = tripCost(d);   // 行き先の 費用（ビサイ諸島。前は 玉。2026-10-28 の 決め「同じ 数の クレジット」）
   if (prem + fee > (rec.credits || 0)) return { ok: false, why: `クレジットが 足りない：あと ${(prem + fee - (rec.credits || 0)).toLocaleString("ja-JP")}（${[fee && `行き先 ${fee.toLocaleString("ja-JP")}`, prem && `保険料 ${prem.toLocaleString("ja-JP")}`].filter(Boolean).join("・")}）` };
   if (check) return { ok: true, ...(fee ? { fee } : {}), ...(ins ? { prem } : {}) };
   const team = [fighterOf(pet, rec), ...mates.map((c) => mateOf(c, rec))];

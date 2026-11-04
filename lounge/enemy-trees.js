@@ -420,9 +420,10 @@ export const ENEMY_TREES = {
       P(6, "e_saiseikessho", "再生する結晶", "毎ターン HP 3% 回復", { hpRegen: 0.03 }),
       P(7, "e_suishoou", "水晶の王", "受けるダメージ −6%・会心で ふえた 分は ひびに なり、3 ターンに 分けて 受ける", { dmgCut: 6, critSplit: 3 }),
     ],
-    plan: [G("first", undefined, "e_kesshoka"), G("hpBelow", 40, "e_suishosaisei"), G("mpAtLeast", 14, "e_daikessho"), G("every", 3, "e_mamoritekamae"), G("every", 2, "e_kesshoarashi"), G("always", undefined, "e_kesshokobushi")] },
+    // 結晶の嵐を 奥義の 前に（奥義を 2〜3 回で MP を 使い切り、あとは こうげき だけ だった。鹿さんの カード「案 2」、2026-11-04）
+    plan: [G("first", undefined, "e_kesshoka"), G("hpBelow", 40, "e_suishosaisei"), G("every", 2, "e_kesshoarashi"), G("mpAtLeast", 14, "e_daikessho"), G("every", 3, "e_mamoritekamae"), G("always", undefined, "e_kesshokobushi")] },
 
-  // ===================== 2 つめの 島「ニライ諸島」（docs/mono-link-island2.md。技と パッシブの id は e_<行き先の 記号>_…）=====================
+  // ===================== 2 つめの 島「ビサイ諸島」（docs/mono-link-island2.md。技と パッシブの id は e_<行き先の 記号>_…）=====================
 
   // ===== イノーの浜 =====
   e_coconutcrab: { name: "ヤシ林のとげ殻", enemy: "ヤシガニ", dungeon: "inoh", rank: "通常", type: "defender", main: "def", sub: "hp", theme: "thorns",
