@@ -18,7 +18,7 @@ export const WORDS = {
   "はめられる スフィアが ない（同じ OP は 2 つ 付けない）": "No Sphere fits (the same OP can't be added twice)", "DEEP LINK/: の ガラク": "Garak in DEEP LINK/:",
   "スフィアの 鑑定": "Sphere appraisal", "鑑定する": "Appraise", "鑑定して いない スフィアは ない": "No unappraised Spheres", "> 装備の 空いた 枠に はめる": "> Set them into empty gear slots",
   "届いた装備・スフィア": "Gear & Spheres received", "中身は DEEP LINK/: の ガラクで 鑑定（空いた OP の 枠に はめる）": "Appraise them with Garak in DEEP LINK/: (set into empty OP slots)",
-  "今回は 装備も スフィアも 出なかった（装備は ボスから、スフィアは 宝箱から まれに）": "No gear or Spheres this time (gear comes from bosses, Spheres rarely from chests)",
+  "今回は 装備も スフィアも 出なかった（スフィアは 宝箱から まれに。装備は 作業台の「開発」で 作る）": "No gear or Spheres this time (Spheres rarely come from chests; make gear with Develop at the Workbench)",
   // ---- 装備（equip.html） ----
   "アクセ": "Acc", "オフ ハンド": "Off-hand", "★の多い順": "Most ★", "新しい順": "Newest", "（そうび中）": "(equipped)", "装": "G", "ペ": "P", "仲": "C",
   "の 宝箱か": "chests or the", "で 手に 入る": "", "まだ 装備が ない。": "No gear yet.", "出かけて いる あいだは かえられない": "Can't change while out on an expedition",

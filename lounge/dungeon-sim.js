@@ -239,7 +239,7 @@ function machine(S) {
     dropMats(g.map((f, k) => k));
     if (C() < SNACK_DROP) { S.snacks++; say("おやつを 拾った", "sys"); }
     if (boss) {
-      S.bossDone = true; prog.bossKills++; S.resource += BOSS_RESOURCE; S.credits += CREDIT.boss; const it = rollItem(R, d, pickW(R, BOSS_STAR)); S.drops.push(it); S.chests.push({ ...it, boss: true });
+      S.bossDone = true; prog.bossKills++; S.resource += BOSS_RESOURCE; S.credits += CREDIT.boss; rollItem(R, d, pickW(R, BOSS_STAR)); S.chests.push({ floor: S.floor, boss: true });   // ボスの ランダム装備は 出さない（鹿さんの 決め 2026-11-05「ボスのランダム装備をやめる」。装備は 開発で 作る。くじの 順番を かえない ため 引くだけ 引く。ミシック・ユニークは 出る）
       if (R() < MYTHIC) S.mythic = true;
       { const us = uniquesOf(d.id); if (us.length && Q() < UNIQUE_RATE) S.unique = us[Math.floor(Q() * us.length)].id; }
       say("ボスを たおした！");
