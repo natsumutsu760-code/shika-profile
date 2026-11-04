@@ -104,6 +104,7 @@
 <p class="toast" id="toast" role="status"></p>
 <script type="module">
 import "./lounge-en.js";   // 英語の 画面（MONO LINK の サイトの EN／日本語 と 同じ 決まり。英語の ときだけ 辞書を 読む）
+import { mountCraftNav } from "./craft-nav.js"; mountCraftNav("workshop");   // クラフトの 施設を 1 回で 切りかえる 札（鹿さんの 頼み 2026-11-05）
 import { craftPop } from "./craft-pop.js";   // えらんだ 物を 作る ポップアップ（2026-11-05）
 import { WS_ITEMS, wsOpen, wsLvOk, WS_MAX, ATT_BASES, ATT_KINDS, attStarW, attOpN, SMELT, SMELT_MAX, furnaces, smeltOf, smeltDone, WS_PROC, PROC_MAX, procOpen, procOf } from "./workshop.js";
 import { facLv, upkeep, BAND_AT } from "./facilities.js";   // 施設の 作り直し（2026-11-03）：工房 Lv1〜100・つまみ・作る たびの 維持費（道具と アタッチメント）。r.lv は 段（Lv1・20・50・80）

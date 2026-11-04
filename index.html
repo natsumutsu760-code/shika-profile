@@ -505,6 +505,8 @@ html:not([lang="en"]) .en-only { display: none !important; }
    スイッチの横にラウンジのタブ、その下にラウンジの画面（/lounge/ の本物の画面をそのまま。中で押した先もこの枠の中） */
 #htabs, .live.hk .sayrow > .say-form, .live.hk .sayrow > .ask, .live.hk #ltabs, .live.hk .lpanel, .live.hk .chatwrap { display: none !important; }
 .live.hk #htabs { display: flex !important; flex: 1; min-width: 0; }
+/* スマホ（狭い 画面）：タブが 5 つ（クラフトを 足した。2026-11-05）で スイッチの 横に 入らないので、タブの 列を スイッチの 下の 行に 回して 横幅いっぱいに */
+@media (max-width: 600px) { .live.hk .sayrow { flex-wrap: wrap; } .live.hk #htabs { flex: 1 0 100%; } }
 .tnum { display: inline-grid; place-items: center; min-width: 17px; height: 17px; margin-left: 5px; padding: 0 4px; border-radius: 999px; background: var(--coral); color: #fff; font: 800 11px/1 var(--num); font-style: normal; vertical-align: 1px; }
 .tnum[hidden] { display: none; }
 .ltabs [aria-selected="true"] .tnum { background: #fff; color: var(--coral); }
@@ -795,6 +797,7 @@ body.live-on .floor::before, body.live-on .isle { animation: none; }
               <button type="button" role="tab" id="ht-trip" data-hp="trip" aria-controls="haken" aria-selected="true" style="--c:var(--leaf)">派遣<i class="tnum" hidden></i></button>
               <button type="button" role="tab" id="ht-pet" data-hp="pet" aria-controls="haken" aria-selected="false" tabindex="-1" style="--c:var(--violet)">ペット<i class="tnum" hidden></i></button>
               <button type="button" role="tab" id="ht-stash" data-hp="stash" aria-controls="haken" aria-selected="false" tabindex="-1" class="ink" style="--c:var(--sun)">スタッシュ<i class="tnum" hidden></i></button>
+              <button type="button" role="tab" id="ht-craft" data-hp="craft" aria-controls="haken" aria-selected="false" tabindex="-1" style="--c:var(--coral)">クラフト</button>
               <button type="button" role="tab" id="ht-room" data-hp="room" aria-controls="haken" aria-selected="false" tabindex="-1" style="--c:var(--sky)">ラウンジ</button>
             </div>
           </div>
@@ -1002,6 +1005,7 @@ body.live-on .floor::before, body.live-on .isle { animation: none; }
     ["そのほか", "#22CC88", [["!けいじばん こんにちは", "ラウンジの掲示板に書く（1 分に 1 回・120 字まで）"], ["!バグ報告 ガチャのあと画面が止まった", "不具合を配信者に知らせる（30 秒に 1 回・300 字まで）"], ["!花火", "画面に花火（!ハート でハート）"], [null, "888 で拍手、草 で草が生える"], ["!モノリンク", "MONO LINK の URL をチャットで受け取る（!サイト でも）"]]]
   ];
   var NOTES = [
+    ["MONO LINK", "2026-11-05", ["配信画面のラウンジのタブに「クラフト」を足しました（前に使った作業台・工房・おやつ工房が開きます）", "作業台・工房・おやつ工房は、画面の上の札で切りかえられます"]],
     ["MONO LINK", "2026-11-05", ["作業台・工房で、えらんだ物を作る画面をポップアップにしました（下まで動かなくなりました）", "戦いの画面で、HP の棒の右にシールド（青いしま）とオーバーヒール（黄緑）が出るようにしました。バリアがあると棒が金色に光ります。ついているバフ・デバフも名前と数で出ます"]],
     ["MONO LINK", "2026-11-05", ["クローラーの先行体験版（第 1 章・1 人で遊べます）を DEEP LINK/: の「ほか」から開けるようにしました。進みはそのブラウザに残ります"]],
     ["MONO LINK", "2026-11-05", ["3 つめの島「ミカネル島」を開きました！ 隠れ家の無線機を Lv2 にすると行けます（行き先 17・敵 85）。敵の絵はドット絵ができるまで「？のたまご」です"]],
@@ -2503,8 +2507,10 @@ var ShikaWheel = (function () {
   // タブは配信のタブと同じ形（派遣・ペット・ラウンジ）。押すと下の枠に、その本物の画面（/lounge/）が出る。派遣中なら探索中の画面
   // しるし（開かなくても分かる）：帰ってきた派遣はスイッチの赤い点と派遣のタブの 1、使えるスキルポイントはペットのタブの数。門番の /api/me から
   // スタッシュ（鹿さんの決め、2026-10-25）：隠れ家の 倉庫の タブの スタッシュ。タブの 数は 預かり箱に ある 物（日が たつと 消える）
-  var LG = "/lounge/", HK_PAGE = { trip: "dungeon.html", pet: "status.html", stash: "hideout.html?t=store&st=stash", room: "lounge-room.html" };
-  var HK_OF = { "dungeon.html": "trip", "status.html": "pet", "skilltree.html": "pet", "gambit.html": "pet", "equip.html": "pet", "tame.html": "pet", "quiz.html": "pet" }; // ほかはラウンジ
+  // クラフト（鹿さんの 頼み 2026-11-05「いちいち地下へ行き施設を選択するのは煩わしいです」）：作業台・工房・おやつ工房のうち、最後に使った所（ラウンジの craft-nav.js が ml-craft に書く）
+  var LG = "/lounge/", HK_PAGE = { trip: "dungeon.html", pet: "status.html", stash: "hideout.html?t=store&st=stash", craft: "bench.html", room: "lounge-room.html" };
+  var CRAFT_PG = { bench: "bench.html", workshop: "workshop.html", snack: "hideout.html?f=snack&craft=1" };
+  var HK_OF = { "dungeon.html": "trip", "status.html": "pet", "skilltree.html": "pet", "gambit.html": "pet", "equip.html": "pet", "tame.html": "pet", "quiz.html": "pet", "bench.html": "craft", "workshop.html": "craft" }; // ほかはラウンジ
   var hk = { on: false, tab: "trip", me: null, at: 0, busy: false, endT: 0 };
   function hkLoad() {
     var tok = tk(); if (!tok || hk.busy) return; hk.busy = true;
@@ -2527,7 +2533,7 @@ var ShikaWheel = (function () {
   }
   function hkTab(name, focus) {
     if (!HK_PAGE[name]) name = "trip";
-    hkSel(name); $("hk-if").src = LG + HK_PAGE[name];
+    hkSel(name); $("hk-if").src = LG + (name === "craft" ? CRAFT_PG[lsGet("ml-craft")] || HK_PAGE.craft : HK_PAGE[name]);
     if (focus) $("ht-" + name).focus();
   }
   // 枠の中で別の画面へ行ったら、タブもそれに合わせる。中で何かしたかもしれないので、しるしも読み直す（10 秒に 1 回まで）
@@ -2537,7 +2543,7 @@ var ShikaWheel = (function () {
     try { path = w.location.pathname; doc = w.document; } catch (e) {}
     if (!/^\/lounge\//.test(path)) { if (path && path !== "blank") location.href = w.location.href; return; } // ラウンジの外（MONO LINK のサイトなど）へは、枠ではなくページごと行く
     var page = path.replace(/^.*\//, ""), qs = ""; try { qs = w.location.search; } catch (e) {}
-    hkSel(HK_OF[page] || (page === "hideout.html" && /[?&]t=store/.test(qs) ? "stash" : "room"));
+    hkSel(HK_OF[page] || (page === "hideout.html" && /[?&]t=store/.test(qs) ? "stash" : page === "hideout.html" && /[?&]craft=1/.test(qs) ? "craft" : "room"));
     // 枠の中では、ラウンジの画面の上の見出し（MONO LINK:// ラウンジ ／ ペット）を出さない（上のタブが同じ役目。その分、探索中の画面を広く）
     if (doc && doc.head && !doc.getElementById("in-live")) { var st = doc.createElement("style"); st.id = "in-live"; st.textContent = "body > header.top { display: none !important; }"; doc.head.appendChild(st); }
     if (Date.now() - hk.at > 10000) hkLoad();
@@ -2715,7 +2721,7 @@ var ShikaWheel = (function () {
     "前にフォローしていた人は使えません": "People who followed before can't use it", "MONO LINK に入ったことのある人は使えません": "People who have been in MONO LINK before can't use it",
     "その招待コードはありません": "That invite code doesn't exist", "自分のコードは使えません": "You can't use your own code", "招待コードは 1 回だけ使えます": "An invite code can be used only once",
     "招待はまだ準備中です。少し待ってからためしてください": "Invites aren't ready yet. Please try again a bit later", "コードをためすのは 1 時間に 10 回までです": "You can try codes up to 10 times an hour",
-    "配信の映像": "Stream video", "派遣": "Expedition", "ペット": "Pet", "スタッシュ": "Stash", "ラウンジ": "Lounge", "コメント": "Comment", "コメントする（! でコマンド）": "Comment (start with ! for commands)",
+    "配信の映像": "Stream video", "派遣": "Expedition", "ペット": "Pet", "スタッシュ": "Stash", "クラフト": "Craft", "ラウンジ": "Lounge", "コメント": "Comment", "コメントする（! でコマンド）": "Comment (start with ! for commands)",
     "送る": "Send", "コメントには Twitch の許可がいります": "Commenting needs permission from Twitch", "許可する": "Allow",
     "配信のメニュー（選んでいるタブをもう一度押すとたたむ）": "Stream menu (tap the open tab again to fold it)",
     "打つ": "Fire", "ゲーム": "Game", "ガチャ": "Gacha", "くじ": "Lottery", "つけかえ": "Wear", "ほか": "More",

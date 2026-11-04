@@ -20,6 +20,7 @@
     --lift:0 18px 40px -18px rgba(27,35,64,.35), 0 2px 0 rgba(27,35,64,.06);
   }
   * { box-sizing:border-box; }
+  body.craft #tabs, body.craft #left { display:none; } body.craft .room { grid-template-columns:1fr !important; max-width:720px; }
   body { margin:0; min-height:100vh; background:radial-gradient(120% 80% at 50% 0%, #FFFFFF 0%, var(--space) 55%, #EAF0FA 100%); color:var(--ink); font:500 16px/1.65 var(--jp); word-break:auto-phrase; text-wrap:pretty; }
   button { font:inherit; color:inherit; cursor:pointer; }
   button:disabled { cursor:not-allowed; }
@@ -173,6 +174,7 @@
 <p class="toast" id="toast" role="status"></p>
 <script type="module">
 import "./lounge-en.js";   // 英語の 画面（MONO LINK の サイトの EN／日本語 と 同じ 決まり。英語の ときだけ 辞書を 読む）
+import { mountCraftNav } from "./craft-nav.js";
 import { FACILITIES, SNACK_RECIPES, storageCap, facMax, facFx, hasKnob, upkeep, FUEL } from "./facilities.js";   // 施設の 作り直し（2026-11-03）：Lv1〜100・建設（始める → 素材 → 時間）・つまみ・維持費。画面は 鹿さんが えらんだ A「1 列の 流れ」
 import { snackCraftHtml, addSnackCss } from "./snack-craft.js";
 import { MAT_NAME, MAT_FROM, HIDDEN_MAT, GATHER, ENEMY_MAT, BOX_DAYS } from "./materials.js";
@@ -225,6 +227,8 @@ function load(m) {
 load(await me());
 const qf = FACILITIES.some((f) => f.id === q.get("f")) ? q.get("f") : null;
 S.tab = qf ? tabOf(qf).id : TABS.some((t) => t.id === q.get("t")) ? q.get("t") : "make";
+// クラフトの 札から 来た とき（?f=snack&craft=1）：おやつ工房の 欄だけ 見せて、頭は 作業台・工房と 同じ 切りかえの 札（鹿さんの 頼み 2026-11-05）
+if (q.get("craft") && qf === "snack") { document.body.classList.add("craft"); mountCraftNav("snack"); }
 // 倉庫の 中の タブ（鹿さんの決め、2026-10-25）：スタッシュ → 強化 → 預かり箱 の 順。1 つずつ 出す（?st= で えらんで 開く。配信ページの「スタッシュ」の タブも ここ）
 const STORE_TABS = [["stash", "スタッシュ"], ["up", "強化"], ["box", "預かり箱"]];
 S.st = STORE_TABS.some(([k]) => k === q.get("st")) ? q.get("st") : qf && tabOf(qf).id === "store" ? "up" : "stash";

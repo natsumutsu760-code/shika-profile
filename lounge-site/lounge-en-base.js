@@ -78,7 +78,7 @@ export const WORDS = {
   "つるはし": "Pickaxe", "ランプ": "Lamp", "掘る 数 ×#": "Digs ×#", "銀・金が # 倍": "Silver & gold ×#", "使う": "Use", "のばす": "Extend", "坑道 Lv# から": "From Mine Lv#",
   "使って います…": "Using…", "つるはしを 使った": "Used the Pickaxe", "ランプを 使った": "Used the Lamp",
   "もどして います…": "Returning…", "とって います…": "Harvesting…", "とれた！": "Harvested!", "うけとって います…": "Collecting…", "掘れた！": "Dug up!", "坑道へ 送って います…": "Sending to the Mine…", "植えて います…": "Planting…",
-  "畑": "Farm", "坑道": "Mine", "畑・坑道": "Farm · Mine", "工房": "Workshop", "作業台": "Workbench",
+  "畑": "Farm", "坑道": "Mine", "畑・坑道": "Farm · Mine", "工房": "Workshop", "作業台": "Workbench", "クラフト": "Craft",
   // 工房の 加工（作物 → 布・建材）
   "加工": "Processing", "建材": "Lumber", "薬": "Medicine", "エンチャント": "Enchants", "お守り": "Charms", "派遣の 道具": "Expedition tools",
   // 工房の 精錬（workshop.html。鹿さんの 決め、2026-10-31）
