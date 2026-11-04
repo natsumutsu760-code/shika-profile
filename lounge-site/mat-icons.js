@@ -1,6 +1,8 @@
 // 採取の 素材（かくし通路の レアも）の ドット絵 16×16。mat-icons.py が 書き出す（直す ときは mat-icons.py を 直して python3 mat-icons.py）
 // px の 1 文字が 1 ピクセル。"." は すき間、a〜 は pal の 色。キーは 素材の id（materials.js）。敵の 素材は 敵の 絵（sprites.js）を 使う
 import { MAT_FROM } from "./materials.js";
+import { CROPS, CROP_MATS } from "./crops.js";   // 作物（畑・採取で 拾う 麦 など）は 作物の ドット絵（2026-11-04、鹿さん「麦のアイコンがないです。」）
+import { cropPic } from "./crop-art.js";
 import { spriteURL } from "./sprites.js";
 
 export const MAT_ICONS = {
@@ -3274,11 +3276,19 @@ export const MAT_ICONS = {
 const cache = {};
 export function matIconURL(id) {
   if (cache[id]) return cache[id];
-  const s = MAT_ICONS[id]; if (!s) return "";
+  const s = MAT_ICONS[id]; if (!s) return (cache[id] = placeholder());   // 絵が まだ ない 物（ミカネル島の 採取の 素材 など。モデリングに 頼んで いる）は 丸い 印（こわれた 画像に しない）
   const cv = document.createElement("canvas"); cv.width = cv.height = 16;
   const cx = cv.getContext("2d");
   s.px.forEach((row, y) => [...row].forEach((ch, x) => { if (ch !== ".") { cx.fillStyle = s.pal["abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ".indexOf(ch)]; cx.fillRect(x, y, 1, 1); } }));
   return (cache[id] = cv.toDataURL());
 }
-// 素材の 絵：採取は ここの 絵、敵の 素材は 落とした 敵の 絵
-export const matPic = (id) => (MAT_ICONS[id] || !MAT_FROM[id] ? matIconURL(id) : spriteURL(MAT_FROM[id]));   // 敵の 素材も 専用の 絵が あれば それ（ビサイ諸島から。ない 物は 落とした 敵の 絵）
+// 素材の 絵：採取は ここの 絵、作物は 作物の 絵（とれた物）、敵の 素材は 落とした 敵の 絵
+const CROP_BY = Object.fromEntries([...CROPS, ...CROP_MATS].filter((c) => c.look).map((c) => [c.id, c]));
+const cropCache = {};
+const cropURL = (id) => cropCache[id] || (cropCache[id] = cropPic(CROP_BY[id], "item"));
+function placeholder() {
+  const cv = document.createElement("canvas"); cv.width = cv.height = 16; const cx = cv.getContext("2d");
+  cx.fillStyle = "#B9C3D8"; cx.beginPath(); cx.arc(8, 8, 5, 0, Math.PI * 2); cx.fill(); cx.fillStyle = "#E3E8F2"; cx.fillRect(6, 6, 2, 2);
+  return cv.toDataURL();
+}
+export const matPic = (id) => (MAT_ICONS[id] ? matIconURL(id) : CROP_BY[id] ? cropURL(id) : MAT_FROM[id] ? spriteURL(MAT_FROM[id]) : matIconURL(id));   // 敵の 素材も 専用の 絵が あれば それ（ビサイ諸島から。ない 物は 落とした 敵の 絵）
