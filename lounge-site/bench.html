@@ -139,11 +139,12 @@
 <main>
   <section class="panel wallet" aria-label="作業台"><h1>作業台 <small id="lv"></small></h1></section>
   <section class="panel" aria-label="装備の木"><div class="gtabs" role="tablist" id="gtabs"></div><div class="key" id="key"></div><div class="cols" id="cols"></div></section>
-  <section class="panel detail" id="detail" aria-live="polite"></section>
+  <dialog id="pop"><div class="cpop-in"><button class="cpop-x" type="button" aria-label="閉じる">×</button><section class="detail" id="detail" aria-live="polite"></section></div></dialog>
 </main>
 <p class="toast" id="toast" role="status"></p>
 <script type="module">
 import "./lounge-en.js";   // 英語の 画面（MONO LINK の サイトの EN／日本語 と 同じ 決まり。英語の ときだけ 辞書を 読む）
+import { craftPop } from "./craft-pop.js";   // えらんだ 物を 作る ポップアップ（2026-11-05）
 import { BASES, KINDS, FORMS, MATS, OPS, baseOf, comboOf, matsOf, opStarOf, opCount } from "./equip.js";
 import { CRAFT, SYNTH, MAT_OP, craftStarW, synthStarW, BOSS_FX, craftOpen, synthOpen, synthCredits } from "./recipes.js";
 import { facLv, upkeep, SYNTH_LV, benchStarMax, benchTopUp } from "./facilities.js";   // 施設の 作り直し（2026-11-03）：作業台 Lv1〜100・つまみ・作るたびの 維持費・合成は Lv20 から
@@ -364,6 +365,7 @@ async function make(b, k) {
 }
 let tid;
 const toast = (t) => { const el = document.getElementById("toast"); el.textContent = t; el.classList.add("on"); clearTimeout(tid); tid = setTimeout(() => el.classList.remove("on"), 4200); };
+const pop = craftPop(document.getElementById("pop"), { label: "作る", width: "860px" });
 document.querySelector("main").addEventListener("click", async (e) => {
   const b = e.target.closest("button"); if (!b || b.disabled) return;
   if (b.dataset.tab) {   // タブを かえたら、えらぶ 物も その タブの 先頭に
@@ -376,7 +378,7 @@ document.querySelector("main").addEventListener("click", async (e) => {
   if (b.dataset.q) { S.q = +b.dataset.q; return render(); }
   if (b.dataset.dev) return makeDev(b, b.dataset.dev);
   if (b.dataset.k) { if (S.sel !== b.dataset.k) { S.made = null; S.q = 0; } S.sel = b.dataset.k; render(); document.querySelector(`[data-k="${S.sel}"]`)?.focus({ preventScroll: true });
-    document.getElementById("detail").scrollIntoView({ block: "nearest", behavior: matchMedia("(prefers-reduced-motion:reduce)").matches ? "auto" : "smooth" }); return; }
+    pop.open(); return; }   // えらんだ 物は ポップアップで 作る（前は 下の 欄へ 自動で 動いた。鹿さん 2026-11-05）
   if (b.dataset.do) await make(b, b.dataset.do);
 });
 if (ME.denied || ME.ok === false) document.querySelector("main").innerHTML = `<section class="panel wallet"><h1>入れません</h1><span>${esc(ME.why || "もう 1 回 開いて ください")}</span>${ME.login ? `<a href="/">MONO LINK で ログイン</a>` : ""}</section>`;

@@ -4,6 +4,7 @@ const P = (p, s) => p(s) || s;
 const n1 = (n, one, many) => (n === "1" ? `1 ${one}` : `${n} ${many}`);
 
 export const WORDS = {
+  "閉じる": "Close",   // 作る ポップアップの ×（craft-pop.js。2026-11-05）
   // ---- 装備開発・結晶・スフィア（2026-11-04） ----
   "素材で 引く": "Draw with materials", "工房・同じ 敵の 素材 # こ（同じ 品質）で 空いた 枠に OP を 1 つ": "Workshop · # of one enemy material (same quality) draws 1 OP into an empty slot",
   "品質の 同じ 敵の 素材が # こ そろうと 引ける（★は 素材の 品質）": "Collect # enemy materials of the same quality to draw (★ = material quality)", "引く": "Draw", "使う 素材": "Material to use",

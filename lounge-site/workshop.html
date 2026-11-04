@@ -25,7 +25,7 @@
   .top { display:flex; align-items:center; gap:10px; padding:12px clamp(16px, 4vw, 40px); }
   .top b { font:700 22px/1 var(--num); letter-spacing:.06em; } .top b i { font-style:normal; color:var(--sky); }
   .top small { font:700 13px/1 var(--jp); color:var(--soft); margin-left:6px; } .top small a { color:inherit; }
-  main { max-width:1060px; margin:0 auto; padding:0 clamp(16px, 4vw, 40px) 48px; display:grid; grid-template-columns:minmax(0, 1.15fr) minmax(0, 1fr); gap:14px; align-items:start; }
+  main { max-width:1060px; margin:0 auto; padding:0 clamp(16px, 4vw, 40px) 48px; display:grid; grid-template-columns:minmax(0, 1fr); gap:14px; align-items:start; }   /* 作るのは ポップアップ（craft-pop.js。2026-11-05）なので 一覧だけ */
   .panel { background:rgba(255,255,255,.92); border-radius:26px; box-shadow:var(--lift); padding:clamp(14px, 2.4vw, 20px); }
   .head { grid-column:1 / -1; display:flex; flex-wrap:wrap; gap:8px 16px; align-items:center; padding:12px 20px; }
   .head h1 { font:900 20px/1.2 var(--jp); display:flex; align-items:center; gap:10px; margin-right:auto; }
@@ -99,11 +99,12 @@
 <main>
   <section class="panel head" aria-label="工房"><h1>工房 <small id="lv"></small></h1><a id="mine" href="equip.html"></a></section>
   <section class="panel" aria-label="作る 物"><div class="gtabs" role="tablist" id="gtabs"></div><div id="list"></div></section>
-  <section class="panel detail" id="detail" aria-live="polite"></section>
+  <dialog id="pop"><div class="cpop-in"><button class="cpop-x" type="button" aria-label="閉じる">×</button><section class="detail" id="detail" aria-live="polite"></section></div></dialog>
 </main>
 <p class="toast" id="toast" role="status"></p>
 <script type="module">
 import "./lounge-en.js";   // 英語の 画面（MONO LINK の サイトの EN／日本語 と 同じ 決まり。英語の ときだけ 辞書を 読む）
+import { craftPop } from "./craft-pop.js";   // えらんだ 物を 作る ポップアップ（2026-11-05）
 import { WS_ITEMS, wsOpen, wsLvOk, WS_MAX, ATT_BASES, ATT_KINDS, attStarW, attOpN, SMELT, SMELT_MAX, furnaces, smeltOf, smeltDone, WS_PROC, PROC_MAX, procOpen, procOf } from "./workshop.js";
 import { facLv, upkeep, BAND_AT } from "./facilities.js";   // 施設の 作り直し（2026-11-03）：工房 Lv1〜100・つまみ・作る たびの 維持費（道具と アタッチメント）。r.lv は 段（Lv1・20・50・80）
 import { OPS } from "./equip.js";
@@ -232,6 +233,7 @@ async function make(b, k) {
   if (isItem) { S.made = null; toast(`${r.name}を ${n} こ 作った`); } else S.made = res.att;
   render();
 }
+const pop = craftPop(document.getElementById("pop"), { label: "作る" });
 document.querySelector("main").addEventListener("click", async (e) => {
   const b = e.target.closest("button"); if (!b || b.disabled) return;
   if (b.dataset.tab) { S.tab = b.dataset.tab; S.sel = keysOf(S.tab)[0]; S.made = null; S.n = 1; S.stopArm = -1; return render(); }
@@ -253,7 +255,7 @@ document.querySelector("main").addEventListener("click", async (e) => {
     load(await me()); render(); return toast(`やめた（${res.got ? `${res.got} 本 受けとり、` : ""}${res.back} 本ぶんの 鉱石を もどした）`);
   }
   if (b.dataset.k) { if (S.sel !== b.dataset.k) { S.made = null; S.n = 1; S.stopArm = -1; } S.sel = b.dataset.k; if (b.dataset.k.startsWith("s:") && S.tab !== "smelt") S.tab = "smelt"; render(); document.querySelector(`[data-k="${S.sel}"]`)?.focus({ preventScroll: true });
-    if (matchMedia("(max-width:860px)").matches) document.getElementById("detail").scrollIntoView({ block: "start", behavior: matchMedia("(prefers-reduced-motion:reduce)").matches ? "auto" : "smooth" }); return; }
+    pop.open(); return; }   // えらんだ 物は ポップアップで 作る（前は 下の 欄へ 自動で 動いた。鹿さん 2026-11-05）
   if (b.dataset.n) { S.n = b.dataset.n === "max" ? canN(S.sel) : +b.dataset.n; return render(); }
   if (b.dataset.do) await make(b, b.dataset.do);
 });

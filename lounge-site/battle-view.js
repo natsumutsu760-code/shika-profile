@@ -26,9 +26,21 @@ const CSS = `
 .bv .gauge i { display:block; height:100%; background:#19E3B1; } .bv .gauge.mp i { background:#6FA0FF; } .bv .gauge i.low { background:#FF2E9A; }
 .bv .chip { position:absolute; right:10px; top:-14px; padding:3px 8px; border-radius:99px; border:3px solid var(--ink); background:#FFF4B3; font:800 12px/1 var(--body); }
 .bv .ty { display:inline-block; padding:2px 6px; border-radius:6px; font:800 11px/1 var(--body); color:#fff; }
-.bv .sts { position:absolute; left:6px; top:-38px; display:flex; gap:4px; white-space:nowrap; }
-.bv .sts i { font-style:normal; padding:3px 7px; border-radius:99px; border:3px solid var(--ink); font:800 12px/1 var(--body); background:#fff; }
-.bv .sts i.y { background:#FFE45C; } .bv .sts i.p { background:#C9A5FF; } .bv .sts i.b { background:#BFE3FF; } .bv .sts i.g { background:#D8F0A0; } .bv .sts i.r { background:#FFB3A0; } .bv .sts i.up { background:#B8F5D8; }
+/* HP の 棒（RoR2 の 形。鹿さん 2026-11-05「シールドはror2のように見せてください」）：棒の 長さ ＝ 最大 HP ＋ オーバーヒール ＋ シールド。HP は 最大 HP の はばの 中で へり、その 右に オーバーヒール（黄緑）・シールド（青い しま）が つながる。バリアは 棒の まわりが 金色に 光る */
+.bv .gauge.hp { grid-template-columns:26px 1fr auto; }
+.bv .gauge div.hpbar { position:relative; }
+.bv .gauge div.hpbar i { position:absolute; top:0; bottom:0; left:0; }
+.bv .gauge div.hpbar i.oh { background:#B9F26B; box-shadow:inset 2px 0 0 #fff; }
+.bv .gauge div.hpbar i.sh { background:repeating-linear-gradient(-45deg, #2FA8FF 0 5px, #8FD6FF 5px 8px); box-shadow:inset 2px 0 0 #fff; }
+.bv .gauge.barrier div.hpbar { border-color:#B88A00; box-shadow:0 0 0 2px #FFD60A, 0 0 10px 2px rgba(255,214,10,.85); }
+.bv .gauge s { min-width:58px; } .bv .gauge s em { font-style:normal; color:#1E7BFF; margin-left:3px; }
+/* バフ・デバフ（名前と 数。stack は 量・turn は のこり ターン）。名札の 中に 2 行まで */
+.bv .fxs { display:flex; flex-wrap:wrap; gap:3px; margin-top:6px; }
+.bv .fxs i { font-style:normal; padding:2px 6px; border-radius:7px; border:2px solid var(--ink); font:800 11px/1.15 var(--body); background:#fff; white-space:nowrap; }
+.bv .fxs i u { text-decoration:none; margin-left:3px; font:400 10px/1 var(--pop); }
+.bv .fxs i.bf { background:#B8F5D8; } .bv .fxs i.bf.st { background:#E3D4FF; } .bv .fxs i.bf.gold { background:#FFE45C; }
+.bv .fxs i.db { background:#FFC9C2; } .bv .fxs i.db.y { background:#FFE45C; } .bv .fxs i.db.p { background:#D9C2FF; } .bv .fxs i.db.b { background:#BFE3FF; } .bv .fxs i.db.g { background:#D8F0A0; } .bv .fxs i.db.r { background:#FFB3A0; } .bv .fxs i.db.w { background:#E4E6EE; }
+.bv .fxs i.more { background:#E4E6EE; }
 .bv .bubble { z-index:23; transform:translateX(-50%); background:#FF2E9A; color:#fff; border:4px solid var(--ink); border-radius:16px; padding:7px 15px; font:400 22px/1 var(--pop); box-shadow:4px 4px 0 var(--ink); white-space:nowrap; }
 .bv .bubble::after { content:""; position:absolute; bottom:-14px; left:calc(50% - 9px); width:18px; height:18px; background:inherit; border-right:4px solid var(--ink); border-bottom:4px solid var(--ink); transform:rotate(45deg); }
 .bv .bubble.blue { background:#1E6BFF; } .bv .bubble.green { background:#19B37A; }
@@ -105,6 +117,21 @@ export function mountBattle(host, { A, B, seed }, o = {}) {
   const orb = new THREE.Mesh(new THREE.SphereGeometry(0.09, 24, 16), orbMat); orb.visible = false; scene.add(orb);
 
   const el = (cls, html, x, y, extra = "") => `<div class="${cls}" style="left:${x}px;top:${y}px;${extra}">${html}</div>`;
+  // HP の 棒（RoR2 の 形）と バフ・デバフの 札（2026-11-05）
+  const fxAmt = (s, id) => { const z = s.fx.find((q) => q.id === id); return z && z.amt > 0 ? Math.round(z.amt) : 0; };
+  const hpBar = (s, max) => {
+    const sh = fxAmt(s, "shield"), oh = fxAmt(s, "overheal"), tot = max + sh + oh, w = (v) => (Math.max(0, v) / tot) * 100;
+    const bar = s.fx.some((q) => q.id === "barrier");
+    return `<div class="gauge hp${bar ? " barrier" : ""}"><span>HP</span><div class="hpbar"><i class="${s.hp / max < 0.35 ? "low" : ""}" style="width:${w(s.hp)}%"></i>${oh ? `<i class="oh" style="left:${w(max)}%;width:${w(oh)}%"></i>` : ""}${sh ? `<i class="sh" style="left:${w(max + oh)}%;width:${w(sh)}%"></i>` : ""}</div><s>${Math.round(s.hp)}/${max}${sh + oh ? `<em>+${sh + oh}</em>` : ""}</s></div>`;
+  };
+  const fxName = (id) => { const m = id.match(/^(up|down)_(\w+)$/); return m ? m[2].toUpperCase() + (m[1] === "up" ? "▲" : "▼") : EFFECTS[id].label; };
+  const fxChips = (fx) => {
+    const L = fx.filter((z) => EFFECTS[z.id] && z.id !== "shield" && z.id !== "overheal"), all = [...L.filter((z) => !EFFECTS[z.id].buff), ...L.filter((z) => EFFECTS[z.id].buff)];
+    const MAX = 8, show = all.length > MAX ? all.slice(0, MAX - 1) : all;
+    const num = (z) => { const E = EFFECTS[z.id]; return E.dur === "turn" && z.turns != null ? `<u>${z.turns}T</u>` : E.dur === "stack" && z.amt != null ? `<u>${Math.round(z.amt)}</u>` : ""; };
+    const cls = (z) => { const E = EFFECTS[z.id]; return !E.buff ? `db ${FX_CLS[z.id] || ""}` : z.id === "barrier" ? "bf gold" : E.stance ? "bf st" : "bf"; };
+    return show.map((z) => `<i class="${cls(z)}">${fxName(z.id)}${num(z)}</i>`).join("") + (all.length > show.length ? `<i class="more">+${all.length - show.length}</i>` : "");
+  };
   const gauge = (lab, v, max, cls = "") => `<div class="gauge ${cls}"><span>${lab}</span><div><i class="${lab === "HP" && v / max < 0.35 ? "low" : ""}" style="width:${(v / max) * 100}%"></i></div><s>${Math.round(v)}/${max}</s></div>`;
   function stateAt(t) {
     let snap = START.fighters.map((f) => ({ hp: f.maxHp, mp: f.maxMp, fx: [], up: false, down: false }));
@@ -188,8 +215,8 @@ export function mountBattle(host, { A, B, seed }, o = {}) {
     const st = stateAt(t);   // 名札（キャラクターの 外がわ）
     pets.forEach((p, i) => {
       const f = START.fighters[i], ty = TYPES[f.type] || { color: "#888", label: "" }, x = TOP ? W * (i ? 0.75 : 0.25) : px(HOME[i]) + (i === 0 ? -1 : 1) * (p.half * S + 24 + 115), s = st[i];
-      const dbs = s.fx.filter((z) => EFFECTS[z.id] && !EFFECTS[z.id].buff), sts = [...dbs.slice(0, 3).map((z) => `<i class="${FX_CLS[z.id] || ""}">${EFFECTS[z.id].label}${z.amt != null && EFFECTS[z.id].dur === "stack" ? ` ${z.amt}` : ""}</i>`), dbs.length > 3 ? `<i>+${dbs.length - 3}</i>` : "", s.up ? `<i class="up">▲バフ</i>` : ""].join("");
-      html += el("plate", `<div class="sts">${sts}</div><div class="nm"><b>${esc(f.name)}</b><span>${esc(f.owner)}</span><em>Lv${f.lv}</em></div><div style="margin-top:4px"><span class="ty" style="background:${ty.color}">${ty.label}</span></div>${gauge("HP", s.hp, f.maxHp)}${gauge("MP", s.mp, f.maxMp, "mp")}${START.ganbari === i ? `<span class="chip">がんばり</span>` : ""}`, x, TOP ? 46 : GROUND - 126, `opacity:${seg(t, 0.9 + i * 0.25, 1.2 + i * 0.25)}`);
+      const chips = fxChips(s.fx);   // バフ・デバフは 名前と 数で（前は「▲バフ」と デバフ 3 つだけ）
+      html += el("plate", `<div class="nm"><b>${esc(f.name)}</b><span>${esc(f.owner)}</span><em>Lv${f.lv}</em></div><div style="margin-top:4px"><span class="ty" style="background:${ty.color}">${ty.label}</span></div>${hpBar(s, f.maxHp)}${gauge("MP", s.mp, f.maxMp, "mp")}${chips ? `<div class="fxs">${chips}</div>` : ""}${START.ganbari === i ? `<span class="chip">がんばり</span>` : ""}`, x, TOP ? 46 : GROUND - 16, `opacity:${seg(t, 0.9 + i * 0.25, 1.2 + i * 0.25)};${TOP ? "" : "transform:translate(-50%, -100%);"}`);   // 横の 名札は 下を そろえて 上へ のびる（札が ふえても キャラに かからない）
     });
     if (t > 1.1 && t < T_INTRO) html += el("center", `<div class="vs" style="scale:${0.6 + 0.4 * ease(seg(t, 1.1, 1.35))}">VS</div>`, MID, GROUND - 170, `opacity:${1 - seg(t, T_INTRO - 0.4, T_INTRO)}`);
     if (e) html += el("turn", `ターン ${e.turn}`, MID, TURN_Y);
