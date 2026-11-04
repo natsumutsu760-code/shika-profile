@@ -378,7 +378,8 @@ export const ENEMY_TREES = {
       P(6, "e_korimamori", "氷の守り", "戦いのはじめに障壁 +20", { startFx: [["ward", 20]] }),
       P(7, "e_suishokokoro", "水晶の心", "攻撃のとき 15% で凍傷 +3", { onHitFx: [["frostbite", 0.15, 3]] }),
     ],
-    plan: [G("foeDebuffs", 2, "e_crystalbreak"), G("foeNotHas", "frostbite", "e_frosttouch"), G("every", 2, "e_freeze"), G("mpAtLeast", 14, "e_zettaireido"), G("first", undefined, "e_korinokagami"), G("always", undefined, "e_iceshot")] },
+    // 分岐①・②の どちらを 覚えても 2 ターンごとに 中くらいの 技（左を 覚えた 子は フリーズが なく、目玉の 絶対零度を 毎ターン 使って いた。2026-11-04）
+    plan: [G("foeDebuffs", 2, "e_crystalbreak"), G("foeNotHas", "frostbite", "e_frosttouch"), G("every", 2, "e_freeze"), G("every", 2, "e_blizzard"), G("mpAtLeast", 14, "e_zettaireido"), G("first", undefined, "e_korinokagami"), G("always", undefined, "e_iceshot")] },
 
   e_turtle: { name: "七色の甲羅", enemy: "レインボータートル", dungeon: "crystal", rank: "希少", type: "defender", main: "def", sub: "res", theme: "shield",
     list: [
