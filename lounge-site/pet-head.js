@@ -17,14 +17,38 @@ export function fillPet(ME) {
 
 // ペットの 画面の タブ：押すと その 画面へ（えらんで いる タブは そのまま）
 const TAB_URL = { ステータス: "status.html", スキルツリー: "skilltree.html", ガンビット: "gambit.html", 装備: "equip.html", 冒険: "dungeon.html", なかま: "tame.html", "Orbit Arena": "arena.html" };
+// 2 段の タブ（2026-11-05：7 こは 多い → 鹿さんの カード「おすすめで」で 案A）。上の 段は 3 つの 組、下の 段は えらんだ 組の 中身
+const TAB_GROUPS = [["育てる", ["ステータス", "スキルツリー", "装備", "ガンビット"]], ["出かける", ["冒険", "Orbit Arena"]], ["なかま", ["なかま"]]];
+const GROUP_CSS = `.tabs.grp { margin-bottom:6px; } .tabs.sub { margin-top:0; gap:6px; }
+.tabs.sub button { padding:7px 14px; font-size:13px; min-height:32px; }
+.tabs.sub button[aria-selected="true"] { background:#fff; color:var(--ink, #1B2340); border-color:var(--ink, #1B2340); box-shadow:none; }
+@media (max-width:420px) { .tabs.sub button { padding:7px 10px; } }`;
+function groupTabs(nav) {
+  if (nav.dataset.grp) return;
+  const btns = [...nav.querySelectorAll('[role="tab"]')], by = Object.fromEntries(btns.map((b) => [b.textContent.trim(), b]));
+  if (!by["ステータス"]) return;
+  const on = btns.find((b) => b.getAttribute("aria-selected") === "true"), cur = on ? on.textContent.trim() : "";
+  const gi = Math.max(0, TAB_GROUPS.findIndex(([, ms]) => ms.includes(cur)));
+  if (!document.getElementById("grp-css")) { const st = document.createElement("style"); st.id = "grp-css"; st.textContent = GROUP_CSS; document.head.appendChild(st); }
+  const tops = TAB_GROUPS.map(([g, ms], i) => {
+    const b = document.createElement("button"); b.setAttribute("role", "tab"); b.setAttribute("aria-selected", String(i === gi)); b.textContent = g; b.dataset.go = TAB_URL[ms[0]];
+    if (i !== gi) for (const m of ms) if (by[m]) by[m].querySelectorAll(":scope > *").forEach((el) => b.appendChild(el.cloneNode(true)));   // 印（出かけて いる 点 など）は 組の 札に
+    return b;
+  });
+  nav.dataset.grp = "1"; nav.classList.add("grp"); nav.setAttribute("aria-label", "ペットの 画面"); nav.replaceChildren(...tops);
+  const ms = TAB_GROUPS[gi][1].map((m) => by[m]).filter(Boolean);
+  if (ms.length > 1) { const sub = document.createElement("nav"); sub.className = "tabs sub"; sub.dataset.grp = "1"; sub.setAttribute("role", "tablist"); sub.setAttribute("aria-label", TAB_GROUPS[gi][0]); sub.append(...ms); nav.after(sub); }
+}
 export function linkTabs(root = document) {
   // 闘技場（2026-10-25。名前は Orbit Arena。2026-11-03 鹿さんの 決め）：ペットの タブの さいごに 足す（どの ページの 並びも ここで そろう）
   root.querySelectorAll('.tabs[role="tablist"]').forEach((nav) => {
     const names = [...nav.querySelectorAll('[role="tab"]')].map((b) => b.textContent.trim());
     if (names.includes("ステータス") && !names.includes("Orbit Arena")) { const b = document.createElement("button"); b.setAttribute("role", "tab"); b.setAttribute("aria-selected", "false"); b.textContent = "Orbit Arena"; nav.appendChild(b); }
   });
+  root.querySelectorAll('.tabs[role="tablist"]').forEach(groupTabs);
   root.querySelectorAll('.tabs [role="tab"]').forEach((b) => {
-    const u = TAB_URL[b.textContent.trim()];
+    if (b.dataset.linked) return; b.dataset.linked = "1";
+    const u = b.dataset.go || TAB_URL[b.textContent.trim()];
     if (u && b.getAttribute("aria-selected") !== "true") b.addEventListener("click", () => { location.href = u; });
   });
   // スマホで タブの 行が 横に 流れる ときは、えらんで いる タブを まん中に（2026-11-05：装備・Orbit Arena で 画面の 外に あった）。ページは 動かさない

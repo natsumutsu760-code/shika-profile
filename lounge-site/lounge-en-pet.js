@@ -4,6 +4,7 @@ const P = (p, s) => p(s) || s;
 
 export const WORDS = {
   // 2026-11-05 使いやすく した ときの 文
+  "育てる": "Raise", "出かける": "Go out", "ペットの 画面": "Pet screens",   // 2 段の タブの 組
   "ほかの 職業 #": "Other jobs (#)", "相手：練習用の かかし（Lv#）": "Opponent: Training Dummy (Lv#)", "あき・えらべる 敵 # 体": "Empty · # enemies to choose from",
   "1 ポイントで HP +4・MP +2・ほか +1。へらすのは スキルツリーの 振り直しで": "1 point: HP +4 · MP +2 · others +1. Lower them with a skill tree respec",
   "# 番は Lv# で開く": "Row # unlocks at Lv#", "#〜# 番は Lv#・# で開く": "Rows #–# unlock at Lv#, #", "#〜# 番は Lv#・#・#・# で開く": "Rows #–# unlock at Lv#, #, #, #", "#〜# 番は Lv#・#・#・#・# で開く": "Rows #–# unlock at Lv#, #, #, #, #",
