@@ -13,9 +13,9 @@ import { TREES3, ENEMY_MAT3 } from "./isle3-data.js";   // ミカネル島の �
 
 export const SPHERE_RATE = 0.03;
 // 新しい OP は 戦いの 計算を 入れてから 出す（docs/mono-link-sphere.md）。2026-11-04 に 計算を 入れた（battle-sim.js）
-// OP_HOLD：まだ 出さない 物。早い治り（cureFast）は「デバフを 受けた ときだけ はたらく」形なので、鹿さんに 聞くまで 止める（2026-11-04 の 決め「デバフを受ける前提の能力は弱いし再現性にかける」）
+// OP_HOLD：まだ 出さない 物（いまは ない）。前は 早い治り（cureFast）を 止めて いた（デバフを 受けた ときだけ はたらく形）→ 2026-11-05 の カードで「立ち直り」（rebound）に 作りかえて 出す
 export const NEW_OPS_LIVE = true;
-export const OP_HOLD = new Set(["cureFast"]);
+export const OP_HOLD = new Set([]);
 export const opLive = (op) => op in OPS || (NEW_OPS_LIVE && !OP_HOLD.has(op));
 // 鑑定（ガラク）の 値段・持てる 数（Claude の 案、2026-11-04）
 export const SPHERE_LOOK = 100, SPHERE_MAX = 100;
@@ -35,7 +35,7 @@ export const SPHERE = {
   zan: { ops: ["int", "healUp", "mpRegen", "healRecv", "hpCast"], stars: [20, 36, 32, 10, 2] },             // 人魚の 洞窟：歌と 癒し。★名物 命の詠唱
   ufu: { ops: ["atk", "critDmg", "hitBurn", "hitScald", "ironThorns"], stars: [18, 34, 34, 11, 3] },        // 火山：熱と 力。★名物 鉄の棘
   kaji: { ops: ["agi", "dex", "firstStrike", "agiGuard", "hitParalysis"], stars: [15, 32, 36, 13, 4] },     // 嵐の 海峡：速さと 雷
-  nirai: { ops: ["res", "statusRes", "cureFast", "critGuard", "avgGuard"], stars: [12, 30, 38, 15, 5] },    // 寺院：祈りと 守り
+  nirai: { ops: ["res", "statusRes", "rebound", "critGuard", "avgGuard"], stars: [12, 30, 38, 15, 5] },    // 寺院：祈りと 守り
   mabui: { ops: ["drain", "luk", "hitWeakness", "hitFatigue", "swapPower"], stars: [15, 33, 35, 13, 4] },   // 幽霊船：魂と あべこべ
   kanai: { ops: ["hp", "critDmg", "pierceOp", "barrierOp", "endure"], stars: [10, 25, 40, 18, 7] },         // 深淵の 門
   // ミカネル島（Claude の 案、2026-11-04）。★は ビサイ諸島の 奥より 少し 上。★名物 蜃気楼・オアシス・砂時計
@@ -49,7 +49,7 @@ export const SPHERE = {
   yaei: { ops: ["luk", "hp", "healUp", "gamble", "oasisOp"], stars: [8, 25, 40, 20, 7] },                  // 隊商：旅と 運。★名物 オアシス
   sakyu: { ops: ["agi", "evade", "hitBlind", "hitScald", "mirageOp"], stars: [7, 24, 40, 21, 8] },         // 砂丘：砂と 熱。★名物 蜃気楼
   kaze: { ops: ["agi", "dex", "firstStrike", "agiGuard", "whim"], stars: [6, 22, 40, 23, 9] },             // 風の 峡谷：速さと 気まぐれ
-  ena: { ops: ["int", "mp", "statusRes", "cureFast", "hitParalysis"], stars: [5, 20, 40, 25, 10] },        // 内海の 遺跡：祈りと 雷
+  ena: { ops: ["int", "mp", "statusRes", "rebound", "hitParalysis"], stars: [5, 20, 40, 25, 10] },        // 内海の 遺跡：祈りと 雷
   daimon: { ops: ["def", "hp", "avgGuard", "dexGuard", "hitFatigue"], stars: [5, 20, 40, 25, 10] },        // 岩の 大門：門番
   tiruka: { ops: ["res", "accuracy", "hitBurn", "resShield", "critDmg"], stars: [5, 19, 40, 26, 10] },     // 灯台：光と 炎
   kyozo: { ops: ["hp", "dmgCut", "endure", "sandClock", "atk"], stars: [4, 17, 40, 27, 12] },              // 巨像：王の 力。★名物 砂時計
@@ -71,7 +71,7 @@ export const MAT_OP = {
   siren_scale: "int", eel_skin: "agiGuard", clam_shell: "def", song_pearl: "healUp", queen_comb: "hpCast",
   lava_scale: "hitScald", hidama_ember: "hitBurn", obsidian_core: "atk", firechick_down: "healUp", salamander_tail: "critDmg",
   thunder_feather: "hitParalysis", whirl_pearl: "wazaDmg", storm_plank: "hitFrostbite", vane_feather: "whim", irabu_fang: "hitPoison",
-  guard_crest: "critGuard", trident_tip: "pierceOp", priest_scale: "cureFast", white_fin: "barrierOp", seagod_scale: "avgGuard",
+  guard_crest: "critGuard", trident_tip: "pierceOp", priest_scale: "rebound", white_fin: "barrierOp", seagod_scale: "avgGuard",
   ghost_rope: "drain", majimun_mask: "itazuraDmg", doll_button: "hitWeakness", cat_bell: "badLuck", captain_hat: "swapPower",
   angler_lamp: "mp", squid_beak: "critDmg", giant_shell: "hp", deep_glow: "mpRegen", gate_shard: "endure",
 };
@@ -80,7 +80,7 @@ export const MAT_OP = {
 const THEME_OP = { poison: "hitPoison", venom: "hitPoison", burn: "hitBurn", sickness: "hitSickness", frostbite: "hitFrostbite", freeze: "hitFrostbite", scald: "hitScald", fatigue: "hitFatigue",
   weakness: "hitWeakness", paralysis: "hitParalysis", blind: "hitBlind", rot: "drain", stun: "critDmg", sleep: "mpSave", confusion: "whim", daze: "accuracy", silence: "itazuraDmg",
   down_def: "execute", down_agi: "agiGuard", down_dex: "dexGuard", regen: "healRecv", frenzy: "atk", thorns: "def", armor: "def", ward: "res", mirage: "mirageOp", counter: "desperate",
-  barrier: "barrierOp", pierce: "pierceOp", haste: "firstStrike", focus: "focusStart", blessing: "statusRes", clarity: "cureFast", shield: "resShield", overheal: "healUp",
+  barrier: "barrierOp", pierce: "pierceOp", haste: "firstStrike", focus: "focusStart", blessing: "statusRes", clarity: "rebound", shield: "resShield", overheal: "healUp",
   reincarnation: "endure", immunity: "statusRes", activation: "mpRegen" };
 const LOW = { firstStrike: "agi", focusStart: "mp", mpRegen: "mp", barrierOp: "res", endure: "hp" };   // ふつうの 敵の 素材は ★3 からの OP の かわり
 for (const [tid, [mid]] of Object.entries(ENEMY_MAT3)) {

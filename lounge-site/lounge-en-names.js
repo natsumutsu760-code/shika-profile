@@ -392,7 +392,7 @@ export const NEW_OP_EN = {
   thornsOp: ["Counter", (x) => `When hit, deal ${x}% of ATK back`], pierceOp: ["Pierce", (x) => `Treat the foe's DEF/RES as ${x}% lower`], accuracy: ["Accuracy", (x) => `Foe evasion −${x}%`],
   firstHitOp: ["First Strike Bonus", (x) => `First attack that lands +${x}%`], regenOp: ["Regeneration", (x) => `Heal ${x}% of max HP each turn`],
   barrierOp: ["Opening Barrier", (x) => `Block ${x} attack${x === 1 ? "" : "s"} at battle start`], execute: ["Finisher", (x) => `+${x}% against foes at 30% HP or less`],
-  desperate: ["Last Stand", (x) => `Stronger the lower your HP (+${x}% at 1 HP)`], cureFast: ["Quick Recovery", (x) => `${x}% chance for status effects to end 1 turn early`],
+  desperate: ["Last Stand", (x) => `Stronger the lower your HP (+${x}% at 1 HP)`], rebound: ["Rebound", (x) => `Each turn, recover ${x}% of missing HP`],
   critGuard: ["Crit Guard", (x) => `Critical damage taken −${x}%`], healRecv: ["Healing Received", (x) => `Healing received +${x}%`], mpSave: ["MP Saver", (x) => `Skill MP cost −${x}%`],
   agiGuard: ["Parry", (x) => `${x}% chance to reduce direct damage again with AGI`], dexGuard: ["Deft Hands", (x) => `Add ${x}% of DEX to DEF and RES`],
   resShield: ["Mind Shield", (x) => `Take ${x}% of physical damage with RES`], badLuck: ["Power of Misfortune", (x) => `Stronger with low LUK (+${x}% damage per LUK below your Lv, up to +20%)`],

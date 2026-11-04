@@ -571,6 +571,7 @@ export function simulateTeams(SA, SB, seed, opts = {}) {
       if (me.hp > 0 && me.drip?.left > 0) { me.drip.left--; const a = heal(me, me.maxHp * me.drip.pct, tn); if (a) tick.items.push({ who: i, heal: a, why: "水" }); }   // 水を はきだす（続けて 回復）
       if (me.hp > 0 && me.P.hpRegen) { const a = heal(me, me.maxHp * me.P.hpRegen, tn); if (a) tick.items.push({ who: i, heal: a }); }
       if (me.hp > 0 && me.P.oasisOp && me.hp < me.maxHp / 2) { const a = heal(me, me.maxHp * me.P.oasisOp / 100, tn); if (a) tick.items.push({ who: i, heal: a, why: "オアシス" }); }   // オアシス（新しい OP）
+      if (me.hp > 0 && me.P.rebound && me.hp < me.maxHp) { const a = heal(me, (me.maxHp - me.hp) * me.P.rebound / 100, tn); if (a) tick.items.push({ who: i, heal: a, why: "立ち直り" }); }   // 立ち直り：減った HP の N%（新しい OP。2026-11-05 の カード）
       if (me.P.whim) me.whimK = ["atk", "int", "agi"][Math.floor(R() * 3)];                       // 気まぐれ：この ターンの 1 つ
       if (me.P.teamRegen) for (const g of F) if (g.side === me.side && g.hp > 0) { const a = heal(g, g.maxHp * me.P.teamRegen, tn); if (a) tick.items.push({ who: F.indexOf(g), heal: a, why: "癒やしの歌" }); }   // ザンの竪琴：味方 全員
       if (me.P.waveEvery && turn % me.P.waveEvery === 0) for (const g of F) if (g.side !== me.side && g.hp > 0) {   // ニライの三叉槍：相手 全員に 水の こうげき（ATK か INT の 高い 方 → DEF と RES の 低い 方）

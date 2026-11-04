@@ -22,7 +22,7 @@ export const NEW_OPS = {
   execute: { cat: "戦い方", label: "とどめ", v: [5, 8, 12, 16, 20], fmt: pct("HP 3 割 以下の 相手へ ＋N%") },
   desperate: { cat: "戦い方", label: "背水", v: [6, 10, 14, 18, 24], fmt: pct("自分の HP が 減るほど ＋（HP 1 で ＋N%）") },
   // 守りの 工夫
-  cureFast: { cat: "守り", label: "早い治り", v: [10, 15, 20, 25, 30], fmt: pct("状態異常が N% で 1 ターン 早く 治る") },
+  rebound: { cat: "守り", label: "立ち直り", v: [2, 3, 4, 5, 6], fmt: pct("毎ターン、減った HP の N% を 回復") },   // 前は「早い治り」（状態異常が N% で 1 ターン 早く 治る）。デバフを 受けた ときだけ はたらくので 鹿さんの カードで 作りかえ（2026-11-05「立ち直り」。数は Claude の 案）
   critGuard: { cat: "守り", label: "会心よけ", v: [4, 6, 8, 10, 14], fmt: pct("受ける 会心の ダメージ −N%") },
   healRecv: { cat: "守り", label: "受ける回復", v: [3, 5, 7, 9, 12], fmt: pct("受ける 回復 ＋N%") },
   mpSave: { cat: "守り", label: "MP 節約", v: [3, 5, 7, 9, 12], fmt: pct("技の MP −N%") },
