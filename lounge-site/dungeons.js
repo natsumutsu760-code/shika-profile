@@ -87,9 +87,9 @@ export const CAPTURE = { 通常: 0.012, 希少: 0.012, ボス: 0.004 };   // た
 export const RESEARCH = { 通常: 10, 希少: 30, ボス: 100, 配合: 50 };
 // ゲームに 出て いる 島の 数。2 つめの 島（ビサイ諸島。docs/mono-link-island2.md）の 行き先・敵の ツリー・絵が そろったので 2（2026-10-25）
 // 2 に すると：隠れ家に 無線機（作ると その人は ビサイ諸島へ 行ける）・無線機の ある 人は 各施設の Lv4（島の 素材を 使う）が 出る（facilities.js）
-// ミカネル島（島 3）は 鹿さんの OK まで 2 の まま。手元の 見本と 試験だけ ためせる：手元の ブラウザで localStorage「mono-isle3」が "1"、または 環境変数 MONO_ISLE3=1
+// ミカネル島（島 3）は 2026-11-05 に 出した。前は 鹿さんの OK まで 2 の まま で、手元の 見本と 試験だけ ためせる：手元の ブラウザで localStorage「mono-isle3」が "1"、または 環境変数 MONO_ISLE3=1
 const tryIsle3 = (() => { try { if (typeof process !== "undefined" && process.env && process.env.MONO_ISLE3 === "1") return true; return typeof location !== "undefined" && /^(local|localhost|127\.0\.0\.1)$/.test(location.hostname) && localStorage.getItem("mono-isle3") === "1"; } catch { return false; } })();
-export const ISLAND_OPEN = tryIsle3 ? 3 : 2;
+export const ISLAND_OPEN = 3;   // 2026-11-05 鹿さん「島3も反映お願いします。」（カードの 答え）で ミカネル島を 出した（前は tryIsle3 ? 3 : 2。tryIsle3 は もう 使わない）
 // isle：何番目の 島か（書いて いない 物は 1）。hidden：かくし（DEEP LINK/: の 商人の つながった タスクを n 番まで 終えると 開く）
 export const DUNGEONS_ALL = [
   {
