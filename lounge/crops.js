@@ -20,8 +20,9 @@
 //   land   （なくて よい）名前を とった 土地（資料に 出る。名前の 世界観を そろえる ための メモ）
 import isle1 from "./crops-isle1.js";
 import isle2 from "./crops-isle2.js";
+import isle3 from "./crops-isle3.js";   // ミカネル島（Claude の 案、2026-11-04）
 
-export const ISLES = [isle1, isle2];
+export const ISLES = [isle1, isle2, isle3];
 // 大工事で 農業の 畑が ゲームに つながったら true。それまでは 作物を 使う レシピ（工房の 加工・薬・おやつ など）は 出さない（作物が 手に 入らない ため。docs/mono-link-crafting.md）
 // 2026-11-03 鹿さんの 決め（カード）：試しの 形で 門番に つないで 開く（いまは 大工事の ロックと PET_OPEN で 鹿さんと おたこまるさんだけ。lounge-server/lounge-lock.js）
 export const FARM_OPEN = true;
@@ -53,7 +54,7 @@ export const childrenOf = (id) => CROPS.filter((c) => c.from && c.from.includes(
 // 相場（掲示板の めやす。1 こ。docs/mono-link-numbers.md の 7）：書いて いない 物は 種類と 島ごとに 育つ 時間で 線を 引く
 // [短い 時間, その 値, 長い 時間, その 値]。島が 表に ない ときは いちばん 後ろの 島の 線。はしは こえない。CLR の 買い取りは この 3 割
 export const MARKET = {
-  seed: [[2, 5, 6, 15], [4, 15, 8, 30]],   // 島 1 で 5〜15・島 2 で 15〜30
+  seed: [[2, 5, 6, 15], [4, 15, 8, 30], [4, 30, 8, 55]],   // 島 1 で 5〜15・島 2 で 15〜30・島 3 で 30〜55（島 3 は Claude の 案）
   cross: [[3, 20, 10, 80]],                // 20〜80
   special: [[8, 200, 36, 1000]],           // 200〜1,000
 };

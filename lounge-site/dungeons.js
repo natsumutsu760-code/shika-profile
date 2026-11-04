@@ -1,4 +1,5 @@
 // ダンジョン（VR ゲーム）のデータ（試作）
+import { DUNGEONS3 } from "./isle3-data.js";   // 3 つめの 島「ミカネル島」（行き先 17。Claude の 案）
 // 設定：「派遣」といいつつ、ペットに VR ゴーグルを付けて RPG ゲームをやらせている。ゲームの中では、ガンビットで自動で戦う
 // 行き先ごとに、出てくる敵・届く装備・ミシック装備がちがう。数字はすべて仮
 
@@ -86,7 +87,9 @@ export const CAPTURE = { 通常: 0.012, 希少: 0.012, ボス: 0.004 };   // た
 export const RESEARCH = { 通常: 10, 希少: 30, ボス: 100, 配合: 50 };
 // ゲームに 出て いる 島の 数。2 つめの 島（ビサイ諸島。docs/mono-link-island2.md）の 行き先・敵の ツリー・絵が そろったので 2（2026-10-25）
 // 2 に すると：隠れ家に 無線機（作ると その人は ビサイ諸島へ 行ける）・無線機の ある 人は 各施設の Lv4（島の 素材を 使う）が 出る（facilities.js）
-export const ISLAND_OPEN = 2;
+// ミカネル島（島 3）は 鹿さんの OK まで 2 の まま。手元の 見本と 試験だけ ためせる：手元の ブラウザで localStorage「mono-isle3」が "1"、または 環境変数 MONO_ISLE3=1
+const tryIsle3 = (() => { try { if (typeof process !== "undefined" && process.env && process.env.MONO_ISLE3 === "1") return true; return typeof location !== "undefined" && /^(local|localhost|127\.0\.0\.1)$/.test(location.hostname) && localStorage.getItem("mono-isle3") === "1"; } catch { return false; } })();
+export const ISLAND_OPEN = tryIsle3 ? 3 : 2;
 // isle：何番目の 島か（書いて いない 物は 1）。hidden：かくし（DEEP LINK/: の 商人の つながった タスクを n 番まで 終えると 開く）
 export const DUNGEONS_ALL = [
   {
@@ -205,14 +208,19 @@ export const DUNGEONS_ALL = [
 ];
 // 派遣の 費用（玉。鹿さんの決め、2026-10-25）：ビサイ諸島は 1,000 から、Lv の 低い 順に 1 か所ごと +250（かくしも 入れて 10 か所。1,000〜3,250）。はじめの 島は ただ
 // 1 回の 派遣ごと（1・3・10 分 同じ。周回は 1 回ごとに 払う）
+DUNGEONS_ALL.push(...DUNGEONS3);
 DUNGEONS_ALL.filter((d) => d.isle === 2).sort((a, b) => a.lv - b.lv).forEach((d, i) => (d.cost = 1000 + 250 * i));
+// ミカネル島（Claude の 案、2026-11-04）：ビサイ諸島の 線を つなげて 3,500 から 1 か所ごと +250（かくしも 入れて 17 か所。3,500〜7,500）
+DUNGEONS_ALL.filter((d) => d.isle === 3).sort((a, b) => a.lv - b.lv || a.id.localeCompare(b.id)).forEach((d, i) => (d.cost = 3500 + 250 * i));
 export const tripCost = (d) => (d && d.cost) || 0;
 // ゲームに 出て いる 島の 行き先（ISLAND_OPEN まで）。その人が 行けるかは 別（島 2 は 無線機・かくしは タスク。門番の canGo）
 export const DUNGEONS = DUNGEONS_ALL.filter((d) => (d.isle || 1) <= ISLAND_OPEN);
 // その人が その 行き先へ 行けるか（門番と 画面で 同じ 決まり）。hideout：施設の Lv、hasKey(行き先の id)：かくしダンジョンの 鍵を 持って いるか
 // 島 2 は 無線機 Lv1 から。かくしは さらに 鍵（商人の プライマリータスク 第 4 章の ごほうび。前は つながった タスクの #20・#30。もう 過ぎて いる 人も 開く）
+// 島 3（ミカネル島）は 無線機 Lv2 から（鹿さんの 決め、2026-11-03）。かくしは 第 5 章の ごほうび（第 5 章を 作るまでは 開かない）
 export function canGo(d, hideout, hasKey) {
-  if ((d.isle || 1) >= 2 && !((hideout || {}).radio >= 1)) return { ok: false, why: "隠れ家に 無線機を 作ると 行ける" };
-  if (d.hidden && !hasKey(d.id)) return { ok: false, why: `${d.hidden.who}の 第 4 章の ごほうびで 行ける` };
+  const isle = d.isle || 1, radio = (hideout || {}).radio || 0;
+  if (isle >= 2 && radio < isle - 1) return { ok: false, why: isle >= 3 ? "隠れ家の 無線機を Lv2 に すると 行ける" : "隠れ家に 無線機を 作ると 行ける" };
+  if (d.hidden && !hasKey(d.id)) return { ok: false, why: `${d.hidden.who}の 第 ${d.hidden.ch || 4} 章の ごほうびで 行ける` };
   return { ok: true };
 }

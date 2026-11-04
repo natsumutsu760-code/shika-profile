@@ -113,7 +113,9 @@
 <script type="module">
 import * as THREE from "three";
 import { makeFarm, SKINS } from "./farm3d.js";
-import { CROPS, CROP, KIND, afterOf } from "./crops.js";
+import { CROPS as CROPS_ALL, CROP, KIND, afterOf } from "./crops.js";
+import { ISLAND_OPEN } from "./dungeons.js";
+const CROPS = CROPS_ALL.filter((c) => c.isle <= ISLAND_OPEN);   // ゲームに 出て いる 島の 作物だけ（ミカネル島は 鹿さんの OK まで 出さない）
 import { newField, fieldSize, inField, W, stageAt, plant, harvest, advance, setSoil, addXp, xpNext, SOILS, growMs, FIELD, FERT, SPRINKLERS, sprTier, SPR_Q, SOIL_LOCK_H } from "./farm-core.js";
 import { wsIcon } from "./ws-icons.js";
 import { cropPic } from "./crop-art.js";
@@ -263,7 +265,7 @@ function book() {
   const chip = (grp, k, l, n) => `<button class="chip" data-${grp}="${k}" aria-pressed="${(grp === "bi" ? BI : grp === "bk" ? BK : BS) === k}" ${n === 0 ? "disabled" : ""}>${l}${n !== undefined ? `<i>${n}</i>` : ""}</button>`;
   const isles = [...new Set(CROPS.map((c) => c.isle))];
   document.getElementById("tab-book").innerHTML = `<div class="filter">
-    <div class="row"><span>島</span>${chip("bi", "all", "ぜんぶ", CROPS.length)}${isles.map((i) => chip("bi", String(i), ["", "マッサラ島", "ビサイ諸島"][i] || `島 ${i}`, byIsle(i).length)).join("")}</div>
+    <div class="row"><span>島</span>${chip("bi", "all", "ぜんぶ", CROPS.length)}${isles.map((i) => chip("bi", String(i), ["", "マッサラ島", "ビサイ諸島", "ミカネル島"][i] || `島 ${i}`, byIsle(i).length)).join("")}</div>
     <div class="row"><span>種類</span>${chip("bk", "all", "ぜんぶ", base.length)}${Object.keys(KIND).map((k) => chip("bk", k, KIND[k].label, base.filter((c) => c.kind === k).length)).join("")}</div>
     <div class="row"><span>並べる</span>${chip("bs", "no", "番号")}${chip("bs", "got", "のった 順")}${chip("bs", "h", "育つ 時間")}</div></div>
     <div class="cards">${list.map((c) => { const got = K.has(c.id), par = c.from ? c.from.map((p) => (K.has(p) ? CROP[p].name : "？")).join(" × ") : `種から・農業 Lv${c.lv}`;

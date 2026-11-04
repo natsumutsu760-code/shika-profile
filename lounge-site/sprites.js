@@ -7771,7 +7771,7 @@ const EGG = (() => {
 export function spriteURL(id) {
   if (cache[id]) return cache[id];
   if (!SPRITES[id] && /_ev$/.test(id)) return spriteURL(id.slice(0, -3));   // 進化した 敵の ツリー（＋）は もとの 敵の 絵
-  const s = SPRITES[id] || (/^f_/.test(id) ? EGG : null); if (!s) return "";
+  const s = SPRITES[id] || (/^(f_|e3_)/.test(id) ? EGG : null); if (!s) return "";   // 絵が まだ ない 配合限定と ミカネル島の 敵は「？の たまご」
   const cv = document.createElement("canvas"); cv.width = cv.height = 24;
   const cx = cv.getContext("2d");
   s.px.forEach((row, y) => [...row].forEach((ch, x) => { if (ch !== ".") { cx.fillStyle = s.pal["abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ".indexOf(ch)]; cx.fillRect(x, y, 1, 1); } }));

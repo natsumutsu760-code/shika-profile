@@ -30,15 +30,15 @@ const ALL = [
   { id: "armory", kind: "keep", name: "武器庫", text: "装備を 持てる 数が ふえる（はじめは 200 こ）" },
   { id: "workshop", kind: "make", name: "工房", text: "道具と 武器の アタッチメントを 作る・精錬・加工" },
   { id: "mine", kind: "mine", name: "坑道", text: "パーティに いない なかまが 鉱石と ガラクタを 掘る" },
-  { id: "radio", kind: "radio", name: "無線機", isle: 2, max: 1, text: "島の 電波を ひろって、ほかの 島へ 船を 出す" },
+  { id: "radio", kind: "radio", name: "無線機", isle: 2, max: 1, text: "島の 電波を ひろって、ほかの 島へ 船を 出す" },   // 段 ＝ 行ける 島。Lv2 で ミカネル島（鹿さんの 決め、2026-11-03。島 3 が 出るまでは 1 段）
 ];
 export const FACILITIES_ALL = ALL;
 export const FACILITIES = ALL.filter((f) => (f.isle || 1) <= ISLAND_OPEN);
 export const facOf = (id) => FACILITIES.find((f) => f.id === id) || null;
-export const facMax = (f) => (f && f.max) || FAC_MAX;
+export const facMax = (f, open = ISLAND_OPEN) => (f && f.id === "radio" ? Math.max(1, open - 1) : (f && f.max) || FAC_MAX);   // 無線機は 出て いる 島の 数 − 1 段
 // その人が 行ける 島の 数（無線機が あれば 2）と、その人が 上げられる Lv の 上限（hide：rec.hideout）
-export const isleOf = (hide, open = ISLAND_OPEN) => (open >= 2 && ((hide || {}).radio || 0) >= 1 ? 2 : 1);
-export const facCap = (f, hide, open = ISLAND_OPEN) => (!f || (f.isle || 1) > open ? 0 : f.max ? f.max : isleOf(hide, open) >= 2 ? FAC_MAX : NO_RADIO_MAX);
+export const isleOf = (hide, open = ISLAND_OPEN) => Math.max(1, Math.min(open, 1 + (((hide || {}).radio) || 0)));   // 無線機 Lv1 で 島 2・Lv2 で 島 3
+export const facCap = (f, hide, open = ISLAND_OPEN) => (!f || (f.isle || 1) > open ? 0 : f.max ? facMax(f, open) : isleOf(hide, open) >= 2 ? FAC_MAX : NO_RADIO_MAX);
 export const hasKnob = (f) => !!f && (f.kind === "make" || f.kind === "trip" || f.kind === "mine");
 // 効く Lv（つまみ）。knob が ない・上げた Lv より 上なら 上げた Lv
 export const facLv = (rec, id) => { const lv = ((rec && rec.hideout) || {})[id] || 0, k = ((rec && rec.knob) || {})[id]; return hasKnob(facOf(id)) && Number.isInteger(k) && k >= 0 && k < lv ? k : lv; };
@@ -77,7 +77,7 @@ export function facFx(id, lv) {
     case "storage": return `1 しゅるい ${storageCap(lv)} こ まで`;
     case "armory": return `装備 ${equipCapOf(lv).toLocaleString("ja-JP")} こ まで`;
     case "mine": return lv ? `${mineSlotsOf(lv)} 体・1 時間に ${mineRateOf(lv).toFixed(1)} こ` : "まだ ない";
-    case "radio": return lv ? "ビサイ諸島へ 行ける・ほかの 施設を Lv41 から 上げられる" : "まだ ない";
+    case "radio": return lv >= 2 ? "ビサイ諸島と ミカネル島へ 行ける・ほかの 施設を Lv41 から 上げられる" : lv ? "ビサイ諸島へ 行ける・ほかの 施設を Lv41 から 上げられる" : "まだ ない";
   }
   return "";
 }
@@ -117,6 +117,7 @@ const ORE_AT = {}; for (const [at, add] of MINE_ADD) for (const k of Object.keys
 export const barMineLv = (id) => (BAR_ORE[id] ? ORE_AT[BAR_ORE[id]] || 0 : 0);
 export function buildNeed(id, L) {
   const fi = Math.max(0, ALL.findIndex((f) => f.id === id)), T = TIERS[Math.max(0, tierOf(L))];
+  if (id === "radio" && L >= 2) return { credits: 20000, ms: buildMs(50), mats: [["silver_bar", 8], ["thunderstone", 12], ["windorb", 2]] };   // 無線機 Lv2（ミカネル島へ。Claude の 案：ビサイ諸島の 雷の石と 風のオーブ・銀の延べ棒。金の延べ棒は 施設の Lv61〜 だけの 決まりなので 使わない）
   if (id === "radio") return { credits: 5000, ms: buildMs(10), mats: [["iron_bar", 4], ["crystalbit", 6]] };   // 無線機（島 2 へ。前の いる 物を 延べ棒に）
   const g1 = T.gather[(fi * 3 + L) % T.gather.length], g2 = T.gather[(fi * 3 + L + 1 + Math.floor(T.gather.length / 2)) % T.gather.length];
   const xs = id === "mine" ? T.extra.filter((x) => barMineLv(x) < L) : T.extra;   // 坑道は いまの Lv（L − 1）で 掘れる 鉱石の 延べ棒だけ

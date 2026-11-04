@@ -256,7 +256,7 @@ const KIC = { stat: "能", skill: "技", passive: "常", keyword: "鍵" };
 let ME = await me(), MP = ME.pets && ME.pets[0];
 const UI = { slot: Math.max(0, Math.min(3, +(q.get("slot") || 0))), sel: null, sure: false, rejob: null, carry: null, scrollTo: true };
 // 島（ビサイ諸島が 出たら、敵の ツリーと 図鑑を 島で 分ける。呼び名は 冒険の 画面と 同じ）。かくしの 行き先は その 人に 開くまで 出さない（canGo）
-const ISLE_NAME = { 1: "マッサラ島", 2: "ビサイ諸島" };   // 最初の 島の 名前は「マッサラ島」（鹿さんの決め、2026-10-25。冒険の 画面と 同じ）
+const ISLE_NAME = Object.fromEntries(Object.entries({ 1: "マッサラ島", 2: "ビサイ諸島", 3: "ミカネル島" }).filter(([n]) => +n <= ISLAND_OPEN));   // 最初の 島の 名前は「マッサラ島」（鹿さんの決め、2026-10-25。冒険の 画面と 同じ）
 const chainN = (did) => ((ME.deeplink && ME.deeplink.keys) || []).includes(did);   // かくしダンジョンの 鍵（門番の hasKey）
 const isleOfTree = (id) => (DUNGEONS.find((d) => ENEMY_TREES[id] && d.id === ENEMY_TREES[id].dungeon) || {}).isle || 1;
 UI.isle = Math.max(1, Math.min(ISLAND_OPEN, +(q.get("isle") || (ENEMY_TREES[q.get("e")] ? isleOfTree(q.get("e")) : 1))));

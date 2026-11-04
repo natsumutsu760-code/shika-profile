@@ -4,6 +4,7 @@
 // 使いみち：作業台での装備の作成・合成、施設の強化、DEEP LINK/: のタスク、ラウンジの家具、売って玉にする
 
 import { CROPS, CROP_MATS, farmOpen } from "./crops.js";
+import { GATHER3, ENEMY_MAT3 } from "./isle3-data.js";   // ミカネル島（島 3）の 採取と 敵の 素材
 
 export const GATHER = {
   hals: { mats: [["herb", "薬草"], ["pebble", "きれいな小石"], ["straw", "麦わら"], ["berry", "野いちご"]], hidden: ["clover", "四つ葉のクローバー"] },
@@ -73,9 +74,10 @@ const ENEMY_MAT2 = {
   e_ghostsailor: ["ghost_rope", "幽霊の綱"], e_majimun: ["majimun_mask", "マジムンの面"], e_doll: ["doll_button", "人形のボタン"], e_shipcat: ["cat_bell", "猫の鈴"], e_boss_captain: ["captain_hat", "船長の帽子"],
   e_angler: ["angler_lamp", "アンコウのちょうちん"], e_squid: ["squid_beak", "イカのくちばし"], e_deepgiant: ["giant_shell", "巨人の殻"], e_deepfish: ["deep_glow", "深海の光"], e_boss_gatekeeper: ["gate_shard", "門のかけら"],
 };
-export const ENEMY_MAT = { ...ENEMY_MAT1, ...ENEMY_MAT2 };
+Object.assign(GATHER, GATHER3);
+export const ENEMY_MAT = { ...ENEMY_MAT1, ...ENEMY_MAT2, ...ENEMY_MAT3 };
 // 素材が 何番目の 島の 物か（書いて いない 物は 1）。まだ 開いて いない 島の 素材は 一覧に 出さない（matIsle(id) <= ISLAND_OPEN）
-export const MAT_ISLE = Object.fromEntries([...Object.values(GATHER).filter((g) => g.isle).flatMap((g) => [...g.mats, g.hidden].map(([id]) => [id, g.isle])), ...Object.values(ENEMY_MAT2).map(([id]) => [id, 2]), ["goldore", 2], ["gold_bar", 2]]);   // 金は 坑道 Lv4（ビサイ諸島）から
+export const MAT_ISLE = Object.fromEntries([...Object.values(GATHER).filter((g) => g.isle).flatMap((g) => [...g.mats, g.hidden].map(([id]) => [id, g.isle])), ...Object.values(ENEMY_MAT2).map(([id]) => [id, 2]), ...Object.values(ENEMY_MAT3).map(([id]) => [id, 3]), ["goldore", 2], ["gold_bar", 2]]);   // 金は 坑道 Lv4（ビサイ諸島）から
 export const matIsle = (id) => MAT_ISLE[id] || 1;
 
 // 採取ポイント 1 か所で 1〜2 こ（70%・30%）。その階の 2 種類から半々。かくし通路の採取ポイントは、レア 1 こ ＋ その階の素材 1 こ
@@ -139,6 +141,58 @@ export const VALUE = {
   // 布と 建材（作物 3 この 相場に 少し 上乗せ）
   cotton_cloth: 32, flax_cloth: 115, sky_cloth: 145, whitesand_cloth: 145, sylph_sail: 170, pearl_silk: 250,
   bamboo_lumber: 40, nightbamboo_lumber: 130, blackbamboo_lumber: 170, stormbamboo_lumber: 145, straw_bundle: 8,
+  // ミカネル島（Claude の 案、2026-11-04：ビサイ諸島の 線を のばした。採取 9〜60・かくし通路の レア 70〜120・敵の 素材〈品質 1〉11〜33）
+  // ミカの湖
+  oasis_water: 9, date_fruit: 11, lake_reed: 16, lotus: 25, mika_pearl: 75,
+  mizuhebi_skin: 11, frog_vocal: 12, croc_tooth: 12, pink_feather: 17, catfish_whisker: 13,
+  // 涸れ川の谷
+  dry_clay: 9, river_pebble: 14, desert_sage: 18, fossil_shell: 28, water_vein: 70,
+  jackal_fang: 12, dry_fishbone: 12, thorny_scale: 12, raincloud_wisp: 19, centipede_jaw: 12,
+  // 白い塩原
+  rock_salt: 9, salt_crystal: 13, white_mud: 17, saltbush: 26, salt_rose: 81,
+  salt_shell: 12, salt_slime: 11, mirage_fur: 10, salt_sparkle: 21, salt_pillar: 17,
+  // 赤岩の台地
+  red_sandstone: 11, iron_sand: 15, cactus: 19, ochre: 27, fire_agate: 81,
+  vulture_feather: 13, goat_horn: 11, red_golemcore: 12, sunset_scale: 24, roc_talon: 13,
+  // 巨竜の化石
+  fossil_bone: 13, amber_bit: 16, ancient_fern: 21, bone_dust: 28, dragon_heartstone: 85,
+  raptor_bone: 15, bone_wisp: 14, amber_lump: 15, dragon_eggshell: 24, dragon_fossil: 15,
+  // セラン王墓
+  gold_leaf: 12, papyrus: 17, lapis: 21, old_incense: 31, seran_seal: 82,
+  old_bandage: 15, gold_scarab: 13, cursed_shard: 12, tomb_cat_bell: 20, sphinx_stone: 17,
+  // ノルの砦
+  fort_brick: 14, rusty_spear: 17, old_flag: 21, saltpeter: 33, noru_medal: 90,
+  sandstone_shard: 16, ghost_arrow: 12, damp_powder: 12, brass_mouthpiece: 25, general_crest: 19,
+  // 隊商の野営地
+  camel_milk: 13, spice: 18, woven_rug: 24, caravan_tea: 40, caravan_map: 92,
+  camel_hair: 13, jerboa_tail: 14, bandit_scarf: 13, fortune_card: 27, guard_tsuba: 18,
+  // 大砂丘
+  fine_sand: 14, desert_glass: 19, dune_grass: 22, sun_stone: 38, sand_pearl: 89,
+  sand_scale: 17, scorpion_stinger: 16, hot_sand: 16, desert_rose: 25, worm_hide: 21,
+  // 沈む砂の穴
+  quicksand: 16, sunk_pottery: 21, bottom_sand: 29, sand_root: 42, abyss_stone: 95,
+  antlion_jaw: 17, sandcat_whisker: 16, sinking_sand: 13, sand_firefly: 23, antlion_shell: 20,
+  // 風の峡谷
+  wind_stone: 17, hawk_down: 20, canyon_moss: 25, red_crystal: 43, wind_harp: 104,
+  falcon_feather: 14, leopard_fur: 16, whirlwind_core: 14, windchime_wing: 28, griffon_feather: 18,
+  // エナ遺跡
+  sea_salt: 16, ruin_tile: 19, blue_glass: 27, salt_coral: 43, ena_tablet: 108,
+  gargoyle_horn: 14, salt_jellycap: 19, ancient_stone: 15, ancient_scroll: 29, shrine_bell: 22,
+  // 岩の大門
+  arch_stone: 16, rock_moss: 25, cliff_flower: 29, granite: 44, gate_keystone: 113,
+  spider_silk: 15, troll_club: 15, golem_moss: 19, hermit_herb: 31, giant_knuckle: 23,
+  // ティルカ灯台
+  lamp_oil: 19, lens_glass: 23, old_rope: 34, signal_mirror: 49, eternal_flame: 117,
+  torch_crest: 19, lighthouse_claw: 18, light_mote: 19, keeper_lamp: 31, giant_lens: 24,
+  // 月下の流砂
+  moon_sand: 20, night_flower: 27, silver_sand: 34, night_dew: 54, moon_tear: 105,
+  moon_stinger: 19, night_snakeskin: 19, moonbeam_shard: 16, moon_mochi: 28, moon_serpent_scale: 24,
+  // セランの巨像
+  colossus_sand: 20, bronze_piece: 26, royal_cloth: 33, star_chart: 55, seran_crown: 118,
+  colossus_chip: 17, royal_spearhead: 17, night_sand: 16, king_shadow: 34, colossus_core: 24,
+  // 風の目
+  thunderhead: 18, thunder_shard: 24, wind_pearl: 31, vortex_sand: 52, wind_eye_orb: 114,
+  storm_core: 17, gale_feather: 17, windwall_core: 17, breeze_feather: 31, djinn_bangle: 21,
 };
 export const QMULT = [1, 1, 1.7, 3.1, 6.3, 13.7];
 export const matValue = (m) => Math.round((VALUE[m.id] || 0) * (MAT_FROM[m.id] ? QMULT[m.q || 1] : GATHER_Q[m.q || 0] || 1));

@@ -273,7 +273,8 @@ function machine(S) {
       const sd = farmOpen() ? seedsAt(dungeonId) : [];
       if (sd.length && SD() < SEED_RATE) { const c = sd[Math.floor(SD() * sd.length)], n = SEED_N[0] + Math.floor(SD() * (SEED_N[1] - SEED_N[0] + 1)); S.seeds ||= {}; S.seeds[c.id] = (S.seeds[c.id] || 0) + n; say(`${c.name}の 種を ${n} こ 拾った`, "sys"); }
     }
-    else if (t === T.CHEST && !done.has(k)) { done.add(k); const it = rollItem(R, d, Math.min(5, pickW(R, CHEST_STAR[S.floor]) + (hid ? 1 : 0))); S.drops.push(it); const cr = Math.round((CREDIT.chest[0] + M() * (CREDIT.chest[1] - CREDIT.chest[0])) * S.floor * (hid ? 2 : 1)); S.credits += cr; S.chests.push({ ...it, floor: S.floor, hidden: hid, credits: cr }); say(`${hid ? "かくし通路の " : ""}宝箱を あけた`); }
+    else if (t === T.CHEST && !done.has(k)) { done.add(k); rollItem(R, d, Math.min(5, pickW(R, CHEST_STAR[S.floor]) + (hid ? 1 : 0)));   // 宝箱から 装備は 出さない（鹿さんの 決め 2026-10-29「宝箱からは装備のかわりにスフィア」。くじの 順番を かえない ため 引くだけ 引く。スフィアは つなぐまで まだ 出ない）
+      const cr = Math.round((CREDIT.chest[0] + M() * (CREDIT.chest[1] - CREDIT.chest[0])) * S.floor * (hid ? 2 : 1)); S.credits += cr; S.chests.push({ floor: S.floor, hidden: hid, credits: cr }); say(`${hid ? "かくし通路の " : ""}宝箱を あけた`); }
     if (t !== T.START && t !== T.BOSS) {
       const rate = (t === T.ROOM ? ENCOUNTER.room : ENCOUNTER.path) * (target === d.rare ? P.rareEnc : P.enc);
       if (R() < rate) fight(group(), false);

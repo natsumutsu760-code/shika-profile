@@ -115,11 +115,11 @@ export const INS_BASE = { hals: 15, morph: 20, kurai: 26, crystal: 35 };
 export const INS_PLAN = { 1: { mult: 1, back: 0.5, wait: 2 * 3600e3 }, 2: { mult: 2, back: 1, wait: 30 * 60e3 } };
 export function insPrice(d, plan, perks = {}) {
   const P = INS_PLAN[plan]; if (!d || !P) return 0;
-  const isle2 = DUNGEONS.filter((x) => (x.isle || 1) === 2), i = isle2.findIndex((x) => x.id === d.id);
-  let p = INS_BASE[d.id] || (i >= 0 ? 40 + Math.round((20 * i) / Math.max(1, isle2.length - 1)) : 60);   // 島 2 は 40〜60（奥ほど 高い）
+  const isle = d.isle || 1, same = DUNGEONS.filter((x) => (x.isle || 1) === isle), i = isle >= 2 ? same.findIndex((x) => x.id === d.id) : -1;
+  let p = INS_BASE[d.id] || (i >= 0 ? (isle === 2 ? 40 : 70) + Math.round((20 * i) / Math.max(1, same.length - 1)) : 60);   // 島 2 は 40〜60・島 3 は 70〜90（Claude の 案）。奥ほど 高い
   p *= P.mult;
   if (perks.insCheap) p *= 0.8;
-  if (perks.insShip && i >= 0) p *= 0.8;
+  if (perks.insShip && i >= 0) p *= 0.8;   // 船の 保険：島 2・3
   return Math.max(1, Math.round(p));
 }
 // みんなの依頼（ユーザーから ユーザーへ。鹿さんの決め、2026-10-22）。見本の 名前は 仮

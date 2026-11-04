@@ -18,7 +18,7 @@ export { toStash, stashHave, BOX_DAYS, MAT_NAME, MAT_FROM, GATHER, sellPrice } f
 export { CRAFT, SYNTH, craftOpen, synthOpen, synthCredits, rollCraft, rollSynth } from "./recipes.js";
 export { OPS, baseOf, BASES, SLOTS, KINDS, FORMS, MATS, COLS, OLD_SLOT, comboOf, opCount, recycleOf, AUTO_SELL_STARS, AUTO_SELL_HOW, autoSellOf, BOSS_CORE, CORE_MAX, opStarOf } from "./equip.js";
 export { TRADERS, SPECIAL, repLv, insPrice, INS_PLAN, REQ_FEE, RES_VALUE, NOTE_PRESETS, NOTE_MAX, NOTE_HIDE_AT, noteBlock } from "./deeplink.js";
-export { PRIMARY, PRI_REP, lvOf, lvCap, curTask, curChapter, chapterOpen, isDone, unlockedBy, KEY_BY, CH_LV } from "./primary.js";
+export { PRIMARY, PRI_REP, lvOf, lvCap, curTask, curChapter, chapterOpen, chaptersOf, isDone, unlockedBy, KEY_BY, CH_LV } from "./primary.js";
 export { chainTask, dailyTask, TASK_TIDS } from "./tasks.js";
 export { WS_ITEMS, wsOpen, wsLvOk, attBand, attStarW, WS_MAX, ATT_BASES, ATT_KINDS, ATT_MAX, attBase, rollAtt, withAtt, attName, SMELT, SMELT_MAX, furnaces, smeltOf, smeltDone, WS_PROC, PROC_MAX, procOpen, procOf } from "./workshop.js";   // 工房（道具・アタッチメント）
 export { PRIZE_ALWAYS, prizeOf, FURN_PRICE, furnLineup, prizeSlot, slotUntil } from "./prizes.js";   // パチンコの 景品（シーズンラインナップ）

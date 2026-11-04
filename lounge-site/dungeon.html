@@ -76,6 +76,7 @@
   .road { fill:none; stroke-linecap:round; } .road.under { stroke:rgba(20,24,38,.5); stroke-width:9; } .road.top { stroke:#F3E2B8; stroke-width:4.5; stroke-dasharray:14 11; }
   /* 2 つめの 島：絵は world2.jpg。船の 道は 細い 点線 */
   .wmap.isle2 { background-image:url(img/world2.jpg); }
+  .wmap.isle3 { background-image:url(img/world3.jpg); }   /* 3 つめの 島（ミカネル島） */
   .road.sea.under { stroke:rgba(16,40,72,.35); stroke-width:7; } .road.sea.top { stroke:#EAF7FF; stroke-width:3; stroke-dasharray:1 9; }
   /* 島の タブ（2 つめの 島が ゲームに 出て いる とき。右上。左上は ビサイ諸島の ピンが 混むので） */
   .wisle { position:absolute; z-index:4; right:28px; top:9px; display:flex; gap:3px; padding:3px; border-radius:12px; background:rgba(20,24,38,.76); }
@@ -250,6 +251,7 @@
   /* 地図の 左はしの ピンは 札を 右へ（棒も ピンの 上に）・上の はしの ピンは 札を 下へ（島の タブと 重ならない） */
   .wpin.rr .chip { transform:translateX(-12px); } .wpin.rr .chip::after { left:11px; }
   .wpin.b .chip { bottom:auto; top:26px; } .wpin.b .chip::after { top:auto; bottom:100%; }
+  .wpin.ll .chip { transform:translateX(calc(-100% + 12px)); } .wpin.ll .chip::after { left:auto; right:11px; }   /* 札を 左に（ミカネル島の こみあう 所） */
   .wpin .chip em { display:grid; place-items:center; padding:0 7px; font:600 11px/1 var(--num); font-style:normal; background:rgba(255,255,255,.16); border-radius:0 10px 10px 0; }
   .wpin[aria-pressed="true"] .chip em { background:rgba(20,24,38,.12); }
   .sub.exh { display:flex; align-items:baseline; gap:8px; } .exh b { font:600 22px/1 var(--num); color:var(--ink); } .exh b small { font-size:13px; }
@@ -307,6 +309,16 @@
   .th-zan { --fl:#86A9C8; --rm:#B0CDEE; --wl:#22324E; --fog:#0B1222; } .th-ufu { --fl:#9A766A; --rm:#D07A56; --wl:#2E2026; --fog:#160C0C; }
   .th-kaji { --fl:#A8B0BC; --rm:#CDD6E2; --wl:#343C50; --fog:#0E121C; } .th-nirai { --fl:#E6E0D0; --rm:#B8E0D8; --wl:#3E5A66; --fog:#10181E; }
   .th-mabui { --fl:#8E98AC; --rm:#ADC8D0; --wl:#262C3E; --fog:#0C0F18; } .th-kanai { --fl:#5A6A9C; --rm:#7E92C8; --wl:#141A36; --fog:#070A16; }
+  /* ミカネル島の 階の 地図の 色（ピンの 色から：床は 砂を まぜて、かべは 暗く。Claude の 案） */
+  .th-mika { --fl:#76B197; --rm:#85CDBF; --wl:#1C3F3B; --fog:#0C1817; } .th-karegawa { --fl:#B99E77; --rm:#D0B89B; --wl:#413529; --fog:#191411; }
+  .th-shiohara { --fl:#CABEA2; --rm:#E3DCCB; --wl:#4B4642; --fog:#1D1A19; } .th-akaiwa { --fl:#C3885E; --rm:#DAA07F; --wl:#46291B; --fog:#1B100C; }
+  .th-kaseki { --fl:#D2C2A1; --rm:#ECE1CA; --wl:#4F4941; --fog:#1E1B19; } .th-seran { --fl:#D0B179; --rm:#E9CD9D; --wl:#4E3F2B; --fog:#1E1811; }
+  .th-noru { --fl:#B37B56; --rm:#C99276; --wl:#3E2217; --fog:#180D0A; } .th-yaei { --fl:#D3705C; --rm:#EC867D; --wl:#4F1B1B; --fog:#1E0B0B; }
+  .th-sakyu { --fl:#D7B87B; --rm:#F1D6A0; --wl:#52442C; --fog:#1F1911; } .th-kaze { --fl:#CB9969; --rm:#E4B38B; --wl:#4B3222; --fog:#1D130E; }
+  .th-ena { --fl:#AEC7B0; --rm:#C4E6DA; --wl:#3B4B49; --fog:#171C1C; } .th-daimon { --fl:#BB815B; --rm:#D1987C; --wl:#42251A; --fog:#1A0E0B; }
+  .th-tiruka { --fl:#DACBAD; --rm:#F4ECD7; --wl:#534E48; --fog:#201D1B; } .th-kyozo { --fl:#7B89AB; --rm:#8BA1D6; --wl:#1F2947; --fog:#0D101B; }
+  .th-shizumu { --fl:#BB9968; --rm:#D1B38A; --wl:#423221; --fog:#1A130E; } .th-gekka { --fl:#A6A2A4; --rm:#BABDCD; --wl:#363742; --fog:#151519; }
+  .th-kazeme { --fl:#D0B484; --rm:#E9D1AA; --wl:#4E4131; --fog:#1E1913; }
   .inside.ex { display:flex; flex-direction:column; gap:10px; padding:14px; min-height:470px; }
   .inside.ex .shade { background:linear-gradient(180deg, rgba(14,18,32,.55), rgba(14,18,32,.82)); }
   .inside.ex .hud { position:relative; left:auto; right:auto; top:auto; }
@@ -598,7 +610,7 @@ const MAP_W = 1280, MAP_H = 800, HOME = [489, 431];
 const MAP_POS = { hals: [678, 423], morph: [659, 234], kurai: [953, 218], crystal: [994, 490] };
 // 道：スタートの町 → 街道の畑 → 台地の湖の島の遺跡 → 北東の高台の暗い村 → 東の海ぞいを南へ → 南東の雪山の水晶
 const ROAD = "M489 433 C500 431 526 423 557 422 C588 421 653 432 678 425 C703 418 706 403 708 382 C710 361 695 321 687 297 C679 273 646 245 659 236 C672 227 734 246 766 245 C798 244 823 235 854 231 C885 227 922 212 953 220 C984 228 1019 254 1038 281 C1057 308 1059 361 1068 385 C1077 409 1106 405 1094 423 C1082 441 1010 480 993 492";
-const CHIP_SIDE = { kurai: "r", gama: "rr b", mabui: "rr" };   // ピンの札を右にずらす（となりの札と重ならないように）
+const CHIP_SIDE = { kurai: "r", gama: "rr b", mabui: "rr", kaze: "ll", sakyu: "r", daimon: "rr", kyozo: "b", ena: "ll", kaseki: "rr", shiohara: "ll", karegawa: "ll", seran: "rr" };   // ピンの札を右にずらす（となりの札と重ならないように）
 // 2 つめの 島「ビサイ諸島」：img/world2.jpg と pins2.json（モデリング専用スレッドが worldmap2.py で 作った）。村 → 桟橋は 陸、小島へは 船の 道。かくしの 道（hide）は 開くまで 出さない
 const HOME2 = [668, 577];
 const POS2 = { inoh: [420, 626], gama: [152, 386], tida: [1023, 446], atui: [1118, 651], zan: [652, 372], ufu: [286, 143], kaji: [1007, 242], nirai: [662, 220], mabui: [124, 289], kanai: [912, 750] };
@@ -615,8 +627,33 @@ const ROUTE2 = [
   { hide: "mabui", sea: true, d: "M152 388 C147 391 128 413 121 406 C114 399 110 364 111 345 C112 326 122 299 124 290" },
   { hide: "kanai", sea: true, d: "M709 670 C720 678 750 703 773 715 C796 727 825 737 848 743 C871 749 901 750 912 752" },
 ];
+// 3 つめの 島「ミカネル島」：img/world3.jpg と pins3.json（モデリング専用スレッドが worldmap3.py で 作った）。港町 → 南の 島は 陸、北の 島へは 桟橋から 船。かくしの 道は 開くまで 出さない
+const HOME3 = [548, 702];
+const POS3 = { mika: [633, 625], karegawa: [427, 645], shiohara: [472, 494], akaiwa: [367, 578], kaseki: [913, 488], seran: [863, 586], noru: [680, 460], yaei: [553, 344], sakyu: [564, 194], kaze: [394, 195], ena: [688, 268], daimon: [854, 207], tiruka: [903, 298], kyozo: [973, 234], shizumu: [800, 699], gekka: [721, 184], kazeme: [782, 313] };
+const ROUTE3 = [
+  { sea: false, d: "M549 703 C550 707 555 716 557 725 C559 734 561 752 562 757" },
+  { sea: false, d: "M549 703 C554 696 570 672 580 661 C590 650 602 641 611 635 C620 629 629 628 633 626" },
+  { sea: false, d: "M633 626 C624 626 597 624 577 625 C557 626 530 632 512 635 C494 638 481 642 467 644 C453 646 434 646 427 647" },
+  { sea: false, d: "M427 647 C430 639 438 622 443 599 C448 576 453 525 458 512 C463 499 470 525 473 522 C476 519 473 500 473 495" },
+  { sea: false, d: "M473 495 C467 499 449 517 435 518 C421 519 399 492 388 502 C377 512 370 566 367 579" },
+  { sea: false, d: "M367 579 C370 566 377 512 388 502 C399 492 421 519 435 518 C449 517 458 500 473 495 C488 490 510 493 527 491 C544 489 553 488 575 485 C597 482 636 472 658 472 C680 472 689 480 710 482 C731 484 758 482 784 482 C810 482 846 482 867 483 C888 484 905 489 913 490" },
+  { sea: false, d: "M913 490 C913 495 914 510 911 520 C908 530 901 537 893 548 C885 559 867 580 862 587" },
+  { sea: false, d: "M862 587 C852 585 820 582 801 573 C782 564 767 541 751 532 C735 523 715 533 703 521 C691 509 684 472 680 462" },
+  { sea: false, d: "M553 345 C547 344 523 346 515 341 C507 336 510 323 505 315 C500 307 492 300 483 294 C474 288 454 286 450 277 C446 268 452 238 457 237 C462 236 472 275 477 268 C482 261 476 206 484 195 C492 184 511 202 524 202 C537 202 557 197 564 196" },
+  { sea: false, d: "M564 196 C557 196 538 200 521 198 C504 196 477 183 459 185 C441 187 426 207 415 209 C404 211 398 198 394 196" },
+  { sea: false, d: "M394 196 C400 198 417 197 431 209 C445 221 469 258 477 268" },
+  { sea: false, d: "M790 243 C796 239 812 223 823 217 C834 211 849 210 854 208" },
+  { sea: false, d: "M854 208 C862 212 889 219 900 229 C911 239 914 255 918 267 C922 279 924 298 921 303 C918 308 905 300 902 300" },
+  { sea: false, d: "M902 300 C911 304 942 327 958 327 C974 327 993 309 1000 298 C1007 287 1007 270 1002 260 C997 250 977 240 972 236" },
+  { hide: "shizumu", sea: false, d: "M862 587 C858 596 850 624 840 643 C830 662 807 691 800 701" },
+  { hide: "gekka", sea: false, d: "M854 208 C846 206 828 203 806 199 C784 195 735 188 721 186" },
+  { sea: true, d: "M562 757 C535 761 461 783 400 782 C339 781 245 776 195 752 C145 728 108 676 101 635 C94 594 122 537 153 505 C184 473 246 456 290 441 C334 426 385 423 418 415 C451 407 468 403 490 391 C512 379 542 353 553 345" },
+  { sea: true, d: "M477 268 C492 269 535 273 570 273 C605 273 668 270 688 269" },
+  { sea: true, d: "M688 269 C696 267 720 260 737 256 C754 252 781 245 790 243" },
+  { hide: "kazeme", sea: true, d: "M688 269 C697 274 725 294 741 302 C757 310 775 313 782 315" },
+];
 // 最初の 島の 名前は「マッサラ島」（鹿さんの決め、2026-10-25）
-const ISLES = { 1: { name: "マッサラ島", home: HOME, homeName: "スタート", pos: MAP_POS }, 2: { name: "ビサイ諸島", home: HOME2, homeName: "ニライ村", pos: POS2 } };
+const ISLES = { 1: { name: "マッサラ島", home: HOME, homeName: "スタート", pos: MAP_POS }, 2: { name: "ビサイ諸島", home: HOME2, homeName: "ニライ村", pos: POS2, route: ROUTE2 }, 3: { name: "ミカネル島", home: HOME3, homeName: "ミカネルの港町", pos: POS3, route: ROUTE3 } };
 const isleOf = (d) => d.isle || 1;
 // その人が 行けるか（門番と 同じ canGo）。島 2 は 無線機、かくしは 商人の つながった タスクの 先
 const chainN = (did) => ((ME.deeplink && ME.deeplink.keys) || []).includes(did);   // かくしダンジョンの 鍵（門番の hasKey）
@@ -629,10 +666,10 @@ function worldMap(did) {
   const pins = DUNGEONS.filter((x) => isleOf(x) === isle && shown(x)).map((x) => { const gap = PET.lv - x.lv, fit = gap >= 5 ? "var(--leaf)" : gap >= 0 ? "var(--sky)" : gap >= -5 ? "var(--sun)" : "var(--coral)", pct = Math.round(dungeonRatio(x.id, PROG[x.id]) * 100);
     return `<button class="wpin ${CHIP_SIDE[x.id] || ""}" data-d="${x.id}" aria-pressed="${x.id === did}" aria-label="${esc(x.name)}（おすすめ Lv${x.lv}）" style="${at(I.pos[x.id])};--dc:${x.color};--fit:${fit}"><span class="chip"><b>Lv${x.lv}</b><span>${esc(x.name)}</span><em>${pct}%</em></span></button>`; }).join("");
   const roads = isle === 1 ? `<path class="road under" d="${ROAD}"/><path class="road top" d="${ROAD}"/>`
-    : ROUTE2.filter((r) => !r.hide || shown(DUNGEONS.find((x) => x.id === r.hide))).map((r) => `<path class="road under${r.sea ? " sea" : ""}" d="${r.d}"/><path class="road top${r.sea ? " sea" : ""}" d="${r.d}"/>`).join("");
-  const radio = !!(ME.hideout && ME.hideout.radio >= 1);
-  const head = ISLAND_OPEN >= 2 ? `<div class="wisle" role="group" aria-label="島">${[1, 2].map((n) => `<button data-isle="${n}" aria-pressed="${n === isle}">${ISLES[n].name}${n >= 2 && !radio ? LOCK : ""}</button>`).join("")}</div>` : `<span class="wtitle">ワールドマップ</span>`;
-  return `<div class="visor world">${head}<div class="wscroll"><div class="wmap ${isle === 2 ? "isle2" : ""}" role="group" aria-label="行き先">
+    : I.route.filter((r) => !r.hide || shown(DUNGEONS.find((x) => x.id === r.hide))).map((r) => `<path class="road under${r.sea ? " sea" : ""}" d="${r.d}"/><path class="road top${r.sea ? " sea" : ""}" d="${r.d}"/>`).join("");
+  const radio = (ME.hideout && ME.hideout.radio) || 0;   // 島 2 は 無線機 Lv1・島 3 は Lv2 から
+  const head = ISLAND_OPEN >= 2 ? `<div class="wisle" role="group" aria-label="島">${Array.from({ length: ISLAND_OPEN }, (_, i) => i + 1).map((n) => `<button data-isle="${n}" aria-pressed="${n === isle}">${ISLES[n].name}${radio < n - 1 ? LOCK : ""}</button>`).join("")}</div>` : `<span class="wtitle">ワールドマップ</span>`;
+  return `<div class="visor world">${head}<div class="wscroll"><div class="wmap ${isle >= 2 ? "isle" + isle : ""}" role="group" aria-label="行き先">
       <svg viewBox="0 0 ${MAP_W} ${MAP_H}" aria-hidden="true">${roads}</svg>
       <span class="wpin home" style="${at(I.home)}"><span class="chip"><span>${I.homeName}</span></span></span>${pins}</div></div></div>
     <p class="wleg"><span>Lv の色</span><i style="--c:var(--leaf)"></i>らく<i style="--c:var(--sky)"></i>ちょうどいい<i style="--c:var(--sun)"></i>きびしい<i style="--c:var(--coral)"></i>むずかしい</p>`;

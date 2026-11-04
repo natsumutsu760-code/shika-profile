@@ -5,7 +5,10 @@
 // - まだ ない しくみを 使う タスク（sys）は 終えられない ので、その 章で 止まる。ほかの タスクは 先に 進められる（鹿さんの 決め「その 章で 止める」）
 // 数は docs/mono-link-numbers.md の 案（Claude の 案。鹿さんの 決め「決まって いない 数は Claude の 案で 作る」、2026-11-03）
 import { PRIMARY } from "./primary-data.js";
+import { ISLAND_OPEN } from "./dungeons.js";
 export { PRIMARY };
+// 遊べる 章：出て いる 島の 数 ＋ 2（島 1 で 第 1〜3 章・ビサイ諸島で 第 4 章・ミカネル島で 第 5 章）。表に ある 先の 章は 島が 出るまで 出さない
+export const CH_OPEN = ISLAND_OPEN + 2;
 
 export const CH_LV = 10, LV_MAX = 100;
 // 友好度の 点（docs/mono-link-numbers.md の 1 章の 案）：Lv L → L+1 に 20 ＋ 2 × L 点（Lv1〜10 の 合計 310・Lv1〜20 820・Lv1〜100 12,100）
@@ -16,7 +19,7 @@ export const PRI_REP = () => 30;   // プライマリータスク 1 つの 友�
 
 const bit = (no) => 1 << (no - 1);
 export const isDone = (done, c, no) => !!(((done || {})[c] || 0) & bit(no));
-export const chaptersOf = (tid) => (typeof tid === "string" && Object.prototype.hasOwnProperty.call(PRIMARY, tid) ? PRIMARY[tid] : []);   // 自分の キーだけ（「__proto__」を 商人に しない）
+export const chaptersOf = (tid) => (typeof tid === "string" && Object.prototype.hasOwnProperty.call(PRIMARY, tid) ? PRIMARY[tid].slice(0, CH_OPEN) : []);   // 自分の キーだけ（「__proto__」を 商人に しない）
 // 章を ぜんぶ 終えたか（sys の タスクが あれば 終わらない）
 export const chapterDone = (tid, done, c) => { const C = chaptersOf(tid)[c - 1]; return !!C && C.tasks.every((k) => isDone(done, c, k.no)); };
 // 終えて いない いちばん 前の 章（ぜんぶ 終えて いれば 章の 数 ＋ 1）

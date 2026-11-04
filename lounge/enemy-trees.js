@@ -12,6 +12,8 @@ import { TREES as FU_B } from "./enemy-trees-fusion-b.js";
 import { TREES as FU_A } from "./enemy-trees-fusion-a.js";
 import { TREES as FU_S } from "./enemy-trees-fusion-s.js";
 import { TREES as FU_EX } from "./enemy-trees-fusion-ex.js";
+// 3 つめの 島「ミカネル島」の 敵 85 体（isle3-data.js。2026-11-04、Claude の 案）
+import { TREES3 } from "./isle3-data.js";
 
 export { describe };
 
@@ -3072,7 +3074,7 @@ export const ENEMY_TREES = {
     plan: [G("first", undefined, "f_hh_yurerushokudai"), G("mpAtLeast", 10, "f_hh_kuzureochiru"), G("every", 2, "f_hh_shikakegaeshi"), G("foeNotHas", "confusion", "f_hh_yurerushokudai"), G("every", 3, "f_hh_boreinosawagi"), G("always", undefined, "f_hh_tobirabatan")] },
 };
 
-Object.assign(ENEMY_TREES, FU_F, FU_E, FU_D, FU_C, FU_B, FU_A, FU_S, FU_EX);
+Object.assign(ENEMY_TREES, TREES3, FU_F, FU_E, FU_D, FU_C, FU_B, FU_A, FU_S, FU_EX);
 
 // スキルツリーの 進化（配合。docs/mono-link-haigou.md・イルルカ／ジョーカー3 の スキルの 派生）：最大まで 振った ツリーは 配合で「＋」が 受けつぐ 候補に 出る
 // 「＋」は 同じ 技で 威力 1.3 倍（技の 名前にも ＋）。id は もとの id ＋ EVO。行き先は なし（図鑑には 出ない・捕まえられない）

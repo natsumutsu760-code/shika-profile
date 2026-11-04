@@ -2,12 +2,13 @@
 // 親：なかよしの なかま 2 体（Lv10 以上・♂ × ♀、両性は どちらとも）。配合すると 親は いなく なる
 // 子の 候補：位階配合（系統 × 系統と 位階）＋ 特殊配合 ＋ 4 体配合。候補から 1 種 えらぶ
 // 子：Lv1・なかよしで 生まれる。＋値・受けついだ 力（両親の 合計 ÷ 4）・スキル（自分の ツリー ＋ サブスキル 2 つ）・スキルポイント（両親の 合計の 半分）
-import { DUNGEONS_ALL, SNACK_NEED } from "./dungeons.js";
+import { DUNGEONS_ALL, DUNGEONS, SNACK_NEED } from "./dungeons.js";
 import { ENEMY_TREES, evoOf } from "./enemy-trees.js";
 import { tamedOf } from "./dungeon-sim.js";
 import { SUB_MAX, TREE_FULL, FUSE_LV, treesOf, spTotal, spSplit, sexOf, sexOk } from "./monster.js";
 import { ROSTER, SPECIAL, FOUR } from "./fusion-only.js";   // 配合限定 240 種・特殊配合・4 体配合
 import { farmOpen } from "./crops.js";   // 研究の 葉は 大工事の 畑で とれる
+import { RACE3, WILD3 } from "./isle3-data.js";   // ミカネル島の 系統と 雑魚の ランク（行き先ごと。鹿さんの 決め：ダンジョンによって 変える）
 
 // ---------- ランク（8 段。いちばん 上は EX。鹿さんの決め、2026-10-28：前は SS） ----------
 export const RANKS = ["F", "E", "D", "C", "B", "A", "S", "EX"];
@@ -18,6 +19,8 @@ for (const isle of [1, 2]) {
   const ds = DUNGEONS_ALL.filter((d) => (d.isle || 1) === isle).sort((a, b) => a.lv - b.lv);
   ds.forEach((d, i) => { WILD_TIER[d.id] = (isle - 1) * 2 + (i >= ds.length / 2 ? 1 : 0); });
 }
+// 島 3（ミカネル島）は 行き先ごと（鹿さん「必ずしもランクの下限はあげなくてもいいですダンジョンによって変えてください。」。表は Claude の 案）
+for (const [id, r] of Object.entries(WILD3)) WILD_TIER[id] = RANKS.indexOf(r);
 const wildRank = (d, kind) => WILD_TIER[d.id] + (kind === "通常" ? 0 : 2);
 
 // ---------- 系統：ヴェルヴェットの 16 大種族（鹿さんから もらった 仕様書の とおり、2026-10-25） ----------
@@ -54,12 +57,14 @@ const RACE = {
   e_guard: "divine", e_trident: "humanoid", e_dolphin: "divine", e_priest: "demon", e_boss_seagod: "divine",
   e_angler: "aquatic", e_squid: "aberration", e_deepfish: "aquatic", e_deepgiant: "humanoid", e_boss_gatekeeper: "demon",
 };
+Object.assign(RACE, RACE3);
 export const raceOf = (tree) => RACE[tree];
 
 // ---------- 種族（野生 ＋ 配合限定）と 位階 ----------
 // 配合限定（fusion-only.js）。ツリーが できて いる 子だけ。生まれ方が「特殊」「4体」の 子は はしごに 入らない（only）
 export const FUSION_ONLY = ROSTER.filter((s) => ENEMY_TREES[s.tree]).map(({ tree, name, type, fam, rank, lv, how }) => ({ tree, name, type, fam, rank, lv, ...(how === "位階" ? {} : { only: how }) }));
-const wild = DUNGEONS_ALL.flatMap((d) => [...d.foes.map((f) => [f, "通常"]), [d.rare, "希少"], [d.boss, "ボス"]].map(([f, kind]) => ({ tree: f.tree, name: f.name, type: f.type, lv: f.lv, fam: RACE[f.tree] || "humanoid", rank: wildRank(d, kind), wild: true })));
+// 野生は ゲームに 出て いる 島（ISLAND_OPEN まで）の 敵だけ（まだ 出して いない 島の 子が 配合で 生まれない ように）
+const wild = DUNGEONS.flatMap((d) => [...d.foes.map((f) => [f, "通常"]), [d.rare, "希少"], [d.boss, "ボス"]].map(([f, kind]) => ({ tree: f.tree, name: f.name, type: f.type, lv: f.lv, fam: RACE[f.tree] || "humanoid", rank: wildRank(d, kind), wild: true })));
 export const SPECIES = [...wild, ...FUSION_ONLY.map((s) => ({ ...s, wild: false }))]
   .sort((a, b) => a.rank - b.rank || a.lv - b.lv || (a.tree < b.tree ? -1 : 1))
   .map((s, i) => ({ ...s, pos: i + 1 }));   // 位階（通し番号。大きいほど 上）
@@ -74,7 +79,7 @@ export function researchLeaf(tree) {
   if (!T || !RESEARCH_LEAF[T.rank] || !farmOpen()) return null;
   if (T.rank === "配合" && !((speciesOf(tree) || {}).rank >= 6)) return null;   // 配合の 子は S・EX だけ（鹿さんの 決め、2026-10-31。480 しゅるい ぜんぶだと 重い）
   const isle = T.rank === "配合" ? 2 : (DUNGEONS_ALL.find((d) => d.id === T.dungeon) || {}).isle || 1;
-  return [isle === 2 ? "worldtree_leaf" : "dreamtree_leaf", RESEARCH_LEAF[T.rank]];
+  return [isle >= 3 ? "goldtree_leaf" : isle === 2 ? "worldtree_leaf" : "dreamtree_leaf", RESEARCH_LEAF[T.rank]];   // 島 3 は 黄金樹の葉（crops-isle3.js の とくべつ。Claude の 案）
 }
 const ladder = (fam) => SPECIES.filter((s) => s.fam === fam && !s.only);
 

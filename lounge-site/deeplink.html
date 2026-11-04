@@ -196,7 +196,7 @@ if (!ME.denied && ME.ok !== false) act("dl.visit", {}).catch(() => {});   // 開
 const W = () => (ME.wallet && ME.wallet.known ? ME.wallet : null);
 const view = (id) => D.traders.find((x) => x.id === id) || { shop: [] };
 const cur = (c, n) => (c === "res" ? `<span class="v">アメジスト ${fmt(n)}</span>` : `<span class="c">クレジット ${fmt(n)}</span>`);   // 店は クレジット（ヨルは アメジスト）
-const FACE = { anvil: "🦏", minerva: "🦉" };   // 顔の 絵が まだ ない 商人（絵は モデリングの スレッドに 頼んだ。docs/modeling-log.md）
+const FACE = {};   // 顔の 絵が まだ ない 商人は どうぶつの 字で（アンビル・ミネルバの 絵は できた。modeling-log の M-017）
 const face = (id) => (FACE[id] ? `<span class="emo">${FACE[id]}</span>` : `<img src="img/trader-${id}.png" alt="">`);
 const credits = () => ME.credits || 0;
 const META_ALL = [...TRADERS, SPECIAL], nameOf = (tid) => (META_ALL.find((x) => x.id === tid) || { name: tid }).name;

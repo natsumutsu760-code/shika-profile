@@ -3,7 +3,7 @@
 // 1 人分の 記録（rec）だけを 見て かえる。アメジストは viewer.js が 帳簿で 払う（ヨルの 店）。クレジットは 記録の 中（take で 引き、払えなかったら refund で もどす）
 // 数は すべて 案
 import { TRADERS, SPECIAL, chainTask, dailyTask, TASK_TIDS, sellPrice, GATHER, floorRatio, FLOORS, OPS, BASES, baseOf, SNACK_NEED, rankOf, CRAFT, SYNTH, craftOpen, synthOpen,
-  PRIMARY, PRI_REP, lvOf, curTask, isDone, unlockedBy, KEY_BY, DUNGEONS } from "./game.js";
+  PRIMARY, PRI_REP, lvOf, curTask, isDone, unlockedBy, KEY_BY, DUNGEONS, chaptersOf } from "./game.js";
 import { putMats, putEquip } from "./lounge-game.js";
 import { equippedUids } from "./lounge-pet.js";   // lounge-game.js も ここを 読む（どちらも 呼ぶ ときに 使うだけ なので 大丈夫）
 
@@ -341,7 +341,7 @@ export function deeplinkView(rec, day) {
       left: it.stock ? it.stock - ((it.week ? t.wbuy : t.buy)[it.id] || 0) : null, done: !!(it.get && it.get.perk && rec.perks[it.get.perk]) }; });
     const ks = tasksOf(s.id, t, day), task = (k, c, done, tr) => ({ n: k.n, kind: k.kind, found: !!k.found, text: k.text, need: k.need, unit: k.unit, cond: k.condText || null, have: progressOf(rec, k, c, tr), reward: k.reward, done });
     // プライマリー：章ごとの 終えた 数と 止まって いる わけ（まだ ない しくみ）、いまの タスク
-    const chs = (PRIMARY[s.id] || []).map((C, i) => ({ c: i + 1, title: C.title, done: C.tasks.filter((k) => isDone(t.pd, i + 1, k.no)).length, n: C.tasks.length, sys: [...new Set(C.tasks.filter((k) => k.sys).map((k) => k.sys))], sysN: C.tasks.filter((k) => k.sys).length }));
+    const chs = chaptersOf(s.id).map((C, i) => ({ c: i + 1, title: C.title, done: C.tasks.filter((k) => isDone(t.pd, i + 1, k.no)).length, n: C.tasks.length, sys: [...new Set(C.tasks.filter((k) => k.sys).map((k) => k.sys))], sysN: C.tasks.filter((k) => k.sys).length }));
     const k = PRIMARY[s.id] ? curTask(s.id, t.pd, lv) : null;
     const pri = k ? { c: k.c, no: k.no, say: k.say, text: k.text, need: k.need, unit: k.unit, have: priProgress(rec, s.id, t, k), credits: k.credits, rep: PRI_REP(k.c), ...(k.unlock ? { unlock: k.unlock } : {}), ...(k.key ? { key: k.key } : {}) } : null;
     return { id: s.id, rep: t.rep, lv, pd: t.pd, chs, pri, chain: task(ks.chain, t.cp, false, t), daily: task(ks.daily, t.dp, !!t.ddone), shop };
