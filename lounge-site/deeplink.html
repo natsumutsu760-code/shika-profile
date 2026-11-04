@@ -26,6 +26,7 @@
 
   /* 上：ロゴとさいふ。ロゴの文字が、このサイトでいちばん目立つ所 */
   .bar { display:grid; grid-template-columns:auto 1fr auto; gap:6px 18px; align-items:end; padding-bottom:12px; border-bottom:1px solid var(--line2); }
+  .bar > .lgb { grid-column:3; grid-row:2; }   /* EN は お金の 下（2026-11-05：まん中で 1 行 つかって いた） */
   .logo { font:400 clamp(30px, 5vw, 46px)/1 var(--f); color:var(--amber); letter-spacing:.04em; text-shadow:var(--glow), 2px 0 0 rgba(70,212,255,.35), -2px 0 0 rgba(255,107,120,.3); white-space:nowrap; }
   .logo span { color:var(--violet); }
   .logo i { display:inline-block; width:.5em; height:.9em; margin-left:6px; vertical-align:-.08em; background:var(--amber); box-shadow:var(--glow); animation:blink 1s steps(1) infinite; }
@@ -143,10 +144,10 @@
   @keyframes blink { 50% { opacity:0; } }
   @keyframes on { from { opacity:0; filter:brightness(2.2); } to { opacity:1; filter:none; } }
   @media (max-width:760px) {
-    .bar { grid-template-columns:minmax(0, 1fr); } .wallet { grid-column:1; grid-row:2; } .from { grid-column:1; grid-row:3; } .wallet b { font-size:19px; }
+    .bar { grid-template-columns:minmax(0, 1fr); } .bar > .logo, .bar > .lgb { grid-column:1; grid-row:1; } .wallet { grid-column:1; grid-row:2; } .from { grid-column:1; grid-row:3; } .wallet b { font-size:19px; }
     .term { grid-template-columns:minmax(0, 1fr); }
     .dir { border-right:0; border-bottom:1px solid var(--line); padding:6px 0; display:flex; overflow-x:auto; }
-    .dir .pr { display:none; } .dir ul { display:flex; } .dir button, .dir a.go { width:auto; white-space:nowrap; grid-template-columns:auto auto; } .dir button small, .dir a.go small { display:none; }
+    .dir .pr { display:none; } .dir ul { display:flex; } .dir button, .dir a.go { width:auto; white-space:nowrap; grid-template-columns:auto auto auto; } .dir a.go small { display:none; } .dir button small { font-size:0; } .dir button small .new { font-size:12px; }   /* スマホは Lv を 省いて 丸の 数だけ のこす（2026-11-05：丸が 消えて いた） */
     .who { grid-template-columns:auto minmax(0, 1fr); } .rep { grid-column:1 / -1; text-align:left; } .meter { margin-left:0; }
     .rows > li { grid-template-columns:minmax(0, 1fr); } .act { justify-self:start; }
     .pane { padding:14px; }

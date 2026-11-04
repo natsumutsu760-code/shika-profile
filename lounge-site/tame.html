@@ -79,7 +79,7 @@
   .waiting h2 { font:900 18px/1.3 var(--jp); } .waiting h2 small { font:700 12px/1 var(--jp); color:var(--soft); margin-left:8px; }
   .waiting .lead { margin:4px 0 12px; font:700 12px/1.6 var(--jp); color:var(--soft); }
   .list { list-style:none; margin:0; padding:0; display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:10px; }
-  .chip { border:1.5px solid var(--line); background:#fff; border-radius:999px; padding:5px 10px; font:700 12px/1 var(--jp); display:inline-flex; align-items:center; gap:5px; }
+  .chip { border:1.5px solid var(--line); background:#fff; border-radius:999px; min-height:32px; padding:6px 12px; font:700 12px/1 var(--jp); display:inline-flex; align-items:center; gap:5px; }
   .chip small { font:600 11px/1 var(--num); color:var(--soft); }
   .chip[aria-pressed="true"] { background:var(--ink); border-color:var(--ink); color:#fff; } .chip[aria-pressed="true"] small { color:rgba(255,255,255,.7); }
   .chip:disabled { opacity:.4; }
@@ -299,7 +299,7 @@ function line(c) {
 function partyHtml() {
   const slots = S.party.map((m, i) => m ? `<div class="mem ${S.joined === i ? "new" : ""}">${orb(m)}<div><b>${esc(m.name)}${plusTag(m)}</b><div class="row">${typeBadge(m)}<span class="lv"><small>Lv</small>${m.lv}</span>${sexTag(m)}</div>
       <small>装備 ${m.eq} / 9</small><div class="acts"><a class="mb" href="equip.html?who=${encodeURIComponent(m.uid)}">装備</a><button class="mb" data-act="skill" data-u="${m.uid}">スキル</button><button class="mb" data-act="back" data-u="${m.uid}" aria-label="部屋に もどす">もどす</button></div></div></div>`
-    : `<div class="mem empty"><div><b>あいている</b><small>なかよし いっぱいの子を 入れる</small></div></div>`).join("");
+    : `<div class="mem empty"><div><b>あいている</b>${i === S.party.indexOf(null) ? "<small>なかよし いっぱいの子を 入れる</small>" : ""}</div></div>`).join("");   // 説明は 1 つ目の 空きだけ（2026-11-05）
   return `<section class="panel party" aria-label="パーティ"><h2>パーティ<small>ペット＋2 体</small></h2>
     <div class="mem"><span class="pic"><img src="${petInfo(MP).img}" alt=""></span><div><b>${esc(MP.name)}</b><div class="row">${MP.type ? `<span class="badge" style="--c:${TYPES[MP.type].color}">${TYPES[MP.type].label}</span>` : ""}<span class="lv"><small>Lv</small>${MP.lv}</span></div><small>相棒（いつも いっしょ）</small></div></div>${slots}</section>`;
 }
@@ -322,7 +322,7 @@ function listHtml() {
 
 function feedHtml() {
   const c = cur();
-  if (!c) return `<aside class="panel feed"><p class="say">となりの部屋に だれも いない</p></aside>`;
+  if (!c) return S.room.length ? `<aside class="panel feed"><p class="say">となりの部屋に だれも いない</p></aside>` : "";   // 空の ときは 左の「いまは だれも いない」だけ（2026-11-05：3 回 言って いた）
   const n = need(c), full = c.gauge >= n, T = ENEMY_TREES[c.tree], buy = Math.max(0, S.give - S.snacks), cost = buy * SNACK_PRICE, poor = cost > (ME.credits || 0);   // 足りない おやつは クレジットで 買う（前は 玉。2026-10-28 の 決め）
   const [cols, size, gap] = n <= 10 ? [10, 30, 7] : n <= 30 ? [15, 21, 4] : [20, 15, 4];
   const pips = Array.from({ length: n }, (_, k) => { const on = k < c.gauge, nx = !full && !on && k < c.gauge + S.give, pop = on && k >= S.popFrom && S.popFrom >= 0;

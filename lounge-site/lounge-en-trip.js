@@ -4,6 +4,7 @@ const MON = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct
 const P = (p, s) => p(s) || s;   // 名前（訳せなければ そのまま）
 
 export const WORDS = {
+  "出る 敵と 物を 見る": "See enemies and drops",   // 2026-11-05
   "保険": "Insurance", "なし": "None", "ふつう": "Basic", "手厚い": "Full", "力つきると 集めた 素材を ぜんぶ 失う": "If you collapse, you lose all the materials you gathered", "手厚い 保険は ミネルバの 店で 開く": "Full insurance unlocks at Minerva's shop",
   // 島（ビサイ諸島）
   "マッサラ島": "Massara Island", "ビサイ諸島": "Bisai Isles", "ニライ村": "Nirai Village", "島": "Island", "隠れ家に 無線機を 作ると 行ける": "Build a Radio in your hideout to go here",

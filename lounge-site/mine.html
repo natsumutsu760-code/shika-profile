@@ -72,7 +72,7 @@
   .finds img { width:22px; height:22px; image-rendering:pixelated; }
   .filters { display:grid; gap:6px; padding:10px 12px; border-radius:16px; background:var(--space); }
   .frow { display:flex; align-items:center; gap:6px; flex-wrap:wrap; } .frow > span { width:56px; flex:none; font:900 11px/1.2 var(--jp); color:var(--soft); }
-  .chip { border:1.5px solid var(--line); background:#fff; border-radius:999px; padding:5px 10px; font:700 12px/1 var(--jp); display:inline-flex; align-items:center; gap:5px; }
+  .chip { border:1.5px solid var(--line); background:#fff; border-radius:999px; min-height:32px; padding:6px 12px; font:700 12px/1 var(--jp); display:inline-flex; align-items:center; gap:5px; }
   .chip small { font:600 11px/1 var(--num); color:var(--soft); }
   .chip[aria-pressed="true"] { background:var(--ink); border-color:var(--ink); color:#fff; } .chip[aria-pressed="true"] small { color:rgba(255,255,255,.7); }
   .chip:disabled { opacity:.4; }
@@ -147,7 +147,7 @@ function mineLeft() {
   const slots = [];
   for (let i = 0; i < M.slots; i++) {
     const w = M.on[i], c = w && tamedOf(w.uid);
-    if (!w || !c) { slots.push(`<li class="slot free"><span class="orb free" aria-hidden="true">＋</span><div><b>あき</b><small>なかまを えらんで 掘らせる</small></div></li>`); continue; }
+    if (!w || !c) { slots.push(`<li class="slot free"><span class="orb free" aria-hidden="true">＋</span><div><b>あき</b></div></li>`); continue; }
     const h = mineH(w), full = h >= MINE_CAP_H;
     slots.push(`<li class="slot">${orb(c)}<div><b>${esc(c.name)}</b><small>Lv${c.lv}・1 時間 ${r1(w.rate)} こ</small><div class="pg ${full ? "full" : ""}"><i style="width:${Math.round((h / MINE_CAP_H) * 100)}%"></i></div><small>${full ? `いっぱい（${fmt(mineW(w))} こ）・うけとると また 掘る` : `${fmt(mineW(w))} こ たまった・いっぱい まで あと ${left(w.at + MINE_CAP_H * H - now())}`}</small></div><button class="mini" data-stop="${w.uid}">やめる</button></li>`);
   }
@@ -172,13 +172,13 @@ function mineSide() {
   const all = freeKids(); if (!all.some((c) => c.uid === S.pick)) S.pick = null;
   const full = FV.mine.on.length >= FV.mine.slots, c = S.pick && tamedOf(S.pick);
   if (full) return `<h2>掘らせる なかま</h2><p class="next">掘る 場所が いっぱい</p>`;
-  const why = !all.length ? "掘れる なかまが いない（パーティに いない 子が 掘れる）" : !c ? "下の 一覧から えらぶ" : "";
+  const why = !all.length ? "足りない：パーティの 外の なかま" : !c ? "下の 一覧から えらぶ" : "";   // 2026-11-05：短く・次に 行く 所を そえる
   const vis = all.filter((x) => S.fl === "all" || bandOf(x) === +S.fl).sort((a, b) => (S.sort === "lv" ? b.lv - a.lv : a.lv - b.lv) || a.name.localeCompare(b.name, "ja"));
   const chip = (k, v, label, n) => `<button class="chip" data-f="${k}" data-v="${v}" aria-pressed="${String(S[k]) === String(v)}" ${n === 0 && String(S[k]) !== String(v) ? "disabled" : ""}>${label}${n == null ? "" : `<small>${n}</small>`}</button>`;
   const filt = all.length >= 8 ? `<div class="filters"><div class="frow"><span>Lv</span>${chip("fl", "all", "すべて", all.length)}${BANDS.map(([a, b], k) => chip("fl", k, b > 90 ? `${a}〜` : `${a}〜${b}`, all.filter((x) => bandOf(x) === k).length)).join("")}</div>
     <div class="frow"><span>ならべる</span>${chip("sort", "lv", "Lv の 高い順", null)}${chip("sort", "low", "Lv の 低い順", null)}</div></div>` : "";
   const groups = Object.entries(TYPES).map(([t, T]) => { const g = vis.filter((x) => x.type === t); return g.length ? `<p class="grp">${esc(T.label)}</p><div class="picks">${g.map((x) => `<button class="pick" data-pick="${x.uid}" aria-pressed="${S.pick === x.uid}">${orb(x)}<span><b>${esc(x.name)}</b><small>Lv${x.lv}</small></span></button>`).join("")}</div>` : ""; }).join("");
-  return `<h2>掘らせる なかま</h2><button class="jelly m" data-do="dig" ${why ? "disabled" : ""}>${c ? `${esc(c.name)}に 掘らせる` : "掘らせる"}</button>${why ? `<p class="why">${esc(why)}</p>` : ""}${filt}${groups}`;
+  return `<h2>掘らせる なかま</h2><button class="jelly m" data-do="dig" ${why ? "disabled" : ""}>${c ? `${esc(c.name)}に 掘らせる` : "掘らせる"}</button>${why ? `<p class="why">${esc(why)}${!all.length ? ` <a href="tame.html">なかまを 見る ›</a>` : ""}</p>` : ""}${filt}${groups}`;
 }
 
 // ---------- ぜんたい ----------

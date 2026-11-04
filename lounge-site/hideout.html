@@ -115,7 +115,7 @@
   .filters { display:grid; gap:6px; margin:12px 0; padding:10px 12px; border-radius:16px; background:var(--space); }
   .frow { display:grid; grid-template-columns:64px minmax(0, 1fr); gap:6px; align-items:start; }
   .frow > span { padding-top:6px; font:900 11px/1.2 var(--jp); color:var(--soft); } .frow > div { display:flex; gap:6px; flex-wrap:wrap; }
-  .chip { border:1.5px solid var(--line); background:#fff; border-radius:999px; padding:5px 10px; font:700 12px/1 var(--jp); display:inline-flex; align-items:center; gap:5px; }
+  .chip { border:1.5px solid var(--line); background:#fff; border-radius:999px; min-height:32px; padding:6px 12px; font:700 12px/1 var(--jp); display:inline-flex; align-items:center; gap:5px; }
   .chip small { font:600 11px/1 var(--num); color:var(--soft); }
   .chip[aria-pressed="true"] { background:var(--ink); border-color:var(--ink); color:#fff; } .chip[aria-pressed="true"] small { color:rgba(255,255,255,.7); }
   .chip:disabled { opacity:.4; }
@@ -250,7 +250,7 @@ function stOf(id) {
 const todo = (id) => { const t = stOf(id); return t.k === "ready" || (t.k === "build" && t.put); };   // 丸の 数：すぐ 建てきれる・入れられる 素材が ある（クレジットだけ ある 物は 数えない。いつも 丸だらけに しない）
 const lvn = (id) => { const v = V(id); return v.lv ? `<span class="lvn" style="--c:${COLOR[id]}">Lv${v.lv}</span>` : ""; };
 const stHtml = (id) => { const t = stOf(id), v = V(id);
-  return t.k === "build" ? `<span class="st bld">建設中 ${t.pct}%</span>` : t.k === "max" ? `<span class="st max">いちばん 上</span>` : t.k === "cap" ? `<span class="st max">Lv${v.cap} まで</span>` : t.k === "ready" ? `<span class="st can">建てられる</span>` : t.k === "can" ? `<span class="st">始められる</span>` : `<span class="st">足りない</span>`; };
+  return t.k === "build" ? `<span class="st bld">建設中 ${t.pct}%</span>` : t.k === "max" ? `<span class="st max">いちばん 上</span>` : t.k === "cap" ? `<span class="st max">Lv${v.cap} まで</span>` : t.k === "ready" ? `<span class="st can">建てられる</span>` : t.k === "can" ? ""   /* 始められる 物は 札を 出さない（2026-11-05：5 まい ぜんぶに 同じ 字が 出て いた） */  : `<span class="st">足りない</span>`; };
 
 function tabsHtml() {
   return `<div role="tablist" aria-label="施設の しゅるい" style="display:contents">${TABS.map((t) => { const k = t.facs.filter(todo).length;
@@ -341,13 +341,15 @@ function buildingHtml(f, v) {
     ${lack.length ? `<button class="jelly sky go" data-put="${f.id}" ${canPut ? "" : "disabled"}>持って いる 素材を 入れる</button>${canPut ? "" : `<p class="why">足りない：${esc(lack.slice(0, 2).map((r) => `${MAT_NAME[r.id]} あと ${fmt(r.need - r.have)}`).join("、"))}${lack.length > 2 ? `、ほか ${lack.length - 2} こ` : ""}</p>`}` : ""}
     ${msg ? `<p class="left">${msg}</p>` : ""}${fast}</section>`;
 }
+// 次の Lv の 効果は いまと ちがう 所だけ（「いま」の 箱と 同じ 文を くり返さない。2026-11-05）
+const fxDiff = (now, next) => { const a = String(now).split("・"), d = String(next).split("・").filter((x) => !a.includes(x)); return d.length ? d.join("・") : next; };
 function detailHtml() {
   const f = F(S.sel), v = V(f.id), lv = v.lv, kn = hasKnob(f) && lv > 0, k = S.dragId === f.id && S.drag != null ? S.drag : v.knob;
   const uses = `${f.id === "bench" && lv ? `<a class="use" href="bench.html">作業台を つかう</a>` : ""}${f.id === "armory" ? `<a class="use" href="equip.html">装備を 見る</a>` : ""}${f.id === "workshop" && lv ? `<a class="use" href="workshop.html">工房を つかう</a>` : ""}${f.id === "mine" && lv ? `<a class="use" href="mine.html">坑道を ひらく</a>` : ""}${f.id === "lab" && lv ? `<a class="use" href="tame.html">なかまを 研究する</a>` : ""}`;
   const head = `<header style="--c:${COLOR[f.id]}">${icon(f.id)}<div><h2>${f.name} ${lvn(f.id)}</h2><p>${esc(f.text)}</p></div></header>${uses}`;
   const cook = f.id === "snack" && lv ? `<section class="craft" aria-label="おやつを 作る"><span class="need-h">おやつを 作る</span>${snackCraftHtml(v.knob, S.inv)}</section>` : "";   // おやつ工房：ここで 作る（なかまの 画面でも 同じ 物）
   const now = lv ? `<div class="nowbox"><p class="now"><small>いま${kn && k < lv ? `（つまみ Lv${k}）` : ""}</small><span data-fx>${esc(facFx(f.id, k))}</span></p>${kn ? knobHtml(f, v, k) : ""}</div>` : "";
-  const nx = v.build ? "" : lv >= v.max ? `<p class="done">いちばん 上の Lv${lv}</p>` : !v.next ? `<p class="soon">無線機を 作ると Lv${lv + 1} から 上げられる（ビサイ諸島の 素材が いる）</p>` : `<div class="next"><small>Lv${lv + 1} に すると</small><p>${esc(v.next.fx)}</p></div>`;
+  const nx = v.build ? "" : lv >= v.max ? `<p class="done">いちばん 上の Lv${lv}</p>` : !v.next ? `<p class="soon">無線機を 作ると Lv${lv + 1} から 上げられる（ビサイ諸島の 素材が いる）</p>` : `<div class="next"><small>Lv${lv + 1} に すると</small><p>${esc(lv ? fxDiff(facFx(f.id, lv), v.next.fx) : v.next.fx)}</p></div>`;
   return head + cook + now + nx + (v.build ? buildingHtml(f, v) : v.next ? startHtml(f, v) : "");
 }
 function render() {

@@ -3,6 +3,10 @@
 const P = (p, s) => p(s) || s;
 
 export const WORDS = {
+  // 2026-11-05 使いやすく した ときの 文
+  "ほかの 職業 #": "Other jobs (#)", "相手：練習用の かかし（Lv#）": "Opponent: Training Dummy (Lv#)", "あき・えらべる 敵 # 体": "Empty · # enemies to choose from",
+  "1 ポイントで HP +4・MP +2・ほか +1。へらすのは スキルツリーの 振り直しで": "1 point: HP +4 · MP +2 · others +1. Lower them with a skill tree respec",
+  "# 番は Lv# で開く": "Row # unlocks at Lv#", "#〜# 番は Lv#・# で開く": "Rows #–# unlock at Lv#, #", "#〜# 番は Lv#・#・#・# で開く": "Rows #–# unlock at Lv#, #, #, #", "#〜# 番は Lv#・#・#・#・# で開く": "Rows #–# unlock at Lv#, #, #, #, #",
   // 栄養の 画面（nutrition.html。2026-10-31）
   "栄養": "Nutrition", "／ 栄養": "/ Nutrition", "満腹度": "Fullness", "詳細ステータス": "Detailed Stats", "だれに": "Who", "あげる": "Feed", "満腹度と おやつ": "Fullness & treats",
   "詳細ステータスは 大工事で 開く 予定です。": "Detailed Stats will open with the big update.", "まだ ペットが いません。": "No pet yet.",

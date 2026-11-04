@@ -174,8 +174,8 @@ function foeHtml(c) {
 function duelHtml() {
   const V = S.V;
   if (S.fight) return fightHtml();
-  const bar = `<div class="bar"><span>ごほうび あと<b>${V.left.paid}</b>回</span><span>きょう あと<b>${V.left.duels}</b>回 戦える</span><button class="mini" data-do="foes">入れかえ</button></div>`;
-  if (!V.foes.length) return bar + `<div class="empty"><p>まだ 相手が いない</p><p>Orbit Arena を 開いた 人が 相手に なる</p></div>`;
+  const bar = `<div class="bar"><span>ごほうび あと<b>${V.left.paid}</b>回</span><span>きょう あと<b>${V.left.duels}</b>回 戦える</span>${V.foes.length ? `<button class="mini" data-do="foes">入れかえ</button>` : ""}</div>`;   // 相手が いない ときは 入れかえない（2026-11-05）
+  if (!V.foes.length) return bar + `<div class="empty"><p>まだ 相手が いない（開いた 人が 相手に なる）</p></div>`;
   return bar + `<div class="foes">${V.foes.map(foeHtml).join("")}</div>${V.left.duels <= 0 ? `<p class="why" style="margin-top:10px">きょうは もう ${DUEL.perDay} 回 戦った（あした また）</p>` : ""}`;
 }
 function fightHtml() {

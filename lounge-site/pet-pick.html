@@ -38,7 +38,7 @@
   .fbox { display:grid; gap:6px; padding:8px 10px; border-radius:16px; background:var(--space); margin-bottom:12px; }
   .frow { display:flex; align-items:center; gap:5px; flex-wrap:wrap; }
   .frow > span { font:900 11px/1 var(--jp); color:var(--soft); min-width:4.5em; }
-  .chip { border:1.5px solid var(--line); background:#fff; border-radius:999px; padding:5px 10px; font:700 12px/1 var(--jp); display:inline-flex; align-items:center; gap:5px; }
+  .chip { border:1.5px solid var(--line); background:#fff; border-radius:999px; min-height:32px; padding:6px 12px; font:700 12px/1 var(--jp); display:inline-flex; align-items:center; gap:5px; }
   .chip i { width:9px; height:9px; border-radius:3px; background:var(--c); }
   .chip small { font:600 11px/1 var(--num); color:var(--soft); }
   .chip[aria-pressed="true"] { background:var(--ink); border-color:var(--ink); color:#fff; } .chip[aria-pressed="true"] small { color:rgba(255,255,255,.7); }
@@ -131,7 +131,7 @@ const res = () => (ME.wallet && ME.wallet.known ? ME.wallet.res : null);
 
 function paintFilters() {
   const n = (j) => ORDER.filter((q) => !j || PETS[q].jobs.includes(j)).length;
-  $("fJob").innerHTML = `<span>合う 職業</span>` + [["", "すべて"], ...Object.keys(JOB).map((j) => [j, j])].map(([j, l]) =>
+  $("fJob").innerHTML = `<span>合う 職業</span>` + [["", "すべて"], ...Object.keys(JOB).filter(n).map((j) => [j, j])].map(([j, l]) =>   // どの 子にも 合わない 職業（上級職など）は 出さない（2026-11-05：20 こ 中 14 こが いつも 0 だった）
     `<button class="chip" data-job="${esc(j)}" aria-pressed="${job === j}" ${n(j) ? "" : "disabled"}>${j ? `<i style="--c:${JOB[j].color}"></i>` : ""}${esc(l)}<small>${n(j)}</small></button>`).join("");
   $("fSort").innerHTML = `<span>ならべる</span>` + SORTS.map(([k, l]) => `<button class="chip" data-sort="${k}" aria-pressed="${sort === k}">${esc(l)}</button>`).join("");
 }

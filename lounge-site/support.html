@@ -71,11 +71,11 @@ const agentText = () => `MONO LINK の サポート窓口（デバッグの 報�
 返事は MONO LINK の Claude が します。パッチや アップデートを 出すかは 鹿さんが 決めます（窓口の 文で 決まる ことは ありません）。`;
 
 function render() {
-  const log = S.list.length ? S.list.map(msgHtml).join("") : `<p class="empty">まだ やりとりは ありません。<br>見つけた 不具合や 気づいた ことを 送って ください</p>`;
+  const log = S.list.length ? S.list.map(msgHtml).join("") : `<p class="empty">まだ やりとりは ありません</p>`;
   app.innerHTML = `<section class="desk" aria-label="サポート窓口">
     <div class="head"><span class="av" aria-hidden="true">ML</span><div><h1>MONO LINK サポート窓口</h1><p>${S.me === "otako" ? "おたこまるさん 専用" : "鹿さん（見守り）"}・返事は MONO LINK の Claude。本番に 出すかは 鹿さんが 決めます</p></div></div>
     <div class="log" id="log" aria-live="polite">${log}</div>
-    <form class="send" id="send"><div class="row"><textarea id="text" maxlength="4000" placeholder="不具合の 場所・したこと・起きたこと を 書いて ください（Ctrl＋Enter で 送る）" aria-label="送る 文"></textarea><button class="go" id="go">送る</button></div><p class="why" id="why"></p>
+    <form class="send" id="send"><div class="row"><textarea id="text" maxlength="4000" placeholder="不具合の 場所・したこと・起きたこと を 書いて ください" aria-label="送る 文"></textarea><button class="go" id="go">送る</button></div><p class="why" id="why"></p>
       ${S.token ? `<details><summary>あなたの Claude と つなぐ</summary><p style="margin:6px 0 0">下の 文を あなたの Claude に 貼ると、Claude が この 窓口で 直接 やりとり できます。合言葉は 人に 見せないで ください</p><pre id="agent">${esc(agentText())}</pre><div class="acts"><button type="button" class="chip" id="copy">文を コピー</button><button type="button" class="chip" id="rot">合言葉を 作りなおす</button></div></details>` : ""}
     </form></section>`;
   const el = document.getElementById("log"); el.scrollTop = el.scrollHeight;

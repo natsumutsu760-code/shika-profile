@@ -4,6 +4,7 @@ const P = (p, s) => p(s) || s;
 const n1 = (n, one, many) => (n === "1" ? `1 ${one}` : `${n} ${many}`);
 
 export const WORDS = {
+  "まだ 相手が いない（開いた 人が 相手に なる）": "No opponents yet (players who open it become opponents)",   // 2026-11-05
   // ---- 闘技場（arena.html） ----
   "デュエル": "Duel", "トーナメント": "Tournament", "記録": "Log", "きょうは もらった": "Claimed today", "ごほうび なし": "No reward", "挑む": "Challenge", "ごほうび あと": "Rewards left",
   "きょう あと": "Today:", "回 戦える": "fights left", "入れかえ": "Shuffle", "まだ 相手が いない": "No opponents yet", "Orbit Arena を 開いた 人が 相手に なる": "People who open the Orbit Arena become opponents",

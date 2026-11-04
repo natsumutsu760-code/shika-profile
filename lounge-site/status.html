@@ -97,10 +97,12 @@
   .scale { margin-top:10px; display:grid; grid-template-columns:repeat(5, minmax(0, 1fr)); gap:4px; }
   .scale div { display:grid; justify-items:center; gap:4px; padding:6px 2px; border-radius:10px; background:var(--space); font:600 12px/1 var(--num); }
   .fit { margin-top:8px; display:grid; gap:6px; }
-  .fit div { display:grid; grid-template-columns:96px minmax(0, 1fr) 70px; gap:8px; align-items:center; font:700 12.5px/1.2 var(--jp); }
+  .fit div { display:grid; grid-template-columns:96px minmax(0, 1fr) 84px; gap:8px; align-items:center; font:700 12.5px/1.2 var(--jp); }
   .fit .b { height:10px; border-radius:99px; background:var(--space); overflow:hidden; } .fit .b i { display:block; height:100%; border-radius:99px; background:var(--c); }
   .fit em { font-style:normal; font:700 11px/1.2 var(--jp); color:var(--soft); text-align:right; }
   .fit .top1 em { color:#D2336A; }
+  .fit em b { margin-right:4px; padding:1px 6px; border-radius:99px; background:var(--ink); color:#fff; font:900 11px/1.5 var(--jp); } .fit em { white-space:nowrap; }   /* いまの 職業（2026-11-05：下の 説明文の かわり） */
+  .fitmore summary { margin-top:8px; cursor:pointer; font:700 12px/1.6 var(--jp); color:var(--soft); }
 
   /* ===== 8 匹の一覧 ===== */
   .grid8 { display:grid; grid-template-columns:repeat(4, minmax(0, 1fr)); gap:10px; }
@@ -233,18 +235,18 @@ function renderPet() {
       ${det ? detailHtml(eqAll) : `<div class="rows${auto ? " auto" : ""}">${rows}</div>
       ${foot}
       <div class="legend"><span style="--c:#C9CFDD">もとの値</span><span style="--c:${ty.color}">職業で伸びた分</span><span style="--c:var(--sky)">手で振った分</span><span style="--c:var(--amber)">スキルツリー</span><span style="--c:var(--violet)">装備</span></div>
-      <p class="note">1 ポイントで HP +4・MP +2・ほかは +1。そこに適正の倍率がかかる（S なら ×1.15）。へらすのは スキルツリーの 振り直しで（1 日 1 回 無料）</p>`}
+      ${auto ? "" : `<p class="note">1 ポイントで HP +4・MP +2・ほか +1。へらすのは スキルツリーの 振り直しで</p>`}`}
     </section>
     <aside class="side">
       ${detailOpen() ? `<a class="card nutlink" href="nutrition.html">栄養<small>おやつで 詳細ステータスを 育てる</small></a>` : ""}
       <div class="card"><h3>${esc(MP.name)}の適正<small>${esc(info.label)}はみんな同じ</small></h3>
         <div class="aptg">${KEYS.map((k) => `<div>${rk(A[k])}${SL[k]}</div>`).join("")}</div>
         <p>${esc(why)}</p>
-        <div class="scale">${["S", "A", "B", "C", "D"].map((r) => `<div>${rk(r)}${pct(APT_MUL[r])}</div>`).join("")}</div>
-        <p class="note" style="margin-top:6px">レベルで伸びる分にかかる。どの子も S 1・A 2・B 3・C 2・D 1 で、合計は同じ</p></div>
+        <div class="scale">${["S", "A", "B", "C", "D"].map((r) => `<div>${rk(r)}${pct(APT_MUL[r])}</div>`).join("")}</div></div>
       <div class="card"><h3>合う職業<small>伸びる分の平均の倍率</small></h3>
-        <div class="fit">${fits.map(([t, f], i) => `<div class="${i === 0 ? "top1" : ""}"><span>${TYPES[t].label}</span><span class="b"><i style="--c:${TYPES[t].color}; width:${Math.max(4, ((f - fmin) / (fmax - fmin)) * 100)}%"></i></span><em>${fitWord(f)}</em></div>`).join("")}</div>
-        <p class="note">いまは ${TYPES[MP.type].label}（${fitWord(jobFit(sp, MP.type))}）。職業はあとから変えられる</p></div>
+        ${(() => { const row = ([t, f]) => `<div class="${fits[0][0] === t ? "top1" : ""}${t === MP.type ? " cur" : ""}"><span>${TYPES[t].label}</span><span class="b"><i style="--c:${TYPES[t].color}; width:${Math.max(4, ((f - fmin) / (fmax - fmin)) * 100)}%"></i></span><em>${t === MP.type ? "<b>いま</b>" : ""}${fitWord(f)}</em></div>`;
+          const show = (x, i) => i < 5 || x[0] === MP.type, top = fits.filter(show), rest = fits.filter((x, i) => !show(x, i));
+          return `<div class="fit">${top.map(row).join("")}</div>${rest.length ? `<details class="fitmore"><summary>ほかの 職業 ${rest.length}</summary><div class="fit">${rest.map(row).join("")}</div></details>` : ""}`; })()}</div>
     </aside>
   </div>`;
 }

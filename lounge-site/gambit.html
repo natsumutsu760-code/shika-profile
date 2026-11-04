@@ -205,10 +205,10 @@ function testHtml() {
   const hp = Math.max(0, Math.round((END.final[0].hp / vitalsOf(A).maxHp) * 100));
   return `<details class="panel test" aria-label="ためしに戦う" ${(W.testOpen ?? innerWidth > 820) ? "open" : ""}>
       <summary><h2>ためしに戦う</h2><button class="jelly sky small again" data-do="again">もう一度</button></summary>
-      <p class="vs">練習用のかかし（Lv${MP.lv}）と。丸の数字は動いたガンビットの番号</p>
+      <p class="vs">相手：練習用の かかし（Lv${MP.lv}）</p>
       <ol class="log">${li}</ol>
       <div class="result" ${END.winner === 0 ? "" : 'style="background:#FFF0F1;color:#C23B47"'}>ターン ${END.turns} で${END.winner === 0 ? `勝ち。HP は ${hp}% 残った` : "負け"}</div>
-      <p class="used">動いた回数　${W.list.map((g, i) => (used[i + 1] ? `${i + 1} 番 <b>${used[i + 1]}</b>` : "")).filter(Boolean).join("・")}${used.auto ? `・オート <b>${used.auto}</b>` : ""}</p></details>`;
+      <p class="used">動いた回数　${[...W.list.map((g, i) => (used[i + 1] ? `${i + 1} 番 <b>${used[i + 1]}</b>` : "")), used.auto ? `オート <b>${used.auto}</b>` : ""].filter(Boolean).join("・")}</p></details>`;
 }
 function render() {
   const gate = gateHtml(ME, esc); if (gate) return gate;
@@ -226,8 +226,8 @@ function render() {
       <div class="head"><h2>ガンビット</h2><span>枠 ${W.list.length} / ${max}</span><div class="btns"><button class="jelly light small" data-do="tmpl">${W.reset ? "もう 1 回 押すと もどす" : "お手本に もどす"}</button><button class="jelly small" data-do="save" ${W.dirty ? "" : "disabled"} style="${W.dirty ? "" : "opacity:.45"}">保存</button></div></div>
       <p class="hint">上から順に見て、最初に当てはまったものをします。番号を 押すと 並べかえ・けす。</p>
       <ol class="gb">${W.list.map(rowHtml).join("")}
-        ${W.list.length < max ? `<li class="g lock" style="cursor:pointer"><button class="no" data-do="add" aria-label="行を 足す" style="border:1.5px dashed var(--line);background:#fff;color:var(--sky)">＋</button><span>行を 足す（あと ${max - W.list.length}）</span></li>` : ""}
-        ${nextLv.length ? `<li class="g lock"><span class="no">+${nextLv.length}</span><span>${max + 1}〜${max + nextLv.length} 番は Lv${nextLv.join("・")} で開く</span></li>` : ""}
+        ${W.list.length < max ? `<li class="g lock" style="cursor:pointer"><button class="no" data-do="add" aria-label="行を 足す" style="border:1.5px dashed var(--line);background:#fff;color:var(--sky)">＋</button><span>行を 足す</span></li>` : ""}
+        ${nextLv.length ? `<li class="g lock"><span class="no">+${nextLv.length}</span><span>${nextLv.length > 1 ? `${max + 1}〜${max + nextLv.length}` : max + 1} 番は Lv${nextLv.join("・")} で開く</span></li>` : ""}
       </ol>${tools}
       <div class="fallback">
         <p><span class="no">他</span>どれでもないときのオート</p>

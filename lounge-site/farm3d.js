@@ -103,11 +103,11 @@ function plot(style, soil) {
   if (S.bits) for (const [x, z] of [[-0.3, -0.12], [0.22, 0.3], [0.3, -0.3]]) box(g, 0.06, 0.012, 0.06, S.bits, x, y - 0.006, z);
   g.userData.top = y; return g;
 }
-function lockedPlot(style, needLv) {   // まだ 使えない マス：箱庭は 芝の ふた、温室は 金ぞくの ふた。まん中に 必要な 農業の Lv
+function lockedPlot(style, needLv, tag) {   // まだ 使えない マス：箱庭は 芝の ふた、温室は 金ぞくの ふた。まん中に 必要な 農業の Lv（tag：次に ひらく 段だけ。2026-11-05：27 マス ぜんぶに 札が 出て いた）
   const g = new THREE.Group();
   if (style === "greenhouse") { box(g, 0.98, 0.34, 0.98, "#6E747C", 0, 0, 0); for (const k of [-0.3, 0, 0.3]) { const st = box(g, 0.1, 0.012, 0.9, "#E8C23A", k, 0.34, 0); st.rotation.y = 0.6; } }
   else { box(g, 0.94, 0.1, 0.94, "#6FAE5A", 0, 0, 0); for (const [x, z] of [[-0.25, -0.2], [0.2, 0.25]]) box(g, 0.05, 0.08, 0.05, "#5A9A48", x, 0.1, z); }
-  const t = label(`Lv${needLv}`, { bg: "rgba(20,16,34,.6)", fg: "#E8ECF4", size: 30 }); t.position.set(0, style === "greenhouse" ? 0.5 : 0.28, 0); t.scale.multiplyScalar(0.8); g.add(t);
+  if (tag) { const t = label(`Lv${needLv}`, { bg: "rgba(20,16,34,.6)", fg: "#E8ECF4", size: 30 }); t.position.set(0, style === "greenhouse" ? 0.5 : 0.28, 0); t.scale.multiplyScalar(0.8); g.add(t); }
   return g;
 }
 const needLvOf = (i) => { for (const [lv, w, h] of [[1, 3, 3], [5, 3, 4], [10, 4, 4], [15, 4, 5], [20, 5, 5], [25, 5, 6], [30, 6, 6]]) if (i % W < w && Math.floor(i / W) < h) return lv; return 30; };
@@ -135,9 +135,9 @@ export function makeFarm({ skin, style } = {}) {
   const live = [];                   // うごく 物（演出）
   const glows = []; scene.traverse((o) => { if (o.userData.glow) glows.push(o); });   // 温室の 光の 帯（毎こま 全部を さがさない）
   // マス 1 つ分の 物（土台・作物の 板・札・かげ）を 1 つの まとまりに。どこを 押しても そのマス（userData.i）
-  function cellGroup(i, ok, c, soil, st) {
+  function cellGroup(i, ok, c, soil, st, tag) {
     const p = cellPos(i), g = new THREE.Group(); g.userData.i = i;
-    const base = ok ? plot(style, soil) : lockedPlot(style, needLvOf(i)); base.position.copy(p); g.add(base);
+    const base = ok ? plot(style, soil) : lockedPlot(style, needLvOf(i), tag); base.position.copy(p); g.add(base);
     if (!c) return g;
     const top = base.userData.top;
     if (c.spr) { g.add(sprinkler(c.spr, p, top, i)); return g; }
@@ -153,13 +153,14 @@ export function makeFarm({ skin, style } = {}) {
   const slots = [];
   function show(field, now) {
     const soil = field.soil || "normal"; let changed = false;
+    let next = Infinity; for (let i = 0; i < W * W; i++) if (!inField(field.lv, i)) next = Math.min(next, needLvOf(i));   // 次に ひらく 段の Lv
     for (let i = 0; i < W * W; i++) {
       const ok = inField(field.lv, i), c = ok ? field.cells[i] : null;
       const st = c && !c.spr && !c.obj && CROP[c.id] ? stageAt(c, now, soil).stage : "";
-      const key = ok ? `${soil}|${c ? [c.spr || "", c.obj || "", c.taps ?? "", c.id || "", st].join("/") : ""}` : `L${needLvOf(i)}`;
+      const key = ok ? `${soil}|${c ? [c.spr || "", c.obj || "", c.taps ?? "", c.id || "", st].join("/") : ""}` : `L${needLvOf(i)}${needLvOf(i) === next ? "*" : ""}`;
       if (slots[i] && slots[i].key === key) continue;
       if (slots[i]) cells.remove(slots[i].g);
-      slots[i] = { key, g: cellGroup(i, ok, c, soil, st) }; cells.add(slots[i].g); changed = true;
+      slots[i] = { key, g: cellGroup(i, ok, c, soil, st, !ok && needLvOf(i) === next) }; cells.add(slots[i].g); changed = true;
     }
     return changed;
   }

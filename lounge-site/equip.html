@@ -196,6 +196,7 @@
     /* スマホ：えらんだ装備は、カードを押すと下から出るシート */
     .detail { display:none; }
     body.sheet-on .detail { display:block; background:#fff; position:fixed; left:0; right:0; bottom:0; z-index:11; border-radius:26px 26px 0 0; max-height:82vh; overflow:auto; box-shadow:0 -18px 40px -18px rgba(27,35,64,.4); }
+    .detail[hidden], body.sheet-on .detail[hidden] { display:none; }   /* 出す 物が ない ときは 出さない（2026-11-05） */
     body.sheet-on .detail::before { content:""; display:block; width:44px; height:5px; border-radius:9px; background:var(--line); margin:0 auto 10px; }
     body.sheet-on .dim { display:block; }
     .mix { grid-template-columns:minmax(0, 1fr); } .arrow { transform:rotate(90deg); height:24px; }
@@ -283,9 +284,10 @@ function render() {
   // マス：色は ★、左下に ★、右上に 付けて いる 印（装＝この 子・仲＝なかま）
   const card = ({ e }) => { const w = W[e.uid], nm = esc(baseOf(e.base).name);
     return `<li><button class="tc t${e.star}${w ? " tw-on" : ""}" data-u="${e.uid}" aria-pressed="${e.uid === V.sel}" aria-label="${nm} ★${e.star}${w ? (w.me ? "（そうび中）" : `（${esc(nameOfWho(w.who))}）`) : ""}" title="${nm}"><span class="tn">${nm}</span>${gearImg(e.base, { cls: "hd" })}<span class="ts">${"★".repeat(e.star)}</span>${w ? `<span class="tw${w.me ? "" : " mate"}">${w.me ? "装" : w.who === "pet" ? "ペ" : "仲"}</span>` : ""}</button></li>`; };
-  const listHtml = !vis.length ? `<p class="note">${KINDS[V.f].label}の 装備は まだ ない。<a href="dungeon.html">冒険</a>の 宝箱か <a href="bench.html">作業台</a>で 手に 入る</p>` : `<div class="tk list-tk"><ul class="tk-g">${vis.map(card).join("")}</ul></div>`;
+  const none = !own.length;   // 持ち物が 0 この ときは 1 回だけ 言って、部位・ならべる・手放すは 出さない（2026-11-05：同じ 文が 2 回 出て いた）
+  const listHtml = none ? `<p class="note">まだ 装備が ない。<a href="dungeon.html">冒険</a>の 宝箱か <a href="bench.html">作業台</a>で 手に 入る</p>` : !vis.length ? `<p class="note">${KINDS[V.f].label}の 装備は まだ ない。<a href="dungeon.html">冒険</a>の 宝箱か <a href="bench.html">作業台</a>で 手に 入る</p>` : `<div class="tk list-tk"><ul class="tk-g">${vis.map(card).join("")}</ul></div>`;
   const it = own.find((e) => e.uid === V.sel);
-  let det = `<p class="note">まだ 装備が ない。<a href="dungeon.html">冒険</a>の 宝箱か <a href="bench.html">作業台</a>で 手に 入る</p>`;
+  let det = "";
   if (it) {
     const b = baseOf(it.base), w = W[it.uid], to = slotFor(b.slot), now = cur(to), cmp = now && now.uid !== it.uid ? diffOf(it, now) : null, sy = SYNTH.find((r) => r.main === it.base);
     const here = isPet() ? "pet" : holder().uid, busyAway = away(isPet() ? MP.uid : here) || (w && !w.me && away(w.who === "pet" ? MP.uid : w.who));
@@ -320,13 +322,13 @@ function render() {
       </div>
     </section>
     <section class="panel" aria-label="持っている装備" id="list">
-      <div class="head"><h2>持っている装備</h2><span class="cnt ${own.length >= cap ? "full" : ""}"><b>${own.length}</b> / ${cap}${own.length >= cap * 0.9 ? `<a href="hideout.html?f=armory">増やす</a>` : ""}</span><button class="bulkbtn" data-bulk="1" aria-expanded="${V.bulk}">まとめて 手放す</button><button class="bulkbtn ${AS ? "on" : ""}" data-auto="1" aria-expanded="${V.auto}">自動で リサイクル${AS ? `<small>★${AS.star} 以下</small>` : ""}</button></div>
+      <div class="head"><h2>持っている装備</h2><span class="cnt ${own.length >= cap ? "full" : ""}"><b>${own.length}</b> / ${cap}${own.length >= cap * 0.9 ? `<a href="hideout.html?f=armory">増やす</a>` : ""}</span>${none ? "" : `<button class="bulkbtn" data-bulk="1" aria-expanded="${V.bulk}">まとめて 手放す</button><button class="bulkbtn ${AS ? "on" : ""}" data-auto="1" aria-expanded="${V.auto}">自動で リサイクル${AS ? `<small>★${AS.star} 以下</small>` : ""}</button>`}</div>
       ${V.bulk ? bulkHtml(own, W) : V.auto ? autoHtml() : ""}
-      <div class="ptabs" role="tablist" aria-label="部位">${PARTS.map((k) => `<button role="tab" data-f="${k}" aria-selected="${V.f === k}" class="${n(k) ? "" : "zero"}">${PART_LABEL[k] || KINDS[k].label}<small>${n(k)}</small></button>`).join("")}</div>
-      <div class="filters sorts" role="group" aria-label="ならべる"><span>ならべる</span>${SORTS.map(([k, l]) => `<button data-sort="${k}" aria-pressed="${V.sort === k}">${l}</button>`).join("")}</div>
+      ${none ? "" : `<div class="ptabs" role="tablist" aria-label="部位">${PARTS.map((k) => `<button role="tab" data-f="${k}" aria-selected="${V.f === k}" class="${n(k) ? "" : "zero"}">${PART_LABEL[k] || KINDS[k].label}<small>${n(k)}</small></button>`).join("")}</div>
+      <div class="filters sorts" role="group" aria-label="ならべる"><span>ならべる</span>${SORTS.map(([k, l]) => `<button data-sort="${k}" aria-pressed="${V.sort === k}">${l}</button>`).join("")}</div>`}
       ${listHtml}
     </section>
-    <aside class="panel detail ${it && !V.rec ? `r${it.star}` : ""}" aria-label="${V.rec ? "おすすめ装備" : "えらんだ装備"}" id="det">${det}</aside>
+    <aside class="panel detail ${it && !V.rec ? `r${it.star}` : ""}" aria-label="${V.rec ? "おすすめ装備" : "えらんだ装備"}" id="det"${det ? "" : " hidden"}>${det}</aside>
   </div>`;
 }
 // ---------- おすすめ装備（鹿さんの頼み、2026-10-25）：えらび方 3 つ・この 子／パーティ 全員。ほかの 子の 物も 外して 使う。くらべて から 付ける ----------

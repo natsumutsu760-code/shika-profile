@@ -41,7 +41,7 @@
   .wallet b { display:block; font:600 21px/1 var(--num); color:var(--ink); }
 
   /* 木：枠ごとの 列。1 行が もとの装備 → 上の装備 */
-  .key { display:flex; flex-wrap:wrap; gap:6px 16px; margin-bottom:12px; font:700 12px/1.3 var(--jp); color:var(--soft); }
+  .key { display:flex; flex-wrap:wrap; gap:6px 8px; align-items:center; margin-bottom:12px; font:700 12px/1.3 var(--jp); color:var(--soft); }
   .key span { display:inline-flex; align-items:center; gap:6px; } .key b { font:600 13px/1 var(--num); color:var(--ink); }
   .key i { width:12px; height:12px; border-radius:4px; }
   .key .k-can i { background:var(--ink); } .key .k-short i { background:#fff; border:2px solid #B9C3D8; } .key .k-lock i { background:repeating-linear-gradient(45deg, #E3E8F2 0 3px, #fff 3px 6px); border:1.5px dashed #B9C3D8; }
@@ -113,7 +113,8 @@
   /* 開発（敵の 結晶で 作る。2026-11-04）：しぼりこみの 箱・結晶の 段・決まった 能力 */
   .filt { display:grid; gap:6px; margin-bottom:12px; padding:10px 12px; border-radius:16px; background:var(--space); }
   .filt div { display:flex; flex-wrap:wrap; align-items:center; gap:6px; } .filt span.l { font:900 11.5px/1 var(--jp); color:var(--soft); min-width:3.5em; }
-  .chip { border:1.5px solid var(--line); background:#fff; border-radius:999px; padding:5px 11px; font:700 12px/1 var(--jp); color:var(--soft); }
+  .chip { border:1.5px solid var(--line); background:#fff; border-radius:999px; min-height:32px; padding:6px 12px; font:700 12px/1 var(--jp); color:var(--soft); display:inline-flex; align-items:center; gap:6px; }
+  .key .chip[aria-pressed="true"] i { box-shadow:0 0 0 1.5px #fff; }   /* しぼりこみ（2026-11-05）：凡例の 色を チップに のせる */
   .chip[aria-pressed="true"] { background:var(--ink); border-color:var(--ink); color:#fff; } .chip:disabled { opacity:.4; } .chip em { font-style:normal; font:600 11px/1 var(--num); margin-left:4px; }
   .node .ic img.px { image-rendering:pixelated; }
   .devnote { font:700 12px/1.5 var(--jp); color:var(--soft); margin-top:10px; }
@@ -166,7 +167,7 @@ const WHERE = {}, FOE = {};
 for (const d of DUNGEONS) { for (const [id] of GATHER[d.id].mats) WHERE[id] = d.name; WHERE[GATHER[d.id].hidden[0]] = `${d.name}の かくし通路`; for (const f of [...d.foes, d.rare, d.boss]) { WHERE[ENEMY_MAT[f.tree][0]] = d.name; FOE[ENEMY_MAT[f.tree][0]] = f === d.boss ? `ボス ${f.name}` : f.name; } }
 
 // 門番の 記録を 画面の 形に。付けて いる 装備は 合成に 使わない。レシピは 拾った ことの ある 物（seen）と 商人から もらった 物
-const S = { lv: 0, balls: 0, known: false, made: null, inv: {}, eq: [], seen: new Set() };
+const S = { lv: 0, balls: 0, known: false, made: null, inv: {}, eq: [], seen: new Set(), only: "" };   // only：しぼりこみ（"" ぜんぶ・can・short）
 let ME = null;
 function load(m) {
   ME = m;
@@ -295,21 +296,27 @@ function node(k) {
 // 1 行が もとの装備 → 上の装備。形の レシピは 合成が ないので 1 つ だけ
 function treeHtml() {
   if (S.tab === "dev") return devTreeHtml();
-  const kinds = GROUPS.find((g) => g[0] === S.tab)[2];
-  document.getElementById("cols").style.setProperty("--n", Math.min(2, kinds.length));
+  const keep = (ks) => !S.only || ks.some((k) => stateOf(k) === S.only);   // しぼりこみ：行の どちらかが 合えば 出す（木の 形は くずさない）
+  const kinds = GROUPS.find((g) => g[0] === S.tab)[2].filter((kind) => keysOf(kind).some((k) => keep(pairOf(k))));
+  document.getElementById("cols").style.setProperty("--n", Math.max(1, Math.min(2, kinds.length)));
   return kinds.map((kind) => `<section class="col" aria-label="${KINDS[kind].label}"><h2>${KINDS[kind].label}<small>${KINDS[kind].role}</small></h2><div class="rows">${
-    keysOf(kind).map((k) => { const sy = SYNTH.find((x) => x.main === idOf(k));
+    keysOf(kind).filter((k) => keep(pairOf(k))).map((k) => { const sy = SYNTH.find((x) => x.main === idOf(k));
       return sy ? `<div class="row">${node(k)}<i class="link ${stateOf("s:" + sy.out) === "can" ? "on" : ""}" aria-hidden="true"></i>${node("s:" + sy.out)}</div>` : `<div class="row"><span class="solo">${node(k)}</span></div>`; }).join("")}</div></section>`).join("");
 }
+const pairOf = (k) => { const sy = SYNTH.find((x) => x.main === idOf(k)); return sy ? [k, "s:" + sy.out] : [k]; };   // 1 行の 物（もとの装備 → 上の装備）
+const tabKeys = (g) => GROUPS.find((x) => x[0] === g)[2].flatMap(keysOf).flatMap(pairOf);
 function tabsHtml() {
-  return GROUPS.map(([g, label, kinds]) => { const n = kinds.flatMap(keysOf).flatMap((k) => { const sy = SYNTH.find((x) => x.main === idOf(k)); return sy ? [k, "s:" + sy.out] : [k]; }).filter((k) => stateOf(k) === "can").length;
+  return GROUPS.map(([g, label]) => { const n = tabKeys(g).filter((k) => stateOf(k) === "can").length;
     return `<button role="tab" data-tab="${g}" aria-selected="${S.tab === g}">${label}${n ? `<em>${n}</em>` : ""}</button>`; }).join("")
     + (() => { const n = DEVS.filter((id) => devState(id) === "can").length; return `<button role="tab" data-tab="dev" aria-selected="${S.tab === "dev"}">開発${n ? `<em>${n}</em>` : ""}</button>`; })();   // 敵の 結晶で 作る
 }
 function keyHtml() {
   if (S.tab === "dev") return devFiltHtml();
-  const all = [...CRAFT.map((r) => "c:" + r.base), ...SYNTH.map((r) => "s:" + r.out)].map(stateOf), n = (s) => all.filter((x) => x === s).length;
-  return `<span class="k-can"><i></i>作れる・合成できる <b>${n("can")}</b></span><span class="k-short"><i></i>足りない <b>${n("short")}</b></span><span class="k-lock"><i></i>レシピ まだ <b>${n("lock") + n("wait")}</b></span>`;
+  const all = tabKeys(S.tab).map(stateOf), n = (s) => (s ? all.filter((x) => x === s).length : all.length);   // この タブの 中で 数える
+  if (S.only && !n(S.only)) S.only = "";
+  const chip = (s, label) => `<button class="chip ${s ? "k-" + s : ""}" data-only="${s}" aria-pressed="${S.only === s}" ${n(s) ? "" : "disabled"}>${s ? "<i></i>" : ""}${label}<em>${n(s)}</em></button>`;
+  const lock = n("lock") + n("wait");
+  return (n("can") + n("short") ? chip("", "すべて") + chip("can", "作れる") + chip("short", "足りない") : "") + (lock ? `<span class="k-lock"><i></i>レシピ まだ <b>${lock}</b></span>` : "");   // しぼる 物が ない ときは チップを 出さない
 }
 function rowHtml(x) {
   let pic = `<i class="dot c"></i>`, name = "クレジット", sub = x.fee ? `維持費 ${fmt(x.fee)} こみ` : "";
@@ -375,6 +382,7 @@ document.querySelector("main").addEventListener("click", async (e) => {
     if (S.tab !== "dev" && (S.sel.startsWith("d:") || groupOf(S.sel) !== S.tab)) S.sel = keysOf(GROUPS.find((g) => g[0] === S.tab)[2][0])[0];
     return render();
   }
+  if ("only" in b.dataset) { S.only = b.dataset.only; return render(); }   // しぼりこみ
   if (b.dataset.df) { const [k, v] = b.dataset.df.split(":"); S.df[k] = k === "isle" ? +v : v; return render(); }
   if (b.dataset.q) { S.q = +b.dataset.q; return render(); }
   if (b.dataset.dev) return makeDev(b, b.dataset.dev);

@@ -27,6 +27,11 @@ export function linkTabs(root = document) {
     const u = TAB_URL[b.textContent.trim()];
     if (u && b.getAttribute("aria-selected") !== "true") b.addEventListener("click", () => { location.href = u; });
   });
+  // スマホで タブの 行が 横に 流れる ときは、えらんで いる タブを まん中に（2026-11-05：装備・Orbit Arena で 画面の 外に あった）。ページは 動かさない
+  root.querySelectorAll('.tabs[role="tablist"]').forEach((nav) => {
+    const on = nav.querySelector('[role="tab"][aria-selected="true"]');
+    if (on && nav.scrollWidth > nav.clientWidth) { const r = on.getBoundingClientRect(), n = nav.getBoundingClientRect(); nav.scrollLeft += r.left - n.left - (nav.clientWidth - r.width) / 2; }
+  });
   // いまの 子を かえる・2 匹目から むかえる（鹿さんの 決め、2026-10-31）：上の 札の Lv の 横に（どの ペットの 画面でも 同じ）
   if (!document.getElementById("swap-css")) { const st = document.createElement("style"); st.id = "swap-css"; st.textContent = SWAP_CSS; document.head.appendChild(st); }
   root.querySelectorAll(".panel.pet .meta").forEach((m) => { if (!m.querySelector(".swap")) m.insertAdjacentHTML("beforeend", `<a class="swap" href="pet-pick.html">${SWAP_ICON}かえる</a>`); });

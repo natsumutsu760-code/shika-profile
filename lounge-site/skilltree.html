@@ -304,8 +304,10 @@ function rejobHtml() {
 function renderTree() {
   const gate = gateHtml(ME, esc); if (gate) return gate;
   const ty = TYPES[MP.type], info = petInfo(MP), researched = (ME.lab || []).length;
+  let firstEmpty = true;   // 空きの 説明は 1 つ目の 空きだけ（2026-11-05：3 つの 枠に 同じ 文が 出て いた）
   const slot = (x, k) => {
-    if (!x) return `<button class="slot empty" data-slot="${k}" aria-pressed="${k === UI.slot}"><i>${k}</i><small>サブツリー ${k}</small><b>あき。研究ずみの敵 ${researched} 体から えらべる</b></button>`;
+    if (!x) { const say = firstEmpty ? `あき・えらべる 敵 ${researched} 体` : "あき"; firstEmpty = false;
+      return `<button class="slot empty" data-slot="${k}" aria-pressed="${k === UI.slot}"><i>${k}</i><small>サブツリー ${k}</small><b>${say}</b></button>`; }
     const t = treeOf(x.tree), c = t.job ? ty.color : TYPES[t.type].color;
     return `<button class="slot ${t.job ? "" : "subt"}" data-slot="${k}" aria-pressed="${k === UI.slot}" style="--c:${c}"><i>${t.job ? "職" : k}</i><small>${t.job ? "職業ツリー" : `サブツリー ${k}`}</small><b>${esc(t.name)}<s>${x.taken.size}/${SHAPE.length}</s>${t.job ? "" : `<s class="e">${esc(t.enemy)}</s>`}</b></button>`;
   };

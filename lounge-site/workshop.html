@@ -48,6 +48,10 @@
   .node.wait { border-style:dashed; background:repeating-linear-gradient(45deg, #F8FAFD 0 6px, #fff 6px 12px); } .node.wait b { color:#8C94AE; } .node.wait .ic svg { filter:grayscale(1) opacity(.45); }
   .node[aria-pressed="true"] { box-shadow:0 0 0 3px var(--sky); }
   .sec { margin:12px 2px 8px; font:900 12px/1.2 var(--jp); color:var(--soft); } .sec:first-of-type { margin-top:0; }
+  /* しぼりこみ（2026-11-05：道具・品は 28 こ 並んで 作れる 物が うもれて いた） */
+  .only { display:flex; flex-wrap:wrap; gap:6px; margin:0 0 12px; }
+  .chip { border:1.5px solid var(--line); background:#fff; border-radius:999px; min-height:32px; padding:6px 12px; font:700 12px/1 var(--jp); color:var(--soft); display:inline-flex; align-items:center; gap:6px; }
+  .chip[aria-pressed="true"] { background:var(--ink); border-color:var(--ink); color:#fff; } .chip:disabled { opacity:.4; } .chip em { font-style:normal; font:600 11px/1 var(--num); }
   .node .ic img, .detail header .ic img { width:30px; height:30px; image-rendering:pixelated; } .detail header .ic img { width:42px; height:42px; }
   .node.empty { border-style:dashed; } .node.busy small { color:var(--soft); }
   .prog { height:10px; border-radius:99px; background:#EDF1F8; overflow:hidden; } .prog i { display:block; height:100%; border-radius:99px; background:var(--ws); }
@@ -125,7 +129,7 @@ const stars = (n) => `<span class="stars" aria-label="★${n}">${"★".repeat(n)
 const TABS = [["item", "道具・品"], ...(procOpen() ? [["proc", "加工"]] : []), ["att", "アタッチメント"], ["smelt", "精錬"]];   // 加工は 大工事の 畑が つながってから
 const CROP_MAT = Object.fromEntries(CROP_MATS.map((m) => [m.id, m]));
 const pic = (id) => matPic(id) || (CROP[id] || CROP_MAT[id] ? cropPic(CROP[id] || CROP_MAT[id], "ripe") : "");   // 素材の 絵（作物は 作物の 絵）
-const S = { lv: 0, cr: 0, mats: [], loose: 0, smelt: [], tab: ["att", "smelt", ...(procOpen() ? ["proc"] : [])].includes(q.get("t")) ? q.get("t") : "item", sel: null, n: 1, made: null, stopArm: -1 };
+const S = { lv: 0, cr: 0, mats: [], loose: 0, smelt: [], tab: ["att", "smelt", ...(procOpen() ? ["proc"] : [])].includes(q.get("t")) ? q.get("t") : "item", sel: null, n: 1, made: null, stopArm: -1, only: "" };   // only：しぼりこみ（"" ぜんぶ・can・short）
 let ME = null;
 function load(m) {
   ME = m; S.built = (m.hideout || {}).workshop || 0; S.lv = facLv(m, "workshop"); S.cr = m.credits || 0; S.mats = (m.own && m.own.mats) || []; S.smelt = m.smelt || [];
@@ -160,14 +164,24 @@ function node(k) {
   const name = k.startsWith("f:") ? `炉 ${r.i + 1}` : r.name;
   return `<button class="node ${st}" data-k="${k}" aria-pressed="${S.sel === k}"><span class="ic">${picOf(k)}</span><span><b>${esc(name)}</b><small>${esc(WORD[st](k))}</small></span></button>`;
 }
-function listHtml() {
+// タブの 中の 見出しと 物：[[見出し, keys], …]
+function groupsOf() {
   if (S.tab === "item") {   // 道具・品は しゅるいで 分ける（派遣の 道具・品・薬・エンチャント・お守り）
-    const groupOf = (k) => { const t = R(k).to.tools; return t ? TOOLS[Object.keys(t)[0]].kind || "派遣の 道具" : R(k).group || "品"; }, ks = keysOf("item"), gs = [...new Set(ks.map(groupOf))];
-    return gs.map((g) => `<p class="sec">${esc(g)}</p><div class="grid">${ks.filter((k) => groupOf(k) === g).map(node).join("")}</div>`).join("");
+    const groupOf = (k) => { const t = R(k).to.tools; return t ? TOOLS[Object.keys(t)[0]].kind || "派遣の 道具" : R(k).group || "品"; }, ks = keysOf("item");
+    return [...new Set(ks.map(groupOf))].map((g) => [g, ks.filter((k) => groupOf(k) === g)]);
   }
-  if (S.tab === "proc") { const ks = keysOf("proc"), cloth = new Set(["cotton_cloth", "flax_cloth", "sky_cloth", "whitesand_cloth", "sylph_sail", "pearl_silk"]); return `<p class="sec">布</p><div class="grid">${ks.filter((k) => cloth.has(R(k).id)).map(node).join("")}</div><p class="sec">建材</p><div class="grid">${ks.filter((k) => !cloth.has(R(k).id)).map(node).join("")}</div>`; }
-  if (S.tab === "smelt") { const ks = keysOf("smelt"), fs = ks.filter((k) => k.startsWith("f:")); return (fs.length ? `<p class="sec">炉</p><div class="grid">${fs.map(node).join("")}</div>` : "") + `<p class="sec">延べ棒</p><div class="grid">${ks.filter((k) => k.startsWith("s:")).map(node).join("")}</div>`; }
-  return Object.entries(ATT_KINDS).map(([kind, K]) => `<p class="sec">${K.label}</p><div class="grid">${ATT_BASES.filter((b) => b.kind === kind).map((b) => node("a:" + b.id)).join("")}</div>`).join("");
+  if (S.tab === "proc") { const ks = keysOf("proc"), cloth = new Set(["cotton_cloth", "flax_cloth", "sky_cloth", "whitesand_cloth", "sylph_sail", "pearl_silk"]); return [["布", ks.filter((k) => cloth.has(R(k).id))], ["建材", ks.filter((k) => !cloth.has(R(k).id))]]; }
+  if (S.tab === "smelt") { const ks = keysOf("smelt"), fs = ks.filter((k) => k.startsWith("f:")); return [...(fs.length ? [["炉", fs]] : []), ["延べ棒", ks.filter((k) => k.startsWith("s:"))]]; }
+  return Object.entries(ATT_KINDS).map(([kind, K]) => [K.label, ATT_BASES.filter((b) => b.kind === kind).map((b) => "a:" + b.id)]);
+}
+// しぼりこみ（10 こ 以上の とき）：作れる・足りない。合わない 見出しは 出さない
+function listHtml() {
+  const gs = groupsOf(), all = gs.flatMap((g) => g[1]), n = (st) => (st ? all.filter((k) => stateOf(k) === st).length : all.length);
+  if (S.only && !n(S.only)) S.only = "";
+  const filt = all.length < 10 ? "" : `<div class="only" role="group" aria-label="しぼりこみ">${[["", "すべて"], ["can", "作れる"], ["short", "足りない"]].map(([st, l]) =>
+    `<button class="chip" data-only="${st}" aria-pressed="${S.only === st}" ${n(st) ? "" : "disabled"}>${l}<em>${n(st)}</em></button>`).join("")}</div>`;
+  return filt + gs.map(([g, ks]) => [g, ks.filter((k) => !S.only || stateOf(k) === S.only)]).filter(([, ks]) => ks.length)
+    .map(([g, ks]) => `<p class="sec">${esc(g)}</p><div class="grid">${ks.map(node).join("")}</div>`).join("");
 }
 // タブの 丸：作れる 数（精錬は 受けとれる 炉の 数）
 const tabsHtml = () => TABS.map(([t, label]) => { const n = keysOf(t).filter((k) => stateOf(k) === "can" && (t !== "smelt" || k.startsWith("f:"))).length; return `<button role="tab" data-tab="${t}" aria-selected="${S.tab === t}">${label}${n ? `<em>${n}</em>` : ""}</button>`; }).join("");
@@ -237,6 +251,7 @@ async function make(b, k) {
 const pop = craftPop(document.getElementById("pop"), { label: "作る" });
 document.querySelector("main").addEventListener("click", async (e) => {
   const b = e.target.closest("button"); if (!b || b.disabled) return;
+  if ("only" in b.dataset) { S.only = b.dataset.only; return render(); }   // しぼりこみ
   if (b.dataset.tab) { S.tab = b.dataset.tab; S.sel = keysOf(S.tab)[0]; S.made = null; S.n = 1; S.stopArm = -1; return render(); }
   if (b.dataset.smelt) {   // 炉に 入れる（空いて いる いちばん 前の 炉）
     const slot = Array.from({ length: furnaces(S.built) }, (_, i) => i).find((i) => !S.smelt[i]), n = Math.max(1, Math.min(S.n, SMELT_MAX));

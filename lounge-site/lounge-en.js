@@ -118,10 +118,10 @@ addEventListener("storage", (e) => { if (e.key === "ml-lang" && langOf() !== LAN
 const CSS = `.lgb { order:8; margin-left:auto; height:32px; padding:0 12px; border-radius:999px; border:1.5px solid #DCE3F0; background:#fff; color:#1B2340; font:700 13px/1 "Fredoka", "Zen Maru Gothic", sans-serif; white-space:nowrap; cursor:pointer; }
 .lgb:hover { border-color:#2EA8FF; }
 header:has(.wb) > .lgb { margin-left:0; }
-header.bar > .lgb { background:rgba(255,255,255,.06); border-color:rgba(120,255,220,.25); color:#D8FFF4; }
+header.bar > .lgb { justify-self:end; align-self:center; background:rgba(255,255,255,.06); border-color:rgba(120,255,220,.25); color:#D8FFF4; }
 @media (max-width:620px) { header:has(.wb) > .lgb { margin-left:auto; } }
-html[lang="en"] body > header.top > small { flex:1 1 0; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-html[lang="en"] .test summary h2::after { content:"(open)"; } html[lang="en"] .test[open] summary h2::after { content:"(close)"; }`;   // CSS の 中の 字（ガンビットの「ためしに戦う」）   // 英語は 見出しの 道しるべが 長いので、ボタンを 1 行目に のこす
+body > header.top > small { flex:1 1 0; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+html[lang="en"] .test summary h2::after { content:"(open)"; } html[lang="en"] .test[open] summary h2::after { content:"(close)"; }`;   // CSS の 中の 字（ガンビットの「ためしに戦う」）   // 見出しの 道しるべが 長い ときは 省いて、ボタンを 1 行目に のこす（2026-11-05：日本語でも スマホで EN が 2 行目に 落ちて いた）
 let btn = null;
 function drawBtn() {
   if (!btn) return;

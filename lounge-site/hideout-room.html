@@ -75,7 +75,7 @@ function look(c, z) { C.copy(c); ZOOM = Math.max(FIT.all.z * 0.8, Math.min(2.2, 
 
 // ふだ（施設の 名前と Lv）。押すと 施設の 画面へ
 const tags = HERE.map((id) => { const f = FACILITIES.find((x) => x.id === id), a = document.createElement("a"), lv = LV[id], real = RAW ? RAW[id] : lv;
-  a.className = "tag" + (lv ? "" : " zero"); a.href = `hideout.html?f=${id}`; a.innerHTML = `${f.name}<span class="lvn">${real ? `Lv${real}` : "まだ"}</span>`; view.appendChild(a);
+  a.className = "tag" + (lv ? "" : " zero"); a.href = `hideout.html?f=${id}`; a.innerHTML = `${f.name}${real ? `<span class="lvn">Lv${real}</span>` : ""}`;   // まだ ない 施設は 点線の 札だけ（「まだ」は 出さない。2026-11-05） view.appendChild(a);
   document.getElementById("list").appendChild(a.cloneNode(true));
   const sp = SPOTS[id]; return { a, p: new THREE.Vector3(sp.x + (sp.r ? 0.6 : 0), id === "storage" ? 2.6 : 2.35, sp.z + (sp.r ? 0 : 0.6)) }; });
 function size() {

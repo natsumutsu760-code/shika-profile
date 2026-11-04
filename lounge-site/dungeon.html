@@ -367,6 +367,7 @@
   .mats.bx li { border-style:dashed; background:transparent; opacity:.85; }
   .mats.eqm li.more { border-style:dashed; color:var(--soft); padding-left:10px; }
   .eqnote { margin:4px 0 0; font:700 11px/1.4 var(--jp); color:var(--soft); }
+  .drops > summary { margin:12px 0 4px; cursor:pointer; font:900 12.5px/1.6 var(--jp); color:var(--soft); }   /* 出る 敵と 物は しまう（2026-11-05：右の パネルで「じゅんびへ」が スマホの 下に うもれて いた） */
   .boxgo { display:inline-block; margin-top:8px; font:900 12px/1 var(--jp); color:var(--ink); text-decoration:none; border-bottom:2px solid var(--sky); padding-bottom:2px; }
   .full { margin:10px 0 0; font:700 12px/1.4 var(--jp); color:#C2410C; }
   .mats .q { font-size:9px; letter-spacing:-1px; color:#E0A21C; } .mats em { font:600 12px/1 var(--num); font-style:normal; color:var(--soft); }
@@ -746,16 +747,16 @@ function renderPick() {
       <h2>${esc(d.name)}<span class="rec">おすすめ Lv${d.lv}</span>${tripCost(d) ? `<span class="rec cost">クレジット ${tripCost(d).toLocaleString("ja-JP")}</span>` : ""}</h2><p class="desc">${esc(d.text)}</p>
       <h3 class="sub exh"><span>探索率</span><b>${Math.round(dungeonRatio(did, prog) * 100)}<small>%</small></b>${prog.bossKills ? `<i>ボスを たおした ${prog.bossKills} 回</i>` : ""}</h3>
       <ul class="floors">${floorsHtml(did, prog)}</ul>
+      <details class="drops"${DROPS_OPEN ? " open" : ""}><summary>出る 敵と 物を 見る</summary>
       <h3 class="sub">出てくる敵</h3>
       <ul class="foes">${d.foes.map((f) => `<li class="${unk(f)}"><img class="fs" src="${spriteURL(f.tree)}" alt="">${foeNm(f)}<small>${foeLv(f)}</small></li>`).join("")}
         <li class="rare${unk(d.rare)}"><img class="fs" src="${spriteURL(d.rare.tree)}" alt=""><span class="tg">希少</span>${foeNm(d.rare)}<small>${foeLv(d.rare)}</small></li>
         <li class="boss${unk(d.boss)}"><img class="fs" src="${spriteURL(d.boss.tree)}" alt="">ボス ${foeNm(d.boss)}<small>${foeLv(d.boss)}</small></li></ul>
       <h3 class="sub">宝箱の 装備</h3>
       <ul class="mats eqm">${matsOf(Math.min(3, DUNGEONS.indexOf(d))).map((m) => `<li><i style="background:${MATS[m].c}"></i><b>${esc(MATS[m].name)}</b></li>`).join("")}${DUNGEONS.indexOf(d) > 0 ? `<li class="more">ときどき 前の 素材</li>` : ""}</ul>
-      <p class="eqnote">この 素材で できた 装備（形と 色は くじ）</p>
       <h3 class="sub">採取の 素材</h3>
       <ul class="mats">${GATHER[did].mats.map(([, n]) => `<li><i></i><b>${esc(n)}</b></li>`).join("")}<li class="hd"><i></i><b>${esc(GATHER[did].hidden[1])}</b><em>かくし通路</em></li></ul>
-      <div class="myth"><span class="ico">${gearImg(d.mythic.id, { dir: IMG })}</span><div><b>？？？</b><small>ボスから ごくまれに。ここだけの ミシック装備</small></div></div>
+      <div class="myth"><span class="ico">${gearImg(d.mythic.id, { dir: IMG })}</span><div><b>？？？</b><small>ボスから ごくまれに。ここだけの ミシック装備</small></div></div></details>
       ${go.ok ? `<button class="jelly sky go" data-step="prep">じゅんびへ</button>` : `<button class="jelly sky go" disabled>じゅんびへ</button><p class="gowhy">${esc(go.why)}${isleOf(d) >= 2 && !(ME.hideout && ME.hideout.radio >= 1) ? `　<a href="hideout.html">隠れ家へ</a>` : ""}</p>`}
     </aside></div>`;
 }
@@ -807,6 +808,8 @@ function mapHtml(did, f, seen, opened, hidOpen, me) {
     html += `<i class="${seen.has(k) ? CELL[t] : "fog"}${seen.has(k) && hid.has(k) && hidOpen ? " hid" : ""}${opened.has(k) && (t === T.CHEST || t === T.GATHER) ? " op" : ""}${me.x === x && me.y === y ? " me" : ""}"></i>`; }
   return `<div class="dmap" role="img" aria-label="${f} 階の地図">${html}</div>`;
 }
+let DROPS_OPEN = false;   // 「出る 敵と 物」を 開いて いるか（行き先を かえても そのまま）
+document.addEventListener("toggle", (e) => { if (e.target.matches && e.target.matches("details.drops")) DROPS_OPEN = e.target.open; }, true);
 let PLAY = null;   // 出かけた ときと 同じ 種・行き先・パーティで、この ブラウザでも 1 回 計算する（ごほうびは 門番が 出かける ときに 決めて いる）
 const BACK_WHY = { wipe: "力つきた……", explore: "探索を おえた", boss: "ボスを たおした", gather: "採取を おえた" };
 function renderPlay() {
