@@ -136,7 +136,8 @@ export const ENEMY_TREES = {
       P(6, "e_ishiuroko", "石のうろこ", "戦いのはじめに装甲 +20", { startFx: [["armor", 20]] }),
       P(7, "e_shugosha", "石の守護者", "戦いのはじめにバリア +2", { startFx: [["barrier", 2]] }),
     ],
-    plan: [G("first", undefined, "e_sekka"), G("notBuffed", undefined, "e_stonewall"), G("foeBuffed", undefined, "e_iwakudaki"), G("hpBelow", 50, "e_ishinemuri"), G("every", 3, "e_press"), G("always", undefined, "e_ishikobushi")] },
+    // 左の 分岐の 子は 石の眠りが ないので、HP が 50% より 少ない ときは 奥義の 守護者の城壁（覚えて いるのに 作戦に なかった。2026-11-04）
+    plan: [G("first", undefined, "e_sekka"), G("notBuffed", undefined, "e_stonewall"), G("foeBuffed", undefined, "e_iwakudaki"), G("hpBelow", 50, "e_ishinemuri"), G("hpBelow", 50, "e_shugojo"), G("every", 3, "e_press"), G("always", undefined, "e_ishikobushi")] },
 
   e_ghost: { name: "亡霊のささやき", enemy: "ファントム", dungeon: "morph", rank: "通常", type: "caster", main: "int", sub: "mp", theme: "confusion",
     list: [
