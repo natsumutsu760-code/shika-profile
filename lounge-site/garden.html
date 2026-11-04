@@ -45,6 +45,9 @@
   .opts { position:absolute; left:10px; bottom:10px; display:flex; gap:6px; flex-wrap:wrap; }
   .opt { display:inline-flex; align-items:center; gap:6px; padding:6px 11px; border-radius:999px; border:0; background:rgba(20,16,34,.72); color:#fff; font:900 12.5px/1 var(--jp); }
   .opt small { color:#C9D3E6; font-weight:700; }
+  /* まとめて とる（実った 作物が ある ときだけ。3D の 右上） */
+  .allget { position:absolute; right:10px; top:10px; display:inline-flex; align-items:center; gap:7px; padding:6px 7px 6px 13px; border:0; border-radius:999px; background:rgba(20,16,34,.82); color:#fff; font:900 13.5px/1 var(--jp); }
+  .allget b { display:inline-grid; place-items:center; min-width:22px; height:22px; padding:0 6px; border-radius:99px; background:var(--leaf); font:700 13px/1 var(--num); } .allget:disabled { opacity:.6; }
   .side { display:grid; gap:12px; }
   .cell { display:grid; grid-template-columns:72px 1fr; gap:12px; align-items:center; }
   .cell .pic { width:72px; height:72px; border-radius:18px; background:#F1EEE6; display:grid; place-items:center; }
@@ -102,7 +105,7 @@
     </nav>
   </div>
   <section id="tab-field" class="farm">
-    <div class="view" id="view"><canvas id="cv"></canvas><div class="opts" id="opts"></div></div>
+    <div class="view" id="view"><canvas id="cv"></canvas><div class="opts" id="opts"></div><button class="allget" id="allget" hidden></button></div>
     <div class="side" id="side"></div>
   </section>
   <section id="tab-book" class="book" hidden></section>
@@ -135,7 +138,9 @@ let busyF = false;
 
 // ---------- 3D ----------
 const view = document.getElementById("view"), cv = document.getElementById("cv");
-const r = new THREE.WebGLRenderer({ canvas: cv, antialias: true, preserveDrawingBuffer: true }); r.setPixelRatio(Math.min(2, devicePixelRatio)); r.outputColorSpace = THREE.SRGBColorSpace;
+// スマホ（指で 押す 画面）は 軽く 描く：なめらか処理 なし・細かさ 1.5 倍まで（配信の 映像と いっしょに 開くと 重くて 落ちた。2026-11-05）
+const PHONE = matchMedia("(pointer: coarse)").matches;
+const r = new THREE.WebGLRenderer({ canvas: cv, antialias: !PHONE, powerPreference: "low-power" }); r.setPixelRatio(Math.min(PHONE ? 1.5 : 2, devicePixelRatio)); r.outputColorSpace = THREE.SRGBColorSpace;
 const sc = new THREE.Scene(), cam = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.1, 100);
 const OFF = new THREE.Vector3(3.2, 11, 10), C = new THREE.Vector3(0, 0.45, -0.35); cam.position.copy(C).add(OFF); cam.lookAt(C);
 let farm = null;
@@ -226,6 +231,23 @@ document.getElementById("side").addEventListener("click", async (e) => {
   } finally { busyF = false; }
   farm.show(S.field, now()); side(); head();
 });
+// まとめて とる（鹿さんの 頼み、2026-11-05）
+document.getElementById("allget").addEventListener("click", async (e) => {
+  const b = e.currentTarget; if (busyF) return; busyF = true; b.disabled = true;
+  try {
+    const j = await act("farmv.harvestAll");
+    if (!j.ok) toast(j.why);
+    else {
+      take(j.farmv, j);
+      for (const g of j.got) if (CROP[g.crop]) farm.pop(g.i, CROP[g.crop], g.color, clockS);
+      const by = {}; for (const g of j.got) by[g.crop] = (by[g.crop] || 0) + g.n;
+      const names = Object.entries(by).sort((a, x) => x[1] - a[1]).map(([id, n]) => `${CROP[id] ? CROP[id].name : id} ×${n}`);
+      const gold = j.got.filter((g) => g.color === "gold").length, rain = j.got.filter((g) => g.color === "rainbow").length;
+      toast(`${rain ? "LEGENDARY! " : gold ? "金色！ " : ""}${names.slice(0, 3).join("・")}${names.length > 3 ? ` ほか ${names.length - 3}` : ""}（倉庫へ）${j.seeds ? `・種 ×${j.seeds}` : ""}${j.news.length ? "・図鑑に のった！" : ""}${j.ups ? `・農業 Lv${j.lv}` : ""}`);
+    }
+  } finally { busyF = false; b.disabled = false; }
+  farm.show(S.field, now()); side(); head();
+});
 let tt; function toast(s) { const el = document.getElementById("toast"); el.textContent = s; el.classList.add("on"); clearTimeout(tt); tt = setTimeout(() => el.classList.remove("on"), 2600); }
 
 // 3D の 下の えらぶ 物：土と スキン（押すと 次へ）
@@ -248,6 +270,9 @@ function head() {
   document.getElementById("lv").innerHTML = `農業 <b>Lv${f.lv}</b><span class="xp" aria-label="経験"><i style="width:${Math.round((f.xp / xpNext(f.lv)) * 100)}%"></i></span><small style="color:var(--soft);font-weight:700">${w}×${h}</small>`;
   const ripe = f.cells.filter((c, i) => c && inField(f.lv, i) && (c.obj || (!c.spr && ["ripe", "over"].includes(stageAt(c, now(), f.soil).stage)))).length;
   document.querySelector('[data-tab="field"]').innerHTML = `畑${ripe ? `<span class="n" aria-label="とれる ${ripe}">${ripe}</span>` : ""}`;
+  // まとめて とる：実った 作物だけ（かわった 物は たたく ので 入れない。門番の farmv.harvestAll と 同じ）
+  const ready = f.cells.filter((c, i) => c && !c.spr && !c.obj && CROP[c.id] && inField(f.lv, i) && stageAt(c, now(), f.soil).stage === "ripe").length, ag = document.getElementById("allget");
+  ag.hidden = !ready; ag.innerHTML = `まとめて とる <b>${ready}</b>`;
   document.querySelector('[data-tab="book"]').innerHTML = `図鑑<span class="n" style="background:var(--sky)">${S.known.length}/${CROPS.length}</span>`;
 }
 document.querySelector(".tabs").addEventListener("click", (e) => {
@@ -281,15 +306,18 @@ async function ask() {
   finally { busyF = false; }
   side(); head();
 }
+// 描くのは 収穫の 演出の 最中だけ 毎こま。ふだんは 1 秒に 15 こま（えらんだ マスの 光る わくが ゆっくり 光るだけなので）
+let lastR = -1e9;
 function loop(ms) {
   clockS = ms / 1000;
-  if (ms - last > 1000) { last = ms; farm.show(S.field, now()); if (ms - lastAsk > 60000) { lastAsk = ms; ask(); } }
-  farm.tick(clockS); r.render(sc, cam); requestAnimationFrame(loop);
+  if (ms - last > 1000) { last = ms; if (farm.show(S.field, now())) head(); if (ms - lastAsk > 60000) { lastAsk = ms; ask(); } }
+  if (farm.busy() || ms - lastR > 66) { lastR = ms; farm.tick(clockS); r.render(sc, cam); }
+  requestAnimationFrame(loop);
 }
 addEventListener("resize", size);
 buildFarm(); size(); opts(); side(); head();
 requestAnimationFrame(loop);
-window.farmDebug = { select: (i) => { SEL = i; farm.select(i); side(); } };   // 見本の 確かめ用（マスを えらぶ）
+window.farmDebug = { select: (i) => { SEL = i; farm.select(i); side(); }, mem: () => ({ ...r.info.memory, calls: r.info.render.calls }) };   // 見本の 確かめ用（マスを えらぶ・描く 物の 数）
 window.ready = true;
 </script>
 </body>

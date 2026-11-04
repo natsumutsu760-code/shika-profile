@@ -1,12 +1,12 @@
 // 新しい 農園（3D の 畑。鹿さんの 決め 2026-11-03：試しの 形で つなぐ。docs/mono-link-release-plan.md）。畑の 決まりは lounge-proto/farm-core.js
-// 受付：farmv.plant {i, id, fert?}・farmv.harvest {i}・farmv.spr {i, kind?}・farmv.soil {soil}・farmv.skin {skin}。どれも はじめに 時間を 進めて、かけ合わせを 起こす
+// 受付：farmv.plant {i, id, fert?}・farmv.harvest {i}・farmv.harvestAll {}・farmv.spr {i, kind?}・farmv.soil {soil}・farmv.skin {skin}。どれも はじめに 時間を 進めて、かけ合わせを 起こす
 // 記録：rec.farmv = { field, known：図鑑に のった 作物の id, skin }・rec.seeds = { 作物の id: 数 }
 //   種：「種から」の 作物は 派遣の 採取で 拾う（作物の 表の at）。生まれた 品種は 収穫で 種も とれる（どちらも 鹿さんの 決め）。植えると 1 こ へる
 //   とれた 作物は 倉庫の 素材へ（派遣と 同じ putMats。入りきらない 分は あずかり箱）
 //   肥料と スプリンクラーは 工房で 作って rec.items に 入る（前の 隠れ家の 畑は 2026-11-03 に 消して ここに まとめた。鹿さんの 決め）
 //   土は CLR が 売る：かえる たびに 土の 値段（クレジット）を 払う
 import { CROP, farmOpen } from "./crops.js";
-import { newField, plant, harvest, advance, setSoil, addXp, XP, inField, FERT, SPRINKLERS, placeSpr, takeSpr, SOILS } from "./farm-core.js";
+import { newField, plant, harvest, advance, setSoil, addXp, XP, inField, FERT, SPRINKLERS, placeSpr, takeSpr, SOILS, stageAt } from "./farm-core.js";
 import { putMats } from "./lounge-game.js";
 
 export const SEED_BACK = [1, 2];                 // 生まれた 品種を 収穫した ときに とれる 種（Claude の 仮）
@@ -64,6 +64,22 @@ export function farmvHarvest(rec, b, now, R) {
     if (crop.kind !== "seed") { seeds = SEED_BACK[0] + Math.floor(R() * (SEED_BACK[1] - SEED_BACK[0] + 1)); rec.seeds[crop.id] = (rec.seeds[crop.id] || 0) + seeds; }
   }
   return { ok: true, items, color: r.color || null, left: r.left || 0, gone: r.gone || null, isNew, seeds, lv: F.field.lv, ups, ...(crop ? { crop: crop.id } : {}) };
+}
+
+// まとめて とる（鹿さんの 頼み、2026-11-05「農園でまとめて収穫できるようにして欲しい」）
+// 実った 作物だけ。かわった 物（たたいて とる）・スプリンクラー・まだ 実って いない 物・枯れた 物は そのまま（1 マスずつの「とる」と 同じ 決まりで 順に とる）
+export function farmvHarvestAll(rec, b, now, R) {
+  if (!farmOpen()) return CLOSED;
+  const F = tick(rec, now, R), f = F.field;
+  const idx = f.cells.map((c, i) => (c && !c.spr && !c.obj && CROP[c.id] && inField(f.lv, i) && stageAt(c, now, f.soil).stage === "ripe" ? i : -1)).filter((i) => i >= 0);
+  if (!idx.length) return { ok: false, why: "実った 作物が ない" };
+  const got = [], news = []; let seeds = 0, ups = 0;
+  for (const i of idx) {
+    const r = farmvHarvest(rec, { i }, now, R); if (!r.ok) continue;
+    got.push({ i, crop: r.crop, color: r.color, n: r.items.reduce((a, x) => a + x.n, 0) });
+    seeds += r.seeds; ups += r.ups; if (r.isNew) news.push(r.crop);
+  }
+  return { ok: true, got, n: got.reduce((a, x) => a + x.n, 0), seeds, ups, news, lv: f.lv };
 }
 
 export function farmvSoil(rec, b, now, R) {
