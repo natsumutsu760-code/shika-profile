@@ -44,7 +44,8 @@
   /* 左：商人の一覧（えらんでいる所は、文字と背景が入れかわる） */
   .dir { border-right:1px solid var(--line); padding:12px 0; }
   .dir .pr { padding:4px 14px; color:var(--dim); font-size:13px; }
-  .dir button { width:100%; display:grid; grid-template-columns:28px minmax(0, 1fr) auto; gap:8px; align-items:center; padding:6px 14px; text-align:left; }
+  .dir button, .dir a.go { width:100%; display:grid; grid-template-columns:28px minmax(0, 1fr) auto; gap:8px; align-items:center; padding:6px 14px; text-align:left; }
+  .dir a.go { color:inherit; text-decoration:none; box-sizing:border-box; } .dir a.go .mk { color:var(--cyan); } .dir a.go small { font-size:12px; color:var(--dim); } .dir a.go:hover { background:rgba(255,181,71,.1); }   /* クローラーの 入口（ほかの 画面へ とぶ） */
   .dir button .mk { color:var(--amber); } .dir button .mk img { display:block; width:28px; height:28px; object-fit:cover; object-position:50% 18%; border-radius:6px; background:rgba(255,181,71,.12); } .dir button small { font-size:12px; color:var(--dim); }
   .dir button .new { color:var(--ok); font-size:12px; }
   .dir button[aria-current="true"] { background:var(--amber); color:var(--bg); text-shadow:none; }
@@ -145,7 +146,7 @@
     .bar { grid-template-columns:minmax(0, 1fr); } .wallet { grid-column:1; grid-row:2; } .from { grid-column:1; grid-row:3; } .wallet b { font-size:19px; }
     .term { grid-template-columns:minmax(0, 1fr); }
     .dir { border-right:0; border-bottom:1px solid var(--line); padding:6px 0; display:flex; overflow-x:auto; }
-    .dir .pr { display:none; } .dir ul { display:flex; } .dir button { width:auto; white-space:nowrap; grid-template-columns:auto auto; } .dir button small { display:none; }
+    .dir .pr { display:none; } .dir ul { display:flex; } .dir button, .dir a.go { width:auto; white-space:nowrap; grid-template-columns:auto auto; } .dir button small, .dir a.go small { display:none; }
     .who { grid-template-columns:auto minmax(0, 1fr); } .rep { grid-column:1 / -1; text-align:left; } .meter { margin-left:0; }
     .rows > li { grid-template-columns:minmax(0, 1fr); } .act { justify-self:start; }
     .pane { padding:14px; }
@@ -215,7 +216,7 @@ const haveMat = (id, q = 0) => (ME.own.mats || []).filter((x) => x.id === id && 
 function dirHtml() {
   const row = (t, sp) => { const v = view(t.id); return `<button data-go="${t.id}" class="${sp ? "sp" : ""}" aria-current="${S.go === t.id}"><span class="mk">${face(t.id)}</span><span class="nm">${t.dir || t.name}</span><small>Lv${v.lv || 1}${ready(v) ? ` <span class="new">●${ready(v)}</span>` : ""}</small></button>`; };
   return `<p class="pr">&gt; 商人</p><ul>${TRADERS.map((t) => `<li>${row(t)}</li>`).join("")}</ul>
-    <p class="pr">&gt; ほか</p><ul><li>${row(SPECIAL, true)}</li><li><button data-go="board" aria-current="${S.go === "board"}"><span class="mk">✉</span><span class="nm">みんなの依頼</span><small>${B.list.length}</small></button></li></ul>`;
+    <p class="pr">&gt; ほか</p><ul><li>${row(SPECIAL, true)}</li><li><button data-go="board" aria-current="${S.go === "board"}"><span class="mk">✉</span><span class="nm">みんなの依頼</span><small>${B.list.length}</small></button></li><li><a class="go" href="crawler.html"><span class="mk" aria-hidden="true">▣</span><span class="nm">クローラー</span><small>先行体験版</small></a></li></ul>`;   // クローラー（企業の ミッション）：2026-11-05 鹿さん「クローラーとボーダーゾーンも」で みんなに 入口
 }
 function traderHtml(t) {
   const v = view(t.id), lv = v.lv || 1, rep = v.rep || 0, list = tasksOf(v), sp = t === SPECIAL;
