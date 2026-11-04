@@ -4,7 +4,9 @@
 // - Lounge：relayFetch（Viewer からの 3 つと、門番の /api/relay からの /relay。帰った 物は 消す）
 // - 門番：lounge-api.js の relayList（入れない 人の 分は 出さない。Twitch の id は 出さない）
 // - relay-pvp：帯の 戦い（派遣先で 出会った・大会の ベスト 8 から）を OBS へ（lounge-arena.js・viewer.js から）
+// - relay-mythic：ミシックの お知らせ（配信の チャット・MONO LINK の コメント欄。viewer.js が うけとった ときに）
 import { fighterOf, mateOf } from "./lounge-game.js";
+import { baseOf, DUNGEONS_ALL, SLOT_MARK } from "./game.js";
 
 const KEEP_MS = 60 * 1000, MAX_BYTES = 48 * 1024, MAX_LIST = 30, MAX_PVP = 192 * 1024;   // MAX_PVP：帯の 戦い（大会は ペット 8 匹まで まとめて 来る）
 const J = (o, status = 200) => new Response(JSON.stringify(o), { status, headers: { "Content-Type": "application/json" } });
@@ -20,6 +22,17 @@ export function relayEntry(rec, t) {
     party: t.team ? t.team.map((c, k) => (k ? c : { ...c, owner: rec.name })) : [{ ...fighterOf(pet, rec), owner: rec.name }, ...mates.map((c) => mateOf(c, rec))], progress: rec.explore[t.did] || null,
   };
 }
+
+// ミシックの お知らせの 材料（鹿さんの 決め 2026-10-21・pet-battle）。うけとった 派遣（t）で ミシックが 出て いれば。玉が 払えなかった 派遣（void）は 出さない
+//   文：「★ミシック★ ○○ の ネム が 暗い村 で『暗い村のランタン』を手に入れた！」。mark は 部位の 印（装備の 絵は やめた。鹿さんの 決め 2026-10-28・11-04）
+export function mythicNote(rec, t) {
+  if (!t || t.void || !t.got || !t.got.mythic) return null;
+  const b = baseOf(t.got.mythic), d = DUNGEONS_ALL.find((x) => x.id === t.did), pet = rec.pets.find((p) => p.uid === t.party[0]) || rec.pets[0];
+  if (!b || !d) return null;
+  return { id: rec.id, name: rec.name || "", pet: (pet && pet.name) || "", place: d.name, item: b.name, slot: b.slot };
+}
+const clean = (v, n) => String(v || "").replace(/[\u0000-\u001f\u007f\u200b-\u200f\u202a-\u202e\u2066-\u2069]/g, " ").replace(/\s+/g, " ").trim().slice(0, n);
+export const mythicText = (n) => `★ミシック★ ${n.name} の ${n.pet} が ${n.place} で『${n.item}』を手に入れた！`;
 
 // Lounge の fetch() で：const rr = await relayFetch(this, url, req); if (rr) return rr;
 export async function relayFetch(lounge, url, req) {
@@ -40,6 +53,18 @@ export async function relayFetch(lounge, url, req) {
       const pay = b.pay && typeof b.pay === "object" ? { credits: Math.max(0, Math.floor(+b.pay.credits || 0)), res: Math.max(0, Math.floor(+b.pay.res || 0)) } : null;   // 帯に 出す ごほうびの 数
       m = JSON.stringify({ t: "pvp", kind: b.kind === "final" ? "final" : b.kind === "inv" ? "inv" : "enc", A: b.A, B: b.B, seed: +b.seed, did: String(b.did || ""), day: String(b.day || ""), pay, caught: !!b.caught });   // inv：探索中の 侵入
     }
+    let sent = 0; for (const ws of lounge.obsSockets()) { try { ws.send(m); sent++; } catch (e) {} }
+    return J({ ok: true, sent });
+  }
+  // ミシックの お知らせ：MONO LINK の コメント欄（配信ページを 見て いる 人）へは いつも その場で。配信の チャットへは OBS が いる（配信中）ときだけ
+  //   OBS へは t:"mythic"（オーバーレイが 虹色の ふちで 出す。コメント欄へは 送りなおさない ので 2 回 出ない）。配信して いない ときの 分を あとで まとめて 出す ことは しない
+  if (req.method === "POST" && url.pathname === "/relay-mythic") {
+    let b; try { b = JSON.parse(await req.text()); } catch (e) { return J({ error: "json" }, 400); }
+    const n = { name: clean(b && b.name, 40), pet: clean(b && b.pet, 40), place: clean(b && b.place, 30), item: clean(b && b.item, 40) };
+    if (!n.item || !n.place) return J({ error: "mythic" }, 400);
+    const text = mythicText(n), at = Date.now(), mark = SLOT_MARK[b.slot] || null;
+    if (lounge.toViewers) lounge.toViewers({ t: "sys", text, at });
+    const m = JSON.stringify({ t: "mythic", id: at.toString(36), text, ...n, mark });
     let sent = 0; for (const ws of lounge.obsSockets()) { try { ws.send(m); sent++; } catch (e) {} }
     return J({ ok: true, sent });
   }

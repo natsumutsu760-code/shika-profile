@@ -6,7 +6,7 @@ import { BITEMS, BITEM_NOTE, BITEM_NOTE_EN } from "./battle-items.js";
 import { EFFECTS } from "./effects.js";
 import { ENEMY_TREES } from "./enemy-trees.js";
 import { TYPES, COMMON, TREES } from "./skills.js";
-import { DUNGEONS, PURPOSES, TOOLS, RUNS } from "./dungeons.js";
+import { DUNGEONS_ALL, PURPOSES, TOOLS, RUNS } from "./dungeons.js";
 import { GATHER, ENEMY_MAT, CRYSTAL, SCRAP, BORDER, ORE, BARS, CLOTH, LUMBER } from "./materials.js";
 import { CROPS, CROP_MATS } from "./crops.js";   // 作物（大工事の 農業）の 英語は 作物の 表の en
 import { KINDS, SLOTS, FORMS, MATS, COLS, BASES, UPPER, OPS } from "./equip.js";
@@ -18,6 +18,9 @@ import { PETS, QUIZ } from "./quiz.js";
 import { TRADERS, SPECIAL } from "./deeplink.js";
 import { DUNGEON2_EN, MYTHIC2_EN, TREE2_EN, SKILL2_EN } from "./lounge-en-isle2.js";   // ビサイ諸島（2 つめの 島）の 名前
 import { TREE3_EN, SKILL3_EN } from "./lounge-en-fusion.js";   // 配合限定の モンスター
+import { DUNGEON_I3_EN, MYTHIC_I3_EN, TREE_I3_EN, SKILL_I3_EN, MAT_I3_EN } from "./lounge-en-isle3.js";   // ミカネル島（3 つめの 島）の 名前
+import { DEV_EN } from "./lounge-en-dev.js";   // 装備開発の 装備（島 1〜3）
+import { DEV_IDS, devBase } from "./equip-dev.js";
 import { MAIN_TYPE_EN, MAIN_SKILL_EN, MAIN_TEXT_EN, COUNT_EN, OPT_EN } from "./lounge-en-trees.js";   // メインの ツリー 12 本
 import { COUNTS } from "./main-trees.js";
 
@@ -500,8 +503,8 @@ export const SHOP_EN = {
   "y-core": ["Blank Core", "Extracts 1 OP from a piece of gear (the gear is used up)"], "y-charm": ["Lucky Charm (Crafting)", "Your next craft or fusion gets ★ +1"],
 };
 
-// ビサイ諸島の 名前を はじめの 島の 表に 足す（id で 引く）
-Object.assign(DUNGEON_EN, DUNGEON2_EN); Object.assign(MYTHIC_EN, MYTHIC2_EN); Object.assign(ENEMY_EN, TREE2_EN, TREE3_EN); Object.assign(SKILL_EN, SKILL2_EN, SKILL3_EN, MAIN_SKILL_EN); Object.assign(TYPE_EN, MAIN_TYPE_EN);
+// ビサイ諸島・ミカネル島の 名前を はじめの 島の 表に 足す（id で 引く）
+Object.assign(DUNGEON_EN, DUNGEON2_EN, DUNGEON_I3_EN); Object.assign(MYTHIC_EN, MYTHIC2_EN, MYTHIC_I3_EN); Object.assign(ENEMY_EN, TREE2_EN, TREE_I3_EN, TREE3_EN); Object.assign(SKILL_EN, SKILL2_EN, SKILL_I3_EN, SKILL3_EN, MAIN_SKILL_EN); for (const [id, en] of Object.entries(MAT_I3_EN)) MAT_EN[id] ??= en; Object.assign(TYPE_EN, MAIN_TYPE_EN);
 // 敵の 結晶（「ホーンラビットの結晶」→「Horn Rabbit Crystal」。敵の 英語が ある 物だけ）
 for (const [tree, [id]] of Object.entries(CRYSTAL)) { const e = (ENEMY_EN[tree] || [])[0]; if (e && !MAT_EN[id]) MAT_EN[id] = `${e} Crystal`; }
 for (const list of Object.values(TREES)) for (const s of list) if (MAIN_TEXT_EN[s.id]) SKILL_TEXT_EN[s.id] = MAIN_TEXT_EN[s.id](s);   // 12 本の 説明は データの 数から 作る
@@ -522,7 +525,7 @@ export function nameWords() {
   for (const x of Object.values(DETAIL)) put(x.label, x.en);   // 詳細ステータス
   put("謎のお菓子", "Mystery Sweet"); put("デトックス茶", "Detox Tea");
   // 行き先・敵・ミシック
-  for (const d of DUNGEONS) {
+  for (const d of DUNGEONS_ALL) {   // まだ 開いて いない 島（ミカネル島）の 分も 先に
     const e = DUNGEON_EN[d.id]; if (e) { put(d.name, e.name); put(d.text, e.text); }
     for (const f of [...d.foes, d.rare, d.boss]) put(f.name, (ENEMY_EN[f.tree] || [])[0]);
     const m = MYTHIC_EN[d.mythic && d.mythic.id]; if (m) { put(d.mythic.name, m[0]); put(d.mythic.text, m[1]); }
@@ -547,6 +550,7 @@ export function nameWords() {
   for (const [id, s] of Object.entries(SLOTS)) put(s.label, SLOT_EN[id]);
   for (const [f, F] of Object.entries(FORMS)) { put(F.name, FORM_EN[f]); for (const [m, M] of Object.entries(MATS)) if (FORM_EN[f] && EQMAT_EN[m]) put(`${M.name}の${F.name}`, `${EQMAT_EN[m]} ${FORM_EN[f]}`); }
   for (const [m, M] of Object.entries(MATS)) put(M.name, EQMAT_EN[m]);
+  for (const id of DEV_IDS) put(devBase(id).name, DEV_EN[id]);   // 装備開発の 装備（もう ある 名前は そのまま）
   COLS.forEach((c, i) => c && put(c.name, COL_EN[i]));
   for (const b of [...BASES, ...UPPER]) { const e = BASE_EN[b.id]; if (e) { put(b.name, e[0]); if (b.note) put(b.note, e[1]); if (b.fx) put(b.fx, e[2]); } }
   for (const [id, o] of Object.entries(OPS)) { if (OP_EN[id]) put(o.label, OP_EN[id]); const f = OP_FMT_EN[id]; if (f) for (const v of new Set(o.v)) if (v) put(o.fmt(v), f(v)); }

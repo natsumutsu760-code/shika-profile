@@ -24,6 +24,8 @@ export const SLOTS = {
   weapon: { kind: "weapon", label: "武器" }, off: { kind: "off", label: "オフハンド" },
   acc1: { kind: "acc", label: "アクセサリー 1" }, acc2: { kind: "acc", label: "アクセサリー 2" }, acc3: { kind: "acc", label: "アクセサリー 3" },
 };
+// 部位の 印（文字と 色。鹿さんの 決め 2026-11-04「部位の 印」）。画面（gear-icon.js）と 門番の お知らせ（ミシック）で 使う
+export const SLOT_MARK = { head: ["頭", "#5B8DEF"], neck: ["首", "#E86FA8"], arm: ["腕", "#F2A33A"], leg: ["足", "#3DB88A"], weapon: ["武", "#E5534B"], off: ["副", "#8E6CFF"], acc: ["飾", "#C9A227"] };
 export const OLD_SLOT = { hand: "weapon" };   // 前の 枠の 名前（おまけ → 武器。記録を 読む ときに うつす）
 
 // 形：部位ごとに 4 つ。main は 能力の 重み（前の 装備と 同じ 形は 同じ 重み）。geo は 3D の 形（equip3d.js）

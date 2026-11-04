@@ -1,12 +1,12 @@
 // 装備の 印（鹿さんの 決め：2026-10-28「装備の 絵は やめる」・2026-11-04「部位の 印＋開発は 敵の 絵」）
 // 前は 3D から 撮った 絵（equip3d.js）と 名前の ある 装備の img/icon-*.png。いまは 部位の 文字の 丸（小さな SVG）。装備開発の 装備は その 敵の ドット絵
 // 使い方は 前と 同じ：gearImg(id) で <img> を 文字で 作る（画面の 大きさの 決まりを かえない ため <img> の まま）。watchIcons() は 何も しない（前の 画面の ため のこす）
-import { baseOf } from "./equip.js";
+import { baseOf, SLOT_MARK } from "./equip.js";
 import { spriteURL } from "./sprites.js";
 
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
-// 部位ごとの 文字と 色（あたま・くび・うで・あし・武器・オフハンド・アクセサリー）
-export const SLOT_MARK = { head: ["頭", "#5B8DEF"], neck: ["首", "#E86FA8"], arm: ["腕", "#F2A33A"], leg: ["足", "#3DB88A"], weapon: ["武", "#E5534B"], off: ["副", "#8E6CFF"], acc: ["飾", "#C9A227"] };
+// 部位ごとの 文字と 色は equip.js の SLOT_MARK（門番の ミシックの お知らせと 同じ 表）
+export { SLOT_MARK };
 const cache = new Map();
 function markSrc(slot, mythic) {
   const k = slot + (mythic ? ":m" : "");

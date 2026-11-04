@@ -39,6 +39,7 @@ export const RULES = [
   // 守り・回復
   [/^防御中に受けるダメージがさらに −(\d+)%$/, (m) => `While guarding, damage taken a further −${m[1]}%`],
   [/^毎ターン HP ([\d.]+)% 回復$/, (m) => `Heal ${m[1]}% HP each turn`],
+  [/^毎ターン MP \+(\d+)$/, (m) => `MP +${m[1]} each turn`],   // ミカネル島の パッシブ（MP の 自然回復）
   [/^与えたダメージの (\d+)% を回復$/, (m) => `Heal ${m[1]}% of damage dealt`],
   [/^回復する量 \+(\d+)%$/, (m) => `Healing +${m[1]}%`],
   [/^自分のシールドの量 \+(\d+)%$/, (m) => `Your Shield +${m[1]}%`],

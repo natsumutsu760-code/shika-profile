@@ -13,7 +13,7 @@ import { reqPostPlan, takeFor, items } from "./lounge-req.js";
 import { petTake, petGrow, petSub, petStat, petGambits, petStyle, equipSet, equipBest, respecPlan, fighterOf, spTotal, spUsed, freeTotal, RESET_PRICE } from "./lounge-pet.js";
 import { freeIsAuto } from "./trees.js";   // 手で 振る ポイントが 自動か
 import "./warm.js";   // 派遣の 計算を 温めて おく（はじめの 1 回が おそく ならない ように）
-import { relayEntry } from "./lounge-relay.js";   // 配信の 中継（鹿物語の ランキングの 窓）に あずける 派遣の 材料
+import { relayEntry, mythicNote } from "./lounge-relay.js";   // 配信の 中継（鹿物語の ランキングの 窓）に あずける 派遣の 材料
 import { swapPlan, cashDo } from "./lounge-money.js";   // 両替（玉・クレジット・アメジスト）
 import { coreTake, coreSet } from "./lounge-core.js";   // ブランクコア（OP を 抜く・付ける）
 import { devPlan, sphereLook, sphereSet, drawOp } from "./lounge-equip.js";   // 装備開発・スフィア（2026-11-04）
@@ -72,6 +72,8 @@ export class Viewer {
   lounge() { return this.env.LOUNGE.get(this.env.LOUNGE.idFromName("lounge")); }
   // 配信の 中継：出かけた 派遣を Lounge に あずける（put）・本当の 帰る 時間（end）・うけとった（del）。つながらなくても 派遣は そのまま
   async relay(kind, body) { try { await this.lounge().fetch("https://lounge/relay-" + kind, { method: "POST", body: JSON.stringify(body) }); } catch (e) {} }
+  // ミシックの お知らせ（うけとった とき。入れない 人の 分は 出さない）：配信の チャット・MONO LINK の コメント欄（lounge-relay.js）
+  async mythic(rec, t) { const n = mythicNote(rec, t); if (n && !hidden(await this.env.DB.get("gate", "json"), rec.id)) await this.relay("mythic", n); }
   // 帳簿の op（OBS が 2 回 足さない ための 番号）は 門番が 作る。ブラウザの op は 使わない
   //   ブラウザの op を 使うと、ほかの 人の op を まねたり、古い op を 送りなおしたり して、払わずに 品を もらえて しまう
   nextLop(rec) { rec.lgN = (rec.lgN || 0) + 1; return rec.id + ":" + rec.at.toString(36) + ":" + rec.lgN; }
@@ -117,7 +119,7 @@ export class Viewer {
     if (now < t.end) { await this.state.storage.setAlarm(t.end); return; }   // 早く 鳴った
     const s = loopStep(rec, now, Math.floor(rand() * 2 ** 31));
     if (!s) { if (payWaiting(rec, t)) await this.state.storage.setAlarm(Date.now() + 5 * 60 * 1000); return; }   // 玉の 支払いの 返事待ち：あとで もう 1 回（返事が 来たら /acked からも 起こす）
-    await this.relay("del", { id: rec.id, uid: s.uid });
+    await this.relay("del", { id: rec.id, uid: s.uid }); await this.mythic(rec, t);   // 周回で うけとった 分も
     for (const e of s.r.earn || []) await this.earn(rec, e.kind, e.d, "trip.loop");   // ボスの アメジストは 帳簿へ
     const next = s.next;   // ビサイ諸島の 費用も クレジットで tripStart が 払う（払えなければ 周回が 止まる）
     await this.loopGo(rec, next);
@@ -341,7 +343,7 @@ export class Viewer {
     }
     else if (body.a === "trip.collect") {
       const t = rec.trips.find((x) => !x.done && (!body.uid || x.uid === body.uid)), g = t && t.got;   // tripCollect と 同じ さがし方
-      r = tripCollect(rec, body, now); if (r.ok && t) await this.relay("del", { id: rec.id, uid: t.uid });
+      r = tripCollect(rec, body, now); if (r.ok && t) { await this.relay("del", { id: rec.id, uid: t.uid }); await this.mythic(rec, t); }
       if (r.ok && g) { const nx = loopAfter(rec, g, r, now, Math.floor(rand() * 2 ** 31)); if (nx && nx.ok) { await this.loopGo(rec, nx); r.next = true; } }   // 周回中なら 自分で うけとっても つぎへ
     }
     else if (body.a === "loop.set") r = loopSet(rec, body, now);

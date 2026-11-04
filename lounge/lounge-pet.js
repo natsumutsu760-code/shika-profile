@@ -5,6 +5,7 @@
 // - 職業を かえると 前の 職業の 技から 1 つだけ 持ちこせる。振り直しと 職業を かえるのは 1 日 1 回 無料、2 回目から 玉（鹿さんの決め、2026-10-24。値段は 案）
 // - 装備は あたま・くび・うで・あし・武器・オフハンド・アクセサリー ×3 の 9 枠（鹿さんの決め、2026-10-25。前の「おまけ」は 武器）。なかまも 付けられる。付けて いる 装備は 合成・納める・依頼の お礼に 使えない
 import { COUNTS } from "./main-trees.js";
+import { detailOpen, detailPct, nutOf } from "./nutrition.js";   // 栄養の 詳細ステータスを 戦いへ（A15）
 import { PETS, PLANS, gambitSlots, SHAPE, SP_PER_LV, SET_SLOTS, TREE_SLOTS, FREE_PER_LV, BASE_STATS, canTake, autoTake, learned, growthStats, freeAlloc, freeIsAuto, ENEMY_TREES, SKILL, EFFECTS, COND_TEXT, baseOf, tamedOf, SLOTS, OLD_SLOT, withAtt, fighterPower, REC_MODES, REC_SCOPES, recommend, isBItem } from "./game.js";
 
 export const RESET_PRICE = (lv) => lv * 100;   // 2 回目からの 振り直し・職業を かえる クレジット（前は 玉。2026-10-28 の 決め「振り直し Lv×100 を 同じ 数の クレジット」）
@@ -71,10 +72,12 @@ export function fighterOf(pet, rec) {
   const fromSubs = pet.subs.flatMap((id) => ENEMY_TREES[id].plan.filter((g) => g.if[0] !== "always" && skills.includes(g.do)));
   const gambits = (pet.gambits || [...fromSubs, ...PLANS[pet.type].gambits]).filter(can).slice(0, gambitSlots(pet.lv, keywords));
   const used = [...new Set(gambits.map((g) => g.do).filter((id) => skills.includes(id)))], set = [...used, ...skills.filter((s) => !used.includes(s))].slice(0, SET_SLOTS);
-  return { type: pet.type, lv: pet.lv, stats, set, passives, gambits, auto: pet.style || PLANS[pet.type].auto || "balance", trees, name: pet.name, species: pet.species, equip: rec ? equippedOf(pet, rec) : [] };
+  return { type: pet.type, lv: pet.lv, stats, set, passives, gambits, auto: pet.style || PLANS[pet.type].auto || "balance", trees, name: pet.name, species: pet.species, equip: rec ? equippedOf(pet, rec) : [], detail: detailOf(pet) };
 }
 // 戦う ときの なかま（捕まえた 敵の タイプの 伸び方 ＋ 自分の ツリー。装備も 付く）
-export const mateOf = (c, rec) => ({ ...tamedOf(c, c.lv, rec ? equippedOf(c, rec) : []), owner: "" });
+// 栄養の 詳細ステータス（%）。戦いの 計算（battle-sim.js の withEquip）が 装備の OP と 同じ 入れ物に 入れる
+const detailOf = (x) => (detailOpen() ? detailPct(nutOf(x)) : {});
+export const mateOf = (c, rec) => ({ ...tamedOf(c, c.lv, rec ? equippedOf(c, rec) : []), owner: "", detail: detailOf(c) });
 
 // ---------- やること ----------
 const petOf = (rec) => { const p = rec.pets[0]; if (p) ensurePet(p); return p; };
