@@ -37,10 +37,10 @@
   /* しぼりこみ（なかまの 画面と 同じ 形：うすい 箱の 中に ラベル＋チップ） */
   .fbox { display:grid; gap:6px; padding:8px 10px; border-radius:16px; background:var(--space); margin-bottom:12px; }
   .frow { display:flex; align-items:center; gap:5px; flex-wrap:wrap; }
-  .frow > span { font:900 11px/1 var(--jp); color:var(--soft); min-width:4.5em; }
+  .frow > span { font:900 12px/1 var(--jp); color:var(--soft); min-width:4.5em; }
   .chip { border:1.5px solid var(--line); background:#fff; border-radius:999px; min-height:32px; padding:6px 12px; font:700 12px/1 var(--jp); display:inline-flex; align-items:center; gap:5px; }
   .chip i { width:9px; height:9px; border-radius:3px; background:var(--c); }
-  .chip small { font:600 11px/1 var(--num); color:var(--soft); }
+  .chip small { font:600 12px/1 var(--num); color:var(--soft); }
   .chip[aria-pressed="true"] { background:var(--ink); border-color:var(--ink); color:#fff; } .chip[aria-pressed="true"] small { color:rgba(255,255,255,.7); }
   .chip:disabled { opacity:.4; }
 
@@ -58,8 +58,8 @@
   .dx.locked .face { background:radial-gradient(circle at 50% 38%, #fff 0, #ECEFF6 80%); }
   .dx.locked .face img { filter:grayscale(.85) brightness(1.06) opacity(.75); }
   .dx b { max-width:100%; font:700 13px/1.25 var(--jp); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-  .dx small { font:700 11px/1 var(--jp); color:var(--soft); } .dx small.lv { font:600 12px/1 var(--num); }
-  .dx .now { position:absolute; top:4px; right:6px; padding:3px 7px; border-radius:99px; background:var(--sky); color:#fff; font:900 10px/1 var(--jp); }
+  .dx small { font:700 12px/1 var(--jp); color:var(--soft); } .dx small.lv { font:600 12px/1 var(--num); }
+  .dx .now { position:absolute; top:4px; right:6px; padding:3px 7px; border-radius:99px; background:var(--sky); color:#fff; font:900 12px/1 var(--jp); }
   .empty { margin:0 0 14px; padding:14px; border-radius:16px; border:2px dashed var(--line); font:700 12px/1.5 var(--jp); color:var(--soft); text-align:center; }
 
   /* えらんだ 子（決める 所） */
@@ -70,7 +70,7 @@
   .side h1 { font:900 24px/1.2 var(--jp); display:flex; justify-content:center; align-items:baseline; gap:8px; flex-wrap:wrap; }
   .side h1 small { font:700 13px/1 var(--jp); color:var(--soft); }
   .side .meta { display:flex; justify-content:center; align-items:center; gap:6px; flex-wrap:wrap; font:700 12px/1.4 var(--jp); color:var(--soft); }
-  .side .meta .lv { font:600 15px/1 var(--num); color:var(--ink); } .side .meta .lv small { font:700 11px/1 var(--jp); color:var(--soft); margin-right:2px; }
+  .side .meta .lv { font:600 15px/1 var(--num); color:var(--ink); } .side .meta .lv small { font:700 12px/1 var(--jp); color:var(--soft); margin-right:2px; }
   .side .trait { font:700 13px/1.6 var(--jp); color:var(--soft); }
   .side .jelly { width:100%; }
   .side .why { min-height:1.4em; font:700 12px/1.4 var(--jp); color:#C2364F; } .side .why:empty { min-height:0; }

@@ -34,7 +34,7 @@
   .badge { display:inline-flex; align-items:center; gap:5px; border-radius:999px; padding:4px 10px 4px 5px; font:700 12px/1 var(--jp); color:#fff; background:var(--c); }
   .badge::before { content:""; width:11px; height:11px; border-radius:50%; background:#fff; opacity:.85; }
   .lv { font:600 16px/1 var(--num); } .lv small { font:700 12px/1 var(--jp); color:var(--soft); margin-right:3px; }
-  .stats { justify-self:end; display:flex; gap:14px; font:700 11px/1 var(--jp); color:var(--soft); }
+  .stats { justify-self:end; display:flex; gap:14px; font:700 12px/1 var(--jp); color:var(--soft); }
   .stats span b { display:block; margin-top:4px; font:600 16px/1 var(--num); color:var(--ink); }
 
   /* ---- タブ ---- */
@@ -58,15 +58,15 @@
   .sw[aria-checked="true"] { background:var(--leaf); } .sw[aria-checked="true"]::after { transform:translateX(18px); }
   .cond, .act { min-width:0; text-align:left; border-radius:12px; padding:6px 10px; font:700 14px/1.35 var(--jp); border:1.5px solid var(--line); background:var(--space); }
   .cond b, .act b { font:600 15px/1 var(--num); }
-  .cond .who { display:inline-block; font:700 11px/1 var(--jp); color:#fff; background:var(--soft); border-radius:6px; padding:3px 5px; margin-right:6px; vertical-align:1px; }
+  .cond .who { display:inline-block; font:700 12px/1 var(--jp); color:#fff; background:var(--soft); border-radius:6px; padding:3px 5px; margin-right:6px; vertical-align:1px; }
   .cond .who.foe { background:var(--coral); } .cond .who.turn { background:var(--sky); }
   .arr { width:22px; height:22px; position:relative; } .arr::before { content:""; position:absolute; left:2px; right:6px; top:10px; height:3px; border-radius:2px; background:var(--soft); }
   .arr::after { content:""; position:absolute; right:2px; top:5px; width:9px; height:9px; border-top:3px solid var(--soft); border-right:3px solid var(--soft); transform:rotate(45deg); border-radius:2px; }
   .act { display:flex; align-items:center; gap:8px; white-space:nowrap; background:#fff; border-color:var(--c, var(--line)); box-shadow:inset 4px 0 0 var(--c, var(--line)); }
   .act .nm { min-width:0; overflow:hidden; text-overflow:ellipsis; }
-  .act .kind { flex:none; font:700 11px/1 var(--jp); color:#fff; background:var(--c, var(--soft)); border-radius:6px; padding:3px 5px; }
+  .act .kind { flex:none; font:700 12px/1 var(--jp); color:#fff; background:var(--c, var(--soft)); border-radius:6px; padding:3px 5px; }
   .act .mp { margin-left:auto; flex:none; font:700 12px/1 var(--jp); color:var(--soft); } .act .mp b { color:var(--violet); font-size:14px; }
-  .act .carry { flex:none; font:700 11px/1 var(--jp); color:var(--violet); border:1.5px dashed var(--violet); border-radius:6px; padding:2px 5px; }
+  .act .carry { flex:none; font:700 12px/1 var(--jp); color:var(--violet); border:1.5px dashed var(--violet); border-radius:6px; padding:2px 5px; }
   .magic { --c:var(--violet); } .skill { --c:var(--coral); } .plain { --c:var(--ink); }
   .grip { width:18px; height:22px; background:radial-gradient(circle, var(--line) 2px, transparent 2.5px) 0 0 / 9px 7.5px; }
   .g.off { opacity:.55; } .g.off .no { background:var(--soft); }
@@ -98,14 +98,14 @@
   .log::before { content:""; position:absolute; left:12px; top:10px; bottom:10px; width:2px; background:var(--line); }
   .log li { position:relative; display:grid; grid-template-columns:26px 42px 1fr; gap:6px; align-items:center; padding:3px 0; }
   .log .n { width:26px; height:26px; font-size:14px !important; border-radius:50%; display:grid; place-items:center; font:600 16px/1 var(--num); background:var(--ink); color:#fff; box-shadow:0 0 0 4px #fff; }
-  .log .n.auto { background:#fff; color:var(--sky); border:1.5px solid #D7E4FA; font:900 11px/1 var(--jp); }
+  .log .n.auto { background:#fff; color:var(--sky); border:1.5px solid #D7E4FA; font:900 12px/1 var(--jp); }
   .log li > div { display:contents; }
-  .log .t { font:700 11px/1 var(--jp); color:var(--soft); white-space:nowrap; } .log .t b { font:600 13px/1 var(--num); }
+  .log .t { font:700 12px/1 var(--jp); color:var(--soft); white-space:nowrap; } .log .t b { font:600 13px/1 var(--num); }
   .log .d { display:block; font:700 13px/1.4 var(--jp); }
   .log .d em { font-style:normal; color:var(--soft); font-weight:500; font-size:13px; }
   .log .dmg { font:600 15px/1 var(--num); color:var(--coral); } .log .heal { font:600 15px/1 var(--num); color:var(--leaf); }
   .result { margin-top:8px; padding:7px 10px; border-radius:14px; font-size:13px !important; background:#E9FBF3; font:700 14px/1.45 var(--jp); color:#13865A; }
-  .used { margin:6px 0 0; font:700 11px/1.5 var(--jp); color:var(--soft); }
+  .used { margin:6px 0 0; font:700 12px/1.5 var(--jp); color:var(--soft); }
   .used b { font:600 13px/1 var(--num); color:var(--ink); }
 
   /* ---- 条件をえらぶシート（スマホでは下から出る） ---- */
