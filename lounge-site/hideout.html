@@ -178,7 +178,7 @@ import { mountCraftNav } from "./craft-nav.js";
 import "./mat-pop.js";   // 素材を 押すと 手に入る 所（2026-11-05）
 import { FACILITIES, SNACK_RECIPES, storageCap, facMax, facFx, hasKnob, upkeep, FUEL } from "./facilities.js";   // 施設の 作り直し（2026-11-03）：Lv1〜100・建設（始める → 素材 → 時間）・つまみ・維持費。画面は 鹿さんが えらんだ A「1 列の 流れ」
 import { snackCraftHtml, addSnackCss } from "./snack-craft.js";
-import { MAT_NAME, MAT_FROM, HIDDEN_MAT, GATHER, ENEMY_MAT, BOX_DAYS } from "./materials.js";
+import { MAT_NAME, MAT_FROM, HIDDEN_MAT, GATHER, ENEMY_MAT, BOX_DAYS, gatherFloors } from "./materials.js";
 import { DUNGEONS, ISLAND_OPEN } from "./dungeons.js";
 import { baseOf } from "./equip.js";
 import { gearImg, watchIcons } from "./gear-icon.js";
@@ -297,7 +297,7 @@ function stashHtml() {
   const groups = vis.length ? `<ul class="tk-g">${[...vis].sort(by).map(tile).join("")}</ul>` : "";
   // 押した 素材：行き先・どこで 手に 入るか・品質の 内わけ
   const pk = S.pick && vis.find((e) => e.id === S.pick), pqs = pk ? Object.keys(pk.qs).map(Number).sort((a, b) => b - a) : [];
-  const info = pk ? `<div class="tk-info" aria-live="polite"><img src="${matPic(pk.id)}" alt=""><div><b>${esc(MAT_NAME[pk.id])}</b><small>${esc((DUNGEONS.find((d) => d.id === pk.where) || { name: "" }).name)}・${KIND_NOTE[pk.kind]}</small>${pqs.length ? `<small class="q">${pqs.map((q) => `品質${q} ×${pk.qs[q]}`).join("・")}</small>` : ""}<small class="${pk.n >= cap ? "fl" : ""}">${pk.n >= cap ? "いっぱい：入らない 分は あずかり箱へ" : `あと ${cap - pk.n} こ 入る`}</small></div><em>×${pk.n}</em></div>` : "";
+  const info = pk ? `<div class="tk-info" aria-live="polite"><img src="${matPic(pk.id)}" alt=""><div><b>${esc(MAT_NAME[pk.id])}</b><small>${esc((DUNGEONS.find((d) => d.id === pk.where) || { name: "" }).name)}・${KIND_NOTE[pk.kind]}${pk.kind === "gather" && pk.where ? `（${gatherFloors(pk.where, pk.id).join("・")} 階）` : ""}</small>${pqs.length ? `<small class="q">${pqs.map((q) => `品質${q} ×${pk.qs[q]}`).join("・")}</small>` : ""}<small class="${pk.n >= cap ? "fl" : ""}">${pk.n >= cap ? "いっぱい：入らない 分は あずかり箱へ" : `あと ${cap - pk.n} こ 入る`}</small></div><em>×${pk.n}</em></div>` : "";
   return `<section class="panel stash" aria-label="倉庫の中"><header><h2>倉庫の 中</h2><span class="cap">1 しゅるい <b>${cap}</b> こ まで${all.filter((e) => e.n >= cap).length ? `<span class="fl">いっぱい ${all.filter((e) => e.n >= cap).length}</span>` : ""}</span></header>
     <div class="ktabs" role="tablist" aria-label="しゅるい">${KINDS.map(([k, name]) => `<button role="tab" data-act="sk" data-v="${k}" aria-selected="${S.sk === k}" class="${nK(k) ? "" : "zero"}">${name}<small>${nK(k)}</small></button>`).join("")}</div>
     <div class="filters" role="group" aria-label="分け方">

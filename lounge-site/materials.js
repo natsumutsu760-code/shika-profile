@@ -88,6 +88,9 @@ export const matIsle = (id) => MAT_ISLE[id] || 1;
 // 採取ポイント 1 か所で 1〜2 こ（70%・30%）。その階の 2 種類から半々。かくし通路の採取ポイントは、レア 1 こ ＋ その階の素材 1 こ
 export const GATHER_N = { 1: 70, 2: 30 };
 export const floorMats = (did, n) => { const m = GATHER[did].mats; return [m[(n - 1) % 4], m[n % 4]]; };
+// その 素材が 採取で 出る 階（floorMats の 逆。階の 数は floors.js の FLOORS と 同じ 5）。入手方法の パネルに 出す
+// 鹿さんの 決め（2026-11-06）：「いややはり階によって分け、入手方法のパネルでどの階で手に入るかを明記する。」（階で 分ける 決まりは そのまま）
+export const gatherFloors = (did, id, floors = 5) => Array.from({ length: floors }, (_, i) => i + 1).filter((n) => floorMats(did, n).some(([x]) => x === id));
 // 敵の素材を落とす確率（たおした 1 体ごと）と、階ごとの品質
 export const ENEMY_DROP = { 通常: 0.3, 希少: 1, ボス: 1 };
 // 結晶の 落ちやすさ（敵 1 体ごと。素材とは べつの くじ）：通常 30%・希少と ボスは いつも（ボスは 2 こ）。品質は 素材と 同じ（深い 階ほど 高い・希少 ＋1・ボス 5）。Claude の 案（2026-11-04）

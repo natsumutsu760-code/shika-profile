@@ -48,7 +48,7 @@ export const WORDS = {
   "なかよし ＋#": "Friendship +#", "# こ 作る": "Make #", "作れるだけ（# こ）": "As many as possible (#)",
   // ---- 地下の 隠れ家（hideout.html・hideout-room.html） ----
   "持っている物": "Inventory", "地下の 隠れ家": "Basement Hideout", "部屋を 見る": "View room", "つくる": "Craft", "派遣": "Trips", "拡張": "Expand", "敵": "Enemies",
-  "採取ポイントで 拾う": "Picked up at gathering spots", "かくし通路の 採取ポイントだけ": "Only at hidden-passage gathering spots", "敵が 落とす。品質 1〜5": "Dropped by enemies. Quality 1–5",
+  "採取ポイントで 拾う": "Picked up at gathering spots", "かくし通路（どの 階でも）": "Hidden passage (any floor)", "かくし通路の 採取ポイントだけ": "Only at hidden-passage gathering spots", "敵が 落とす。品質 1〜5": "Dropped by enemies. Quality 1–5",
   "多い順": "Most", "品質の 高い順": "Highest quality", "スタッシュ": "Stash", "強化": "Upgrade", "預かり箱": "Holding box", "あずかり箱": "Holding box", "上げられる": "Upgradable", "足りない": "Missing",
   "PC：DEEP LINK/: を 開く": "PC: open DEEP LINK/:", "上げられる #": "Upgradable #", "あずかり箱 #": "Holding box #", "預かり箱 #": "Holding box #", "まだ 作っていない": "Not built yet",
   "倉庫の その しゅるいが いっぱい：素材を 使うか 売ると あく": "That type is full in Storage: use or sell materials to make room", "ガラクに 売る": "Sell to Garaku",
@@ -124,6 +124,8 @@ export const WORDS = {
 
 export const RULES = [
   // 素材の 手に入る 所（mat-pop.js）：名前は 「・」で 分けて 1 つずつ 訳す
+  [/^採取（([\d・]+) 階）$/, (m) => `Gathered (floor ${m[1].split("・").join(", ")})`],
+  [/^採取ポイントで 拾う（([\d・]+) 階）$/, (m) => `Picked up at gathering spots (floor ${m[1].split("・").join(", ")})`],
   [/^(.+) が 落とす（結晶）$/, (m, p) => `Dropped by ${m[1].split("・").map((x) => P(p, x)).join(", ")} (crystal)`],
   [/^(.+) が 落とす$/, (m, p) => `Dropped by ${m[1].split("・").map((x) => P(p, x)).join(", ")}`],
   [/^(.+) を 実った まま 置いて おく$/, (m, p) => `Leave ${m[1].split("・").map((x) => P(p, x)).join(", ")} ripe on the plot`],
