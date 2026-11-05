@@ -98,7 +98,7 @@ export const WORDS = {
   "どれでもないときのオート": "Auto when nothing matches", "もう 1 回 押すと もどす": "Tap again to restore", "お手本に もどす": "Reset to example", "行を 足す": "Add row", "行を 足す（あと #）": "Add row (# left)",
   "#〜# 番は Lv#・#・# で開く": "Rows #–# unlock at Lv#, #, #", "# 番で する ことを えらぶ": "Choose what row # does", "覚えて いる 技と、こうげき・ぼうぎょ": "Learned moves, plus Attack and Guard", "状態": "Status",
   "# 番の条件をえらぶ": "Choose the condition for row #", "◯ の数字と ◯◯ の状態は、えらんだあとに変えられます": "You can change the ◯ numbers and ◯◯ statuses after choosing", "決める": "Confirm",
-  "かえられませんでした": "Couldn't change it", "保存できませんでした": "Couldn't save", "ガンビットを 保存した": "Gambits saved", "お手本に もどした": "Reset to example", "（動けない）": "(can't move)",
+  "かえられませんでした": "Couldn't change it", "保存できませんでした": "Couldn't save", "ガンビットを 保存した": "Gambits saved", "パッシブを 保存した": "Passives saved", "自動に もどした": "Back to auto", "自動に もどす": "Back to auto", "セット # / #": "Set # / #", "えらんだ パッシブだけ 効きます": "Only the chosen passives work", "いまは 覚えた 順に 8 つ（自動）": "Now: the first 8 learned (auto)", "メイン": "Main", "サブ": "Sub", "パッシブは # こまで": "Up to # passives", "覚えて いない パッシブ": "Passive not learned", "お手本に もどした": "Reset to example", "（動けない）": "(can't move)",
   // ---- 配合と サブスキル（tame.html。鹿さんの決め、2026-10-25） ----
   "スキル": "Skills", "配合": "Fusion", "配合できる 子 # 体": "Ready to fuse: #", "捕まえた子": "Captured", "# 体": "#", "両性": "Both",
   "取り出す アメジスト #": "Extract · # Amethyst", "おわかれして 取り出す・もう 一度 押す": "Say goodbye & extract · tap again", "ポイント": "points", "自動で 振る": "Auto-assign", "自分の ツリー": "Own tree", "サブスキル #": "Sub skill #", "サブスキル #・進化": "Sub skill # · Evolved", "配合で 受けつぐ": "Inherited through fusion",

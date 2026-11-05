@@ -7,7 +7,7 @@
 import { COUNTS } from "./main-trees.js";
 import { UNIQUE_MAX } from "./unique-equip.js";   // ユニーク装備は 1 匹に 2 つまで（鹿さんの 決め、2026-10-26。2026-11-05 に 門番で 守る ように した）
 import { detailOpen, detailPct, nutOf } from "./nutrition.js";   // 栄養の 詳細ステータスを 戦いへ（A15）
-import { PETS, PLANS, gambitSlots, SHAPE, SP_PER_LV, SET_SLOTS, TREE_SLOTS, FREE_PER_LV, BASE_STATS, canTake, autoTake, learned, growthStats, freeAlloc, freeIsAuto, ENEMY_TREES, SKILL, EFFECTS, COND_TEXT, baseOf, tamedOf, SLOTS, OLD_SLOT, withAtt, fighterPower, REC_MODES, REC_SCOPES, recommend, isBItem } from "./game.js";
+import { PETS, PLANS, gambitSlots, SHAPE, SP_PER_LV, SET_SLOTS, TREE_SLOTS, PASSIVE_SLOTS, passiveSet, FREE_PER_LV, BASE_STATS, canTake, autoTake, learned, growthStats, freeAlloc, freeIsAuto, ENEMY_TREES, SKILL, EFFECTS, COND_TEXT, baseOf, tamedOf, SLOTS, OLD_SLOT, withAtt, fighterPower, REC_MODES, REC_SCOPES, recommend, isBItem } from "./game.js";
 
 export const RESET_PRICE = (lv) => lv * 100;   // 2 回目からの 振り直し・職業を かえる クレジット（前は 玉。2026-10-28 の 決め「振り直し Lv×100 を 同じ 数の クレジット」）
 export const STYLES = ["attack", "defense", "balance", "mp"];   // オートの 作戦：こうげき重視・防御重視・バランス・MP を大事に
@@ -28,6 +28,7 @@ export function ensurePet(pet) {
   pet.subs ||= []; pet.grow ||= { auto: true, branch: {} }; pet.equip ||= {}; pet.reset ||= { day: 0, n: 0 };
   if (pet.free === undefined) pet.free = null;
   if (pet.gambits === undefined) pet.gambits = null;
+  if (pet.passives === undefined) pet.passives = null;   // セットした パッシブ（null は 覚えた 順に 8 つ）
   if (pet.style === undefined) pet.style = null;
   if (pet.carry === undefined) pet.carry = null;
   if (!pet.taken) { pet.taken = {}; if (pet.type) pet.taken[pet.type] = [...autoTake(spTotal(pet.lv), pet.grow.branch).taken]; }
@@ -73,7 +74,7 @@ export function fighterOf(pet, rec) {
   const fromSubs = pet.subs.flatMap((id) => ENEMY_TREES[id].plan.filter((g) => g.if[0] !== "always" && skills.includes(g.do)));
   const gambits = (pet.gambits || [...fromSubs, ...PLANS[pet.type].gambits]).filter(can).slice(0, gambitSlots(pet.lv, keywords));
   const used = [...new Set(gambits.map((g) => g.do).filter((id) => skills.includes(id)))], set = [...used, ...skills.filter((s) => !used.includes(s))].slice(0, SET_SLOTS);
-  return { type: pet.type, lv: pet.lv, stats, set, passives, gambits, auto: pet.style || PLANS[pet.type].auto || "balance", trees, name: pet.name, species: pet.species, equip: rec ? equippedOf(pet, rec) : [], detail: detailOf(pet) };
+  return { type: pet.type, lv: pet.lv, stats, set, passives: passiveSet(passives, pet.passives), gambits, auto: pet.style || PLANS[pet.type].auto || "balance", trees, name: pet.name, species: pet.species, equip: rec ? equippedOf(pet, rec) : [], detail: detailOf(pet) };
 }
 // 戦う ときの なかま（捕まえた 敵の タイプの 伸び方 ＋ 自分の ツリー。装備も 付く）
 // 栄養の 詳細ステータス（%）。戦いの 計算（battle-sim.js の withEquip）が 装備の OP と 同じ 入れ物に 入れる
@@ -162,6 +163,19 @@ export function petStyle(rec, b) {
   pet.style = b.style;
   return { ok: true };
 }
+// 覚えて いる パッシブ（職業ツリー ＋ サブツリー）
+const passivesAll = (pet) => [pet.type, ...pet.subs].flatMap((id) => learned(id, new Set(pet.taken[id] || []), pet.seed).passives);
+// パッシブの セット：メインと サブツリーを 合わせて 8 つまで（2026-11-05 鹿さんの 決め）。list：覚えた パッシブの id、null で 覚えた 順に もどす
+export function petPassives(rec, b) {
+  const pet = petOf(rec);
+  if (!pet || !pet.type) return { ok: false, why: "さきに 職業を えらんで" };
+  if (b.list === null) { pet.passives = null; return { ok: true }; }
+  if (!Array.isArray(b.list) || b.list.length > PASSIVE_SLOTS) return { ok: false, why: `パッシブは ${PASSIVE_SLOTS} こまで` };
+  const all = new Set(passivesAll(pet));
+  if (new Set(b.list).size !== b.list.length || !b.list.every((id) => typeof id === "string" && all.has(id))) return { ok: false, why: "覚えて いない パッシブ" };
+  pet.passives = [...b.list];
+  return { ok: true };
+}
 function learnedAll(pet) { return [pet.type, ...pet.subs].flatMap((id) => learned(id, new Set(pet.taken[id] || []), pet.seed).skills).concat(pet.carry ? [pet.carry] : []); }
 function keywordsOf(pet) { return [pet.type, ...pet.subs].reduce((a, id) => a + learned(id, new Set(pet.taken[id] || []), pet.seed).keywords, 0); }
 
@@ -238,7 +252,7 @@ export function givePet(rec, g) {
     const pet = rec.pets.find((p) => p.uid === g.petRespec[0]); if (!pet) return;
     ensurePet(pet);
     const job = g.petRespec[1];
-    if (job) { delete pet.taken[pet.type]; pet.type = job[0]; pet.carry = job[1]; pet.gambits = null; }
+    if (job) { delete pet.taken[pet.type]; pet.type = job[0]; pet.carry = job[1]; pet.gambits = null; pet.passives = null; }
     pet.taken = { [pet.type]: [] }; pet.subs.forEach((s) => (pet.taken[s] = [])); pet.free = freeIsAuto(pet) ? null : {};   // 手動の ままなら ポイントが もどって 振りなおせる
     if (pet.grow.auto) autoFill(pet);
   }

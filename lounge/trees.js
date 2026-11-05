@@ -6,6 +6,10 @@ import { ENEMY_TREES } from "./enemy-trees.js";
 import { MAIN_TREES } from "./main-trees.js";
 
 export const SP_PER_LV = 10, TREE_SLOTS = 4, SET_SLOTS = 6;
+// パッシブの セット：メインと サブツリーを 合わせて 8 つまで（2026-11-05 鹿さんの 決め「ペットのパッシブをサブツリーを含め8つまでセットできるように変更してください。」）
+// chosen（えらんだ id）が ない ときは 覚えた 順（メインの ツリー → サブツリー）に 8 つ（Claude の 案）。覚えて いない 物・同じ 物は 入れない
+export const PASSIVE_SLOTS = 8;
+export const passiveSet = (all, chosen) => { const L = [...new Set(all || [])]; return (Array.isArray(chosen) ? [...new Set(chosen)].filter((id) => L.includes(id)) : L).slice(0, PASSIVE_SLOTS); };
 // 能力上昇ノードの数字：もとの表の値 × 倍率（このゲームのステータスは小さいので）。個体差で +0〜50%
 export const STAT_SCALE = { hp: 0.4, mp: 0.4, other: 0.12 };
 

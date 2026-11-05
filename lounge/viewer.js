@@ -11,7 +11,7 @@ import { buyPlan, sellAct, tradeAct, taskDone, useItem, deeplinkView, actEvents,
 import { facMigrate, facDue, facStart, facPut, facRush, facFuel, facScaffold, facKnob, facView } from "./lounge-facility.js";   // 施設の 建設と つまみ（施設の 作り直し、2026-11-03）
 import { crawlSave, crawlView } from "./lounge-crawl.js";   // クローラーの 進み（M-018。2026-11-05）
 import { reqPostPlan, takeFor, items } from "./lounge-req.js";
-import { petTake, petGrow, petSub, petStat, petGambits, petStyle, equipSet, equipBest, respecPlan, fighterOf, spTotal, spUsed, freeTotal, RESET_PRICE } from "./lounge-pet.js";
+import { petTake, petGrow, petSub, petStat, petGambits, petPassives, petStyle, equipSet, equipBest, respecPlan, fighterOf, spTotal, spUsed, freeTotal, RESET_PRICE } from "./lounge-pet.js";
 import { freeIsAuto } from "./trees.js";   // 手で 振る ポイントが 自動か
 import "./warm.js";   // 派遣の 計算を 温めて おく（はじめの 1 回が おそく ならない ように）
 import { relayEntry, mythicNote } from "./lounge-relay.js";   // 配信の 中継（鹿物語の ランキングの 窓）に あずける 派遣の 材料
@@ -331,6 +331,7 @@ export class Viewer {
     else if (body.a === "pet.sub") r = petSub(rec, body);
     else if (body.a === "pet.stat") r = petStat(rec, body);
     else if (body.a === "pet.gambits") r = petGambits(rec, body);
+    else if (body.a === "pet.passives") r = petPassives(rec, body);   // パッシブの セット（8 つまで。2026-11-05）
     else if (body.a === "pet.style") r = petStyle(rec, body);
     else if (body.a === "pet.equip") r = equipSet(rec, { ...body, who: null });
     else if (body.a === "equip.best") r = equipBest(rec, body);   // おすすめ装備（えらび方・だれ）

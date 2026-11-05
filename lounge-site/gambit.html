@@ -118,6 +118,12 @@
   .sheet h4 { margin:14px 0 8px; font:900 14px/1 var(--jp); display:flex; align-items:center; gap:8px; }
   .sheet h4 i { width:10px; height:10px; border-radius:50%; background:var(--c); }
   .opts { display:flex; flex-wrap:wrap; gap:8px; }
+  .pas .tree { margin:12px 0 6px; font:800 12px/1.2 var(--jp); color:var(--soft); }
+  .pas .opts button[disabled] { opacity:.4; }
+  .pas .about { margin:12px 0 0; font-size:13px; line-height:1.6; color:var(--ink); min-height:1.6em; }
+  .pas .head { flex-wrap:wrap; }
+  .pas .head h2, .pas .head .btns button { white-space:nowrap; }
+  .pas .head .btns .light { display:revert; }
   .opts button { border:1.5px solid var(--line); background:var(--space); border-radius:12px; padding:9px 12px; font:700 14px/1.2 var(--jp); }
   .opts button b { font:600 14px/1 var(--num); color:var(--sky); }
   .opts button[aria-pressed="true"] { border-color:var(--sky); background:#E8F5FF; box-shadow:inset 0 0 0 1.5px var(--sky); }
@@ -154,7 +160,8 @@ import { mountWallet } from "./wallet-bar.js"; mountWallet();   // 上の 通貨
 import { petInfo, linkTabs, gateHtml, addGateCss, toast } from "./pet-head.js";
 import { SKILL, TYPES } from "./skills.js";
 import { EFFECTS } from "./effects.js";
-import { learned } from "./trees.js";
+import { learned, PASSIVE_SLOTS } from "./trees.js";
+import { ENEMY_TREES } from "./enemy-trees.js";
 import { gambitSlots, petAt } from "./builds.js";
 import { simulate, vitalsOf } from "./battle-sim.js";
 
@@ -182,8 +189,13 @@ const W = { list: [], style: "balance", dirty: false, row: -1, sheet: null, pick
 // 覚えて いる 技（職業ツリー・サブツリー・持ちこし）と ガンビットの 枠の 数
 const skillsOf = () => [MP.type, ...(MP.subs || [])].flatMap((id) => learned(id, new Set((MP.taken || {})[id] || []), MP.seed).skills).concat(MP.carry ? [MP.carry] : []).filter((v, i, a) => a.indexOf(v) === i);
 const slotsOf = () => gambitSlots(MP.lv, [MP.type, ...(MP.subs || [])].reduce((a, id) => a + learned(id, new Set((MP.taken || {})[id] || []), MP.seed).keywords, 0));
+// パッシブ：覚えた 物を ツリーごとに（メイン → サブ）。セットは 8 つまで（2026-11-05 鹿さんの 決め）
+const passTrees = () => [MP.type, ...(MP.subs || [])].map((id) => ({ id, name: id === MP.type ? TYPES[MP.type].label : (ENEMY_TREES[id] ? ENEMY_TREES[id].name : id), list: learned(id, new Set((MP.taken || {})[id] || []), MP.seed).passives.filter((p) => SKILL[p]) }));
+const P = { list: [], dirty: false, focus: null, reset: false };
+function loadPas() { P.list = [...(MP.build.passives || [])]; P.dirty = false; P.reset = false; }
 function load() {
   if (!MP || !MP.type) return;
+  if (!P.dirty) loadPas();   // ガンビットを 保存しても、まだ 保存して いない パッシブの えらび方は のこす
   W.list = (MP.gambits || MP.build.gambits).map((g) => ({ ...g, if: [...g.if] }));
   W.style = MP.style || MP.build.auto || "balance"; W.dirty = false; W.row = -1;
 }
@@ -197,7 +209,7 @@ function rowHtml(g, i) {
 }
 // ためしに戦う：練習用の かかし（同じ Lv の ディフェンダー）と。いま 画面で なおした ガンビットで
 function testHtml() {
-  const A = { ...MP.build, gambits: W.list, auto: W.style, owner: ME.name }, B = { ...petAt("spiky", MP.lv), name: "練習用のかかし", owner: "VR", species: null };
+  const A = { ...MP.build, gambits: W.list, passives: P.list, auto: W.style, owner: ME.name }, B = { ...petAt("spiky", MP.lv), name: "練習用のかかし", owner: "VR", species: null };
   const EV = simulate(A, B, W.seed), END = EV.at(-1), acts = EV.filter((e) => e.type === "act" && e.who === 0 && !e.sim), used = {};
   for (const e of EV) if (e.type === "act" && e.who === 0) used[e.by] = (used[e.by] || 0) + 1;
   const li = acts.slice(0, 9).map((e) => { const hits = (e.hits || []).filter((h) => h.dmg > 0).map((h) => h.dmg);
@@ -209,6 +221,16 @@ function testHtml() {
       <ol class="log">${li}</ol>
       <div class="result" ${END.winner === 0 ? "" : 'style="background:#FFF0F1;color:#C23B47"'}>ターン ${END.turns} で${END.winner === 0 ? `勝ち。HP は ${hp}% 残った` : "負け"}</div>
       <p class="used">動いた回数　${[...W.list.map((g, i) => (used[i + 1] ? `${i + 1} 番 <b>${used[i + 1]}</b>` : "")), used.auto ? `オート <b>${used.auto}</b>` : ""].filter(Boolean).join("・")}</p></details>`;
+}
+function pasHtml() {
+  const T = passTrees(), n = T.reduce((a, t) => a + t.list.length, 0), full = P.list.length >= PASSIVE_SLOTS, f = P.focus && SKILL[P.focus];
+  if (!n) return "";
+  return `<section class="panel pas" aria-label="パッシブ">
+      <div class="head"><h2>パッシブ</h2><span>セット ${P.list.length} / ${PASSIVE_SLOTS}</span><div class="btns"><button class="jelly light small" data-do="pauto" ${MP.passives ? "" : "disabled"}>${P.reset ? "もう 1 回 押すと もどす" : "自動に もどす"}</button><button class="jelly small" data-do="psave" ${P.dirty ? "" : "disabled"} style="${P.dirty ? "" : "opacity:.45"}">保存</button></div></div>
+      <p class="hint">${MP.passives ? "えらんだ パッシブだけ 効きます" : "いまは 覚えた 順に 8 つ（自動）"}</p>
+      ${T.filter((t) => t.list.length).map((t) => `<p class="tree"><span>${t.id === MP.type ? "メイン" : "サブ"}</span>　${esc(t.name)}</p><div class="opts">${t.list.map((id) => { const on = P.list.includes(id); return `<button data-pas="${id}" aria-pressed="${on}" ${!on && full ? "disabled" : ""}>${esc(SKILL[id].name)}</button>`; }).join("")}</div>`).join("")}
+      <p class="about">${f ? `<b>${esc(f.name)}</b>　${esc(f.text || "")}` : ""}</p>
+    </section>`;
 }
 function render() {
   const gate = gateHtml(ME, esc); if (gate) return gate;
@@ -222,6 +244,7 @@ function render() {
   </section>
   <nav class="tabs" role="tablist"><button role="tab" aria-selected="false">ステータス</button><button role="tab" aria-selected="false">スキルツリー</button><button role="tab" aria-selected="true">ガンビット</button><button role="tab" aria-selected="false">装備</button><button role="tab" aria-selected="false">冒険</button><button role="tab" aria-selected="false">なかま</button></nav>
   <div class="cols">
+    <div style="display:grid;gap:20px;align-content:start;min-width:0">
     <section class="panel" aria-label="ガンビット">
       <div class="head"><h2>ガンビット</h2><span>枠 ${W.list.length} / ${max}</span><div class="btns"><button class="jelly light small" data-do="tmpl">${W.reset ? "もう 1 回 押すと もどす" : "お手本に もどす"}</button><button class="jelly small" data-do="save" ${W.dirty ? "" : "disabled"} style="${W.dirty ? "" : "opacity:.45"}">保存</button></div></div>
       <p class="hint">上から順に見て、最初に当てはまったものをします。番号を 押すと 並べかえ・けす。</p>
@@ -234,6 +257,8 @@ function render() {
         <div class="seg" role="group" aria-label="オートの作戦">${STYLES.map(([k, n]) => `<button data-style="${k}" aria-pressed="${W.style === k}">${n}</button>`).join("")}</div>
       </div>
     </section>
+    ${pasHtml()}
+    </div>
     ${testHtml()}
   </div>`;
 }
@@ -274,7 +299,14 @@ document.body.addEventListener("click", async (e) => {
   if (d.pickcond) { W.pick = d.pickcond; W.val = CD[W.pick][2] ?? null; return paint(); }
   if (d.val) { W.val = Math.max(1, Math.min(100, W.val + (+d.val) * CD[W.pick][3])); return paint(); }
   if (d.style) { const was = W.style; W.style = d.style; paint(); const r = await act("pet.style", { style: d.style }); if (!r.ok) { W.style = was; paint(); return toast(r.why || "かえられませんでした"); } ME = await me(); MP = ME.pets[0]; return toast(`作戦：${STYLES.find(([k]) => k === d.style)[1]}`); }
+  if (d.pas) { const i = P.list.indexOf(d.pas); if (i >= 0) P.list.splice(i, 1); else if (P.list.length < PASSIVE_SLOTS) P.list.push(d.pas); P.focus = d.pas; P.dirty = true; P.reset = false; return paint(); }
   const x = d.do;
+  if (x === "psave" || (x === "pauto" && P.reset)) {
+    const r = await busy(b, () => act("pet.passives", { list: x === "psave" ? P.list : null }));
+    if (!r.ok) return toast(r.wait ? waitText : r.why || "保存できませんでした");
+    ME = await me(); MP = ME.pets[0]; loadPas(); paint(); return toast(x === "psave" ? "パッシブを 保存した" : "自動に もどした");
+  }
+  if (x === "pauto") { P.reset = true; return paint(); }
   if (x === "close") return closeSheet();
   if (x === "setcond") { const k = W.pick; let v = W.val; if (isFx(k)) v = document.getElementById("fxsel").value; W.list[W.row].if = isNum(k) || isFx(k) ? [k, v] : [k]; touch(); return closeSheet(); }
   if (x === "up" || x === "down") { const j = W.row + (x === "up" ? -1 : 1); [W.list[W.row], W.list[j]] = [W.list[j], W.list[W.row]]; W.row = j; touch(); return paint(); }

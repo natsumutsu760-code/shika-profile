@@ -68,17 +68,18 @@ export function retreatChance(B) {
   const a = agi(0), b = agi(1);
   return Math.max(0.2, Math.min(0.9, 0.5 + (a - b) / Math.max(40, a + b)));
 }
-// コマンドの 一覧（攻撃・アビリティ 6 つ・防御・アイテム）と 使えるか
+// コマンドの 一覧（攻撃・アビリティ・防御・アイテム）と 使えるか
+// アビリティは ガンビットに 入って いる 技だけ（2026-11-05 鹿さんの 決め「クローラーのアビリティもガンビットに設定されているもの以外は表示しないようにしてください」）。攻撃・防御は いつでも
 export function commandsOf(B, i) {
   const c = i < B.party.length ? B.party[i] : null;
   if (!c) return null;
   const f = makeFighter({ ...c, startHp: B.now?.[i]?.hp, startMp: B.now?.[i]?.mp }, 0);
   if (B.items) f.bag = B.items;
-  const ok = (id) => !!SKILL[id] && usable(f, id);
+  const ok = (id) => !!SKILL[id] && usable(f, id), inG = new Set((c.gambits || []).filter((g) => g.on !== false).map((g) => g.do));
   return {
     attack: { id: "kogeki", ok: true },
     guard: { id: "bougyo", ok: true },
-    abilities: (c.set || []).filter((id) => SKILL[id] && !SKILL[id].item && id !== "kogeki" && id !== "bougyo").map((id) => ({ id, name: SKILL[id].name, mp: mpCost(f, id), text: SKILL[id].text, ok: ok(id) })),
+    abilities: (c.set || []).filter((id) => inG.has(id) && SKILL[id] && !SKILL[id].item && id !== "kogeki" && id !== "bougyo").map((id) => ({ id, name: SKILL[id].name, mp: mpCost(f, id), text: SKILL[id].text, ok: ok(id) })),
     items: Object.entries(B.items || {}).filter(([id, n]) => n > 0 && SKILL[id]).map(([id, n]) => ({ id, name: SKILL[id].name, n, text: SKILL[id].text, ok: !CRAWL_ITEMS[id]?.down || B.now.some((s, j) => j < B.party.length && j !== i && s.hp <= 0) })),   // 起こす 薬は 力つきた 味方が いる ときだけ
   };
 }

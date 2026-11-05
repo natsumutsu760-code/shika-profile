@@ -1,6 +1,6 @@
 // 試しに戦わせるペット。Lv までの SP を職業ツリーに自動で振り（trees.js）、覚えた技からセットとガンビットを組む
 // ガンビットは職業ごとのお手本（上から順）。まだ覚えていない技の行は飛ばし、ガンビットの枠の数だけ入れる
-import { buildPet, SET_SLOTS } from "./trees.js";
+import { buildPet, SET_SLOTS, passiveSet } from "./trees.js";
 import { ENEMY_TREES } from "./enemy-trees.js";
 
 // ガンビットの枠：最初 3、Lv5・10・15・20・30 で 1 つずつ（最大 8）。ツリーの奥義（キーワード）でさらに +1
@@ -33,7 +33,7 @@ export function petAt(type, lv, o = {}) {
   const fromSubs = (o.subs || []).flatMap(([id]) => ENEMY_TREES[id].plan.filter((g) => g.if[0] !== "always" && has(g)));
   const gambits = (o.gambits || [...fromSubs, ...own]).filter(has).slice(0, gambitSlots(lv, p.keywords));
   const used = [...new Set(gambits.map((g) => g.do))], set = [...used, ...p.learnedSkills.filter((s) => !used.includes(s))].slice(0, SET_SLOTS);
-  return { type, lv, stats: p.stats, set, passives: p.passives, gambits, auto: PLANS[type]?.auto || AUTO_OF[type] || "balance", trees: p.trees };
+  return { type, lv, stats: p.stats, set, passives: passiveSet(p.passives, o.passives), gambits, auto: PLANS[type]?.auto || AUTO_OF[type] || "balance", trees: p.trees };
 }
 
 // Lv15 のお手本（分岐はどれも左）
