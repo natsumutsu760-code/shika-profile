@@ -90,6 +90,11 @@
   .foe.pet img { image-rendering: auto; }
   .foe .nm { font-size: 13px; letter-spacing: 0.08em; }
   .foe .bar { width: 120px; }
+  .foe .warn { font-size: 12px; color: #FF6B6B; letter-spacing: 0.06em; animation: warnb 0.8s steps(2) infinite; }
+  @keyframes warnb { 50% { opacity: 0.35; } }
+  @media (prefers-reduced-motion: reduce) { .foe .warn { animation: none; } }
+  .foe .part { display: grid; justify-items: center; gap: 2px; font-size: 12px; color: #F5B544; }
+  .foe .part .bar { width: 90px; }
   .foe.tgt .nm::before { content: "▶ "; color: var(--amber); }
   .foe.down { opacity: 0.25; }
   #elite { text-align: center; font-size: 15px; min-height: 26px; padding: 0 16px; color: var(--amber); }
@@ -316,21 +321,28 @@ import { makePet3, SPECIES3 } from "./pets.js";
 import { MAIN_TREES } from "./main-trees.js";
 import { newRun, act, endBattle, useItem, visibleFrom, DIRV } from "./crawler-game.js";
 import { newBattle, look as lookBattle, commit, playerPet, linkerPet, commandsOf, retreatChance, skillName, CRAWL_ITEMS, BRING_MAX } from "./crawler-battle.js";
-import { MISSIONS, kindOf, offered, countDone, NEED, LV, LINKERS, AFTER, ELITE_LINES } from "./crawler-ch1.js";
+import { MISSIONS, kindOf, offered, countDone, NEED, LV, LINKERS, AFTER, ELITE_LINES, linkerOf } from "./crawler-ch1.js";
 import { settle, payOf, BONUS_PAY, RECORDS, RECORD_TEXT, CODE_NEED, lvOf, expNeed, mercLv } from "./crawler-reward.js";
 import { ANALYSIS } from "./crawler-analysis-data.js";
 import { ELITE_TREES, eliteTreeOf } from "./crawler-elite-trees.js";
 import { SP_PER_LV } from "./trees.js";
 import { SCRAP } from "./materials.js";
-import { me, demoMode } from "./lounge-client.js";
+import { me, act as gateAct, demoMode } from "./lounge-client.js";
 
 const $ = (id) => document.getElementById(id);
 const q = new URLSearchParams(location.search);
-// ---- 進み（この ブラウザだけの 便利な 記憶。正式な 保存は あと） ----
+// ---- 進み（この ブラウザに しまい、門番にも しまう〈keep〉。どの 機械でも 同じ 進み。2026-11-05） ----
 const KEY = "monolink-crawler-ch1";
 let save = { pet: "drowsy", done: [] };
 try { if (q.get("reset") === "1") localStorage.removeItem(KEY); save = { ...save, ...JSON.parse(localStorage.getItem(KEY) || "{}") }; } catch {}
-const keep = () => { try { localStorage.setItem(KEY, JSON.stringify(save)); } catch {} };
+// 門番にも しまう（どの 機械でも 同じ 進み。モデリングの M-018 → 鹿さんの カード「システム側に頼む」2026-11-05）。送るのは 少し まとめて（1.5 秒）。見本（demoMode）は この ブラウザだけ
+let toGate = false, gateT = 0, gateReplace = false;
+const keep = () => {
+  save.at = Date.now();
+  try { localStorage.setItem(KEY, JSON.stringify(save)); } catch {}
+  if (!toGate) return;
+  clearTimeout(gateT); gateT = setTimeout(() => { const replace = gateReplace; gateReplace = false; gateAct("crawl.save", { save, ...(replace ? { replace: true } : {}) }).catch(() => {}); }, 1500);
+};
 const show = (id) => { for (const s of ["intro", "home", "brief", "play", "result"]) $(s).hidden = s !== id; window.scrollTo(0, 0); };
 const GROUP_EN = { tcu: "TCU", harmonia: "HARMONIA", sva: "SVA", foundation: "FOUNDATION", linkers: "LINKERS" };
 const KIND_JA = { target: "殲滅", seize: "制圧", delivery: "運搬", recovery: "捜索", nest: "殲滅", hold: "防衛", escort: "護衛", demolish: "破壊", capture: "制圧", tracer: "追跡", vault: "破壊", runner: "追跡" };
@@ -509,7 +521,7 @@ function sync3d() {
     let o = objs.get(f.id);
     if (!f.alive) { if (o) { o.visible = false; } continue; }
     if (!o) {
-      if (f.pet) { const eid = f.elite && ELITE_ID[f.name]; o = eid ? makeElitePOM(eid) : makePOM(f.pet, { co: f.co ?? "sva" }); const bb = new THREE.Box3().setFromObject(o), h = bb.max.y - bb.min.y || 1, k = (f.elite ? 1.05 : 0.9) / h; o.scale.setScalar(k); o.userData.y0 = -bb.min.y * k; mz.group.add(o); }
+      if (f.pet) { const eid = f.elite && ELITE_ID[f.name]; o = eid ? makeElitePOM(eid) : makePOM(f.pet, { co: f.co ?? "indie" }); const bb = new THREE.Box3().setFromObject(o), h = bb.max.y - bb.min.y || 1, k = (f.elite ? 1.05 : 0.9) / h; o.scale.setScalar(k); o.userData.y0 = -bb.min.y * k; mz.group.add(o); }
       else { o = mz.addBoard(spriteURL(f.sprite ?? S.def.monsters[0].sprite), f.x, f.y, { h: f.elite ? 1.7 : 1.35 }); o.userData.y0 = 0; }
       objs.set(f.id, o);
     }
@@ -540,7 +552,7 @@ renderer.setAnimationLoop((ms) => {
 // ---- 走る ----
 function start(m) {
   const lv = lvOf(save), me = playerPet(save.pet, lv, `${MAIN_TREES[save.pet].name}`, save.sub && ELITE_TREES[save.sub] ? [[save.sub, subSp(lv)]] : []);
-  const party = [me, ...(m.allies ?? []).map((n) => linkerPet(LINKERS[n].pet, mercLv(lv), n, n))].map((c, i) => ({ c, hp: null, mp: null, merc: i > 0 }));
+  const party = [me, ...(m.allies ?? []).map((n) => linkerOf(n, mercLv(lv)))].map((c, i) => ({ c, hp: null, mp: null, merc: i > 0 }));
   S = newRun(m, { party, items: { ...bringOf() }, seed: (Date.now() % 100000) | 0, kind: kindOf(m), first: !save.done.includes(m.id) });
   // HP・MP の 上限（戦う 形から）
   for (const p of S.party) { const B = newBattle({ party: [p.c], foes: [p.c], seed: 1 }); lookBattle(B); p.maxHp = B.fighters[0].maxHp; p.maxMp = B.fighters[0].maxMp; p.hp = p.maxHp; p.mp = p.maxMp; }
@@ -648,8 +660,9 @@ function drawFight() {
   const n = B.party.length, bf = S.battle?.foe;
   $("foes").innerHTML = B.foes.map((f, j) => {
     const i = n + j, s = B.now[i], mx = B.fighters[i].maxHp, pet = f.species;
-    const src = pet ? pomShot(pet, bf?.co ?? "sva", bf?.elite ? ELITE_ID[f.name] : null) ?? petImg(pet) : spriteURL(f.sprite ?? S.def.monsters[0].sprite);
-    return `<button class="foe${pet ? " pet" : ""}${s.hp <= 0 ? " down" : ""}${tgt === i ? " tgt" : ""}" data-i="${i}"><img src="${src}" alt=""><span class="nm mono">${f.name}</span><span class="bar"><i style="width:${(100 * Math.max(0, s.hp)) / mx}%;background:var(--alert)"></i></span></button>`;
+    if (s.hide) return "";   // 大型ボスが まだ 呼んで いない 取り巻き
+    const src = pet ? pomShot(pet, bf?.co ?? "indie", bf?.elite ? ELITE_ID[f.name] : null) ?? petImg(pet) : spriteURL(f.sprite ?? S.def.monsters[0].sprite);
+    return `<button class="foe${pet ? " pet" : ""}${s.hp <= 0 ? " down" : ""}${tgt === i ? " tgt" : ""}" data-i="${i}"><img src="${src}" alt=""><span class="nm mono">${f.name}</span><span class="bar"><i style="width:${(100 * Math.max(0, s.hp)) / mx}%;background:var(--alert)"></i></span>${s.warn ? `<span class="warn mono">予告：${s.warn}</span>` : ""}${s.part ? `<span class="part">${s.part.name}<span class="bar"><i style="width:${(100 * s.part.hp) / s.part.max}%;background:#F5B544"></i></span></span>` : ""}</button>`;
   }).join("");
   document.querySelectorAll(".foe").forEach((el) => (el.onclick = () => { const i = +el.dataset.i; if (B.now[i].hp > 0) { tgt = i; drawFight(); } }));
   $("bMates").innerHTML = B.party.map((c, i) => { const s = B.now[i], f = B.fighters[i]; return `<div class="m"><b>${c.name}</b><div class="bar"><i style="width:${(100 * Math.max(0, s.hp)) / f.maxHp}%"></i></div><div class="bar mp"><i style="width:${(100 * s.mp) / f.maxMp}%"></i></div><span class="st mono">${Math.max(0, s.hp)} / ${f.maxHp}　${i === 0 ? ($("auto").checked ? "オート" : "考え中") : "ガンビット"}</span></div>`; }).join("");
@@ -750,6 +763,14 @@ if (gate && (gate.denied || gate.ok === false)) {
   show(null); $("gate").hidden = false; $("gateWhy").textContent = gate.why || "もう 1 回 開いて ください"; $("gateLogin").hidden = !gate.login;
 } else if (gate?.lock) show(null);   // 工事中の 画面は me() が 出した。後ろの ホームも しまう
 else {
+  // 門番の 進みと この ブラウザの 進みを まぜる（新しい 方を 使い、クリアと サインは 両方の 分を 残す）。?reset=1 の ときは 門番の 進みも 消す
+  if (gate && !demoMode && gate.ok !== false) {
+    toGate = true;
+    const g = gate.crawl && gate.crawl.save;
+    if (q.get("reset") === "1") { gateReplace = true; keep(); }
+    else if (g) { const done = [...new Set([...(g.done || []), ...(save.done || [])])], signed = save.signed || g.signed; save = { ...save, ...((g.at || 0) > (save.at || 0) ? g : {}), done, ...(signed ? { signed } : {}) }; keep(); }
+    else if (save.signed || save.done.length) keep();   // 前に この ブラウザで 進めた 分を 門番へ
+  }
   if (direct) brief(direct); else if ((!save.signed && !save.done.length) || q.get("intro") === "1") intro(); else home(); // はじめての 人は はじまりから（?intro=1 で もう一度）
 }
 window.crawl = { get S() { return S; }, get B() { return B; }, act: (a) => { act(S, a); moved(); refresh(); } };

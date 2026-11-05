@@ -4,7 +4,14 @@
 import { CH1_DATA } from "./crawler-ch1-data.js";
 import { addFoe, say, note, finish, cellAt, stateAt, distOf, passable, DIRV, visibleFrom, liftTo } from "./crawler-game.js";
 import { unitOf, linkerPet } from "./crawler-battle.js";
+import { eliteUnit } from "./crawler-elite-units.js";   // 迷宮の 精鋭は 専用の 技 5・目玉 1・パッシブ 3（鹿さんの 決め 2026-11-03。2026-11-05 に つないだ）
 
+// 大型ボス（BOM）の 戦い方（鹿さんの 決め 2026-10-30、mono-link-crawler-bom-saw.md）：大技の 予告 → 次の 番に 撃つ・防御で 受けると 半分・予告の あいだ 部位が 出て、こわすと 止まる・
+// 段階で かわる（防衛の 最後の 波の BOM は 2 段：取り巻きを 呼ぶ・予告が 早く なる）。計算は battle-sim.js の bomTurn・bomStage
+// 1-15 の MODIFIED BOM の 中身は Claude の 案（資料の 一覧に ない 予告なしの BOM。2026-11-05）：大技「熱源の 解放」（相手 全員・威力 34）・部位「胸の 炉」（最大 HP の 20%。8% だと 1 回の 攻撃で こわれた）・3 ターンごとに 予告・
+// HP 半分で 2 段目（取り巻き 2 体・2 ターンごとに 予告・ATK 上昇 20）。ストーリーの「区画付近に高出力の熱源」から
+export const BOM_CH1 = { warn: { name: "熱源の 解放", part: "胸の 炉", pow: 34, every: 3, partHp: 0.2, guard: 0.5 },
+  stages: [{ at: 0.5, every: 2, wake: true, fx: [["up_atk", 20]], text: "MODIFIED BOM の 熱が 上がった！ 取り巻きを 呼んだ" }] };
 export const LV = { me: 50, unit: 40, pom: 45, elite: 48, merc: 45 }; // 仮の Lv（第 1 章の 帯は Lv 50〜。傭兵は プレイヤーの 9 割）
 export const NEED = 9; // 1-15 が 開く 数（1-14 を ふくめて 1-01〜1-14 の うち 9 本。鹿さんの 決め）
 
@@ -41,7 +48,9 @@ const pick = (S, a) => a[Math.floor(S.R() * a.length)];
 const adj = (S, ch) => [[0, -1], [1, 0], [0, 1], [-1, 0], [0, 0]].map(([dx, dy]) => [S.me.x + dx, S.me.y + dy]).filter(([x, y]) => cellAt(S, x, y) === ch); // となりか 足もとの その 文字
 const squadOf = (S, n = 1) => Array.from({ length: n }, () => { const m = pick(S, S.def.monsters); return unitOf(m.sprite, LV.unit, m.name); });
 const wave = (S, list, n, opts = {}) => list.map((p) => addFoe(S, { kind: "unit", x: p[0], y: p[1], name: "WAVE", sprite: S.def.monsters[0]?.sprite, squad: squadOf(S, n), move: "goto", to: S.def.map.goal, ...opts }));
-const linker = (name, lv = LV.elite) => linkerPet(LINKERS[name].pet, lv, name, name);
+// 精鋭の 戦う 形：機体は ペット（LINKERS の pet）、技は 専用の 物。foe：プレイヤーの 敵の とき（味方の 傭兵は false）
+export const linkerOf = (name, lv, foe = false) => eliteUnit(name, linkerPet(LINKERS[name].pet, lv, name, name), { foe });
+const linker = (name, lv = LV.elite) => linkerOf(name, lv, true);
 const T = (S, who, text) => say(S, who, text, LINKERS[who]?.co ?? null);
 
 // ---- 種類ごとの 決まり（目的・失敗・ボーナス） ----
@@ -177,7 +186,9 @@ export const KINDS = {
         say(S, "LINKERS", "区画付近に高出力の熱源");
         T(S, "STOPWATCH", "……想定外です。試験は中止。生き残ってください"); T(S, "NEW MOON", "なんだよ、あれ……！");
         const p = S.def.map.entries[0];
-        S.obj.bom = addFoe(S, { kind: "elite", elite: true, name: "MODIFIED BOM", sprite: "e_boss_gatekeeper", x: p[0], y: p[1], move: "goto", to: S.def.map.goal, every: 3, wave: S.obj.wave, squad: [{ ...unitOf("e_boss_gatekeeper", LV.elite, "MODIFIED BOM"), boss: true }] });
+        const m0 = S.def.monsters[0];   // 呼ぶ 取り巻き：この 区画の ユニット 2 体（段階が かわるまで いない）
+        S.obj.bom = addFoe(S, { kind: "elite", elite: true, name: "MODIFIED BOM", sprite: "e_boss_gatekeeper", x: p[0], y: p[1], move: "goto", to: S.def.map.goal, every: 3, wave: S.obj.wave,
+          squad: [{ ...unitOf("e_boss_gatekeeper", LV.elite, "MODIFIED BOM"), boss: true, bom: BOM_CH1 }, ...[1, 2].map((k) => ({ ...unitOf(m0.sprite, LV.unit, `${m0.name} ${k}`), dormant: true }))] });
       }
     },
     onWin(S, b) { if (b?.foe && b.foe === S.obj.bom) S.obj.bomDown = true; },
@@ -220,7 +231,7 @@ export const KINDS = {
         if (cells(S, "G").every((p) => stateAt(S, ...p) === "broken")) finish(S, true, "発電機を 3 基 壊した", S.turn <= S.obj.limit);
       }
     },
-    onTick(S) { if (S.obj.alarm && S.turn % 8 === 0 && S.foes.filter((f) => f.alive && f.kind === "pom").length < 2) { const s = cells(S, "S")[0]; addFoe(S, { kind: "pom", name: "GRN POM", pet: "mogura", co: "tcu", x: s[0], y: s[1], move: "chase", every: 2, squad: [linkerPet("mogura", LV.pom, "POM-G1", "GRN")] }); } },
+    onTick(S) { if (S.obj.alarm && S.turn % 8 === 0 && S.foes.filter((f) => f.alive && f.kind === "pom").length < 2) { const s = cells(S, "S")[0]; addFoe(S, { kind: "pom", name: "GRN POM", pet: "mogura", co: "grn", x: s[0], y: s[1], move: "chase", every: 2, squad: [linkerPet("mogura", LV.pom, "POM-G1", "GRN")] }); } },
     onMeet(S, f) { if (f === S.obj.splint) T(S, "SPLINT", S.flags.metSplint ? "……この前の。……仕事、なんですよね。わかってます" : "すみません、ここは通せない決まりなんです"); },
     onWin(S, b) { if (b?.foe === S.obj.splint) T(S, "SPLINT", "……まだ、支えが甘かった"); },
     // その場：となりの 発電機に 爆薬（戦いの 行動の かわりに 叩くのと 同じ 1）

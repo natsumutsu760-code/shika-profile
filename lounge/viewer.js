@@ -9,6 +9,7 @@ import { locked, lockedAct, lockWhy, lockKind } from "./lounge-lock.js";   // �
 import { emptyLedger, balanceOf, trimSent, toObs, settle } from "./ledger.js";
 import { buyPlan, sellAct, tradeAct, taskDone, useItem, deeplinkView, actEvents, dlVisit } from "./lounge-trade.js";
 import { facMigrate, facDue, facStart, facPut, facRush, facFuel, facScaffold, facKnob, facView } from "./lounge-facility.js";   // 施設の 建設と つまみ（施設の 作り直し、2026-11-03）
+import { crawlSave, crawlView } from "./lounge-crawl.js";   // クローラーの 進み（M-018。2026-11-05）
 import { reqPostPlan, takeFor, items } from "./lounge-req.js";
 import { petTake, petGrow, petSub, petStat, petGambits, petStyle, equipSet, equipBest, respecPlan, fighterOf, spTotal, spUsed, freeTotal, RESET_PRICE } from "./lounge-pet.js";
 import { freeIsAuto } from "./trees.js";   // 手で 振る ポイントが 自動か
@@ -365,6 +366,7 @@ export class Viewer {
     else if (body.a === "fac.rush") r = facRush(rec, body, now);
     else if (body.a === "fac.fuel") r = facFuel(rec, body, now);
     else if (body.a === "fac.scaffold") r = facScaffold(rec, body, now);   // 足場（工房で 作った 物）
+    else if (body.a === "crawl.save") r = crawlSave(rec, body, now);   // クローラーの 進み（どの 機械でも 同じ に）
     else if (body.a === "fac.knob") r = facKnob(rec, body, now);
     else if (body.a === "ws.att") r = wsAtt(rec, body, rand, now);
     else if (body.a === "ws.proc") r = wsProc(rec, body, now);           // 加工：作物 → 布・建材
@@ -426,7 +428,7 @@ export class Viewer {
     const now = Date.now(); dropOld(rec, now); facMigrate(rec); facDue(rec, now);
     return { id: rec.id, lock: locked(rec, this.env), lockKind: lockKind(), login: rec.login, name: rec.name, nameAt: rec.nameAt, names: rec.names, room: rec.room, own: ownView(rec.own), wallet: this.purse(rec, w), waiting: rec.ledger.unknown.length,
       pets: rec.pets.map((p) => ({ ...p, ...(p.type ? { sp: { all: spTotal(p.lv), left: spTotal(p.lv) - spUsed(p) }, freeLeft: freeIsAuto(p) ? 0 : freeTotal(p.lv) - Object.values(p.free || {}).reduce((a, v) => a + v, 0), build: fighterOf(p, rec), resetPrice: RESET_PRICE(p.lv) } : {}) })),
-      tamed: rec.tamed, party: rec.party, mine: mineView(rec, now), farmv: farmvView(rec, now), smelt: rec.smelt || [], loop: rec.loop || null, lab: rec.lab, labQ: rec.labQ || [], hideout: rec.hideout, knob: rec.knob || {}, fac: facView(rec, now), credits: rec.credits, snacks: rec.snacks, tools: rec.tools, explore: rec.explore, seen: rec.seen, met: rec.met,
+      tamed: rec.tamed, party: rec.party, mine: mineView(rec, now), farmv: farmvView(rec, now), crawl: crawlView(rec), smelt: rec.smelt || [], loop: rec.loop || null, lab: rec.lab, labQ: rec.labQ || [], hideout: rec.hideout, knob: rec.knob || {}, fac: facView(rec, now), credits: rec.credits, snacks: rec.snacks, tools: rec.tools, explore: rec.explore, seen: rec.seen, met: rec.met,
       stash: { cap: stashCap(rec) }, equipCap: equipCap(rec), autoSell: rec.autoSell || null, trips: rec.trips.map((t) => tripView(t, now)), deeplink: deeplinkView(rec, jstDay(now)), req: { mine: rec.req.mine, sending: rec.req.out.length } };
   }
 

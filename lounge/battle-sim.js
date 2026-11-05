@@ -216,6 +216,7 @@ export function simulate(A, B, seed, opts = {}) { return simulateTeams([A], [B],
 // opts.until：この ターンまで 計算して 止める（コマンドの 戦いは 毎ターン、それまでの 選択を 全部 渡して 最初から 計算しなおす。同じ 種なら 同じ 結果）
 export function simulateTeams(SA, SB, seed, opts = {}) {
   const R = rng(seed), F = [...SA.map((c) => makeFighter(c, 0)), ...SB.map((c) => makeFighter(c, 1))], ev = [], duel = F.length === 2, quiet = !!opts.quiet;
+  for (const f of F) if (f.c.dormant) { f.dormant = true; f.hp = 0; }   // 大型ボスが 呼ぶ 取り巻き：段階が かわるまで いない（HP 0 の あつかい。bomStage で 現れる）
   // 1 回だけ 効く 派遣の 道具（側 0＝味方。気つけ薬：状態異常を 1 回 防ぐ・起こし薬：倒れた 子を 1 回 起こす）。使ったら 終わりの used に のる
   const once = opts.once || {}, used = {};
   let curTurn = 0;
@@ -232,7 +233,8 @@ export function simulateTeams(SA, SB, seed, opts = {}) {
   // 隠蔽して いる 子は ねらわれない（相手が みんな 隠れて いたら ふつうに ねらう）
   const targetOf = (me) => { const c = F.filter((f) => f.side !== me.side && f.hp > 0), open = c.filter((f) => !f.fx.conceal), pool = open.length ? open : c; let t = null; for (const f of pool) if (!t || f.hp < t.hp) t = f; return t; };
   const fxList = (f) => Object.entries(f.fx).map(([id, x]) => ({ id, amt: typeof x.amt === "number" ? x.amt : null, turns: x.turns ?? null }));
-  const snap = () => F.map((f) => ({ hp: f.hp, mp: f.mp, fx: fxList(f), up: buffs(f).some((id) => !EFFECTS[id].stance), down: debuffs(f).length > 0 }));
+  const snap = () => F.map((f) => ({ hp: f.hp, mp: f.mp, fx: fxList(f), up: buffs(f).some((id) => !EFFECTS[id].stance), down: debuffs(f).length > 0,
+    ...(f.bomPart ? { part: { name: f.bomPart.name, hp: f.bomPart.hp, max: f.bomPart.max } } : {}), ...(f.bomWarn ? { warn: f.c.bom.warn.name } : {}), ...(f.dormant ? { hide: true } : {}) }));   // 大型ボスの 部位・予告・まだ 出て いない 取り巻き
 
   // 状態を付ける：抵抗率（装備の 状態異常に強い ＋ 免疫 − 衰弱 ＋ ボスの 抵抗。原案）・相殺と上書き・量とターンの足し方
   function addFx(t, id, o, notes, from) {
@@ -341,7 +343,49 @@ export function simulateTeams(SA, SB, seed, opts = {}) {
   // HP が減る（輪廻・あきらめない）。ダメージを 受けたら 凍結が とける（継続ダメージでも。原案）
   function hurt(f, d, notes) {
     if (d <= 0) return;
+    if (f.bomPart) {   // 大型ボスの 予告の あいだ：ダメージは 先に 部位が 受ける。こわすと 大技が 止まる（鹿さんの 決め 2026-10-30。mono-link-crawler-bom-saw.md）
+      const a = Math.min(d, f.bomPart.hp); f.bomPart.hp -= a; d -= a;
+      if (f.bomPart.hp <= 0) { notes.push(`${f.name} の ${f.bomPart.name} を こわした！ ${f.c.bom.warn.name}が 止まった`); f.bomPart = null; f.bomWarn = false; }
+      if (d <= 0) return;
+    }
     f.hurtSince = true; hurt0(f, d, notes); trig(f, notes);
+    if (f.c.bom && f.hp > 0) bomStage(f, notes);
+  }
+  // 大型ボスの 段階：HP が 決めた 割合を 切ると 1 度だけ（取り巻きが 現れる・予告が 早く なる・強く なる）
+  function bomStage(f, notes) {
+    for (const [k, sg] of (f.c.bom.stages || []).entries()) {
+      if ((f.bomStaged || 0) > k || f.hp > f.maxHp * sg.at) continue;
+      f.bomStaged = k + 1; notes.push(sg.text || `${f.name} の 様子が かわった！`);
+      if (sg.every) f.bomEvery = sg.every;
+      for (const [id, n, tu] of sg.fx || []) { addFx(f, id, { amt: n, turns: tu }, notes, f); if (f.fx[id]) f.fx[id].perm = true; }
+      if (sg.wake) for (const g of F) if (g.dormant && g.side === f.side) { g.dormant = false; g.hp = g.maxHp; notes.push(`${g.name} が 現れた`); }   // 呼んだ 子は 次の ターンから 動く（この ターンの 手は もう 決まって いる）
+    }
+  }
+  // 大型ボスの 手番：予告の 次の 番は 大技（相手 全員。防御で 受けると 半分）・決めた ターンごとに 予告（部位が 出る）。この 番を 使ったら true
+  function bomTurn(me, turn, e) {
+    const W = me.c.bom.warn;
+    if (me.bomWarn) {
+      me.bomWarn = false; me.bomPart = null;
+      const hits = [];
+      for (const g of F) if (g.side !== me.side && g.hp > 0) {
+        let d = W.pow * Math.pow((st(me, W.stat || "atk") + 10) / (st(g, W.vs || "def") + 10), STAT_EXP) * (0.9 + R() * 0.2);
+        if (g.P.dmgCut) d *= 1 - g.P.dmgCut / 100; d = flatCut(g, d);
+        const gd = !!g.fx.guard; if (gd) d *= W.guard ?? 0.5;
+        d = Math.round(d); if (d > 0) { hurt(g, d, e.notes); hits.push({ who: F.indexOf(g), dmg: d, guard: gd }); }
+      }
+      if (me.fx.charge) delete me.fx.charge;
+      Object.assign(e, { skill: null, name: W.name, kind: "bom", hits: hits.map((h) => ({ dmg: h.dmg })), bomHits: hits, tags: [], heal: 0,
+        log: `${me.name} の ${W.name}！ ` + (hits.length ? hits.map((h) => `${F[h.who].name} に ${h.dmg}${h.guard ? "（防御で 半分）" : ""}`).join("・") : "") });
+      return true;
+    }
+    const every = me.bomEvery || W.every;
+    if (turn > 1 && turn % every === 0) {
+      const hp = Math.max(1, Math.round(me.maxHp * (W.partHp ?? 0.08)));
+      me.bomWarn = true; me.bomPart = { name: W.part, hp, max: hp };
+      Object.assign(e, { skill: null, name: `予告：${W.name}`, kind: "warn", hits: [], tags: [], heal: 0, log: `${me.name} が ${W.name}の 構えに 入った！ ${W.part}が 出た（こわすと 止まる・防御で 受けると 半分）` });
+      return true;
+    }
+    return false;
   }
   // 精鋭の 解析ツリー：その場で 効果の 一覧を かける（rollFx・onceFx・allyLowOnce・turnFx。who：me・foe・ally）
   function applyList(src, list, notes, allyT) {
@@ -626,6 +670,7 @@ export function simulateTeams(SA, SB, seed, opts = {}) {
       const skip = me.fx.freeze ? "凍っていて動けない" : me.fx.stun ? (me.fx.stun.amt === "banana" ? "バナナの皮で転んだ！" : "気絶している") : me.fx.sleep ? "寝ている"
         : me.fx.paralysis && R() < Math.min(0.5, me.fx.paralysis.amt * 0.005) ? "しびれて動けない" : me.pinning ? "おさえこんでいる" : me.pinned ? "おさえこまれて動けない" : null;
       if (skip) Object.assign(e, { skill: null, name: skip, kind: "skip", log: `${me.name} は ${skip}` });
+      else if (me.c.bom && bomTurn(me, turn, e)) { /* 大型ボスの 予告・大技で この 番は おわり */ }
       else {
         let id = plan[i].id, want = plan[i].opt;
         if (me.fx.rot && hasT(id, "heal")) { const p2 = choose(me, foe, turn, R, rep === 1); id = p2.id; e.by = p2.by; want = p2.opt; }   // 動く前に腐敗にされたら、回復をやめて選びなおす
