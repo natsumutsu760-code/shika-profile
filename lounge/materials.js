@@ -87,10 +87,9 @@ export const matIsle = (id) => MAT_ISLE[id] || 1;
 
 // 採取ポイント 1 か所で 1〜2 こ（70%・30%）。その階の 2 種類から半々。かくし通路の採取ポイントは、レア 1 こ ＋ その階の素材 1 こ
 export const GATHER_N = { 1: 70, 2: 30 };
-export const floorMats = (did, n) => { const m = GATHER[did].mats; return [m[(n - 1) % 4], m[n % 4]]; };
-// その 素材が 採取で 出る 階（floorMats の 逆。階の 数は floors.js の FLOORS と 同じ 5）。入手方法の パネルに 出す
-// 鹿さんの 決め（2026-11-06）：「いややはり階によって分け、入手方法のパネルでどの階で手に入るかを明記する。」（階で 分ける 決まりは そのまま）
-export const gatherFloors = (did, id, floors = 5) => Array.from({ length: floors }, (_, i) => i + 1).filter((n) => floorMats(did, n).some(([x]) => x === id));
+// 採取ポイントで 拾える 物：どの 階でも 行き先の 4 しゅるい（前は 階ごとに 2 しゅるいずつ ずらして いた）
+// 鹿さんの 決め（2026-11-06）：「やはりプレイフィールを損なうのでフロアごとの採取物変化は廃止にします。」。n（階）は 前の 呼び方の まま 受けて 使わない
+export const floorMats = (did, n) => GATHER[did].mats;
 // 敵の素材を落とす確率（たおした 1 体ごと）と、階ごとの品質
 export const ENEMY_DROP = { 通常: 0.3, 希少: 1, ボス: 1 };
 // 結晶の 落ちやすさ（敵 1 体ごと。素材とは べつの くじ）：通常 30%・希少と ボスは いつも（ボスは 2 こ）。品質は 素材と 同じ（深い 階ほど 高い・希少 ＋1・ボス 5）。Claude の 案（2026-11-04）
@@ -208,8 +207,8 @@ export const VALUE = {
 for (const [tree, [id]] of Object.entries(CRYSTAL)) if (!(id in VALUE)) VALUE[id] = VALUE[(ENEMY_MAT[tree] || [])[0]] || 10;
 export const QMULT = [1, 1, 1.7, 3.1, 6.3, 13.7];
 export const matValue = (m) => Math.round((VALUE[m.id] || 0) * (MAT_FROM[m.id] ? QMULT[m.q || 1] : GATHER_Q[m.q || 0] || 1));
-// 採れやすさ：同じ 階の 2 種類は、値の √ に 反比例して 選ばれる（r は 0〜1 の 乱数 1 つ。前と 同じ 数だけ 乱数を 使う）
-export const gatherPick = (two, r) => { const a = 1 / Math.sqrt(VALUE[two[0][0]] || 1), b = 1 / Math.sqrt(VALUE[two[1][0]] || 1); return two[r < a / (a + b) ? 0 : 1]; };
+// 採れやすさ：行き先の 4 種類は、値の √ に 反比例して 選ばれる（r は 0〜1 の 乱数 1 つ。前と 同じ 数だけ 乱数を 使う）
+export const gatherPick = (list, r) => { const w = list.map(([id]) => 1 / Math.sqrt(VALUE[id] || 1)), tot = w.reduce((a, b) => a + b, 0); let x = r * tot; for (let i = 0; i < list.length; i++) { x -= w[i]; if (x < 0) return list[i]; } return list[list.length - 1]; };
 // 落としやすさ：ふつうの 敵は 30% を 基準に、値が 高い 素材ほど 下がる（12〜40%）。希少と ボスは いつも 落とす
 export const dropRate = (rk, id) => (rk === "通常" ? Math.min(0.4, Math.max(0.12, ENEMY_DROP.通常 * (10 / (VALUE[id] || 10)) ** 0.35)) : ENEMY_DROP[rk]);
 

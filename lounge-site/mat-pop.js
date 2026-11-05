@@ -2,7 +2,7 @@
 // 使い方：素材の 行に data-mat="素材の id"（あれば data-have="持って いる 数"）を 付けて、この ファイルを import する だけ。押すと 開く（Enter でも）
 // 手に入る 所は データから 作る：冒険の 採取・かくし通路・敵が 落とす・敵の 結晶・坑道・工房の 精錬と 加工・農園・クローラー・ボーダーゾーン
 // <dialog> で 開く（作業台・工房の「作る」ポップアップ〈craft-pop.js〉の 上にも 重なる）。行き先へ 行く ボタン つき
-import { GATHER, ENEMY_MAT, CRYSTAL, SCRAP, BORDER, MAT_NAME, gatherFloors } from "./materials.js";
+import { GATHER, ENEMY_MAT, CRYSTAL, SCRAP, BORDER, MAT_NAME } from "./materials.js";
 import { DUNGEONS_ALL } from "./dungeons.js";
 import { CROPS } from "./crops.js";
 import { WS_PROC, SMELT } from "./workshop.js";
@@ -18,7 +18,7 @@ const DNAME = Object.fromEntries(DUNGEONS_ALL.map((d) => [d.id, d.name]));
 // 冒険：採取・かくし通路・敵（ふつう・希少・ボス）と その 結晶
 for (const d of DUNGEONS_ALL) {
   const href = `dungeon.html?d=${d.id}`, isle = d.isle || 1, g = GATHER[d.id];
-  if (g) { for (const [id] of g.mats) add(id, { where: d.name, how: `採取（${gatherFloors(d.id, id).join("・")} 階）`, href, isle }); add(g.hidden[0], { where: d.name, how: "かくし通路（どの 階でも）", href, isle }); }   // 採取は 階ごとに 2 しゅるい（どの 階か 書く。鹿さんの 決め 2026-11-06）
+  if (g) { for (const [id] of g.mats) add(id, { where: d.name, how: "採取", href, isle }); add(g.hidden[0], { where: d.name, how: "かくし通路", href, isle }); }   // 採取は どの 階でも 同じ 4 しゅるい（鹿さんの 決め 2026-11-06。階は 書かない）
   for (const [f, rk] of [...d.foes.map((f) => [f, ""]), [d.rare, "（希少）"], [d.boss, "（ボス）"]]) {
     if (!f) continue;
     add(ENEMY_MAT[f.tree]?.[0], { where: d.name, how: "が 落とす", item: `${f.name}${rk}`, href, isle });

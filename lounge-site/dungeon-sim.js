@@ -272,7 +272,7 @@ function machine(S) {
       if (R() < TRAP.avoid) say("罠を 見ぬいた", "sys");
       else { S.traps++; for (const m of alive()) { m.hp = Math.max(0, m.hp - Math.max(1, Math.round(m.maxHp * TRAP.dmg))); if (m.hp <= 0) m.down = true; } say("罠に かかった！", "ev"); if (!alive().length) { S.status = "end"; S.reason = "wipe"; return; } }
     } else if (t === T.GATHER && !done.has(k)) {
-      done.add(k); const two = floorMats(dungeonId, S.floor), got = hid ? [GATHER[dungeonId].hidden, gatherPick(two, M())] : Array.from({ length: pickW(M, GATHER_N) }, () => gatherPick(two, M()));   // 高い 素材ほど 採れにくい
+      done.add(k); const pool = floorMats(dungeonId, S.floor), got = hid ? [GATHER[dungeonId].hidden, gatherPick(pool, M())] : Array.from({ length: pickW(M, GATHER_N) }, () => gatherPick(pool, M()));   // どの 階でも 4 種類（鹿さんの 決め 2026-11-06）・高い 素材ほど 採れにくい
       got.forEach((x) => addMat(x)); S.gathered.push({ floor: S.floor, hidden: hid, items: got.map(([, name]) => name) }); say(`${hid ? "かくし通路で " : ""}${got.map(([, name]) => name).join("と ")}を 採取した`, "sys");
       const sd = farmOpen() ? seedsAt(dungeonId) : [];
       if (sd.length && SD() < SEED_RATE) { const c = sd[Math.floor(SD() * sd.length)], n = SEED_N[0] + Math.floor(SD() * (SEED_N[1] - SEED_N[0] + 1)); S.seeds ||= {}; S.seeds[c.id] = (S.seeds[c.id] || 0) + n; say(`${c.name}の 種を ${n} こ 拾った`, "sys"); }
