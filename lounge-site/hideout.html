@@ -175,6 +175,7 @@
 <script type="module">
 import "./lounge-en.js";   // 英語の 画面（MONO LINK の サイトの EN／日本語 と 同じ 決まり。英語の ときだけ 辞書を 読む）
 import { mountCraftNav } from "./craft-nav.js";
+import "./mat-pop.js";   // 素材を 押すと 手に入る 所（2026-11-05）
 import { FACILITIES, SNACK_RECIPES, storageCap, facMax, facFx, hasKnob, upkeep, FUEL } from "./facilities.js";   // 施設の 作り直し（2026-11-03）：Lv1〜100・建設（始める → 素材 → 時間）・つまみ・維持費。画面は 鹿さんが えらんだ A「1 列の 流れ」
 import { snackCraftHtml, addSnackCss } from "./snack-craft.js";
 import { MAT_NAME, MAT_FROM, HIDDEN_MAT, GATHER, ENEMY_MAT, BOX_DAYS } from "./materials.js";
@@ -319,7 +320,7 @@ function rowHtml(r) {
   const ng = !r.soft && r.have < r.need, n = `<span class="n">${fmt(r.have)} / ${fmt(r.need)}</span>`;
   const pic = r.kind === "mat" ? `<img src="${matPic(r.id)}" alt="">` : `<i class="dot cur c"></i>`;
   const sub = r.own != null && r.have < r.need ? `<span class="tag">手もち ${fmt(r.own)}</span>` : "";
-  return `<li class="${ng ? "ng" : ""} ${r.soft ? "soft" : ""}">${pic}<span>${r.kind === "mat" ? esc(MAT_NAME[r.id]) : "クレジット"}${sub}</span>${n}</li>`;
+  return `<li class="${ng ? "ng" : ""} ${r.soft ? "soft" : ""}"${r.kind === "mat" ? ` data-mat="${r.id}" data-have="${r.own ?? r.have}"` : ""}>${pic}<span>${r.kind === "mat" ? esc(MAT_NAME[r.id]) : "クレジット"}${sub}</span>${n}</li>`;
 }
 const FEE_WHEN = { make: "作る たび", trip: "派遣ごと", mine: "うけとる たび" };
 const knobHtml = (f, v, k) => `<label class="knob" style="--c:${COLOR[f.id]}"><span>つまみ</span><input type="range" min="0" max="${v.lv}" value="${k}" data-knob="${f.id}" aria-label="${f.name}の つまみ（Lv）"><b>Lv${k}</b><small>維持費 ${fmt(upkeep(f.id, k))}・${FEE_WHEN[f.kind]}</small></label>`;

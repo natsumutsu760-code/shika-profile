@@ -108,7 +108,8 @@
 <p class="toast" id="toast" role="status"></p>
 <script type="module">
 import "./lounge-en.js";   // 英語の 画面（MONO LINK の サイトの EN／日本語 と 同じ 決まり。英語の ときだけ 辞書を 読む）
-import { mountCraftNav } from "./craft-nav.js"; mountCraftNav("workshop");   // クラフトの 施設を 1 回で 切りかえる 札（鹿さんの 頼み 2026-11-05）
+import { mountCraftNav } from "./craft-nav.js";
+import "./mat-pop.js";   // 素材を 押すと 手に入る 所（2026-11-05） mountCraftNav("workshop");   // クラフトの 施設を 1 回で 切りかえる 札（鹿さんの 頼み 2026-11-05）
 import { craftPop } from "./craft-pop.js";   // えらんだ 物を 作る ポップアップ（2026-11-05）
 import { WS_ITEMS, wsOpen, wsLvOk, WS_MAX, ATT_BASES, ATT_KINDS, attStarW, attOpN, SMELT, SMELT_MAX, furnaces, smeltOf, smeltDone, WS_PROC, PROC_MAX, procOpen, procOf } from "./workshop.js";
 import { facLv, upkeep, BAND_AT } from "./facilities.js";   // 施設の 作り直し（2026-11-03）：工房 Lv1〜100・つまみ・作る たびの 維持費（道具と アタッチメント）。r.lv は 段（Lv1・20・50・80）
@@ -187,7 +188,7 @@ function listHtml() {
 const tabsHtml = () => TABS.map(([t, label]) => { const n = keysOf(t).filter((k) => stateOf(k) === "can" && (t !== "smelt" || k.startsWith("f:"))).length; return `<button role="tab" data-tab="${t}" aria-selected="${S.tab === t}">${label}${n ? `<em>${n}</em>` : ""}</button>`; }).join("");
 function rowHtml(x) {
   const img = x.c ? `<i class="dot c"></i>` : HIDDEN_MAT.has(x.id) && !pic(x.id) ? `<i class="dot hd"></i>` : `<img src="${pic(x.id)}" alt="">`;   // 絵の ある 素材は 絵（ビサイ諸島の 敵の 素材・かくし通路・作物も。絵が なければ 点）
-  return `<li class="${x.have < x.need ? "ng" : ""}">${img}<span>${x.c ? (x.fee ? `クレジット<small>維持費 ${fmt(x.fee)} こみ</small>` : "クレジット") : esc(MAT_NAME[x.id])}${x.q > 1 ? `<small>品質 ${x.q} 以上</small>` : ""}</span><span class="n">${fmt(x.have)} / ${fmt(x.need)}</span></li>`;
+  return `<li class="${x.have < x.need ? "ng" : ""}"${x.c ? "" : ` data-mat="${x.id}" data-have="${x.have}"`}>${img}<span>${x.c ? (x.fee ? `クレジット<small>維持費 ${fmt(x.fee)} こみ</small>` : "クレジット") : esc(MAT_NAME[x.id])}${x.q > 1 ? `<small>品質 ${x.q} 以上</small>` : ""}</span><span class="n">${fmt(x.have)} / ${fmt(x.need)}</span></li>`;
 }
 function madeHtml() {
   if (!S.made) return "";

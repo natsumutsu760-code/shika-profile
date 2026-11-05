@@ -3,6 +3,7 @@
 import { SNACK_RECIPES, snackMats, snackOpen, snackMore, snackSave, upkeep, BAND_AT, SNACK_CRAFT_MAX } from "./facilities.js";
 import { MAT_NAME } from "./materials.js";
 import { matPic } from "./mat-icons.js";
+import "./mat-pop.js";   // 素材を 押すと 手に入る 所（隠れ家・なかまの 画面。2026-11-05）
 
 const COOKIE = `<svg viewBox="0 0 22 22" aria-hidden="true"><circle cx="11" cy="11" r="9.5" fill="#E9B26A" stroke="#fff" stroke-width="1.5"/><circle cx="8" cy="8" r="1.5" fill="#9A5B2C"/><circle cx="14" cy="9.5" r="1.4" fill="#9A5B2C"/><circle cx="10" cy="14.5" r="1.4" fill="#9A5B2C"/></svg>`;
 const STAR = `<svg viewBox="0 0 22 22" aria-hidden="true"><circle cx="11" cy="11" r="9.5" fill="#FF9EC4" stroke="#fff" stroke-width="1.5"/><path d="M11 5.2l1.7 3.6 3.9.5-2.9 2.7.8 3.9L11 14l-3.5 1.9.8-3.9-2.9-2.7 3.9-.5z" fill="#fff"/></svg>`;
@@ -38,7 +39,7 @@ export function snackCraftHtml(lv, inv) {
     const mats = snackMats(r, false), max = Math.min(SNACK_CRAFT_MAX, ...mats.map(([id, k]) => Math.floor(have(id) / k)));   // 素材は 多い 方で 数える（へったら もどる）
     const lack = mats.filter(([id, k]) => have(id) < k).map(([id, k]) => `${MAT_NAME[id]} あと ${k - have(id)}`);
     const luck = r.lv2 ? `<p class="sk-p">2 こ できる ${pct(snackMore(lv))}・素材 2 こで すむ ${pct(snackSave(lv))}${fee ? `・維持費 ${fee}` : ""}</p>` : fee ? `<p class="sk-p">維持費 ${fee} クレジット</p>` : "";
-    return `<div class="sk-r">${head}<ul class="sk-m">${mats.map(([id, k]) => `<li class="${have(id) < k ? "ng" : ""}"><img src="${matPic(id)}" alt="">${esc(MAT_NAME[id])}<b>${have(id)} / ${k}</b></li>`).join("")}</ul>${luck}
+    return `<div class="sk-r">${head}<ul class="sk-m">${mats.map(([id, k]) => `<li class="${have(id) < k ? "ng" : ""}" data-mat="${id}" data-have="${have(id)}"><img src="${matPic(id)}" alt="">${esc(MAT_NAME[id])}<b>${have(id)} / ${k}</b></li>`).join("")}</ul>${luck}
       <div class="sk-b"><button class="lt" data-snack="${r.id}" data-n="1" ${max ? "" : "disabled"}>1 こ 作る</button><button data-snack="${r.id}" data-n="${max}" ${max > 1 ? "" : "disabled"}>作れるだけ（${max} 回）</button></div>
       ${max ? "" : `<p class="sk-why">足りない：${esc(lack.slice(0, 2).join("、"))}</p>`}</div>`;
   }).join("")}</div>`;

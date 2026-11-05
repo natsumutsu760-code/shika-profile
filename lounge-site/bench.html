@@ -145,7 +145,8 @@
 <p class="toast" id="toast" role="status"></p>
 <script type="module">
 import "./lounge-en.js";   // 英語の 画面（MONO LINK の サイトの EN／日本語 と 同じ 決まり。英語の ときだけ 辞書を 読む）
-import { mountCraftNav } from "./craft-nav.js"; mountCraftNav("bench");   // クラフトの 施設を 1 回で 切りかえる 札（鹿さんの 頼み 2026-11-05）
+import { mountCraftNav } from "./craft-nav.js";
+import "./mat-pop.js";   // 素材を 押すと 手に入る 所（2026-11-05） mountCraftNav("bench");   // クラフトの 施設を 1 回で 切りかえる 札（鹿さんの 頼み 2026-11-05）
 import { craftPop } from "./craft-pop.js";   // えらんだ 物を 作る ポップアップ（2026-11-05）
 import { BASES, KINDS, FORMS, MATS, OPS, baseOf, comboOf, matsOf, opStarOf, opCount } from "./equip.js";
 import { CRAFT, SYNTH, MAT_OP, craftStarW, synthStarW, BOSS_FX, craftOpen, synthOpen, synthCredits } from "./recipes.js";
@@ -383,7 +384,7 @@ function rowHtml(x) {
   let pic = `<i class="dot c"></i>`, name = "クレジット", sub = x.fee ? `維持費 ${fmt(x.fee)} こみ` : "";
   if (x.kind === "mat") { const en = MAT_FROM[x.id]; pic = en ? `<img class="px" src="${spriteURL(en)}" alt="">` : `<i class="dot ${HIDDEN_MAT.has(x.id) ? "hd" : ""}"></i>`; name = MAT_NAME[x.id]; if (x.sub) sub = x.sub; }
   if (x.kind === "eq") { const o = owned(x.id); pic = gearImg(x.id); name = baseOf(x.id).name; sub = o.length ? `★${o[0].star} を 使う（★の 低い物から）` : "持っていない"; }
-  return `<li class="${x.have < x.need ? "ng" : ""}">${pic}<span>${esc(name)}${sub ? `<small>${sub}</small>` : ""}</span><span class="n">${x.kind === "eq" ? `${x.have} こ` : x.unknown ? `？ / ${fmt(x.need)}` : `${fmt(x.have)} / ${fmt(x.need)}`}</span></li>`;
+  return `<li class="${x.have < x.need ? "ng" : ""}"${x.kind === "mat" ? ` data-mat="${x.id}" data-have="${x.unknown ? "" : x.have}"` : ""}>${pic}<span>${esc(name)}${sub ? `<small>${sub}</small>` : ""}</span><span class="n">${x.kind === "eq" ? `${x.have} こ` : x.unknown ? `？ / ${fmt(x.need)}` : `${fmt(x.have)} / ${fmt(x.need)}`}</span></li>`;
 }
 const oddsHtml = (t) => { const all = Object.values(t).reduce((a, b) => a + b, 0); return `<span class="odds">${Object.entries(t).map(([s, p]) => `<em><i>★${s}</i> ${Math.round((p / all) * 100)}%</em>`).join("")}</span>`; };   // 高い ★は Lv ごとに 少し 出やすく なる ので 割合に して 出す
 function madeHtml() {

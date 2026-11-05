@@ -4,6 +4,12 @@ const P = (p, s) => p(s) || s;
 const n1 = (n, one, many) => (n === "1" ? `1 ${one}` : `${n} ${many}`);
 
 export const WORDS = {
+  // 素材の 手に入る 所（mat-pop.js。2026-11-05）
+  "手に入る 所": "Where to get it", "持って いる #": "You have #", "行く ›": "Go ›", "とじる": "Close", "まだ 手に入る 所の 記録が ない": "No known source yet", "ほか # か所": "# more places",
+  "農園": "Farm", "ボーダーゾーン": "Border Zone", "工房の 精錬": "Workshop smelting", "工房の 加工": "Workshop processing", "なかまに 掘らせる": "Send a companion to dig",
+  "残骸を 漁る": "Scavenge wreckage", "キャビネットを 漁る": "Scavenge cabinets", "個人ロッカーを 漁る": "Scavenge lockers", "SVA の 施設の 迷宮": "SVA facility mazes", "ハルモニアの 施設の 迷宮": "Harmonia facility mazes",
+  "TCU の 施設の 迷宮": "TCU facility mazes", "どこでも まれに": "Rarely, anywhere", "どこでも": "Anywhere", "SVA の 領地": "SVA territory", "ハルモニアの 領地": "Harmonia territory", "TCU の 領地": "TCU territory", "境界": "Borderline",
+  "育てる": "Grow it", "手に入る 所を 見る": "See where to get it",
   "足りない：パーティの 外の なかま": "Missing: a companion outside your party", "なかまを 見る ›": "See companions ›",   // 2026-11-05
   "閉じる": "Close",   // 作る ポップアップの ×（craft-pop.js。2026-11-05）
   // ---- 装備開発・結晶・スフィア（2026-11-04） ----
@@ -117,6 +123,14 @@ export const WORDS = {
 };
 
 export const RULES = [
+  // 素材の 手に入る 所（mat-pop.js）：名前は 「・」で 分けて 1 つずつ 訳す
+  [/^(.+) が 落とす（結晶）$/, (m, p) => `Dropped by ${m[1].split("・").map((x) => P(p, x)).join(", ")} (crystal)`],
+  [/^(.+) が 落とす$/, (m, p) => `Dropped by ${m[1].split("・").map((x) => P(p, x)).join(", ")}`],
+  [/^(.+) を 実った まま 置いて おく$/, (m, p) => `Leave ${m[1].split("・").map((x) => P(p, x)).join(", ")} ripe on the plot`],
+  [/^種は (.+) の 採取で$/, (m, p) => `Seeds from gathering in ${m[1].split("・").map((x) => P(p, x)).join(", ")}`],
+  [/^(.+) の かけ合わせ$/, (m, p) => `Crossbreed ${m[1].split(" × ").map((x) => P(p, x)).join(" × ")}`],
+  [/^(.+) の 手に入る 所$/, (m, p) => p(m[1]) && `Where to get ${p(m[1])}`],
+  [/^(.+)（(希少|ボス)）$/, (m, p) => p(m[1]) && `${p(m[1])} (${m[2] === "希少" ? "rare" : "boss"})`],
   [/^★(\d) の OP(?:・付きやすい：(.+?))?・クレジット ([\d,]+)(?:（維持費 (\d+) こみ）)?$/, (m, p) => `★${m[1]} OP${m[2] ? ` · likely: ${p(m[2]) || m[2]}` : ""} · ${m[3]} credits${m[4] ? ` (incl. ${m[4]} upkeep)` : ""}`],
   [/^(.+) ★(\d) が 付いた$/, (m, p) => `${p(m[1]) || m[1]} ★${m[2]} added`],
   [/^・宝箱から スフィア ×(\d+)$/, (m) => ` · ${m[1]} Sphere${m[1] === "1" ? "" : "s"} from chests`],
