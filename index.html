@@ -1005,6 +1005,7 @@ body.live-on .floor::before, body.live-on .isle { animation: none; }
     ["そのほか", "#22CC88", [["!けいじばん こんにちは", "ラウンジの掲示板に書く（1 分に 1 回・120 字まで）"], ["!バグ報告 ガチャのあと画面が止まった", "不具合を配信者に知らせる（30 秒に 1 回・300 字まで）"], ["!花火", "画面に花火（!ハート でハート）"], [null, "888 で拍手、草 で草が生える"], ["!モノリンク", "MONO LINK の URL をチャットで受け取る（!サイト でも）"]]]
   ];
   var NOTES = [
+    ["MONO LINK", "2026-11-05", ["配信ページの「ほか」に、両替のボタン（玉を借りる・換金・アメジスト交換）を足しました。2 回押すと決まります"]],
     ["MONO LINK", "2026-11-05", ["施設・作業台・工房・おやつ工房で、いる素材を押すと、どこで手に入るか（採取・敵・坑道・工房・農園・クローラーなど）が出るようにしました。行き先へそのまま行けます"]],
     ["MONO LINK", "2026-11-05", ["クローラーの戦いにエフェクトを足しました（技の名前・斬撃や術の絵・当たったときの揺れと数・状態の絵・倒れるときの絵など）。押すと早送りできます"]],
     ["MONO LINK", "2026-11-05", ["クローラー（先行体験版）：迷宮の精鋭が、それぞれ専用の技 5 つ・目玉の技 1 つ・パッシブ 3 つで戦うようになりました（第 1 章の 7 人。味方として同行するときも同じ技です）", "クローラー：1-15 の MODIFIED BOM が大技を予告するようになりました。予告のあいだは胸の炉（部位）が出て、こわすと大技を止められます。防御すると大技を半分に減らせます。HP が半分を切ると取り巻きを呼び、予告が早くなります", "クローラー：進み（はじまりのサイン・クリアしたミッション）をラウンジに保存するようにしました。ちがう機械でも同じ進みから遊べます", "クローラー：グラナート建設（GRN）の POM が GRN の色の仮面に、会社のない POM（レグルス自治区・所属不明の護衛）が独立の仮面になりました"]],
@@ -2489,6 +2490,11 @@ var ShikaWheel = (function () {
     $("lp-misc").innerHTML = '<div class="keys scroll">' + [key("!プロフィール", "カードを出す"), key("!レベル", "レベル"), key("!持ち物", "持ち物"), key("!花火", "花火"), key("!ハート", "ハート"), key("!モノリンク", "URL をチャットに")].join("") + "</div>"
       + '<p class="pnote xpnote">玉を経験値に変える（2 回押すと決まります）</p>'
       + keys([key("!経験値 1000", "1,000 玉", "", { sure: 1 }), key("!経験値 10000", "10,000 玉", "", { sure: 1 }), key("!経験値 全部", "全部", "", { sure: 1 })])
+      // 両替（2026-11-05 鹿さん「この交換もほかパネルに入れてください。」）：鹿物語の !貸し玉（借りる 玉の 数）・!換金（払う 玉の 数）・!アメジスト交換（もらう 数）
+      + '<p class="pnote xpnote">両替（2 回押すと決まります）</p>'
+      + keys([key("!貸し玉 100", "玉を 100 借りる", "400 クレジット", { sure: 1 }), key("!貸し玉 1000", "玉を 1,000 借りる", "4,000 クレジット", { sure: 1 })])
+      + keys([key("!換金 280", "280 玉を 換金", "1,000 クレジット", { sure: 1 }), key("!換金 全部", "全部 換金", "28 玉 → 100", { sure: 1 })])
+      + keys([key("!アメジスト交換 1", "アメジスト 1", "500 玉", { sure: 1 }), key("!アメジスト交換 全部", "アメジスト 全部", "500 玉 → 1", { sure: 1 })])
       + '<form class="write"><label class="sr" for="w-kind">書く先</label><select id="w-kind"><option value="!けいじばん ">掲示板</option><option value="!バグ報告 ">バグ報告</option></select><input maxlength="300" placeholder="書くこと" aria-label="書くこと"><button class="jelly" type="submit">送る</button></form>'
       + '<div id="capsend"></div>';
     drawWear(); drawCapSend();
@@ -2757,6 +2763,8 @@ var ShikaWheel = (function () {
     "まだ持っていません。ガチャやお店で手に入ります。": "You don't have any yet. Get them from the gacha or the shop.",
     "記録ができると、持っている物がここに並びます。": "Once you have a record, your items will show up here.",
     "玉を経験値に変える（2 回押すと決まります）": "Turn balls into XP (two taps)", "全部": "All",
+    "両替（2 回押すと決まります）": "Exchange (two taps)", "玉を 100 借りる": "Borrow 100 balls", "玉を 1,000 借りる": "Borrow 1,000 balls", "400 クレジット": "400 Credits", "4,000 クレジット": "4,000 Credits",
+    "280 玉を 換金": "Cash out 280 balls", "1,000 クレジット": "1,000 Credits", "全部 換金": "Cash out all", "28 玉 → 100": "28 balls → 100", "アメジスト 1": "1 Amethyst", "500 玉": "500 balls", "アメジスト 全部": "Max Amethyst", "500 玉 → 1": "500 balls → 1",
     "カードを出す": "Show my card", "持ち物": "Items", "花火": "Fireworks", "ハート": "Hearts", "URL をチャットに": "Post URL to chat",
     "書く先": "Write to", "バグ報告": "Bug report", "書くこと": "Message",
     "1 秒に 1 回までです（ほかのタブでも押していませんか）": "Once per second (are you pressing in another tab too?)",
