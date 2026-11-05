@@ -10,6 +10,7 @@
      商人 5 人 ＋ アメジストの特別ショップ ＋ みんなの依頼（ユーザーどうし）。友好度はタスクで大きく、売り買いで少しずつ上がる
      データは deeplink.js。?go=商人の id・special・board で開く（&tab=shop で ショップから）。&boot=0 で起動の文字を飛ばす。押すと見本の中だけで動く（保存しない） */
   :root {
+    --pd-bg:#120D22; --pd-fg:#FFE4B8; --pd-line:rgba(255,181,71,.5);   /* スマホの 下の 引き出しの 色 */
     --bg:#0B0816; --bg2:#120D22; --line:rgba(255,181,71,.26); --line2:rgba(255,181,71,.5);
     --amber:#FFB547; --dim:#B98A4E; --text:#FFE4B8; --cyan:#46D4FF; --violet:#B79BFF; --ok:#7CF0B0; --ng:#FF6B78;
     --glow:0 0 6px rgba(255,181,71,.45); --f:"DotGothic16", "Hiragino Kaku Gothic ProN", monospace;
@@ -49,6 +50,7 @@
   .dir a.go { color:inherit; text-decoration:none; box-sizing:border-box; } .dir a.go .mk { color:var(--cyan); } .dir a.go small { font-size:12px; color:var(--dim); } .dir a.go:hover { background:rgba(255,181,71,.1); }   /* クローラーの 入口（ほかの 画面へ とぶ） */
   .dir button .mk { color:var(--amber); } .dir button .mk img { display:block; width:28px; height:28px; object-fit:cover; object-position:50% 18%; border-radius:6px; background:rgba(255,181,71,.12); } .dir button small { font-size:12px; color:var(--dim); }
   .dir button .new { color:var(--ok); font-size:12px; }
+  .pd-bar .mk img { display:block; width:28px; height:28px; object-fit:cover; object-position:50% 18%; border-radius:6px; } .pd-bar .new { color:var(--ok); } .pd-bar .mk { color:var(--amber); }
   .dir button[aria-current="true"] { background:var(--amber); color:var(--bg); text-shadow:none; }
   .dir button[aria-current="true"] .mk, .dir button[aria-current="true"] small, .dir button[aria-current="true"] .new { color:var(--bg); }
   .dir button:hover:not([aria-current="true"]) { background:rgba(255,181,71,.1); }
@@ -146,8 +148,8 @@
   @media (max-width:760px) {
     .bar { grid-template-columns:minmax(0, 1fr); } .bar > .logo, .bar > .lgb { grid-column:1; grid-row:1; } .wallet { grid-column:1; grid-row:2; } .from { grid-column:1; grid-row:3; } .wallet b { font-size:19px; }
     .term { grid-template-columns:minmax(0, 1fr); }
-    .dir { border-right:0; border-bottom:1px solid var(--line); padding:6px 0; display:flex; overflow-x:auto; }
-    .dir .pr { display:none; } .dir ul { display:flex; } .dir button, .dir a.go { width:auto; white-space:nowrap; grid-template-columns:auto auto auto; } .dir a.go small { display:none; } .dir button small { font-size:0; } .dir button small .new { font-size:12px; }   /* スマホは Lv を 省いて 丸の 数だけ のこす（2026-11-05：丸が 消えて いた） */
+    .dir { border-right:0; padding:12px; }   /* スマホは 商人の 一覧を 下の 引き出しに（phone-drawer.js。2026-11-05 鹿さんの カード「スマホの一覧を引き出しに」：横スクロールで 10 人 中 3 人しか 見えなかった） */
+    .dir ul { display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:2px 6px; } .dir button, .dir a.go { padding:6px 8px; }
     .who { grid-template-columns:auto minmax(0, 1fr); } .rep { grid-column:1 / -1; text-align:left; } .meter { margin-left:0; }
     .rows > li { grid-template-columns:minmax(0, 1fr); } .act { justify-self:start; }
     .pane { padding:14px; }
@@ -181,6 +183,7 @@ import { BASES, OPS, ALL_OPS, baseOf } from "./equip.js";
 import { CRAFT, SYNTH } from "./recipes.js";
 import { DUNGEONS, TOOLS, ISLAND_OPEN } from "./dungeons.js";
 import { SPHERE_LOOK } from "./sphere.js";   // スフィアの 鑑定（ガラク。2026-11-04）
+import { phoneDrawer } from "./phone-drawer.js";
 import { me, act, busy, waitText, board, report, notedel } from "./lounge-client.js";   // 商人・タスク・お店・依頼の 板は 門番（見本では ブラウザの 中の ためしの 門番）
 import { mountWallet } from "./wallet-bar.js"; mountWallet({ host: document.getElementById("wallet"), theme: "dark" });   // 通貨の 札（玉・アメジスト・クレジット）と 両替
 
@@ -369,10 +372,13 @@ function keepPlace(...sels) {
   const y = scrollY; render(); scrollTo(0, y);
   for (const sel of sels) { const el = document.querySelector(sel); if (el && !el.disabled) { el.focus({ preventScroll: true }); break; } }
 }
+const DRAW = phoneDrawer(document.getElementById("dir"));
 function render() {
   const w = W();
   if (ME.denied || ME.ok === false) { document.getElementById("dir").innerHTML = ""; document.getElementById("pane").innerHTML = `<p class="say">入れません：${esc(ME.why || "")}</p>${ME.login ? `<p class="say"><a href="/" style="color:var(--amber)">&gt; MONO LINK で ログイン</a></p>` : ""}`; return; }
   document.getElementById("dir").innerHTML = dirHtml();
+  { const cur = document.querySelector('#dir [aria-current="true"]'), n = [...document.querySelectorAll("#dir .new")].reduce((a, e) => a + (parseInt(e.textContent.replace(/\D/g, ""), 10) || 0), 0);   // 引き出しの 帯：いまの 商人と 丸の 合計
+    DRAW.label(`${cur ? (cur.querySelector(".mk") || {}).outerHTML || "" : ""}<span>${esc(cur ? cur.querySelector(".nm").textContent : "")}</span>${n ? `<span class="new">●${n}</span>` : ""}`); }
   document.getElementById("pane").innerHTML = S.go === "board" ? boardHtml() : traderHtml(META[S.go] || META.junk);
 }
 let tid;

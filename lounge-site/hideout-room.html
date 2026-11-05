@@ -33,7 +33,7 @@
   .zoom button:hover { background:rgba(40,32,64,.95); }
   /* スマホ：部屋は 正方形。ふだは 重なるので、部屋の 下に 一覧で ならべる */
   @media (max-width:640px) { .view { aspect-ratio:1 / 1; } .view .tag { display:none; } .bar h1 { font-size:18px; }
-    .list { display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:8px; margin-top:12px; } .list .tag { position:static; transform:none; justify-content:space-between; padding:10px 12px; font-size:13px; } }
+    .list { display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:8px; margin-top:12px; padding:14px 16px; }   /* スマホは 下の 引き出し（phone-drawer.js。2026-11-05） */ .list .tag { position:static; transform:none; justify-content:space-between; padding:10px 12px; font-size:13px; } }
 </style>
 </head>
 <body>
@@ -50,6 +50,7 @@ import * as THREE from "three";
 import { makeHideout, SPOTS, ROOM, areaOf } from "./hideout3d.js";
 import { FACILITIES, band } from "./facilities.js";
 import { me } from "./lounge-client.js";   // 施設の Lv は 門番の 記録（見本では ブラウザの 中の ためしの 門番）
+import { phoneDrawer } from "./phone-drawer.js";
 import { mountWallet } from "./wallet-bar.js"; mountWallet();   // 上の 通貨の 札（玉・アメジスト・クレジット）と 両替
 
 const q = new URLSearchParams(location.search), all = q.get("lv");
@@ -78,6 +79,7 @@ const tags = HERE.map((id) => { const f = FACILITIES.find((x) => x.id === id), a
   a.className = "tag" + (lv ? "" : " zero"); a.href = `hideout.html?f=${id}`; a.innerHTML = `${f.name}${real ? `<span class="lvn">Lv${real}</span>` : ""}`;   // まだ ない 施設は 点線の 札だけ（「まだ」は 出さない。2026-11-05） view.appendChild(a);
   document.getElementById("list").appendChild(a.cloneNode(true));
   const sp = SPOTS[id]; return { a, p: new THREE.Vector3(sp.x + (sp.r ? 0.6 : 0), id === "storage" ? 2.6 : 2.35, sp.z + (sp.r ? 0 : 0.6)) }; });
+phoneDrawer(document.getElementById("list"), { max: 640 }).label(`施設 <b>${HERE.filter((id) => LV[id]).length}</b> / ${HERE.length}`);   // スマホは 札の 一覧を 下の 引き出しに（部屋を 大きく 見せる）
 function size() {
   const w = view.clientWidth, h = view.clientHeight, s = w < 640 ? 8.8 : 6.9, asp = w / h;
   cam.left = -s * asp; cam.right = s * asp; cam.top = s; cam.bottom = -s; cam.zoom = ZOOM; cam.updateProjectionMatrix(); cam.updateMatrixWorld(); r.setSize(w, h, false);
