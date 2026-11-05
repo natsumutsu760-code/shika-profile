@@ -62,7 +62,10 @@ export async function stockAct(v, rec, b, op) {
   const co = isCo(b.co) ? b.co : null, n = Number.isInteger(b.n) && b.n >= 1 && b.n <= ST.cap ? b.n : 0;
   if (!co) return { ok: false, why: "会社を えらんで" };
   if (!n) return { ok: false, why: `トークンの 数は 1〜${ST.cap}` };
-  const sell = b.a === "stock.sell", opid = rec.id + ":" + op;
+  // 取引の 番号は 門番が 数える 番号（tn）＋ 画面の op。op だけだと、門番が op を 忘れた あと（200 件）に 同じ op を 送ると、取引所（30 件 おぼえる）の 前の 答えで
+  // クレジットが もう一度 ふえて しまう（2026-11-06 の 安全確認の 指摘）。tn は 記録を 保存する ときに 進むので、保存の 前に 止まって やり直した ときだけ 同じ 番号に なる
+  const S = (rec.stock ||= {}); S.tn = S.tn ? S.tn + 1 : Date.now();   // はじめは 時刻（記録が リセットされても 前の 番号と 重ならない）
+  const sell = b.a === "stock.sell", opid = rec.id + ":" + S.tn + ":" + op;
   let j;
   try { j = await ask(v, "trade", { id: rec.id, name: rec.name, opid, co, n: sell ? -n : n, max: Math.max(0, rec.credits || 0) }); }
   catch (e) { (rec.stock ||= {}).out = opid; return { ok: false, wait: true, why: "取引所が こたえませんでした。つぎに 開いた ときに 決まります" }; }

@@ -14,8 +14,8 @@ export const PET_WHY = "準備中（新しい ペットと 農園は、公開ま
 export const BZ_OPEN = true;
 export const BZ_WHY = "準備中（ボーダーゾーンは、公開まで もう 少し お待ちください）";
 // 株（トークン。2026-11-05 作りはじめ）：STOCK_OPEN を true に すると みんなに 開く（公開は 鹿さんの カード）。売り上げを 数えるのは 前から みんな
-// みんなに 開く：鹿さんの カード（2026-11-06）「出す・みんなに公開」
-export const STOCK_OPEN = true;
+// みんなに 開いた：鹿さんの カード（2026-11-06）「出す・みんなに公開」→ 同じ 日に、売りの 番号を くり返して クレジットが ふえる 穴が 見つかり、カード「止めて、直しも出す」で いったん 止めた（もう一度 開くかは 鹿さんの カード）
+export const STOCK_OPEN = false;
 export const STOCK_WHY = "準備中（トークンは、公開まで もう 少し お待ちください）";
 export const stockLocked = (rec, env) => !STOCK_OPEN && !(env && env.LOCK_OFF) && !LOCK_PASS.has(String(rec.id));
 export const bzLocked = (rec, env) => !BZ_OPEN && !(env && env.LOCK_OFF) && !LOCK_PASS.has(String(rec.id));
