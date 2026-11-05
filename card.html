@@ -313,6 +313,14 @@ body.demo .game .demo-game { display: block; }
 .chat li.sys { grid-template-columns: 1fr; }
 .chat li.sys > div { background: none; border: 0; padding: 0; }
 .chat li.sys .msg { font: 800 17px/1.4 var(--font-body); background: var(--sky); border: 3px dashed var(--blue); border-radius: 14px; padding: 6px 12px; color: var(--blue); }
+/* ミシックの お知らせ（鹿さんの 決め 2026-10-21。見本 lounge-proto/mythic-chat.html）：虹色の ふち・部位の 印（装備の 絵は やめた 2026-10-28・11-04）・上に 小さく「★ミシック★」 */
+.chat li.sys.myth .msg { position: relative; display: grid; grid-template-columns: 44px 1fr; gap: 10px; align-items: center; padding: 8px 26px 9px 8px; color: var(--ink);
+  border: 3px solid transparent; background: linear-gradient(135deg, #FFFDF2, #F4EEFF) padding-box, linear-gradient(90deg, #FF8FC4, #FFE27A, #8FF0C8, #8FC8FF, #C4A0FF) border-box; }
+.chat li.sys.myth .mk { width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center; background: var(--mk, #8C94AE); color: #fff; font: 800 22px/1 var(--font-body); box-shadow: 0 0 0 3px #E0A21C; }
+.chat li.sys.myth small { display: block; margin-bottom: 2px; font: 400 14px/1.1 var(--font-pop); color: var(--pink); letter-spacing: .04em; }
+.chat li.sys.myth b { font-weight: 800; color: var(--blue); }
+.chat li.sys.myth q { quotes: "『" "』"; font-weight: 800; }
+.chat li.sys.myth .msg::after { content: "✦"; position: absolute; right: 10px; top: 4px; font-size: 16px; color: #FFC21A; }
 .chat .empty[hidden] { display: none; }
 .chat .empty { position: absolute; inset: 0; display: grid; place-items: center; text-align: center; padding: 30px; font: 800 18px/1.6 var(--font-body); color: #6A6F9E; }
 @keyframes pop { from { transform: translateY(14px) scale(.96); opacity: 0; } }
@@ -506,6 +514,7 @@ body.demo .game .demo-game { display: block; }
 .tx-crimson, .tx-crimson .ci { background: linear-gradient(100deg, #FF3040 15%, #FF8A94 35%, #FFF4F4 45%, #FF2A3A 60%, #FF3040 85%) 0 0 / 250% 100%; -webkit-background-clip: text; background-clip: text; color: transparent !important; animation: rarShine 2.2s linear infinite; }
 /* プレステージの二つ名の札：黒地に紅の字と紅の縁 */
 .ep.r5.pr-ep { color: #FF3B4A !important; background: linear-gradient(135deg, #3A0610, #070204); box-shadow: inset 0 0 0 1px #E0102A, 0 0 6px rgba(224,16,42,.45); }
+.ep.kp-ep { color: #FFE08A !important; background: linear-gradient(135deg, #3A2A06, #0E0902); box-shadow: inset 0 0 0 1px #E8B53A, 0 0 8px rgba(255,200,80,.5); text-shadow: 0 0 6px rgba(255,210,100,.85); }
 .chat li .ep.r5.pr-ep { color: #FFF0F0 !important; } /* コメント欄は小さいので、明るい字に（紅の字に紅のグリッチが重なると読めない）。紅は札の地と縁で見せる */
 .tx-gold, .tx-gold .ci { background: linear-gradient(100deg, #8A5A00 15%, #FFD24A 35%, #FFF6CF 45%, #E0A100 60%, #8A5A00 85%) 0 0 / 250% 100%; -webkit-background-clip: text; background-clip: text; color: transparent !important; animation: rarShine 2.4s linear infinite; }
 .tx-leak, .tx-leak .ci { background: radial-gradient(circle at var(--lx, 30%) 50%, #FFE9A0, #FF8A3D 25%, #FF2E9A 45%, currentColor 70%) 0 0 / 200% 100%; -webkit-background-clip: text; background-clip: text; color: transparent !important; animation: txLeak 3.4s ease-in-out infinite; }
@@ -2423,6 +2432,82 @@ if (location.hash === "#lcdcard" || location.hash === "#sitecard" || document.do
   var LV_RESET = "shika-lv-reset-v1", XP_OV = "shika-xp-ov-v1", XP_PA = "shika-xp-pa-v1", SUPPORT = "shika-support-v1", LV_SEEN = "shika-lv-seen-v1", PRESTIGE = "shika-prestige-v1", PR_LV = 100;
   function lvOf(xp) { xp = +xp > 0 ? +xp : 0; var L = Math.max(1, Math.floor((1 + Math.sqrt(1 + xp / 12.5)) / 2)); while (L > 1 && lvNeed(L - 1) > xp) L--; while (lvNeed(L) <= xp) L++; return L; } // Lv2 に 100、Lv3 に 300、Lv5 に 1000、Lv10 に 4500、Lv100 に 495000
   function lvNeed(L) { return 50 * L * (L + 1); }
+  /* PRESTIGE-SKILLS:BEGIN（元：stream-layouts/prestige-skills.js。直したら node stream-layouts/tools/prestige-sync.mjs で オーバーレイ・鹿物語・サイトに 写す） */
+// プレステージの スキルツリー（メモリーコア）。docs/prestige-skills.md（鹿さんの 決め 2026-10-24 ＋ Claude の 下書き。2026-11-05 に 反映）
+// cost：Lv ごとの コア。v：Lv ごとの 効き目の 数（Lv1 から）。req：前に 取る 星（Lv1 以上）。text：Lv ごとの 説明。x・y：星座の 地図の 場所（1400×1000）
+var PSK = [
+  { id: "core", br: "core", ic: "core", name: "記憶の核", req: [], x: 700, y: 500, cost: [1], v: [1], text: ["スキルの星座がひらく"] },
+  { id: "cool", br: "fire", ic: "cool", name: "放熱", req: ["core"], x: 560, y: 400, cost: [2, 4, 6], v: [1.15, 1.3, 1.5], text: ["ゲージの冷える速さ 1.15 倍", "ゲージの冷える速さ 1.3 倍", "ゲージの冷える速さ 1.5 倍"] },
+  { id: "early", br: "fire", ic: "wind", name: "早冷え", req: ["cool"], x: 420, y: 320, cost: [2, 3, 4], v: [1.0, 0.8, 0.6], text: ["冷えはじめるまで 1.2 秒 → 1.0 秒", "冷えはじめるまで 0.8 秒", "冷えはじめるまで 0.6 秒"] },
+  { id: "armor", br: "fire", ic: "shield", name: "耐熱装甲", req: ["cool"], x: 570, y: 250, cost: [4, 6], v: [0.85, 0.7], text: ["オーバーヒート中の 1 発の間隔 1 秒 → 0.85 秒", "オーバーヒート中の 1 発の間隔 0.7 秒"] },
+  { id: "rad", br: "fire", ic: "rad", name: "大型ラジエーター", req: ["early", "armor"], x: 420, y: 170, cost: [6, 10], v: [55, 60], text: ["オーバーヒートまで 50 発 → 55 発", "オーバーヒートまで 60 発"] },
+  { id: "speed", br: "fire", ic: "speed", name: "玉の速さ", req: ["early"], x: 280, y: 400, cost: [3, 6, 9], v: [1.1, 1.2, 1.3], text: ["自分の玉の進む速さ 1.1 倍（軌道は同じ）", "自分の玉の進む速さ 1.2 倍", "自分の玉の進む速さ 1.3 倍"] },
+  { id: "again", br: "auto", ic: "repeat", name: "いつもの数", req: ["core"], x: 840, y: 400, cost: [2, 3], v: [1, 2], text: ["!発射（数なし）で、前に打った数をもう一度", "MONO LINK の発射ボタンも「いつもの数」になる"] },
+  { id: "hold", br: "auto", ic: "queue", name: "待ちの延長", req: ["again"], x: 980, y: 320, cost: [2, 3, 4], v: [4, 5, 6], text: ["オーバーヒート中に待てる玉 3 発 → 4 発", "待てる玉 5 発", "待てる玉 6 発"] },
+  { id: "auto", br: "auto", ic: "auto", name: "オート", req: ["hold"], x: 1120, y: 240, cost: [8, 16, 24], v: [3, 2, 1], text: ["!オート で入れる・もう一度で切る。3 秒に 1 発（配信から離れると止まる・ゲージは上げない）", "2 秒に 1 発", "1 秒に 1 発"] },
+  { id: "glove", br: "xp", ic: "glove", name: "光の手袋", req: ["core"], x: 840, y: 600, cost: [2, 3, 4], v: [6, 7, 8], text: ["コメントでもらえる経験値 5 → 6", "コメントの経験値 7", "コメントの経験値 8"] },
+  { id: "convert", br: "xp", ic: "convert", name: "変換の名人", req: ["glove"], x: 990, y: 560, cost: [2, 4, 6], v: [0.05, 0.1, 0.15], text: ["玉を経験値に変えるとき +5%", "+10%", "+15%"] },
+  { id: "light", br: "xp", ic: "light", name: "記憶の光", req: ["glove"], x: 900, y: 740, cost: [3, 6, 9], v: [1.05, 1.1, 1.15], text: ["もらえる経験値ぜんぶ 1.05 倍", "1.1 倍", "1.15 倍"] },
+  { id: "hoard", br: "xp", ic: "hoard", name: "コアの蓄え", req: ["light"], x: 1060, y: 680, cost: [3, 5, 8], v: [0.1, 0.2, 0.3], text: ["使っていないメモリーコア 1 個につき経験値 +1%（上限 10%）", "上限 20%", "上限 30%"] },
+  { id: "heaven", br: "xp", ic: "heaven", name: "天の記憶", req: ["light"], x: 1050, y: 830, cost: [2, 4, 6, 8, 10], v: [0.01, 0.02, 0.03, 0.04, 0.05], text: ["プレステージの回数 1 つにつき経験値 +1%", "+2%", "+3%", "+4%", "+5%"] },
+  { id: "herald", br: "xp", ic: "herald", name: "先触れ", req: ["heaven"], x: 1200, y: 760, cost: [3, 5, 8], v: [0.1, 0.2, 0.3], text: ["いまチャットにいる人 1 人につき経験値 +1%（上限 10%）", "上限 20%", "上限 30%"] },
+  { id: "lucky", br: "xp", ic: "lucky", name: "幸運の数字", req: ["light"], x: 880, y: 900, cost: [7, 7, 7], v: [0.07, 0.14, 0.21], text: ["レベルの数字に 7 が入っているあいだ、経験値 +7%", "+14%", "+21%"] },
+  { id: "shard", br: "mem", ic: "shard", name: "記憶のかけら", req: ["core"], x: 560, y: 600, cost: [3, 6, 9], v: [1, 2, 3], text: ["プレステージでもらえるメモリーコア +1", "+2", "+3"] },
+  { id: "linger", br: "mem", ic: "linger", name: "記憶の残り香", req: ["shard"], x: 420, y: 680, cost: [2, 4, 6], v: [10, 20, 30], text: ["プレステージしたあと Lv.10 まで経験値 1.2 倍", "Lv.20 まで", "Lv.30 まで"] },
+  { id: "cocoon", br: "mem", ic: "cocoon", name: "記憶の繭", req: ["linger"], x: 280, y: 780, cost: [4, 8, 12], v: [0.1, 0.2, 0.3], text: ["プレステージのとき、Lv.100 をこえた分の経験値を 10% 持ち越す", "20% 持ち越す", "30% 持ち越す"] },
+  { id: "tail", br: "mem", ic: "tail", name: "星の尾", req: ["shard"], x: 560, y: 790, cost: [2, 3, 4], v: [1, 2, 3], text: ["自分の玉に光の尾（1 色）", "光の尾が 3 色に", "光の尾が虹色に"] },
+  { id: "keeper", br: "mem", ic: "eye", name: "記憶の番人", req: ["tail"], x: 430, y: 890, cost: [5, 5], v: [1, 2], text: ["二つ名「記憶の番人」", "二つ名の文字が金に光る"] },
+  { id: "discount", br: "lot", ic: "tag", name: "福引きの割引", req: ["core"], x: 700, y: 360, cost: [2, 4, 6], v: [0.05, 0.1, 0.15], text: ["宝くじ・ジャンボ・ナンバーズが 5% 引き（当せん金は元の値段で数える）", "10% 引き", "15% 引き"] },
+  { id: "pass", br: "lot", ic: "pass", name: "定期券", req: ["discount"], x: 700, y: 215, cost: [3, 6, 9], v: [1, 3, 5], text: ["!定期券 で入れる・もう一度で切る。毎日の宝くじを毎日 1 枚、自動で買う（20:50・持ち玉があるときだけ）", "毎日 3 枚", "毎日 5 枚"] },
+  { id: "bundle", br: "lot", ic: "bundle", name: "くじの束", req: ["discount"], x: 835, y: 250, cost: [2, 4, 6], v: [[2, 1], [4, 2], [6, 3]], text: ["1 回に買える数：毎日・ナンバーズ +2、ジャンボ +1", "毎日・ナンバーズ +4、ジャンボ +2", "毎日・ナンバーズ +6、ジャンボ +3"] },
+  { id: "stub", br: "lot", ic: "stub", name: "はずれ券の記憶", req: ["pass"], x: 790, y: 95, cost: [3, 6, 9], v: [50, 100, 150], text: ["はずれた券 1,000 玉ぶんにつき経験値 +50", "+100", "+150"] }
+];
+var PSK_KEY = "shika-skill-v1";   // オーバーレイだけが 書く：{ 名前: { c もらった コア, lv: { id: Lv } } }。鹿物語・サイトは 読むだけ
+var PSK_BY = {}; PSK.forEach(function (s) { PSK_BY[s.id] = s; });
+// 名前で さがす（!スキル 放熱・全角/半角の ちがいは 気に しない）
+function pskFind(q) { q = String(q || "").replace(/\s+/g, ""); return PSK.filter(function (s) { return s.name === q || s.id === q; })[0] || null; }
+// Lv（ない ときは 0）・効き目の 数（ない ときは def）
+function pskLv(rec, id) { return (rec && rec.lv && +rec.lv[id]) || 0; }
+function pskV(rec, id, def) { var L = pskLv(rec, id), s = PSK_BY[id]; return L > 0 && s ? s.v[Math.min(L, s.v.length) - 1] : def; }
+// 使った コア・のこり
+function pskSpent(rec) { var n = 0; if (rec && rec.lv) Object.keys(rec.lv).forEach(function (id) { var s = PSK_BY[id], L = +rec.lv[id] || 0; for (var i = 0; s && i < Math.min(L, s.cost.length); i++) n += s.cost[i]; }); return n; }
+function pskLeft(rec) { return Math.max(0, ((rec && +rec.c) || 0) - pskSpent(rec)); }
+// 取れるか：{ ok, why, cost, next }
+function pskCan(rec, s) {
+  var L = pskLv(rec, s.id);
+  if (L >= s.cost.length) return { ok: false, why: "「" + s.name + "」は いちばん上（Lv" + L + "）です" };
+  var miss = s.req.filter(function (r) { return !pskLv(rec, r); });
+  if (miss.length) return { ok: false, why: "「" + s.name + "」は、先に「" + miss.map(function (r) { return PSK_BY[r].name; }).join("」と「") + "」を取ってから" };
+  var cost = s.cost[L], left = pskLeft(rec);
+  if (left < cost) return { ok: false, why: "メモリーコアが足りません（Lv" + (L + 1) + " に " + cost + " 個・のこり " + left + " 個）" };
+  return { ok: true, cost: cost, next: L + 1 };
+}
+// プレステージで もらえる コア：その ときの レベル ÷ 10 ＋ 記憶のかけら
+function pskGain(level, rec) { return Math.floor((+level || 0) / 10) + pskV(rec, "shard", 0); }
+// 経験値の かけ算（足し算の あとに まとめて かける）：記憶の光 × 天の記憶 × コアの蓄え × 先触れ × 幸運の数字 × 残り香
+// lv：いまの レベル（プレステージした 分を 引いた）・pn：プレステージの 回数・chat：いま チャットに いる 人の 数
+function pskXpMul(rec, lv, pn, chat) {
+  if (!rec || !rec.lv) return 1;
+  var m = pskV(rec, "light", 1);
+  m *= 1 + pskV(rec, "heaven", 0) * (+pn || 0);
+  m *= 1 + Math.min(pskV(rec, "hoard", 0), pskLeft(rec) * 0.01);
+  m *= 1 + Math.min(pskV(rec, "herald", 0), (+chat || 0) * 0.01);
+  if (String(lv).indexOf("7") >= 0) m *= 1 + pskV(rec, "lucky", 0);
+  if (pn > 0 && lv <= pskV(rec, "linger", 0)) m *= 1.2;
+  return m;
+}
+// 記録を きれいに する（読んだ ときに 1 回）：名前 → { c, lv }。知らない スキル・Lv の はみ出しは 落とす
+function pskClean(o) {
+  var out = {};
+  if (o && typeof o === "object") Object.keys(o).slice(0, 50000).forEach(function (k) {
+    var v = o[k], c = v ? Math.floor(+v.c) : 0, lv = {};
+    if (k === "__proto__" || !v || !(c >= 0 && c < 1e6)) return;
+    if (v.lv && typeof v.lv === "object") Object.keys(v.lv).forEach(function (id) { var s = PSK_BY[id], L = Math.floor(+v.lv[id]); if (s && L > 0) lv[id] = Math.min(L, s.cost.length); });
+    out[k.slice(0, 40)] = { c: c, lv: lv };
+  });
+  return out;
+}
+/* PRESTIGE-SKILLS:END */
   var TIER_NAME = ["", "若葉", "青空", "紫電", "黄金", "極彩"];
   // ---------- 持ち物：スキン・アイコン・二つ名 ----------
   // 手に入れたかどうかは記録から毎回決める（レベル・連続来場・コメント数・応援・鹿物語の実績）。
@@ -5062,6 +5147,12 @@ if (location.hash === "#lcdcard" || location.hash === "#sitecard" || document.do
   var xpOv = numMap(read(XP_OV, {})), xpPa = numMap(read(XP_PA, {})), support = read(SUPPORT, {}) || {}, prest = prMap(read(PRESTIGE, {}));
   function prMap(o) { var out = {}; if (o && typeof o === "object") Object.keys(o).slice(0, 50000).forEach(function (k) { var v = o[k], n = v ? Math.floor(+v.n) : 0, b = v ? +v.base : 0; if (k !== "__proto__" && n > 0 && n < 1e4) out[k.slice(0, 40)] = { n: n, base: isFinite(b) && b > 0 ? Math.min(b, 1e9) : 0 }; }); return out; }
   function prOf(name) { var p = prest[name]; return p ? p.n : 0; }
+  // プレステージの スキル（メモリーコア。shika-skill-v1 は オーバーレイだけが 書く。表は prestige-skills.js から 写した PSK）
+  var skill = pskClean(read(PSK_KEY, {}));
+  function skOf(name) { return Object.prototype.hasOwnProperty.call(skill, name) ? skill[name] : null; }
+  // もう プレステージして いる 人には、1 回に つき コア 10 を 最初に 渡す（その ときの レベルは 記録に ないので）
+  function skEnsure(name) { return skOf(name) || (skill[name] = { c: 10 * prOf(name), lv: {} }); }
+  function skSave() { write(PSK_KEY, skill); }
   // いまのレベルの経験値（プレステージした分を引く）
   function curXp(name) { var p = prest[name]; return Math.max(0, totalXp(name) - (p ? p.base : 0)); }
   function curLv(name) { return lvOf(curXp(name)); }
@@ -5147,7 +5238,7 @@ if (location.hash === "#lcdcard" || location.hash === "#sitecard" || document.do
   // L は全部の経験値のレベル（プレステージしても下がらないので、レベルで手に入れた物はなくならない）
   function facts(name) {
     var v = (typeof data !== "undefined" && data && data.viewers[name]) || {}, sp = support[name] || {}, pa = paStats[name] || {};
-    return { L: lvOf(totalXp(name)), pr: prOf(name), best: +v.best || 0, c: +((ovStats[name] || {}).c) || 0, sp: { bits: +sp.bits || 0, subs: +sp.subs || 0, gifts: +sp.gifts || 0 }, pa: { jp: +pa.jp || 0, rush: +pa.rush || 0, mini: +pa.mini || 0, push: +pa.push || 0, hack: +pa.hack || 0 }, n: +((ovStats[name] || {}).n) || 0, g: gachaOf(name).g, lo: loOf(name) };
+    return { L: lvOf(totalXp(name)), pr: prOf(name), sk: pskLv(skOf(name), "keeper"), best: +v.best || 0, c: +((ovStats[name] || {}).c) || 0, sp: { bits: +sp.bits || 0, subs: +sp.subs || 0, gifts: +sp.gifts || 0 }, pa: { jp: +pa.jp || 0, rush: +pa.rush || 0, mini: +pa.mini || 0, push: +pa.push || 0, hack: +pa.hack || 0 }, n: +((ovStats[name] || {}).n) || 0, g: gachaOf(name).g, lo: loOf(name) };
   }
   function owned(name) {
     var u = facts(name);
@@ -5175,7 +5266,7 @@ if (location.hash === "#lcdcard" || location.hash === "#sitecard" || document.do
     var ico = il ? '<span class="pf-ic' + (ir >= 2 ? " r" + ir : "") + ' ev-i' + (il >= 2 ? " ev-g" : "") + '" style="--evh:' + evoHue("icon", lk.icon) + 'deg;--evg:' + evoGlow("icon", lk.icon) + '"><span class="evh">' + iconHtml(lk.icon) + '</span></span>' + evoMark(il)
       : '<span class="pf-ic' + (ir >= 2 ? " r" + ir : "") + '">' + iconHtml(lk.icon) + '</span>';
     var eph = el ? ' <span class="ep r' + er + ' ev-c' + (el >= 2 ? " ev-g" : "") + '" style="--evc:' + evoEpColor(lk.ep) + ';--evh:' + evoHue("ep", lk.ep) + 'deg">「' + esc(lk.ep) + '」</span>' + evoMark(el)
-      : ' <span class="ep r' + er + (PRESTIGE_EP[lk.ep] ? " pr-ep" : "") + '">「' + esc(lk.ep) + '」</span>';
+      : ' <span class="ep r' + er + epCls(name, lk.ep) + '">「' + esc(lk.ep) + '」</span>';
     return (lk.icon ? ico : "") + '<span class="lv t' + lvTier(L) + '">' + prHtml(prOf(name)) + 'Lv.' + L + '</span>' + (t ? ' <span class="ttl k' + t[1] + '">' + esc(t[0]) + '</span>' : "") + (!noTitle && lk.ep ? eph : "");
   }
   // ---------- カードの演出 ----------
@@ -10645,6 +10736,7 @@ if (location.hash === "#lcdcard" || location.hash === "#sitecard" || document.do
   function PRC(n) { return function (u) { return (u.pr || 0) >= n; }; }
   function PR_HOW(n) { return "プレステージ " + n + " 回（P" + n + "）"; }
   var PRESTIGE_EP = {}; // プレステージの二つ名（コメント欄の札も緋にする）
+  function epCls(name, ep) { return PRESTIGE_EP[ep] ? " pr-ep" : ep === "記憶の番人" && pskLv(skOf(name), "keeper") >= 2 ? " kp-ep" : ""; } // 記憶の番人 Lv2：金に 光る
   // 紋章（中心 0,0・高さ 100）：鹿さんの絵（鬼の角が生えた切子の頭蓋骨）を XIII 用に加工した画像。銀の頭蓋骨と緋の角、黒い地は抜き、面のすき間と目のくぼみは黒のまま。
   //   s は 1 単位の大きさ（絵の高さが 100 単位）。画像は読み込みを待つので、それまでは描かない（hznReady。アイコンの PNG も、読み込むまでは作り置きしない）
   var XIII_IMG = new Image(), XIII_W = 342, XIII_H = 438, XIII_GLOW = null;
@@ -10761,6 +10853,8 @@ if (location.hash === "#lcdcard" || location.hash === "#sitecard" || document.do
   ICONS.push(["em:hizuno", "緋角の紋", PR_HOW(1), PRC(1)]); RAR.icon["em:hizuno"] = 5; ICON_FX["em:hizuno"] = ["embers", "impact", "rgbframe", "slices", "bars", "cuts"];
   EPITHETS.push(["緋をまとう鹿", PR_HOW(1), PRC(1)]); RAR.ep["緋をまとう鹿"] = 5; EP_TX["緋をまとう鹿"] = ["assemble", "crimson", "shake", "glitch", "echo", "cuts"]; PRESTIGE_EP["緋をまとう鹿"] = 1;
   BALLS.push(["guren", "紅蓮", PR_HOW(1), PRC(1)]); RAR.ball.guren = 5;
+  // プレステージの スキル「記憶の番人」（メモリーコア 5）で もらう 二つ名。Lv2 で 文字が 金に 光る（kp-ep。その 人の 札だけ）
+  EPITHETS.push(["記憶の番人", "プレステージの スキル「記憶の番人」", function (u) { return (u.sk || 0) >= 1; }]); RAR.ep["記憶の番人"] = 4; EP_TX["記憶の番人"] = ["assemble", "echo"];
   var TX_MORE = ["sparkle", "wave", "echo", "gold", "neon", "leak", "bounce"]; // Ⅲ の二つ名に足す技
   function txRecipe(kind, x, lv) {
     var r = rarOf(kind, x), m = kind === "ep" ? EP_TX[x[0]] : FONT_TX[x[0]];
@@ -10807,7 +10901,7 @@ if (location.hash === "#lcdcard" || location.hash === "#sitecard" || document.do
     var il = lk.icon ? lk.iconLv || 0 : 0, el2 = lk.ep ? lk.epLv || 0 : 0;
     var ic = q(".ic"); if (isEmb(lk.icon)) ic.innerHTML = emblemSvg(lk.icon); else if (il) ic.innerHTML = '<span class="evh">' + esc(lk.icon) + '</span>'; else ic.textContent = lk.icon || Array.from(name)[0] || "?"; ic.className = "ic" + (ir >= 2 ? " r" + ir : "");
     evoIcon(ic, lk.icon, il);
-    var ep = q(".ep"); ep.textContent = lk.ep ? "「" + lk.ep + "」" : ""; ep.className = "ep" + (er ? " r" + er : "") + (PRESTIGE_EP[lk.ep] ? " pr-ep" : "");
+    var ep = q(".ep"); ep.textContent = lk.ep ? "「" + lk.ep + "」" : ""; ep.className = "ep" + (er ? " r" + er : "") + epCls(name, lk.ep);
     var epm = q(".evo-ep"); if (epm) epm.remove();
     evoEp(ep, lk.ep, el2); if (el2) ep.insertAdjacentHTML("afterend", evoMark(el2, "evo-ep"));
     evoSkin(el, lk, lk.skinLv || 0);
@@ -11177,7 +11271,7 @@ if (location.hash === "#lcdcard" || location.hash === "#sitecard" || document.do
       addXp(name, 50 + Math.min(v.streak - 1, 5) * 10); // その日はじめて来た：+50（連続でさらに最大 +50）
     }
     // コメント：30 秒に 1 回まで +5
-    if (!xpChatAt[name] || Date.now() - xpChatAt[name] >= 30000) { xpChatAt[name] = Date.now(); addXp(name, 5); }
+    if (!xpChatAt[name] || Date.now() - xpChatAt[name] >= 30000) { xpChatAt[name] = Date.now(); addXp(name, pskV(skOf(name), "glove", 5)); } // 光の手袋で 6〜8
     if (!demo && !guest[name] && name !== "__proto__") { var os = ovStats[name] || (ovStats[name] = {}); os.c = (+os.c || 0) + 1; if (new Date().getHours() < 5) os.n = (+os.n || 0) + 1; ovDirty = true; checkOwn(name); }
     save();
   }
@@ -11189,7 +11283,7 @@ if (location.hash === "#lcdcard" || location.hash === "#sitecard" || document.do
   }
   function streakOf(name) { var v = data.viewers[name]; if (!v) return 0; var d = dayPrev(); return v.last === d.day || v.last === d.prev ? v.streak : 0; }
 
-  window.__ovTest = { note: noteViewer, streak: streakOf, facts: facts }; // 動作確認用（facts：コスメの 条件に わたす u。ラウンジの まとめは u.lo）
+  window.__ovTest = { note: noteViewer, streak: streakOf, facts: facts, chat: function (n, t) { chatCommands(n, t, ""); }, skill: function () { return JSON.parse(JSON.stringify(skill)); }, xpMul: xpMul, addXp: addXp, cur: function (n) { return [prOf(n), curLv(n), Math.floor(curXp(n))]; }, lvHtml: lvChip }; // 動作確認用（facts：コスメの 条件に わたす u。ラウンジの まとめは u.lo）
 
   // ---------- 時計 ----------
   var DOW = ["日", "月", "火", "水", "木", "金", "土"];
@@ -11815,8 +11909,16 @@ if (location.hash === "#lcdcard" || location.hash === "#sitecard" || document.do
 
   // ---------- 視聴者レベル（配信画面）：経験値を足し、レベルが上がったらお祝いする ----------
   var xpChatAt = {}, xpDirty = false, lvSeen = numMap(read(LV_SEEN, {})), lvSeenInit = !Object.keys(lvSeen).length;
+  // いま チャットに いる 人の 数（先触れ）：鹿物語が 数えて pachinko-status-v1 に 書く（1 分より 古ければ 0）
+  var skChatC = { t: 0, n: 0 };
+  function skChatN() {
+    if (Date.now() - skChatC.t > 10000) { var p = read("pachinko-status-v1", null), st = p && p.stay; skChatC = { t: Date.now(), n: p && Date.now() - (+p.t || 0) < 60000 && st ? Math.max(0, Math.floor(+st.n) || 0) : 0 }; }
+    return skChatC.n;
+  }
+  function xpMul(name) { var r = skOf(name); return r ? pskXpMul(r, curLv(name), prOf(name), skChatN()) : 1; }
   function addXp(name, n) {
     if (demo || !name || !(n > 0) || guest[name]) return; // フォローしていない人はレベルが上がらない
+    n *= xpMul(name); // プレステージの スキル（記憶の光・天の記憶 など）
     xpOv[name] = (xpOv[name] || 0) + n; xpDirty = true;
     checkLevel(name);
   }
@@ -11841,6 +11943,7 @@ if (location.hash === "#lcdcard" || location.hash === "#sitecard" || document.do
       Object.keys(np).forEach(function (u) { if (JSON.stringify(np[u]) !== JSON.stringify(old[u])) checkOwn(u); });
     }
     if (e.key === PRESTIGE) prest = prMap(read(PRESTIGE, {}));
+    if (e.key === PSK_KEY) skill = pskClean(read(PSK_KEY, {}));
     if (e.key === LV_RESET) { xpOv = {}; xpPa = {}; lvSeen = {}; xpDirty = false; prest = prMap(read(PRESTIGE, {})); } // パネルで「レベルを 1 にもどす」（プレステージの回数は残す）
   });
   // はじめて動いたときは今のレベルを覚えるだけ（昔の分をまとめてお祝いしない）
@@ -11855,6 +11958,28 @@ if (location.hash === "#lcdcard" || location.hash === "#sitecard" || document.do
     addSys(name + " さんが Lv." + L + " になりました！" + (was < PR_LV && L >= PR_LV ? "　!プレステージ で Lv.1 にもどって、P" + (prOf(name) + 1) + " になれます" : ""));
     checkOwn(name);
   }
+  if (!demo) { var skNew = 0; Object.keys(prest).forEach(function (u) { if (!skOf(u)) { skEnsure(u); skNew++; } }); if (skNew) skSave(); }
+  // !スキル：自分の メモリーコア と 取った スキル。!スキル 名前 で 取る・Lv を 上げる（MONO LINK の 星座の 地図の ボタンも これを 送る）
+  function skillCmd(name, arg) {
+    if (demo || !name || name === "__proto__") return;
+    arg = String(arg || "").trim();
+    var rec = skOf(name) || (prOf(name) ? skEnsure(name) : null);
+    if (rec && !rec.lv.core && !Object.keys(rec.lv).length) skSave(); // 昔の 分を いま 作った ときも 残す
+    if (!arg) {
+      if (!rec) { addSys(name + " さん、メモリーコアは Lv." + PR_LV + " で !プレステージ すると もらえます（いま Lv." + curLv(name) + "）"); return; }
+      var got = PSK.filter(function (s) { return pskLv(rec, s.id) > 0 && s.id !== "core"; }).map(function (s) { return s.name + " Lv" + pskLv(rec, s.id); });
+      addSys(name + " さんの メモリーコア：のこり " + pskLeft(rec) + "（もらった " + rec.c + "）" + (got.length ? "　取った スキル：" + got.slice(0, 8).join("・") + (got.length > 8 ? " ほか " + (got.length - 8) : "") : "") + "　!スキル 名前 で 取る（MONO LINK の 自分の ページに 星座の 地図）");
+      return;
+    }
+    var s = pskFind(arg);
+    if (!s) { addSys(name + " さん、「" + arg.slice(0, 20) + "」という スキルは ありません（MONO LINK の 自分の ページの「スキル」で 星座の 地図が 見られます）"); return; }
+    if (!rec) rec = { c: 0, lv: {} };
+    var ck = pskCan(rec, s);
+    if (!ck.ok) { addSys(name + " さん、" + ck.why); return; }
+    rec = skEnsure(name); rec.lv[s.id] = ck.next; skSave();
+    addSys(name + " さんが「" + s.name + "」を " + (ck.next === 1 ? "取りました" : "Lv" + ck.next + " にしました") + "（メモリーコア のこり " + pskLeft(rec) + "）");
+    checkOwn(name); // 記憶の番人（二つ名）
+  }
   // ---------- プレステージ：Lv.100 から。30 秒以内に !プレステージ を 2 回で決まる（まちがえて打っても 1 回ではもどらない）----------
   // そのときまでの経験値を base に覚えて Lv.1 から。持ち物・称号・持ち玉はそのまま
   var prArm = {};
@@ -11864,14 +11989,17 @@ if (location.hash === "#lcdcard" || location.hash === "#sitecard" || document.do
     if (L < PR_LV) { addSys(name + " さん、プレステージは Lv." + PR_LV + " からです（いま " + (n ? "P" + n + "・" : "") + "Lv." + L + "）"); return; }
     if (!prArm[name] || Date.now() - prArm[name] > 30000) {
       prArm[name] = Date.now();
-      addSys(name + " さん、プレステージすると Lv.1 にもどって、レベルの札に P" + (n + 1) + " が付きます（持ち物・称号・持ち玉はそのまま。Lv." + PR_LV + " をこえた分の経験値はなくなります）。30 秒以内にもう一度 !プレステージ で決まります");
+      var cc = pskV(skOf(name), "cocoon", 0), gg = pskGain(L, skOf(name) || { lv: {} });
+      addSys(name + " さん、プレステージすると Lv.1 にもどって、レベルの札に P" + (n + 1) + " が付きます（持ち物・称号・持ち玉はそのまま。Lv." + PR_LV + " をこえた分の経験値は" + (cc ? " " + Math.round(cc * 100) + "% 持ち越し" : "なくなります") + "。メモリーコア +" + gg + "）。30 秒以内にもう一度 !プレステージ で決まります");
       return;
     }
     delete prArm[name];
-    prest[name] = { n: n + 1, base: totalXp(name) }; write(PRESTIGE, prest);
-    lvSeen[name] = 1; write(LV_SEEN, lvSeen);
+    var rec = skEnsure(name), gain = pskGain(L, rec), keep = Math.floor(Math.max(0, curXp(name) - lvNeed(PR_LV - 1)) * pskV(rec, "cocoon", 0)); // 記憶の繭：Lv.100 を こえた 分を 持ち越す
+    rec.c += gain; skSave(); // 先に コアを 渡す（skEnsure は いまの 回数で 昔の 分を 数えるので、回数を 増やす 前に）
+    prest[name] = { n: n + 1, base: totalXp(name) - keep }; write(PRESTIGE, prest);
+    lvSeen[name] = curLv(name); write(LV_SEEN, lvSeen);
     alertShow("prestige", { name: name, n: n + 1 });
-    addSys(name + " さんがプレステージしました！ P" + (n + 1) + "・Lv.1 から（Lv." + L + " から）");
+    addSys(name + " さんがプレステージしました！ P" + (n + 1) + "・Lv." + curLv(name) + " から（Lv." + L + " から）　メモリーコア +" + gain + "（のこり " + pskLeft(rec) + "・!スキル）");
     checkOwn(name); // プレステージ専用のコスメ（P1 から）を渡す
   }
 
@@ -12284,13 +12412,13 @@ if (location.hash === "#lcdcard" || location.hash === "#sitecard" || document.do
       ball: pub(BALLS).map(function (x) { return { id: x[0], name: x[1], r: rarOf("ball", x), how: x[2], img: ballPng(x[0], 96) }; })
     };
     var names = {}, wallet = read("pachinko-wallet-v1", {}) || {}, deny = gateNames;
-    [xpOv, xpPa, support, paStats, ovStats, data.viewers, gacha].forEach(function (m) { Object.keys(m).forEach(function (u) { if (u && u !== "__proto__" && u !== "試着中") names[u] = 1; }); });
+    [xpOv, xpPa, support, paStats, ovStats, data.viewers, gacha, skill].forEach(function (m) { Object.keys(m).forEach(function (u) { if (u && u !== "__proto__" && u !== "試着中") names[u] = 1; }); });
     var viewers = Object.keys(names).map(function (name) {
       var u = facts(name), X = curXp(name), L = lvOf(X), o = owned(name), lk = looks(name), t = titleOf(support[name]), v = data.viewers[name] || {}, hid = {};
       o.fonts.forEach(function (x) { if (isHidden(x)) hid[x[0]] = { name: x[1], family: x[2], how: x[3] }; });
       return { name: name, L: L, X: Math.floor(X), pr: prOf(name), from: L > 1 ? lvNeed(L - 1) : 0, to: lvNeed(L), title: t ? t[0] : "", tk: t ? t[1] : 0, best: u.best, streak: streakOf(name), last: v.last || "", c: u.c, pa: u.pa, balls: +wallet[name] || 0, gacha: +gachaOf(name).n || 0, owner: isOwner(name),
         eq: { skin: lk.skin[0], icon: lk.icon || "", ep: lk.ep || "", font: lk.font ? lk.font[0] : "", ball: lk.ball || "", skinLv: lk.skinLv || 0, iconLv: lk.iconLv || 0, epLv: lk.epLv || 0, ballLv: lk.ballLv || 0 },
-        lv: evoMap(name), res: resOf(name),
+        lv: evoMap(name), res: resOf(name), sk: skOf(name) || undefined,
         own: { skin: pub(o.skins).map(function (x) { return x[0]; }), icon: pub(o.icons).map(function (x) { return x[0]; }), ep: pub(o.eps).map(function (x) { return x[0]; }), font: pub(o.fonts).map(function (x) { return x[0]; }), ball: pub(o.balls).map(function (x) { return x[0]; }) }, hid: hid };
     }).filter(function (x) { return (x.X > 0 || x.c > 0 || x.balls > 0) && !deny[x.name.toLowerCase()]; });
     function shopView(n) { return { slot: n.slot, from: n.from, until: n.until, items: n.items.map(function (it) { var o = { no: it.no, kind: it.kind, id: it.x[0], name: it.name, r: it.r, price: it.price }; if (it.kind === "skin") { var c = skinColors(it.x[2]); o.bg = c.bg; o.pa = c.pa; } if (it.kind === "icon" && isEmb(it.x[0])) o.img = emblemPng(it.x[0], 128); if (it.kind === "ball") o.img = ballPng(it.x[0], 128); if (it.kind === "font") o.family = it.x[2]; return o; }) }; }
@@ -12593,6 +12721,8 @@ if (location.hash === "#lcdcard" || location.hash === "#sitecard" || document.do
       addSys(name + " さん " + (pn ? "P" + pn + "・" : "") + "Lv." + LL + (tt ? "（" + tt[0] + "）" : "") + "　次のレベルまで " + Math.ceil(lvNeed(LL) - X) + (LL >= PR_LV ? "　!プレステージ できます" : ""));
     }
     if (/^!(プレステージ|ぷれすてーじ|prestige)(\s|$)/i.test(text.normalize ? text.normalize("NFKC") : text)) prestigeCmd(name);
+    var skm = (text.normalize ? text.normalize("NFKC") : text).trim().match(/^!(スキル|すきる|skill|コア|こあ|メモリーコア)(?:\s+([\s\S]+))?$/i);
+    if (skm) skillCmd(name, skm[2] || "");
     var eq = (text.normalize ? text.normalize("NFKC") : text).trim().match(/^!(スキン|すきん|skin|アイコン|あいこん|icon|二つ名|ふたつな|フォント|ふぉんと|font|玉スキン|たまスキン|たますきん|ballskin|持ち物|もちもの|items?)(?:\s+([\s\S]+))?$/i);
     if (eq) {
       var w = eq[1].toLowerCase();
@@ -12933,6 +13063,23 @@ if (location.hash === "#lcdcard" || location.hash === "#sitecard" || document.do
     Sound.play("info");
     addSys("【お知らせ】" + text);
   }
+  // ミシックの お知らせ（MONO LINK の 門番から。鹿さんの 決め 2026-10-21）：虹色の ふちで コメント欄に 出す
+  //   MONO LINK の 配信ページの コメント欄へは 門番が じかに 出すので、ここからは 送りなおさない（remoteSay しない）
+  //   配信して いない（OBS が 配信を 止めて いる）ときは 出さない。あとの 配信で まとめて 出す ことも しない
+  var mythSeen = {};
+  window.__shikaMythic = function (m) { mythic(m); };   // 試す とき（見本・撮影）
+  function mythic(m) {
+    var id = String(m.id || "").slice(0, 40), str = function (v, n) { return String(v || "").replace(/\s+/g, " ").trim().slice(0, n); };
+    if (!id || mythSeen[id] || obsLive === false) return; mythSeen[id] = 1;
+    var item = str(m.item, 40), place = str(m.place, 30); if (!item || !place) return;
+    var mk = Array.isArray(m.mark) ? m.mark : [], col = /^#[0-9A-Fa-f]{6}$/.test(mk[1] || "") ? mk[1] : "#8C94AE";
+    Sound.play("info");
+    var ul = $("chat"), li = document.createElement("li"); li.className = "sys myth";
+    li.innerHTML = '<div class="msg"><span class="mk" style="--mk:' + col + '">' + esc(str(mk[0], 2) || "★") + '</span><span><small>★ミシック★</small><b>' + esc(str(m.name, 40)) + '</b> の ' + esc(str(m.pet, 40)) + ' が ' + esc(place) + ' で <q>' + esc(item) + '</q>を 手に入れた！</span></div>';
+    ul.appendChild(li);
+    while (ul.children.length > 24) ul.firstChild.remove();
+    $("chat-empty").hidden = true;
+  }
   function remoteSend(o) { if (remoteWs && remoteWs.readyState === 1 && remoteState === "on") try { remoteWs.send(JSON.stringify(o)); } catch (e) {} }
   // 配信のコメント欄に出たシステムログ（!スキン の返事など）を、MONO LINK の配信ページのコメント欄にも出す
   function remoteSay(text) { text = String(text || "").replace(/\s+/g, " ").trim(); if (text) remoteSend({ t: "sys", text: text.slice(0, 300) }); }
@@ -13121,6 +13268,7 @@ if (location.hash === "#lcdcard" || location.hash === "#sitecard" || document.do
       if (m.t === "pvp" && m.kind === "tour" && m.fs && Array.isArray(m.list)) pvpTour(m);   // 大会の ベスト 8 から（1 試合ずつ 順番待ちへ）
       else if (m.t === "pvp" && m.A && m.B && isFinite(+m.seed)) alertShow("pvp", m);   // 帯の 戦い（派遣先で ばったり）。フォローの 通知と 同じ 順番待ち
       if (m.t === "notice" && typeof m.text === "string") notice(m.text, m.id);
+      if (m.t === "mythic" && typeof m.id === "string") mythic(m);   // ミシックの お知らせ（MONO LINK の 門番から）
       if (m.t === "in" && typeof m.id === "string") adLogin(m.id);   // MONO LINK にログインした人（帯の広告）
       // 鹿物語の「みんなに玉」：MONO LINK にいまいる人の名前を、聞いてきた id と一緒に渡す
       if (m.t === "who" && typeof m.id === "string" && Array.isArray(m.names)) write("shika-who-v1", { id: m.id.slice(0, 40), names: m.names.slice(0, 500).map(function (n) { return String(n).slice(0, 40); }), at: Date.now() });
