@@ -3,7 +3,7 @@
 // 敵の素材：敵ごとに 1 種類。品質 1〜5 は深い階ほど上がる（希少な敵は ＋1、ボスはいつも 5）
 // 使いみち：作業台での装備の作成・合成、施設の強化、DEEP LINK/: のタスク、ラウンジの家具、売って玉にする
 
-import { CROPS, CROP_MATS, farmOpen } from "./crops.js";
+import { CROPS, CROP_MATS, farmOpen, cropMarket, COLOR_MULT } from "./crops.js";
 import { GATHER3, ENEMY_MAT3 } from "./isle3-data.js";   // ミカネル島（島 3）の 採取と 敵の 素材
 import { DUNGEONS_ALL } from "./dungeons.js";   // 敵の 結晶の 名前（敵の 名前 ＋ の結晶）
 
@@ -93,7 +93,7 @@ export const ENEMY_DROP = { 通常: 0.3, 希少: 1, ボス: 1 };
 // 結晶の 落ちやすさ（敵 1 体ごと。素材とは べつの くじ）：通常 30%・希少と ボスは いつも（ボスは 2 こ）。品質は 素材と 同じ（深い 階ほど 高い・希少 ＋1・ボス 5）。Claude の 案（2026-11-04）
 export const CRYSTAL_DROP = { 通常: 0.3, 希少: 1, ボス: 1 };
 export const QUALITY = { 1: { 1: 100 }, 2: { 1: 60, 2: 40 }, 3: { 2: 60, 3: 40 }, 4: { 3: 60, 4: 40 }, 5: { 4: 60, 5: 40 } };
-// 売ると玉（品質が高いほど高い）
+// 前の 玉の 売値（もう 使わない。2026-11-05 に sellPrice を VALUE に 入れかえた）
 export const SELL = { gather: 20, hidden: 150, enemy: (q) => 10 * 2 ** (q - 1), scrap: 6, scrapRare: 60 };  // スクラップは 売ると 安い（鹿さんの 決め、2026-10-30）
 
 // 素材の 売値（クレジット。大工事の 経済で SELL と 入れかえる。鹿さんの 頼み、2026-10-29：素材ごとに 名前に 見合った 値を 端数まで・高い 物ほど 採れにくく 落ちにくく）
@@ -223,9 +223,16 @@ export const MAT_FROM = Object.fromEntries([...Object.entries(ENEMY_MAT), ...Obj
 export const HIDDEN_MAT = new Set(Object.values(GATHER).map((g) => g.hidden[0]));
 // 畑で とれた 物（採取の 素材に 品質 1〜5）は 品質が 高いほど 高く 売れる（鹿さんの頼み、2026-10-25。拾った 物は 品質 0）
 export const GATHER_Q = [1, 1.5, 2, 3, 4, 6];
-// 延べ棒は 高めに 売れる（鹿さんの 決め、2026-10-31：金の延べ棒を 売れる ように。数は Claude の 案。前は 採取と 同じ 20 玉）
+// 延べ棒は 高めに 売れる（鹿さんの 決め、2026-10-31：金の延べ棒を 売れる ように）。値は VALUE（銅 17・鉄 20・銀 46・金 104。docs/mono-link-crafting.md）
+// BAR_SELL は 前の 玉の 売値の 物差しで 決めた 数（採取 20 に くらべて 高め。Claude の 案）。いまは 売値に 使わない（DEEP LINK/: の「レア」の タブ わけに だけ 使う）
 export const BAR_SELL = { copper_bar: 40, iron_bar: 50, silver_bar: 120, gold_bar: 300 };
-export const sellPrice = (m) => (BAR_SELL[m.id] ? BAR_SELL[m.id] : MAT_FROM[m.id] ? SELL.enemy(m.q || 1) : SCRAP_MAT.has(m.id) ? (SCRAP_RARE.has(m.id) ? SELL.scrapRare : SELL.scrap) : Math.round((HIDDEN_MAT.has(m.id) ? SELL.hidden : SELL.gather) * (GATHER_Q[m.q || 0] || 1)));
+// 素材の 売値（クレジット）。鹿さんの 頼み 2026-10-29「素材ごとに 名前に 見合った 値を 端数まで」（docs/mono-link-numbers.md 12 章）＝ VALUE × 品質（matValue）
+// 前は 玉の 売値 SELL（採取 20・かくし通路 150・敵 10〜160）の まま だった（2026-11-05 鹿さん「反映の漏れを見つけました。素材の値段の決まりです。」）
+// 作物と 放っておくと かわった 素材は CLR の 買い取り ＝ 相場の 3 割（docs/mono-link-farm.md）。金色（品質 4）×5・虹色（品質 5）×25（mono-link-farm-crops.md）。品質 2・3 は GATHER_Q（Claude の 読み）
+export const CROP_BUY = 0.3;
+const CROP_PRICE = new Map([...CROPS.map((c) => [c.mat, cropMarket(c)]), ...CROP_MATS.map((m) => [m.id, m.value || 0])]);
+const cropQ = (q) => (q >= 5 ? COLOR_MULT.rainbow : q >= 4 ? COLOR_MULT.gold : GATHER_Q[q || 0] || 1);
+export const sellPrice = (m) => (VALUE[m.id] != null ? matValue(m) : CROP_PRICE.has(m.id) ? Math.max(1, Math.round(CROP_PRICE.get(m.id) * CROP_BUY * cropQ(m.q))) : 0);
 
 // 倉庫が いっぱいの とき（鹿さんの決め、2026-10-23）：入らない分は あずかり箱へ。7 日の うちに 倉庫を あければ うけとれる（すぎると なくなる）
 // 倉庫は どの しゅるいも 置ける。上限は 1 しゅるい（素材の id。品質ちがいも あわせて）ごとの 数（鹿さんの決め、2026-10-25。STORAGE_CAP）
