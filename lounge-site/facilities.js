@@ -97,6 +97,9 @@ export function upkeep(id, lv) {
 export const buildCredits = (L) => Math.round(20 * L ** 1.5);
 export const buildMs = (L) => Math.round(10 * 60e3 * L ** 1.2);
 export const RUSH = { perMin: 1, min: 50 }, FUEL = { price: 60, ms: 30 * 60e3 };
+// 足場：工房で 作る（竹の建材・わら束）。建てて いる 途中に 使うと 建設が 進む（鹿さんの 決め、2026-10-31「大工事で 施設の 建設に 待ち時間が 入ったら 作る」。docs/mono-link-crafting.md）
+// 1 こ 2 時間（燃料 4 本 ＝ 240 クレジット ぶん。材料の ねうちは 約 210。数は Claude の 案、2026-11-05）
+export const SCAFFOLD = { ms: 2 * 3600e3 };
 // ボルトの 店の「建設の 時間 −10%・−20%」（−20% は −10% に おきかわる。買い取り ＋10%・＋20% と 同じ 形。Claude の 案、2026-11-03）
 export const BUILD_PERK = { build10: 0.1, build20: 0.2 };
 export const buildOff = (perks) => (perks && perks.build20 ? BUILD_PERK.build20 : perks && perks.build10 ? BUILD_PERK.build10 : 0);

@@ -4,9 +4,9 @@
 //   rec.knob[id]：えらんだ Lv（つまみ。上げた Lv までの どこでも。ない ときは 上げた Lv）。効果と 維持費は この Lv
 //   rec.build[id]：建てて いる 途中 { to, at, ms, skip, mats: [[id, n]], put: { id: n } }。クレジットは 始める ときに 払う
 //   rec.labQ：研究の 途中 [{ tree, at }]（研究所。時間が 来たら rec.lab へ）
-// 受付：fac.start {id}・fac.put {id, mat?, n?}・fac.rush {id}（グラナート建設）・fac.fuel {id, n}（ヘリクス電力）・fac.knob {id, lv}
+// 受付：fac.start {id}・fac.put {id, mat?, n?}・fac.rush {id}（グラナート建設）・fac.fuel {id, n}（ヘリクス電力）・fac.scaffold {id, n}（足場）・fac.knob {id, lv}
 // タスクに 数える できごと：built（建て終わった）・facput（素材を 入れた）・rush（グラナート建設に 頼んだ）・knob（つまみを かえた）。維持費は lounge-game.js の payUpkeep（upkeep）
-import { FACILITIES, facOf, facCap, facMax, hasKnob, facLv, buildNeed, buildProg, buildMatRatio, buildTimeRatio, buildLeftMs, rushPrice, FUEL, MIGRATE_LV, upkeep, facFx, buildOff } from "./game.js";
+import { FACILITIES, facOf, facCap, facMax, hasKnob, facLv, buildNeed, buildProg, buildMatRatio, buildTimeRatio, buildLeftMs, rushPrice, FUEL, SCAFFOLD, MIGRATE_LV, upkeep, facFx, buildOff } from "./game.js";
 import { bump } from "./lounge-trade.js";
 import { jstDay } from "./lounge-rules.js";
 
@@ -111,6 +111,20 @@ export function facFuel(rec, b, now) {
   rec.credits -= fee; B.skip = (B.skip || 0) + FUEL.ms * n;
   const done = facDue(rec, now);
   return { ok: true, fee, n, left: buildLeftMs(B, now), ...(done.includes(f.id) ? { done: rec.hideout[f.id] } : {}) };
+}
+// 足場（工房で 作る）：1 こ 2 時間 進む。持ち物 rec.items.scaffold を 使う（2026-11-05。鹿さんの 決め「建設に 待ち時間が 入ったら 作る」）
+export function facScaffold(rec, b, now) {
+  ensureFac(rec); rec.items ||= {};
+  const f = facIn(b.id), B = f && rec.build[f.id];
+  if (!B) return { ok: false, why: "建てて いない" };
+  const left = buildLeftMs(B, now); if (!left) return { ok: false, why: "時間は もう 足りて いる（素材を 入れると できる）" };
+  const own = rec.items.scaffold || 0; if (!own) return { ok: false, why: "足場を 持って いない（工房で 作る）" };
+  const n = Number.isInteger(b.n) && b.n >= 1 && b.n <= 100 ? Math.min(b.n, own, Math.ceil(left / SCAFFOLD.ms)) : 0;
+  if (!n) return { ok: false, why: "足場の 数を えらんで" };
+  rec.items.scaffold = own - n; if (!rec.items.scaffold) delete rec.items.scaffold;
+  B.skip = (B.skip || 0) + SCAFFOLD.ms * n;
+  const done = facDue(rec, now);
+  return { ok: true, n, own: rec.items.scaffold || 0, left: buildLeftMs(B, now), ...(done.includes(f.id) ? { done: rec.hideout[f.id] } : {}) };
 }
 // つまみ：上げた Lv までの どこでも（0 は 止める。維持費も かからない）
 export function facKnob(rec, b, now = Date.now()) {

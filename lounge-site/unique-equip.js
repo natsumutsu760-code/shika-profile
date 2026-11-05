@@ -6,8 +6,10 @@
 // - 見た目：モデリングの 専用スレッドに 頼む（docs/modeling-log.md の「システム側からの お願い」）。届くまでは look の もとの 装備の 絵
 // 数字は ぜんぶ 案（鹿さんが 試して 直す）
 export const UNIQUE_RATE = 0.004, UNIQUE_MAX = 2;
-export const UNIQUE_BALLS = 3000;   // 作る ときの 玉（Lv ごとの 割り引きは なし。ボスの 素材が 本体）
-export const UNIQUE_CRAFT_LV = 2;   // 作業台 Lv2 から
+export const UNIQUE_BALLS = 3000;   // 作る ときの 値段（Lv ごとの 割り引きは なし。ボスの 素材が 本体）。通貨の 作り直し（2026-10-28：玉で 払う 物は 同じ 数の クレジットに）で クレジット
+export const UNIQUE_CREDITS = UNIQUE_BALLS;
+export const UNIQUE_CRAFT_LV = 2;   // 作業台 Lv2 から（施設の 作り直しで 段 2 ＝ Lv20 から。UNIQUE_BENCH_LV）
+export const UNIQUE_BENCH_LV = 20;
 
 // id・島・行き先（dungeon）・部位・名前・効果の 文・もとの 強さ・fxp・look（見た目の 代わりに 使う もとの 装備）
 export const UNIQUES = [
@@ -41,5 +43,5 @@ export const uniquesOf = (dungeon) => UNIQUES.filter((u) => u.dungeon === dungeo
 
 // 作る：ボスの 素材 3 ＋ かくし通路の 素材 2 ＋ 玉。ボスの 素材と 隠しの 素材は materials.js から 引く（ここでは 行き先の id だけ 持つ）
 export function uniqueRecipe(u, bossMat, hiddenMat) {
-  return { out: u.id, mats: [[bossMat, 3], [hiddenMat, 2]], balls: UNIQUE_BALLS };
+  return { out: u.id, mats: [[bossMat, 3], [hiddenMat, 2]], credits: UNIQUE_CREDITS };
 }

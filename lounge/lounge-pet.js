@@ -5,6 +5,7 @@
 // - 職業を かえると 前の 職業の 技から 1 つだけ 持ちこせる。振り直しと 職業を かえるのは 1 日 1 回 無料、2 回目から 玉（鹿さんの決め、2026-10-24。値段は 案）
 // - 装備は あたま・くび・うで・あし・武器・オフハンド・アクセサリー ×3 の 9 枠（鹿さんの決め、2026-10-25。前の「おまけ」は 武器）。なかまも 付けられる。付けて いる 装備は 合成・納める・依頼の お礼に 使えない
 import { COUNTS } from "./main-trees.js";
+import { UNIQUE_MAX } from "./unique-equip.js";   // ユニーク装備は 1 匹に 2 つまで（鹿さんの 決め、2026-10-26。2026-11-05 に 門番で 守る ように した）
 import { detailOpen, detailPct, nutOf } from "./nutrition.js";   // 栄養の 詳細ステータスを 戦いへ（A15）
 import { PETS, PLANS, gambitSlots, SHAPE, SP_PER_LV, SET_SLOTS, TREE_SLOTS, FREE_PER_LV, BASE_STATS, canTake, autoTake, learned, growthStats, freeAlloc, freeIsAuto, ENEMY_TREES, SKILL, EFFECTS, COND_TEXT, baseOf, tamedOf, SLOTS, OLD_SLOT, withAtt, fighterPower, REC_MODES, REC_SCOPES, recommend, isBItem } from "./game.js";
 
@@ -177,6 +178,10 @@ export function equipSet(rec, b) {
   if (base.slot !== SLOTS[b.slot].kind) return { ok: false, why: "その 枠には 付けられない" };
   const mine = Object.keys(x.equip).find((s) => x.equip[s] === e.uid);   // 同じ 子の ほかの 枠（アクセサリー 1 → 2 など）からは うつす
   if (equippedUids(rec).has(e.uid) && !mine) return { ok: false, why: "ほかの 子が 付けて いる" };
+  if (base.unique) {   // ほかの 枠に 付けて いる ユニーク（入れかえる 枠の 物は 数えない）
+    const n = Object.entries(x.equip).filter(([s, u]) => s !== b.slot && u !== e.uid).map(([, u]) => rec.own.equip.find((y) => y.uid === u)).filter((y) => y && (baseOf(y.base) || {}).unique).length;
+    if (n >= UNIQUE_MAX) return { ok: false, why: `ユニーク装備は 1 匹に ${UNIQUE_MAX} つまで` };
+  }
   if (mine) delete x.equip[mine];
   x.equip[b.slot] = e.uid;
   return { ok: true };

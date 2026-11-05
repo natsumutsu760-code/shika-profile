@@ -3,11 +3,13 @@
 // ・スフィアの 鑑定（sphere.look。DEEP LINK/: の ガラク）：中身（OP と ★）が 見える。SPHERE_LOOK クレジット
 // ・スフィアを はめる（sphere.set）：装備の 空いた OP の 枠だけ（入れかえは しない。抜くのは コア）。強さは スフィアの ★（コアと 同じ）
 // ・素材の OP 抽選（ws.draw。工房）：同じ 敵の 素材 5 こ（同じ 品質）＋ クレジット で 空いた 枠に OP を 1 つ。★は 素材の 品質
-import { baseOf, opCount, KINDS, ALL_OPS, facLv, ISLAND_OPEN, MAT_NAME, MAT_FROM, devNeed, devStarW, devWhere, CRYSTAL_GRADE, benchStarMax, benchTopUp, SPHERE_LOOK, opLive, DRAW, rollDraw } from "./game.js";
+import { OPS, baseOf, opCount, KINDS, ALL_OPS, facLv, ISLAND_OPEN, MAT_NAME, MAT_FROM, devNeed, devStarW, devWhere, CRYSTAL_GRADE, benchStarMax, benchTopUp, SPHERE_LOOK, opLive, DRAW, rollDraw } from "./game.js";
 import { takeMats, applyTake, makeFee, payUpkeep, feeWhy } from "./lounge-game.js";
 import { slotKind, bump } from "./lounge-trade.js";
 import { wornAway } from "./lounge-core.js";
 import { jstDay } from "./lounge-rules.js";
+import { uniqueOf, uniqueRecipe, UNIQUE_BENCH_LV } from "./unique-equip.js";
+import { uniqueMats } from "./materials.js";
 
 const pickW = (R, w) => { const t = Object.values(w).reduce((a, b) => a + b, 0); let x = R() * t; for (const [k, v] of Object.entries(w)) if ((x -= v) < 0) return +k; return +Object.keys(w)[0]; };
 const haveQ = (rec, id, q) => rec.own.mats.filter((m) => m.id === id && (m.q || 0) === q).reduce((a, m) => a + m.n, 0);
@@ -30,6 +32,29 @@ export function devPlan(rec, b, R) {
   return { costs: [], why: "dev:" + id, take: () => { rec.own.mats = t.mats; rec.credits -= need.credits; payUpkeep(rec, fee); },
     grant: { equip: [{ ...item, mk: 1 }], ev: { type: "craft", n: 1, star, slot: slotKind(id), cry: q, cryOf: base.tree } },   // タスクの「開発する」に 数える（結晶の 段・どの 敵の 結晶か も）
     refund: { mats: t.taken, credits: need.credits + fee }, item, info: { credits: need.credits, ...(fee ? { fee } : {}) } };
+}
+
+// ユニーク装備を 作る（作業台の「ユニーク」。鹿さんの 決め、2026-10-26：島ごとに 10 こ・ボスから まれに ＋ 作って 手に 入れる）。b：{ id：ユニークの id }
+// 材料：その 行き先の ボスの 素材 3 ＋ かくし通路の 素材 2 ＋ 3,000 クレジット（unique-equip.js）。レシピは 素材を ぜんぶ 1 回 拾うと 出る（ほかの レシピと 同じ）
+// できる 物は ボスから 出る ユニークと 同じ（★5・OP は ★5 の 数 ＋1）。作業台 Lv20（段 2）から。2026-11-05 に 入れた（前は 門番に なかった）
+export function uniquePlan(rec, b, R) {
+  const u = uniqueOf(String(b.id || "")), lv = facLv(rec, "bench"), fee = makeFee(rec, "bench");
+  if (!rec.hideout.bench) return { ok: false, why: "作業台が まだ ない（隠れ家で 作る）" };
+  if (lv < 1) return { ok: false, why: "作業台の つまみが 0（隠れ家で 上げる）" };
+  const mats = u && u.isle <= ISLAND_OPEN ? uniqueMats(u.dungeon) : null;
+  if (!mats) return { ok: false, why: "知らない 装備" };
+  const r = uniqueRecipe(u, mats[0], mats[1]), unseen = r.mats.find(([id]) => !rec.seen.includes(id));
+  if (unseen) return { ok: false, why: `${MAT_NAME[unseen[0]]}を まだ 拾って いない（レシピは 素材を ぜんぶ 1 回 拾うと 出る）` };
+  if (lv < UNIQUE_BENCH_LV) return { ok: false, why: `ユニークは 作業台 Lv${UNIQUE_BENCH_LV} から` };
+  if (fee + r.credits > (rec.credits || 0)) return { ok: false, why: feeWhy(fee + r.credits, rec, fee) };
+  const t = takeMats(rec, r.mats);
+  if (t.why) return { ok: false, why: t.why };
+  const pool = Object.keys(OPS), ops = [], n = opCount(u.slot, 5) + 1;
+  while (ops.length < n && pool.length) ops.push(pool.splice(Math.floor(R() * pool.length), 1)[0]);
+  const item = { base: u.id, star: 5, ops };
+  return { costs: [], why: "uq:" + u.id, take: () => { rec.own.mats = t.mats; rec.credits -= r.credits; payUpkeep(rec, fee); },
+    grant: { equip: [{ ...item, mk: 1 }], ev: { type: "craft", n: 1, star: 5, slot: slotKind(u.id) } },
+    refund: { mats: t.taken, credits: r.credits + fee }, item, info: { credits: r.credits, ...(fee ? { fee } : {}) } };
 }
 
 // 鑑定。b：{ uid：スフィア }

@@ -106,6 +106,8 @@ export const SPECIAL = { id: "special", name: "ヨル", animal: "黒ネコ", dir
     { id: "y-collar", name: "なかよしの首輪", note: "なかよしゲージ ＋5", price: 4, cur: "res", lv: 1, stock: 1, left: 1, get: { items: { collar: 1 } } },
     { id: "y-core", name: "ブランクコア", note: "装備から OP を 1 つ 抜き出す（抜いた 装備は なくなる）", price: 5, cur: "res", lv: 1, stock: 2, left: 2, week: true, get: { items: { blankcore: 1 } } },   // 1 週に 2 こまで（鹿さんの決め、2026-10-25）
     { id: "y-charm", name: "くじの お守り", note: "次の 作る・合成で ★ ＋1", price: 8, cur: "res", lv: 1, stock: 1, left: 1, get: { items: { charm: 1 } } },
+    // クレートの カードキー：ブラックマーケット（ヨル）で アメジスト 6（鹿さんの 決め、2026-10-30。mono-link-economy.md・crawler-missions.md。パチンコの 景品と 同じ 物。2026-11-05 に 入れた：前は 景品だけ だった）
+    { id: "y-cratekey", name: "クレートの カードキー", note: "クローラーの 施錠された クレートを 開ける（パチンコの 景品と 同じ 物）", price: 6, cur: "res", lv: 1, get: { items: { key_crate: 1 } } },
     { id: "y-call", name: "侵入の 呼び寄せ", note: "この 派遣の 侵入 1% → 20%", price: 0, cur: "credits", lv: 1, soon: "情報屋" },
     { id: "y-rare", name: "希少種の 呼び寄せ", note: "この 派遣の 希少な 敵 ×3", price: 0, cur: "credits", lv: 1, soon: "情報屋" },
   ] };

@@ -21,6 +21,7 @@ import { TREE3_EN, SKILL3_EN } from "./lounge-en-fusion.js";   // 配合限定�
 import { DUNGEON_I3_EN, MYTHIC_I3_EN, TREE_I3_EN, SKILL_I3_EN, MAT_I3_EN } from "./lounge-en-isle3.js";   // ミカネル島（3 つめの 島）の 名前
 import { DEV_EN } from "./lounge-en-dev.js";   // 装備開発の 装備（島 1〜3）
 import { DEV_IDS, devBase } from "./equip-dev.js";
+import { UNIQUES } from "./unique-equip.js";
 import { MAIN_TYPE_EN, MAIN_SKILL_EN, MAIN_TEXT_EN, COUNT_EN, OPT_EN } from "./lounge-en-trees.js";   // メインの ツリー 12 本
 import { COUNTS } from "./main-trees.js";
 
@@ -83,6 +84,29 @@ export const DUNGEON_EN = {
   morph: { name: "Morpheus Ruins", text: "Stone ruins of a dreaming god. Walking here makes you sleepy" },
   kurai: { name: "Dark Village", text: "A village where dawn never comes. Nobody lives there, yet the lights turn on" },
   crystal: { name: "Crystal Cave", text: "A cave of glowing crystals. Something big waits deep inside" },
+};
+// ユニーク装備 20 こ（unique-equip.js。英語は 2026-11-05 に 足した：前は 日本語の まま だった）
+export const UNIQUE_EN = {
+  uqHalsBoots: ["Highway Runner Boots", "Swift Feet: AGI +20%, act first at the start of battle"],
+  uqHalsKnife: ["Bandit King's Knife", "Light Fingers: Crit +10%, crit damage +25%"],
+  uqHalsClover: ["Four-Leaf Charm", "Lucky: damage taken −6%, Evasion +6%"],
+  uqMorphPillow: ["Dream Pillow Book", "Sweet Dreams: MP +1 at the start of your turn"],
+  uqMorphGlove: ["Drowsy Gloves", "Beckoning Hand: 15% chance to put the foe to sleep when attacking"],
+  uqMorphHood: ["Slumber Hood", "Sleepless: RES +25%"],
+  uqKuraiBell: ["Outskirts Bell Keeper", "Mourning Bell: heal all allies 1.5% HP at the start of your turn"],
+  uqKuraiBlade: ["Midnight Bone Scythe", "Bloodsucker: drain 8% of damage dealt"],
+  uqCrystalGauntlet: ["Crystal Moss Gauntlet", "Hard Hands: DEF +20%, damage taken −5%"],
+  uqCrystalWand: ["Dragon Crystal Staff", "Refraction: INT +20%, first attack +20%"],
+  uqInohPearl: ["Shallows Pearl", "Calm: heal 2% HP at the start of your turn, HP +15%"],
+  uqGamaFlag: ["Torn Pirate Flag", "Plunder: attack damage +10%, Crit +6%"],
+  uqTidaMirror: ["Mist-Clearing Mirror", "Clear Sight: foe Evasion −10%, DEX +25%"],
+  uqAtuiSpear: ["Octopus Ink Harpoon", "Ink Pool: 20% chance to blind the foe when attacking"],
+  uqZanShell: ["Mermaid Hair Ornament", "Song's Blessing: heal all allies 1.5% HP (at the start of your turn)"],
+  uqUfuBoots: ["Lava Walker Boots", "Hot Footprints: at the start of battle, foe ATK −10% and your DEF +10%"],
+  uqKajiGeta: ["Tailwind Geta", "Ride the Wind: AGI +25%, Evasion +8%"],
+  uqNiraiCrown: ["Sea God's Little Crown", "Blessing: damage taken −8%, harder to get status effects"],
+  uqMabuiRing: ["Captain's Ring", "Final Order: at the start of battle, all allies' ATK and INT +10%"],
+  uqKanaiKey: ["Gatekeeper's Key", "Open Up: first attack +30%, act first at the start of battle"],
 };
 export const MYTHIC_EN = {
   halsCloak: ["Hals Travel Cloak", "Seasoned Feet: AGI +30% and Evasion +10% for the first 2 turns"],
@@ -438,7 +462,7 @@ export const WS_EN = {
   charm_para: ["Paralysis Ward Charm", "Expedition tool: harder to be paralyzed"], charm_stun: ["Stun Ward Charm", "Expedition tool: harder to be stunned"],
   fert: ["Fertilizer", "Farm: spread when planting to cut grow time by 30% (1 per plot)"], fert2: ["Better Fertilizer", "Farm: grow time −30%, and quality goes up one sprinkler tier"],
   detox: ["Detox Tea", "Pets & companions: reset detailed stats (only before reaching the cap)"],
-  pickaxe: ["Pickaxe", "Mine: for 12 hours, dig ×1.3"], lamp: ["Lamp", "Mine: for 12 hours, silver and gold ore are twice as likely"],
+  scaffold: ["Scaffold", "Facility: use it while building to advance construction by 2 hours"], pickaxe: ["Pickaxe", "Mine: for 12 hours, dig ×1.3"], lamp: ["Lamp", "Mine: for 12 hours, silver and gold ore are twice as likely"],
 };
 export const ATTK_EN = { tip: "Tip", grip: "Grip" };
 export const ATT_EN = { spike: "Spike Cap", lens: "Magnifier", bulb: "Tiny Bulb", rubber: "Rubber Cap", tape: "Grip Tape", strap: "Strap", weight: "Weight", bell: "Bell" };
@@ -501,6 +525,7 @@ export const SHOP_EN = {
   "k-boss": ["Boss Material", "1 per week"],
   "y-map": ["Hidden Passage Map", "Opens it on 1 floor without reaching 100%"], "y-collar": ["Friendship Collar", "Friendship gauge +5"],
   "y-core": ["Blank Core", "Extracts 1 OP from a piece of gear (the gear is used up)"], "y-charm": ["Lucky Charm (Crafting)", "Your next craft or fusion gets ★ +1"],
+  "y-cratekey": ["Crate Keycard", "Opens a locked crate in the Crawler (same item as the pachinko prize)"],
 };
 
 // ビサイ諸島・ミカネル島の 名前を はじめの 島の 表に 足す（id で 引く）
@@ -530,6 +555,7 @@ export function nameWords() {
     for (const f of [...d.foes, d.rare, d.boss]) put(f.name, (ENEMY_EN[f.tree] || [])[0]);
     const m = MYTHIC_EN[d.mythic && d.mythic.id]; if (m) { put(d.mythic.name, m[0]); put(d.mythic.text, m[1]); }
   }
+  for (const u of UNIQUES) { const e = UNIQUE_EN[u.id]; if (e) { put(u.name, e[0]); put(u.text, e[1]); } }   // ユニーク装備
   for (const [id, t] of Object.entries(ENEMY_TREES)) {
     const e = ENEMY_EN[id]; if (e) { put(t.enemy, e[0]); put(t.name, e[1]); }
     for (const s of t.list) { put(s.name, SKILL_EN[s.id]); if (s.kind !== "passive" && s.fx) put(s.text, describeEn(s.fx)); }

@@ -221,6 +221,8 @@ export const matOpen = (id) => farmOpen() || !FARM_MAT.has(id);
 // どの敵の素材か（ドット絵を出すため）
 export const MAT_FROM = Object.fromEntries([...Object.entries(ENEMY_MAT), ...Object.entries(CRYSTAL)].map(([tree, [id]]) => [id, tree]));   // 結晶も 落とした 敵
 export const HIDDEN_MAT = new Set(Object.values(GATHER).map((g) => g.hidden[0]));
+// ユニーク装備を 作る 材料：その 行き先の ボスの 素材 ＋ かくし通路の 素材（鹿さんの 決め、2026-10-26。数は unique-equip.js の uniqueRecipe）。[ボスの 素材, かくし通路の 素材]
+export const uniqueMats = (did) => { const d = DUNGEONS_ALL.find((x) => x.id === did), boss = d && d.boss && ENEMY_MAT[d.boss.tree], hid = GATHER[did] && GATHER[did].hidden; return boss && hid ? [boss[0], hid[0]] : null; };
 // 畑で とれた 物（採取の 素材に 品質 1〜5）は 品質が 高いほど 高く 売れる（鹿さんの頼み、2026-10-25。拾った 物は 品質 0）
 export const GATHER_Q = [1, 1.5, 2, 3, 4, 6];
 // 延べ棒は 高めに 売れる（鹿さんの 決め、2026-10-31：金の延べ棒を 売れる ように）。値は VALUE（銅 17・鉄 20・銀 46・金 104。docs/mono-link-crafting.md）

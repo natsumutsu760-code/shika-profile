@@ -3,6 +3,7 @@
 // だれ：いま 見て いる 子だけ／パーティ 全員（ペット → パーティの なかまの 順に いい 物から）。ほかの 子が 付けて いる 物も 外して 使う
 // 出かけて いる 子の 装備は 使わない。画面（くらべる）と 門番（付ける）で 同じ 計算
 import { SLOTS, baseOf, itemStats, itemPower } from "./equip.js";
+import { UNIQUE_MAX } from "./unique-equip.js";   // ユニーク装備は 1 匹に 2 つまで（鹿さんの 決め、2026-10-26）
 import { JOB_GROWTH } from "./trees.js";
 
 export const REC_MODES = [["job", "職業に 合う"], ["power", "強さ"], ["weak", "弱点を 補う"]];
@@ -33,10 +34,12 @@ export function recommend(chars, items, mode, locked = new Set()) {
   const used = new Set(), out = [];
   for (const ch of chars) {
     const w = recWeights(mode, ch), sc = new Map(items.map((it) => [it.uid, recScore(it, w)])), mine = new Set(Object.values(ch.equip || {}).filter(Boolean)), set = {};
+    let uq = 0;   // この 子に 付ける ユニークの 数（UNIQUE_MAX まで）
     for (const kind of KIND_KEYS) {
-      const slots = SLOT_KEYS.filter((s) => SLOTS[s].kind === kind);
-      const pick = items.filter((it) => !used.has(it.uid) && !locked.has(it.uid) && kindOf(it) === kind && sc.get(it.uid) > 0)
-        .sort((a, b) => sc.get(b.uid) - sc.get(a.uid) || mine.has(b.uid) - mine.has(a.uid) || b.star - a.star || (a.uid < b.uid ? -1 : 1)).slice(0, slots.length);
+      const slots = SLOT_KEYS.filter((s) => SLOTS[s].kind === kind), pick = [];
+      const cand = items.filter((it) => !used.has(it.uid) && !locked.has(it.uid) && kindOf(it) === kind && sc.get(it.uid) > 0)
+        .sort((a, b) => sc.get(b.uid) - sc.get(a.uid) || mine.has(b.uid) - mine.has(a.uid) || b.star - a.star || (a.uid < b.uid ? -1 : 1));
+      for (const it of cand) { if (pick.length >= slots.length) break; const u = !!(baseOf(it.base) || {}).unique; if (u && uq >= UNIQUE_MAX) continue; pick.push(it); if (u) uq++; }
       pick.forEach((it) => used.add(it.uid));
       // アクセサリー：いま 付けて いる 枠に ある 物は その 枠の まま。のこりを あいた 枠へ
       const left = [...pick];

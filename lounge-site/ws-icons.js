@@ -35,6 +35,7 @@ Object.assign(ICONS, {
 const sack = (c, d) => `<path d="M9 9h14l2 16a3 3 0 0 1-3 3H10a3 3 0 0 1-3-3z" fill="${c}" stroke="${d}" stroke-width="1.6"/><path d="M11 9l2-4h6l2 4" fill="${c}" stroke="${d}" stroke-width="1.6"/><path d="M13 18c1-3 5-3 6 0M16 15v8" stroke="#3F8A2E" stroke-width="1.8" fill="none"/>`;
 Object.assign(ICONS, {
   fert: W(sack("#D9B98A", "#8A6A3A")), fert2: W(sack("#E8D0A8", "#8A6A3A") + STAR),
+  scaffold: W(`<path d="M8 4v25M24 4v25" stroke="#B8935A" stroke-width="2.6"/><path d="M8 10h16M8 18h16M8 26h16" stroke="#8C6A3A" stroke-width="2.2"/><path d="M8 10l16 8M24 18L8 26" stroke="#D9B98A" stroke-width="1.6"/>`),
   pickaxe: W(`<path d="M6 10c5-5 15-5 20 0" fill="none" stroke="#8E9AAA" stroke-width="4"/><path d="M16 7v21" stroke="#8C5A38" stroke-width="3"/>`),
   lamp: W(`<path d="M12 6h8M16 3v3" stroke="#7A5530" stroke-width="1.8"/><path d="M11 8h10l1 4H10z" fill="#C97A3A" stroke="#7A4A20" stroke-width="1.4"/><rect x="11" y="12" width="10" height="11" rx="2" fill="#FFE08A" stroke="#C97A3A" stroke-width="1.6"/><path d="M16 15c-2 2-2 4 0 6 2-2 2-4 0-6z" fill="#FF8A3A"/><rect x="10" y="23" width="12" height="4" rx="1.5" fill="#C97A3A" stroke="#7A4A20" stroke-width="1.4"/>`),
 });

@@ -310,7 +310,8 @@ import * as THREE from "three";
 import { makeMaze, CELL } from "./crawler3d.js";
 import { drawMap, COMPANY } from "./crawler-map.js";
 import { spriteURL } from "./sprites.js";
-import { makePOM } from "./pom3d.js";
+import { makePOM, makeElitePOM, ELITES } from "./pom3d.js";
+const ELITE_ID = Object.fromEntries(Object.entries(ELITES).map(([id, e]) => [e.name, id]));   // 精鋭の 名前 → 塗り分けの id（モデリングの M-014。2026-11-05 に つないだ：前は ふつうの POM の 色の まま だった）
 import { makePet3, SPECIES3 } from "./pets.js";
 import { MAIN_TREES } from "./main-trees.js";
 import { newRun, act, endBattle, useItem, visibleFrom, DIRV } from "./crawler-game.js";
@@ -508,7 +509,7 @@ function sync3d() {
     let o = objs.get(f.id);
     if (!f.alive) { if (o) { o.visible = false; } continue; }
     if (!o) {
-      if (f.pet) { o = makePOM(f.pet, { co: f.co ?? "sva" }); const bb = new THREE.Box3().setFromObject(o), h = bb.max.y - bb.min.y || 1, k = (f.elite ? 1.05 : 0.9) / h; o.scale.setScalar(k); o.userData.y0 = -bb.min.y * k; mz.group.add(o); }
+      if (f.pet) { const eid = f.elite && ELITE_ID[f.name]; o = eid ? makeElitePOM(eid) : makePOM(f.pet, { co: f.co ?? "sva" }); const bb = new THREE.Box3().setFromObject(o), h = bb.max.y - bb.min.y || 1, k = (f.elite ? 1.05 : 0.9) / h; o.scale.setScalar(k); o.userData.y0 = -bb.min.y * k; mz.group.add(o); }
       else { o = mz.addBoard(spriteURL(f.sprite ?? S.def.monsters[0].sprite), f.x, f.y, { h: f.elite ? 1.7 : 1.35 }); o.userData.y0 = 0; }
       objs.set(f.id, o);
     }
@@ -629,11 +630,25 @@ function openFight() {
   $("elite").textContent = "";
   drawFight();
 }
+// 戦いの 札の 絵：迷宮の 3D と 同じ 姿（会社の 仮面・精鋭の 塗り。モデリングの M-013・M-014）を 小さく 撮って 使う。前は ふつうの ペットの 絵（2026-11-05 に 直した）
+const shots = new Map(); let shotR = null;
+function pomShot(pet, co, eid) {
+  const key = eid || pet + "/" + co; if (shots.has(key)) return shots.get(key);
+  try {
+    if (!shotR) { shotR = new THREE.WebGLRenderer({ antialias: true, alpha: true, preserveDrawingBuffer: true }); shotR.setPixelRatio(1); shotR.setSize(200, 200); shotR.outputColorSpace = THREE.SRGBColorSpace; shotR.setClearColor(0x000000, 0); }
+    const s = new THREE.Scene(); s.add(new THREE.HemisphereLight("#DDE6F2", "#2A2C34", 1.1));
+    const k = new THREE.DirectionalLight("#FFF6EA", 2.2); k.position.set(-1.4, 2.4, 2.6); s.add(k); const r = new THREE.DirectionalLight("#9FC9FF", 0.9); r.position.set(2, 1.2, -1.2); s.add(r);
+    const p = eid ? makeElitePOM(eid) : makePOM(pet, { co }); p.userData.tick?.(0.5); s.add(p);
+    const box = new THREE.Box3().setFromObject(p), hh = box.max.y - box.min.y, cy = box.min.y + hh * 0.5;
+    const c = new THREE.PerspectiveCamera(24, 1, 0.05, 20); c.position.set(0, cy + 0.2, Math.max(1.6, hh * 2.9)); c.lookAt(0, cy, 0);
+    shotR.clear(); shotR.render(s, c); const url = shotR.domElement.toDataURL("image/png"); shots.set(key, url); return url;
+  } catch (e) { shots.set(key, null); return null; }
+}
 function drawFight() {
-  const n = B.party.length;
+  const n = B.party.length, bf = S.battle?.foe;
   $("foes").innerHTML = B.foes.map((f, j) => {
     const i = n + j, s = B.now[i], mx = B.fighters[i].maxHp, pet = f.species;
-    const src = pet ? petImg(pet) : spriteURL(f.sprite ?? S.def.monsters[0].sprite);
+    const src = pet ? pomShot(pet, bf?.co ?? "sva", bf?.elite ? ELITE_ID[f.name] : null) ?? petImg(pet) : spriteURL(f.sprite ?? S.def.monsters[0].sprite);
     return `<button class="foe${pet ? " pet" : ""}${s.hp <= 0 ? " down" : ""}${tgt === i ? " tgt" : ""}" data-i="${i}"><img src="${src}" alt=""><span class="nm mono">${f.name}</span><span class="bar"><i style="width:${(100 * Math.max(0, s.hp)) / mx}%;background:var(--alert)"></i></span></button>`;
   }).join("");
   document.querySelectorAll(".foe").forEach((el) => (el.onclick = () => { const i = +el.dataset.i; if (B.now[i].hp > 0) { tgt = i; drawFight(); } }));

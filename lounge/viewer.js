@@ -8,7 +8,7 @@ import { cleanRoom, STARTER_OWN, STARTER_ROOM, N, SALE_IDS, priceOn, jstDay, pul
 import { locked, lockedAct, lockWhy, lockKind } from "./lounge-lock.js";   // 大工事の あいだの ロック
 import { emptyLedger, balanceOf, trimSent, toObs, settle } from "./ledger.js";
 import { buyPlan, sellAct, tradeAct, taskDone, useItem, deeplinkView, actEvents, dlVisit } from "./lounge-trade.js";
-import { facMigrate, facDue, facStart, facPut, facRush, facFuel, facKnob, facView } from "./lounge-facility.js";   // 施設の 建設と つまみ（施設の 作り直し、2026-11-03）
+import { facMigrate, facDue, facStart, facPut, facRush, facFuel, facScaffold, facKnob, facView } from "./lounge-facility.js";   // 施設の 建設と つまみ（施設の 作り直し、2026-11-03）
 import { reqPostPlan, takeFor, items } from "./lounge-req.js";
 import { petTake, petGrow, petSub, petStat, petGambits, petStyle, equipSet, equipBest, respecPlan, fighterOf, spTotal, spUsed, freeTotal, RESET_PRICE } from "./lounge-pet.js";
 import { freeIsAuto } from "./trees.js";   // 手で 振る ポイントが 自動か
@@ -16,7 +16,7 @@ import "./warm.js";   // 派遣の 計算を 温めて おく（はじめの 1 �
 import { relayEntry, mythicNote } from "./lounge-relay.js";   // 配信の 中継（鹿物語の ランキングの 窓）に あずける 派遣の 材料
 import { swapPlan, cashDo } from "./lounge-money.js";   // 両替（玉・クレジット・アメジスト）
 import { coreTake, coreSet } from "./lounge-core.js";   // ブランクコア（OP を 抜く・付ける）
-import { devPlan, sphereLook, sphereSet, drawOp } from "./lounge-equip.js";   // 装備開発・スフィア（2026-11-04）
+import { devPlan, uniquePlan, sphereLook, sphereSet, drawOp } from "./lounge-equip.js";   // 装備開発・スフィア（2026-11-04）
 import { tameFuse, tameSp } from "./lounge-fuse.js";   // モンスターの 配合・なかまの スキルポイント
 import { wsMake, wsAtt, wsProc, attSet, attOff, attDrop, smeltPut, smeltTake, smeltStop } from "./lounge-workshop.js";   // 工房（道具・アタッチメント・精錬）
 import { mineSet, mineCollect, mineUse, mineLeave, mineView } from "./lounge-mine.js";   // 坑道（前の 隠れ家の 畑は 2026-11-03 に 消して 新しい 農園に まとめた）
@@ -41,6 +41,7 @@ const PLANS = {
   "bench.craft": (rec, b) => craftPlan(rec, b, rand),
   "bench.synth": (rec, b) => synthPlan(rec, b, rand),
   "bench.dev": (rec, b) => devPlan(rec, b, rand),   // 装備開発（敵の 結晶で 作る。lounge-equip.js）
+  "bench.unique": (rec, b) => uniquePlan(rec, b, rand),   // ユニーク装備を 作る（ボスの 素材 ＋ かくし通路の 素材。lounge-equip.js）
   "tame.feed": (rec, b) => tameFeedPlan(rec, b, rec.ledger.unknown),
   "tame.research": (rec, b) => researchPlan(rec, b, rec.ledger.unknown),
   "tame.extract": (rec, b) => extractPlan(rec, b, rec.ledger.unknown),   // 進化した スキルを 取り出す（なかまと おわかれ）
@@ -363,6 +364,7 @@ export class Viewer {
     else if (body.a === "fac.put") r = facPut(rec, body, now);
     else if (body.a === "fac.rush") r = facRush(rec, body, now);
     else if (body.a === "fac.fuel") r = facFuel(rec, body, now);
+    else if (body.a === "fac.scaffold") r = facScaffold(rec, body, now);   // 足場（工房で 作った 物）
     else if (body.a === "fac.knob") r = facKnob(rec, body, now);
     else if (body.a === "ws.att") r = wsAtt(rec, body, rand, now);
     else if (body.a === "ws.proc") r = wsProc(rec, body, now);           // 加工：作物 → 布・建材

@@ -213,6 +213,7 @@ const SORTS = [["n", "多い順"], ["q", "品質の 高い順"], ["name", "名�
 // 門番の 記録を 画面の 形に。玉と アメジストが まだ わからない 人は known: false（足りるかは 門番が 決める）
 const S = { balls: 0, res: 0, cr: 0, known: false, up: null, sk: "all", si: "all", sw: "all", sort: "n", pick: null, lv: {}, fac: {}, at: 0, inv: [], box: [], boxEq: [], cap: storageCap(0) };
 let ME = null;
+const scaffolds = () => ((ME && ME.deeplink && ME.deeplink.items) || {}).scaffold || 0;   // 工房で 作った 足場の 数（持って いる ときだけ ボタンを 出す）
 function load(m) {
   ME = m; const now = Date.now(), days = (t) => Math.max(1, Math.ceil((t - now) / 864e5));
   S.known = !!(m.wallet && m.wallet.known); S.balls = S.known ? m.wallet.balls : 0; S.res = S.known ? m.wallet.res : 0; S.cr = m.credits || 0;
@@ -335,7 +336,7 @@ function buildingHtml(f, v) {
   const lack = rows.filter((r) => r.have < r.need), canPut = lack.some((r) => r.own > 0);
   const bar = (label, p) => `<div class="pbar" style="--c:${COLOR[f.id]}"><span>${label}</span><i><b style="width:${Math.round(p * 100)}%"></b></i><em>${Math.floor(p * 100)}%</em></div>`;
   const msg = !lack.length ? (left ? `素材は そろった：のこり ${dur(left)} で できる` : "") : left ? `のこり ${dur(left)}` : "時間は 足りた：素材を 入れると できる";
-  const fast = left > 0 ? `<div class="fast"><button class="mini" data-rush="${f.id}" ${S.cr >= b.rush ? "" : "disabled"}><b>グラナート建設</b><small>${fmt(b.rush)} クレジット・のこり 半分</small></button><button class="mini" data-fuel="${f.id}" ${S.cr >= FUEL.price ? "" : "disabled"}><b>燃料 1 本</b><small>${FUEL.price} クレジット・30 分</small></button></div>` : "";
+  const fast = left > 0 ? `<div class="fast"><button class="mini" data-rush="${f.id}" ${S.cr >= b.rush ? "" : "disabled"}><b>グラナート建設</b><small>${fmt(b.rush)} クレジット・のこり 半分</small></button><button class="mini" data-fuel="${f.id}" ${S.cr >= FUEL.price ? "" : "disabled"}><b>燃料 1 本</b><small>${FUEL.price} クレジット・30 分</small></button>${scaffolds() ? `<button class="mini" data-scaffold="${f.id}"><b>足場 1 こ</b><small>のこり ${scaffolds()}・2 時間</small></button>` : ""}</div>` : "";
   return `<section class="bld" aria-label="建設"><span class="need-h">Lv${b.to} を 建設中</span>${bar("素材", b.mr)}${bar("時間", trNow(b))}
     <ul class="need">${[...lack, ...rows.filter((r) => r.have >= r.need)].map(rowHtml).join("")}</ul>
     ${lack.length ? `<button class="jelly sky go" data-put="${f.id}" ${canPut ? "" : "disabled"}>持って いる 素材を 入れる</button>${canPut ? "" : `<p class="why">足りない：${esc(lack.slice(0, 2).map((r) => `${MAT_NAME[r.id]} あと ${fmt(r.need - r.have)}`).join("、"))}${lack.length > 2 ? `、ほか ${lack.length - 2} こ` : ""}</p>`}` : ""}
@@ -388,6 +389,7 @@ document.querySelector("main").addEventListener("click", async (e) => {
   if (b.dataset.put) { const id = b.dataset.put; return ask(b, "fac.put", { id }, (r) => (r.done ? done(id, r) : `素材を ${fmt(r.put)} こ 入れた（素材 ${r.mats}%）`)); }
   if (b.dataset.rush) { const id = b.dataset.rush; return ask(b, "fac.rush", { id }, (r) => (r.done ? done(id, r) : `グラナート建設に 頼んだ：のこり ${dur(r.left)}`)); }
   if (b.dataset.fuel) { const id = b.dataset.fuel; return ask(b, "fac.fuel", { id, n: 1 }, (r) => (r.done ? done(id, r) : `燃料を 使った：のこり ${dur(r.left)}`)); }
+  if (b.dataset.scaffold) { const id = b.dataset.scaffold; return ask(b, "fac.scaffold", { id, n: 1 }, (r) => (r.done ? done(id, r) : `足場を 使った：のこり ${dur(r.left)}`)); }
   render();
   if (b.dataset.f) { document.querySelector(`[data-f="${b.dataset.f}"]`)?.focus({ preventScroll: true }); if (small()) document.getElementById("detail").scrollIntoView({ behavior: calm() ? "auto" : "smooth" }); }
 });

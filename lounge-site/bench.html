@@ -150,10 +150,11 @@ import { craftPop } from "./craft-pop.js";   // えらんだ 物を 作る ポ�
 import { BASES, KINDS, FORMS, MATS, OPS, baseOf, comboOf, matsOf, opStarOf, opCount } from "./equip.js";
 import { CRAFT, SYNTH, MAT_OP, craftStarW, synthStarW, BOSS_FX, craftOpen, synthOpen, synthCredits } from "./recipes.js";
 import { facLv, upkeep, SYNTH_LV, benchStarMax, benchTopUp } from "./facilities.js";   // 施設の 作り直し（2026-11-03）：作業台 Lv1〜100・つまみ・作るたびの 維持費・合成は Lv20 から
-import { MAT_NAME, MAT_FROM, HIDDEN_MAT, GATHER, ENEMY_MAT } from "./materials.js";
+import { MAT_NAME, MAT_FROM, HIDDEN_MAT, GATHER, ENEMY_MAT, uniqueMats } from "./materials.js";
 import { DUNGEONS, ISLAND_OPEN } from "./dungeons.js";
 import { DEV_IDS, devBase, devNeed, devStarW, devStats, CRYSTAL_GRADE } from "./equip-dev.js";   // 装備開発（敵の 結晶で 作る。2026-11-04 に つないだ）
 import { spriteURL } from "./sprites.js";
+import { UNIQUES, UNIQUE_BENCH_LV, UNIQUE_CREDITS, UNIQUE_MAX, uniqueRecipe } from "./unique-equip.js";   // ユニーク装備を 作る（2026-11-05 に つないだ）
 import { me, act, busy, waitText } from "./lounge-client.js";   // 作業台の Lv・素材・装備・作る・合成は 門番から（くじも 門番が 引く）
 import { mountWallet } from "./wallet-bar.js"; mountWallet();   // 上の 通貨の 札（玉・アメジスト・クレジット）と 両替
 import { gearImg, watchIcons } from "./gear-icon.js";
@@ -180,7 +181,7 @@ function load(m) {
 load(await me());
 const R = (k) => (k.startsWith("c:") ? CRAFT.find((r) => r.base === k.slice(2)) : SYNTH.find((r) => r.out === k.slice(2)));
 const K0 = q.get("k") || "";
-S.sel = R(K0) || (K0.startsWith("d:") && DEV_IDS.includes(K0.slice(2))) ? K0 : "c:helmet";
+S.sel = R(K0) || (K0.startsWith("d:") && DEV_IDS.includes(K0.slice(2))) || (K0.startsWith("u:") && UNIQUES.some((u) => u.id === K0.slice(2))) ? K0 : "c:helmet";
 // タブ：部位の まとまり。形の レシピ（tier が ある 物）は 素材と 色が くじ なので、名前は 形だけ
 const GROUPS = [["wear", "身につける", ["head", "neck", "arm", "leg"]], ["hold", "手に持つ", ["weapon", "off"]], ["acc", "アクセサリー", ["acc"]]];
 const idOf = (k) => (k.startsWith("c:") ? R(k).base : R(k).out), formOf = (k) => (k.startsWith("c:") && R(k).tier != null ? comboOf(R(k).base) : null);
@@ -188,7 +189,64 @@ const titleOf = (k) => { const f = formOf(k); return f ? FORMS[f.form].name : ba
 const groupOf = (k) => GROUPS.find((g) => g[2].includes(baseOf(idOf(k)).slot))[0];
 const keysOf = (kind) => [...BASES.filter((b) => b.slot === kind).map((b) => "c:" + b.id), ...CRAFT.filter((r) => r.tier != null && comboOf(r.base).slot === kind).map((r) => "c:" + r.base)];
 const matsText = (tier) => { const name = (t) => matsOf(t).map((m) => MATS[m].name).join("・"); return tier > 0 ? `${name(tier)}（ときどき ${name(tier - 1)}）` : name(0); };
-S.tab = S.sel.startsWith("d:") ? "dev" : groupOf(S.sel);
+S.tab = S.sel.startsWith("d:") ? "dev" : S.sel.startsWith("u:") ? "uq" : groupOf(S.sel);
+
+// ---------- ユニーク（鹿さんの 決め 2026-10-26：ボスから まれに ＋ 作業台で 作る。つないだのは 2026-11-05）----------
+// その 行き先の ボスの 素材 3 ＋ かくし通路の 素材 2 ＋ 3,000 クレジット。レシピは 素材を ぜんぶ 1 回 拾うと 出る。作業台 Lv20 から。1 匹に 2 つまで 付けられる
+const UQS = UNIQUES.filter((u) => u.isle <= ISLAND_OPEN), uqOf = (id) => UQS.find((u) => u.id === id);
+const uqNeed = (u) => { const m = uniqueMats(u.dungeon); return m ? uniqueRecipe(u, m[0], m[1]) : null; };
+const uqOpen = (u) => { const n = uqNeed(u); return !!n && n.mats.every(([m]) => S.seen.has(m)); };
+function uqState(u) {
+  if (S.lv < 1) return "wait";
+  if (!uqOpen(u)) return "lock";
+  if (S.lv < UNIQUE_BENCH_LV) return "lv";
+  const n = uqNeed(u); return n.mats.every(([m, k]) => (S.inv[m] || 0) >= k) && S.cr >= n.credits + devFee() ? "can" : "short";
+}
+const uqWord = (st) => (st === "can" ? "作れる" : st === "short" ? "足りない" : st === "lv" ? `作業台 Lv${UNIQUE_BENCH_LV} から` : "");
+const uqList = () => UQS.filter(uqOpen);
+function uqNode(u) {
+  const st = uqState(u), w = uqWord(st);
+  return `<button class="node ${st === "lv" ? "wait" : st}" data-k="u:${u.id}" aria-pressed="${S.sel === "u:" + u.id}"><span class="ic">${gearImg(u.id)}</span><span><b>${esc(u.name)}</b><small>${esc(KINDS[u.slot].label)}${w ? "・" + esc(w) : ""}</small></span></button>`;
+}
+function uqTreeHtml() {
+  document.getElementById("cols").style.setProperty("--n", 1);
+  const open = new Set(uqList()), groups = DUNGEONS.map((d) => ({ d, us: UQS.filter((u) => u.dungeon === d.id && open.has(u)) })).filter((g) => g.us.length), hidden = UQS.length - open.size;
+  return (groups.length ? groups.map((g) => { const c = g.us.filter((u) => uqState(u) === "can").length; return `<section class="col" aria-label="${esc(g.d.name)}"><h2>${esc(g.d.name)}${c ? `<small>作れる ${c}</small>` : ""}</h2><div class="rows devrows">${g.us.map(uqNode).join("")}</div></section>`; }).join("")
+    : `<p class="devnote">まだ 作れる ユニークが ない。行き先の ボスの 素材と かくし通路の 素材を 拾うと 出てくる</p>`) + (hidden ? `<p class="devnote">まだ 出て いない ユニーク ${hidden} こ（ボスの 素材と かくし通路の 素材を 拾うと 出る）</p>` : "");
+}
+function uqMadeHtml() {
+  const it = S.made, u = uqOf(it.base);
+  return `<div class="made"><span class="ic">${gearImg(it.base)}</span><div><h3><small>できた！</small>${esc(u.name)} ${stars(it.star)}</h3>
+    <ul>${it.ops.map((o) => `<li>${esc(OPS[o].fmt(OPS[o].v[4]))}</li>`).join("")}</ul><p class="fx">${esc(u.text)}</p></div></div>`;
+}
+function uqDetailHtml() {
+  const u = uqOf(S.sel.slice(2)); if (!u) return `<p class="devnote">左の 一覧から えらぶ</p>`;
+  const n = uqNeed(u), st = uqState(u), fee = devFee(), d = DUNGEONS.find((x) => x.id === u.dungeon);
+  const head = `<div><header><span class="ic">${gearImg(u.id)}</span><div><span class="tag boss">ユニーク</span><span class="tag">${KINDS[u.slot].label}</span><h2>${esc(u.name)}</h2></div></header>
+    <div class="facts"><div><span class="l">効果</span><span class="fx">${esc(u.text)}</span></div>
+      <div><span class="l">★・OP</span><span>★5・OP ${opCount(u.slot, 5) + 1}（ミシックと 同じ）</span></div>
+      <div><span class="l">付けられる 数</span><span>1 匹に ${UNIQUE_MAX} つまで</span></div>
+      <div><span class="l">ボスからも</span><span>まれに 出る（<b>${esc(d ? d.name : "")}</b>の ボス）</span></div></div></div>`;
+  let body;
+  if (st === "wait") body = `<div class="lockbox wait"><p>作業台が まだ ない</p><a href="hideout.html?f=bench">隠れ家で 作業台を 作る</a></div>`;
+  else if (st === "lock") body = `<div class="lockbox"><p>レシピは まだ ない。これを 手に入れると 出てくる：</p>${n.mats.filter(([m]) => !S.seen.has(m)).map(([m]) => `<p>・${esc(MAT_NAME[m])}<small>（${esc(FOE[m] ? `${FOE[m]}・` : "")}${esc(WHERE[m] || "")}）</small></p>`).join("")}</div>`;
+  else if (st === "lv") body = `<div class="lockbox wait"><p>ユニークは 作業台 Lv${UNIQUE_BENCH_LV} から 作れる</p><a href="hideout.html?f=bench">作業台を 上げる</a></div>`;
+  else {
+    const rows = [...n.mats.map(([m, k]) => ({ kind: "mat", id: m, need: k, have: S.inv[m] || 0 })), { kind: "c", need: n.credits + fee, have: S.cr, fee }];
+    const lack = rows.filter((x) => x.have < x.need), sorted = [...lack, ...rows.filter((x) => x.have >= x.need)];
+    const why = lack.slice(0, 2).map((x) => (x.kind === "c" ? `クレジット あと ${fmt(x.need - x.have)}` : `${MAT_NAME[x.id]} あと ${x.need - x.have}`)).join("、") + (lack.length > 2 ? `、ほか ${lack.length - 2} こ` : "");
+    body = `<div><span class="need-h">使う物</span><ul class="need">${sorted.map(rowHtml).join("")}</ul>
+      <button class="jelly go" data-uq="${u.id}" ${lack.length ? "disabled" : ""}>作る</button>${lack.length ? `<p class="why">足りない：${esc(why)}</p>` : ""}</div>`;
+  }
+  return (S.made && uqOf(S.made.base) ? uqMadeHtml() : "") + head + body;
+}
+async function makeUq(b, id) {
+  const res = await busy(b, () => act("bench.unique", { id }), "作って います…");
+  if (!res.ok && !res.wait) return toast(res.why || "できませんでした");
+  load(await me());
+  if (res.ok) S.made = res.item; else toast(waitText);
+  render();
+}
 
 // ---------- 開発（敵の 結晶で 作る。鹿さんの 決め 2026-10-28、つないだのは 2026-11-04）----------
 // 1 つの 敵に 3 つ。その 敵の 結晶を 拾うと 出る。結晶の 段（品質）を えらぶ と ★の 出やすさが かわる。作った 装備は OP なし（枠は 空いて 出る）
@@ -296,6 +354,7 @@ function node(k) {
 // 1 行が もとの装備 → 上の装備。形の レシピは 合成が ないので 1 つ だけ
 function treeHtml() {
   if (S.tab === "dev") return devTreeHtml();
+  if (S.tab === "uq") return uqTreeHtml();
   const keep = (ks) => !S.only || ks.some((k) => stateOf(k) === S.only);   // しぼりこみ：行の どちらかが 合えば 出す（木の 形は くずさない）
   const kinds = GROUPS.find((g) => g[0] === S.tab)[2].filter((kind) => keysOf(kind).some((k) => keep(pairOf(k))));
   document.getElementById("cols").style.setProperty("--n", Math.max(1, Math.min(2, kinds.length)));
@@ -308,10 +367,12 @@ const tabKeys = (g) => GROUPS.find((x) => x[0] === g)[2].flatMap(keysOf).flatMap
 function tabsHtml() {
   return GROUPS.map(([g, label]) => { const n = tabKeys(g).filter((k) => stateOf(k) === "can").length;
     return `<button role="tab" data-tab="${g}" aria-selected="${S.tab === g}">${label}${n ? `<em>${n}</em>` : ""}</button>`; }).join("")
-    + (() => { const n = DEVS.filter((id) => devState(id) === "can").length; return `<button role="tab" data-tab="dev" aria-selected="${S.tab === "dev"}">開発${n ? `<em>${n}</em>` : ""}</button>`; })();   // 敵の 結晶で 作る
+    + (() => { const n = DEVS.filter((id) => devState(id) === "can").length; return `<button role="tab" data-tab="dev" aria-selected="${S.tab === "dev"}">開発${n ? `<em>${n}</em>` : ""}</button>`; })()   // 敵の 結晶で 作る
+    + (() => { const n = UQS.filter((u) => uqState(u) === "can").length; return `<button role="tab" data-tab="uq" aria-selected="${S.tab === "uq"}">ユニーク${n ? `<em>${n}</em>` : ""}</button>`; })();   // ボスの 素材で 作る
 }
 function keyHtml() {
   if (S.tab === "dev") return devFiltHtml();
+  if (S.tab === "uq") return "";
   const all = tabKeys(S.tab).map(stateOf), n = (s) => (s ? all.filter((x) => x === s).length : all.length);   // この タブの 中で 数える
   if (S.only && !n(S.only)) S.only = "";
   const chip = (s, label) => `<button class="chip ${s ? "k-" + s : ""}" data-only="${s}" aria-pressed="${S.only === s}" ${n(s) ? "" : "disabled"}>${s ? "<i></i>" : ""}${label}<em>${n(s)}</em></button>`;
@@ -333,7 +394,8 @@ function madeHtml() {
 }
 function detailHtml() {
   if (S.sel.startsWith("d:")) return devDetailHtml();
-  if (S.tab === "dev") return `<p class="devnote">左の 一覧から えらぶ</p>`;
+  if (S.sel.startsWith("u:")) return uqDetailHtml();
+  if (S.tab === "dev" || S.tab === "uq") return `<p class="devnote">左の 一覧から えらぶ</p>`;
   const k = S.sel, r = R(k), up = k.startsWith("s:"), id = up ? r.out : r.base, b = baseOf(id), st = stateOf(k), fm = formOf(k);
   const likes = r.mats.map(([m]) => MAT_OP[m]).filter(Boolean);
   const head = `<div><header><span class="ic">${gearImg(id)}</span><div><span class="tag ${up ? (r.boss ? "boss" : "up") : ""}">${up ? (r.boss ? "合成・ボスの素材" : "合成") : "作る"}</span><span class="tag">${KINDS[b.slot].label}</span><h2>${esc(titleOf(k))}</h2></div></header>
@@ -379,13 +441,15 @@ document.querySelector("main").addEventListener("click", async (e) => {
   if (b.dataset.tab) {   // タブを かえたら、えらぶ 物も その タブの 先頭に
     S.tab = b.dataset.tab; S.made = null;
     if (S.tab === "dev" && !S.sel.startsWith("d:")) { const f = devList()[0]; if (f) { S.sel = "d:" + f; S.q = 0; } }
-    if (S.tab !== "dev" && (S.sel.startsWith("d:") || groupOf(S.sel) !== S.tab)) S.sel = keysOf(GROUPS.find((g) => g[0] === S.tab)[2][0])[0];
+    if (S.tab === "uq" && !S.sel.startsWith("u:")) { const f = uqList()[0]; S.sel = f ? "u:" + f.id : "u:"; }
+    if (S.tab !== "dev" && S.tab !== "uq" && (S.sel.startsWith("d:") || S.sel.startsWith("u:") || groupOf(S.sel) !== S.tab)) S.sel = keysOf(GROUPS.find((g) => g[0] === S.tab)[2][0])[0];
     return render();
   }
   if ("only" in b.dataset) { S.only = b.dataset.only; return render(); }   // しぼりこみ
   if (b.dataset.df) { const [k, v] = b.dataset.df.split(":"); S.df[k] = k === "isle" ? +v : v; return render(); }
   if (b.dataset.q) { S.q = +b.dataset.q; return render(); }
   if (b.dataset.dev) return makeDev(b, b.dataset.dev);
+  if (b.dataset.uq) return makeUq(b, b.dataset.uq);
   if (b.dataset.k) { if (S.sel !== b.dataset.k) { S.made = null; S.q = 0; } S.sel = b.dataset.k; render(); document.querySelector(`[data-k="${S.sel}"]`)?.focus({ preventScroll: true });
     pop.open(); return; }   // えらんだ 物は ポップアップで 作る（前は 下の 欄へ 自動で 動いた。鹿さん 2026-11-05）
   if (b.dataset.do) await make(b, b.dataset.do);

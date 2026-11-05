@@ -22,6 +22,8 @@ export const WS_ITEMS = [
   // デトックス茶（鹿さんの 決め、2026-10-31）：詳細ステータスを リセット（キャップに 届く 前だけ。届いたら 謎のお菓子で 上限突破）
   { id: "detox", name: "デトックス茶", note: "ペット・なかま：詳細ステータスを リセット（キャップに 届く 前だけ）", lv: 1, to: { items: { detox: 1 } }, mats: [["shadow_mugwort", 2], ["inn_wheat", 2]], credits: 200, farm: true, detail: true },
   { id: "pickaxe", name: "つるはし", note: "坑道：使うと 12 時間、掘る 数 ×1.3", lv: 1, to: { items: { pickaxe: 1 } }, mats: [["iron_bar", 2], ["oldnail", 6], ["brick", 4]], credits: 200 },
+  // 足場（鹿さんの 決め、2026-10-31：施設の 建設に 待ち時間が 入ったら 作る。2026-11-05 に 入れた。数は Claude の 案：素材 10 こ・2 時間）
+  { id: "scaffold", name: "足場", note: "施設：建てて いる 途中に 使うと 建設が 2 時間 進む", lv: 1, to: { items: { scaffold: 1 } }, mats: [["bamboo_lumber", 4], ["straw_bundle", 6]], credits: 50, farm: true },
   { id: "lamp", name: "ランプ", note: "坑道：使うと 12 時間、銀鉱石と 金鉱石が 2 倍 出やすい", lv: 1, to: { items: { lamp: 1 } }, mats: [["copper_bar", 2], ["candle", 6], ["glowstone", 2]], credits: 300 },
   // 薬・エンチャント・お守り（鹿さんの 決め、2026-10-31。docs/mono-link-crafting.md）。島 1 で ぜんぶ 作れ、島 2（工房 Lv4）で 上の 版。farm：作物が いる（大工事の 畑が つながってから）
   { id: "tea_heal", name: "元気のお茶（癒し草）", note: "派遣の 道具：力つきても 1 回だけ 全回復", lv: 2, to: { tools: { tea: 1 } }, mats: [["healherb", 3]], credits: 1500, farm: true },
