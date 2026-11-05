@@ -3,6 +3,7 @@
 // - アメジストは ここでは 買えない・売れない（鹿さんの決め、2026-10-28「MONO LINK でクレジットで買うのはやめる」。買うのは 鹿物語の
 //   !アメジスト交換〈玉 500 → 1〉だけ。前は ここで 玉か クレジット 5,000 で 買えた。2026-10-26 から 売れない）
 // 玉は 帳簿（viewer.js の charge）で 動かす。クレジットは 記録の 中（take で 引き、払えなかったら refund で もどす）
+import { sale } from "./lounge-stock.js";   // 株：!換金・!貸し玉の 量は ノクス仲介（ヨル）の 売り上げ（鹿さんの 決め「換金の 量で 株が 動く」）
 export const AME_PRICE = 500, SWAP_FEE = 0.1;   // AME_PRICE：鹿物語の !アメジスト交換の 値段（案内の 字だけ）
 export const CUR = ["balls", "credits"];
 export const SWAP_MAX = { coin: 1000000 };   // 1 回に わたせる 玉・クレジット
@@ -47,12 +48,12 @@ export function cashDo(rec, b, open = CASH.open) {
   else if (b.kind === "cash") {
     const u = Math.floor(n / CASH.perBalls);
     if (u < 1) r = { ok: false, why: `換金は 玉 ${CASH.perBalls} こから（${CASH.perBalls} 玉 → ${CASH.credits} クレジット）` };
-    else { rec.credits = (rec.credits || 0) + u * CASH.credits; r = { ok: true, kind: "cash", balls: u * CASH.perBalls, credits: u * CASH.credits }; }
+    else { rec.credits = (rec.credits || 0) + u * CASH.credits; sale(rec, "NOX", u * CASH.credits); r = { ok: true, kind: "cash", balls: u * CASH.perBalls, credits: u * CASH.credits }; }
   } else if (b.kind === "lend") {
     const cost = n * CASH.lend;
     if (!n) r = { ok: false, why: "借りる 玉の 数を 入れて" };
     else if (cost > (rec.credits || 0)) r = { ok: false, why: `クレジットが 足りない：あと ${(cost - (rec.credits || 0)).toLocaleString("ja-JP")}（玉 1 こ ${CASH.lend} クレジット）` };
-    else { rec.credits -= cost; r = { ok: true, kind: "lend", balls: n, credits: cost }; }
+    else { rec.credits -= cost; sale(rec, "NOX", cost); r = { ok: true, kind: "lend", balls: n, credits: cost }; }
   } else r = { ok: false, why: "こわれた 頼み" };
   rec.cash.done[mid] = r; rec.cash.order.push(mid);
   while (rec.cash.order.length > CASH.keep) delete rec.cash.done[rec.cash.order.shift()];

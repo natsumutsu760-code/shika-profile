@@ -5,6 +5,7 @@
 // - 職業を かえると 前の 職業の 技から 1 つだけ 持ちこせる。振り直しと 職業を かえるのは 1 日 1 回 無料、2 回目から 玉（鹿さんの決め、2026-10-24。値段は 案）
 // - 装備は あたま・くび・うで・あし・武器・オフハンド・アクセサリー ×3 の 9 枠（鹿さんの決め、2026-10-25。前の「おまけ」は 武器）。なかまも 付けられる。付けて いる 装備は 合成・納める・依頼の お礼に 使えない
 import { COUNTS } from "./main-trees.js";
+import { sale } from "./lounge-stock.js";
 import { UNIQUE_MAX } from "./unique-equip.js";   // ユニーク装備は 1 匹に 2 つまで（鹿さんの 決め、2026-10-26。2026-11-05 に 門番で 守る ように した）
 import { detailOpen, detailPct, nutOf } from "./nutrition.js";   // 栄養の 詳細ステータスを 戦いへ（A15）
 import { PETS, PLANS, gambitSlots, SHAPE, SP_PER_LV, SET_SLOTS, TREE_SLOTS, PASSIVE_SLOTS, passiveSet, FREE_PER_LV, BASE_STATS, canTake, autoTake, learned, growthStats, freeAlloc, freeIsAuto, ENEMY_TREES, SKILL, EFFECTS, COND_TEXT, baseOf, tamedOf, SLOTS, OLD_SLOT, withAtt, fighterPower, REC_MODES, REC_SCOPES, recommend, isBItem } from "./game.js";
@@ -243,7 +244,7 @@ export function respecPlan(rec, b, day) {
   const free = pet.reset.day !== day || pet.reset.n < 1, price = free ? 0 : RESET_PRICE(pet.lv);
   if (price > (rec.credits || 0)) return { ok: false, why: `クレジットが 足りない：あと ${(price - (rec.credits || 0)).toLocaleString("ja-JP")}` };
   return { costs: [], why: (job ? "rejob:" : "respec:") + pet.uid,
-    take: () => { if (pet.reset.day !== day) pet.reset = { day, n: 0 }; pet.reset.n++; rec.credits -= price; },
+    take: () => { if (pet.reset.day !== day) pet.reset = { day, n: 0 }; pet.reset.n++; rec.credits -= price; sale(rec, "MLV", price); },   // 振り直しの 代金は メルヴィル製薬（株）
     grant: { petRespec: [pet.uid, job] }, refund: { petUnreset: [pet.uid, day], ...(price ? { credits: price } : {}) }, info: { free, ...(price ? { credits: price } : {}) } };
 }
 // 渡す（lounge-game.js の give から 呼ぶ）

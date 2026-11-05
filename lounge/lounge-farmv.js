@@ -8,6 +8,7 @@
 import { CROP, farmOpen } from "./crops.js";
 import { newField, plant, harvest, advance, setSoil, addXp, XP, inField, FERT, SPRINKLERS, placeSpr, takeSpr, SOILS, stageAt, W } from "./farm-core.js";
 import { putMats } from "./lounge-game.js";
+import { sale } from "./lounge-stock.js";
 
 export const SEED_BACK = [1, 2];                 // 生まれた 品種を 収穫した ときに とれる 種（Claude の 仮）
 export const FARM_SKINS = ["box", "greenhouse"];  // 畑の 見た目（lounge-proto/farm3d.js の SKINS と 同じ id。門番は three.js を 読まない）
@@ -138,7 +139,7 @@ export function farmvSoil(rec, b, now, R) {
   if (soil === F.field.soil) return { ok: false, why: "いまの 土と 同じ" };
   if (s.price > (rec.credits || 0)) return { ok: false, why: `クレジットが 足りない：あと ${s.price - (rec.credits || 0)}` };
   const r = setSoil(F.field, soil, now); if (!r.ok) return r;
-  rec.credits = (rec.credits || 0) - s.price; return { ok: true, paid: s.price };
+  rec.credits = (rec.credits || 0) - s.price; sale(rec, "CLR", s.price); return { ok: true, paid: s.price };   // 土は クロロシス・バイオテック（株）
 }
 
 export function farmvSkin(rec, b, now) {

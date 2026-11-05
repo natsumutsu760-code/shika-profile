@@ -7,6 +7,7 @@ import { OPS, baseOf, opCount, KINDS, ALL_OPS, facLv, ISLAND_OPEN, MAT_NAME, MAT
 import { takeMats, applyTake, makeFee, payUpkeep, feeWhy } from "./lounge-game.js";
 import { slotKind, bump } from "./lounge-trade.js";
 import { wornAway } from "./lounge-core.js";
+import { sale, gearCo } from "./lounge-stock.js";   // 株：装備の 代金は 武器 ヴァルコ火器・防具 ローゼル繊工
 import { jstDay } from "./lounge-rules.js";
 import { uniqueOf, uniqueRecipe, UNIQUE_BENCH_LV } from "./unique-equip.js";
 import { uniqueMats } from "./materials.js";
@@ -29,7 +30,7 @@ export function devPlan(rec, b, R) {
   const t = takeMats(rec, [[need.xtal, need.n, q], ...need.mats]);   // 結晶は えらんだ 段だけ（上で 数を たしかめた。品質の 低い 順に 取るので 上の 段は 使わない）
   if (t.why) return { ok: false, why: t.why };
   const star = pickW(R, devStarW(q, benchStarMax(lv), benchTopUp(lv))), item = { base: base.id, star, ops: [] };   // 先に 引いて おく（id は 表の 正しい 形）
-  return { costs: [], why: "dev:" + id, take: () => { rec.own.mats = t.mats; rec.credits -= need.credits; payUpkeep(rec, fee); },
+  return { costs: [], why: "dev:" + id, take: () => { rec.own.mats = t.mats; rec.credits -= need.credits; sale(rec, gearCo(id), need.credits); payUpkeep(rec, fee); },
     grant: { equip: [{ ...item, mk: 1 }], ev: { type: "craft", n: 1, star, slot: slotKind(id), cry: q, cryOf: base.tree } },   // タスクの「開発する」に 数える（結晶の 段・どの 敵の 結晶か も）
     refund: { mats: t.taken, credits: need.credits + fee }, item, info: { credits: need.credits, ...(fee ? { fee } : {}) } };
 }
@@ -52,7 +53,7 @@ export function uniquePlan(rec, b, R) {
   const pool = Object.keys(OPS), ops = [], n = opCount(u.slot, 5) + 1;
   while (ops.length < n && pool.length) ops.push(pool.splice(Math.floor(R() * pool.length), 1)[0]);
   const item = { base: u.id, star: 5, ops };
-  return { costs: [], why: "uq:" + u.id, take: () => { rec.own.mats = t.mats; rec.credits -= r.credits; payUpkeep(rec, fee); },
+  return { costs: [], why: "uq:" + u.id, take: () => { rec.own.mats = t.mats; rec.credits -= r.credits; sale(rec, gearCo(u.id), r.credits); payUpkeep(rec, fee); },
     grant: { equip: [{ ...item, mk: 1 }], ev: { type: "craft", n: 1, star: 5, slot: slotKind(u.id) } },
     refund: { mats: t.taken, credits: r.credits + fee }, item, info: { credits: r.credits, ...(fee ? { fee } : {}) } };
 }
@@ -63,7 +64,7 @@ export function sphereLook(rec, b, now = Date.now()) {
   if (!x) return { ok: false, why: "その スフィアは ない" };
   if (x.known) return { ok: false, why: "もう 鑑定して ある" };
   if ((rec.credits || 0) < SPHERE_LOOK) return { ok: false, why: feeWhy(SPHERE_LOOK, rec, 0) };
-  rec.credits -= SPHERE_LOOK; x.known = true;
+  rec.credits -= SPHERE_LOOK; sale(rec, "GLK", SPHERE_LOOK); x.known = true;   // 鑑定料は ガラク・サルベージの 売り上げ（株）
   bump(rec, { type: "appraise", n: 1, star: x.star }, jstDay(now));   // タスク「スフィアを 鑑定する」「鑑定で ★3 以上を 見つける」
   return { ok: true, sphere: { ...x }, credits: SPHERE_LOOK };
 }
@@ -104,7 +105,7 @@ export function drawOp(rec, b, R, now = Date.now()) {
   if (fee + price > (rec.credits || 0)) return { ok: false, why: feeWhy(fee + price, rec, fee) };
   const t = takeMats(rec, [[id, DRAW.mats, q]], { now });   // えらんだ 品質だけ（上で 数を たしかめた）
   if (t.why) return { ok: false, why: t.why };
-  applyTake(rec, t.picks); rec.credits -= price; payUpkeep(rec, fee, now);
+  applyTake(rec, t.picks); rec.credits -= price; sale(rec, gearCo(it.base), price); payUpkeep(rec, fee, now);
   const op = rollDraw(id, q, w.d.id, R, it.ops);
   it.ops = [...it.ops, op];
   if (q !== it.star) it.opStar = { ...(it.opStar || {}), [it.ops.length - 1]: q };   // 強さは 素材の 品質の ★

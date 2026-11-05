@@ -6,6 +6,7 @@ import { BZ_AREAS, BZ_RUNS, BZ_STEP_S, PRIORITY, RETURN, KEY_MAX, SAMPLES, APPRA
 import { growthStats } from "./trees.js";
 import { fighterOf, mateOf, putMats, insLose, levelUp } from "./lounge-game.js";
 import { autoFill } from "./lounge-pet.js";
+import { sale } from "./lounge-stock.js";
 
 export const BZ_LOG = 5;          // 記録に 残す 出撃（Claude の 案）
 export const SAMPLE_MAX = 60;     // 持てる 貴重サンプル（Claude の 案）
@@ -52,7 +53,7 @@ export function bzStart(rec, b, now, seed) {
   const S = bzInit(cfg, team, seed);
   rec.items.key_bz = (rec.items.key_bz || 0) - keys;   // 鍵は 持って いく ときに あずかる（使わなかった 分は 帰りに もどす）
   if (crate) rec.items.key_crate -= crate;
-  if (ins) rec.credits -= prem;
+  if (ins) { rec.credits -= prem; sale(rec, "AMB", prem); }   // 保険料は アンバー相互保証の 売り上げ（株）
   const r = { uid: newUid(rec, "z"), area, run, cfg, party: [pet.uid, ...mates.map((c) => c.uid)], start: now, end: now + BZ_RUNS[run].steps * STEP_MS, calc: true, ...(ins ? { ins: { plan: ins, prem } } : {}) };
   Z.run = r;
   return { ok: true, bz: bzView(r, now), sim: { uid: r.uid, S }, ...(prem ? { prem } : {}) };
@@ -115,7 +116,7 @@ export function bzAppraise(rec, b) {
   if (!list.length) return { ok: false, why: "鑑定する サンプルを えらんで" };
   const fee = APPRAISE_FEE * list.length;
   if (fee > (rec.credits || 0)) return { ok: false, why: `クレジットが 足りない：あと ${fee - (rec.credits || 0)}` };
-  rec.credits -= fee; for (const s of list) s.known = true;
+  rec.credits -= fee; sale(rec, "GLK", fee); for (const s of list) s.known = true;   // 鑑定料は ガラク・サルベージの 売り上げ（株）
   return { ok: true, fee, stars: list.map((s) => ({ uid: s.uid, star: s.star })) };
 }
 // 会社に 納める（好みの 系統は 高く 買う・鑑定して いない 物は ★1 の 値段）

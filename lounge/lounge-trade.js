@@ -5,6 +5,7 @@
 import { TRADERS, SPECIAL, chainTask, dailyTask, TASK_TIDS, sellPrice, GATHER, floorRatio, FLOORS, OPS, BASES, baseOf, SNACK_NEED, rankOf, CRAFT, SYNTH, craftOpen, synthOpen,
   PRIMARY, PRI_REP, lvOf, curTask, isDone, unlockedBy, KEY_BY, DUNGEONS, chaptersOf } from "./game.js";
 import { putMats, putEquip } from "./lounge-game.js";
+import { sale, coOf } from "./lounge-stock.js";
 import { equippedUids } from "./lounge-pet.js";   // lounge-game.js も ここを 読む（どちらも 呼ぶ ときに 使うだけ なので 大丈夫）
 
 export const SHOPS = [...TRADERS, SPECIAL];
@@ -250,7 +251,7 @@ export function buyPlan(rec, b, day, R) {
   if (item.cur === "credits") {   // クレジット：記録の 中で 引く（足りなければ ことわる）
     if (rec.credits < price) return { ok: false, why: `足りない：クレジット あと ${(price - rec.credits).toLocaleString("ja-JP")}` };
     return { costs: [], why: `buy:${shop.id}:${item.id}`, grant, refund: { unbuy: [shop.id, key, item.id, n], credits: price },
-      take: () => { t[key][item.id] = (t[key][item.id] || 0) + n; rec.credits -= price; }, info: { n } };
+      take: () => { t[key][item.id] = (t[key][item.id] || 0) + n; rec.credits -= price; sale(rec, coOf(shop.co), price); }, info: { n } };   // 店の 代金は その 店の 子会社の 売り上げ（株）
   }
   return { costs: [{ kind: item.cur, d: -price }], why: `buy:${shop.id}:${item.id}`, grant, refund: { unbuy: [shop.id, key, item.id, n] },
     take: () => { t[key][item.id] = (t[key][item.id] || 0) + n; }, info: { n } };

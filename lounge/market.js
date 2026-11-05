@@ -6,7 +6,8 @@
 import { LIMIT_MS, KEEP_DONE, NOTE_HIDE_AT, fits, items } from "./lounge-req.js";
 import { arenaFetch, arenaAlarm } from "./lounge-arena.js";   // 闘技場（名簿・大会）も この 箱
 import { supportFetch } from "./lounge-support.js";   // おたこまるさんの 窓口の 記録も この 箱（KV の おくれで 上書きされない ように）
-import { marketReset } from "./lounge-reset.js";   // 大工事の あとの リセット（鹿さんの 決め 2026-11-03）
+import { marketReset } from "./lounge-reset.js";
+import { stockFetch, stockAlarm } from "./lounge-stock.js";   // 株（トークン）の 値・売り買い・配当も この 箱（2026-11-05）   // 大工事の あとの リセット（鹿さんの 決め 2026-11-03）
 
 const res = (o, status = 200) => new Response(JSON.stringify(o), { status, headers: { "Content-Type": "application/json" } });
 const RETRY_MS = 60e3;   // 知らせが とどかなかったら 1 分後に もう 1 回
@@ -33,6 +34,7 @@ export class Market {
     const b = req.method === "POST" ? await req.json().catch(() => ({})) : {};
     const r = typeof b.rid === "string" ? this.reqs[b.rid] : this.reqs[url.searchParams.get("rid") || ""];
     const t = !r && typeof b.rid === "string" ? await this.state.storage.get("t:" + b.rid) : null;   // 終わった 依頼の しるし
+    const sk = await stockFetch(this, url, b, now); if (sk) return sk;
     const ar = await arenaFetch(this, url, b, now); if (ar) return ar;
     const sp = await supportFetch(this, url, b); if (sp) return sp;
     if (url.pathname === "/list") return res({ list: Object.values(this.reqs).filter((x) => x.status === "open" && x.until > now).sort((a, c) => c.at - a.at).map((x) => this.view(x, now)) });
@@ -106,6 +108,7 @@ export class Market {
       if (r.status !== "open" && now - (r.end || r.at) > KEEP_DONE) { delete this.reqs[r.rid]; await this.state.storage.put("t:" + r.rid, this.tomb(r)); await this.state.storage.delete("r:" + r.rid); }
     }
     const ta = await arenaAlarm(this, now);   // 22:00 の 大会を 進める（ごほうびは 下の 送る 箱へ）
+    const tk = await stockAlarm(this, now);   // 株：1 時間ごとの 値・22:00 の 配当（配当は 下の 送る 箱へ）
     let left = 0, sent = 0;
     for (const m of (await this.state.storage.list({ prefix: "o:" })).values()) {
       if (++sent > 30) { left++; continue; }   // 1 回の アラームで 送るのは 30 こまで（よそへの 頼みの 上限）
@@ -117,7 +120,7 @@ export class Market {
       left++;
     }
     const next = Object.values(this.reqs).filter((r) => r.status === "open").reduce((a, r) => Math.min(a, r.until), Infinity);
-    const at = Math.min(left ? now + RETRY_MS : Infinity, next, ta);
+    const at = Math.min(left ? now + RETRY_MS : Infinity, next, ta, tk);
     if (at < Infinity) await this.state.storage.setAlarm(at);
   }
 }

@@ -140,6 +140,35 @@
   .rows .nt { display:block; margin-top:3px; font-size:13px; color:var(--dim); } .rows .nt.gone { text-decoration:line-through; opacity:.6; }
   .flag { margin-left:8px; font-size:11px; color:var(--dim); border-bottom:1px dotted var(--line2); } .flag:hover:not(:disabled) { color:var(--warn, #FF8A7A); } .flag:disabled { border:0; }
 
+  /* 株（トークン。deeplink-stock.js。鹿さんの カード「A 一覧＋右で 決める」2026-11-05） */
+  .sgrid { display:grid; grid-template-columns:minmax(0, 1fr) 300px; gap:18px; margin-top:12px; align-items:start; }
+  .filt { display:flex; flex-wrap:wrap; align-items:center; gap:4px 6px; padding:8px 10px; border:1px solid var(--line); background:rgba(255,181,71,.03); font-size:13px; }
+  .filt .lb { color:var(--dim); margin-right:2px; } .filt .lb:not(:first-child) { margin-left:8px; }
+  .chip { padding:1px 8px; border:1px solid var(--line); color:var(--dim); font-size:13px; white-space:nowrap; } .chip[aria-pressed="true"] { border-color:var(--amber); color:var(--amber); text-shadow:var(--glow); } .chip:hover { color:var(--text); }
+  .srows { margin-top:6px; } .srows .gh { padding:8px 4px 2px; font-size:12px; color:var(--dim); letter-spacing:.06em; border-bottom:1px solid var(--line); }
+  .srow { width:100%; display:grid; grid-template-columns:44px minmax(0, 1fr) 56px 52px 64px; gap:8px; align-items:center; padding:6px 4px; text-align:left; border-bottom:1px dashed var(--line); font-size:14px; }
+  .srow.own { grid-template-columns:44px minmax(0, 1fr) 52px 64px 96px; }
+  .srow:hover { background:rgba(255,181,71,.06); } .srow[aria-pressed="true"] { background:rgba(255,181,71,.12); box-shadow:inset 2px 0 0 var(--amber); }
+  .srow .kd, .sdet .kd, .news .kd { display:inline-block; padding:0 4px; border:1px solid var(--line2); font-size:12px; color:var(--amber); text-align:center; }
+  .srow .nm { min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; } .srow .nm small { margin-left:8px; font-size:12px; color:var(--cyan); }
+  .srow .px { text-align:right; color:var(--text); } .chg { font-size:12px; text-align:right; color:var(--dim); white-space:nowrap; } .chg.up, em.up { color:var(--ok); } .chg.dn, em.dn { color:var(--ng); }
+  .srow .gv { text-align:right; font-size:13px; } .srow .gv em, .sum em, .kv em { display:block; font-style:normal; font-size:11px; color:var(--dim); } .srow .gv em.up, .sum em.up, .kv em.up { color:var(--ok); } .srow .gv em.dn, .sum em.dn, .kv em.dn { color:var(--ng); }
+  .spk { width:56px; height:18px; } .spk polyline, .chart polyline { stroke:var(--ok); stroke-width:1.5; } .spk.dn polyline, .chart.dn polyline { stroke:var(--ng); }
+  .sdet { position:sticky; top:12px; padding:12px 14px; border:1px solid var(--line2); background:var(--bg2); display:grid; gap:8px; }
+  .sdet .hd { display:flex; align-items:baseline; gap:8px; } .sdet h3 { font:400 18px/1.3 var(--f); color:var(--amber); text-shadow:var(--glow); } .sdet .hd small { margin-left:auto; font-size:12px; color:var(--dim); }
+  .sdet .big { display:flex; align-items:baseline; gap:10px; } .sdet .big b { font-weight:400; font-size:32px; line-height:1; color:var(--text); text-shadow:0 0 8px rgba(255,228,184,.35); } .sdet .big .chg { font-size:15px; } .sdet .big small { font-size:12px; color:var(--dim); }
+  .cw { border:1px solid var(--line); padding:6px 6px 2px; background:repeating-linear-gradient(0deg, transparent 0 17px, rgba(255,181,71,.07) 17px 18px); } .chart { display:block; width:100%; height:90px; } .cw .lo { display:block; font-size:11px; color:var(--dim); }
+  .kv li { display:flex; justify-content:space-between; gap:10px; padding:3px 0; border-bottom:1px dashed var(--line); font-size:13px; color:var(--dim); } .kv b { font-weight:400; color:var(--text); text-align:right; }
+  .trade { display:flex; flex-wrap:wrap; align-items:center; gap:6px; font-size:13px; color:var(--dim); } .trade input { width:76px; font:inherit; font-size:15px; color:var(--text); background:var(--bg); border:1px solid var(--line2); padding:2px 6px; }
+  .est { font-size:13px; color:var(--dim); } .est .c { color:var(--cyan); } .est small { display:block; font-size:11px; }
+  .sdet .go { display:flex; gap:10px; } .sdet .go .btn { flex:1; padding:6px 0; text-align:center; font-size:16px; }
+  .btn.ghost { border-color:var(--line2); color:var(--dim); } .btn.ghost:hover:not(:disabled) { background:var(--line2); color:var(--text); }
+  .sdet .why { font-size:12px; color:var(--warn, #FF8A7A); }
+  .sum { margin-top:12px; display:flex; align-items:baseline; gap:10px; color:var(--dim); font-size:13px; } .sum b { font-weight:400; font-size:22px; color:var(--text); }
+  .news { margin-top:10px; } .news li { display:grid; grid-template-columns:86px 44px minmax(0, 1fr); gap:8px; align-items:baseline; padding:8px 2px; border-bottom:1px dashed var(--line); font-size:14px; } .news time { font-size:12px; color:var(--dim); } .news li:not(.fresh) { opacity:.65; }
+  .note .c { color:var(--cyan); }
+  .who.stk .emo { color:var(--ok); text-shadow:0 0 6px var(--ok); }
+
   .toast { position:fixed; left:50%; bottom:24px; transform:translateX(-50%); z-index:10; padding:8px 16px; border:1px solid var(--ok); background:var(--bg); color:var(--ok); text-shadow:0 0 6px var(--ok); opacity:0; pointer-events:none; white-space:nowrap; }
   .toast.on { opacity:1; }
 
@@ -153,6 +182,9 @@
     .who { grid-template-columns:auto minmax(0, 1fr); } .rep { grid-column:1 / -1; text-align:left; } .meter { margin-left:0; }
     .rows > li { grid-template-columns:minmax(0, 1fr); } .act { justify-self:start; }
     .pane { padding:14px; }
+    .sgrid { grid-template-columns:minmax(0, 1fr); } .sdet { order:-1; position:static; }   /* スマホは 決める 所が 上（一覧の 下に うもれさせない） */
+    .srow { grid-template-columns:40px minmax(0, 1fr) 50px 58px; } .srow .spk { display:none; } .srow.own { grid-template-columns:40px minmax(0, 1fr) 58px 84px; } .srow.own .px { display:none; }
+    .news li { grid-template-columns:44px minmax(0, 1fr); } .news time { grid-column:1 / -1; }
   }
   @media (prefers-reduced-motion:reduce) { .logo i { animation:none; } .ready .term { animation:none; } .meter i { transition:none; } }
   .bye { color:var(--dim); font-size:13px; text-decoration:none; white-space:nowrap; } .bye:hover, .bye:focus-visible { color:var(--amber); }
@@ -185,6 +217,8 @@ import { DUNGEONS, TOOLS, ISLAND_OPEN } from "./dungeons.js";
 import { SPHERE_LOOK } from "./sphere.js";   // スフィアの 鑑定（ガラク。2026-11-04）
 import { phoneDrawer } from "./phone-drawer.js";
 import { me, act, busy, waitText, board, report, notedel } from "./lounge-client.js";   // 商人・タスク・お店・依頼の 板は 門番（見本では ブラウザの 中の ためしの 門番）
+import { stockPane, stockInput, newsNew, heldN } from "./deeplink-stock.js";   // 株（トークン。2026-11-05）
+import { CO as STOCK_CO } from "./stocks.js";
 import { mountWallet } from "./wallet-bar.js"; mountWallet({ host: document.getElementById("wallet"), theme: "dark" });   // 通貨の 札（玉・アメジスト・クレジット）と 両替
 
 const q = new URLSearchParams(location.search);
@@ -192,13 +226,19 @@ const fmt = (n) => n.toLocaleString("ja-JP");
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
 const META = Object.fromEntries([...TRADERS, SPECIAL].map((t) => [t.id, t]));
 const S = { go: q.get("go") || "junk", tab: ["shop", "tasks"].includes(q.get("tab")) ? q.get("tab") : "story", open: null, pick: {}, pickOp: {}, sell: {}, sk: null, want: null };
-let ME = null, D = null, B = { list: [], staff: false };
+let ME = null, D = null, B = { list: [], staff: false }, K = null;   // K：株の 取引所（stock.view の 答え）
+Object.assign(S, { stab: "list", sg: "all", ssort: "group", sco: STOCK_CO[q.get("co")] ? q.get("co") : "VLC", sn: 0 });   // sn 0：その 銘柄の 最小（5,000 クレジット分）   // 株の 画面の 状態（タブ・グループ・ならべる・えらんだ 銘柄・数）
+const stockOpen = () => !!(ME && ME.stock && ME.stock.open);
+const cleanK = (k) => (k && Array.isArray(k.list) ? { ...k, list: k.list.filter((x) => STOCK_CO[x.co]), news: (k.news || []).filter((n) => STOCK_CO[n.co]) } : k);
+async function loadStock() { if (!stockOpen()) return; const r = await act("stock.view", {}).catch(() => ({ ok: false })); K = r.ok ? cleanK(r.stock) : { err: true, lock: r.lock, why: r.why }; }
 async function load() {
   ME = await me(); D = ME.deeplink || { traders: [], perks: {}, items: {}, recipes: [], keys: [] };
   const b = ME.denied ? null : await board(); B = b && Array.isArray(b.list) ? b : { list: [], staff: false };
 }
 await load();
-if (!ME.denied && ME.ok !== false) act("dl.visit", {}).catch(() => {});   // 開いた 日を 数える（プライマリータスク「DEEP LINK を 3 日 ひらく」）
+if (!ME.denied && ME.ok !== false) act("dl.visit", {}).catch(() => {});
+if (S.go === "stock" && !stockOpen()) S.go = "junk";
+loadStock().then(() => { if (document.getElementById("crt").classList.contains("ready")) render(); });   // 株：左の 一覧の 丸（ニュース）の ため 先に 読む   // 開いた 日を 数える（プライマリータスク「DEEP LINK を 3 日 ひらく」）
 const W = () => (ME.wallet && ME.wallet.known ? ME.wallet : null);
 const view = (id) => D.traders.find((x) => x.id === id) || { shop: [] };
 const cur = (c, n) => (c === "res" ? `<span class="v">アメジスト ${fmt(n)}</span>` : `<span class="c">クレジット ${fmt(n)}</span>`);   // 店は クレジット（ヨルは アメジスト）
@@ -220,7 +260,7 @@ const haveMat = (id, q = 0) => (ME.own.mats || []).filter((x) => x.id === id && 
 function dirHtml() {
   const row = (t, sp) => { const v = view(t.id); return `<button data-go="${t.id}" class="${sp ? "sp" : ""}" aria-current="${S.go === t.id}"><span class="mk">${face(t.id)}</span><span class="nm">${t.dir || t.name}</span><small>Lv${v.lv || 1}${ready(v) ? ` <span class="new">●${ready(v)}</span>` : ""}</small></button>`; };
   return `<p class="pr">&gt; 商人</p><ul>${TRADERS.map((t) => `<li>${row(t)}</li>`).join("")}</ul>
-    <p class="pr">&gt; ほか</p><ul><li>${row(SPECIAL, true)}</li><li><button data-go="board" aria-current="${S.go === "board"}"><span class="mk">✉</span><span class="nm">みんなの依頼</span><small>${B.list.length}</small></button></li><li><a class="go" href="crawler.html"><span class="mk" aria-hidden="true">▣</span><span class="nm">クローラー</span><small>先行体験版</small></a></li><li><a class="go" href="border.html"><span class="mk" aria-hidden="true">◇</span><span class="nm">ボーダーゾーン</span><small>集めて 脱出</small></a></li></ul>`;   // クローラー（企業の ミッション）：2026-11-05 鹿さん「クローラーとボーダーゾーンも」で みんなに 入口
+    <p class="pr">&gt; ほか</p><ul><li>${row(SPECIAL, true)}</li><li><button data-go="board" aria-current="${S.go === "board"}"><span class="mk">✉</span><span class="nm">みんなの依頼</span><small>${B.list.length}</small></button></li>${stockOpen() ? `<li><button data-go="stock" aria-current="${S.go === "stock"}"><span class="mk">▲</span><span class="nm">トークン</span><small>${heldN(K) ? `保有 ${heldN(K)}` : ""}${newsNew(K) ? ` <span class="new">●${newsNew(K)}</span>` : ""}</small></button></li>` : ""}<li><a class="go" href="crawler.html"><span class="mk" aria-hidden="true">▣</span><span class="nm">クローラー</span><small>先行体験版</small></a></li><li><a class="go" href="border.html"><span class="mk" aria-hidden="true">◇</span><span class="nm">ボーダーゾーン</span><small>集めて 脱出</small></a></li></ul>`;   // クローラー（企業の ミッション）：2026-11-05 鹿さん「クローラーとボーダーゾーンも」で みんなに 入口
 }
 function traderHtml(t) {
   const v = view(t.id), lv = v.lv || 1, rep = v.rep || 0, list = tasksOf(v), sp = t === SPECIAL;
@@ -379,7 +419,7 @@ function render() {
   document.getElementById("dir").innerHTML = dirHtml();
   { const cur = document.querySelector('#dir [aria-current="true"]'), n = [...document.querySelectorAll("#dir .new")].reduce((a, e) => a + (parseInt(e.textContent.replace(/\D/g, ""), 10) || 0), 0);   // 引き出しの 帯：いまの 商人と 丸の 合計
     DRAW.label(`${cur ? (cur.querySelector(".mk") || {}).outerHTML || "" : ""}<span>${esc(cur ? cur.querySelector(".nm").textContent : "")}</span>${n ? `<span class="new">●${n}</span>` : ""}`); }
-  document.getElementById("pane").innerHTML = S.go === "board" ? boardHtml() : traderHtml(META[S.go] || META.junk);
+  document.getElementById("pane").innerHTML = S.go === "board" ? boardHtml() : S.go === "stock" ? stockPane(K, { ...S, credits: credits() }) : traderHtml(META[S.go] || META.junk);
 }
 let tid;
 const toast = (s) => { const el = document.getElementById("toast"); el.textContent = s; el.classList.add("on"); clearTimeout(tid); tid = setTimeout(() => el.classList.remove("on"), 3200); };
@@ -399,11 +439,21 @@ document.getElementById("term").addEventListener("change", (e) => {
   if (e.target.id === "rq-b" || e.target.id === "rq-r") document.getElementById("rq-fee").textContent = `クレジット ${fmt(fee0())}`;
   if (e.target.id === "rq-note") { checkNote(); if (e.target.value === "free") document.getElementById("rq-free").focus(); }
 });
-document.getElementById("term").addEventListener("input", (e) => { if (e.target.id === "rq-free") checkNote(); if (e.target.id === "rq-b" || e.target.id === "rq-r") document.getElementById("rq-fee").textContent = `クレジット ${fmt(fee0())}`; });
+document.getElementById("term").addEventListener("input", (e) => { if (e.target.id === "sk-n") { S.sn = +e.target.value; return stockInput(K, S, credits()); } if (e.target.id === "rq-free") checkNote(); if (e.target.id === "rq-b" || e.target.id === "rq-r") document.getElementById("rq-fee").textContent = `クレジット ${fmt(fee0())}`; });
 document.getElementById("term").addEventListener("click", async (e) => {
   const b = e.target.closest("button"); if (!b || b.disabled) return;
   const d = b.dataset, t = META[S.go];
-  if (d.go) { S.go = d.go; S.tab = "story"; S.open = null; render(); return document.querySelector(`[data-go="${d.go}"]`)?.focus(); }
+  if (d.go) { S.go = d.go; S.tab = "story"; S.open = null; render(); if (d.go === "stock" && (!K || K.err)) loadStock().then(render); return document.querySelector(`[data-go="${d.go}"]`)?.focus(); }
+  // 株：タブ・グループ・ならべる・銘柄を えらぶ（スマホは 決める 所へ 動かす）・数・買う・売る
+  if (d.stab) { S.stab = d.stab; if (d.sco) S.sco = d.sco; render(); return document.querySelector(`[data-stab="${d.stab}"][role="tab"]`)?.focus(); }
+  if (d.sg) { S.sg = d.sg; return keepPlace(`[data-sg="${d.sg}"]`); }
+  if (d.ssort) { S.ssort = d.ssort; return keepPlace(`[data-ssort="${d.ssort}"]`); }
+  if (d.sco) { if (S.sco !== d.sco) S.sn = 0; S.sco = d.sco; keepPlace(`[data-sco="${d.sco}"]`); if (matchMedia("(max-width:760px)").matches) document.getElementById("sdet")?.scrollIntoView({ behavior: "smooth", block: "start" }); return; }
+  if (d.sset) { S.sn = +d.sset; const i = document.getElementById("sk-n"); if (i) i.value = S.sn; return stockInput(K, S, credits()); }
+  if (d.sbuy || d.ssell) { const co = d.sbuy || d.ssell, n = Math.max(1, Math.floor(+(document.getElementById("sk-n") || {}).value || S.sn) || 1), buy = !!d.sbuy;   // 数の 欄の 数（はじめは その 銘柄の 最小）
+    const r = await ask(b, buy ? "stock.buy" : "stock.sell", { co, n }, (r) => `${buy ? "買った" : "売った"}：${co} ${fmt(r.n)} トークン（1 トークン ${r.price}・${buy ? "払った" : "もらった"} ${fmt(Math.abs(r.paid))}）${!buy && r.gain != null ? `　損益 ${r.gain >= 0 ? "＋" : "−"}${fmt(Math.abs(r.gain))}` : ""}`);
+    if (r.ok && r.stock) { K = cleanK(r.stock); render(); } else if (r.wait) { await loadStock(); render(); }
+    return; }
   if (d.tab) { S.tab = d.tab; S.open = null; render(); return document.querySelector(`[data-tab="${d.tab}"]`)?.focus(); }
   // 報告・納める：つながりは 次の タスクが 出る（終わりは ない）、きょうの タスクは あした 新しく なる
   if (d.pri) { const [c, no] = d.pri.split(":").map(Number), before = view(t.id).lv;

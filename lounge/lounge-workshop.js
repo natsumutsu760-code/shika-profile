@@ -3,6 +3,7 @@
 // アタッチメントは 記録の own.att に { uid, base, star, ops, on }（on：付けて いる 武器の uid か null）。武器が 合成・売る・届けるで なくなっても、アタッチメントは のこる（付いて いない 扱い）
 import { WS_ITEMS, wsOpen, wsLvOk, WS_MAX, ATT_MAX, attBase, rollAtt, baseOf, SMELT_MAX, furnaces, smeltOf, smeltDone, PROC_MAX, procOpen, procOf } from "./game.js";
 import { takeMats, applyTake, give, putMats, makeFee, payUpkeep } from "./lounge-game.js";
+import { sale, wsCo } from "./lounge-stock.js";   // 株：道具の 代金は 物ごとの 子会社・アタッチメントは ヴァルコ火器
 import { facLv, wsMore, wsSave } from "./game.js";
 
 const newUid = (rec, p) => p + (++rec.uidN).toString(36);
@@ -30,7 +31,7 @@ export function wsMake(rec, b, now = Date.now(), R = Math.random) {
   if (cr > rec.credits) return { ok: false, why: "クレジットが 足りない：あと " + (cr - rec.credits).toLocaleString("ja-JP") + (fee ? `（維持費 ${fee} こみ）` : "") };
   const t = takeMats(rec, r.mats.map(([id, k, q]) => [id, Math.max(1, Math.ceil(k * n * (1 - wsSave(lv)))), q || 0]), { now });
   if (t.why) return { ok: false, why: t.why };
-  applyTake(rec, t.picks); rec.credits -= cr - fee; payUpkeep(rec, fee, now);
+  applyTake(rec, t.picks); rec.credits -= cr - fee; sale(rec, wsCo(r.id), cr - fee); payUpkeep(rec, fee, now);
   let more = 0; for (let i = 0; i < n; i++) if (R() < wsMore(lv)) more++;   // 1 こ 多く できた 回数
   const g = {}; for (const [kind, o] of Object.entries(r.to)) g[kind] = Object.fromEntries(Object.entries(o).map(([k, v]) => [k, v * n + (more ? Math.min(more, n) : 0)]));
   give(rec, g, now);
@@ -48,7 +49,7 @@ export function wsAtt(rec, b, R, now = Date.now()) {
   if (cr > rec.credits) return { ok: false, why: "クレジットが 足りない：あと " + (cr - rec.credits).toLocaleString("ja-JP") + (fee ? `（維持費 ${fee} こみ）` : "") };
   const t = takeMats(rec, base.mats, { now });
   if (t.why) return { ok: false, why: t.why };
-  applyTake(rec, t.picks); rec.credits -= cr - fee; payUpkeep(rec, fee, now);
+  applyTake(rec, t.picks); rec.credits -= cr - fee; sale(rec, "VLC", cr - fee); payUpkeep(rec, fee, now);
   const att = { uid: newUid(rec, "a"), ...rollAtt(R, base, lv), on: null };
   rec.own.att.push(att);
   return { ok: true, att };

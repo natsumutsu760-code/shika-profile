@@ -7,6 +7,8 @@
 import { PETS, QUIZ, insPrice, INS_PLAN, score, unlockCost, PLANS, ENEMY_TREES, petAt, tripInit, tripStep, tripResult, floorsOpen, newProgress, diaryOf, dungeonRatio, tamedOf, rankOf, rng, DUNGEONS, canGo, tripCost, RUNS, TICK, TOOLS, TOOL_MAX, PURPOSES, SNACK_NEED, SNACK_PRICE, RESEARCH, researchLeaf, detailOpen, nutAway, mysteryRoll, bagOf, MAP_STAIRS,
   FACILITIES, STORAGE_CAP, EQUIP_CAP, SNACK_RECIPES, snackMats, snackOpen, SNACK_CRAFT_MAX, facCap, facLv, upkeep, storageCap, equipCapOf, labOff, labMs, snackMore, snackSave, gymMul, SYNTH_LV, toStash, stashHave, BOX_DAYS, MAT_NAME, MAT_FROM, CRAFT, SYNTH, craftOpen, synthOpen, synthCredits, rollCraft, rollSynth, sexOf, sexByUid, OPS, BOSS_CORE, SPHERE_MAX, baseOf, comboOf, opCount, recycleOf, AUTO_SELL_STARS, AUTO_SELL_HOW, autoSellOf, GATHER, mapExtra, invaderFighter } from "./game.js";
 import { jstDay } from "./lounge-rules.js";
+import { sale, upkeepSale, gearCo } from "./lounge-stock.js";   // 株：払った クレジットを 子会社の 売り上げに
+import { VALUE } from "./materials.js";
 import { ensureTrade, giveTrade, bump, tripEvents, hasKey, slotKind } from "./lounge-trade.js";
 import { ensureReq, giveReq } from "./lounge-req.js";
 import { ensurePet, autoFill, fighterOf, mateOf, givePet, equippedUids, moveOldSlots } from "./lounge-pet.js";
@@ -119,6 +121,7 @@ export function give(rec, g, now) {
   if (g.box) for (const m of g.box) if (m.until > now) rec.own.box.push({ id: m.id, q: m.q || 0, n: m.n, ...(m.b ? { b: 1 } : {}), until: m.until });   // あずかり箱から 取った 物は 元の 期限で 箱へ もどす（期限を のばさない）
   if (g.equip) putEquip(rec, g.equip, now);
   if (g.credits) rec.credits += g.credits;
+  if (g.stockDiv) { const S = (rec.stock ||= {}); S.divN = (S.divN || 0) + 1; S.divCr = (S.divCr || 0) + (g.stockDiv.cr || 0); }   // 株の 配当を うけとった 回数と 合計（Market の 送る 箱から）
   if (g.snacks) rec.snacks += g.snacks;
   if (g.labQ) { (rec.labQ ||= []).push({ tree: g.labQ.tree, at: (now || Date.now()) + g.labQ.ms }); }   // 研究に かかる 時間（研究所。施設の 作り直し）   // 上限は その 施設の Lv の 数（前は 3 で 止まり、Lv4 は 払うだけで 上がらなかった。2026-10-26）
   if (g.tame) { const c = rec.tamed.find((x) => x.uid === g.tame[0]); if (c) { const need = SNACK_NEED[rankOf(c)], was = c.gauge; c.gauge = Math.min(need, c.gauge + g.tame[1]);
@@ -198,11 +201,11 @@ export function tameFeedPlan(rec, b, unknown = []) {
   if (!n) return { ok: false, why: "あげる 数を えらんで" };
   const use = Math.min(n, rec.snacks), buy = n - use, price = buy * SNACK_PRICE;
   if (price > (rec.credits || 0)) return { ok: false, why: `クレジットが 足りない：あと ${(price - (rec.credits || 0)).toLocaleString("ja-JP")}（おやつ ${buy} こ）` };
-  return { costs: [], why: "tame:" + c.uid, take: () => { rec.snacks -= use; rec.credits -= price; }, grant: { tame: [c.uid, n], ev: { type: "feed", n } }, refund: use || price ? { ...(use ? { snacks: use } : {}), ...(price ? { credits: price } : {}) } : null, info: { n, buy, ...(price ? { credits: price } : {}) } };
+  return { costs: [], why: "tame:" + c.uid, take: () => { rec.snacks -= use; rec.credits -= price; sale(rec, "MLV", price); }, grant: { tame: [c.uid, n], ev: { type: "feed", n } }, refund: use || price ? { ...(use ? { snacks: use } : {}), ...(price ? { credits: price } : {}) } : null, info: { n, buy, ...(price ? { credits: price } : {}) } };
 }
 // おやつ工房：素材から おやつを 作る（鹿さんの決め、2026-10-25）。ふつうの おやつは rec.snacks、とくべつおやつは 品（rec.items.snack3）に
 // 施設の 維持費を 払う（どこで 払っても ここ。タスクの「維持費を 合計 N クレジット 払う」に 数える）。払えるかは 先に 見て おく
-export function payUpkeep(rec, fee, now = Date.now()) { if (!(fee > 0)) return 0; rec.credits -= fee; bump(rec, { type: "upkeep", n: fee }, jstDay(now)); return fee; }
+export function payUpkeep(rec, fee, now = Date.now()) { if (!(fee > 0)) return 0; rec.credits -= fee; upkeepSale(rec, fee); bump(rec, { type: "upkeep", n: fee }, jstDay(now)); return fee; }   // 維持費は ヘリクス電力 4 割・グラナート建設 6 割の 売り上げ（株）
 export function snackCraft(rec, b, R = Math.random) {
   const r = SNACK_RECIPES.find((x) => x.id === b.id), lv = facLv(rec, "snack");
   if (!r) return { ok: false, why: "作る 物を えらんで" };
@@ -293,6 +296,7 @@ export function insLose(rec, t, mats, now) {
   if (!back.length) return null;
   const at = now + (rec.perks && rec.perks.insFast ? 0 : P.wait);
   (rec.ins ||= []).push({ at, did: t.did, mats: back });
+  sale(rec, "AMB", -back.reduce((a, m) => a + (VALUE[m.id] || 0) * m.n, 0));   // 保険の 支払いは アンバーの 売り上げから 引く（素材の 相場で。鹿さんの 構想「保険屋は 保険料 − 支払い」）
   return { n: back.reduce((a, m) => a + m.n, 0), at };
 }
 // 時間が 来た 保険の 支払いを 倉庫へ（どの 操作の ときでも。プライマリータスク「保険の 支払いを うけとる」に 数える）
@@ -344,8 +348,8 @@ export function tripStart(rec, b, now, seed, check = false, who = null) {
   if (bag) for (const [k, n] of Object.entries(bag)) rec.items[k] -= n;   // 袋も あずかる
   const t = { uid: newUid(rec, "r"), did: d.id, run, purpose, target, tool, ...(tools.length > 1 ? { tools } : {}), ...(floor ? { floor } : {}), party: [pet.uid, ...mates.map((c) => c.uid)], team, seed, ...(bag ? { bag } : {}), ...(fac.maproom ? { map: fac.maproom } : {}), ...(fac.medic ? { med: fac.medic } : {}), ...(fac.maproom >= MAP_STAIRS ? { st: 1 } : {}), start: now, end: now + S.budget * TICK * 1000, done: false, calc: true };   // floor は えらんだ ときだけ（画面も 同じ 階で 計算しなおす）
   // team：出かけた ときの 戦う 形。出かけて いる あいだも スキルツリー・振り分け・ガンビットは かえられるので、画面と 中継は これで 計算しなおす（いまの 形だと 門番と ずれる）
-  if (ins) { rec.credits -= prem; t.ins = { plan: ins, prem }; }
-  if (fee) { rec.credits -= fee; t.fee = fee; }
+  if (ins) { rec.credits -= prem; t.ins = { plan: ins, prem }; sale(rec, "AMB", prem); }   // 保険料は アンバー相互保証・行き先の 費用は キャラバン運送の 売り上げ（株）
+  if (fee) { rec.credits -= fee; t.fee = fee; sale(rec, "CRV", fee); }
   t.fac = fac; t.map = fac.maproom; if (facOn && upk) { payUpkeep(rec, upk, now); t.upk = upk; }   // 出かけた ときの 施設の Lv（帰りの 経験値・地図室の 素材も これで）
   const wst = (x) => { const u = x && x.equip && x.equip.weapon, e = u && rec.own.equip.find((q) => q.uid === u); return e ? e.star : 0; };
   t.wstar = Math.max(0, wst(pet), ...mates.map(wst));   // 付けて いる 武器の ★（プライマリータスク「★3 の 武器を 装備して …」）
@@ -555,7 +559,7 @@ export function craftPlan(rec, b, R) {
   const t = takeMats(rec, r.mats);
   if (t.why) return { ok: false, why: t.why };
   const c = charm(rec, rollCraft(R, r, lv), R);   // 先に 引いて おく（返事が なくても 中身は かわらない）
-  return { costs: [], why: "craft:" + r.base, take: () => { rec.own.mats = t.mats; c.take(); rec.credits -= r.credits; payUpkeep(rec, fee); }, grant: { equip: [{ ...c.item, mk: 1 }], ev: { type: "craft", n: 1, star: c.item.star, slot: slotKind(c.item.base) } }, refund: { mats: t.taken, ...c.refund, credits: r.credits + fee }, item: c.item, info: { credits: r.credits, ...(fee ? { fee } : {}) } };
+  return { costs: [], why: "craft:" + r.base, take: () => { rec.own.mats = t.mats; c.take(); rec.credits -= r.credits; sale(rec, gearCo(r.base), r.credits); payUpkeep(rec, fee); }, grant: { equip: [{ ...c.item, mk: 1 }], ev: { type: "craft", n: 1, star: c.item.star, slot: slotKind(c.item.base) } }, refund: { mats: t.taken, ...c.refund, credits: r.credits + fee }, item: c.item, info: { credits: r.credits, ...(fee ? { fee } : {}) } };
 }
 export function synthPlan(rec, b, R) {
   const lv = facLv(rec, "bench"), fee = makeFee(rec, "bench");
@@ -572,7 +576,7 @@ export function synthPlan(rec, b, R) {
   if (t.why) return { ok: false, why: t.why };
   const c = charm(rec, rollSynth(R, r, lv), R);
   return { costs: [], why: "synth:" + r.out,
-    take: () => { rec.own.mats = t.mats; rec.own.equip = rec.own.equip.filter((e) => e !== main && e !== sub); c.take(); rec.credits -= price; payUpkeep(rec, fee); }, grant: { equip: [{ ...c.item, mk: 1 }], ev: { type: "synth", n: 1 } }, refund: { mats: t.taken, equip: [main, sub], ...c.refund, credits: price + fee }, item: c.item, info: { credits: price, ...(fee ? { fee } : {}) } };
+    take: () => { rec.own.mats = t.mats; rec.own.equip = rec.own.equip.filter((e) => e !== main && e !== sub); c.take(); rec.credits -= price; sale(rec, gearCo(c.item.base), price); payUpkeep(rec, fee); }, grant: { equip: [{ ...c.item, mk: 1 }], ev: { type: "synth", n: 1 } }, refund: { mats: t.taken, equip: [main, sub], ...c.refund, credits: price + fee }, item: c.item, info: { credits: price, ...(fee ? { fee } : {}) } };
 }
 // くじの お守り（ヨルの 店）を 持って いれば、作る・合成の ★が ＋1（OP も 1 つ ふえる）
 function charm(rec, item, R) {

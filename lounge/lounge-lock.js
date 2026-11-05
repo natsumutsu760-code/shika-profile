@@ -13,6 +13,11 @@ export const PET_WHY = "準備中（新しい ペットと 農園は、公開ま
 // みんなに 開く：鹿さんの カード（2026-11-05）「1。島3も反映お願いします。クローラーとボーダーゾーンも。」（そのときは 遊ぶ 部分が まだ なかった）
 export const BZ_OPEN = true;
 export const BZ_WHY = "準備中（ボーダーゾーンは、公開まで もう 少し お待ちください）";
+// 株（トークン。2026-11-05 作りはじめ）：STOCK_OPEN を true に すると みんなに 開く（公開は 鹿さんの カード）。売り上げを 数えるのは 前から みんな
+// みんなに 開く：鹿さんの カード（2026-11-06）「出す・みんなに公開」
+export const STOCK_OPEN = true;
+export const STOCK_WHY = "準備中（トークンは、公開まで もう 少し お待ちください）";
+export const stockLocked = (rec, env) => !STOCK_OPEN && !(env && env.LOCK_OFF) && !LOCK_PASS.has(String(rec.id));
 export const bzLocked = (rec, env) => !BZ_OPEN && !(env && env.LOCK_OFF) && !LOCK_PASS.has(String(rec.id));
 export const locked = (rec, env) => (LOCK || !PET_OPEN) && !(env && env.LOCK_OFF) && !LOCK_PASS.has(String(rec.id));
 export const lockKind = () => (LOCK ? "build" : "pet");   // 画面の 文の えらび（工事中 ／ 準備中）

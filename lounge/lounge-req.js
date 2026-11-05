@@ -6,7 +6,8 @@
 // - ひとこと：えらぶ ことば か 自由に 書く（20 字まで）。NG ことば・URL・連絡先は 出せない（門番でも たしかめる）。通報 3 回で かくす
 import { MAT_NAME, sellPrice, baseOf, REQ_FEE, RES_VALUE, NOTE_PRESETS, NOTE_HIDE_AT, noteBlock } from "./game.js";
 import { putMats, putEquip, takeMats } from "./lounge-game.js";
-import { equippedUids } from "./lounge-pet.js";   // lounge-game.js も ここを 読む（どちらも 呼ぶ ときに 使うだけ）
+import { equippedUids } from "./lounge-pet.js";
+import { sale } from "./lounge-stock.js";   // 株：依頼の 手数料は ノクス仲介の 売り上げ（お礼は あずかる だけ）   // lounge-game.js も ここを 読む（どちらも 呼ぶ ときに 使うだけ）
 
 export const LIMIT_MS = [6, 24, 72, 168].map((h) => h * 3600e3);   // 6 時間・1 日・3 日・7 日（deeplink.js の REQ_LIMITS と 同じ 順）
 export const KEEP_DONE = 7 * 864e5;                                 // 終わった 依頼を のこす 日（2 回 届けない ため）
@@ -80,7 +81,7 @@ export function reqPostPlan(rec, b, extra = []) {
   if (credits + fee > (rec.credits || 0)) return { ok: false, why: `クレジットが 足りない：あと ${(credits + fee - (rec.credits || 0)).toLocaleString("ja-JP")}（お礼と 手数料）` };
   const data = { rid, by: rec.id, name: rec.name, want, reward, fee, note: nt.note, limit: b.limit };
   return { costs: [{ kind: "res", d: -resN }].filter((c) => c.d), why: "req:" + rid,
-    take: () => { rec.own.mats = t.mats; rec.own.equip = rec.own.equip.filter((e) => !eq.includes(e)); rec.credits -= credits + fee; rec.req.mine = rid; rec.req.wait[rid] = data; },
+    take: () => { rec.own.mats = t.mats; rec.own.equip = rec.own.equip.filter((e) => !eq.includes(e)); rec.credits -= credits + fee; sale(rec, "NOX", fee); rec.req.mine = rid; rec.req.wait[rid] = data; },
     grant: { reqSend: rid }, refund: { reqDrop: rid, reqBack: items({ mats: t.taken, equip: eq }), credits: credits + fee }, info: { rid, fee } };
 }
 // 届ける 物を 取る（素材は 品質の 低い 物から・買った 物から、装備は uid か ★の いちばん 低い 物）

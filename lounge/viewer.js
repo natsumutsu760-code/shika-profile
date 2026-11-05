@@ -5,7 +5,7 @@
 // ほかの 頼みが 入ると、同じ 人が すばやく 2 回 押した とき 2 重に 使えて しまうので
 // 派遣の 計算は 出かけた あと アラームで 戦い 1 回ずつ（Cloudflare の 無料の プランは 1 回 10 ミリ秒まで）。とちゅうは「sim」に しまう
 import { cleanRoom, STARTER_OWN, STARTER_ROOM, N, SALE_IDS, priceOn, jstDay, pullId, GACHA_COST } from "./lounge-rules.js";
-import { locked, lockedAct, lockWhy, lockKind, bzLocked, BZ_WHY } from "./lounge-lock.js";   // 大工事の あいだの ロック
+import { locked, lockedAct, lockWhy, lockKind, bzLocked, BZ_WHY, stockLocked, STOCK_WHY } from "./lounge-lock.js";   // 大工事の あいだの ロック
 import { emptyLedger, balanceOf, trimSent, toObs, settle } from "./ledger.js";
 import { buyPlan, sellAct, tradeAct, taskDone, useItem, deeplinkView, actEvents, dlVisit } from "./lounge-trade.js";
 import { facMigrate, facDue, facStart, facPut, facRush, facFuel, facScaffold, facKnob, facView } from "./lounge-facility.js";   // 施設の 建設と つまみ（施設の 作り直し、2026-11-03）
@@ -29,6 +29,7 @@ import { arenaFighter, ensureArena, duelCheck, duelDone, arenaMine, encReady, en
 import { hidden } from "./lounge-gate.js";
 import { bzStart, bzRecall, bzCollect, bzAppraise, bzSell, bzDone, bzMe } from "./lounge-border.js";   // ボーダーゾーン（2026-11-05 作りはじめ）
 import { bzStep } from "./border.js";
+import { stockAct, stockFlush, sale } from "./lounge-stock.js";   // 株（トークン）：売り買い・売り上げを 取引所（Market）へ
 import { resetOld, resetDue, RESET_GEN } from "./lounge-reset.js";
 import { prizeView, prizePlan } from "./lounge-prize.js";   // パチンコの 景品（シーズンラインナップ。鹿さんの 決め 2026-11-03）   // 大工事の あとの リセット（鹿さんの 決め 2026-11-03）
 
@@ -95,6 +96,7 @@ export class Viewer {
     if (changed) await this.save(rec);
     if (rec.ledger.pending.length + rec.ledger.unknown.length) await this.mark(rec);   // 知らせそこねて いても ここで もう 1 回
     if (rec.req.out.length && this.env.MARKET) { await this.flushReq(rec); await this.save(rec); }   // 依頼の 板に 送りそこねた 分
+    if (rec.stock && (rec.stock.send || (rec.stock.q && Object.keys(rec.stock.q).length)) && this.env.MARKET) { await stockFlush(this, rec); await this.save(rec); }   // 株の 売り上げの 送りそこね（!換金 など act の 外で 数えた 分も）
     if (rec.trips.some((t) => t.calc) && (await this.state.storage.getAlarm()) == null) await this.state.storage.setAlarm(Date.now());   // 派遣の 計算が 止まって いたら もう 1 回
     else if (rec.loop && rec.loop.on && (await this.state.storage.getAlarm()) == null) { const t = rec.trips.find((x) => !x.done); if (t) await this.state.storage.setAlarm(Math.max(Date.now(), t.end)); }   // 周回の アラームが 止まって いたら
     return rec;
@@ -204,7 +206,7 @@ export class Viewer {
       try { j = await (await this.market().fetch("https://market/" + e.k, { method: "POST", body: JSON.stringify(body) })).json(); } catch (x) { got[e.k + e.rid] = { ok: false, wait: true }; continue; }
       R.out = R.out.filter((x) => x !== e);
       got[e.k + e.rid] = j;
-      const back = async (rw, fee = 0) => { const cr = rw.credits != null; this.give(rec, { reqBack: rw, ...(cr ? { credits: rw.credits + fee } : {}) }); for (const [kind, d] of [["balls", (rw.balls || 0) + (cr ? 0 : fee)], ["res", rw.res || 0]]) if (d > 0) await this.earn(rec, kind, d, "req:" + e.rid); };   // お礼と 手数料は クレジット（前に 玉で 出した 依頼は 玉で もどす）
+      const back = async (rw, fee = 0) => { if (fee) sale(rec, "NOX", -fee); const cr = rw.credits != null; this.give(rec, { reqBack: rw, ...(cr ? { credits: rw.credits + fee } : {}) }); for (const [kind, d] of [["balls", (rw.balls || 0) + (cr ? 0 : fee)], ["res", rw.res || 0]]) if (d > 0) await this.earn(rec, kind, d, "req:" + e.rid); };   // お礼と 手数料は クレジット（前に 玉で 出した 依頼は 玉で もどす）
       if (e.k === "post" && !j.ok) { await back(e.data.reward, e.data.fee); if (R.mine === e.rid) R.mine = null; }   // 板に 出せなかった：手数料も もどす
       if (e.k === "claim") {
         if (j.ok) { this.give(rec, { reqGet: j.reward, ...(j.reward.credits ? { credits: j.reward.credits } : {}) }); for (const [kind, d] of [["balls", j.reward.balls], ["res", j.reward.res]]) if (d > 0) await this.earn(rec, kind, d, "req:" + e.rid); }
@@ -415,6 +417,7 @@ export class Viewer {
     else if (body.a === "ws.draw") r = drawOp(rec, body, rand, now);     // 工房：素材で 空いた 枠に OP を 引く
     else if (body.a === "equip.auto") r = autoSellSet(rec, body);   // 派遣で 拾った ★N 以下の 装備を 自動で 売る 設定
     else if (/^arena\.(view|foes|duel|entry|match|enc)$/.test(String(body.a))) r = await this.arena(rec, body, now);
+    else if (/^stock\.(view|buy|sell)$/.test(String(body.a))) r = stockLocked(rec, this.env) ? { ok: false, lock: true, why: STOCK_WHY } : await stockAct(this, rec, body, op);   // 株（トークン）
     else if (typeof body.a === "string" && Object.prototype.hasOwnProperty.call(PLANS, body.a)) {   // お金が いる やること：計画を 作って 帳簿で 払う（「constructor」などは 通さない）
       const plan = PLANS[body.a](rec, body, this.env);
       r = plan.costs ? await this.charge(rec, plan, wallet) : plan;
@@ -427,6 +430,7 @@ export class Viewer {
       const f = await this.flushReq(rec), x = r.rid && f["post" + r.rid];
       if (x && x.wait) r = { ...r, sending: true }; else if (x && !x.ok) r = { ok: false, why: x.why };
     }
+    await stockFlush(this, rec);   // 払った クレジットを 子会社の 売り上げとして 取引所へ（返事が なければ のこして つぎに）
     const keep = JSON.stringify(r).length > 600 ? { ok: r.ok, why: r.why, wait: r.wait } : r;   // 大きな 答えは 短くして おぼえる（記録を 小さく）
     rec.ops = [...rec.ops, { op, r: keep }].slice(-OPS_KEEP);
     await this.save(rec);
@@ -445,7 +449,7 @@ export class Viewer {
     const now = Date.now(); dropOld(rec, now); facMigrate(rec); facDue(rec, now);
     return { id: rec.id, lock: locked(rec, this.env), lockKind: lockKind(), login: rec.login, name: rec.name, nameAt: rec.nameAt, names: rec.names, room: rec.room, own: ownView(rec.own), wallet: this.purse(rec, w), waiting: rec.ledger.unknown.length,
       pets: rec.pets.map((p) => ({ ...p, ...(p.type ? { sp: { all: spTotal(p.lv), left: spTotal(p.lv) - spUsed(p) }, freeLeft: freeIsAuto(p) ? 0 : freeTotal(p.lv) - Object.values(p.free || {}).reduce((a, v) => a + v, 0), build: fighterOf(p, rec), resetPrice: RESET_PRICE(p.lv) } : {}) })),
-      tamed: rec.tamed, party: rec.party, mine: mineView(rec, now), farmv: farmvView(rec, now), crawl: crawlView(rec), bz: { ...bzMe(rec, now), open: !bzLocked(rec, this.env) }, smelt: rec.smelt || [], loop: rec.loop || null, lab: rec.lab, labQ: rec.labQ || [], hideout: rec.hideout, knob: rec.knob || {}, fac: facView(rec, now), credits: rec.credits, snacks: rec.snacks, tools: rec.tools, explore: rec.explore, seen: rec.seen, met: rec.met,
+      tamed: rec.tamed, party: rec.party, mine: mineView(rec, now), farmv: farmvView(rec, now), crawl: crawlView(rec), bz: { ...bzMe(rec, now), open: !bzLocked(rec, this.env) }, stock: { open: !stockLocked(rec, this.env), h: (rec.stock && rec.stock.h) || {} }, smelt: rec.smelt || [], loop: rec.loop || null, lab: rec.lab, labQ: rec.labQ || [], hideout: rec.hideout, knob: rec.knob || {}, fac: facView(rec, now), credits: rec.credits, snacks: rec.snacks, tools: rec.tools, explore: rec.explore, seen: rec.seen, met: rec.met,
       stash: { cap: stashCap(rec) }, equipCap: equipCap(rec), autoSell: rec.autoSell || null, trips: rec.trips.map((t) => tripView(t, now)), deeplink: deeplinkView(rec, jstDay(now)), req: { mine: rec.req.mine, sending: rec.req.out.length } };
   }
 

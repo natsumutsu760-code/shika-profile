@@ -9,6 +9,7 @@
 import { FACILITIES, facOf, facCap, facMax, hasKnob, facLv, buildNeed, buildProg, buildMatRatio, buildTimeRatio, buildLeftMs, rushPrice, FUEL, SCAFFOLD, MIGRATE_LV, upkeep, facFx, buildOff } from "./game.js";
 import { bump } from "./lounge-trade.js";
 import { jstDay } from "./lounge-rules.js";
+import { sale } from "./lounge-stock.js";
 
 const has = (o, k) => typeof k === "string" && Object.prototype.hasOwnProperty.call(o, k);
 const fmt = (n) => Math.round(n).toLocaleString("ja-JP");
@@ -58,7 +59,7 @@ export function facStart(rec, b, now) {
   if (lv >= cap) return { ok: false, why: f.isle > 1 ? "まだ ない" : `Lv${lv + 1} は 無線機を 作って から（ビサイ諸島の 素材が いる）` };
   const L = lv + 1, need = buildNeed(f.id, L), ms = Math.round(need.ms * (1 - buildOff(rec.perks)));   // ボルトの 店の 割引
   if (need.credits > (rec.credits || 0)) return { ok: false, why: `クレジットが 足りない：あと ${fmt(need.credits - (rec.credits || 0))}` };
-  rec.credits -= need.credits;
+  rec.credits -= need.credits; sale(rec, "GRN", need.credits);   // 建設の 代金は グラナート建設の 売り上げ（株）
   rec.build[f.id] = { to: L, at: now, ms, skip: 0, mats: need.mats, put: {} };
   return { ok: true, id: f.id, to: L, paid: need.credits };
 }
@@ -93,7 +94,7 @@ export function facRush(rec, b, now) {
   const left = buildLeftMs(B, now); if (!left) return { ok: false, why: "時間は もう 足りて いる（素材を 入れると できる）" };
   const fee = rushPrice(B, now);
   if (fee > (rec.credits || 0)) return { ok: false, why: `クレジットが 足りない：あと ${fmt(fee - (rec.credits || 0))}` };
-  rec.credits -= fee; B.skip = (B.skip || 0) + Math.floor(left / 2);
+  rec.credits -= fee; sale(rec, "GRN", fee); B.skip = (B.skip || 0) + Math.floor(left / 2);
   bump(rec, { type: "rush", n: 1, fac: f.id }, jstDay(now));
   const done = facDue(rec, now);
   return { ok: true, fee, left: buildLeftMs(B, now), ...(done.includes(f.id) ? { done: rec.hideout[f.id] } : {}) };
@@ -108,7 +109,7 @@ export function facFuel(rec, b, now) {
   if (!n) return { ok: false, why: "燃料の 数を えらんで" };
   const fee = FUEL.price * n;
   if (fee > (rec.credits || 0)) return { ok: false, why: `クレジットが 足りない：あと ${fmt(fee - (rec.credits || 0))}` };
-  rec.credits -= fee; B.skip = (B.skip || 0) + FUEL.ms * n;
+  rec.credits -= fee; sale(rec, "HLX", fee); B.skip = (B.skip || 0) + FUEL.ms * n;   // 燃料は ヘリクス電力
   const done = facDue(rec, now);
   return { ok: true, fee, n, left: buildLeftMs(B, now), ...(done.includes(f.id) ? { done: rec.hideout[f.id] } : {}) };
 }
