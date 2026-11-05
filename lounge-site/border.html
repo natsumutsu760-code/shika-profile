@@ -1,0 +1,406 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Border Zone</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DotGothic16&family=Fredoka:wght@500;600;700&family=Zen+Maru+Gothic:wght@500;700;900&display=swap">
+<style>
+  /* MONO LINK の ラウンジ：ボーダーゾーン（docs/mono-link-border-zone.md）。鹿さんの カード（2026-11-05）「タブ 3 つ＋左右」
+     出撃：左に 衛星写真の 地図（エリアを 押して えらぶ）・右に 決める 所。出て いる あいだは 地図の 上で 点が 動き、下に のこり時間・持って いる 物・帰還
+     記録：通った 道と 印の 地図・持ち帰った 物。サンプル：鑑定と 納める。スマホは 地図が 上で、決める 所は 下の 引き出し */
+  :root {
+    --space:#F6F8FC; --ink:#1B2340; --soft:#6A7394; --line:#DCE3F0;
+    --sky:#2EA8FF; --coral:#FF5A64; --sun:#FFC21A; --leaf:#22CC88; --violet:#8E6CFF;
+    --r1:#9AA0B8; --r2:#2F7BFF; --r3:#9B4DFF; --r4:#FFB300; --r5:#FF2E4D;
+    --harmonia:#2EC4B6; --sva:#FF7A2E; --tcu:#D0A040; --edge:#E0566A;
+    --jp:"Zen Maru Gothic", "Hiragino Maru Gothic ProN", sans-serif; --num:"Fredoka", "Zen Maru Gothic", sans-serif; --game:"DotGothic16", "Zen Maru Gothic", monospace;
+    --lift:0 18px 40px -18px rgba(27,35,64,.35), 0 2px 0 rgba(27,35,64,.06);
+  }
+  * { box-sizing:border-box; }
+  [hidden] { display:none !important; }
+  body { margin:0; min-height:100vh; background:radial-gradient(120% 80% at 50% 0%, #FFFFFF 0%, var(--space) 55%, #EAF0FA 100%); color:var(--ink); font:500 16px/1.65 var(--jp); }
+  button { font:inherit; color:inherit; cursor:pointer; }
+  :focus-visible { outline:3px solid var(--sky); outline-offset:3px; border-radius:12px; }
+  h2, h3, p { margin:0; }
+  .top { display:flex; align-items:center; gap:10px; padding:12px clamp(16px, 4vw, 40px); }
+  .top b { font:700 22px/1 var(--num); letter-spacing:.06em; } .top b i { font-style:normal; color:var(--sky); }
+  .top small { font:700 13px/1 var(--jp); color:var(--soft); margin-left:6px; }
+  main { max-width:1100px; margin:0 auto; padding:0 clamp(16px, 4vw, 40px) 40px; }
+  .panel { background:rgba(255,255,255,.92); border-radius:26px; box-shadow:var(--lift); padding:clamp(14px, 2.4vw, 18px); }
+  .pet { display:grid; grid-template-columns:60px auto 1fr; gap:14px; align-items:center; padding:8px 20px 8px 8px; border-radius:22px; }
+  .pet .pic { width:60px; height:60px; border-radius:16px; background:radial-gradient(circle at 50% 38%, #fff 0, #E4F7EE 80%); display:flex; justify-content:center; overflow:hidden; }
+  .pet .pic img { height:150%; margin-top:-4%; }
+  .pet h1 { margin:0; font:900 24px/1.1 var(--jp); display:flex; align-items:baseline; gap:10px; white-space:nowrap; }
+  .pet h1 small { font:700 13px/1 var(--jp); color:var(--soft); }
+  .pet .meta { margin-top:6px; display:flex; gap:8px; align-items:center; }
+  .badge { display:inline-flex; align-items:center; gap:5px; border-radius:999px; padding:4px 10px 4px 5px; font:700 12px/1 var(--jp); color:#fff; background:var(--c); }
+  .badge::before { content:""; width:11px; height:11px; border-radius:50%; background:#fff; opacity:.85; }
+  .lv { font:600 16px/1 var(--num); } .lv small { font:700 12px/1 var(--jp); color:var(--soft); margin-right:3px; }
+  .tabs { display:flex; gap:8px; margin:12px 0 10px; overflow-x:auto; padding-bottom:4px; }
+  .tabs button { flex:none; border:1.5px solid var(--line); background:rgba(255,255,255,.9); border-radius:999px; padding:8px 16px; font:700 14px/1 var(--jp); display:inline-flex; align-items:center; gap:6px; }
+  .tabs button[aria-selected="true"] { background:var(--ink); color:#fff; border-color:var(--ink); box-shadow:0 5px 0 rgba(27,35,64,.22); }
+  .tabs .n { min-width:20px; height:20px; padding:0 6px; border-radius:999px; background:var(--sky); color:#fff; font:600 12px/20px var(--num); text-align:center; }
+  .btabs { margin-top:2px; }
+  .jelly { border:0; border-radius:999px; padding:11px 16px; font:900 14px/1 var(--jp); background:var(--ink); color:#fff; box-shadow:0 5px 0 rgba(27,35,64,.25); }
+  .jelly.light { background:#fff; color:var(--ink); box-shadow:0 5px 0 var(--line); border:1.5px solid var(--line); }
+  .jelly.sky { background:var(--sky); box-shadow:0 5px 0 rgba(46,168,255,.3); }
+  .jelly.coral { background:var(--coral); box-shadow:0 5px 0 rgba(255,90,100,.3); }
+  .jelly[disabled] { opacity:.45; cursor:default; }
+  .big { width:100%; padding:15px 16px; font-size:16px; }
+  .cols { display:grid; grid-template-columns:minmax(0, 1fr) 340px; gap:20px; align-items:start; }
+  .map { padding:8px; background:#141826; border-radius:26px; box-shadow:var(--lift); }
+  .sat { position:relative; border-radius:20px; overflow:hidden; background:#262E22; }
+  .sat img { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; display:block; user-select:none; -webkit-user-drag:none; }
+  .sat svg { position:absolute; inset:0; width:100%; height:100%; display:block; }
+  .sat .area { fill:transparent; stroke:var(--c); stroke-width:1.6; stroke-dasharray:8 6; vector-effect:non-scaling-stroke; cursor:pointer; transition:stroke-width .15s, fill .15s; }
+  .sat .area:hover, .sat .area:focus-visible { fill:rgba(255,255,255,.07); stroke-width:2.6; stroke-dasharray:none; outline:none; }
+  .sat .area.on { fill:rgba(255,255,255,.03); stroke:#fff; stroke-width:2.6; stroke-dasharray:none; filter:drop-shadow(0 0 5px var(--c)); }
+  .sat .lbl { position:absolute; transform:translate(-50%, -50%); display:flex; align-items:center; gap:6px; padding:3px 9px 3px 3px; border:1.5px solid var(--c); border-radius:99px; background:rgba(11,15,26,.74); color:#fff; cursor:pointer; white-space:nowrap; }
+  .sat .lbl i { display:grid; place-items:center; width:19px; height:19px; border-radius:50%; background:var(--c); color:#0B0F1A; font:900 11px/1 var(--num); font-style:normal; flex:none; }
+  .sat .lbl span { display:grid; gap:1px; text-align:left; }
+  .sat .lbl b { font:900 12px/1.15 var(--jp); }
+  .sat .lbl small { font:700 10.5px/1 var(--num); opacity:.75; }
+  .sat .lbl.on { background:#fff; color:var(--ink); border-color:#fff; box-shadow:0 0 0 3px var(--c); z-index:2; padding-right:11px; border-radius:12px; }
+  .sat .lbl:hover { z-index:3; }
+  .sd { display:flex; align-items:center; gap:6px; font:800 12px/1 var(--jp); color:var(--soft); margin-bottom:4px; }
+  .sd::before { content:""; width:9px; height:9px; border-radius:50%; background:var(--c); }
+  .sat .scale { position:absolute; left:14px; bottom:12px; color:#fff; font:700 10px/1 var(--num); text-shadow:0 1px 2px #000; pointer-events:none; }
+  .sat .scale i { display:block; height:5px; border:1.5px solid #fff; border-top:0; margin-bottom:3px; box-shadow:0 1px 2px rgba(0,0,0,.5); }
+  .sat .calc { position:absolute; inset:0; display:grid; place-items:center; color:#fff; font:800 15px var(--jp); background:rgba(11,15,26,.45); }
+  .side h2 { font:900 21px/1.3 var(--jp); }
+  .side .band { font:600 15px/1 var(--num); color:var(--soft); margin-top:4px; }
+  .row { margin-top:14px; }
+  .row > span { display:block; font:800 12px/1.2 var(--jp); color:var(--soft); margin-bottom:6px; }
+  .seg { display:grid; grid-auto-flow:column; grid-auto-columns:1fr; gap:3px; padding:3px; border-radius:13px; background:#fff; border:1.5px solid var(--line); }
+  .seg button { border:0; background:none; border-radius:10px; padding:7px 4px; font:700 13px/1.2 var(--jp); color:var(--soft); white-space:nowrap; }
+  .seg button[aria-pressed="true"] { background:var(--sky); color:#fff; box-shadow:0 4px 0 rgba(46,168,255,.28); }
+  .seg button[disabled] { opacity:.35; cursor:default; }
+  .step { display:inline-flex; align-items:center; gap:8px; }
+  .step button { width:32px; height:32px; border-radius:50%; border:1.5px solid var(--line); background:#fff; font:700 16px/1 var(--num); }
+  .step b { font:600 18px/1 var(--num); min-width:22px; text-align:center; }
+  .why { margin-top:8px; font:700 12px/1.5 var(--jp); color:var(--coral); text-align:center; }
+  .go { margin-top:16px; }
+  .hint { margin:0 0 4px; color:var(--soft); font-size:13px; line-height:1.5; }
+  /* 出て いる あいだの 下の 帯 */
+  .bar { margin-top:14px; display:grid; grid-template-columns:auto 1fr; gap:10px 16px; align-items:center; }
+  .bar .act { grid-column:1 / -1; }
+  .bar .left { font:600 30px/1 var(--num); } .bar .left small { display:block; font:800 11px/1.4 var(--jp); color:var(--soft); }
+  .bar .have { display:flex; gap:14px; justify-content:flex-end; font:700 13px/1.3 var(--jp); color:var(--soft); white-space:nowrap; }
+  .bar .have b { font:600 20px/1 var(--num); color:var(--ink); margin-right:3px; }
+  .evs { list-style:none; margin:12px 0 0; padding:0; display:grid; gap:6px; }
+  .evs li { display:grid; grid-template-columns:44px 1fr; gap:8px; font:700 13px/1.45 var(--jp); }
+  .evs li i { font:600 12px/1.45 var(--num); color:var(--soft); font-style:normal; }
+  .evs li.bad { color:var(--coral); }
+  /* 記録 */
+  .logs { display:flex; gap:6px; flex-wrap:wrap; }
+  .logs button { border:1.5px solid var(--line); background:#fff; border-radius:12px; padding:7px 10px; font:700 12px/1.3 var(--jp); text-align:left; }
+  .logs button[aria-pressed="true"] { border-color:var(--ink); box-shadow:inset 0 0 0 1.5px var(--ink); }
+  .logs button small { display:block; color:var(--soft); font-weight:700; }
+  .res { margin-top:12px; font:900 18px/1.3 var(--jp); } .res.bad { color:var(--coral); }
+  .mats { display:flex; flex-wrap:wrap; gap:6px; margin-top:6px; }
+  .mats span { display:inline-flex; align-items:center; gap:4px; border:1.5px solid var(--line); background:#fff; border-radius:10px; padding:3px 8px 3px 3px; font:700 12px/1 var(--jp); }
+  .mats img { width:24px; height:24px; image-rendering:pixelated; }
+  .mats b { font:600 13px/1 var(--num); }
+  /* サンプル */
+  .filters { display:flex; flex-wrap:wrap; gap:6px; align-items:center; padding:8px 10px; border-radius:14px; background:rgba(255,255,255,.7); border:1.5px solid var(--line); margin-bottom:10px; }
+  .filters > span { font:800 12px/1 var(--jp); color:var(--soft); margin-right:2px; }
+  .chip { border:1.5px solid var(--line); background:#fff; border-radius:999px; padding:5px 11px; font:700 12px/1 var(--jp); }
+  .chip[aria-pressed="true"] { background:var(--ink); color:#fff; border-color:var(--ink); }
+  .chip[disabled] { opacity:.35; cursor:default; }
+  .chip b { font:600 12px/1 var(--num); margin-left:3px; }
+  .smps { display:grid; grid-template-columns:repeat(auto-fill, minmax(150px, 1fr)); gap:8px; }
+  .smp { border:1.5px solid var(--line); background:#fff; border-radius:14px; padding:9px 10px; text-align:left; display:grid; gap:4px; }
+  .smp[aria-pressed="true"] { border-color:var(--sky); background:#E8F5FF; box-shadow:inset 0 0 0 1.5px var(--sky); }
+  .smp .nm { font:900 13px/1.3 var(--jp); }
+  .smp .tag { display:flex; justify-content:space-between; align-items:center; font:700 11px/1 var(--jp); color:var(--soft); }
+  .stars { font-size:13px; letter-spacing:-1px; color:var(--rc, var(--r1)); }
+  .r1 { --rc:var(--r1); } .r2 { --rc:var(--r2); } .r3 { --rc:var(--r3); } .r4 { --rc:var(--r4); } .r5 { --rc:var(--r5); }
+  .sell { display:grid; gap:8px; margin-top:10px; }
+  .sell button { display:flex; justify-content:space-between; align-items:center; }
+  .sell button b { font:600 16px/1 var(--num); }
+  .empty { color:var(--soft); font:700 14px/1.6 var(--jp); padding:16px 4px; }
+  .lock { text-align:center; padding:40px 16px; }
+  .toast { position:fixed; left:50%; bottom:22px; transform:translateX(-50%); background:var(--ink); color:#fff; border-radius:16px; padding:12px 18px; font:900 14px/1.3 var(--jp); box-shadow:var(--lift); z-index:30; }
+  @media (max-width:820px) {
+    .cols { grid-template-columns:1fr; }
+    /* 下の 引き出し（出撃の 決める 所）：ふだんは 出撃の ボタンと まとめだけ。押すと 開く */
+    .side.drawer { position:fixed; left:0; right:0; bottom:0; z-index:20; border-radius:22px 22px 0 0; max-height:78vh; overflow:auto; padding-bottom:calc(14px + env(safe-area-inset-bottom)); background:#fff; box-shadow:0 -14px 36px -12px rgba(27,35,64,.35); }
+    .side.drawer:not(.open) .more { display:none; }
+    .side.drawer .grab { display:flex; justify-content:space-between; align-items:center; gap:10px; width:100%; border:0; background:none; padding:0 0 10px; text-align:left; }
+    main.has-drawer { padding-bottom:180px; }
+  }
+  @media (max-width:520px) {
+    .map { padding:5px; border-radius:20px; }
+    .sat { border-radius:16px; }
+    .sat .lbl { padding:2px; gap:4px; }
+    .sat .lbl:not(.on) span { display:none; }
+    .sat .lbl i { width:17px; height:17px; font-size:10px; }
+    .sat .lbl.on { padding-right:8px; }
+    .sat .lbl b { font-size:11px; }
+    .sat .lbl small { font-size:9.5px; }
+    .sat .scale { left:9px; bottom:8px; font-size:9px; }
+  }
+  @media (min-width:821px) { .side .grab { display:none; } }
+</style>
+</head>
+<body>
+<header class="top"><a href="/" style="color:inherit;text-decoration:none" aria-label="MONO LINK の サイトへ"><b>MONO LINK<i>://</i></b></a><small><a href="lounge-room.html" style="color:inherit">ラウンジ</a> ／ ボーダーゾーン</small></header>
+<main id="app"></main>
+<script type="module">
+import "./lounge-en.js";   // 英語の 画面（英語の ときだけ 辞書を 読む）
+import "./mat-pop.js";     // 素材を 押すと 手に入る 所
+import { me, act, busy, waitText } from "./lounge-client.js";   // 記録は 門番（見本では ブラウザの 中の ためしの 門番）
+import { mountWallet } from "./wallet-bar.js"; mountWallet();
+import { petInfo, linkTabs, gateHtml, addGateCss, toast } from "./pet-head.js";
+import { TYPES } from "./skills.js";
+import { BZ_AREAS, BZ_RUNS, BZ_DEPTH, BZ_STEP_S, SAMPLES, LINE_NAME, LINE_BUYER, GROUP_NAME, SAMPLE_PRICE, APPRAISE_FEE, KEY_MAX, SEALED, samplePrice, bzInsPrice, capLv, SIDE_NAME, BZ_MAP_SIZE, bzBox, bzCrop } from "./border.js";
+import { MAT_NAME } from "./materials.js";
+import { matPic } from "./mat-icons.js";
+
+const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
+const AREA_IDS = Object.keys(BZ_AREAS), COLOR = { harmonia: "#2EC4B6", sva: "#FF7A2E", tcu: "#D0A040", edge: "#E0566A" };
+const ZID = (id) => (BZ_AREAS[id] ? id : AREA_IDS[0]), ZC = (id) => COLOR[BZ_AREAS[ZID(id)].side];   // 前の 4 エリアの 記録が 来ても こわれない ように
+const PRI = [["none", "バランス"], ["sample", "サンプル"], ["mat", "素材"], ["crate", "クレート"]];
+const RET = [["none", "なし"], ["samples", "サンプル"], ["hp", "HP が 半分"]];
+const INS = [[0, "なし"], [1, "ふつう"], [2, "手厚い"]];
+const stars = (n) => `<span class="stars r${n}">${"★".repeat(n)}</span>`;
+const mmss = (ms) => { const s = Math.max(0, Math.ceil(ms / 1000)); return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`; };
+
+let ME = await me(), MP = ME.pets && ME.pets[0], Z = ME.bz || {};
+const U = { tab: "go", area: AREA_IDS[0], run: 3, pri: "none", ret: "none", retN: 3, keys: 0, crate: false, ins: 0, log: 0, mark: null, sel: new Set(), filt: "all", sort: "star", drawer: false };
+try { const s = JSON.parse(localStorage.getItem("bz-ui") || "{}"); for (const k of ["area", "run", "pri", "ret", "retN", "ins"]) if (s[k] != null) U[k] = s[k]; } catch (e) {}
+U.area = ZID(U.area);
+const keepUi = () => { try { localStorage.setItem("bz-ui", JSON.stringify({ area: U.area, run: U.run, pri: U.pri, ret: U.ret, retN: U.retN, ins: U.ins })); } catch (e) {} };
+
+// ---------- 地図 ----------
+// 衛星写真の 戦略マップ（鹿さんの 構想 2026-10-29「衛星写真の戦略マップのような平面地図で、タルコフのマップ選択のように自分で選べます」。
+// 2026-11-05 に 前の 色の 多角形が「マップのイメージが違います。」→ カード「1 枚の 衛星写真」。ゾーンは 鹿さんの 頼みで 11 に 細かく）。絵は bzmap.py（Blender）→ bzmap_post.py
+// ゾーンの 線と 札の 位置は border.js の BZ_AREAS[id].map（絵の m 座標）。絵に 字は 入れず、線と 番号つきの 札を 重ねる（押すと 光る・英語にも なる）
+const poly = (pts) => pts.map((q) => q.map((v) => v.toFixed(1)).join(",")).join(" ");
+const pct = (v, all) => `${(v / all * 100).toFixed(2)}%`;
+function areaMap() {
+  const [W, H] = BZ_MAP_SIZE, sel = BZ_AREAS[U.area].map;
+  const grid = [...Array.from({ length: 9 }, (_, i) => `M${(i + 1) * 300},0V${H}`), ...Array.from({ length: 6 }, (_, i) => `M0,${(i + 1) * 300}H${W}`)].join("");
+  return `<div class="sat" style="aspect-ratio:${W}/${H}">
+    <img src="img/bz-map.jpg" alt="" draggable="false">
+    <svg viewBox="0 0 ${W} ${H}" aria-label="ボーダーゾーンの 地図">
+      <defs><mask id="bzfocus"><rect width="${W}" height="${H}" fill="#fff"/><polygon points="${poly(sel.pts)}" fill="#000"/></mask></defs>
+      <path d="${grid}" stroke="#fff" stroke-opacity=".07" vector-effect="non-scaling-stroke" pointer-events="none"/>
+      <rect width="${W}" height="${H}" fill="#0B0F1A" opacity=".3" mask="url(#bzfocus)" pointer-events="none"/>
+      ${AREA_IDS.map((id) => `<polygon class="area${U.area === id ? " on" : ""}" data-area="${id}" role="button" tabindex="0" aria-label="${esc(BZ_AREAS[id].name)}" points="${poly(BZ_AREAS[id].map.pts)}" style="--c:${ZC(id)}"/>`).join("")}
+    </svg>
+    ${AREA_IDS.map((id, n) => { const a = BZ_AREAS[id], on = U.area === id; return `<button class="lbl${on ? " on" : ""}" data-area="${id}" aria-pressed="${on}" aria-label="${esc(a.name)}" style="left:${pct(a.map.label[0], W)};top:${pct(a.map.label[1], H)};--c:${ZC(id)}"><i>${n + 1}</i><span><b>${esc(a.name)}</b>${on ? `<small>Lv${a.lv[0]}–${a.lv[2]}</small>` : ""}</span></button>`; }).join("")}
+    <div class="scale" style="width:${pct(500, W)}"><i></i>500 m</div>
+  </div>`;
+}
+// 出撃中・記録の 地図：同じ 写真を ゾーンに 寄せた 切り抜き。遊びの 円（半径 8・中心が 奥）を ゾーンの 箱に 合わせた 楕円に うつす。通った 道・出来事の 印・いまの 点
+function runMap(area, pos, ev, live, calc) {
+  area = ZID(area);
+  const c = ZC(area), [x0, y0, w, h] = bzCrop(area), [bx0, by0, bx1, by1] = bzBox(area), k = w / 520;
+  const cx = (bx0 + bx1) / 2, cy = (by0 + by1) / 2, rx = (bx1 - bx0) / 2 * 0.86 / 8, ry = (by1 - by0) / 2 * 0.86 / 8;
+  const P = (p) => [(cx + p[0] * rx).toFixed(1), (cy + p[1] * ry).toFixed(1)];
+  const pts = pos.map(P), last = pts[pts.length - 1] || P([0, 0]), outline = poly(BZ_AREAS[area].map.pts);
+  const at = (e) => pts[Math.min(pts.length - 1, e.i + 1)] || last;
+  const T = (x, y, s) => `transform="translate(${x},${y}) scale(${(s * k).toFixed(3)})"`;
+  const mk = ev.filter((e) => e.k !== "mat").map((e) => {
+    const [x, y] = at(e), sel = U.mark === `${e.i}:${e.k}`, s = sel ? 1.5 : 1, a = `data-mark="${e.i}:${e.k}" role="button" tabindex="0" aria-label="${esc(evText(e))}"`;
+    if (e.k === "sample") return `<g ${a} ${T(x, y, s)}><path d="M0,-9 L8,0 L0,9 L-8,0 Z" fill="${SAMPLES[e.id] && SAMPLES[e.id].line ? COLOR[LINE_BUYER[SAMPLES[e.id].line]] : "#fff"}" stroke="#141826" stroke-width="2"/></g>`;
+    if (e.k === "fight") return `<g ${a} ${T(x, y, s)}><circle r="9" fill="${e.win ? "#1B2340" : e.draw ? "#6A7394" : "#FF5A64"}" stroke="#fff" stroke-width="2"/><path d="M-4,-4 L4,4 M4,-4 L-4,4" stroke="#fff" stroke-width="2.4" stroke-linecap="round"/></g>`;
+    if (e.k === "crate" || e.k === "sealed") return `<g ${a} ${T(x, y, s)}><rect x="-8" y="-8" width="16" height="16" rx="3" fill="${e.k === "sealed" ? "#8E6CFF" : "#FFC21A"}" stroke="#141826" stroke-width="2"/></g>`;
+    if (e.k === "turn") return `<g ${a} ${T(x, y, s)}><circle r="9" fill="#fff" stroke="#141826" stroke-width="2"/><path d="M3,-3 A4,4 0 1 0 3,3" fill="none" stroke="#141826" stroke-width="2"/></g>`;
+    if (e.k === "pass") return `<g ${a} ${T(x, y, s)}><circle r="7" fill="#141826" fill-opacity=".4" stroke="#fff" stroke-width="2"/></g>`;
+    if (e.k === "end") return `<g ${a} ${T(x, y, s)}><circle r="11" fill="${e.why === "wipe" ? "#FF5A64" : "#22CC88"}" stroke="#fff" stroke-width="2.5"/></g>`;
+    return "";
+  }).join("");
+  const dots = ev.filter((e) => e.k === "mat").map((e) => { const [x, y] = at(e); return `<circle cx="${x}" cy="${y}" r="${(2.8 * k).toFixed(2)}" fill="#fff" stroke="#141826" stroke-width="${k.toFixed(2)}"/>`; }).join("");
+  const route = pts.map((q) => q.join(",")).join(" "), fs = (12 * k).toFixed(1);
+  return `<div class="sat" style="aspect-ratio:${w}/${h}">
+    <img src="img/bz-${area}.jpg" alt="" draggable="false">
+    <svg viewBox="${x0} ${y0} ${w} ${h}" aria-label="${esc(BZ_AREAS[area].name)}の 道">
+      <defs><mask id="bzrun"><rect x="${x0}" y="${y0}" width="${w}" height="${h}" fill="#fff"/><polygon points="${outline}" fill="#000"/></mask></defs>
+      <rect x="${x0}" y="${y0}" width="${w}" height="${h}" fill="#0B0F1A" opacity=".38" mask="url(#bzrun)"/>
+      <polygon points="${outline}" fill="none" stroke="${c}" stroke-width="2" vector-effect="non-scaling-stroke" opacity=".9"/>
+      ${[8.5, 5.5, 2.5].map((r, j) => `<ellipse cx="${cx}" cy="${cy}" rx="${(r * rx).toFixed(1)}" ry="${(r * ry).toFixed(1)}" fill="none" stroke="#fff" stroke-opacity="${0.3 + j * 0.12}" stroke-dasharray="${j ? "5 6" : "2 5"}" vector-effect="non-scaling-stroke"/><text x="${cx}" y="${(cy - r * ry + 15 * k).toFixed(1)}" text-anchor="middle" fill="#fff" style="font:800 ${fs}px var(--jp);paint-order:stroke;stroke:#0B0F1A;stroke-width:${(3 * k).toFixed(1)}px;stroke-opacity:.7">${BZ_DEPTH[j]}</text>`).join("")}
+      ${calc ? "" : `<polyline points="${route}" fill="none" stroke="#0B0F1A" stroke-opacity=".55" stroke-width="5.5" vector-effect="non-scaling-stroke" stroke-linejoin="round" stroke-linecap="round"/><polyline points="${route}" fill="none" stroke="#fff" stroke-width="2.4" vector-effect="non-scaling-stroke" stroke-linejoin="round" stroke-linecap="round"/>`}
+      ${pts[0] ? `<g ${T(pts[0][0], pts[0][1], 1)}><circle r="8" fill="#141826" stroke="#fff" stroke-width="2"/><text y="4" text-anchor="middle" fill="#fff" style="font:700 10px var(--num)">IN</text></g>` : ""}
+      ${dots}${mk}
+      ${live ? `<g ${T(last[0], last[1], 1)}><circle r="10" fill="${c}" stroke="#fff" stroke-width="3"><animate attributeName="r" values="9;13;9" dur="1.6s" repeatCount="indefinite"/></circle></g>` : ""}
+    </svg>
+    ${calc ? `<div class="calc">出撃の 準備中…</div>` : ""}
+  </div>`;
+}
+
+// ---------- 出来事の 文 ----------
+const FIGHT = { unit: "ユニット", pom: "POM", elite: "精鋭の LINKER", inv: "侵入者" };
+function evText(e) {
+  if (e.k === "mat") return `${MAT_NAME[e.id] || e.id} を 拾った`;
+  if (e.k === "sample") return `${SAMPLES[e.id] ? SAMPLES[e.id].name : "サンプル"} を 見つけた${e.how === "crate" ? "（クレート）" : e.how === "lab" ? "（研究棟）" : e.how === "old" ? "（古い 区画）" : ""}`;
+  if (e.k === "fight") return `${e.group && e.kind !== "inv" ? GROUP_NAME[e.group] + " の " : ""}${FIGHT[e.kind] || "敵"}${e.n > 1 ? ` ×${e.n}` : ""} と 戦って ${e.win ? "勝った" : e.draw ? "引いた（長引いた）" : "負けた"}`;
+  if (e.k === "pass") return `${GROUP_NAME[e.group]} の POM が 見逃して くれた`;
+  if (e.k === "crate") return "施錠された クレートを 開けた";
+  if (e.k === "sealed") return `${SEALED[e.kind]} を 開けた（キーカード）`;
+  if (e.k === "turn") return e.why === "recall" ? "帰還：脱出口へ 向かう" : e.why === "cond" ? "帰る 条件を 満たした：脱出口へ" : "時間：脱出口へ 向かう";
+  if (e.k === "end") return e.why === "wipe" ? "力つきた" : "脱出した";
+  return "";
+}
+const tOf = (e) => mmss(e.i * BZ_STEP_S * 1000);
+const haulOf = (ev) => ({ s: ev.filter((e) => e.k === "sample").length, m: ev.filter((e) => e.k === "mat").length });
+
+// ---------- 出撃の タブ ----------
+function goSide() {
+  const a = BZ_AREAS[U.area], lvOver = MP.lv > capLv(U.area), prem = U.ins ? bzInsPrice(U.run, U.ins, ME.perks || {}) : 0;
+  const why = !Z.open ? "準備中" : (ME.trips || []).some((t) => !t.done) ? "派遣から 帰って から" : prem > (ME.credits || 0) ? `クレジットが 足りない（保険料 ${prem}）` : "";
+  const sum = `${esc(a.name)}・${U.run} 分`;
+  return `<section class="panel side ${innerWidth <= 820 ? "drawer" : ""} ${U.drawer ? "open" : ""}" aria-label="出撃の 準備">
+    <button class="grab" data-do="drawer" aria-expanded="${U.drawer}"><b style="font:900 15px/1.3 var(--jp)">${sum}</b><span style="font:700 12px/1 var(--jp);color:var(--soft)">${U.drawer ? "しまう" : "変える"}</span></button>
+    <div class="more">
+      <p class="sd" style="--c:${ZC(U.area)}">${SIDE_NAME[a.side]}</p><h2>${esc(a.name)}</h2><p class="band">Lv${a.lv[0]}・${a.lv[1]}・${a.lv[2]}（${BZ_DEPTH.join("・")}）</p>
+      ${lvOver ? `<p class="hint" style="margin-top:6px">${esc(MP.name)}は Lv${capLv(U.area)} の 強さに そろう</p>` : ""}
+      <div class="row"><span>時間</span><div class="seg" role="group" aria-label="時間">${Object.keys(BZ_RUNS).map((r) => `<button data-run="${r}" aria-pressed="${+r === U.run}">${r} 分・${BZ_DEPTH[BZ_RUNS[r].depth]}まで</button>`).join("")}</div></div>
+      <div class="row"><span>探す 物</span><div class="seg" role="group" aria-label="探す 物">${PRI.map(([k, n]) => `<button data-pri="${k}" aria-pressed="${U.pri === k}">${n}</button>`).join("")}</div></div>
+      <div class="row"><span>帰る 条件</span><div class="seg" role="group" aria-label="帰る 条件">${RET.map(([k, n]) => `<button data-ret="${k}" aria-pressed="${U.ret === k}">${n}</button>`).join("")}</div>
+        ${U.ret === "samples" ? `<div class="step" style="margin-top:8px"><button data-retn="-1" aria-label="へらす">−</button><b>${U.retN}</b><button data-retn="1" aria-label="ふやす">＋</button><span style="font:700 13px/1 var(--jp)">こ 見つけたら 帰る</span></div>` : ""}</div>
+      ${Z.keys ? `<div class="row"><span>封鎖された 所の キーカード（のこり ${Z.keys}）</span><div class="step"><button data-key="-1" aria-label="へらす">−</button><b>${U.keys}</b><button data-key="1" aria-label="ふやす">＋</button><span style="font:700 13px/1 var(--jp)">枚 持って いく</span></div></div>` : ""}
+      ${Z.crateKeys ? `<div class="row"><span>クレートの カードキー（のこり ${Z.crateKeys}）</span><div class="seg" role="group"><button data-crate="0" aria-pressed="${!U.crate}">持って いかない</button><button data-crate="1" aria-pressed="${U.crate}">持って いく</button></div></div>` : ""}
+      <div class="row"><span>保険${U.ins ? `（${prem} クレジット）` : ""}</span><div class="seg" role="group" aria-label="保険">${INS.map(([k, n]) => `<button data-ins="${k}" aria-pressed="${U.ins === k}" ${k === 2 && !(ME.perks && ME.perks.ins2) ? "disabled" : ""}>${n}</button>`).join("")}</div></div>
+    </div>
+    <button class="jelly sky big go" data-do="start" ${why ? "disabled" : ""}>出撃する</button>
+    ${why ? `<p class="why">${esc(why)}</p>` : ""}
+  </section>`;
+}
+function runView(R) {
+  const now = Date.now(), live = !R.done, left = R.end - now, h = haulOf(R.ev || []), area = BZ_AREAS[ZID(R.area)];
+  const recent = (R.ev || []).filter((e) => e.k !== "mat").slice(-5).reverse();
+  return `<div class="cols">
+    <div class="map">${runMap(R.area, R.calc ? [] : R.pos || [], R.calc ? [] : R.ev || [], live && !R.calc, R.calc)}</div>
+    <section class="panel side" aria-label="出撃中">
+      <h2>${esc(area.name)}</h2><p class="band">${R.run} 分・${BZ_DEPTH[BZ_RUNS[R.run].depth]}まで${R.recall != null ? "・帰還した" : ""}</p>
+      <ul class="evs">${recent.map((e) => `<li class="${(e.k === "fight" && !e.win && !e.draw) || (e.k === "end" && e.why === "wipe") ? "bad" : ""}"><i>${tOf(e)}</i><span>${esc(evText(e))}</span></li>`).join("") || `<li><i>0:00</i><span>出撃した</span></li>`}</ul>
+      <div class="bar">
+        ${R.done ? `<div></div>` : `<div class="left"><small>のこり</small>${mmss(left)}</div>`}
+        <div class="have"><span><b>${h.s}</b>サンプル</span><span><b>${h.m}</b>素材</span></div>
+        <div class="act">${R.done ? `<button class="jelly sky big" data-do="collect">うけとる</button>` : R.canRecall ? `<button class="jelly coral big" data-do="recall">帰還する</button>` : `<button class="jelly big" disabled>脱出口へ 向かって いる</button>`}</div>
+      </div>
+    </section>
+  </div>`;
+}
+
+// ---------- 記録の タブ ----------
+function logView() {
+  const L = Z.log || [];
+  if (!L.length) return `<section class="panel empty">まだ 出撃の 記録が ない</section>`;
+  const r = L[Math.min(U.log, L.length - 1)], mk = U.mark && r.ev.find((e) => `${e.i}:${e.k}` === U.mark);
+  const mats = {}; for (const m of r.mats || []) mats[m.id] = (mats[m.id] || 0) + m.n;
+  return `<div class="cols">
+    <div class="map">${runMap(r.area, r.pos, r.ev, false)}</div>
+    <section class="panel side" aria-label="出撃の 記録">
+      <div class="logs">${L.map((x, j) => `<button data-log="${j}" aria-pressed="${j === Math.min(U.log, L.length - 1)}">${esc(BZ_AREAS[ZID(x.area)].name)}<small>${x.run} 分・${x.wipe ? "力つきた" : "帰った"}</small></button>`).join("")}</div>
+      <p class="res ${r.wipe ? "bad" : ""}">${r.wipe ? "力つきた：集めた 物は 失った" : "生きて 帰った"}</p>
+      ${mk ? `<p style="margin-top:8px;font:700 14px/1.5 var(--jp)"><i style="font:600 12px var(--num);color:var(--soft);font-style:normal">${tOf(mk)}</i>　${esc(evText(mk))}</p>` : `<p class="hint" style="margin-top:6px">地図の 印を 押すと 中身</p>`}
+      ${r.samples && r.samples.length ? `<div class="row"><span>サンプル ${r.samples.length}</span><div class="mats">${r.samples.map((id) => `<span>${esc(SAMPLES[id] ? SAMPLES[id].name : id)}</span>`).join("")}</div></div>` : ""}
+      ${Object.keys(mats).length ? `<div class="row"><span>素材</span><div class="mats">${Object.entries(mats).map(([id, n]) => `<span data-mat="${id}" tabindex="0"><img src="${matPic(id)}" alt="">${esc(MAT_NAME[id] || id)}<b>×${n}</b></span>`).join("")}</div></div>` : ""}
+      ${r.lost && r.lost.back ? `<p class="hint" style="margin-top:10px">保険で 素材 ${r.lost.back.n} こが あとで 届く</p>` : ""}
+    </section>
+  </div>`;
+}
+
+// ---------- サンプルの タブ ----------
+const FILTS = [["all", "すべて"], ["new", "鑑定まだ"], ["mineral", "鉱物"], ["bio", "生体"], ["relic", "遺物"], ["local", "名物"]];
+const fit = (s, f) => f === "all" || (f === "new" ? !s.known : f === "local" ? !!SAMPLES[s.id].local : SAMPLES[s.id].line === f && !SAMPLES[s.id].local);
+function smpView() {
+  const all = Z.samples || [];
+  if (!all.length) return `<section class="panel empty">貴重サンプルは まだ ない。ボーダーゾーンで 見つけて、生きて 帰ると 手に 入る</section>`;
+  const list = all.filter((s) => fit(s, U.filt)).sort((a, b) => (U.sort === "star" ? (b.known ? b.star : 0) - (a.known ? a.star : 0) : 0) || (a.id < b.id ? -1 : 1));
+  const sel = all.filter((s) => U.sel.has(s.uid)), unk = sel.filter((s) => !s.known), aff = Z.aff || {};
+  const offer = Object.keys(GROUP_NAME).map((g) => [g, sel.reduce((t, s) => t + samplePrice(s, g, aff[g] || 0), 0)]), best = Math.max(0, ...offer.map(([, v]) => v));
+  return `<div class="cols">
+    <div>
+      <div class="filters"><span>しぼる</span>${FILTS.map(([k, n]) => { const c = all.filter((s) => fit(s, k)).length; return `<button class="chip" data-filt="${k}" aria-pressed="${U.filt === k}" ${c ? "" : "disabled"}>${n}<b>${c}</b></button>`; }).join("")}
+        <span style="margin-left:auto">ならべる</span><button class="chip" data-sort="star" aria-pressed="${U.sort === "star"}">★</button><button class="chip" data-sort="kind" aria-pressed="${U.sort === "kind"}">しゅるい</button></div>
+      <div class="smps">${list.map((s) => { const S = SAMPLES[s.id]; return `<button class="smp" data-smp="${s.uid}" aria-pressed="${U.sel.has(s.uid)}"><span class="nm">${esc(S.name)}</span><span class="tag"><span>${S.local ? "名物" : LINE_NAME[S.line]}</span>${s.known ? stars(s.star) : `<span style="font:600 12px var(--num)">★?</span>`}</span></button>`; }).join("")}</div>
+    </div>
+    <section class="panel side" aria-label="鑑定と 納める">
+      <h2>えらんだ ${sel.length} こ</h2>
+      <p class="hint" style="margin-top:4px">${sel.length ? "" : "サンプルを 押して えらぶ"}</p>
+      <button class="jelly light big" data-do="appraise" ${unk.length ? "" : "disabled"} style="margin-top:8px">鑑定する（${unk.length} こ・${unk.length * APPRAISE_FEE} クレジット）</button>
+      <div class="sell">${offer.map(([g, v]) => `<button class="jelly ${v === best && v > 0 ? "sky" : "light"}" data-sell="${g}" ${sel.length ? "" : "disabled"}><span>${GROUP_NAME[g]} に 納める</span><b>${v}</b></button>`).join("")}</div>
+      ${unk.length ? `<p class="hint" style="margin-top:10px">鑑定して いない 物は ★1 の 値段</p>` : ""}
+    </section>
+  </div>`;
+}
+
+// ---------- ぜんたい ----------
+function render() {
+  const gate = gateHtml(ME, esc); if (gate) return gate;
+  const info = petInfo(MP), ty = TYPES[MP.type], n = (Z.samples || []).length;
+  const head = `<section class="panel pet" aria-label="ペット"><div class="pic"><img src="${info.img}" alt=""></div><div><h1>${esc(MP.name)}<small>${esc(info.label)}</small></h1><div class="meta"><span class="badge" style="--c:${ty.color}">${ty.label}</span><span class="lv"><small>Lv</small>${MP.lv}</span></div></div></section>
+    <nav class="tabs" role="tablist"><button role="tab" aria-selected="false">ステータス</button><button role="tab" aria-selected="false">スキルツリー</button><button role="tab" aria-selected="false">装備</button><button role="tab" aria-selected="false">ガンビット</button><button role="tab" aria-selected="false">冒険</button><button role="tab" aria-selected="false">Orbit Arena</button><button role="tab" aria-selected="true">ボーダーゾーン</button><button role="tab" aria-selected="false">なかま</button></nav>
+    <nav class="tabs btabs" aria-label="ボーダーゾーン"><button data-tab="go" aria-selected="${U.tab === "go"}">出撃</button><button data-tab="log" aria-selected="${U.tab === "log"}">記録</button><button data-tab="smp" aria-selected="${U.tab === "smp"}">サンプル${n ? `<span class="n">${n}</span>` : ""}</button></nav>`;
+  if (!Z.open && !Z.run) return head + `<section class="panel lock"><h2>準備中</h2><p style="margin-top:8px;color:var(--soft)">ボーダーゾーンは、公開まで もう 少し お待ちください</p></section>`;
+  if (U.tab === "log") return head + logView();
+  if (U.tab === "smp") return head + smpView();
+  if (Z.run) return head + runView(Z.run);
+  return head + `<div class="cols"><div class="map">${areaMap()}</div>${goSide()}</div>`;
+}
+function paint() {
+  const app = document.getElementById("app");
+  app.innerHTML = render(); app.classList.toggle("has-drawer", U.tab === "go" && !Z.run && innerWidth <= 820);
+  linkTabs();
+}
+const reload = async () => { ME = await me(); MP = ME.pets && ME.pets[0]; Z = ME.bz || {}; paint(); };
+addGateCss();
+let lastEl = -1;
+setInterval(async () => {   // 出て いる あいだ：のこり時間を 1 秒ごと、出来事は 1 歩（10 秒）ごとに 門番から
+  const R = Z.run; if (!R || R.done || U.tab !== "go") return;
+  const el = Math.floor((Date.now() - R.start) / (BZ_STEP_S * 1000));
+  if (R.calc || el !== lastEl || Date.now() >= R.end) { lastEl = el; return reload(); }
+  const t = document.querySelector(".bar .left"); if (t) t.innerHTML = `<small>のこり</small>${mmss(R.end - Date.now())}`;
+}, 1000);
+document.body.addEventListener("click", async (e) => {
+  const g = e.target.closest("[data-area]"); if (g && !Z.run) { U.area = g.dataset.area; U.mark = null; keepUi(); if (innerWidth <= 820) U.drawer = true; return paint(); }
+  const mk = e.target.closest("[data-mark]"); if (mk) { U.mark = U.mark === mk.dataset.mark ? null : mk.dataset.mark; return paint(); }
+  const b = e.target.closest("button"); if (!b || b.disabled) return;
+  const d = b.dataset;
+  if (d.tab) { U.tab = d.tab; U.mark = null; return paint(); }
+  if (d.run) { U.run = +d.run; keepUi(); return paint(); }
+  if (d.pri) { U.pri = d.pri; keepUi(); return paint(); }
+  if (d.ret) { U.ret = d.ret; keepUi(); return paint(); }
+  if (d.retn) { U.retN = Math.max(1, Math.min(9, U.retN + +d.retn)); keepUi(); return paint(); }
+  if (d.key) { U.keys = Math.max(0, Math.min(KEY_MAX, Z.keys || 0, U.keys + +d.key)); return paint(); }
+  if (d.crate) { U.crate = d.crate === "1"; return paint(); }
+  if (d.ins) { U.ins = +d.ins; keepUi(); return paint(); }
+  if (d.log) { U.log = +d.log; U.mark = null; return paint(); }
+  if (d.filt) { U.filt = d.filt; return paint(); }
+  if (d.sort) { U.sort = d.sort; return paint(); }
+  if (d.smp) { if (U.sel.has(d.smp)) U.sel.delete(d.smp); else U.sel.add(d.smp); return paint(); }
+  const x = d.do;
+  if (x === "drawer") { U.drawer = !U.drawer; return paint(); }
+  if (x === "start") {
+    const r = await busy(b, () => act("bz.start", { area: U.area, run: U.run, pri: U.pri, ret: { k: U.ret, n: U.retN }, keys: U.keys, crate: U.crate, ins: U.ins }));
+    if (!r.ok) return toast(r.wait ? waitText : r.why || "出撃できませんでした");
+    U.drawer = false; U.keys = 0; await reload(); return toast("出撃した");
+  }
+  if (x === "recall") { const r = await busy(b, () => act("bz.recall", {})); if (!r.ok) return toast(r.why || "帰還できませんでした"); await reload(); return toast("帰還：脱出口へ 向かう"); }
+  if (x === "collect") {
+    const r = await busy(b, () => act("bz.collect", {})); if (!r.ok) return toast(r.why || "うけとれませんでした");
+    U.tab = "log"; U.log = 0; await reload();
+    return toast(r.wipe ? "力つきた：集めた 物を 失った" : `うけとった：サンプル ${r.got.samples}・素材 ${r.got.mats}`);
+  }
+  if (x === "appraise") {
+    const uids = (Z.samples || []).filter((s) => U.sel.has(s.uid) && !s.known).map((s) => s.uid);
+    const r = await busy(b, () => act("bz.appraise", { uids })); if (!r.ok) return toast(r.why || "鑑定できませんでした");
+    await reload(); return toast(`鑑定した：${r.stars.map((s) => "★" + s.star).join(" ")}`);
+  }
+  if (d.sell) {
+    const uids = [...U.sel], r = await busy(b, () => act("bz.sell", { group: d.sell, uids })); if (!r.ok) return toast(r.why || "納められませんでした");
+    U.sel.clear(); await reload(); return toast(`${GROUP_NAME[d.sell]} に 納めた：${r.paid} クレジット`);
+  }
+});
+document.body.addEventListener("keydown", (e) => { if (e.key === "Enter" && e.target.matches("[data-area],[data-mark]")) e.target.click(); });
+addEventListener("resize", () => paint());
+paint();
+window.ready = true;
+</script>
+</body>
+</html>

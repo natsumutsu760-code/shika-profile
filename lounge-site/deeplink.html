@@ -220,7 +220,7 @@ const haveMat = (id, q = 0) => (ME.own.mats || []).filter((x) => x.id === id && 
 function dirHtml() {
   const row = (t, sp) => { const v = view(t.id); return `<button data-go="${t.id}" class="${sp ? "sp" : ""}" aria-current="${S.go === t.id}"><span class="mk">${face(t.id)}</span><span class="nm">${t.dir || t.name}</span><small>Lv${v.lv || 1}${ready(v) ? ` <span class="new">●${ready(v)}</span>` : ""}</small></button>`; };
   return `<p class="pr">&gt; 商人</p><ul>${TRADERS.map((t) => `<li>${row(t)}</li>`).join("")}</ul>
-    <p class="pr">&gt; ほか</p><ul><li>${row(SPECIAL, true)}</li><li><button data-go="board" aria-current="${S.go === "board"}"><span class="mk">✉</span><span class="nm">みんなの依頼</span><small>${B.list.length}</small></button></li><li><a class="go" href="crawler.html"><span class="mk" aria-hidden="true">▣</span><span class="nm">クローラー</span><small>先行体験版</small></a></li></ul>`;   // クローラー（企業の ミッション）：2026-11-05 鹿さん「クローラーとボーダーゾーンも」で みんなに 入口
+    <p class="pr">&gt; ほか</p><ul><li>${row(SPECIAL, true)}</li><li><button data-go="board" aria-current="${S.go === "board"}"><span class="mk">✉</span><span class="nm">みんなの依頼</span><small>${B.list.length}</small></button></li><li><a class="go" href="crawler.html"><span class="mk" aria-hidden="true">▣</span><span class="nm">クローラー</span><small>先行体験版</small></a></li><li><a class="go" href="border.html"><span class="mk" aria-hidden="true">◇</span><span class="nm">ボーダーゾーン</span><small>集めて 脱出</small></a></li></ul>`;   // クローラー（企業の ミッション）：2026-11-05 鹿さん「クローラーとボーダーゾーンも」で みんなに 入口
 }
 function traderHtml(t) {
   const v = view(t.id), lv = v.lv || 1, rep = v.rep || 0, list = tasksOf(v), sp = t === SPECIAL;

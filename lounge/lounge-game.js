@@ -309,6 +309,7 @@ export function tripStart(rec, b, now, seed, check = false, who = null) {
   if (!pet) return { ok: false, why: "まだ ペットが いない" };
   if (!pet.type) return { ok: false, why: "さきに 職業を えらんで" };
   if (rec.trips.some((t) => !t.done)) return { ok: false, why: "もう 出かけて いる" };
+  if (rec.bz && rec.bz.run) return { ok: false, why: "ボーダーゾーンから 帰って から" };   // 同じ ペットで 同時に 出られない
   const own = (m, k) => typeof k === "string" && Object.prototype.hasOwnProperty.call(m, k);   // 「__proto__」などを 行き先に しない
   const d = DUNGEONS.find((x) => x.id === b.did), run = own(RUNS, b.run) ? b.run : "";
   if (!d || !run) return { ok: false, why: "行き先か 時間が ちがう" };

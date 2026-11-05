@@ -5,7 +5,7 @@
 // ほかの 頼みが 入ると、同じ 人が すばやく 2 回 押した とき 2 重に 使えて しまうので
 // 派遣の 計算は 出かけた あと アラームで 戦い 1 回ずつ（Cloudflare の 無料の プランは 1 回 10 ミリ秒まで）。とちゅうは「sim」に しまう
 import { cleanRoom, STARTER_OWN, STARTER_ROOM, N, SALE_IDS, priceOn, jstDay, pullId, GACHA_COST } from "./lounge-rules.js";
-import { locked, lockedAct, lockWhy, lockKind } from "./lounge-lock.js";   // 大工事の あいだの ロック
+import { locked, lockedAct, lockWhy, lockKind, bzLocked, BZ_WHY } from "./lounge-lock.js";   // 大工事の あいだの ロック
 import { emptyLedger, balanceOf, trimSent, toObs, settle } from "./ledger.js";
 import { buyPlan, sellAct, tradeAct, taskDone, useItem, deeplinkView, actEvents, dlVisit } from "./lounge-trade.js";
 import { facMigrate, facDue, facStart, facPut, facRush, facFuel, facScaffold, facKnob, facView } from "./lounge-facility.js";   // 施設の 建設と つまみ（施設の 作り直し、2026-11-03）
@@ -27,6 +27,8 @@ import { statPut } from "./lounge-stats.js";   // 記録の まとめ（OBS の 
 import { ensure, give, insDue, FURN_MAX, petFirst, petJob, petUnlockPlan, petSwitch, tripStart, tripCalc, tripDone, invadeRelay, tripCollect, payWaiting, tripView, craftPlan, synthPlan, boxTake, dropOld, stashCap, tameFeedPlan, tameJoin, tameBack, researchPlan, extractPlan, snackCraft, autoSellSet, equipCap, loopNew, loopSet, loopSeen, loopAfter, loopStep, equipScrap } from "./lounge-game.js";
 import { arenaFighter, ensureArena, duelCheck, duelDone, arenaMine, encReady, encPick, encDone } from "./lounge-arena.js";   // 闘技場・派遣先の 戦い
 import { hidden } from "./lounge-gate.js";
+import { bzStart, bzRecall, bzCollect, bzAppraise, bzSell, bzDone, bzMe } from "./lounge-border.js";   // ボーダーゾーン（2026-11-05 作りはじめ）
+import { bzStep } from "./border.js";
 import { resetOld, resetDue, RESET_GEN } from "./lounge-reset.js";
 import { prizeView, prizePlan } from "./lounge-prize.js";   // パチンコの 景品（シーズンラインナップ。鹿さんの 決め 2026-11-03）   // 大工事の あとの リセット（鹿さんの 決め 2026-11-03）
 
@@ -102,6 +104,7 @@ export class Viewer {
   //   とちゅうで 止められても（上限を こえた など）、しまって ある sim から やりなおす（同じ 種なので 同じ 結果。Cloudflare が アラームを くり返す）
   alarm() { return this.run(() => this.calc()); }
   async calc() {
+    const bz = await this.state.storage.get("bzsim"); if (bz && !bz.done) return this.bzCalc(bz);   // ボーダーゾーン（派遣とは 同時に 出られない）
     const sim = await this.state.storage.get("sim"); if (!sim) return this.loopTick();
     if (!tripCalc(sim, 1)) { await this.state.storage.put("sim", sim); await this.state.storage.setAlarm(Date.now()); return; }
     const rec = await this.load();   // 記録を 読むのは 終わった ときだけ
@@ -113,6 +116,13 @@ export class Viewer {
       return;
     }
     await this.state.storage.delete("sim");
+  }
+  // ボーダーゾーンの 計算：1 歩ずつ（戦いは 1 回まで）。終わったら 記録に 中身を 入れる。bzsim は 帰還の ために うけとるまで 残す（done）
+  async bzCalc(bz) {
+    if (!bzStep(bz.S, 1)) { await this.state.storage.put("bzsim", bz); await this.state.storage.setAlarm(Date.now()); return; }
+    const rec = await this.load();
+    if (rec && bzDone(rec, bz)) await this.save(rec);
+    bz.done = true; await this.state.storage.put("bzsim", bz);
   }
   // 周回の アラーム：帰って きた 派遣を うけとって、同じ ように また 出発（画面を とじて いても）
   async loopTick() {
@@ -289,7 +299,8 @@ export class Viewer {
     const rec = await this.load(); if (!rec) return { ok: false, why: "記録が ない" };
     const op = typeof body.op === "string" && /^[\w-]{8,64}$/.test(body.op) ? body.op : "";
     if (!op) return { ok: false, why: "op が ない" };
-    if (lockedAct(rec, body.a, this.env)) return { ok: false, lock: true, lockKind: lockKind(), why: lockWhy() };   // 工事中（部屋・ショップ・両替の ほかは 止める）
+    if (lockedAct(rec, body.a, this.env)) return { ok: false, lock: true, lockKind: lockKind(), why: lockWhy() };
+    if (/^bz\./.test(String(body.a)) && bzLocked(rec, this.env)) return { ok: false, lock: true, why: BZ_WHY };   // ボーダーゾーンは 公開まで 2 人だけ   // 工事中（部屋・ショップ・両替の ほかは 止める）
     const money = MONEY.test(String(body.a)), out = (r) => ({ ...(money && wallet ? { ...r, wallet: this.purse(rec, wallet) } : r), credits: rec.credits }), now = Date.now();   // クレジットは いつも つける（上の 通貨の 札）
     if (wallet) trimSent(rec.ledger, wallet);
     const done = rec.ops.find((x) => x.op === op); if (done) return out(done.r);   // 2 回目は 1 回目の 答え
@@ -367,6 +378,11 @@ export class Viewer {
     else if (body.a === "fac.rush") r = facRush(rec, body, now);
     else if (body.a === "fac.fuel") r = facFuel(rec, body, now);
     else if (body.a === "fac.scaffold") r = facScaffold(rec, body, now);   // 足場（工房で 作った 物）
+    else if (body.a === "bz.start") { r = bzStart(rec, body, now, Math.floor(rand() * 2 ** 31)); if (r.sim) { await this.state.storage.put("bzsim", r.sim); await this.state.storage.setAlarm(Date.now()); delete r.sim; } }   // ボーダーゾーン：出撃（計算は アラームで）
+    else if (body.a === "bz.recall") { const sim = await this.state.storage.get("bzsim"); r = bzRecall(rec, sim, now); if (r.ok) { await this.state.storage.put("bzsim", sim); await this.state.storage.setAlarm(Date.now()); } }   // 帰還：いまの 歩から 出口へ
+    else if (body.a === "bz.collect") { r = bzCollect(rec, now); if (r.ok) await this.state.storage.delete("bzsim"); }
+    else if (body.a === "bz.appraise") r = bzAppraise(rec, body);   // 鑑定（ガラク）
+    else if (body.a === "bz.sell") r = bzSell(rec, body);           // 会社に 納める
     else if (body.a === "crawl.save") r = crawlSave(rec, body, now);   // クローラーの 進み（どの 機械でも 同じ に）
     else if (body.a === "fac.knob") r = facKnob(rec, body, now);
     else if (body.a === "ws.att") r = wsAtt(rec, body, rand, now);
@@ -429,7 +445,7 @@ export class Viewer {
     const now = Date.now(); dropOld(rec, now); facMigrate(rec); facDue(rec, now);
     return { id: rec.id, lock: locked(rec, this.env), lockKind: lockKind(), login: rec.login, name: rec.name, nameAt: rec.nameAt, names: rec.names, room: rec.room, own: ownView(rec.own), wallet: this.purse(rec, w), waiting: rec.ledger.unknown.length,
       pets: rec.pets.map((p) => ({ ...p, ...(p.type ? { sp: { all: spTotal(p.lv), left: spTotal(p.lv) - spUsed(p) }, freeLeft: freeIsAuto(p) ? 0 : freeTotal(p.lv) - Object.values(p.free || {}).reduce((a, v) => a + v, 0), build: fighterOf(p, rec), resetPrice: RESET_PRICE(p.lv) } : {}) })),
-      tamed: rec.tamed, party: rec.party, mine: mineView(rec, now), farmv: farmvView(rec, now), crawl: crawlView(rec), smelt: rec.smelt || [], loop: rec.loop || null, lab: rec.lab, labQ: rec.labQ || [], hideout: rec.hideout, knob: rec.knob || {}, fac: facView(rec, now), credits: rec.credits, snacks: rec.snacks, tools: rec.tools, explore: rec.explore, seen: rec.seen, met: rec.met,
+      tamed: rec.tamed, party: rec.party, mine: mineView(rec, now), farmv: farmvView(rec, now), crawl: crawlView(rec), bz: { ...bzMe(rec, now), open: !bzLocked(rec, this.env) }, smelt: rec.smelt || [], loop: rec.loop || null, lab: rec.lab, labQ: rec.labQ || [], hideout: rec.hideout, knob: rec.knob || {}, fac: facView(rec, now), credits: rec.credits, snacks: rec.snacks, tools: rec.tools, explore: rec.explore, seen: rec.seen, met: rec.met,
       stash: { cap: stashCap(rec) }, equipCap: equipCap(rec), autoSell: rec.autoSell || null, trips: rec.trips.map((t) => tripView(t, now)), deeplink: deeplinkView(rec, jstDay(now)), req: { mine: rec.req.mine, sending: rec.req.out.length } };
   }
 

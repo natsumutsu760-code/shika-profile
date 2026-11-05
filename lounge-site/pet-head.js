@@ -16,9 +16,9 @@ export function fillPet(ME) {
 }
 
 // ペットの 画面の タブ：押すと その 画面へ（えらんで いる タブは そのまま）
-const TAB_URL = { ステータス: "status.html", スキルツリー: "skilltree.html", ガンビット: "gambit.html", 装備: "equip.html", 冒険: "dungeon.html", なかま: "tame.html", "Orbit Arena": "arena.html" };
+const TAB_URL = { ステータス: "status.html", スキルツリー: "skilltree.html", ガンビット: "gambit.html", 装備: "equip.html", 冒険: "dungeon.html", なかま: "tame.html", "Orbit Arena": "arena.html", ボーダーゾーン: "border.html" };
 // 2 段の タブ（2026-11-05：7 こは 多い → 鹿さんの カード「おすすめで」で 案A）。上の 段は 3 つの 組、下の 段は えらんだ 組の 中身
-const TAB_GROUPS = [["育てる", ["ステータス", "スキルツリー", "装備", "ガンビット"]], ["出かける", ["冒険", "Orbit Arena"]], ["なかま", ["なかま"]]];
+const TAB_GROUPS = [["育てる", ["ステータス", "スキルツリー", "装備", "ガンビット"]], ["出かける", ["冒険", "Orbit Arena", "ボーダーゾーン"]], ["なかま", ["なかま"]]];
 const GROUP_CSS = `.tabs.grp { margin-bottom:6px; } .tabs.sub { margin-top:0; gap:6px; }
 .tabs.sub button { padding:7px 14px; font-size:13px; min-height:32px; }
 .tabs.sub button[aria-selected="true"] { background:#fff; color:var(--ink, #1B2340); border-color:var(--ink, #1B2340); box-shadow:none; }
@@ -44,6 +44,7 @@ export function linkTabs(root = document) {
   root.querySelectorAll('.tabs[role="tablist"]').forEach((nav) => {
     const names = [...nav.querySelectorAll('[role="tab"]')].map((b) => b.textContent.trim());
     if (names.includes("ステータス") && !names.includes("Orbit Arena")) { const b = document.createElement("button"); b.setAttribute("role", "tab"); b.setAttribute("aria-selected", "false"); b.textContent = "Orbit Arena"; nav.appendChild(b); }
+    if (names.includes("ステータス") && !names.includes("ボーダーゾーン")) { const b = document.createElement("button"); b.setAttribute("role", "tab"); b.setAttribute("aria-selected", "false"); b.textContent = "ボーダーゾーン"; nav.appendChild(b); }   // ボーダーゾーン（2026-11-05）：出かける の 組に
   });
   root.querySelectorAll('.tabs[role="tablist"]').forEach(groupTabs);
   root.querySelectorAll('.tabs [role="tab"]').forEach((b) => {
