@@ -36,7 +36,8 @@ export function swapPlan(rec, b) {
 // 流れ：鹿物語が 玉を 先に 引く（換金）か 待つ（貸し玉）→ オーバーレイ → 部屋の 門番（Lounge の { t: "cash" }）→ ここ。答えで 鹿物語が 玉を 決める
 // 同じ 頼み（mid）は 何回 来ても 同じ 答え（rec.cash.done に のこす。返事が とどかなくて やりなおしても 2 重に しない）
 // open：MONO LINK の 公開（クレジットを みんな 0 に した あと）まで false。前に 換金すると 公開の ときに 消えて しまう ため（Claude の 案。開けるのは 鹿さんの OK）
-export const CASH = { open: false, perBalls: 28, credits: 100, lend: 4, max: 1000000, keep: 200 };
+// → リセット（2026-11-03）と 公開（2026-11-05）の あとも false の まま だった（開け忘れ）。鹿さん「持ち玉のクレジットへの換金が機能していないので修正してください。」（2026-11-06）で 開けた。!貸し玉 も 同じ 印
+export const CASH = { open: true, perBalls: 28, credits: 100, lend: 4, max: 1000000, keep: 200 };
 export function cashDo(rec, b, open = CASH.open) {
   const mid = typeof b.mid === "string" && b.mid.length >= 1 && b.mid.length <= 100 ? b.mid : "";
   if (!mid) return { ok: false, why: "こわれた 頼み" };
