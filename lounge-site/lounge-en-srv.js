@@ -98,6 +98,7 @@ export const WORDS = {
 export const RULES = [
   [/^素材が 足りない：(.+)（(結晶Ⅰ|結晶Ⅱ|結晶Ⅲ|結晶核Ⅰ|結晶核Ⅱ)）あと (\d+)$/, (m, p) => `Not enough materials: ${p(m[1]) || m[1]} (${p(m[2])}) ${m[3]} more`],
   [/^(.+)は もう 付いて いる$/, (m, p) => p(m[1]) && `${p(m[1])} is already on it`],
+  [/^(.+)を まだ 拾って いない（開発は 素材を ぜんぶ 1 回 拾うと 出る）$/, (m, p) => `You haven't picked up ${p(m[1]) || m[1]} yet (designs appear once you've picked up every material)`],   // 2026-11-06
   [/^(.+)を まだ 拾って いない（その 敵を たおすと 落とす）$/, (m, p) => `You haven't picked up ${p(m[1]) || m[1]} yet (defeat that enemy to get it)`],
   [/^この 装備は 作業台 Lv(\d+) から$/, (m) => `This gear needs Workbench Lv${m[1]}`],
   [/^素材が 足りない：(.+)$/, (m, p) => { const xs = m[1].split("・").map((x) => { const k = x.match(/^(.+?)(?:（品質 (\d) 以上）)? あと (\d+)$/); return k && p(k[1]) && `${p(k[1])}${k[2] ? ` (Q${k[2]}+)` : ""} ×${k[3]}`; }); return xs.every(Boolean) ? "Not enough materials: " + xs.join(", ") : null; }],
