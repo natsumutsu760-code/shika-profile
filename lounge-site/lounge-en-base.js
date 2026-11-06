@@ -111,7 +111,7 @@ export const WORDS = {
   "無線機を 作ると Lv# から 上げられる（ビサイ諸島の 素材が いる）": "Build the Radio to raise it from Lv# (needs Bisai Isles materials)",
   "つまみ": "Dial", "つまみ Lv#": "Dial Lv#", "いま": "Now", "いま（つまみ Lv#）": "Now (dial Lv#)", "つまみを 回す": "Turn the dial",
   "つまみを Lv# 以上に すると 作れる": "Set the dial to Lv# or higher to make this", "つまみを Lv# 以上に すると 合成できる": "Set the dial to Lv# or higher to fuse",
-  "作る たび": "per craft", "派遣ごと": "per trip", "うけとる たび": "per collection", "維持費 #": "Upkeep #", "維持費 # クレジット": "Upkeep: # credits", "維持費 # こみ": "incl. # upkeep",
+  "作る たび": "per craft", "研究の たび": "per research", "派遣ごと": "per trip", "うけとる たび": "per collection", "維持費 #": "Upkeep #", "維持費 # クレジット": "Upkeep: # credits", "維持費 # こみ": "incl. # upkeep",
   "維持費の クレジット あと #": "# more credits for upkeep", "合成は 作業台 Lv# から できる": "Fusion unlocks at Workbench Lv#", "なかまを 研究する": "Research companions",
   "Lv# で ふえる": "more at Lv#", "まだ": "Not yet", "素材を # こ 入れた（素材 #%）": "Added # materials (materials #%)",
   "★#〜# は # つ・★# は # つ・★# は # つ（作る たびに くじ）": "★#–#: # · ★#: # · ★#: # (rolled each craft)",

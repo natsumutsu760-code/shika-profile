@@ -325,7 +325,7 @@ function rowHtml(r) {
   const sub = r.own != null && r.have < r.need ? `<span class="tag">手もち ${fmt(r.own)}</span>` : "";
   return `<li class="${ng ? "ng" : ""} ${r.soft ? "soft" : ""}"${r.kind === "mat" ? ` data-mat="${r.id}" data-have="${r.own ?? r.have}"` : ""}>${pic}<span>${r.kind === "mat" ? esc(MAT_NAME[r.id]) : "クレジット"}${sub}</span>${n}</li>`;
 }
-const FEE_WHEN = { make: "作る たび", trip: "派遣ごと", mine: "うけとる たび" };
+const FEE_WHEN = { make: "研究の たび", trip: "派遣ごと", mine: "うけとる たび" };   // make は 研究所だけ（作業台・工房・おやつ工房は 維持費 なし。2026-11-07）
 const knobHtml = (f, v, k) => `<label class="knob" style="--c:${COLOR[f.id]}"><span>つまみ</span><input type="range" min="0" max="${v.lv}" value="${k}" data-knob="${f.id}" aria-label="${f.name}の つまみ（Lv）"><b>Lv${k}</b><small>維持費 ${fmt(upkeep(f.id, k))}・${FEE_WHEN[f.kind]}</small></label>`;
 // 建設を 始める 前：クレジットで 始める。素材は あとから 分けて 入れる
 function startHtml(f, v) {

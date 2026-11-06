@@ -3,7 +3,7 @@
 // - つまみ：上げた Lv までの どこでも えらべる（rec.knob）。効果と 維持費は えらんだ Lv。倉庫・武器庫・無線機は つまみ なし
 // - 建設：クレジットを 払って 始め、素材を 分けて 入れる。進み ＝「入れた 素材の 割合」と「経った 時間 ÷ 工期」の 小さい 方
 //   グラナート建設（残りの 時間を 半分・残りの 分 × 1 クレジット、最低 50）・ヘリクス電力の 燃料（60 クレジットで 30 分）で 早く なる
-// - 維持費：探索の 施設は 派遣ごと、作る 施設は 作るたび、坑道は うけとる たび。倉庫・武器庫・無線機は なし
+// - 維持費：パッシブの 効果が ある 施設だけ。探索の 施設は 派遣ごと、研究所は 研究の たび、坑道は うけとる たび。作業台・工房・おやつ工房・倉庫・武器庫・無線機は なし（作業台・工房・おやつ工房は 鹿さん 2026-11-07「作業台、工房、おやつ工房は維持費無しでパッシブ的効果を持つものだけ維持費がかかるように」。前は 作る たび）
 // - 前の Lv1〜4 の 段で 開いた 物（★の 上限・合成・とくべつおやつ・アタッチメントの ★・坑道の 枠）は Lv1・20・50・80 で 開く（作業台の ★の 上限の 区切りと 同じ。Claude の 案）
 // - Lv41 から 島 2 の 素材が いる ので、無線機を 作るまで Lv40 まで（Claude の 案）
 // - 払いは クレジットだけ（玉と アメジストは 使わない。経済の 決め）
@@ -18,17 +18,17 @@ export const BAND_AT = [1, 20, 50, 80];
 export const band = (lv) => BAND_AT.filter((x) => (lv || 0) >= x).length;   // 0〜4（前の Lv に あたる 段）
 export const NO_RADIO_MAX = 40;   // 無線機が ない ときに 上げられる Lv
 
-// kind：make（作る たびに 維持費）・trip（派遣ごと）・mine（うけとる たび）・keep（維持費 なし）・radio（島ごとに 1 段）
+// kind：make（作る たびに 維持費。いまは 研究所だけ）・tool（作る 施設で 維持費 なし・つまみ なし）・trip（派遣ごと）・mine（うけとる たび）・keep（維持費 なし）・radio（島ごとに 1 段）
 const ALL = [
-  { id: "bench", kind: "make", name: "作業台", text: "装備を 作る・合成する" },
+  { id: "bench", kind: "tool", name: "作業台", text: "装備を 作る・合成する" },
   { id: "lab", kind: "make", name: "研究所", text: "捕まえた 敵の 研究が 安く・早く なる" },
-  { id: "snack", kind: "make", name: "おやつ工房", text: "素材から 懐柔の おやつを 作る" },
+  { id: "snack", kind: "tool", name: "おやつ工房", text: "素材から 懐柔の おやつを 作る" },
   { id: "maproom", kind: "trip", name: "地図室", text: "採取と 敵の 素材が ふえる" },
   { id: "medic", kind: "trip", name: "救護室", text: "休憩の 回復と、倒れた 子の 起きあがり" },
   { id: "gym", kind: "trip", name: "トレーニング室", text: "派遣の 経験値が ふえる" },
   { id: "storage", kind: "keep", name: "倉庫", text: "1 しゅるいに 置ける 数が ふえる（はじめは 50 こ）" },
   { id: "armory", kind: "keep", name: "武器庫", text: "装備を 持てる 数が ふえる（はじめは 200 こ）" },
-  { id: "workshop", kind: "make", name: "工房", text: "道具と 武器の アタッチメントを 作る・精錬・加工" },
+  { id: "workshop", kind: "tool", name: "工房", text: "道具と 武器の アタッチメントを 作る・精錬・加工" },
   { id: "mine", kind: "mine", name: "坑道", text: "パーティに いない なかまが 鉱石と ガラクタを 掘る" },
   { id: "radio", kind: "radio", name: "無線機", isle: 2, max: 1, text: "島の 電波を ひろって、ほかの 島へ 船を 出す" },   // 段 ＝ 行ける 島。Lv2 で ミカネル島（鹿さんの 決め、2026-11-03。島 3 が 出るまでは 1 段）
 ];
@@ -39,7 +39,7 @@ export const facMax = (f, open = ISLAND_OPEN) => (f && f.id === "radio" ? Math.m
 // その人が 行ける 島の 数（無線機が あれば 2）と、その人が 上げられる Lv の 上限（hide：rec.hideout）
 export const isleOf = (hide, open = ISLAND_OPEN) => Math.max(1, Math.min(open, 1 + (((hide || {}).radio) || 0)));   // 無線機 Lv1 で 島 2・Lv2 で 島 3
 export const facCap = (f, hide, open = ISLAND_OPEN) => (!f || (f.isle || 1) > open ? 0 : f.max ? facMax(f, open) : isleOf(hide, open) >= 2 ? FAC_MAX : NO_RADIO_MAX);
-export const hasKnob = (f) => !!f && (f.kind === "make" || f.kind === "trip" || f.kind === "mine");
+export const hasKnob = (f) => !!f && (f.kind === "make" || f.kind === "trip" || f.kind === "mine");   // つまみは 維持費を へらす ための 物なので、維持費の ない 施設（tool・keep・radio）には ない（前に 下げて いた つまみも 効かない）
 // 効く Lv（つまみ）。knob が ない・上げた Lv より 上なら 上げた Lv
 export const facLv = (rec, id) => { const lv = ((rec && rec.hideout) || {})[id] || 0, k = ((rec && rec.knob) || {})[id]; return hasKnob(facOf(id)) && Number.isInteger(k) && k >= 0 && k < lv ? k : lv; };
 
