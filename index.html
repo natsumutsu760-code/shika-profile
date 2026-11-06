@@ -507,6 +507,12 @@ html:not([lang="en"]) .en-only { display: none !important; }
 .live.hk #htabs { display: flex !important; flex: 1; min-width: 0; }
 /* スマホ（狭い 画面）：タブが 5 つ（クラフトを 足した。2026-11-05）で スイッチの 横に 入らないので、タブの 列を スイッチの 下の 行に 回して 横幅いっぱいに */
 @media (max-width: 600px) { .live.hk .sayrow { flex-wrap: wrap; } .live.hk #htabs { flex: 1 0 100%; } }
+/* 配信ページでも 持って いる 通貨（玉・アメジスト・クレジット）を 出す（鹿さんの 頼み 2026-11-06「このページで保持通貨を表示してください」）。
+   配信中は 上の 見出しが 隠れ、ラウンジの 枠の 見出しも 隠すので、どこにも 出て いなかった。ラウンジに 切り替えた ときだけ（コメントの ときは 打つ 欄が 行を 使う） */
+.sayrow > .wb { display: none; }
+.live.hk .sayrow > .wb { display: flex; order: 1; flex: 0 1 auto; margin-left: auto; }
+.live.hk #htabs { order: 2; }
+@media (max-width: 620px) { .live.hk .sayrow > .wb { order: 1; flex: 1 1 0; margin-left: 8px; } .live.hk #htabs { flex: 1 0 100%; } }
 .tnum { display: inline-grid; place-items: center; min-width: 17px; height: 17px; margin-left: 5px; padding: 0 4px; border-radius: 999px; background: var(--coral); color: #fff; font: 800 11px/1 var(--num); font-style: normal; vertical-align: 1px; }
 .tnum[hidden] { display: none; }
 .ltabs [aria-selected="true"] .tnum { background: #fff; color: var(--coral); }
@@ -1163,6 +1169,7 @@ function pskClean(o) {
     ["そのほか", "#22CC88", [["!けいじばん こんにちは", "ラウンジの掲示板に書く（1 分に 1 回・120 字まで）"], ["!バグ報告 ガチャのあと画面が止まった", "不具合を配信者に知らせる（30 秒に 1 回・300 字まで）"], ["!花火", "画面に花火（!ハート でハート）"], [null, "888 で拍手、草 で草が生える"], ["!モノリンク", "MONO LINK の URL をチャットで受け取る（!サイト でも）"]]]
   ];
   var NOTES = [
+    ["MONO LINK", "2026-11-06", ["配信ページでラウンジに切り替えたとき、スイッチの横に持っている玉・アメジスト・クレジットが出るようにしました。ラウンジの中で買ったり売ったりすると、すぐ数が変わります"]],
     ["MONO LINK", "2026-11-06", ["DEEP LINK/: のホークの物語で、「会ったことのない敵に会う」タスクが、前に敵に会っていると進めなくなる不具合を直しました。その場所の敵に会ったしゅるいを数えるので、前に会った敵も数えます（文は「モーフィアス遺跡の 敵 3 しゅるいに 会う」など）"]],
     ["MONO LINK", "2026-11-06", ["作業台の「開発」の一覧には、作業台の Lv が足りていて、その装備の素材をぜんぶ 1 回拾ったものだけが出るようにしました（前は、まだ作れない装備の名前や強さまで見えていました）"]],
     ["MONO LINK", "2026-11-06", ["地下の隠れ家の「倉庫」→「預かり箱」に「ぜんぶ 売る」ボタンを足しました。2 回押すと、箱の素材をガラクの買い取りと同じ値でまとめて売ります（装備は箱に残ります）", "DEEP LINK/: のガラクのスフィアの鑑定を 1 行にまとめました。「1 こ」か「ぜんぶ」を選んで鑑定できます"]],
@@ -2866,6 +2873,7 @@ var ShikaWheel = (function () {
     var page = path.replace(/^.*\//, ""), qs = ""; try { qs = w.location.search; } catch (e) {}
     hkSel(HK_OF[page] || (page === "hideout.html" && /[?&]t=store/.test(qs) ? "stash" : page === "hideout.html" && /[?&]craft=1/.test(qs) ? "craft" : "room"));
     // 枠の中では、ラウンジの画面の上の見出し（MONO LINK:// ラウンジ ／ ペット）を出さない（上のタブが同じ役目。その分、探索中の画面を広く）
+    try { if (w && !w.__mlPurse) { w.__mlPurse = 1; w.addEventListener("ml-purse", function (ev) { try { dispatchEvent(new CustomEvent("ml-purse", { detail: ev.detail })); } catch (x) {} }); } } catch (e) {}
     if (doc && doc.head && !doc.getElementById("in-live")) { var st = doc.createElement("style"); st.id = "in-live"; st.textContent = "body > header.top { display: none !important; }"; doc.head.appendChild(st); }
     if (Date.now() - hk.at > 10000) hkLoad();
   });
@@ -3741,7 +3749,10 @@ var ShikaWheel = (function () {
   // ---- 上の段の通貨の札（玉・アメジスト・クレジット）と両替。ラウンジの画面と同じ部品（/lounge/wallet-bar.js）を読む（鹿さんの決め、2026-10-25）----
   function walletNow() {
     window.MONO_LINK_REAL = true;   // 門番の本物の /api に頼む（ラウンジの画面と同じログインの札 ml-token）
-    import("/lounge/wallet-bar.js").then(function (m) { m.mountWallet({ host: document.querySelector("body > header.top"), before: $("upd"), theme: "site" }); }, function () {});
+    import("/lounge/wallet-bar.js").then(function (m) {
+      m.mountWallet({ host: document.querySelector("body > header.top"), before: $("upd"), theme: "site" });
+      m.mountWallet({ host: document.querySelector("#stick .sayrow"), before: $("htabs"), theme: "site wb-live" });   // 配信ページ（名前は ページの .live と ぶつからない wb-live）（ラウンジに 切り替えた とき）。上の 見出しは 配信中 隠れる
+    }, function () {});
   }
   // ---- ラウンジにいることを 1 分ごとに知らせ、いまいる人を入れ替える（画面を隠している間は休む）----
   function stay(tok) {
