@@ -99,7 +99,7 @@ export function tripEvents(rec, did, st, day) {
 
 // ---------- プライマリータスク（章の 物語。primary-data.js）----------
 // いま やって いる タスクだけを 数える（出て から の できごと。pk に その タスク、pp に 数）。納める・施設・階・作物の 図鑑などは いまの ようすで 見る
-const STATE = new Set(["deliver", "deliverAny", "deliverEq", "fac", "facN", "facAny", "floor", "explore", "bred", "and", "stockHold", "stockCos", "stockGroups"]);   // トークンを 持つ 数は いまの ようす（rec.stock.h ＝ 売り買いと 開いた ときの 写し）
+const STATE = new Set(["deliver", "deliverAny", "deliverEq", "fac", "facN", "facAny", "floor", "explore", "bred", "and", "stockHold", "stockCos", "stockGroups", "meet"]);   // トークンを 持つ 数は いまの ようす（rec.stock.h ＝ 売り買いと 開いた ときの 写し）
 const tripOk = (c, tr) => !c || (!!tr && (!c.safe || !tr.wipe) && (!c.norest || tr.rests === 0) && (!c.party || tr.party >= c.party) && (!c.ins || (tr.ins || 0) >= c.ins)
   && (!c.tool || (tr.tools || []).includes(c.tool)) && (!c.wstar || (tr.wstar || 0) >= c.wstar));
 function hitP(g, ev) {
@@ -125,6 +125,9 @@ const stockH = (rec) => (rec.stock && rec.stock.h && typeof rec.stock.h === "obj
 const bredOf = (rec, crop) => !!(rec.farmv && Array.isArray(rec.farmv.known) && rec.farmv.known.includes(crop));
 const explorePct = (rec, did) => { const p = rec.explore[did]; if (!p) return 0; let a = 0; for (let f = 1; f <= FLOORS; f++) a += floorRatio(did, p, f); return Math.floor((a / FLOORS) * 100); };
 const placeDids = (g) => (g.did ? [g.did] : g.isle ? DUNGEONS.filter((d) => (d.isle || 1) === g.isle).map((d) => d.id) : []);
+// その 場所の 敵（ふつう・希少・ボス）の うち、会った しゅるい（rec.met。前に 会った 敵も 数える）
+//   2026-11-06 窓口 #7（おたこまるさん）：前は「タスクの あいだに はじめて 会った 敵」を 数えて いて、もう 会って いると のこりが 足りず 進めなく なった
+const metIn = (rec, g) => { const met = new Set(rec.met || []), s = new Set(); for (const did of placeDids(g)) { const d = DUNGEONS.find((x) => x.id === did); if (d) for (const f of [...d.foes, d.rare, d.boss]) if (f && f.tree && met.has(f.tree)) s.add(f.tree); } return s.size; };
 function partOk(rec, g) {   // 「and」の 1 つ（いまの ようす）
   if (g.type === "deliver") return found(rec, g.mat, g.q || 0) >= g.need;
   if (g.type === "deliverEq") return foundEq(rec, g.star, g.slot).length >= g.need;
@@ -143,6 +146,7 @@ export function priProgress(rec, tid, t, k) {
   if (g.type === "floor") return Math.max(0, ...placeDids(g).map((did) => { const p = rec.explore[did]; return p ? Math.floor(floorRatio(did, p, g.floor) * 100) : 0; }));
   if (g.type === "explore") return Math.min(k.need, Math.max(0, ...placeDids(g).map((did) => explorePct(rec, did))));
   if (g.type === "bred") return bredOf(rec, g.crop) ? 1 : 0;
+  if (g.type === "meet") return Math.min(k.need, metIn(rec, g));
   if (g.type === "and") return g.parts.filter((x) => partOk(rec, x)).length;
   if (g.type === "stockHold") { const h = stockH(rec); return Math.min(k.need, g.co ? h[g.co] || 0 : Object.values(h).reduce((a, n) => a + (n > 0 ? n : 0), 0)); }   // トークンを 合わせて N（g.co が あれば その 会社だけ）
   if (g.type === "stockCos") return Math.min(k.need, Object.values(stockH(rec)).filter((n) => n > 0).length);   // N 社の トークンを 持つ
