@@ -17,6 +17,10 @@ export const repAt = (L) => 20 * (L - 1) + (L - 1) * L;   // Lv L に なる 点
 export function lvOfPts(p) { let L = 1; while (L < LV_MAX && p >= repAt(L + 1)) L++; return L; }
 export const PRI_REP = () => 30;   // プライマリータスク 1 つの 友好度（資料の 案：1 こ 30 点）
 
+// sys の うち、いま 動いて いる しくみ（門番が 入れる。トークンは 公開して いる とき〈lounge-lock.js の STOCK_OPEN〉だけ）。ここに ある sys の タスクは ふつうの タスクと 同じ。
+// ない ときは とばして、その 章で 止まる（物語は 一本道なので、お休み中の しくみで ほかの タスクを 止めない）
+export const SYS_ON = new Set();
+export const sysOff = (k) => !!(k && k.sys) && !SYS_ON.has(k.sys);
 const bit = (no) => 1 << (no - 1);
 export const isDone = (done, c, no) => !!(((done || {})[c] || 0) & bit(no));
 export const chaptersOf = (tid) => (typeof tid === "string" && Object.prototype.hasOwnProperty.call(PRIMARY, tid) ? PRIMARY[tid].slice(0, CH_OPEN) : []);   // 自分の キーだけ（「__proto__」を 商人に しない）
@@ -29,10 +33,10 @@ export const lvCap = (tid, done) => Math.min(LV_MAX, CH_LV * curChapter(tid, don
 export const lvOf = (tid, pts, done) => Math.min(lvOfPts(pts), lvCap(tid, done));
 // 章が 開いて いるか：前の 章を ぜんぶ 終えて、Lv が 章の 1 つ 前の 節目（第 c 章は Lv 10 ×（c − 1））に 着いて いる
 export const chapterOpen = (tid, done, c, lv) => c >= 1 && c <= chaptersOf(tid).length && (c === 1 || (chapterDone(tid, done, c - 1) && lv >= CH_LV * (c - 1)));
-// いま やる タスク：開いた 章の うち 終えて いない いちばん 前の 章で、まだ ない しくみ（sys）を とばした 最初の 1 つ（物語は 一本道）
+// いま やる タスク：開いた 章の うち 終えて いない いちばん 前の 章で、まだ ない しくみ（動いて いない sys）を とばした 最初の 1 つ（物語は 一本道）
 export function curTask(tid, done, lv) {
   const c = curChapter(tid, done); if (!chapterOpen(tid, done, c, lv)) return null;
-  const k = chaptersOf(tid)[c - 1].tasks.find((x) => !x.sys && !isDone(done, c, x.no));
+  const k = chaptersOf(tid)[c - 1].tasks.find((x) => !sysOff(x) && !isDone(done, c, x.no));
   return k ? { c, ...k } : null;
 }
 // 店の 品の 解放（その タスクを 終えると 買える）：品の id → [商人, 章, 番号]

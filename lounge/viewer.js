@@ -7,7 +7,7 @@
 import { cleanRoom, STARTER_OWN, STARTER_ROOM, N, SALE_IDS, priceOn, jstDay, pullId, GACHA_COST } from "./lounge-rules.js";
 import { locked, lockedAct, lockWhy, lockKind, bzLocked, BZ_WHY, stockLocked, STOCK_WHY } from "./lounge-lock.js";   // 大工事の あいだの ロック
 import { emptyLedger, balanceOf, trimSent, toObs, settle } from "./ledger.js";
-import { buyPlan, sellAct, tradeAct, taskDone, useItem, deeplinkView, actEvents, dlVisit } from "./lounge-trade.js";
+import { buyPlan, sellAct, tradeAct, taskDone, useItem, deeplinkView, actEvents, dlVisit, bump } from "./lounge-trade.js";
 import { facMigrate, facDue, facStart, facPut, facRush, facFuel, facScaffold, facKnob, facView } from "./lounge-facility.js";   // 施設の 建設と つまみ（施設の 作り直し、2026-11-03）
 import { crawlSave, crawlView } from "./lounge-crawl.js";   // クローラーの 進み（M-018。2026-11-05）
 import { reqPostPlan, takeFor, items } from "./lounge-req.js";
@@ -417,7 +417,10 @@ export class Viewer {
     else if (body.a === "ws.draw") r = drawOp(rec, body, rand, now);     // 工房：素材で 空いた 枠に OP を 引く
     else if (body.a === "equip.auto") r = autoSellSet(rec, body);   // 派遣で 拾った ★N 以下の 装備を 自動で 売る 設定
     else if (/^arena\.(view|foes|duel|entry|match|enc)$/.test(String(body.a))) r = await this.arena(rec, body, now);
-    else if (/^stock\.(view|buy|sell)$/.test(String(body.a))) r = stockLocked(rec, this.env) ? { ok: false, lock: true, why: STOCK_WHY } : await stockAct(this, rec, body, op);   // 株（トークン）
+    else if (/^stock\.(view|buy|sell)$/.test(String(body.a))) {   // 株（トークン）
+      r = stockLocked(rec, this.env) ? { ok: false, lock: true, why: STOCK_WHY } : await stockAct(this, rec, body, op);
+      if (r.ok && r.ev) { for (const e of r.ev) bump(rec, e, jstDay(now)); delete r.ev; }   // 主タスク（買う・売る・もうけて 売る・ニュースの 会社）
+    }
     else if (typeof body.a === "string" && Object.prototype.hasOwnProperty.call(PLANS, body.a)) {   // お金が いる やること：計画を 作って 帳簿で 払う（「constructor」などは 通さない）
       const plan = PLANS[body.a](rec, body, this.env);
       r = plan.costs ? await this.charge(rec, plan, wallet) : plan;

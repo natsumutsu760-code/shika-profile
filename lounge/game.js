@@ -20,7 +20,7 @@ export { OPS, ALL_OPS, opVal, baseOf, BASES, SLOTS, SLOT_MARK, KINDS, FORMS, MAT
 export { DEV_IDS, devBase, devNeed, devStarW, devWhere, CRYSTAL_GRADE, CRYSTAL_N } from "./equip-dev.js";   // 装備開発（2026-11-04 に つないだ）
 export { SPHERE_LOOK, SPHERE_MAX, opLive, DRAW, rollDraw } from "./sphere.js";   // 宝箱の スフィア
 export { TRADERS, SPECIAL, repLv, insPrice, INS_PLAN, REQ_FEE, RES_VALUE, NOTE_PRESETS, NOTE_MAX, NOTE_HIDE_AT, noteBlock } from "./deeplink.js";
-export { PRIMARY, PRI_REP, lvOf, lvCap, curTask, curChapter, chapterOpen, chaptersOf, isDone, unlockedBy, KEY_BY, CH_LV } from "./primary.js";
+export { PRIMARY, PRI_REP, lvOf, lvCap, curTask, curChapter, chapterOpen, chaptersOf, isDone, unlockedBy, KEY_BY, CH_LV, SYS_ON, sysOff } from "./primary.js";
 export { chainTask, dailyTask, TASK_TIDS } from "./tasks.js";
 export { WS_ITEMS, wsOpen, wsLvOk, attBand, attStarW, WS_MAX, ATT_BASES, ATT_KINDS, ATT_MAX, attBase, rollAtt, withAtt, attName, SMELT, SMELT_MAX, furnaces, smeltOf, smeltDone, WS_PROC, PROC_MAX, procOpen, procOf } from "./workshop.js";   // 工房（道具・アタッチメント）
 export { PRIZE_ALWAYS, prizeOf, FURN_PRICE, furnLineup, prizeSlot, slotUntil } from "./prizes.js";   // パチンコの 景品（シーズンラインナップ）

@@ -72,7 +72,9 @@ export async function stockAct(v, rec, b, op) {
   if (!j.ok) return { ok: false, why: j.why };
   applyTrade(rec, j);
   const s = await view();
-  return { ok: true, co, n: j.n, price: j.price, paid: -j.credits, ...(j.gain != null ? { gain: j.gain } : {}), ...(s ? { stock: s } : {}) };
+  // 主タスクに 数える できごと（門番が bump する）：買う・売る（co 付き）・買った 値より 高く 売る・ニュースに 出た 会社を 売り買い
+  const ev = [{ type: j.n > 0 ? "stockBuy" : "stockSell", n: 1, co }, ...(j.n < 0 && j.gain > 0 ? [{ type: "stockGain", n: 1, co }] : []), ...(j.nw ? [{ type: "stockNews", n: 1, co }] : [])];
+  return { ok: true, co, n: j.n, price: j.price, paid: -j.credits, ...(j.gain != null ? { gain: j.gain } : {}), ...(s ? { stock: s } : {}), ev };
 }
 
 // ---------- Market（みんなで 1 つの 箱）----------
@@ -192,7 +194,8 @@ export async function stockFetch(mk, url, b, now) {
       else { const basis = Math.round(((r.c[co] || 0) * -n) / cur); gain = -cost - basis; r.c[co] = (r.c[co] || 0) - basis; }   // 売った 株の 買った 値（平均）との 差
       r.h[co] = cur + n; if (!r.h[co]) { delete r.h[co]; delete r.c[co]; }
       m.f[co] += n; m.held[co] += n;
-      out = { ok: true, co, n, price: r1(avg), credits: -cost, h: { ...r.h }, ...(gain != null ? { gain } : {}) };
+      const nw = m.news.some((x) => x.co === co && now - x.at < 864e5);   // この 会社が 24 時間 以内に ニュースに 出た（主タスク「ニュースに 出た 会社の トークンを、その 日の うちに 売り買い する」）
+      out = { ok: true, co, n, price: r1(avg), credits: -cost, h: { ...r.h }, ...(gain != null ? { gain } : {}), ...(nw ? { nw: 1 } : {}) };
     }
     if (typeof b.name === "string" && b.name) r.name = b.name.slice(0, 40);
     r.ops = [...r.ops, [b.opid, out]].slice(-30);

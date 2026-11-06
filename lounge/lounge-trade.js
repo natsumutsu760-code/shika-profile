@@ -3,9 +3,12 @@
 // 1 人分の 記録（rec）だけを 見て かえる。アメジストは viewer.js が 帳簿で 払う（ヨルの 店）。クレジットは 記録の 中（take で 引き、払えなかったら refund で もどす）
 // 数は すべて 案
 import { TRADERS, SPECIAL, chainTask, dailyTask, TASK_TIDS, sellPrice, GATHER, floorRatio, FLOORS, OPS, BASES, baseOf, SNACK_NEED, rankOf, CRAFT, SYNTH, craftOpen, synthOpen,
-  PRIMARY, PRI_REP, lvOf, curTask, isDone, unlockedBy, KEY_BY, DUNGEONS, chaptersOf } from "./game.js";
+  PRIMARY, PRI_REP, lvOf, curTask, isDone, unlockedBy, KEY_BY, DUNGEONS, chaptersOf, SYS_ON, sysOff } from "./game.js";
 import { putMats, putEquip } from "./lounge-game.js";
 import { sale, coOf } from "./lounge-stock.js";
+import { STOCK_OPEN } from "./lounge-lock.js";
+import { CO as STOCK_CO } from "./stocks.js";
+if (STOCK_OPEN) SYS_ON.add("トークン");   // トークンの 主タスクは 公開して いる ときだけ 数える（お休み中は とばして その 章で 止まる）
 import { equippedUids } from "./lounge-pet.js";   // lounge-game.js も ここを 読む（どちらも 呼ぶ ときに 使うだけ なので 大丈夫）
 
 export const SHOPS = [...TRADERS, SPECIAL];
@@ -96,12 +99,12 @@ export function tripEvents(rec, did, st, day) {
 
 // ---------- プライマリータスク（章の 物語。primary-data.js）----------
 // いま やって いる タスクだけを 数える（出て から の できごと。pk に その タスク、pp に 数）。納める・施設・階・作物の 図鑑などは いまの ようすで 見る
-const STATE = new Set(["deliver", "deliverAny", "deliverEq", "fac", "facN", "facAny", "floor", "explore", "bred", "and"]);
+const STATE = new Set(["deliver", "deliverAny", "deliverEq", "fac", "facN", "facAny", "floor", "explore", "bred", "and", "stockHold", "stockCos", "stockGroups"]);   // トークンを 持つ 数は いまの ようす（rec.stock.h ＝ 売り買いと 開いた ときの 写し）
 const tripOk = (c, tr) => !c || (!!tr && (!c.safe || !tr.wipe) && (!c.norest || tr.rests === 0) && (!c.party || tr.party >= c.party) && (!c.ins || (tr.ins || 0) >= c.ins)
   && (!c.tool || (tr.tools || []).includes(c.tool)) && (!c.wstar || (tr.wstar || 0) >= c.wstar));
 function hitP(g, ev) {
   if (g.type !== ev.type) return false;
-  for (const k of ["did", "tree", "slot", "kind", "crop", "mat", "tid", "item", "own"]) if (g[k] != null && g[k] !== ev[k]) return false;
+  for (const k of ["did", "tree", "slot", "kind", "crop", "mat", "tid", "item", "own", "co"]) if (g[k] != null && g[k] !== ev[k]) return false;
   if (g.isle && g.isle !== ev.isle) return false;
   if (g.star && !((ev.star || 0) >= g.star)) return false;
   if (g.floor && !((ev.floor || 0) >= g.floor)) return false;
@@ -118,6 +121,7 @@ function priBump(rec, tid, t, ev) {
   t.pp = Math.min(k.need, k.goal.trip && k.goal.trip.one ? Math.max(t.pp, ev.n) : t.pp + ev.n);
 }
 // 作物の 図鑑（かけ合わせで 生んだ 物も のる）
+const stockH = (rec) => (rec.stock && rec.stock.h && typeof rec.stock.h === "object" ? rec.stock.h : {});
 const bredOf = (rec, crop) => !!(rec.farmv && Array.isArray(rec.farmv.known) && rec.farmv.known.includes(crop));
 const explorePct = (rec, did) => { const p = rec.explore[did]; if (!p) return 0; let a = 0; for (let f = 1; f <= FLOORS; f++) a += floorRatio(did, p, f); return Math.floor((a / FLOORS) * 100); };
 const placeDids = (g) => (g.did ? [g.did] : g.isle ? DUNGEONS.filter((d) => (d.isle || 1) === g.isle).map((d) => d.id) : []);
@@ -140,6 +144,9 @@ export function priProgress(rec, tid, t, k) {
   if (g.type === "explore") return Math.min(k.need, Math.max(0, ...placeDids(g).map((did) => explorePct(rec, did))));
   if (g.type === "bred") return bredOf(rec, g.crop) ? 1 : 0;
   if (g.type === "and") return g.parts.filter((x) => partOk(rec, x)).length;
+  if (g.type === "stockHold") { const h = stockH(rec); return Math.min(k.need, g.co ? h[g.co] || 0 : Object.values(h).reduce((a, n) => a + (n > 0 ? n : 0), 0)); }   // トークンを 合わせて N（g.co が あれば その 会社だけ）
+  if (g.type === "stockCos") return Math.min(k.need, Object.values(stockH(rec)).filter((n) => n > 0).length);   // N 社の トークンを 持つ
+  if (g.type === "stockGroups") return Math.min(k.need, new Set(Object.entries(stockH(rec)).filter(([co, n]) => n > 0 && STOCK_CO[co] && STOCK_CO[co].g !== "neutral").map(([co]) => STOCK_CO[co].g)).size);   // 3 つの グループ（中立は 数えない）
   return Math.min(k.need, t.pk === pkey(k) ? t.pp || 0 : 0);
 }
 // 納める 物を 引く（品質の 低い 物から・拾った 物だけ）
@@ -344,7 +351,7 @@ export function deeplinkView(rec, day) {
       left: it.stock ? it.stock - ((it.week ? t.wbuy : t.buy)[it.id] || 0) : null, done: !!(it.get && it.get.perk && rec.perks[it.get.perk]) }; });
     const ks = tasksOf(s.id, t, day), task = (k, c, done, tr) => ({ n: k.n, kind: k.kind, found: !!k.found, text: k.text, need: k.need, unit: k.unit, cond: k.condText || null, have: progressOf(rec, k, c, tr), reward: k.reward, done });
     // プライマリー：章ごとの 終えた 数と 止まって いる わけ（まだ ない しくみ）、いまの タスク
-    const chs = chaptersOf(s.id).map((C, i) => ({ c: i + 1, title: C.title, done: C.tasks.filter((k) => isDone(t.pd, i + 1, k.no)).length, n: C.tasks.length, sys: [...new Set(C.tasks.filter((k) => k.sys).map((k) => k.sys))], sysN: C.tasks.filter((k) => k.sys).length }));
+    const chs = chaptersOf(s.id).map((C, i) => ({ c: i + 1, title: C.title, done: C.tasks.filter((k) => isDone(t.pd, i + 1, k.no)).length, n: C.tasks.length, sys: [...new Set(C.tasks.filter(sysOff).map((k) => k.sys))], sysN: C.tasks.filter((k) => sysOff(k) && !isDone(t.pd, i + 1, k.no)).length }));   // 止まる わけは 動いて いない しくみだけ
     const k = PRIMARY[s.id] ? curTask(s.id, t.pd, lv) : null;
     const pri = k ? { c: k.c, no: k.no, say: k.say, text: k.text, need: k.need, unit: k.unit, have: priProgress(rec, s.id, t, k), credits: k.credits, rep: PRI_REP(k.c), ...(k.unlock ? { unlock: k.unlock } : {}), ...(k.key ? { key: k.key } : {}) } : null;
     return { id: s.id, rep: t.rep, lv, pd: t.pd, chs, pri, chain: task(ks.chain, t.cp, false, t), daily: task(ks.daily, t.dp, !!t.ddone), shop };

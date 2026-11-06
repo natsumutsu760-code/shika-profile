@@ -121,7 +121,8 @@ export function give(rec, g, now) {
   if (g.box) for (const m of g.box) if (m.until > now) rec.own.box.push({ id: m.id, q: m.q || 0, n: m.n, ...(m.b ? { b: 1 } : {}), until: m.until });   // あずかり箱から 取った 物は 元の 期限で 箱へ もどす（期限を のばさない）
   if (g.equip) putEquip(rec, g.equip, now);
   if (g.credits) rec.credits += g.credits;
-  if (g.stockDiv) { const S = (rec.stock ||= {}); S.divN = (S.divN || 0) + 1; S.divCr = (S.divCr || 0) + (g.stockDiv.cr || 0); }   // 株の 配当を うけとった 回数と 合計（Market の 送る 箱から）
+  if (g.stockDiv) { const S = (rec.stock ||= {}), cr = Number.isInteger(g.stockDiv.cr) && g.stockDiv.cr > 0 ? g.stockDiv.cr : 0; S.divN = (S.divN || 0) + 1; S.divCr = (S.divCr || 0) + cr;
+    bump(rec, { type: "stockDiv", n: 1 }, jstDay(now || Date.now())); if (cr) bump(rec, { type: "stockDivCr", n: cr }, jstDay(now || Date.now())); }   // 主タスク「配当を N 回」「配当を 合わせて N クレジット」   // 株の 配当を うけとった 回数と 合計（Market の 送る 箱から）
   if (g.snacks) rec.snacks += g.snacks;
   if (g.labQ) { (rec.labQ ||= []).push({ tree: g.labQ.tree, at: (now || Date.now()) + g.labQ.ms }); }   // 研究に かかる 時間（研究所。施設の 作り直し）   // 上限は その 施設の Lv の 数（前は 3 で 止まり、Lv4 は 払うだけで 上がらなかった。2026-10-26）
   if (g.tame) { const c = rec.tamed.find((x) => x.uid === g.tame[0]); if (c) { const need = SNACK_NEED[rankOf(c)], was = c.gauge; c.gauge = Math.min(need, c.gauge + g.tame[1]);
