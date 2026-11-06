@@ -6,11 +6,7 @@ import { equippedUids } from "./lounge-pet.js";
 
 const newUid = (rec, p) => p + (++rec.uidN).toString(36);
 const kindOf = (it) => { const b = baseOf(it.base); return b && KINDS[b.slot] ? b.slot : "weapon"; };
-// その 装備を 付けて いる 子が 出かけて いるか（出かけて いる あいだは 強さを かえない）
-export function wornAway(rec, uid) {
-  const who = [...rec.pets, ...rec.tamed].filter((x) => x.equip && Object.values(x.equip).includes(uid)).map((x) => x.uid);
-  return who.length > 0 && rec.trips.some((t) => !t.done && t.party.some((u) => who.includes(u)));
-}
+// 出かけて いる 子の 装備も かえられる（いまの 派遣は 出かけた ときの 形 team で 計算。かえた 分は つぎの 派遣・周回の つぎの 回から。鹿さん 2026-11-07）
 
 // 抜く。b：{ uid：装備, i：何番めの OP }
 export function coreTake(rec, b) {
@@ -35,7 +31,6 @@ export function coreSet(rec, b) {
   if (!core) return { ok: false, why: "その コアは ない" };
   if (!it) return { ok: false, why: "その 装備は ない" };
   if (!ALL_OPS[core.op]) return { ok: false, why: "こわれた コア" };
-  if (wornAway(rec, it.uid)) return { ok: false, why: "出かけて いる 子の 装備は かえられない（帰って から）" };
   const n = opCount(kindOf(it), it.star), op = core.op;
   const opStar = { ...(it.opStar || {}) };
   if (b.i == null) {

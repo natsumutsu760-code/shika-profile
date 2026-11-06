@@ -6,7 +6,6 @@
 import { OPS, baseOf, opCount, KINDS, ALL_OPS, facLv, ISLAND_OPEN, MAT_NAME, MAT_FROM, devNeed, devStarW, devWhere, CRYSTAL_GRADE, benchStarMax, benchTopUp, SPHERE_LOOK, opLive, DRAW, rollDraw } from "./game.js";
 import { takeMats, applyTake, makeFee, payUpkeep, feeWhy } from "./lounge-game.js";
 import { slotKind, bump } from "./lounge-trade.js";
-import { wornAway } from "./lounge-core.js";
 import { sale, gearCo } from "./lounge-stock.js";   // 株：装備の 代金は 武器 ヴァルコ火器・防具 ローゼル繊工
 import { jstDay } from "./lounge-rules.js";
 import { uniqueOf, uniqueRecipe, UNIQUE_BENCH_LV } from "./unique-equip.js";
@@ -88,7 +87,6 @@ export function sphereSet(rec, b, now = Date.now()) {
   if (!x.known) return { ok: false, why: "鑑定して いない スフィアは はめられない（DEEP LINK/: の ガラクで 鑑定）" };
   if (!it) return { ok: false, why: "その 装備は ない" };
   if (!ALL_OPS[x.op] || !opLive(x.op)) return { ok: false, why: "この OP は まだ 使えない" };
-  if (wornAway(rec, it.uid)) return { ok: false, why: "出かけて いる 子の 装備は かえられない（帰って から）" };
   const kind = (baseOf(it.base) || {}).slot, n = opCount(KINDS[kind] ? kind : "weapon", it.star);
   if (it.ops.length >= n) return { ok: false, why: n ? "空いた OP の 枠が ない（スフィアは 空いた 枠に だけ はめる）" : "この 装備には OP の 枠が ない" };
   if (it.ops.includes(x.op)) return { ok: false, why: `${ALL_OPS[x.op].label}は もう 付いて いる` };
@@ -108,7 +106,6 @@ export function drawOp(rec, b, R, now = Date.now()) {
   if (!it) return { ok: false, why: "その 装備は ない" };
   if (!w || (w.d.isle || 1) > ISLAND_OPEN) return { ok: false, why: "使う 敵の 素材を えらんで" };
   if (!(q >= 1 && q <= 5)) return { ok: false, why: "素材の 品質を えらんで" };
-  if (wornAway(rec, it.uid)) return { ok: false, why: "出かけて いる 子の 装備は かえられない（帰って から）" };
   const kind = (baseOf(it.base) || {}).slot, n = opCount(KINDS[kind] ? kind : "weapon", it.star);
   if (it.ops.length >= n) return { ok: false, why: n ? "空いた OP の 枠が ない（素材の OP 抽選は 空いた 枠に だけ）" : "この 装備には OP の 枠が ない" };
   const have = haveQ(rec, id, q);

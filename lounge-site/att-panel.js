@@ -1,6 +1,6 @@
 // 装備の 画面：武器の アタッチメント（先っぽ・持ち手。鹿さんの頼み、2026-10-25）。equip.html から 使う
 // - mergeAtt(ME)：門番の 記録の 武器に 付いて いる アタッチメントを 入れる（装備で ふえる 分・くらべるに 入る）
-// - attHtml(ME, it, { away })：えらんだ 武器の 下に 出す 欄。attClick(button, ME, reload, toast)：押した とき（扱ったら true）
+// - attHtml(ME, it)：えらんだ 武器の 下に 出す 欄。attClick(button, ME, reload, toast)：押した とき（扱ったら true）
 import { ATT_KINDS, attBase, withAtt } from "./workshop.js";
 import { OPS } from "./equip.js";
 import { wsIcon } from "./ws-icons.js";
@@ -32,16 +32,16 @@ export function mergeAtt(ME) {
 const opsText = (a) => a.ops.map((o) => OPS[o].fmt(OPS[o].v[a.star - 1])).join("・");
 const loose = (ME) => { const eq = new Set((ME.own.equip || []).map((e) => e.uid)); return (ME.own.att || []).filter((a) => !a.on || !eq.has(a.on)); };
 let open = null;   // 付けかえる 一覧を 開いて いる 場所（tip・grip）
-export function attHtml(ME, it, { away = false } = {}) {
+export function attHtml(ME, it) {
   addCss();
   const on = (ME.own.att || []).filter((a) => a.on === it.uid), free = loose(ME);
   const rows = Object.entries(ATT_KINDS).map(([kind, K]) => {
     const a = on.find((x) => (attBase(x.base) || {}).kind === kind), b = a && attBase(a.base), cand = free.filter((x) => (attBase(x.base) || {}).kind === kind).sort((x, y) => y.star - x.star);
-    const btn = away ? "" : a ? `<button class="ab" data-att-open="${kind}">${cand.length ? "かえる" : "はずす"}</button>` : cand.length ? `<button class="ab" data-att-open="${kind}">付ける（${cand.length}）</button>` : `<a href="workshop.html?t=att">工房で 作る</a>`;
-    const pick = !away && open === kind ? `<div class="pick" role="group" aria-label="${K.label}を えらぶ">${cand.map((x) => `<button data-att-set="${x.uid}" data-w="${it.uid}">${wsIcon(x.base)}<span><b>${esc(attBase(x.base).name)} ★${x.star}</b><span>${esc(opsText(x))}</span></span><i>付ける</i></button>`).join("")}${a ? `<button data-att-off="${a.uid}"><span class="ai no"></span><span><b>はずす</b></span><i></i></button>` : ""}</div>` : "";
+    const btn = a ? `<button class="ab" data-att-open="${kind}">${cand.length ? "かえる" : "はずす"}</button>` : cand.length ? `<button class="ab" data-att-open="${kind}">付ける（${cand.length}）</button>` : `<a href="workshop.html?t=att">工房で 作る</a>`;
+    const pick = open === kind ? `<div class="pick" role="group" aria-label="${K.label}を えらぶ">${cand.map((x) => `<button data-att-set="${x.uid}" data-w="${it.uid}">${wsIcon(x.base)}<span><b>${esc(attBase(x.base).name)} ★${x.star}</b><span>${esc(opsText(x))}</span></span><i>付ける</i></button>`).join("")}${a ? `<button data-att-off="${a.uid}"><span class="ai no"></span><span><b>はずす</b></span><i></i></button>` : ""}</div>` : "";
     return `<div class="ar"><small>${K.label}</small><span class="ai ${a ? "" : "no"}">${a ? wsIcon(a.base) : ""}</span><span class="an">${a ? `<b>${esc(b.name)} ★${a.star}</b><span>${esc(opsText(a))}</span>` : `<em>なし</em>`}</span>${btn}</div>${pick}`;
   }).join("");
-  return `<div class="att" aria-label="アタッチメント"><h3>アタッチメント</h3>${rows}${away ? `<p class="note2">出かけて いる あいだは かえられない</p>` : ""}</div>`;
+  return `<div class="att" aria-label="アタッチメント"><h3>アタッチメント</h3>${rows}</div>`;
 }
 // 押した とき。reload：門番の 記録を 読みなおして 描く
 export async function attClick(b, ME, reload, toast) {

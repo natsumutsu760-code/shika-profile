@@ -366,17 +366,17 @@ const leafHave = (id) => [...((ME.own && ME.own.mats) || []), ...((ME.own && ME.
 const exBtn = (c, id) => { const sure = S.ex === c.uid + ":" + id;
   return `<span class="tex"><button class="mb ${sure ? "warn" : ""}" data-act="extract" data-t="${id}" ${c.away || c.inParty || (S.known && S.res < exCost()) ? "disabled" : ""}>${sure ? "おわかれして 取り出す・もう 一度 押す" : `取り出す アメジスト ${exCost()}`}</button></span>`; };
 function skillHtml(c, { sp, free }) {
-  const auto = c.auto !== false, ids = treesOf(c), lock = c.away;
+  const auto = c.auto !== false, ids = treesOf(c);   // 出かけて いても 振れる（つぎの 派遣から。鹿さん 2026-11-07）
   const row = (id, i) => { const T = ENEMY_TREES[id], v = sp[id] || 0, all = nodesOf(id).filter((n) => n.kind === "skill" && n.skill).length, got = learned(id, autoTake(v).taken).skills.length, room = Math.min(free, TREE_FULL - v);
-    const add = (n) => `<button class="mb" data-act="spadd" data-t="${id}" data-n="${n}" aria-label="${esc(T.name)}に ${n} 振る" ${lock ? "disabled" : ""}>＋${n}</button>`;
+    const add = (n) => `<button class="mb" data-act="spadd" data-t="${id}" data-n="${n}" aria-label="${esc(T.name)}に ${n} 振る">＋${n}</button>`;
     return `<li class="trow${T.evo ? " ev" : ""}"><div class="tn"><small>${i ? `サブスキル ${i}` : "自分の ツリー"}${T.evo ? "・進化" : ""}</small><b>${esc(T.name)}</b></div><span class="tv">${v}<small> / ${TREE_FULL}</small></span>
       <div class="tbar" role="img" aria-label="${v} / ${TREE_FULL}"><i style="width:${(v / TREE_FULL) * 100}%"></i></div><span class="tk">技 ${got} / ${all}</span>
       ${i && T.evo && !S.labs.includes(id) ? exBtn(c, id) : ""}
       ${!auto && room > 0 ? `<span class="tadd">${add(Math.min(10, room))}${room > 10 ? add(room) : ""}</span>` : ""}</li>`; };
   const empty = Array.from({ length: 1 + SUB_MAX - ids.length }, (_, k) => `<li class="trow empty"><div class="tn"><small>サブスキル ${ids.length + k}</small><b>あいている</b></div><span class="tk">配合で 受けつぐ</span></li>`).join("");
-  return `<div class="sphead"><span>のこり<b>${free}</b>ポイント</span><button class="tog" data-act="auto" aria-pressed="${auto}" ${lock ? "disabled" : ""}>自動で 振る<i></i></button></div>
+  return `<div class="sphead"><span>のこり<b>${free}</b>ポイント</span><button class="tog" data-act="auto" aria-pressed="${auto}">自動で 振る<i></i></button></div>
     <ul class="trees">${ids.map(row).join("")}${empty}</ul>
-    <p class="cost">${lock ? "出かけて いる あいだは 振れない（帰って から）" : auto ? "自分の ツリーから 最大まで → サブスキル 1 → 2 の 順に 振る" : "振った ポイントは もどせない"}</p>`;
+    ${c.away ? `<p class="cost">出かけて いる あいだに 振った 分は、つぎの 派遣から（周回は つぎの 回から）</p>` : ""}<p class="cost">${auto ? "自分の ツリーから 最大まで → サブスキル 1 → 2 の 順に 振る" : "振った ポイントは もどせない"}</p>`;
 }
 
 // ---------- 配合（鹿さんの決め、2026-10-25：なかまの 画面に「配合」の タブ。決まりは docs/mono-link-haigou.md） ----------

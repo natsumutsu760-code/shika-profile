@@ -285,9 +285,9 @@ const priceText = () => (freeReset() ? "きょうは 無料" : `クレジット 
 // サブツリーを 付ける：研究ずみの 敵の ツリーから（付けて いる 物は のぞく）
 function subPickHtml(k) {
   const can = (ME.lab || []).filter((id) => ENEMY_TREES[id] && !(MP.subs || []).includes(id));
-  const away = (ME.trips || []).some((t) => !t.done && t.party.includes(MP.uid));   // 出かけて いる あいだは 付けかえられない（門番も ことわる）
-  return `<div class="subpick"><h2>サブツリー ${k} に 付ける</h2>${can.length ? `${away ? "<p>出かけて いる あいだは 付けかえられない（帰って から）</p>" : ""}<ul>${can.map((id) => { const t = ENEMY_TREES[id];
-    return `<li><button data-sub="${id}" style="--c:${TYPES[t.type].color}" ${away ? "disabled" : ""}><img src="${spriteURL(id)}" alt=""><span><b>${esc(t.name)}</b><small>${esc(t.enemy)}・${TYPES[t.type].label}・テーマ ${EFFECTS[t.theme].label}</small></span></button></li>`; }).join("")}</ul>`
+  const away = (ME.trips || []).some((t) => !t.done && t.party.includes(MP.uid));   // 出かけて いても 付けかえられる（つぎの 派遣から。鹿さん 2026-11-07）
+  return `<div class="subpick"><h2>サブツリー ${k} に 付ける</h2>${can.length ? `${away ? "<p>出かけて いる あいだに かえた 物は、つぎの 派遣から（周回は つぎの 回から）</p>" : ""}<ul>${can.map((id) => { const t = ENEMY_TREES[id];
+    return `<li><button data-sub="${id}" style="--c:${TYPES[t.type].color}"><img src="${spriteURL(id)}" alt=""><span><b>${esc(t.name)}</b><small>${esc(t.enemy)}・${TYPES[t.type].label}・テーマ ${EFFECTS[t.theme].label}</small></span></button></li>`; }).join("")}</ul>`
     : `<p>研究ずみの 敵が まだ いない。派遣で 捕まえた 子を <a href="tame.html">なかまの 画面</a>で 研究すると 付けられる</p>`}</div>`;
 }
 // 職業を かえる：前の 職業で 覚えた 技から 1 つ 持ちこせる

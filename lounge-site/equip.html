@@ -290,9 +290,8 @@ function render() {
   let det = "";
   if (it) {
     const b = baseOf(it.base), w = W[it.uid], to = slotFor(b.slot), now = cur(to), cmp = now && now.uid !== it.uid ? diffOf(it, now) : null, sy = SYNTH.find((r) => r.main === it.base);
-    const here = isPet() ? "pet" : holder().uid, busyAway = away(isPet() ? MP.uid : here) || (w && !w.me && away(w.who === "pet" ? MP.uid : w.who));
-    const btn = busyAway ? `<p class="note">出かけて いる あいだは かえられない</p>`
-      : w && w.me ? `<button class="jelly light" data-off="${w.slot}">はずす</button>`
+    const here = isPet() ? "pet" : holder().uid, gone = away(isPet() ? MP.uid : here) || (w && !w.me && away(w.who === "pet" ? MP.uid : w.who));   // 出かけて いても かえられる（いまの 派遣は 出かけた ときの まま。鹿さん 2026-11-07）
+    const btn = w && w.me ? `<button class="jelly light" data-off="${w.slot}">はずす</button>`
       : w ? `<button class="jelly" data-move="${it.uid}">${esc(nameOfWho(w.who))}から はずして つける</button>`   // ほかの 子の 物は、はずして から この 子に
       : `<button class="jelly" data-on="${it.uid}">${b.slot === "acc" ? `${SLOTS[to].label}に つける` : "つける"}</button>`;
     det = `<div class="top2"><span class="ico">${gearImg(it.base)}</span>
@@ -301,8 +300,8 @@ function render() {
       ${it.ops.length ? `<ul class="ops">${it.ops.map((o, i) => `<li class="${SPECIAL.has(o) ? "sp" : ""}">${opLine(it, o, i)}</li>`).join("")}</ul>` : ""}
       ${hasFx(it) ? `<p class="note">とくべつな効果：${esc(b.fx || b.text || "")}</p>` : ""}
       ${cmp ? `<div class="cmp"><h3>いまの ${esc(baseOf(now.base).name)} ★${now.star} とくらべると</h3>${cmp.length ? cmp.map(([k, d]) => `<div class="${d > 0 ? "up" : "dn"}"><span>${nameOf(k)}</span><b>${val(k, d)}</b></div>`).join("") : `<p class="note">数は おなじ</p>`}</div>` : ""}
-      ${b.slot === "weapon" ? attHtml(ME, it, { away: !!busyAway }) : ""}
-      <div class="btns">${btn}${sy ? `<a class="linkish" href="bench.html?k=s:${sy.out}">作業台で 合成する</a>` : ""}</div>${sphereHtml(it, busyAway)}${drawHtml(it, busyAway)}${coreHtml(it, w, busyAway)}${w ? "" : scrapHtml(it)}`;
+      ${b.slot === "weapon" ? attHtml(ME, it) : ""}
+      <div class="btns">${btn}${sy ? `<a class="linkish" href="bench.html?k=s:${sy.out}">作業台で 合成する</a>` : ""}</div>${gone ? `<p class="note">出かけて いる あいだに かえた 物は、つぎの 派遣から（周回は つぎの 回から）</p>` : ""}${sphereHtml(it)}${drawHtml(it)}${coreHtml(it, w)}${w ? "" : scrapHtml(it)}`;
   }
   if (V.rec) det = recHtml();
   return `
@@ -341,12 +340,10 @@ const RS = { off: "オフハンド", acc1: "アクセ 1", acc2: "アクセ 2", a
 const recMode = () => { try { const m = localStorage.getItem("ml-rec-mode"); return REC_MODES.some(([k]) => k === m) ? m : "job"; } catch (e) { return "job"; } };
 function recPlan() {
   const R = V.rec, all = [MP, ...(ME.tamed || [])], party = [MP, ...(ME.party || []).map((u) => (ME.tamed || []).find((c) => c.uid === u)).filter(Boolean)];
-  const targets = R.scope === "party" ? party : [holder()], gone = (x) => away(x.uid);
-  if (targets.some(gone)) return { targets, away: true };
-  const locked = new Set(all.filter(gone).flatMap((x) => Object.values(x.equip || {}).filter(Boolean)));
+  const targets = R.scope === "party" ? party : [holder()];   // 出かけて いる 子の 装備も 使う（つぎの 派遣から。門番の equipBest と 同じ）
   const chars = targets.map((x) => ({ who: whoKey(x), type: x.type, stats: formOf(x).stats, equip: { ...(x.equip || {}) } }));
   const W = {}; for (const x of all) for (const [s, u] of Object.entries(x.equip || {})) if (u) W[u] = { who: whoKey(x), name: x.name };
-  const plan = recommend(chars, ME.own.equip || [], R.mode, locked);
+  const plan = recommend(chars, ME.own.equip || [], R.mode);
   return { targets, chars, plan, rows: recDiff(plan, chars, W), W };
 }
 // どこを 重く 見たか（1 行）：職業は 伸び方の 上位、弱点は 重みの 上位
@@ -359,7 +356,6 @@ function recHtml() {
     <div class="brow"><span>えらび方</span>${REC_MODES.map(([k, l]) => chip("mode", k, l)).join("")}</div>
     ${many ? `<div class="brow"><span>だれ</span>${chip("scope", "one", esc(holder().name))}${chip("scope", "party", "パーティ 全員")}</div>` : ""}`;
   const close = `<button class="jelly light" data-recx="1">とじる</button>`;
-  if (P.away) return `${head}<p class="note">出かけて いる あいだは かえられない</p><div class="btns">${close}</div></div>`;
   // かわる 枠：外す 物は 絵だけ（うすく）、付ける 物は 名前も。上がり幅の 大きい 4 枠を 出して、のこりは たたむ（情報を 出しすぎない）
   const eq = (u) => (ME.own.equip || []).find((x) => x.uid === u), gain = (r) => (r.to ? itemPower(eq(r.to)) : 0) - (r.from ? itemPower(eq(r.from)) : 0);
   const pic = (u) => { const e = eq(u); return e ? `<span class="gi r${e.star}" title="${esc(baseOf(e.base).name)} ★${e.star}">${gearImg(e.base)}</span>` : `<span class="gn none">なし</span>`; };
@@ -379,7 +375,7 @@ async function recGo(b) {
 // ---------- ブランクコア（鹿さんの決め、2026-10-25）：OP を 抜く（装備は なくなる）・コアを 付ける（あいて いる 枠へ・いっぱいなら 入れかえ） ----------
 const blankN = () => ((ME.deeplink && ME.deeplink.items) || {}).blankcore || 0, coresOf = () => (ME.own && ME.own.cores) || [];
 const coreName = (c) => `${ALL_OPS[c.op].label} ★${c.star}（${ALL_OPS[c.op].fmt(opVal(c.op, c.star))}）`;
-function coreHtml(it, w, busyAway) {
+function coreHtml(it, w) {
   const bn = blankN(), cs = coresOf(), b = baseOf(it.base), n = opCount(b.slot, it.star);
   if (!bn && !cs.length) return "";   // まだ 持って いない ときは 出さない（工房・ヨルの 店・ボスで 手に 入る）
   const mode = V.core && V.core.uid === it.uid ? V.core.mode : null, key = (x) => `${it.uid}:core:${x}`;
@@ -388,8 +384,8 @@ function coreHtml(it, w, busyAway) {
     : `<div class="crow">${it.ops.map((o, i) => `<button class="${V.conf === key(i) ? "go" : ""}" data-ctake="${i}">${V.conf === key(i) ? "もう一度 押すと 抜く（装備は なくなる）" : `${esc(ALL_OPS[o] ? ALL_OPS[o].label : o)} ★${opStarOf(it, i)} を 抜く`}</button>`).join("")}</div><small>ブランクコアを 1 つ 使う。抜いた OP は コアに なり、別の 装備に 付けられる</small>`;
   if (mode === "set") {
     const c = cs.find((x) => x.uid === V.core.csel);
-    body = busyAway ? `<small>出かけて いる あいだは かえられない</small>` : `<div class="crow">${cs.map((x) => `<button data-csel="${x.uid}" aria-pressed="${!!c && c.uid === x.uid}">${esc(coreName(x))}</button>`).join("")}</div>`;
-    if (c && !busyAway) {
+    body = `<div class="crow">${cs.map((x) => `<button data-csel="${x.uid}" aria-pressed="${!!c && c.uid === x.uid}">${esc(coreName(x))}</button>`).join("")}</div>`;
+    if (c) {
       const free = it.ops.length < n, dupAt = it.ops.indexOf(c.op);
       body += free && dupAt < 0 ? `<div class="crow"><button data-cset="free">あいて いる 枠に 付ける</button></div>`
         : `<div class="crow">${it.ops.map((o, i) => { const ng = dupAt >= 0 && dupAt !== i; return `<button class="${V.conf === key("s" + i) ? "go" : ""}" data-cset="${i}" ${ng ? "disabled" : ""}>${V.conf === key("s" + i) ? "もう一度 押すと 入れかえ" : `${esc(ALL_OPS[o] ? ALL_OPS[o].label : o)} と 入れかえ`}</button>`; }).join("")}</div>
@@ -401,14 +397,13 @@ function coreHtml(it, w, busyAway) {
 }
 // ---------- スフィア（宝箱 3%。鹿さんの 決め 2026-10-29、つないだのは 2026-11-04）：鑑定した スフィアを 空いた OP の 枠に はめる（入れかえは しない） ----------
 // 強さは スフィアの ★。同じ OP と ★の スフィアは 1 つの ボタンに まとめる
-function sphereHtml(it, busyAway) {
+function sphereHtml(it) {
   const all = (ME.own && ME.own.spheres) || [], ks = all.filter((x) => x.known), b = baseOf(it.base), n = opCount(b.slot, it.star), free = Math.max(0, n - it.ops.length);
   if (!all.length) return "";
   const head = `<div class="crow"><span class="sh">スフィア</span><span class="cn">空いた 枠 <b>${free}</b>・鑑定した スフィア <b>${ks.length}</b></span></div>`;
   const unk = all.length - ks.length, look = unk ? `<small>鑑定して いない スフィア ${unk} こ（<a href="deeplink.html?go=junk&tab=shop">DEEP LINK/: の ガラク</a>で 鑑定）</small>` : "";
   let body;
   if (!free) body = `<small>${n ? "空いた 枠が ない（スフィアは 空いた 枠に だけ はめる）" : "この 装備には OP の 枠が ない"}</small>`;
-  else if (busyAway) body = `<small>出かけて いる あいだは かえられない</small>`;
   else {
     const g = new Map(); for (const x of ks) if (!it.ops.includes(x.op) && ALL_OPS[x.op]) { const k = `${x.op}:${x.star}`; g.set(k, { ...(g.get(k) || { x, n: 0 }), n: (g.get(k) || { n: 0 }).n + 1 }); }
     const list = [...g.values()].sort((a, c) => c.x.star - a.x.star), key = (u) => `${it.uid}:sp:${u}`;
@@ -419,10 +414,10 @@ function sphereHtml(it, busyAway) {
 }
 // ---------- 素材の OP 抽選（工房。鹿さんの 決め 2026-10-29）：同じ 敵の 素材 5 こ（同じ 品質）＋ クレジットで 空いた 枠に OP を 1 つ。★は 素材の 品質 ----------
 const ENEMY_IDS = new Set(Object.values(ENEMY_MAT).map(([id]) => id));
-function drawHtml(it, busyAway) {
+function drawHtml(it) {
   if (!(ME.hideout || {}).workshop) return "";   // 工房が できてから
   const b = baseOf(it.base), n = opCount(b.slot, it.star), free = n - it.ops.length;
-  if (free <= 0 || busyAway) return "";
+  if (free <= 0) return "";
   const by = new Map(); for (const m of (ME.own && ME.own.mats) || []) if (ENEMY_IDS.has(m.id) && m.q) { const k = `${m.id}:${m.q}`; by.set(k, (by.get(k) || 0) + m.n); }
   const list = [...by.entries()].filter(([, k]) => k >= DRAW.mats).sort((a, c) => +c[0].split(":")[1] - +a[0].split(":")[1]);
   const head = `<div class="crow"><span class="sh">素材で 引く</span><span class="cn">工房・同じ 敵の 素材 ${DRAW.mats} こ（同じ 品質）で 空いた 枠に OP を 1 つ</span></div>`;

@@ -108,7 +108,6 @@ export function petGrow(rec, b) {
 export function petSub(rec, b) {
   const pet = petOf(rec);
   if (!pet || !pet.type) return { ok: false, why: "さきに 職業を えらんで" };
-  if (onTrip(rec, pet.uid)) return { ok: false, why: "いまは 出かけて いる" };
   const i = Number.isInteger(b.slot) && b.slot >= 0 && b.slot < TREE_SLOTS - 1 ? b.slot : -1;
   if (i < 0) return { ok: false, why: "枠を えらんで" };
   if (b.tree != null && !(rec.lab.includes(b.tree) && has(ENEMY_TREES, b.tree))) return { ok: false, why: "研究した ツリーだけ 付けられる" };
@@ -185,7 +184,6 @@ export function equipSet(rec, b) {
   const x = b.who ? rec.tamed.find((c) => c.uid === b.who) : petOf(rec);
   if (!x) return { ok: false, why: "その 子は いない" };
   x.equip ||= {};
-  if (onTrip(rec, x.uid)) return { ok: false, why: "いまは 出かけて いる" };
   if (!has(SLOTS, b.slot)) return { ok: false, why: "枠を えらんで" };
   if (b.uid == null) { delete x.equip[b.slot]; return { ok: true }; }
   const e = rec.own.equip.find((y) => y.uid === b.uid), base = e && baseOf(e.base);
@@ -204,7 +202,7 @@ export function equipSet(rec, b) {
 
 // ---------- おすすめ装備（鹿さんの頼み、2026-10-25。えらび方は recommend.js）----------
 // mode：job（職業に 合う）・power（強さ）・weak（弱点を 補う）。scope：one（who の 子だけ）・party（ペット → パーティの なかまの 順）
-// ほかの 子が 付けて いる 物も 外して 使う（出かけて いる 子の 物は 使わない）。画面と 同じ 計算を ここで しなおして 付ける
+// ほかの 子が 付けて いる 物も 外して 使う（出かけて いる 子の 物も。つぎの 派遣から かわる）。画面と 同じ 計算を ここで しなおして 付ける
 const powerNow = (x, rec) => fighterPower(x === rec.pets[0] ? fighterOf(x, rec) : mateOf(x, rec));
 export function equipBest(rec, b) {
   if (!REC_MODES.some(([k]) => k === b.mode) || !REC_SCOPES.some(([k]) => k === b.scope)) return { ok: false, why: "えらび方を えらんで" };
@@ -212,11 +210,9 @@ export function equipBest(rec, b) {
   const one = b.scope === "one" ? (b.who && b.who !== "pet" ? rec.tamed.find((c) => c.uid === b.who) : pet) : null;
   if (b.scope === "one" && !one) return { ok: false, why: "その 子は いない" };
   const targets = one ? [one] : [pet, ...(rec.party || []).map((u) => rec.tamed.find((c) => c.uid === u)).filter(Boolean)];
-  if (targets.some((x) => onTrip(rec, x.uid))) return { ok: false, why: "出かけて いる あいだは かえられない" };
   const all = [pet, ...rec.tamed], whoOf = (x) => (x === pet ? "pet" : x.uid);
-  const locked = new Set(all.filter((x) => onTrip(rec, x.uid)).flatMap((x) => Object.values(x.equip || {}).filter(Boolean)));
   const chars = targets.map((x) => ({ who: whoOf(x), type: x.type, stats: (x === pet ? fighterOf(pet, null) : tamedOf(x, x.lv)).stats, equip: { ...(x.equip || {}) } }));
-  const before = targets.map((x) => powerNow(x, rec)), plan = recommend(chars, rec.own.equip.map((e) => withAtt(e, rec.own.att)), b.mode, locked);
+  const before = targets.map((x) => powerNow(x, rec)), plan = recommend(chars, rec.own.equip.map((e) => withAtt(e, rec.own.att)), b.mode);
   const take = new Set(plan.flatMap((p) => Object.values(p.set).filter(Boolean)));
   let n = 0, took = 0;
   for (const x of all) if (!targets.includes(x)) for (const s of SLOT_KEYS) if (x.equip && take.has(x.equip[s])) { delete x.equip[s]; took++; }   // ほかの 子から 外す
@@ -233,7 +229,6 @@ export function equipBest(rec, b) {
 export function respecPlan(rec, b, day) {
   const pet = petOf(rec);
   if (!pet || !pet.type) return { ok: false, why: "さきに 職業を えらんで" };
-  if (onTrip(rec, pet.uid)) return { ok: false, why: "いまは 出かけて いる" };
   let job = null;
   if (b.a === "pet.rejob") {
     if (!has(PLANS, b.type) || b.type === pet.type) return { ok: false, why: "かえる 職業を えらんで" };

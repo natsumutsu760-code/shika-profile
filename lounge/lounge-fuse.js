@@ -34,7 +34,6 @@ export function tameFuse(rec, b, R, leave = () => {}) {
 export function tameSp(rec, b) {
   const c = rec.tamed.find((x) => x.uid === b.uid);
   if (!c) return { ok: false, why: "その 子は いない" };
-  if (away(rec, c.uid)) return { ok: false, why: "出かけて いる あいだは 振れない（帰って から）" };
   if (typeof b.auto === "boolean" && b.auto !== (c.auto !== false)) {
     if (!b.auto) c.sp = { ...spSplit(c).sp };
     c.auto = b.auto;

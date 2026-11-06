@@ -10,11 +10,6 @@ const newUid = (rec, p) => p + (++rec.uidN).toString(36);
 export const ensureWs = (rec) => { rec.own.att ||= []; return rec; };
 // 付いて いない アタッチメント（武器が もう ない 物も）
 const loose = (rec) => rec.own.att.filter((a) => !a.on || !rec.own.equip.some((e) => e.uid === a.on));
-// その 装備を 付けて いる 子が 出かけて いるか
-function wornAway(rec, uid) {
-  const who = [...rec.pets, ...rec.tamed].filter((x) => x.equip && Object.values(x.equip).includes(uid)).map((x) => x.uid);
-  return rec.trips.some((t) => !t.done && t.party.some((u) => who.includes(u)));
-}
 
 // 道具・品を n こ 作る。b：{ id, n }
 // 工房 Lv1〜100（施設の 作り直し、2026-11-03）：道具が 1 こ 多く できる 確率 ＋1% / Lv・素材 −0.3% / Lv（切り上げ）。維持費は 作る たびに
@@ -136,7 +131,6 @@ export function attSet(rec, b) {
   const a = rec.own.att.find((x) => x.uid === b.att), w = rec.own.equip.find((e) => e.uid === b.weapon), base = a && attBase(a.base);
   if (!a || !base) return { ok: false, why: "その アタッチメントは ない" };
   if (!w || (baseOf(w.base) || {}).slot !== "weapon") return { ok: false, why: "付けられるのは 武器だけ" };
-  if (wornAway(rec, w.uid) || (a.on && wornAway(rec, a.on))) return { ok: false, why: "その 武器を 持って いる 子が 出かけて いる" };
   for (const x of rec.own.att) if (x !== a && x.on === w.uid && (attBase(x.base) || {}).kind === base.kind) x.on = null;
   a.on = w.uid;
   return { ok: true };
@@ -145,7 +139,6 @@ export function attOff(rec, b) {
   ensureWs(rec);
   const a = rec.own.att.find((x) => x.uid === b.att);
   if (!a) return { ok: false, why: "その アタッチメントは ない" };
-  if (a.on && wornAway(rec, a.on)) return { ok: false, why: "その 武器を 持って いる 子が 出かけて いる" };
   a.on = null;
   return { ok: true };
 }

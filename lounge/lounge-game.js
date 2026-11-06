@@ -348,7 +348,7 @@ export function tripStart(rec, b, now, seed, check = false, who = null) {
   for (const id of tools) rec.tools[id]--;   // 道具は 持って いく ときに あずかる（お茶・薬は 使わなかったら 帰りに もどす）
   if (bag) for (const [k, n] of Object.entries(bag)) rec.items[k] -= n;   // 袋も あずかる
   const t = { uid: newUid(rec, "r"), did: d.id, run, purpose, target, tool, ...(tools.length > 1 ? { tools } : {}), ...(floor ? { floor } : {}), party: [pet.uid, ...mates.map((c) => c.uid)], team, seed, ...(bag ? { bag } : {}), ...(fac.maproom ? { map: fac.maproom } : {}), ...(fac.medic ? { med: fac.medic } : {}), ...(fac.maproom >= MAP_STAIRS ? { st: 1 } : {}), start: now, end: now + S.budget * TICK * 1000, done: false, calc: true };   // floor は えらんだ ときだけ（画面も 同じ 階で 計算しなおす）
-  // team：出かけた ときの 戦う 形。出かけて いる あいだも スキルツリー・振り分け・ガンビットは かえられるので、画面と 中継は これで 計算しなおす（いまの 形だと 門番と ずれる）
+  // team：出かけた ときの 戦う 形。出かけて いる あいだも スキルツリー・振り分け・ガンビット・装備・サブツリー・職業は かえられるので（装備と スキルは 鹿さん 2026-11-07「出かけてても装備変更とスキル変更できるようにして周回時は次の周回に反映」）、画面と 中継は これで 計算しなおす（いまの 形だと 門番と ずれる）。かえた 分は つぎの 派遣（周回は つぎの 回の 出発 loopAfter → tripStart）から
   if (ins) { rec.credits -= prem; t.ins = { plan: ins, prem }; sale(rec, "AMB", prem); }   // 保険料は アンバー相互保証・行き先の 費用は キャラバン運送の 売り上げ（株）
   if (fee) { rec.credits -= fee; t.fee = fee; sale(rec, "CRV", fee); }
   t.fac = fac; t.map = fac.maproom; if (facOn && upk) { payUpkeep(rec, upk, now); t.upk = upk; }   // 出かけた ときの 施設の Lv（帰りの 経験値・地図室の 素材も これで）
