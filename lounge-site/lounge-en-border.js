@@ -31,8 +31,12 @@ export const WORDS = {
   "まだ 計算中（もう 少し）": "Still calculating (a moment)", "もう 脱出口へ 向かって いる": "Already heading to the exit", "もう 力つきて いる": "Already wiped out",
   "鑑定する サンプルを えらんで": "Select samples to appraise", "納める 会社を えらんで": "Choose a company", "納める サンプルを えらんで": "Select samples to hand in",
   "準備中（ボーダーゾーンは、公開まで もう 少し お待ちください）": "Coming soon (the Border Zone opens soon)",
+  // 島 3 へ 行けるまで 閉じる（2026-11-06）
+  "ミカネル島から": "From Mikaneru Isle", "ボーダーゾーンは、ミカネル島へ 行けるように なると 開きます（隠れ家の 無線機 Lv2）": "The Border Zone opens once you can reach Mikaneru Isle (Hideout Radio Lv2)",
+  "ミカネル島へ 行けるように なってから（隠れ家の 無線機を Lv2 に すると 開く）": "Reach Mikaneru Isle first (raise the Hideout Radio to Lv2)",
 };
 export const RULES = [
+  [/^Lv が 足りない：(.+)（Lv(\d+) から）$/, (m) => `Level too low: ${m[1].replace(/ ほか (\d+)$/, " +$1 more").replace(/・/g, ", ")} (from Lv${m[2]})`],
   [/^(\d+) 分・(外縁|中|奥)まで$/, (m, p) => `${m[1]} min · to ${p(m[2])}`],
   [/^(.+)・(\d+) 分$/, (m, p) => { const a = p(m[1]); return a ? `${a} · ${m[2]} min` : null; }],
   [/^(\d+) 分・(外縁|中|奥)まで(・帰還した)?$/, (m, p) => `${m[1]} min · to ${p(m[2])}${m[3] ? " · returned early" : ""}`],

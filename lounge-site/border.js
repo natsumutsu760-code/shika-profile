@@ -52,6 +52,15 @@ export const bzCrop = (id) => {
 export const GROUP_NAME = { harmonia: "ハルモニア", sva: "SVA", tcu: "TCU" };
 // 帯の 上限（レベル帯を こえた ペットは ステータスを この Lv の 強さに そろえる。装備と スキルツリーは そのまま。鹿さんの 決め）
 export const capLv = (area) => BZ_AREAS[area].lv[2];
+// 帯の 下限（外縁の Lv）より 低い 子は 入れない（2026-11-06 鹿さんの 質問「ボーダーゾーンの下限以下のレベルのペットは入れないようになっていますか？」で 足した。ペットと なかま 全員）
+export const floorLv = (area) => BZ_AREAS[area].lv[0];
+export const bzLow = (team, area) => team.filter((x) => x && (+x.lv || 1) < floorLv(area));
+export const bzLowWhy = (low, area) => `Lv が 足りない：${low.slice(0, 2).map((x) => `${x.name} Lv${+x.lv || 1}`).join("・")}${low.length > 2 ? ` ほか ${low.length - 2}` : ""}（Lv${floorLv(area)} から）`;
+// 島 3（ミカネル島）へ 行けるように なるまで 出撃できない（2026-11-06 鹿さん「ボーダーゾーンは島3解放までクローズにしてください。」）
+// 島 3 へ 行けるのは 隠れ家の 無線機 Lv2 から（dungeons.js の canGo と 同じ）。出て いる 出撃・記録・サンプル（鑑定・納める）は そのまま 使える
+export const BZ_RADIO = 2;
+export const bzIsleOk = (hideout) => ((hideout && hideout.radio) || 0) >= BZ_RADIO;
+export const BZ_ISLE_WHY = "ミカネル島へ 行けるように なってから（隠れ家の 無線機を Lv2 に すると 開く）";
 
 // 貴重サンプル（名前は 2026-10-30 に 鹿さんの OK）。line：系統（鉱物は SVA・生体は ハルモニア・遺物は TCU が 高く 買う）、local：その 側（BZ_AREAS の side）の 名物
 export const SAMPLES = {

@@ -2,7 +2,7 @@
 // 記録：rec.bz = { run：いま 出て いる 出撃（か null）, log：帰った 出撃（新しい 順に 5 つ。記録の タブ）, samples：持って いる 貴重サンプル [{ uid, id, star, known }] }
 // 計算は viewer.js が アラームで 1 歩ずつ（storage の bzsim。帰還の ために うけとるまで 残す）。終わったら bzDone で got と 本当の 帰る 時間を 決める
 // まだ ない 物：ほかの プレイヤーとの「ばったり」（2 段め）・運び屋（CRV）・グループの 好感度（いまは「ふつう」の あつかい）
-import { BZ_AREAS, BZ_RUNS, BZ_STEP_S, PRIORITY, RETURN, KEY_MAX, SAMPLES, APPRAISE_FEE, GROUP_NAME, samplePrice, capLv, bzInit, bzRecall as bzRecallSim, bzResult, matValue, bzInsPrice } from "./border.js";
+import { BZ_AREAS, BZ_RUNS, BZ_STEP_S, PRIORITY, RETURN, KEY_MAX, SAMPLES, APPRAISE_FEE, GROUP_NAME, samplePrice, capLv, bzInit, bzRecall as bzRecallSim, bzResult, matValue, bzInsPrice, bzLow, bzLowWhy, bzIsleOk, BZ_ISLE_WHY } from "./border.js";
 import { growthStats } from "./trees.js";
 import { fighterOf, mateOf, putMats, insLose, levelUp } from "./lounge-game.js";
 import { autoFill } from "./lounge-pet.js";
@@ -31,11 +31,14 @@ export function bzStart(rec, b, now, seed) {
   const pet = rec.pets[0];
   if (!pet) return { ok: false, why: "まだ ペットが いない" };
   if (!pet.type) return { ok: false, why: "さきに 職業を えらんで" };
+  if (!bzIsleOk(rec.hideout)) return { ok: false, why: BZ_ISLE_WHY };   // 島 3 へ 行けるまで 閉じる（鹿さんの 決め 2026-11-06）
   const Z = ensureBz(rec);
   if (Z.run) return { ok: false, why: "もう ボーダーゾーンに 出て いる" };
   if (rec.trips.some((t) => !t.done)) return { ok: false, why: "派遣から 帰って から" };
   const area = has(BZ_AREAS, b.area) ? b.area : null, run = BZ_RUNS[b.run] ? +b.run : 0;
   if (!area || !run) return { ok: false, why: "エリアか 時間が ちがう" };
+  const low = bzLow([pet, ...rec.party.map((u) => rec.tamed.find((c) => c.uid === u)).filter(Boolean)], area);
+  if (low.length) return { ok: false, why: bzLowWhy(low, area) };   // 帯の 下限より 低い 子は 入れない（ペットと なかま 全員）
   const pri = PRIORITY.includes(b.pri) ? b.pri : "none";
   const rk = b.ret && RETURN.includes(b.ret.k) ? b.ret.k : "none", rn = rk === "samples" ? Math.max(1, Math.min(9, Math.floor(+b.ret.n) || 1)) : 0;
   const keys = Number.isInteger(b.keys) ? b.keys : 0;
@@ -151,5 +154,5 @@ export function bzView(r, now) {
 }
 export function bzMe(rec, now) {
   const Z = rec.bz || { run: null, log: [], samples: [] };
-  return { run: bzView(Z.run, now), log: Z.log, samples: Z.samples, keys: (rec.items && rec.items.key_bz) || 0, crateKeys: (rec.items && rec.items.key_crate) || 0, aff: Object.fromEntries(Object.keys(GROUP_NAME).map((g) => [g, groupAff(rec, g)])) };
+  return { run: bzView(Z.run, now), log: Z.log, samples: Z.samples, isle: bzIsleOk(rec.hideout), keys: (rec.items && rec.items.key_bz) || 0, crateKeys: (rec.items && rec.items.key_crate) || 0, aff: Object.fromEntries(Object.keys(GROUP_NAME).map((g) => [g, groupAff(rec, g)])) };
 }
