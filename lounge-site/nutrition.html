@@ -51,6 +51,7 @@
   .jelly { border:0; border-radius:999px; padding:14px 18px; font:900 16px/1 var(--jp); background:var(--nut); color:#fff; box-shadow:0 5px 0 rgba(229,138,46,.3); width:100%; }
   .jelly:disabled { background:#C9D1E2; box-shadow:0 5px 0 #E3E8F2; }
   .why { font:700 13px/1.5 var(--jp); color:var(--coral); text-align:center; }
+  .awaynote { font:700 12px/1.5 var(--jp); color:var(--soft); margin:8px 0 0; }
   .cap .row { display:flex; align-items:baseline; gap:8px; } .cap .row b { font:600 22px/1 var(--num); } .cap .row small { font:800 12px/1 var(--jp); color:var(--soft); }
   .cap .bar i { background:var(--violet); }
   .st li { display:flex; justify-content:space-between; gap:10px; padding:5px 0; border-bottom:1px dashed var(--line); font:700 13.5px/1.4 var(--jp); } .st li b { font:600 14px/1 var(--num); color:#5B3FD6; }
@@ -98,7 +99,7 @@ function paint() {
   const k = kid(); if (!k) { main.innerHTML = `<section class="panel head"><h1>栄養</h1></section><section class="panel lockbox">まだ ペットが いません。</section>`; window.ready = true; return; }
   S.who = k.uid;
   const now = Date.now(), nut = nutOf(k), full = Math.round(fullAt(nut, now)), tot = nutTotal(nut), cap = nutCap(nut), sweet = isSweet(full);
-  const tamed = ME.tamed || [];
+  const tamed = ME.tamed || [], away = (ME.trips || []).some((t) => !t.done && (t.party || []).includes(k.uid));   // 出かけて いても 育てられる（つぎの 派遣から。鹿さん 2026-11-07）
   // 上：だれに（ペットは ボタン、なかまは えらぶ 箱）
   const whoHtml = `<div class="who" role="group" aria-label="だれに"><button data-who="${esc((ME.pets[0] || {}).uid || "")}" aria-pressed="${!!k.pet}">${esc((ME.pets[0] || {}).name || "ペット")}</button>${tamed.length ? `<select id="mate" class="${k.pet ? "" : "on"}" aria-label="なかま"><option value="">なかま ▾</option>${tamed.map((c) => `<option value="${esc(c.uid)}" ${c.uid === k.uid ? "selected" : ""}>${esc(c.name)} Lv${c.lv}</option>`).join("")}</select>` : ""}</div>`;
   // 満腹度
@@ -125,7 +126,7 @@ function paint() {
   const sub = tot >= cap ? ((items().mystery || 0) > 0 ? `<button class="sub-act" id="brk">謎のお菓子で 上限突破（キャップ ＋${NUT.capUp * NUT.step}%）</button>` : "") : tot > 0 && (items().detox || 0) > 0 ? `<button class="sub-act" id="dtx">デトックス茶で リセット</button>` : "";
   const capHtml = `<div class="cap"><span class="sub">詳細ステータス</span><div class="row"><b>${(tot * NUT.step).toFixed(1)}%</b><small>/ ${(cap * NUT.step).toFixed(1)}%</small></div><div class="bar" aria-hidden="true"><i style="width:${Math.min(100, (tot / cap) * 100)}%"></i></div></div>
     ${on.length ? `<ul class="st">${rows(on)}</ul>` : `<p class="sub">まだ ない。おやつを あげると 育つ</p>`}
-    <details><summary>ぜんぶ 見る（${Object.keys(DETAIL).length}）</summary><ul class="st">${rows(Object.keys(DETAIL).filter((s) => !on.includes(s)), true)}</ul></details>${sub}`;
+    <details><summary>ぜんぶ 見る（${Object.keys(DETAIL).length}）</summary><ul class="st">${rows(Object.keys(DETAIL).filter((s) => !on.includes(s)), true)}</ul></details>${sub}${away ? `<p class="awaynote">出かけて いる あいだに 育てた 分は、つぎの 派遣から（周回は つぎの 回から）</p>` : ""}`;
   main.innerHTML = `<section class="panel head" aria-label="栄養"><h1>栄養</h1>${whoHtml}</section>
     <section class="panel" aria-label="満腹度と おやつ">${fullHtml}${snackHtml}</section>
     <section class="panel" aria-label="詳細ステータス">${capHtml}</section>`;
