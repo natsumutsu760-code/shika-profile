@@ -1,7 +1,7 @@
 // 商人の 友好度（Lv100）と プライマリータスクの 章（鹿さんの 決め、2026-10-29・11-03。docs/mono-link-deeplink-story.md）
 // 画面（deeplink.html）と 門番（lounge-trade.js）の 両方が 読む。タスクの 中身は primary-data.js（資料から 道具で 作る）
-// - 友好度は 商人ごとに Lv100 まで。10 Lv ごとに 章。章の Lv（10・20…）では、その 章の プライマリーを ぜんぶ 終えないと 上がれない
-// - 章は 島が ふえるのに 合わせて 足す。いまは 第 4 章まで（第 4 章を 終えると Lv50 で 止まる。第 5 章が 出たら 先へ）
+// - 友好度は 商人ごとに Lv100 まで。10 Lv ごとに 章。章を 終えなくても Lv は 上がる（2026-11-06 鹿さん「章をクリアせずとも友好度レベルは上がるようにしてください」。前は 章の Lv〈10・20…〉で 止めて いた）
+// - 次の 章は、前の 章を ぜんぶ 終えて、Lv が 章の 1 つ 前の 節目に 着いて いれば 開く（chapterOpen）。章は 島が ふえるのに 合わせて 足す
 // - まだ ない しくみを 使う タスク（sys）は 終えられない ので、その 章で 止まる。ほかの タスクは 先に 進められる（鹿さんの 決め「その 章で 止める」）
 // 数は docs/mono-link-numbers.md の 案（Claude の 案。鹿さんの 決め「決まって いない 数は Claude の 案で 作る」、2026-11-03）
 import { PRIMARY } from "./primary-data.js";
@@ -28,9 +28,12 @@ export const chaptersOf = (tid) => (typeof tid === "string" && Object.prototype.
 export const chapterDone = (tid, done, c) => { const C = chaptersOf(tid)[c - 1]; return !!C && C.tasks.every((k) => isDone(done, c, k.no)); };
 // 終えて いない いちばん 前の 章（ぜんぶ 終えて いれば 章の 数 ＋ 1）
 export function curChapter(tid, done) { const n = chaptersOf(tid).length; for (let c = 1; c <= n; c++) if (!chapterDone(tid, done, c)) return c; return n + 1; }
-// 友好度 Lv：点の Lv を 章の Lv で 止める
+// 友好度 Lv：点の Lv（章では 止めない。2026-11-06 鹿さんの 決め）。lvCap は 前の 章の 止め（いまは 使わない。game.js が 名前を 出して いる ので のこす）
 export const lvCap = (tid, done) => Math.min(LV_MAX, CH_LV * curChapter(tid, done));
-export const lvOf = (tid, pts, done) => Math.min(lvOfPts(pts), lvCap(tid, done));
+export const lvOf = (tid, pts) => lvOfPts(pts);
+// 店の 品の Lv だけは 前と 同じく 章の Lv で 止めた 物で 見る（2026-11-06 鹿さんの カード「店の品は章のまま」）。shopCh：その 品に 終えて おく 章（0 なら 章は いらない）
+export const shopLv = (tid, pts, done) => Math.min(lvOfPts(pts), lvCap(tid, done));
+export const shopCh = (itemLv) => Math.max(0, Math.ceil(itemLv / CH_LV) - 1);
 // 章が 開いて いるか：前の 章を ぜんぶ 終えて、Lv が 章の 1 つ 前の 節目（第 c 章は Lv 10 ×（c − 1））に 着いて いる
 export const chapterOpen = (tid, done, c, lv) => c >= 1 && c <= chaptersOf(tid).length && (c === 1 || (chapterDone(tid, done, c - 1) && lv >= CH_LV * (c - 1)));
 // いま やる タスク：開いた 章の うち 終えて いない いちばん 前の 章で、まだ ない しくみ（動いて いない sys）を とばした 最初の 1 つ（物語は 一本道）

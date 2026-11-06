@@ -51,7 +51,7 @@ export const RULES = [
   [/^(.+) の ラウンジ PC から 接続中$/, (m) => `Connected from ${m[1]}'s lounge PC`], [/^(.+)（管理）で 接続中$/, (m) => `Connected as ${m[1]} (admin)`],
   [/^(.+) の ラウンジ PC を 確認しました$/, (m, p) => `Verified ${m[1] === "あなた" ? "your" : m[1] + "'s"} lounge PC`],
   [/^つながり #(\d+)$/, (m) => `Chain #${m[1]}`], [/^ランダム #(\d+)$/, (m) => `Random #${m[1]}`], [/^物語(.*)$/, (m) => `Story${m[1]}`],
-  [/^第 (\d+) 章を 終えると 上がる$/, (m) => `Rises after Chapter ${m[1]}`], [/^第 (\d+) 章「(.+)」(?:　(\d+) \/ (\d+))?$/, (m) => `Chapter ${m[1]} "${m[2]}"${m[3] ? ` ${m[3]} / ${m[4]}` : ""}`],
+  [/^第 (\d+) 章を 終えると 上がる$/, (m) => `Rises after Chapter ${m[1]}`], [/^第 (\d+) 章を 終えると 買える$/, (m) => `Buy after finishing Chapter ${m[1]}`], [/^第 (\d+) 章「(.+)」(?:　(\d+) \/ (\d+))?$/, (m) => `Chapter ${m[1]} "${m[2]}"${m[3] ? ` ${m[3]} / ${m[4]}` : ""}`],
   [/^第 (\d+) 章まで ぜんぶ 終えた$/, (m) => `All chapters up to ${m[1]} done`], [/^ここで 止まって いる：(.+)が できたら 先へ$/, (m) => `Stopped here: continues once ${m[1]} exists`],
   [/^友好度を Lv(\d+) に すると 始まる$/, (m) => `Starts at Rapport Lv${m[1]}`], [/^止まる：(.+)$/, (m) => `Stops at: ${m[1]}`], [/^章の 一覧（(\d+) 章）$/, (m) => `Chapters (${m[1]})`],
   [/^店に「(.+)」(が 並んだ)?$/, (m, p) => `${m[2] ? "Now in the shop" : "Shop"}: "${P(p, m[1])}"`], [/^(.+)へ 行ける$/, (m, p) => `Unlocks ${P(p, m[1])}`],

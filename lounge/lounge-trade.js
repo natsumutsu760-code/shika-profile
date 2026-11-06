@@ -3,7 +3,7 @@
 // 1 人分の 記録（rec）だけを 見て かえる。アメジストは viewer.js が 帳簿で 払う（ヨルの 店）。クレジットは 記録の 中（take で 引き、払えなかったら refund で もどす）
 // 数は すべて 案
 import { TRADERS, SPECIAL, chainTask, dailyTask, TASK_TIDS, sellPrice, GATHER, floorRatio, FLOORS, OPS, BASES, baseOf, SNACK_NEED, rankOf, CRAFT, SYNTH, craftOpen, synthOpen,
-  PRIMARY, PRI_REP, lvOf, curTask, isDone, unlockedBy, KEY_BY, DUNGEONS, chaptersOf, SYS_ON, sysOff } from "./game.js";
+  PRIMARY, PRI_REP, lvOf, shopLv, shopCh, curTask, isDone, unlockedBy, KEY_BY, DUNGEONS, chaptersOf, SYS_ON, sysOff } from "./game.js";
 import { putMats, putEquip, dropOld } from "./lounge-game.js";
 import { sale, coOf } from "./lounge-stock.js";
 import { STOCK_OPEN } from "./lounge-lock.js";
@@ -47,6 +47,7 @@ export function traderOf(rec, tid, day) {
 export const tasksOf = (tid, t, day) => ({ chain: chainTask(tid, t.n), daily: dailyTask(tid, day, t.dn) });
 // 友好度 Lv（点の Lv を 章で 止める）
 export const lvNow = (tid, t) => lvOf(tid, t.rep, t.pd);
+const lvShop = (tid, t) => shopLv(tid, t.rep, t.pd);   // 店の 品は 章で 止めた Lv（鹿さんの カード「店の品は章のまま」）
 const doneOf = (rec) => (tid) => ((rec.traders[tid] || {}).pd || {});
 // かくしダンジョンの 鍵：プライマリータスクの 第 4 章の ごほうび（前の つながった タスク #20・#30 を 過ぎた 人も 開く）
 export function hasKey(rec, did) {
@@ -236,7 +237,7 @@ export function buyPlan(rec, b, day, R) {
   if (!item || !item.get) return { ok: false, why: "その 品は ない" };
   const t = traderOf(rec, shop.id, day), g = item.get;
   if (!unlockedBy(item.id, doneOf(rec))) return { ok: false, why: "プライマリータスクを 進めると 買える" };
-  if (lvNow(shop.id, t) < item.lv) return { ok: false, why: `友好度 Lv${item.lv} から 買える` };
+  if (lvShop(shop.id, t) < item.lv) return { ok: false, why: lvNow(shop.id, t) >= item.lv ? `第 ${shopCh(item.lv)} 章を 終えると 買える` : `友好度 Lv${item.lv} から 買える` };
   if (g.perk && rec.perks[g.perk]) return { ok: false, why: "もう 買った" };
   const n = item.once || g.acc || g.recipe ? 1 : Number.isInteger(b.n) && b.n > 0 ? b.n : 1;
   const used = item.week ? t.wbuy[item.id] || 0 : t.buy[item.id] || 0, left = item.stock ? item.stock - used : Infinity;
@@ -365,8 +366,8 @@ export function deeplinkView(rec, day) {
   ensureTrade(rec);
   const dOf = doneOf(rec);
   const traders = SHOPS.map((s) => {
-    const t = traderOf(rec, s.id, day), lv = lvNow(s.id, t);
-    const shop = s.shop.map((it) => { const un = unlockedBy(it.id, dOf); return { id: it.id, lv: it.lv, price: it.price, cur: it.cur, open: !it.soon && un && lv >= it.lv, ...(un ? {} : { lock: 1 }), ...(it.soon ? { soon: it.soon } : {}),
+    const t = traderOf(rec, s.id, day), lv = lvNow(s.id, t), slv = lvShop(s.id, t);
+    const shop = s.shop.map((it) => { const un = unlockedBy(it.id, dOf); return { id: it.id, lv: it.lv, price: it.price, cur: it.cur, open: !it.soon && un && slv >= it.lv, ...(lv >= it.lv && slv < it.lv ? { ch: shopCh(it.lv) } : {}), ...(un ? {} : { lock: 1 }), ...(it.soon ? { soon: it.soon } : {}),
       left: it.stock ? it.stock - ((it.week ? t.wbuy : t.buy)[it.id] || 0) : null, done: !!(it.get && it.get.perk && rec.perks[it.get.perk]) }; });
     const ks = tasksOf(s.id, t, day), task = (k, c, done, tr) => ({ n: k.n, kind: k.kind, found: !!k.found, text: k.text, need: k.need, unit: k.unit, cond: k.condText || null, have: progressOf(rec, k, c, tr), reward: k.reward, done });
     // プライマリー：章ごとの 終えた 数と 止まって いる わけ（まだ ない しくみ）、いまの タスク

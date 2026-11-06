@@ -310,7 +310,7 @@ function shopHtml(t) {
   const v = view(t.id), w = W();
   return `<ul class="rows">${t.shop.map((it) => { const st = v.shop.find((x) => x.id === it.id) || {}, locked = st.open === false, out = it.once ? st.done : !it.sell && !it.trade && st.left === 0;
     const poor = !it.sell && !it.trade && !it.ins && (it.cur === "res" ? !!w && w.res < it.price : credits() < it.price), cant = out || poor;
-    const u = UNLOCK_BY[it.id], lockTxt = it.soon ? `${esc(it.soon)}が できたら` : st.lock && u ? `${esc(nameOf(u[0]))}の 第 ${u[1]} 章で 開く` : `友好度 Lv${it.lv} で 買える`;
+    const u = UNLOCK_BY[it.id], lockTxt = it.soon ? `${esc(it.soon)}が できたら` : st.lock && u ? `${esc(nameOf(u[0]))}の 第 ${u[1]} 章で 開く` : st.ch ? `第 ${st.ch} 章を 終えると 買える` : `友好度 Lv${it.lv} で 買える`;
     const label = it.sell ? "売る" : it.trade ? "交換する" : out ? (it.once ? "買った" : "売り切れ") : it.pick ? "えらぶ" : "買う";
     return `<li><div class="t">${esc(it.name)}${it.tool ? `<span class="kd tool">持ち物</span>` : ""}<span class="sub">${esc(it.note)}</span></div>
       <div class="act">${it.sell || it.trade || it.soon ? "" : it.ins ? `<span class="price"><span class="c">${insRange()}</span><small class="stock">派遣に 出る ときに 掛ける</small></span>` : `<span class="price">${cur(it.cur, it.price)}<small class="stock ${out && !it.once ? "out" : ""}">${stockText(it, st)}</small></span>`}${locked ? `<span class="lock">${lockTxt}</span>` : it.ins ? "" : `<button class="btn" data-item="${it.id}" aria-expanded="${S.open === it.id}" ${cant ? "disabled" : ""}>${label}</button>`}</div></li>
