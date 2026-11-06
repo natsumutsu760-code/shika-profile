@@ -23,7 +23,6 @@ export function devPlan(rec, b, R) {
   if (!need || base.isle > ISLAND_OPEN) return { ok: false, why: "知らない 装備" };
   if (!rec.seen.includes(need.xtal)) return { ok: false, why: `${MAT_NAME[need.xtal]}を まだ 拾って いない（その 敵を たおすと 落とす）` };
   if (lv < need.benchLv) return { ok: false, why: `この 装備は 作業台 Lv${need.benchLv} から` };
-  { const unseen = need.mats.find(([m]) => !rec.seen.includes(m)); if (unseen) return { ok: false, why: `${MAT_NAME[unseen[0]] || unseen[0]}を まだ 拾って いない（開発は 素材を ぜんぶ 1 回 拾うと 出る）` }; }   // 一覧に 出て いない 装備は 作れない（2026-11-06）
   if (!(q >= 1 && q <= 5)) return { ok: false, why: "使う 結晶の 段を えらんで" };
   const have = haveQ(rec, need.xtal, q);
   if (have < need.n) return { ok: false, why: `素材が 足りない：${MAT_NAME[need.xtal]}（${CRYSTAL_GRADE[q]}）あと ${need.n - have}` };

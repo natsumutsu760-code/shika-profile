@@ -254,8 +254,8 @@ async function makeUq(b, id) {
 const DEVS = DEV_IDS.filter((id) => devBase(id).isle <= ISLAND_OPEN), DEV_DUN = DUNGEONS.filter((d) => (d.isle || 1) <= ISLAND_OPEN);
 S.df = { isle: 0, kind: "all", sort: "where" }; S.q = 0;
 const SL = { hp: "HP", mp: "MP", atk: "ATK", def: "DEF", int: "INT", res: "RES", agi: "AGI", dex: "DEX", luk: "LUK" };
-// 一覧に 出す：作業台の Lv が 足りて いて、結晶も ほかの 素材も ぜんぶ 1 回 拾った 物だけ（鹿さん 2026-11-06「セルフでネタバレできてしまうので、作業台のレベル達してかつ、必要素材を入手してから表示」）
-const devOpen = (id) => { const n = devNeed(id); return !!n && S.lv >= n.benchLv && S.seen.has(n.xtal) && n.mats.every(([m]) => S.seen.has(m)); };
+// 一覧に 出す：作業台の Lv が 足りて いて、その 開発の 素材（結晶・添える 素材）を どれか 1 こ でも 拾った ことが ある か 持って いる 物（鹿さん 2026-11-06「作業台のレベル達してかつ、必要素材を入手してから表示」→ 2026-11-07「対応する素材を1個でも持ってたら開示」。ぜんぶ だと 畑・工房の 素材で ほぼ 0 こ だった）
+const devOpen = (id) => { const n = devNeed(id); return !!n && S.lv >= n.benchLv && [n.xtal, ...n.mats.map(([m]) => m)].some((m) => S.seen.has(m) || S.inv[m] > 0); };
 const qHave = (xt, q) => (S.invQ[xt] || {})[q] || 0;
 const bestQ = (id) => { const n = devNeed(id); for (let q = 5; q >= 1; q--) if (qHave(n.xtal, q) >= n.n) return q; return 0; };
 const devFee = () => upkeep("bench", S.lv);
@@ -293,7 +293,7 @@ function devTreeHtml() {
   document.getElementById("cols").style.setProperty("--n", 1);
   const hidden = DEVS.filter((id) => !devOpen(id) && (!S.df.isle || devBase(id).isle === S.df.isle)).length;
   // 出て いない 分は 数だけ（名前・強さは 出さない）。空の ときは 1 行だけ
-  const hint = `まだ 出て いない 開発 ${hidden} こ（作業台の Lv を 上げて、素材を ぜんぶ 1 回 拾うと 出る）`;
+  const hint = `まだ 出て いない 開発 ${hidden} こ（作業台の Lv を 上げて、その 素材を どれか 1 こ 拾うと 出る）`;
   return groups.length ? groups.map((g) => `<section class="col" aria-label="${esc(g.d.name)}"><h2>${esc(g.d.name)}${g.can ? `<small>作れる ${g.can}</small>` : ""}</h2><div class="rows devrows">${g.ids.map(devNode).join("")}</div></section>`).join("") + (hidden ? `<p class="devnote">${hint}</p>` : "")
     : `<p class="devnote">${hidden ? hint : "まだ 開発できる 装備が ない"}</p>`;
 }
