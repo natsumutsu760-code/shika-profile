@@ -8,7 +8,8 @@
 //        stat "atkint"（ATK と INT の 高い 方）・hitsByUps（かかって いる 上昇の 種類の 数だけ 当てる）
 //   fx：who "ally"（味方の HP の いちばん 減った 子。ソロは 自分）・elseFx 付かなかった ときに かわりに 付ける 物・turnsBy / amtBy { per, add, c?, spent? }（カウントで ふえる）
 //        once 1 戦に 1 回・ifTag その 技で 前に 付いた 状態が あるときだけ・atLeastAfter 付けた あとの 量が n 以上なら
-//   gain { c, n } カウントを ためる・spend { c, n | all, need } 技の はじめに カウントを 使う（need より 少ないと 使えない）
+//   gain { c, n } カウントを ためる・spend { c, n | all, need, min } 技の はじめに カウントを 使う（need より 少ないと 使えない・min より 少ないと 使わずに 技だけ 出す）
+//   fx の plusTurnsSpent 使った カウント 1 に つき +ターン（決まった ターン 数の 抽選に 足す）・chancePerSpent 使った カウント 1 に つき 確率 +
 //   steal 相手の バフを 取り上げて 味方へ・again もう 1 回 動く・swapUps 上昇を 攻め ↔ 守りで 入れかえる・flex 量の いちばん 多い 上昇で 中身が 変わる
 //   mpCut 相手の MP を 最大 MP の 割合 へらす・brace この 番に 受けた 直接攻撃の 割合を 貫通に ためる・drip 手番の はじめに 少しずつ 回復・bloom 開花
 //   sk.choose：技の 中で えらぶ（クローラーは コマンド、自動の 戦いは ガンビットの opt。なければ いちばん 上）
@@ -92,14 +93,15 @@ export const MAIN_TREE_LIST = {
   ],
   // ---------- スタティック（ザザ。主能力 INT・副能力 DEF）：妨害 ＋ イタズラの 攻め ----------
   static: [
-    S("S1", "st_sunaarashi", "砂あらし", "itazura", 3, "ザーッ。威力 18（INT）と 衰弱 +7。20% で 盲目（3 ターン）", [{ t: "dmg", pow: 18 }, foe("weakness", { amt: 7 }), foe("blind", { turns: 3, chance: 0.2 })]),
-    S("S2", "st_seidenki", "静電気", "itazura", 4, "威力 11（INT）と 麻痺 +37", [{ t: "dmg", pow: 11 }, foe("paralysis", { amt: 37 })]),
-    S("S3", "st_mukashi", "昔話", "itazura", 5, "長い 昔話で うんざりさせる。相手は 疲労（1 ターン）。話して 自分は 集中（3 ターン）", [foe("fatigue", { turns: 1 }), me("focus", { turns: 3 })]),
-    S("S4", "st_biribiri", "ビリビリ", "itazura", 5, "威力 11（INT）と 麻痺 +66", [{ t: "dmg", pow: 11 }, foe("paralysis", { amt: 66 })]),
-    S("S5", "st_channel", "チャンネルを 変える", "itazura", 6, "リモコンで 勝手に 変える。相手は 55% で 混乱（2 ターン）", [foe("confusion", { turns: 2, chance: 0.55 })]),
-    S("S6", "st_houden", "放電", "itazura", 7, "威力 17（INT）。相手の デバフ 1 つに つき 威力 +7（デバフは 消さない）", [{ t: "dmg", pow: 17, perDebuff: 7 }]),
-    S("S7", "st_short", "ショート", "itazura", 6, "帯電を ぜんぶ 使う。威力 8（INT）、帯電 1 に つき 威力 +4。帯電 5 以上なら 50% で 気絶（1 ターン）", [{ t: "spend", c: "static", all: true }, { t: "dmg", pow: 8, perSpent: 4 }, foe("stun", { turns: 1, chance: 0.5, ifSpent: 5 })]),
-    S("S8", "st_housou", "放送終了", "itazura", 18, "プツッ。威力 26（INT）。相手は 沈黙（1 ターン。こうげき しか 使えない）と 盲目（3 ターン）", [{ t: "dmg", pow: 26 }, foe("silence", { turns: 1 }), foe("blind", { turns: 3 })]),
+    // 帯電は ツリー全体で 回す（鹿さんの 決め、2026-11-06）：基礎の 技で ためて、分岐①・②と 奥義の 技が それぞれ ちがう 形で 使う
+    S("S1", "st_sunaarashi", "砂あらし", "itazura", 3, "ザーッ。威力 17（INT）と 衰弱 +7。20% で 盲目（3 ターン）。当てると 帯電 +1", [{ t: "dmg", pow: 17, gainOnHit: { c: "static", n: 1 } }, foe("weakness", { amt: 7 }), foe("blind", { turns: 3, chance: 0.2 })]),
+    S("S2", "st_seidenki", "静電気", "itazura", 4, "威力 10（INT）と 麻痺 +37。当てると 帯電 +1", [{ t: "dmg", pow: 10, gainOnHit: { c: "static", n: 1 } }, foe("paralysis", { amt: 37 })]),
+    S("S3", "st_mukashi", "昔話", "itazura", 5, "長い 昔話で うんざりさせる。相手は 疲労（1 ターン）。話して 自分は 集中（3 ターン）と 帯電 +1", [foe("fatigue", { turns: 1 }), me("focus", { turns: 3 }), { t: "gain", c: "static", n: 1 }]),
+    S("S4", "st_biribiri", "ビリビリ", "itazura", 5, "威力 10（INT）と 麻痺 +66。帯電が 2 以上 あれば 2 使って、麻痺が +2 ターン 長持ち", [{ t: "spend", c: "static", n: 2, min: 2 }, { t: "dmg", pow: 10 }, foe("paralysis", { amt: 66, plusTurnsSpent: 1 })]),
+    S("S5", "st_channel", "チャンネルを 変える", "itazura", 6, "リモコンで 勝手に 変える。相手は 55% で 混乱（2 ターン）。帯電が 2 以上 あれば 2 使って、確率 +15%", [{ t: "spend", c: "static", n: 2, min: 2 }, foe("confusion", { turns: 2, chance: 0.55, chancePerSpent: 0.075 })]),
+    S("S6", "st_houden", "放電", "itazura", 7, "威力 16（INT）。相手の デバフ 1 つに つき 威力 +7（デバフは 消さない）。帯電を 2 まで 使い、1 に つき 威力 +4", [{ t: "spend", c: "static", n: 2 }, { t: "dmg", pow: 16, perDebuff: 7, perSpent: 4 }]),
+    S("S7", "st_short", "ショート", "itazura", 6, "帯電を ぜんぶ 使う。威力 8（INT）、帯電 1 に つき 威力 +3。帯電 5 以上なら 50% で 気絶（1 ターン）", [{ t: "spend", c: "static", all: true }, { t: "dmg", pow: 8, perSpent: 3 }, foe("stun", { turns: 1, chance: 0.5, ifSpent: 5 })]),
+    S("S8", "st_housou", "放送終了", "itazura", 18, "プツッ。威力 17（INT）。帯電を 3 まで 使い、1 に つき 威力 +3。相手は 沈黙（1 ターン。こうげき しか 使えない）と 盲目（3 ターン）", [{ t: "spend", c: "static", n: 3 }, { t: "dmg", pow: 17, perSpent: 3 }, foe("silence", { turns: 1 }), foe("blind", { turns: 3 })]),
     P("P1", "st_monoshiri", "物知り", "INT +10%", { intMul: 1.1 }),
     P("P2", "st_glass", "分厚い ガラス", "DEF +10%", { defMul: 1.1 }),
     P("P3", "st_shibireru", "しびれる 話", "自分が 付ける 麻痺の 量 +39%", { fxAmtMul: { paralysis: 1.39 } }),

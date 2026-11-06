@@ -706,7 +706,7 @@ export function simulateTeams(SA, SB, seed, opts = {}) {
           if (x.payHp || x.hpCost) { const c = Math.max(1, Math.round(me.maxHp * (x.payHp || x.hpCost))); hurt(me, c, e.notes); e.tags.push("payHp"); e.notes.push(`${me.name} は HP を ${c} 払った`); }   // 賭け金・迷い
           if (x.onlyIf && !chk(x.onlyIf[0], x.onlyIf[1], me, tgt, turn, id)) continue;
           if (x.t === "spend") {                                                                  // カウントを 使う（味見：使った 数 1 に つき HP 2%）
-            const have = me.cnt[x.c] || 0, k = x.all ? have : Math.min(have, x.n || 0); me.cnt[x.c] = have - k; spent += k; e.spent[x.c] = (e.spent[x.c] || 0) + k;
+            const have = me.cnt[x.c] || 0, k = x.all ? have : x.min && have < x.min ? 0 : Math.min(have, x.n || 0); me.cnt[x.c] = have - k; spent += k; e.spent[x.c] = (e.spent[x.c] || 0) + k;   // min：足りなければ 使わない（技は 出る）
             if (k && me.P.tasteHeal) { const a = heal(me, me.maxHp * me.P.tasteHeal * k, e.notes); if (a > 0) e.heal += a; }
           } else if (x.t === "gain") cntAdd(me, x.c, x.n);
           else if (x.t === "convertUps") {   // おすそわけ：自分の 上昇を ぜんぶ 使う（鹿さんの 決め 2026-11-02）。種類と 量は pushDowns で 相手に
@@ -772,7 +772,7 @@ export function simulateTeams(SA, SB, seed, opts = {}) {
             if (x.ifTag && !e.tags.includes(x.ifTag)) continue;
             if (x.ifSpent != null && spent < x.ifSpent) continue;
             const elseFx = () => { if (x.elseFx && t.hp > 0 && addFx(t, x.elseFx.id, { amt: x.elseFx.amt, turns: x.elseFx.turns }, e.notes, me)) e.tags.push(x.elseFx.id); };   // ひつじを 数える：眠らなければ 疲労
-            const ch = x.chance ? Math.min(1, x.chance + (me.P.fxChanceAdd?.[x.id] || 0) + (me.P.inflict || 0)) : 0;
+            const ch = x.chance ? Math.min(1, x.chance + (me.P.fxChanceAdd?.[x.id] || 0) + (me.P.inflict || 0) + (x.chancePerSpent || 0) * spent) : 0;   // チャンネルを 変える：帯電で 確率 +
             if (ch && R() > ch) { if (x.who === "foe") e.notes.push(`${t.name} は${sk.id === "banana" ? "転ばなかった" : "平気だった"}`); elseFx(); continue; }
             if (x.atLeast && amt(t, x.atLeast.id) < x.atLeast.n) continue;
             if (x.ifConsumed != null && !(e.consumed && dealt && (EFFECTS[e.consumed.id].dur !== "stack" || e.consumed.amt >= x.ifConsumed))) continue;
@@ -782,6 +782,7 @@ export function simulateTeams(SA, SB, seed, opts = {}) {
             if (x.amtBy) { am = x.amtBy.ofHp ? Math.round(me.maxHp * byOf(x.amtBy, 0)) : byOf(x.amtBy, am || 0); if (!am) continue; }
             if (x.amtFoeFx) { am = Math.floor(amt(tgt, x.amtFoeFx.id) / x.amtFoeFx.div); if (!am) continue; }   // 接ぎ木：相手の 状態の 量から
             if (x.turnsBy) tu = byOf(x.turnsBy, tu || 0);
+            if (x.plusTurnsSpent && spent) tu = (tu ?? rollTurns(R, EFFECTS[x.id].base)) + x.plusTurnsSpent * spent;   // ビリビリ：帯電で 長持ち
             const times = x.perHit ? Math.max(1, (e.hits || []).filter((h) => !h.miss && !h.blocked && h.dmg > 0).length) : 1;   // perHit：当たる たびに 付ける（カチカチ。鹿さんの 決め 2026-11-02）
             let ok = false; for (let k = 0; k < times; k++) ok = addFx(t, x.id, { amt: am, turns: tu, src }, e.notes, me) || ok;
             if (ok) { e.tags.push(x.id); if (x.who === "ally" && me.P.allyBuffShield && EFFECTS[x.id].buff) addFx(t, "shield", { amt: Math.round(t.maxHp * me.P.allyBuffShield) }, e.notes, me); }   // 貝がらの おまけ
