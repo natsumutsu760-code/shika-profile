@@ -5,7 +5,7 @@ const P = (p, s) => p(s) || s;
 export const WORDS = {
   // 装備開発・スフィア（2026-11-04）
   "使う 敵の 素材を えらんで": "Choose an enemy material", "素材の 品質を えらんで": "Choose the material quality", "空いた OP の 枠が ない（素材の OP 抽選は 空いた 枠に だけ）": "No empty OP slot (material draws only fill empty slots)", "工房が まだ ない（隠れ家で 作る）": "No Workshop yet (build it in the Hideout)",
-  "知らない 装備": "Unknown gear", "使う 結晶の 段を えらんで": "Choose a crystal grade", "その スフィアは ない": "That Sphere doesn't exist", "もう 鑑定して ある": "Already appraised",
+  "知らない 装備": "Unknown gear", "使う 結晶の 段を えらんで": "Choose a crystal grade", "その スフィアは ない": "That Sphere doesn't exist", "鑑定する スフィアが ない": "No Spheres to appraise", "あずかり箱に 売れる 素材が ない": "No materials to sell in the holding box", "もう 鑑定して ある": "Already appraised",
   "鑑定して いない スフィアは はめられない（DEEP LINK/: の ガラクで 鑑定）": "Unappraised Spheres can't be set (appraise them with Garak in DEEP LINK/:)", "この OP は まだ 使えない": "This OP isn't available yet",
   "空いた OP の 枠が ない（スフィアは 空いた 枠に だけ はめる）": "No empty OP slot (Spheres only go into empty slots)",
   // 門番の 入口・頼み

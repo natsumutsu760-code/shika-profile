@@ -24,6 +24,8 @@ export const WORDS = {
   "スフィア": "Sphere", "空いた 枠": "Empty slots", "・鑑定した スフィア": " · Appraised Spheres", "はめた スフィアは はずせない（抜くのは コア）": "Set Spheres can't be removed (use a core to extract)",
   "もう一度 押すと はめる": "Press again to set", "空いた 枠が ない（スフィアは 空いた 枠に だけ はめる）": "No empty slot (Spheres only go into empty slots)", "この 装備には OP の 枠が ない": "This gear has no OP slots",
   "はめられる スフィアが ない（同じ OP は 2 つ 付けない）": "No Sphere fits (the same OP can't be added twice)", "DEEP LINK/: の ガラク": "Garak in DEEP LINK/:",
+  "もう一度 押すと 売る（+#）": "Tap again to sell (+#)", "素材を ぜんぶ 売る": "Sell all materials", "ぜんぶ 売る": "Sell all", "倉庫の その しゅるいが いっぱい：素材を 使うと あく": "That type is full: use materials to make room",   // あずかり箱（2026-11-06）
+  "まだ # こ": "# left", "1 こ": "One", "クレジットが 足りないので # こまで": "Not enough credits: up to #",   // スフィアの 鑑定（2026-11-06）
   "スフィアの 鑑定": "Sphere appraisal", "鑑定する": "Appraise", "鑑定して いない スフィアは ない": "No unappraised Spheres", "> 装備の 空いた 枠に はめる": "> Set them into empty gear slots",
   "届いた装備・スフィア": "Gear & Spheres received", "中身は DEEP LINK/: の ガラクで 鑑定（空いた OP の 枠に はめる）": "Appraise them with Garak in DEEP LINK/: (set into empty OP slots)",
   "今回は 装備も スフィアも 出なかった（スフィアは 宝箱から まれに。装備は 作業台の「開発」で 作る）": "No gear or Spheres this time (Spheres rarely come from chests; make gear with Develop at the Workbench)",
@@ -145,6 +147,8 @@ export const RULES = [
   [/^鑑定した スフィア (\d+) こ$/, (m) => `${m[1]} appraised Sphere${m[1] === "1" ? "" : "s"}`],
   [/^鑑定して いない スフィア (\d+) こ（$/, (m) => `${m[1]} unappraised (`], [/^で 鑑定）$/, () => ")"],
   [/^★(\d) で 付けた$/, (m) => `set at ★${m[1]}`],
+  [/^売った：素材 ([\d,]+) こ → クレジット \+([\d,]+)$/, (m) => `Sold ${m[1]} materials → +${m[2]} credits`],   // あずかり箱を ぜんぶ 売る
+  [/^鑑定した (\d+) こ：(.+?)(?: ほか (\d+) こ)?$/, (m, p) => `Appraised ${m[1]}: ${m[2].split("・").map((x) => { const k = x.match(/^(.+) ★(\d)$/); return k ? `${p(k[1]) || k[1]} ★${k[2]}` : x; }).join(" · ")}${m[3] ? ` +${m[3]} more` : ""}`],   // まとめて 鑑定
   [/^鑑定した：(.+) ★(\d)$/, (m, p) => `Appraised: ${p(m[1]) || m[1]} ★${m[2]}`], [/^(.+) ★(\d) の スフィアを はめた$/, (m, p) => `Set a ${p(m[1]) || m[1]} ★${m[2]} Sphere`],
   // 施設の 作り直し（2026-11-03）
   [/^(.+) Lv(\d+) の 建設を 始めた（([\d,]+) クレジット）$/, (m, p) => p(m[1]) && `Started building ${p(m[1])} Lv${m[2]} (${m[3]} credits)`],

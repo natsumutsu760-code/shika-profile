@@ -119,6 +119,11 @@
   /* みんなの依頼 */
   .post { margin-top:16px; padding:12px 14px; border:1px dashed var(--line2); display:grid; gap:8px; }
   .post h3 { font:400 15px/1.4 var(--f); color:var(--amber); }
+  /* スフィアの 鑑定：1 行（見出し・まだの 数・1 こ／ぜんぶ・値・ボタン。スマホでは 2 行に 折れる） */
+  .post .lk { display:flex; flex-wrap:wrap; align-items:center; gap:6px 12px; } .post .lk .lk-n { margin-right:auto; font-size:14px; color:var(--text); }
+  .seg { display:inline-flex; border:1px solid var(--line2); } .seg button { min-height:32px; padding:0 12px; font-size:14px; color:var(--dim); } .seg button + button { border-left:1px solid var(--line2); }
+  .seg button[aria-pressed="true"] { background:rgba(255,181,71,.14); color:var(--amber); text-shadow:var(--glow); } .post .lk .btn { min-height:32px; }
+  @media (max-width:760px) { .post .lk { gap:6px 10px; } .post .lk .lk-cu { display:none; } }   /* スマホは 値の「クレジット」を 出さず（水色が クレジット）1 こ／ぜんぶ・値・ボタンを 1 行に */
   .post .f { display:flex; flex-wrap:wrap; gap:8px; align-items:center; font-size:13px; color:var(--dim); }
   .post select, .post input { font:inherit; font-size:14px; color:var(--text); background:var(--bg); border:1px solid var(--line2); padding:3px 6px; }
   .post input { width:64px; }
@@ -227,6 +232,7 @@ const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&l
 const META = Object.fromEntries([...TRADERS, SPECIAL].map((t) => [t.id, t]));
 const S = { go: q.get("go") || "junk", tab: ["shop", "tasks"].includes(q.get("tab")) ? q.get("tab") : "story", open: null, pick: {}, pickOp: {}, sell: {}, sk: null, want: null };
 let ME = null, D = null, B = { list: [], staff: false }, K = null;   // K：株の 取引所（stock.view の 答え）
+try { S.lookAll = localStorage.getItem("ml-look-all") === "1"; } catch (e) {}   // スフィアの 鑑定：ぜんぶ を えらんで いたか
 Object.assign(S, { stab: "list", sg: "all", ssort: "group", sco: STOCK_CO[q.get("co")] ? q.get("co") : "VLC", sn: 0 });   // sn 0：その 銘柄の 最小（5,000 クレジット分）   // 株の 画面の 状態（タブ・グループ・ならべる・えらんだ 銘柄・数）
 const stockOpen = () => !!(ME && ME.stock && ME.stock.open);
 const cleanK = (k) => (k && Array.isArray(k.list) ? { ...k, list: k.list.filter((x) => STOCK_CO[x.co]), news: (k.news || []).filter((n) => STOCK_CO[n.co]) } : k);
@@ -310,14 +316,18 @@ function shopHtml(t) {
       <div class="act">${it.sell || it.trade || it.soon ? "" : it.ins ? `<span class="price"><span class="c">${insRange()}</span><small class="stock">派遣に 出る ときに 掛ける</small></span>` : `<span class="price">${cur(it.cur, it.price)}<small class="stock ${out && !it.once ? "out" : ""}">${stockText(it, st)}</small></span>`}${locked ? `<span class="lock">${lockTxt}</span>` : it.ins ? "" : `<button class="btn" data-item="${it.id}" aria-expanded="${S.open === it.id}" ${cant ? "disabled" : ""}>${label}</button>`}</div></li>
       ${S.open === it.id && !locked ? `<li class="pnl">${it.sell ? sellHtml() : it.trade ? tradeHtml() : pickHtml(t, it)}</li>` : ""}`; }).join("")}</ul>`;
 }
-// スフィアの 鑑定（ガラク）：宝箱から 出た スフィアは 中身が わからない。行き先ごとに 1 行（数つき）。鑑定した 物は 装備の 画面で 空いた 枠に はめる
+// スフィアの 鑑定（ガラク）：宝箱から 出た スフィアは 中身が わからない。1 行に まとめる（鹿さん 2026-11-06「もっとギュッとコンパクトに」「一括か単体か選べるように」）
+// まだの 数・[1 こ][ぜんぶ]・値・鑑定する。1 こは 古い 物から・ぜんぶ は 払える 分だけ 古い 順に（値は どの 行き先も 同じ）。鑑定した 物は 装備の 画面で 空いた 枠に はめる
 function lookHtml() {
   const all = (ME.own && ME.own.spheres) || [], unk = all.filter((x) => !x.known), known = all.length - unk.length;
   if (!all.length) return "";
-  const by = DUNGEONS.map((d) => ({ d, n: unk.filter((x) => x.did === d.id).length })).filter((g) => g.n), poor = credits() < SPHERE_LOOK;
-  return `<div class="post"><h3>スフィアの 鑑定</h3>${by.length ? `<ul class="rows">${by.map(({ d, n }) => `<li><div class="t">${esc(d.name)}の スフィア<span class="sub">×${n}</span></div>
-      <div class="act"><span class="price"><span class="c">クレジット ${fmt(SPHERE_LOOK)}</span></span><button class="btn" data-look="${d.id}" ${poor ? "disabled" : ""}>鑑定する</button></div></li>`).join("")}</ul>` : `<p class="f">鑑定して いない スフィアは ない</p>`}
-    ${known ? `<p class="f">鑑定した スフィア ${known} こ　<a href="equip.html" style="color:var(--amber)">&gt; 装備の 空いた 枠に はめる</a></p>` : ""}</div>`;
+  const can = Math.min(unk.length, Math.floor(Math.max(0, credits()) / SPHERE_LOOK)), many = S.lookAll && unk.length > 1, cost = SPHERE_LOOK * (many ? Math.max(1, can) : 1);
+  const head = unk.length ? `<div class="lk"><h3>スフィアの 鑑定</h3><span class="lk-n">まだ ${unk.length} こ</span>
+      ${unk.length > 1 ? `<span class="seg" role="group" aria-label="鑑定する 数"><button data-lkm="1" aria-pressed="${!many}">1 こ</button><button data-lkm="all" aria-pressed="${many}">ぜんぶ</button></span>` : ""}
+      <span class="price"><span class="c"><span class="lk-cu">クレジット </span>${fmt(cost)}</span></span><button class="btn" data-lookgo="1" ${can ? "" : "disabled"}>鑑定する</button></div>`
+    : `<div class="lk"><h3>スフィアの 鑑定</h3><span class="lk-n">鑑定して いない スフィアは ない</span></div>`;
+  const why = !unk.length ? "" : !can ? `<p class="why">足りない：クレジット あと ${fmt(SPHERE_LOOK - Math.max(0, credits()))}</p>` : many && can < unk.length ? `<p class="why">クレジットが 足りないので ${can} こまで</p>` : "";
+  return `<div class="post look">${head}${why}${known ? `<p class="f">鑑定した スフィア ${known} こ　<a href="equip.html" style="color:var(--amber)">&gt; 装備の 空いた 枠に はめる</a></p>` : ""}</div>`;
 }
 // 保険料の はば（ふつう。行き先しだい）
 const insRange = () => { const p = DUNGEONS.map((d) => insPrice(d, 1, D.perks || {})); return `クレジット ${Math.min(...p)}〜${Math.max(...p)}`; };
@@ -459,8 +469,12 @@ document.getElementById("term").addEventListener("click", async (e) => {
   if (d.pri) { const [c, no] = d.pri.split(":").map(Number), before = view(t.id).lv;
     return ask(b, "task.done", { tid: t.id, which: "primary", c, no }, (r) => `受けとった！ クレジット ＋${fmt(r.gain || 0)}${r.unlock ? `　店に「${itemName(r.unlock)}」が 並んだ` : ""}${r.key ? `　${DNAME[r.key] || r.key}へ 行ける` : ""}${view(t.id).lv > before ? `　友好度 Lv${view(t.id).lv} に なった` : ""}`); }
   if (d.task) { const before = view(t.id).lv; return ask(b, "task.done", { tid: t.id, which: d.task }, () => `受けとった！${view(t.id).lv > before ? `　友好度 Lv${view(t.id).lv} に なった` : ""}${d.task === "chain" ? `　次の タスク（#${view(t.id).chain.n}）が 出た` : ""}`); }
-  if (d.look) { const x = ((ME.own && ME.own.spheres) || []).find((y) => !y.known && y.did === d.look); if (!x) return;
-    return ask(b, "sphere.look", { uid: x.uid }, (r) => `鑑定した：${ALL_OPS[r.sphere.op] ? ALL_OPS[r.sphere.op].label : r.sphere.op} ★${r.sphere.star}`); }
+  // スフィアの 鑑定：1 こ／ぜんぶ を えらぶ（えらんだ 方は この ブラウザに おぼえる）・鑑定する
+  if (d.lkm) { S.lookAll = d.lkm === "all"; try { localStorage.setItem("ml-look-all", S.lookAll ? "1" : "0"); } catch (e) {} render(); return document.querySelector(`[data-lkm="${d.lkm}"]`)?.focus(); }
+  if (d.lookgo) { const unk = ((ME.own && ME.own.spheres) || []).filter((y) => !y.known), opName = (op) => (ALL_OPS[op] ? ALL_OPS[op].label : op); if (!unk.length) return;
+    if (S.lookAll && unk.length > 1) return ask(b, "sphere.lookAll", {}, (r) => { const top = [...r.spheres].sort((a, c) => c.star - a.star).slice(0, 3);
+      return `鑑定した ${r.n} こ：${top.map((x) => `${opName(x.op)} ★${x.star}`).join("・")}${r.n > top.length ? ` ほか ${r.n - top.length} こ` : ""}`; });
+    return ask(b, "sphere.look", { uid: unk[0].uid }, (r) => `鑑定した：${opName(r.sphere.op)} ★${r.sphere.star}`); }
   if (d.item) { const sh = t, it = sh.shop.find((x) => x.id === d.item);
     if (it.sell || it.trade || it.pick) { S.open = S.open === it.id ? null : it.id; S.sell = {}; return render(); }
     return ask(b, "trader.buy", { tid: sh.id, item: it.id }, () => `買った：${it.name}${it.tool ? "（冒険の じゅんびで 持っていける）" : ""}`); }

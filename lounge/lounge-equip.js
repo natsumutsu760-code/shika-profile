@@ -69,6 +69,18 @@ export function sphereLook(rec, b, now = Date.now()) {
   return { ok: true, sphere: { ...x }, credits: SPHERE_LOOK };
 }
 
+// まとめて 鑑定（鹿さんの 頼み 2026-11-06「一括か単体か選べるように」）。まだの スフィアを 古い 順に、払える 分だけ。1 こずつの 鑑定と 同じ 値・タスク
+export function sphereLookAll(rec, now = Date.now()) {
+  const unk = (rec.own.spheres || []).filter((s) => !s.known);
+  if (!unk.length) return { ok: false, why: "鑑定する スフィアが ない" };
+  const n = Math.min(unk.length, Math.floor(Math.max(0, rec.credits || 0) / SPHERE_LOOK));
+  if (n < 1) return { ok: false, why: feeWhy(SPHERE_LOOK, rec, 0) };
+  const day = jstDay(now), got = [];
+  for (const x of unk.slice(0, n)) { rec.credits -= SPHERE_LOOK; x.known = true; got.push({ op: x.op, star: x.star }); bump(rec, { type: "appraise", n: 1, star: x.star }, day); }
+  sale(rec, "GLK", n * SPHERE_LOOK);   // 鑑定料は ガラク・サルベージの 売り上げ（トークン）
+  return { ok: true, n, left: unk.length - n, spheres: got, credits: n * SPHERE_LOOK };
+}
+
 // はめる。b：{ sphere：スフィアの uid, uid：装備 }
 export function sphereSet(rec, b, now = Date.now()) {
   const x = (rec.own.spheres || []).find((s) => s.uid === b.sphere), it = rec.own.equip.find((e) => e.uid === b.uid);

@@ -7,7 +7,7 @@
 import { cleanRoom, STARTER_OWN, STARTER_ROOM, N, SALE_IDS, priceOn, jstDay, pullId, GACHA_COST } from "./lounge-rules.js";
 import { locked, lockedAct, lockWhy, lockKind, bzLocked, BZ_WHY, stockLocked, STOCK_WHY } from "./lounge-lock.js";   // 大工事の あいだの ロック
 import { emptyLedger, balanceOf, trimSent, toObs, settle } from "./ledger.js";
-import { buyPlan, sellAct, tradeAct, taskDone, useItem, deeplinkView, actEvents, dlVisit, bump } from "./lounge-trade.js";
+import { buyPlan, sellAct, boxSell, tradeAct, taskDone, useItem, deeplinkView, actEvents, dlVisit, bump } from "./lounge-trade.js";
 import { facMigrate, facDue, facStart, facPut, facRush, facFuel, facScaffold, facKnob, facView } from "./lounge-facility.js";   // 施設の 建設と つまみ（施設の 作り直し、2026-11-03）
 import { crawlSave, crawlView } from "./lounge-crawl.js";   // クローラーの 進み（M-018。2026-11-05）
 import { reqPostPlan, takeFor, items } from "./lounge-req.js";
@@ -17,7 +17,7 @@ import "./warm.js";   // 派遣の 計算を 温めて おく（はじめの 1 �
 import { relayEntry, mythicNote } from "./lounge-relay.js";   // 配信の 中継（鹿物語の ランキングの 窓）に あずける 派遣の 材料
 import { swapPlan, cashDo } from "./lounge-money.js";   // 両替（玉・クレジット・アメジスト）
 import { coreTake, coreSet } from "./lounge-core.js";   // ブランクコア（OP を 抜く・付ける）
-import { devPlan, uniquePlan, sphereLook, sphereSet, drawOp } from "./lounge-equip.js";   // 装備開発・スフィア（2026-11-04）
+import { devPlan, uniquePlan, sphereLook, sphereLookAll, sphereSet, drawOp } from "./lounge-equip.js";   // 装備開発・スフィア（2026-11-04）
 import { tameFuse, tameSp } from "./lounge-fuse.js";   // モンスターの 配合・なかまの スキルポイント
 import { wsMake, wsAtt, wsProc, attSet, attOff, attDrop, smeltPut, smeltTake, smeltStop } from "./lounge-workshop.js";   // 工房（道具・アタッチメント・精錬）
 import { mineSet, mineCollect, mineUse, mineLeave, mineView } from "./lounge-mine.js";   // 坑道（前の 隠れ家の 畑は 2026-11-03 に 消して 新しい 農園に まとめた）
@@ -363,7 +363,7 @@ export class Viewer {
       if (r.ok && g) { const nx = loopAfter(rec, g, r, now, Math.floor(rand() * 2 ** 31)); if (nx && nx.ok) { await this.loopGo(rec, nx); r.next = true; } }   // 周回中なら 自分で うけとっても つぎへ
     }
     else if (body.a === "loop.set") r = loopSet(rec, body, now);
-    else if (body.a === "loop.seen") r = loopSeen(rec); else if (body.a === "box.take") r = boxTake(rec, now);
+    else if (body.a === "loop.seen") r = loopSeen(rec); else if (body.a === "box.take") r = boxTake(rec, now); else if (body.a === "box.sell") r = boxSell(rec, jstDay(), now);   // あずかり箱の 素材を ぜんぶ 売る
     else if (body.a === "trader.sell") r = sellAct(rec, body, jstDay());
     else if (body.a === "trader.trade") r = tradeAct(rec, body, jstDay());
     else if (body.a === "task.done") r = taskDone(rec, body, jstDay(), rand);
@@ -413,6 +413,7 @@ export class Viewer {
     else if (body.a === "core.take") r = coreTake(rec, body);   // ブランクコア：装備から OP を 抜く（装備は なくなる）
     else if (body.a === "core.set") r = coreSet(rec, body);     // コアを 別の 装備に 付ける
     else if (body.a === "sphere.look") r = sphereLook(rec, body, now);   // スフィアの 鑑定（ガラク）
+    else if (body.a === "sphere.lookAll") r = sphereLookAll(rec, now);   // まとめて 鑑定
     else if (body.a === "sphere.set") r = sphereSet(rec, body, now);     // スフィアを 空いた OP の 枠に はめる
     else if (body.a === "ws.draw") r = drawOp(rec, body, rand, now);     // 工房：素材で 空いた 枠に OP を 引く
     else if (body.a === "equip.auto") r = autoSellSet(rec, body);   // 派遣で 拾った ★N 以下の 装備を 自動で 売る 設定

@@ -4,7 +4,7 @@
 // 数は すべて 案
 import { TRADERS, SPECIAL, chainTask, dailyTask, TASK_TIDS, sellPrice, GATHER, floorRatio, FLOORS, OPS, BASES, baseOf, SNACK_NEED, rankOf, CRAFT, SYNTH, craftOpen, synthOpen,
   PRIMARY, PRI_REP, lvOf, curTask, isDone, unlockedBy, KEY_BY, DUNGEONS, chaptersOf, SYS_ON, sysOff } from "./game.js";
-import { putMats, putEquip } from "./lounge-game.js";
+import { putMats, putEquip, dropOld } from "./lounge-game.js";
 import { sale, coOf } from "./lounge-stock.js";
 import { STOCK_OPEN } from "./lounge-lock.js";
 import { CO as STOCK_CO } from "./stocks.js";
@@ -295,6 +295,21 @@ export function sellAct(rec, b, day) {
   traderOf(rec, "junk", day).rep += REP_TRADE;
   bump(rec, { type: "sell", n: 1 }, day);
   return { ok: true, got: credits };   // 答えの credits は 門番が いまの 持ち高を 付ける
+}
+// あずかり箱の 素材を ぜんぶ ガラクに 売る（鹿さんの 頼み 2026-11-06「倉庫のスタック数の余剰を送る預かり所のものを一括で売るボタンが欲しい」）
+// 値・上乗せ・おまけ（友好度・タスクの「売る」1 回）は sellAct と 同じ。装備は 売れない（リサイクルだけ）ので 箱に のこす。期限の すぎた 物は 先に 消える
+export function boxSell(rec, day, now = Date.now()) {
+  ensureTrade(rec); dropOld(rec, now);
+  const mats = rec.own.box.filter((x) => !x.equip && x.id && x.n > 0);
+  if (!mats.length) return { ok: false, why: "あずかり箱に 売れる 素材が ない" };
+  let credits = 0, n = 0;
+  for (const m of mats) { credits += sellPrice({ id: m.id, q: m.q || 0 }) * m.n; n += m.n; }
+  credits = Math.round(credits * (1 + (rec.perks.sell20 ? SELL_PERK.sell20 : rec.perks.sell10 ? SELL_PERK.sell10 : 0)));
+  rec.own.box = rec.own.box.filter((x) => x.equip);
+  rec.credits = (rec.credits || 0) + credits;
+  traderOf(rec, "junk", day).rep += REP_TRADE;
+  bump(rec, { type: "sell", n: 1 }, day);
+  return { ok: true, got: credits, n, left: rec.own.box.length };
 }
 // 同じ 行き先の 採取の素材 3 こ → ほしい 1 こ（ガラクの 第 1 章を 終えると。前は 友好度 Lv2 から）
 export function tradeAct(rec, b, day) {
