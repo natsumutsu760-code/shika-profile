@@ -8,7 +8,7 @@ export const WORDS = {
   "ごほうび": "Reward", "拾った物": "Found", "おわった": "Done", "報告する": "Report", "友好度": "Rapport", "タスク #": "Tasks #", "ショップ #": "Shop #", "タスク": "Tasks", "ショップ": "Shop",
   "いちばん上": "Max", "1 回だけ": "Once only", "今週": "This week", "来週": "Next week", "あした": "Tomorrow", "売る": "Sell", "交換する": "Trade", "買った": "Bought", "売り切れ": "Sold out",
   "友好度 Lv# で 買える": "Unlocks at Rapport Lv#", "えらべる 物が ない（レシピは もう ぜんぶ 出て いる）": "Nothing to choose (all recipes are already unlocked)",
-  "店で 買った 物から 先に 売る": "Items bought at shops are sold first", "（買い取り ＋#%）": "(buyback +#%)", "全": "All", "この しゅるいの 素材は ない": "No materials of this type",
+  "店で 買った 物から 先に 売る": "Items bought at shops are sold first", "売る 数": "Amount to sell", "（買い取り ＋#%）": "(buyback +#%)", "全": "All", "この しゅるいの 素材は ない": "No materials of this type",
   "ほしい 物": "Want", "同じ 行き先の 採取の 素材が 3 こ ない": "You don't have 3 gathered materials from the same destination", "支払いは": "Pay with", "だけ": "only",
   "アメジストは 招待・毎晩の 大会・虹保留・!アメジスト交換（玉 500 → 1）で 手に 入る": "Amethyst comes from invites, the nightly tournament, rainbow holds, and !アメジスト交換 (500 balls → 1)",
   "もうすぐ おわる": "Ending soon", "消す": "Delete", "通報": "Report", "さんの 依頼": "'s request", "お礼": "Reward", "届ける": "Deliver", "だれか": "Someone",
