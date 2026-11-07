@@ -248,7 +248,7 @@ export function paintPet(pet, paint) {
 // 色は Claude の 案（二つ名・エンブレム・性格から）。所属は 仮面の 形と 差し色、だれかは ペットの 色で わかる
 export const ELITES = {
   silent_meridian: { name: "SILENT MERIDIAN", species: "shika", co: "indie", paint: ["#E6E2D6", "#2A2A30"], eye: "#F2E3B0" },   // 真昼の 線を 断つ 細い 線：骨の 白と 墨
-  plumb_line: { name: "PLUMB LINE", species: "pelican", co: "foundation", paint: ["#1D3A6E", "#F3F6FA"] },                    // 下げ振り：深い 青と 白
+  plumb_line: { name: "PLUMB LINE", species: "pelican", co: "indie", paint: ["#1D3A6E", "#F3F6FA"], eye: "#BFD8FF" },                    // 下げ振り：深い 青と 白（2026-11-05 独立の 傭兵に。前は ファウンデーション）
   boxcar: { name: "BOXCAR", species: "mogura", co: "vlc", paint: ["#7A4A2E", "#2A2D2A"] },                                     // 錆びた 貨車の 車輪：さびと 鉄
   lullaby: { name: "LULLABY", species: "kurage", co: "mlv", paint: ["#F0E6C0", "#34407A"] },                                    // 揺りかごの 三日月：夜の 紺の かさと 月の 白の 足（くらげは 足が 主・かさが 副）
   long_winter: { name: "LONG WINTER", species: "saboten", co: "grn", paint: ["#E2EAEE", "#2F4A3A"] },                           // 雪の 積もった 木：雪と 松
@@ -257,10 +257,10 @@ export const ELITES = {
   windowsill: { name: "WINDOWSILL", species: "saboten", co: "clr", paint: ["#9FD8B8", "#F2B8C8"] },                             // 夢見る 傭兵：ミントと 桃
   last_orders: { name: "LAST ORDERS", species: "chokin", co: "indie", paint: ["#5E3418", "#1A1A1A"], eye: "#E0A040" },          // 賞金稼ぎ：ウイスキーの 琥珀と 黒
   homebound: { name: "HOMEBOUND", species: "pelican", co: "crv", paint: ["#D08A2E", "#1F2A44"] },                               // 玄関の 灯り：琥珀と 夜の 紺
-  glass_eye: { name: "GLASS EYE", species: "mouse", co: "linkers", paint: ["#E2E4E8", "#2A2C2E"] },                             // 監察官：白と 黒
+  glass_eye: { name: "GLASS EYE", species: "mouse", co: "indie", paint: ["#E2E4E8", "#2A2C2E"], eye: "#E8F0F8" },                             // 監察官：白と 黒
   short_fuse: { name: "SHORT FUSE", species: "tv", co: "hlx", paint: ["#1E2228", "#F2C200"] },                                  // すぐ 怒る：黒と 雷の 黄
   porcelain: { name: "PORCELAIN", species: "mouse", co: "amb", paint: ["#F2EEE6", "#2C4C8C"] },                                 // 磁器：白と 染付の 青
-  first_light: { name: "FIRST LIGHT", species: "shika", co: "foundation", paint: ["#8FB4E8", "#F3F6FA"] },                      // 夜明け：空色と 白
+  first_light: { name: "FIRST LIGHT", species: "shika", co: "indie", paint: ["#8FB4E8", "#F3F6FA"], eye: "#FFE8A0" },                      // 夜明け：空色と 白
   bruiser: { name: "BRUISER", species: "mogura", co: "rsl", paint: ["#5A3A5A", "#B48C8C"] },                                    // 打たれて 笑う：あざの 紫と 灰ばら
   rust_pilgrim: { name: "RUST PILGRIM", species: "mogura", co: "indie", paint: ["#8A4A2A", "#B8A888"], eye: "#F0C080" },        // 拾い屋：さびと 色あせた 砂
   backbone: { name: "BACKBONE", species: "mogura", co: "drn", paint: ["#B07A3A", "#2A2622"] },                                  // 坑道の 守り手：黄土と 石炭
@@ -270,9 +270,9 @@ export const ELITES = {
   sparky: { name: "SPARKY", species: "chokin", co: "vlc", paint: ["#FF7A2A", "#F2C200"] },                                     // 若い 試し手：安全の 橙と 黄
   paper_lantern: { name: "PAPER LANTERN", species: "kurage", co: "indie", paint: ["#F2E2C0", "#C8402A"], eye: "#FFB060" },      // 提灯：和紙と 朱
   deja_vu: { name: "DEJA VU", species: "kurage", co: "mlv", paint: ["#7FE0D8", "#8A6ACF"] },                                    // 試験の 中から：青緑と 紫
-  afterthought: { name: "AFTERTHOUGHT", species: "tv", co: "foundation", paint: ["#4A5A70", "#C9D4E6"] },                       // 片付け屋：青灰と うすい 青
+  afterthought: { name: "AFTERTHOUGHT", species: "tv", co: "indie", paint: ["#4A5A70", "#C9D4E6"], eye: "#9AB0C8" },                       // 片付け屋：青灰と うすい 青
   splint: { name: "SPLINT", species: "pelican", co: "grn", paint: ["#9A3A44", "#F2F0EC"] },                                    // 添え木：柘榴と 包帯の 白
-  stopwatch: { name: "STOPWATCH", species: "pelican", co: "linkers", paint: ["#C8CCD0", "#1E1E22"] },                           // 試験官：銀と 黒
+  stopwatch: { name: "STOPWATCH", species: "pelican", co: "indie", paint: ["#C8CCD0", "#1E1E22"], eye: "#F0F0F4" },                           // 試験官：銀と 黒
   nine_lives: { name: "NINE LIVES", species: "chokin", co: "indie", paint: ["#1E6A3A", "#D4AF37"], eye: "#FFD86A" },            // 賭け：緑の ラシャと 金
   ghost_note: { name: "GHOST NOTE", species: "tv", co: "nox", paint: ["#D8D0E8", "#5A4A7A"] },                                  // 死んだ ことに なって いる：白い 影と 紫
   one_shoe: { name: "ONE SHOE", species: "mouse", co: "odh", paint: ["#B3262B", "#EDEDED"] },                                  // 新米：赤と 白
