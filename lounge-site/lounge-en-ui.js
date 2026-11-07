@@ -61,9 +61,18 @@ export const WORDS = {
   // 玉と クレジットの 交換の 案内（2026-10-28 の 決め：両替を やめて 鹿物語の チャットだけ）
   "交換の 案内": "Exchange guide", "玉と クレジットの 交換の 案内": "How to exchange balls and credits", "交換は 配信の チャットで": "Exchange in stream chat",
   "!貸し玉 数": "!貸し玉 amount", "!換金 数": "!換金 amount", "!アメジスト交換 数": "!アメジスト交換 amount",
+  // 交換の 窓（2026-11-07：窓から 鹿物語に 送って 交換）
+  "交換": "Exchange", "玉と クレジットの 交換": "Exchange balls and credits", "玉を 借りる": "Borrow balls", "玉を 換金": "Cash out balls", "アメジストに 交換": "Get Amethyst",
+  "借りる": "Borrow", "換金する": "Cash out", "もう一度 押す": "Tap again", "配信中に 使えます": "Works while the stream is live",
+  "送って います…": "Sending…", "数を 入れて ください": "Enter an amount", "# 玉から 換金できます": "Cash out starts at # balls",
+  "玉が あと # 足りません": "Need # more balls", "クレジットが あと # 足りません": "Need # more credits",
+  "玉を 借りるの 数": "Balls to borrow", "玉を 換金の 数": "Balls to cash out", "アメジストに 交換の 数": "Amethyst to get",
+  "!貸し玉": "!貸し玉", "!換金": "!換金", "!アメジスト交換": "!アメジスト交換", "見本では 送れません（配信ページで 使えます）": "Not available in the demo (use it on the stream page)",
+  "送れませんでした": "Couldn't send", "いまは つながりません。少し 待って から もう一度": "Can't connect right now. Wait a moment and try again",
 };
 
 export const RULES = [
+  [/^送りました：(.+)（数秒で 反映されます）$/, (m) => `Sent: ${m[1]} (updates in a few seconds)`],
   [/^玉 ([\d,]+)$/, (m) => n1(m[1], "ball", "balls")], [/^([\d,]+) ?玉$/, (m) => n1(m[1], "ball", "balls")], [/^\+([\d,]+) ?玉$/, (m) => "+" + n1(m[1], "ball", "balls")],
   [/^アメジスト ([\d,]+)$/, (m) => n1(m[1], "Amethyst", "Amethyst")], [/^アメジスト \+([\d,]+)$/, (m) => "+" + n1(m[1], "Amethyst", "Amethyst")],
   [/^クレジット ([\d,]+)$/, (m) => n1(m[1], "credit", "credits")],

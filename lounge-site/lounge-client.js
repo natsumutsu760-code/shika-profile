@@ -74,6 +74,8 @@ export async function act(a, body = {}) {
   }
 }
 export const board = () => call("/api/board");
+// 配信の 鹿物語に コマンドを 送る（配信ページの「ほか」の ボタンと 同じ /api/cmd。鹿物語が その 人の チャットと 同じに 受けとる）。見本では 送らない
+export const sendCmd = (text) => (REAL ? call("/api/cmd", { text }) : Promise.resolve({ ok: false, why: "見本では 送れません（配信ページで 使えます）" }));
 // おたこまるさん 専用の 窓口（support.html）
 export const supportGet = (since = 0) => call("/api/support?since=" + since);
 export const supportSend = (text) => call("/api/support", { text });
