@@ -2,7 +2,7 @@
 // 派遣で敵を捕まえて、アメジストで研究すると、ペットのサブツリーとして付けられる
 // どの敵もテーマの状態異常を 1 つ持ち、「付ける技」と「はじけさせる技」が入っている。技の名前は RPG 風（ゲームの中のモンスターなので）
 // 技の説明は fx から自動で作る（describe）。数字はすべて仮
-import { describe, D, F, M, H, CURE, DIS, MPD, SH, S, P, G } from "./tree-kit.js";
+import { describe, D, F, M, H, CURE, DIS, MPD, SH, S, P, G, attackPlan } from "./tree-kit.js";
 // 配合限定の 追加 160 種（2026-10-28。ランクごとの ファイル）
 import { TREES as FU_F } from "./enemy-trees-fusion-f.js";
 import { TREES as FU_E } from "./enemy-trees-fusion-e.js";
@@ -14,6 +14,7 @@ import { TREES as FU_S } from "./enemy-trees-fusion-s.js";
 import { TREES as FU_EX } from "./enemy-trees-fusion-ex.js";
 // 3 つめの 島「ミカネル島」の 敵 85 体（isle3-data.js。2026-11-04、Claude の 案）
 import { TREES3 } from "./isle3-data.js";
+import { FOE_LISTS } from "./enemy-trees-foe.js";   // ダンジョンの 敵が 使う ボスの 前の 数（島 1・2）
 
 export { describe };
 
@@ -75,7 +76,7 @@ export const ENEMY_TREES = {
       P(4, "e_menekikokoro", "免疫の心得", "戦いのはじめに免疫 +20", { startFx: [["immunity", 20]] }),
       P(5, "e_bougyokokoro", "防御の心得", "防御中に受けるダメージがさらに −10%", { guardBonus: 0.1 }),
       P(6, "e_fukutsu", "不屈", "戦いのはじめに輪廻", { startFx: [["reincarnation"]] }),
-      P(7, "e_teppekimuso", "鉄壁無双", "受けるダメージ −8%", { dmgCut: 8 }),
+      P(7, "e_teppekimuso", "鉄壁無双", "受けるダメージ −8%・受けた ダメージ（継続ダメージも）の 55% を 貫通に ためる", { dmgCut: 8, hurtPierce: 0.55 }),
     ],
     plan: [G("first", undefined, "e_shieldup"), G("hpBelow", 50, "e_teppeki"), G("hpBelow", 50, "e_nakama"), G("every", 3, "e_mihari"), G("every", 2, "e_bash"), G("always", undefined, "e_tatenaguri")] },
 
@@ -105,14 +106,14 @@ export const ENEMY_TREES = {
       S(2, "e_gorei", "かしらの号令", "waza", 4, [M("up_atk", 25, { turns: 3 })]),
       S(3, "e_tame", "力をためる", "waza", 3, [M("charge")]),
       S(4, "e_nitoryu", "二刀流", "waza", 5, [D(8, { hits: 2 })]),
-      S(5, "e_iatsu", "威圧", "itazura", 5, [F("down_atk", 25, { turns: 3 }), F("fatigue", 3)]),
+      S(5, "e_iatsu", "威圧", "itazura", 5, [F("down_atk", 22, { turns: 3 }), F("fatigue", 3)]),
       S(6, "e_arashi", "嵐の連撃", "waza", 8, [D(6, { hits: 4 })]),
       S(7, "e_takara", "宝の山に座る", "waza", 7, [M("regen", 15), M("armor", 20)]),
-      S(8, "e_ogiri", "かしらの大斬り", "waza", 12, [D(40), F("stun", 1, { chance: 0.3 })]),
+      S(8, "e_ogiri", "かしらの大斬り", "waza", 14, [D(35), F("stun", 1, { chance: 0.26 })]),
       P(1, "e_chikara", "力自慢", "ATK +5%", { atkMul: 1.05 }),
       P(2, "e_shuraba", "修羅場慣れ", "自分の HP が 30% 以下で ATK +15%", { lowHpAtk: 0.15 }),
       P(3, "e_kyusho2", "急所狙い", "会心 +5%", { crit: 0.05 }),
-      P(4, "e_kowai", "怖い顔", "戦いのはじめに相手に ATK 減少 10", { startFoeFx: [["down_atk", 10]] }),
+      P(4, "e_kowai", "怖い顔", "戦いのはじめに相手に ATK 減少 9", { startFoeFx: [["down_atk", 9]] }),
       P(5, "e_rengeki", "連撃の名手", "戦いのはじめに加速（3 ターン）", { startFx: [["haste", null, 3]] }),
       P(6, "e_ganjo", "頑丈", "HP +10%", { hpMul: 1.1 }),
       P(7, "e_kanroku", "かしらの貫禄", "ATK +10%・受けるダメージ −5%", { atkMul: 1.1, dmgCut: 5 }),
@@ -136,7 +137,7 @@ export const ENEMY_TREES = {
       P(4, "e_mahajiki", "魔を弾く", "状態異常に強い +15%", { statusRes: 15 }),
       P(5, "e_fudo", "不動", "防御中に受けるダメージがさらに −10%", { guardBonus: 0.1 }),
       P(6, "e_ishiuroko", "石のうろこ", "戦いのはじめに装甲 +20", { startFx: [["armor", 20]] }),
-      P(7, "e_shugosha", "石の守護者", "戦いのはじめにバリア +1 と装甲 +20", { startFx: [["barrier", 1], ["armor", 20]] }),
+      P(7, "e_shugosha", "石の守護者", "戦いのはじめにバリア +1 と装甲 +20・受けた ダメージ（継続ダメージも）の 10% を 貫通に ためる", { startFx: [["barrier", 1], ["armor", 20]], hurtPierce: 0.1 }),
     ],
     // 左の 分岐の 子は 石の眠りが ないので、HP が 50% より 少ない ときは 奥義の 守護者の城壁（覚えて いるのに 作戦に なかった。2026-11-04）
     plan: [G("first", undefined, "e_sekka"), G("notBuffed", undefined, "e_stonewall"), G("foeBuffed", undefined, "e_iwakudaki"), G("hpBelow", 50, "e_ishinemuri"), G("hpBelow", 50, "e_shugojo"), G("every", 3, "e_press"), G("always", undefined, "e_ishikobushi")] },
@@ -197,27 +198,27 @@ export const ENEMY_TREES = {
       P(4, "e_tsukikago", "月の加護", "回復する量 +15%", { healMul: 1.15 }),
       P(5, "e_nemurikona", "眠りの粉", "付ける眠り +1 ターン", { extendIds: { sleep: 1 } }),
       P(6, "e_kenja", "賢者の目", "会心 +5%", { crit: 0.05 }),
-      P(7, "e_yumemikago", "夢見の加護", "戦いのはじめに再生 +10 と集中", { startFx: [["regen", 10], ["focus"]] }),
+      P(7, "e_yumemikago", "夢見の加護", "戦いのはじめに再生 +10 と集中・回復した 量の 100% が 相手への ダメージに なる", { startFx: [["regen", 10], ["focus"]], healHit: 1.0 }),
     ],
     plan: [G("foeHas", "sleep", "e_yumegui"), G("debuffed", undefined, "e_tsukinohikari"), G("mpAtLeast", 12, "e_yumenokuni"), G("foeNotHas", "sleep", "e_habataki"), G("first", undefined, "e_hazukuroi"), G("always", undefined, "e_tsutsuku")] },
 
   e_boss_sleep: { name: "眠りの神殿", enemy: "ヒュプノス", dungeon: "morph", rank: "ボス", type: "caster", main: "int", sub: "hp", theme: "sleep",
     list: [
       S(1, "e_nemuritsue", "眠りの杖", "itazura", 3, [D(10)]),
-      S(2, "e_sleepmist", "スリープミスト", "itazura", 4, [F("sleep", 2, { chance: 0.5 })]),
+      S(2, "e_sleepmist", "スリープミスト", "itazura", 4, [F("sleep", 2, { chance: 0.37 })]),
       S(3, "e_shindenkago", "神殿の加護", "itazura", 5, [M("ward", 30), M("regen", 10)]),
       S(4, "e_nightmare", "ナイトメア", "itazura", 6, [D(6, { consume: "sleep", perTurn: 10 }), F("daze", 2, { ifConsumed: 1 })]),
-      S(5, "e_madoromi", "まどろみの霧", "itazura", 5, [F("fatigue", 3), F("down_agi", 30, { turns: 3 })]),
-      S(6, "e_eien", "永遠の眠り", "itazura", 8, [F("sleep", 3, { chance: 0.8 })]),
+      S(5, "e_madoromi", "まどろみの霧", "itazura", 5, [F("fatigue", 3), F("down_agi", 22, { turns: 3 })]),
+      S(6, "e_eien", "永遠の眠り", "itazura", 8, [F("sleep", 3, { chance: 0.59 })]),
       S(7, "e_yumenomon", "夢の門", "itazura", 7, [D(12), F("confusion", 2)]),
-      S(8, "e_sabaki", "モーフィアスの裁き", "itazura", 14, [D(40, { vsFx: { sleep: 1 } })]),
+      S(8, "e_sabaki", "モーフィアスの裁き", "itazura", 19, [D(30, { vsFx: { sleep: 1 } })]),
       P(1, "e_shindenmamori", "神殿の守り", "受けるダメージ −5%", { dmgCut: 5 }),
       P(2, "e_nemuritsukai", "眠りの使い手", "付ける眠り +1 ターン", { extendIds: { sleep: 1 } }),
       P(3, "e_akumunushi", "悪夢の主", "眠りの相手に +25%", { vsFx: { sleep: 0.25 } }),
       P(4, "e_madoromika", "まどろみの香", "戦いのはじめに相手を疲労", { startFoeFx: [["fatigue"]] }),
       P(5, "e_yumefukami", "夢の深み", "眠りの相手への会心 +20%", { critVsFx: { sleep: 0.2 } }),
       P(6, "e_yumebannin", "夢の番人", "戦いのはじめに障壁 +20", { startFx: [["ward", 20]] }),
-      P(7, "e_nemurigami", "眠りの神", "自分の番のはじめに 15% で相手を眠り（1 ターン）", { auraFx: [["sleep", 0.15, 1]] }),
+      P(7, "e_nemurigami", "眠りの神", "自分の番のはじめに 11% で相手を眠り（1 ターン）", { auraFx: [["sleep", 0.11, 1]] }),
     ],
     plan: [G("foeHas", "sleep", "e_nightmare"), G("mpAtLeast", 14, "e_sabaki"), G("first", undefined, "e_shindenkago"), G("foeNotHas", "sleep", "e_sleepmist"), G("every", 3, "e_madoromi"), G("always", undefined, "e_nemuritsue")] },
 
@@ -298,7 +299,7 @@ export const ENEMY_TREES = {
       P(4, "e_hikarinome", "光の目", "盲目の相手に +15%", { vsFx: { blind: 0.15 } }),
       P(5, "e_inorinokokoro", "祈りの心", "毎ターン HP 2% 回復", { hpRegen: 0.02 }),
       P(6, "e_moeruakari", "燃える灯", "付ける炎上 +2", { fxAmtAdd: { burn: 2 } }),
-      P(7, "e_mayoibikago", "迷い灯の加護", "戦いのはじめに再生 +15 と免疫 +20", { startFx: [["regen", 15], ["immunity", 20]] }),
+      P(7, "e_mayoibikago", "迷い灯の加護", "戦いのはじめに再生 +15 と免疫 +20・回復した 量の 150% が 相手への ダメージに なる", { startFx: [["regen", 15], ["immunity", 20]], healHit: 1.5 }),
     ],
     plan: [G("debuffed", undefined, "e_kiyomenohi"), G("hpBelow", 30, "e_michibiki"), G("hpBelow", 60, "e_inorinohi"), G("first", undefined, "e_tomoshibi"), G("notBuffed", undefined, "e_chiisanaakari"), G("always", undefined, "e_lanterntataku")] },
 
@@ -309,9 +310,9 @@ export const ENEMY_TREES = {
       S(3, "e_kageiyashi", "影の癒し", "waza", 5, [H(0.2)]),
       S(4, "e_kagesui", "影吸い", "itazura", 6, [D(12, { drain: 0.5 })]),
       S(5, "e_yaminokeiyaku", "闇の契約", "waza", 6, [M("up_atk", 25, { turns: 3 }), M("up_int", 25, { turns: 3 }), M("regen", 10)]),
-      S(6, "e_yorunokane", "夜ふけの鐘", "itazura", 8, [F("down_int", 20, { turns: 3 }), F("weakness", 30), F("fatigue", 3)]),
+      S(6, "e_yorunokane", "夜ふけの鐘", "itazura", 8, [F("down_int", 13, { turns: 3 }), F("weakness", 20), F("fatigue", 3)]),
       S(7, "e_kagekekkai", "影の結界", "waza", 8, [M("ward", 40), M("armor", 40)]),
-      S(8, "e_shinpan", "闇夜の審判", "itazura", 14, [D(38), F("fatigue", 3)]),
+      S(8, "e_shinpan", "闇夜の審判", "itazura", 22, [D(25), F("fatigue", 3)]),
       P(1, "e_chorochie", "長老の知恵", "INT +5%", { intMul: 1.05 }),
       P(2, "e_kagekago", "影の加護", "毎ターン HP 2% 回復", { hpRegen: 0.02 }),
       P(3, "e_seikikyushu", "生気吸収", "与えたダメージの 10% を回復", { drain: 10 }),
@@ -339,7 +340,7 @@ export const ENEMY_TREES = {
       P(4, "e_karinokiba", "狩りの牙", "技のダメージ +10%", { wazaDmg: 10 }),
       P(5, "e_ganjokara", "頑丈な殻", "HP +10%", { hpMul: 1.1 }),
       P(6, "e_rengekishippo", "連撃のしっぽ", "前の番に当てていたら、技 +15%", { momentum: 0.15 }),
-      P(7, "e_suishokarada", "水晶の体", "受けるダメージ −10%・会心で ふえた 分は ひびに なり、3 ターンに 分けて 受ける", { dmgCut: 10, critSplit: 3 }),
+      P(7, "e_suishokarada", "水晶の体", "受けるダメージ −10%・会心で ふえた 分は ひびに なり、3 ターンに 分けて 受ける・受けた ダメージ（継続ダメージも）の 35% を 貫通に ためる", { dmgCut: 10, critSplit: 3, hurtPierce: 0.35 }),
     ],
     plan: [G("first", undefined, "e_sakadateru"), G("notBuffed", undefined, "e_kesshoyoroi"), G("every", 3, "e_hansha"), G("hpBelow", 50, "e_crystalshell"), G("every", 2, "e_suishokiba"), G("always", undefined, "e_shippouchi")] },
 
@@ -359,7 +360,7 @@ export const ENEMY_TREES = {
       P(4, "e_yaminohane", "闇の羽", "盲目の相手に +15%", { vsFx: { blind: 0.15 } }),
       P(5, "e_choonpakokoro", "超音波の心得", "付ける混乱 +1 ターン", { extendIds: { confusion: 1 } }),
       P(6, "e_chinomeguri", "血の巡り", "与えたダメージの 5% を回復", { drain: 5 }),
-      P(7, "e_yorushihai", "夜の支配者", "戦いのはじめに加速（3 ターン）", { startFx: [["haste", null, 3]] }),
+      P(7, "e_yorushihai", "夜の支配者", "戦いのはじめに加速（3 ターン）・加速の あいだ、与える ダメージ +50%・与えたダメージの 20% を回復", { startFx: [["haste", null, 3]], hasteDmg: 0.5, drain: 20 }),   // 足した（鹿さんの 決め 2026-11-07「この 2 つを 足す」）
     ],
     plan: [G("foeHas", "confusion", "e_onpaho"), G("foeNotHas", "confusion", "e_choonpa"), G("hpBelow", 60, "e_kyuketsu"), G("mpAtLeast", 12, "e_taigun"), G("foeNotHas", "blind", "e_haoto"), G("always", undefined, "e_batkami")] },
 
@@ -420,7 +421,7 @@ export const ENEMY_TREES = {
       P(4, "e_hikaruhitomi", "光る瞳", "朦朧の相手に +20%", { vsFx: { daze: 0.2 } }),
       P(5, "e_arashikessho", "嵐の結晶", "戦いのはじめに加速（ずっと）", { startFx: [["haste"]] }),
       P(6, "e_saiseikessho", "再生する結晶", "毎ターン HP 3% 回復", { hpRegen: 0.03 }),
-      P(7, "e_suishoou", "水晶の王", "受けるダメージ −6%・会心で ふえた 分は ひびに なり、3 ターンに 分けて 受ける", { dmgCut: 6, critSplit: 3 }),
+      P(7, "e_suishoou", "水晶の王", "受けるダメージ −6%・会心で ふえた 分は ひびに なり、3 ターンに 分けて 受ける・受けた ダメージ（継続ダメージも）の 20% を 貫通に ためる", { dmgCut: 6, critSplit: 3, hurtPierce: 0.2 }),
     ],
     // 結晶の嵐を 奥義の 前に（奥義を 2〜3 回で MP を 使い切り、あとは こうげき だけ だった。鹿さんの カード「案 2」、2026-11-04）
     plan: [G("first", undefined, "e_kesshoka"), G("hpBelow", 40, "e_suishosaisei"), G("every", 2, "e_kesshoarashi"), G("mpAtLeast", 14, "e_daikessho"), G("every", 3, "e_mamoritekamae"), G("always", undefined, "e_kesshokobushi")] },
@@ -514,14 +515,14 @@ export const ENEMY_TREES = {
       S(2, "e_in_korakatame", "甲羅を固める", "waza", 4, [M("armor", 30)]),
       S(3, "e_in_awabuki", "泡ぶき", "itazura", 4, [F("blind", 2), M("armor", 15)]),
       S(4, "e_in_koraotoshi", "甲羅落とし", "waza", 6, [D(18, { stat: "def" }), M("armor", 25)]),
-      S(5, "e_in_shimetsuke", "大ばさみの締め付け", "waza", 6, [D(10, { stat: "def" }), F("stun", 1, { chance: 0.4 })]),
+      S(5, "e_in_shimetsuke", "大ばさみの締め付け", "waza", 6, [D(10, { stat: "def" }), F("stun", 1, { chance: 0.35 })]),
       S(6, "e_in_hasamiarashi", "はさみの嵐", "waza", 9, [D(6, { stat: "def", hits: 4 })]),
       S(7, "e_in_michihiki", "潮の満ち引き", "waza", 7, [M("regen", 20), CURE]),
-      S(8, "e_in_ojabasami", "王者の大ばさみ", "waza", 14, [D(36, { stat: "def" }), M("armor", 40)]),
+      S(8, "e_in_ojabasami", "王者の大ばさみ", "waza", 16, [D(32, { stat: "def" }), M("armor", 40)]),
       P(1, "e_in_ounokara", "王の殻", "受けるダメージ −5%", { dmgCut: 5 }),
       P(2, "e_in_kataikoura", "硬い甲羅", "戦いのはじめに装甲 +30", { startFx: [["armor", 30]] }),
       P(3, "e_in_kairikibasami", "怪力ばさみ", "技のダメージ +10%", { wazaDmg: 10 }),
-      P(4, "e_in_ounoiatsu", "王の威圧", "戦いのはじめに相手に ATK 減少 10", { startFoeFx: [["down_atk", 10]] }),
+      P(4, "e_in_ounoiatsu", "王の威圧", "戦いのはじめに相手に ATK 減少 9", { startFoeFx: [["down_atk", 9]] }),
       P(5, "e_in_yokoaruki", "横歩き", "戦いのはじめに加速（ずっと）", { startFx: [["haste"]] }),
       P(6, "e_in_michishio", "満ち潮", "毎ターン HP 3% 回復", { hpRegen: 0.03 }),
       P(7, "e_in_inohnoo", "イノーの王", "受けるダメージ −6%・DEF +10%", { dmgCut: 6, defMul: 1.1 }),
@@ -585,7 +586,7 @@ export const ENEMY_TREES = {
       P(4, "e_gm_sakenokaori", "酒の香り", "状態異常に強い +15%", { statusRes: 15 }),
       P(5, "e_gm_machibusekokoro", "待ちぶせの心得", "防御中に受けるダメージがさらに −10%", { guardBonus: 0.1 }),
       P(6, "e_gm_nakamiotakara", "中身はお宝", "HP +10%", { hpMul: 1.1 }),
-      P(7, "e_gm_mimikkuhonsho", "ミミックの本性", "直接攻撃を受けると 10% で相手を気絶（1 ターン）・受けるダメージ −5%", { whenHitFx: [["stun", 0.1, null, 1]], dmgCut: 5 }),
+      P(7, "e_gm_mimikkuhonsho", "ミミックの本性", "直接攻撃を受けると 10% で相手を気絶（1 ターン）・受けるダメージ −5%・受けた ダメージ（継続ダメージも）の 70% を 貫通に ためる", { whenHitFx: [["stun", 0.1, null, 1]], dmgCut: 5, hurtPierce: 0.7 }),
     ],
     plan: [G("first", undefined, "e_gm_tarugomori"), G("mpAtLeast", 10, "e_gm_otaru"), G("every", 3, "e_gm_machibuse"), G("selfHas", "counter", "e_gm_korogarutaru"), G("hpBelow", 50, "e_gm_tagajime"), G("every", 2, "e_gm_futatoji"), G("always", undefined, "e_gm_futakami")] },
 
@@ -615,14 +616,14 @@ export const ENEMY_TREES = {
       S(2, "e_gm_zeninkakare", "全員かかれ", "waza", 4, [M("up_atk", 25, { turns: 3 })]),
       S(3, "e_gm_taihosoten", "大砲の装てん", "waza", 3, [M("charge")]),
       S(4, "e_gm_taiho", "大砲ぶっぱなし", "waza", 6, [D(16, { ignore: 0.3 })]),
-      S(5, "e_gm_senchoiatsu", "船長の威圧", "itazura", 5, [F("down_atk", 25, { turns: 3 }), F("fatigue", 3)]),
+      S(5, "e_gm_senchoiatsu", "船長の威圧", "itazura", 5, [F("down_atk", 17, { turns: 3 }), F("fatigue", 3)]),
       S(6, "e_gm_saberranbu", "サーベル乱舞", "waza", 8, [D(6, { hits: 4 })]),
       S(7, "e_gm_takarabako", "宝箱に座る", "waza", 7, [M("regen", 15), M("armor", 20)]),
-      S(8, "e_gm_isseihogeki", "赤ひげの一斉砲撃", "waza", 12, [D(40), F("stun", 1, { chance: 0.3 })]),
+      S(8, "e_gm_isseihogeki", "赤ひげの一斉砲撃", "waza", 18, [D(27), F("stun", 1, { chance: 0.2 })]),
       P(1, "e_gm_senchonoude", "船長の腕", "ATK +5%", { atkMul: 1.05 }),
       P(2, "e_gm_kayakuko", "火薬庫", "戦いのはじめにチャージ", { startFx: [["charge"]] }),
       P(3, "e_gm_kyushonerai", "急所狙い", "会心 +5%", { crit: 0.05 }),
-      P(4, "e_gm_kowaihige", "怖いひげ", "戦いのはじめに相手に ATK 減少 10", { startFoeFx: [["down_atk", 10]] }),
+      P(4, "e_gm_kowaihige", "怖いひげ", "戦いのはじめに相手に ATK 減少 7", { startFoeFx: [["down_atk", 7]] }),
       P(5, "e_gm_aranami", "荒波の連撃", "戦いのはじめに加速（3 ターン）", { startFx: [["haste", null, 3]] }),
       P(6, "e_gm_ganjo", "頑丈", "HP +10%", { hpMul: 1.1 }),
       P(7, "e_gm_akahigekanroku", "赤ひげの貫禄", "ATK +10%・受けるダメージ −5%", { atkMul: 1.1, dmgCut: 5 }),
@@ -686,7 +687,7 @@ export const ENEMY_TREES = {
       P(4, "e_td_nirami", "にらみ", "戦いのはじめに相手に ATK 減少 10", { startFoeFx: [["down_atk", 10]] }),
       P(5, "e_td_shishinokiba", "獅子の牙", "技のダメージ +10%", { wazaDmg: 10 }),
       P(6, "e_td_amazarashi", "雨ざらしの石", "HP +10%", { hpMul: 1.1 }),
-      P(7, "e_td_shimanomamori", "島の守り", "戦いのはじめに防御・受けるダメージ −6%", { startFx: [["guard"]], dmgCut: 6 }),
+      P(7, "e_td_shimanomamori", "島の守り", "戦いのはじめに防御・受けるダメージ −6%・受けた ダメージ（継続ダメージも）の 20% を 貫通に ためる", { startFx: [["guard"]], dmgCut: 6, hurtPierce: 0.2 }),
     ],
     plan: [G("first", undefined, "e_td_ishinokamae"), G("selfHas", "guard", "e_td_shishiichigeki"), G("hpBelow", 50, "e_td_kawaramamori"), G("mpAtLeast", 10, "e_td_shishidaihoko"), G("every", 2, "e_td_aunkamae"), G("always", undefined, "e_td_shishizutsuki")] },
 
@@ -713,20 +714,20 @@ export const ENEMY_TREES = {
   e_boss_fog: { name: "消えない霧", enemy: "霧の巨人", dungeon: "tida", rank: "ボス", type: "caster", main: "int", sub: "hp", theme: "silence",
     list: [
       S(1, "e_td_kirinokobushi", "霧の拳", "itazura", 3, [D(10)]),
-      S(2, "e_td_kirinoiki", "霧の息", "itazura", 4, [D(5), F("silence", 2, { chance: 0.6 })]),
+      S(2, "e_td_kirinoiki", "霧の息", "itazura", 4, [D(5), F("silence", 2, { chance: 0.39 })]),
       S(3, "e_td_kirinokoromo", "霧の衣", "itazura", 5, [M("ward", 30), M("mirage", 20)]),
       S(4, "e_td_chinmokunoatsu", "沈黙の圧", "itazura", 6, [D(6, { consume: "silence", perTurn: 8 }), F("daze", 2, { ifConsumed: 1 })]),
-      S(5, "e_td_kirinoomomi", "霧の重み", "itazura", 5, [F("fatigue", 3), F("down_agi", 30, { turns: 3 })]),
+      S(5, "e_td_kirinoomomi", "霧の重み", "itazura", 5, [F("fatigue", 3), F("down_agi", 20, { turns: 3 })]),
       S(6, "e_td_shiroiyami", "白い闇", "itazura", 8, [F("silence", 3), F("blind", 3)]),
       S(7, "e_td_kirinosuu", "霧に吸う", "itazura", 7, [D(14), MPD(5)]),
-      S(8, "e_td_daimutettsui", "大霧の鉄槌", "itazura", 14, [D(40, { vsFx: { silence: 0.5 } })]),
+      S(8, "e_td_daimutettsui", "大霧の鉄槌", "itazura", 22, [D(26, { vsFx: { silence: 0.5 } })]),
       P(1, "e_td_kirinokarada", "霧の体", "受けるダメージ −5%", { dmgCut: 5 }),
       P(2, "e_td_shizukesa", "静けさ", "付ける沈黙 +1 ターン", { extendIds: { silence: 1 } }),
       P(3, "e_td_chinmokunoaruji", "沈黙の主", "沈黙の相手に +25%", { vsFx: { silence: 0.25 } }),
       P(4, "e_td_koikiri", "濃い霧", "戦いのはじめに相手を疲労", { startFoeFx: [["fatigue"]] }),
       P(5, "e_td_kirinome", "霧の目", "沈黙の相手への会心 +20%", { critVsFx: { silence: 0.2 } }),
       P(6, "e_td_kirinobannin", "霧の番人", "戦いのはじめに障壁 +20", { startFx: [["ward", 20]] }),
-      P(7, "e_td_kirinokyojin", "霧の巨人", "自分の番のはじめに 15% で相手を沈黙（1 ターン）", { auraFx: [["silence", 0.15, 1]] }),
+      P(7, "e_td_kirinokyojin", "霧の巨人", "自分の番のはじめに 10% で相手を沈黙（1 ターン）", { auraFx: [["silence", 0.1, 1]] }),
     ],
     plan: [G("first", undefined, "e_td_kirinokoromo"), G("foeHas", "silence", "e_td_daimutettsui"), G("foeHas", "silence", "e_td_chinmokunoatsu"), G("foeNotHas", "silence", "e_td_kirinoiki"), G("every", 3, "e_td_shiroiyami"), G("always", undefined, "e_td_kirinokobushi")] },
 
@@ -767,7 +768,7 @@ export const ENEMY_TREES = {
       P(4, "e_at_shionomamori", "潮の守り", "状態異常に強い +15%", { statusRes: 15 }),
       P(5, "e_at_haritsukukara", "はりつく殻", "戦いのはじめに装甲 +20", { startFx: [["armor", 20]] }),
       P(6, "e_at_togenokara", "とげの殻", "戦いのはじめに棘 +40", { startFx: [["thorns", 40]] }),
-      P(7, "e_at_fujitsubonoshiro", "フジツボの城", "受けるダメージ −6%・戦いのはじめに装甲 +30", { dmgCut: 6, startFx: [["armor", 30]] }),
+      P(7, "e_at_fujitsubonoshiro", "フジツボの城", "受けるダメージ −6%・戦いのはじめに装甲 +30・受けた ダメージ（継続ダメージも）の 40% を 貫通に ためる", { dmgCut: 6, startFx: [["armor", 30]], hurtPierce: 0.4 }),
     ],
     plan: [G("hpBelow", 30, "e_at_chinbotsujoheki"), G("selfNotHas", "armor", "e_at_karakatame"), G("hpBelow", 50, "e_at_shionoyoroi"), G("every", 3, "e_at_nanpasenomosa"), G("every", 2, "e_at_karataiatari"), G("always", undefined, "e_at_fujitsubokobushi")] },
 
@@ -814,20 +815,20 @@ export const ENEMY_TREES = {
   e_boss_octopus: { name: "八本足の主", enemy: "大ダコ", dungeon: "atui", rank: "ボス", type: "attacker", main: "atk", sub: "hp", theme: "stun",
     list: [
       S(1, "e_at_ashinomuchi", "足のむち", "waza", 3, [D(10)]),
-      S(2, "e_at_shimetsuke", "しめつけ", "waza", 4, [D(5), F("stun", 1, { chance: 0.35 })]),
+      S(2, "e_at_shimetsuke", "しめつけ", "waza", 4, [D(5), F("stun", 1, { chance: 0.26 })]),
       S(3, "e_at_sumikemuri", "墨けむり", "itazura", 4, [F("blind", 2), M("mirage", 20)]),
-      S(4, "e_at_karamitsuki", "からみつき", "waza", 6, [F("stun", 1, { chance: 0.4 }), D(14, { vsFx: { stun: 0.5 } })]),
+      S(4, "e_at_karamitsuki", "からみつき", "waza", 6, [F("stun", 1, { chance: 0.3 }), D(14, { vsFx: { stun: 0.5 } })]),
       S(5, "e_at_sumienmaku", "墨の煙幕", "itazura", 5, [F("blind", 3), M("mirage", 30)]),
-      S(6, "e_at_happonarashi", "八本足の嵐", "waza", 8, [D(6, { hits: 4 }), F("stun", 1, { chance: 0.3 })]),
+      S(6, "e_at_happonarashi", "八本足の嵐", "waza", 8, [D(6, { hits: 4 }), F("stun", 1, { chance: 0.22 })]),
       S(7, "e_at_iwanihebaritsuku", "岩にへばりつく", "waza", 7, [M("regen", 15), M("armor", 20)]),
-      S(8, "e_at_ouzushimetsuke", "大渦のしめつけ", "waza", 12, [D(38), F("stun", 1, { chance: 0.5 })]),
+      S(8, "e_at_ouzushimetsuke", "大渦のしめつけ", "waza", 16, [D(28), F("stun", 1, { chance: 0.37 })]),
       P(1, "e_at_chikarazuyoiashi", "力強い足", "ATK +5%", { atkMul: 1.05 }),
       P(2, "e_at_kyuban", "吸盤", "与えたダメージの 5% を回復", { drain: 5 }),
       P(3, "e_at_shimeage", "締めあげ", "気絶の相手に +20%", { vsFx: { stun: 0.2 } }),
       P(4, "e_at_suminomekuramashi", "墨の目くらまし", "戦いのはじめに相手を盲目（2 ターン）", { startFoeFx: [["blind", null, 2]] }),
       P(5, "e_at_happonnoude", "八本の腕", "戦いのはじめに加速（3 ターン）", { startFx: [["haste", null, 3]] }),
       P(6, "e_at_yawarakaikarada", "やわらかい体", "HP +10%", { hpMul: 1.1 }),
-      P(7, "e_at_uminosokonoaruji", "海の底の主", "ATK +10%・攻撃のとき 10% で気絶（1 ターン）", { atkMul: 1.1, onHitFx: [["stun", 0.1, null, 1]] }),
+      P(7, "e_at_uminosokonoaruji", "海の底の主", "ATK +10%・攻撃のとき 7% で気絶（1 ターン）", { atkMul: 1.1, onHitFx: [["stun", 0.07, null, 1]] }),
     ],
     plan: [G("mpAtLeast", 12, "e_at_ouzushimetsuke"), G("hpBelow", 50, "e_at_sumikemuri"), G("every", 3, "e_at_happonarashi"), G("every", 2, "e_at_karamitsuki"), G("always", undefined, "e_at_ashinomuchi")] },
 
@@ -915,20 +916,20 @@ export const ENEMY_TREES = {
   e_boss_mermaid: { name: "惑わしの竪琴", enemy: "ザンの女王", dungeon: "zan", rank: "ボス", type: "healer", main: "int", sub: "hp", theme: "confusion",
     list: [
       S(1, "e_zn_tategoto", "竪琴の調べ", "itazura", 3, [D(10)]),
-      S(2, "e_zn_madoiuta", "惑いの歌", "itazura", 4, [F("confusion", 2, { chance: 0.5 })]),
+      S(2, "e_zn_madoiuta", "惑いの歌", "itazura", 4, [F("confusion", 2, { chance: 0.34 })]),
       S(3, "e_zn_ningyoiyashi", "人魚の癒し", "waza", 5, [H(0.2)]),
       S(4, "e_zn_uzumaki", "渦巻く旋律", "itazura", 6, [D(6, { consume: "confusion", perTurn: 6 }), F("daze", 2, { ifConsumed: 1 })]),
       S(5, "e_zn_shiokago", "潮の加護", "waza", 6, [M("ward", 30), M("regen", 12)]),
       S(6, "e_zn_kuruishio", "狂い潮の合唱", "itazura", 8, [F("confusion", 3), F("fatigue", 3)]),
       S(7, "e_zn_awakekkai", "泡の結界", "waza", 8, [M("blessing", 3), CURE]),
-      S(8, "e_zn_otsunami", "女王の大津波", "itazura", 14, [D(30, { vsFx: { confusion: 0.25 } }), F("confusion", 2)]),
+      S(8, "e_zn_otsunami", "女王の大津波", "itazura", 21, [D(20, { vsFx: { confusion: 0.25 } }), F("confusion", 2)]),
       P(1, "e_zn_joouhin", "女王の気品", "INT +5%", { intMul: 1.05 }),
       P(2, "e_zn_ningyouroko", "人魚のうろこ", "毎ターン HP 1% 回復", { hpRegen: 0.01 }),
       P(3, "e_zn_madowashite", "惑わしの名手", "混乱の相手に +20%", { vsFx: { confusion: 0.2 } }),
       P(4, "e_zn_joouigen", "女王の威厳", "戦いのはじめに相手を疲労（2 ターン）", { startFoeFx: [["fatigue", null, 2]] }),
       P(5, "e_zn_owaranuuta", "終わらない歌", "付ける混乱 +1 ターン", { extendIds: { confusion: 1 } }),
       P(6, "e_zn_shinkaikabe", "深い水の壁", "受けるダメージ −8%", { dmgCut: 8 }),
-      P(7, "e_zn_zannoutagoe", "ザンの歌声", "自分の番のはじめに 10% で相手を混乱（2 ターン）", { auraFx: [["confusion", 0.1, 2]] }),
+      P(7, "e_zn_zannoutagoe", "ザンの歌声", "自分の番のはじめに 7% で相手を混乱（2 ターン）", { auraFx: [["confusion", 0.07, 2]] }),
     ],
     plan: [G("hpBelow", 40, "e_zn_ningyoiyashi"), G("foeHas", "confusion", "e_zn_uzumaki"), G("mpAtLeast", 14, "e_zn_otsunami"), G("first", undefined, "e_zn_shiokago"), G("foeNotHas", "confusion", "e_zn_madoiuta"), G("every", 3, "e_zn_kuruishio"), G("always", undefined, "e_zn_tategoto")] },
 
@@ -989,7 +990,7 @@ export const ENEMY_TREES = {
       P(4, "e_uf_ganjoshin", "頑丈な芯", "HP +10%", { hpMul: 1.1 }),
       P(5, "e_uf_omoikobushi", "重い拳", "技のダメージ +10%", { wazaDmg: 10 }),
       P(6, "e_uf_maenomeri", "前のめり", "前の番に当てていたら、技 +15%", { momentum: 0.15 }),
-      P(7, "e_uf_kazanshugo", "火山の守護者", "受けるダメージ −8%・戦いのはじめに棘 +40", { dmgCut: 8, startFx: [["thorns", 40]] }),
+      P(7, "e_uf_kazanshugo", "火山の守護者", "受けるダメージ −8%・戦いのはじめに棘 +40・受けた ダメージ（継続ダメージも）の 45% を 貫通に ためる", { dmgCut: 8, startFx: [["thorns", 40]], hurtPierce: 0.45 }),
     ],
     plan: [G("first", undefined, "e_uf_surudoikakera"), G("hpBelow", 40, "e_uf_daitoge"), G("every", 3, "e_uf_kuroikagami"), G("selfNotHas", "thorns", "e_uf_surudoikakera"), G("hpBelow", 60, "e_uf_kokuyojoheki"), G("notBuffed", undefined, "e_uf_kokuyoyoroi"), G("always", undefined, "e_uf_kokuyokobushi")] },
 
@@ -1016,20 +1017,20 @@ export const ENEMY_TREES = {
   e_boss_salamander: { name: "火山のあるじ", enemy: "サラマンダー", dungeon: "ufu", rank: "ボス", type: "attacker", main: "atk", sub: "hp", theme: "burn",
     list: [
       S(1, "e_uf_honotsume", "炎の爪", "waza", 3, [D(10)]),
-      S(2, "e_uf_kaennoiki", "火炎の息", "waza", 4, [D(6), F("burn", 4)]),
+      S(2, "e_uf_kaennoiki", "火炎の息", "waza", 4, [D(6), F("burn", 2)]),
       S(3, "e_uf_kazanhoko", "火山の咆哮", "waza", 4, [M("up_atk", 25, { turns: 3 })]),
       S(4, "e_uf_bakuen", "爆炎", "waza", 6, [D(8, { consume: "burn", burst: true }), F("scald", 3, { ifConsumed: 1 })]),
-      S(5, "e_uf_shakunetsu", "灼熱のにらみ", "itazura", 5, [F("down_atk", 25, { turns: 3 }), F("scald", 3)]),
-      S(6, "e_uf_honorengeki", "炎の連撃", "waza", 8, [D(6, { hits: 4 }), F("burn", 3)]),
+      S(5, "e_uf_shakunetsu", "灼熱のにらみ", "itazura", 5, [F("down_atk", 14, { turns: 3 }), F("scald", 3)]),
+      S(6, "e_uf_honorengeki", "炎の連撃", "waza", 8, [D(6, { hits: 4 }), F("burn", 2)]),
       S(7, "e_uf_yogannokoromo", "溶岩の衣", "waza", 7, [M("armor", 30), M("regen", 12)]),
-      S(8, "e_uf_ofunka", "ウフの大噴火", "waza", 12, [D(40), F("burn", 6)]),
+      S(8, "e_uf_ofunka", "ウフの大噴火", "waza", 21, [D(22), F("burn", 3)]),
       P(1, "e_uf_honouroko", "炎のうろこ", "ATK +5%", { atkMul: 1.05 }),
-      P(2, "e_uf_moeruchi", "燃える血", "付ける炎上 +2", { fxAmtAdd: { burn: 2 } }),
+      P(2, "e_uf_moeruchi", "燃える血", "付ける炎上 +1", { fxAmtAdd: { burn: 1 } }),
       P(3, "e_uf_yakitsukusu", "焼きつくす牙", "炎上か火傷の相手に +20%", { vsFx: { burn: 0.2, scald: 0.2 } }),
-      P(4, "e_uf_kakonoaruji", "火口のあるじ", "戦いのはじめに相手に ATK 減少 10", { startFoeFx: [["down_atk", 10]] }),
-      P(5, "e_uf_matouhono", "まとう炎", "攻撃のとき 20% で炎上 +3", { onHitFx: [["burn", 0.2, 3]] }),
+      P(4, "e_uf_kakonoaruji", "火口のあるじ", "戦いのはじめに相手に ATK 減少 6", { startFoeFx: [["down_atk", 6]] }),
+      P(5, "e_uf_matouhono", "まとう炎", "攻撃のとき 11% で炎上 +3", { onHitFx: [["burn", 0.11, 3]] }),
       P(6, "e_uf_ganjouroko", "頑丈なうろこ", "HP +10%", { hpMul: 1.1 }),
-      P(7, "e_uf_hinoyamanoo", "火の山の王", "ATK +10%・直接攻撃を受けると 30% で相手に炎上 +3", { atkMul: 1.1, whenHitFx: [["burn", 0.3, 3]] }),
+      P(7, "e_uf_hinoyamanoo", "火の山の王", "ATK +10%・直接攻撃を受けると 17% で相手に炎上 +3", { atkMul: 1.1, whenHitFx: [["burn", 0.17, 3]] }),
     ],
     plan: [G("mpAtLeast", 12, "e_uf_ofunka"), G("foeNotHas", "burn", "e_uf_kaennoiki"), G("every", 2, "e_uf_bakuen"), G("every", 3, "e_uf_honorengeki"), G("selfNotHas", "up_atk", "e_uf_kazanhoko"), G("always", undefined, "e_uf_honotsume")] },
 
@@ -1218,20 +1219,20 @@ export const ENEMY_TREES = {
   e_boss_seagod: { name: "凍てつく深い海", enemy: "ニライの海神", dungeon: "nirai", rank: "ボス", type: "caster", main: "int", sub: "hp", theme: "freeze",
     list: [
       S(1, "e_nr_namitsue", "波の杖", "itazura", 3, [D(11)]),
-      S(2, "e_nr_itetsukushio", "凍てつく潮", "itazura", 4, [D(6), F("frostbite", 3), F("freeze", 1, { chance: 0.3 })]),
+      S(2, "e_nr_itetsukushio", "凍てつく潮", "itazura", 4, [D(6), F("frostbite", 3), F("freeze", 1, { chance: 0.26 })]),
       S(3, "e_nr_kaijinmamori", "海神の守り", "itazura", 5, [M("ward", 30), M("regen", 10)]),
       S(4, "e_nr_korikudaki", "氷砕きの大波", "itazura", 6, [D(10, { vsFx: { freeze: 1 } })]),
-      S(5, "e_nr_kogoeruuzu", "凍える渦", "itazura", 6, [F("down_agi", 30, { turns: 3 }), F("fatigue", 3)]),
-      S(6, "e_nr_korinoori", "氷の檻", "itazura", 7, [F("freeze", 1, { chance: 0.6 }), F("frostbite", 4)]),
+      S(5, "e_nr_kogoeruuzu", "凍える渦", "itazura", 6, [F("down_agi", 26, { turns: 3 }), F("fatigue", 3)]),
+      S(6, "e_nr_korinoori", "氷の檻", "itazura", 7, [F("freeze", 1, { chance: 0.53 }), F("frostbite", 4)]),
       S(7, "e_nr_shirashioiyashi", "白い潮の癒し", "waza", 7, [H(0.2), CURE]),
-      S(8, "e_nr_ootsunami", "ニライの大津波", "itazura", 14, [D(38, { vsFx: { freeze: 0.5 } }), F("freeze", 1, { chance: 0.3 })]),
+      S(8, "e_nr_ootsunami", "ニライの大津波", "itazura", 16, [D(33, { vsFx: { freeze: 0.5 } }), F("freeze", 1, { chance: 0.26 })]),
       P(1, "e_nr_kaijinuroko", "海神のうろこ", "受けるダメージ −5%", { dmgCut: 5 }),
       P(2, "e_nr_tsumetaite", "冷たい手", "付ける凍傷 +1", { fxAmtAdd: { frostbite: 1 } }),
       P(3, "e_nr_kudakeruhyou", "砕ける氷", "凍結した相手に +25%", { vsFx: { freeze: 0.25 } }),
       P(4, "e_nr_shionomamori", "潮の守り", "戦いのはじめに障壁 +20", { startFx: [["ward", 20]] }),
       P(5, "e_nr_fukaiumi", "深い海", "HP +10%", { hpMul: 1.1 }),
-      P(6, "e_nr_kaijinigen", "海神の威厳", "戦いのはじめに相手に ATK 減少 10", { startFoeFx: [["down_atk", 10]] }),
-      P(7, "e_nr_itetsukukehai", "凍てつく気配", "自分の番のはじめに 10% で相手を凍結（1 ターン）", { auraFx: [["freeze", 0.1, 1]] }),
+      P(6, "e_nr_kaijinigen", "海神の威厳", "戦いのはじめに相手に ATK 減少 9", { startFoeFx: [["down_atk", 9]] }),
+      P(7, "e_nr_itetsukukehai", "凍てつく気配", "自分の番のはじめに 9% で相手を凍結（1 ターン）", { auraFx: [["freeze", 0.09, 1]] }),
     ],
     plan: [G("foeHas", "freeze", "e_nr_korikudaki"), G("first", undefined, "e_nr_itetsukushio"), G("every", 3, "e_nr_korinoori"), G("mpAtLeast", 14, "e_nr_ootsunami"), G("foeNotHas", "frostbite", "e_nr_itetsukushio"), G("always", undefined, "e_nr_namitsue")] },
 
@@ -1328,15 +1329,15 @@ export const ENEMY_TREES = {
       S(4, "e_mb_kaiteisabaki", "海の底の裁き", "itazura", 6, [D(6, { consume: "rot", perTurn: 8 }), F("silence", 2, { ifConsumed: 1 })]),
       S(5, "e_mb_haichi", "総員、配置につけ", "itazura", 5, [M("up_int", 25, { turns: 3 }), M("charge")]),
       S(6, "e_mb_borei", "亡霊の乗組員", "itazura", 8, [D(6, { hits: 4 }), F("rot", 2)]),
-      S(7, "e_mb_kaizu", "呪われた海図", "itazura", 7, [F("confusion", 2), F("down_atk", 20, { turns: 3 }), F("down_int", 20, { turns: 3 })]),
-      S(8, "e_mb_yureisenhou", "幽霊船の大砲", "itazura", 14, [D(38, { vsFx: { rot: 0.3 } })]),
+      S(7, "e_mb_kaizu", "呪われた海図", "itazura", 7, [F("confusion", 2), F("down_atk", 13, { turns: 3 }), F("down_int", 13, { turns: 3 })]),
+      S(8, "e_mb_yureisenhou", "幽霊船の大砲", "itazura", 22, [D(25, { vsFx: { rot: 0.3 } })]),
       P(1, "e_mb_igen", "船長の威厳", "受けるダメージ −5%", { dmgCut: 5 }),
       P(2, "e_mb_nagainoroi", "長い呪い", "付ける腐敗 +1 ターン", { extendIds: { rot: 1 } }),
       P(3, "e_mb_kuchitamashii", "朽ちた魂", "腐敗の相手に +25%", { vsFx: { rot: 0.25 } }),
       P(4, "e_mb_kirinoho", "霧の帆", "戦いのはじめに幻影 +20", { startFx: [["mirage", 20]] }),
       P(5, "e_mb_noroirashin", "呪いの羅針盤", "戦いのはじめに相手を腐敗（3 ターン）", { startFoeFx: [["rot", null, 3]] }),
       P(6, "e_mb_kirimamori", "霧の守り", "戦いのはじめに障壁 +20", { startFx: [["ward", 20]] }),
-      P(7, "e_mb_shinizokonai", "死にぞこない", "戦いのはじめに輪廻・攻撃のとき 15% で腐敗（3 ターン）", { startFx: [["reincarnation"]], onHitFx: [["rot", 0.15, null, 3]] }),
+      P(7, "e_mb_shinizokonai", "死にぞこない", "戦いのはじめに輪廻・攻撃のとき 10% で腐敗（3 ターン）", { startFx: [["reincarnation"]], onHitFx: [["rot", 0.1, null, 3]] }),
     ],
     plan: [G("first", undefined, "e_mb_mayoigiri"), G("foeNotHas", "rot", "e_mb_senchonoroi"), G("mpAtLeast", 14, "e_mb_yureisenhou"), G("every", 3, "e_mb_kaiteisabaki"), G("every", 2, "e_mb_borei"), G("always", undefined, "e_mb_aoionibi")] },
 
@@ -1417,7 +1418,7 @@ export const ENEMY_TREES = {
       P(4, "e_kn_murenohikari", "群れの光", "回避 +5%", { evade: 0.05 }),
       P(5, "e_kn_hikarinome", "光の目", "会心 +5%", { crit: 0.05 }),
       P(6, "e_kn_inochimeguri", "命のめぐり", "毎ターン HP 2% 回復", { hpRegen: 0.02 }),
-      P(7, "e_kn_shinkaitomoshibi", "深海の灯火", "戦いのはじめに再生 +15 と集中", { startFx: [["regen", 15], ["focus"]] }),
+      P(7, "e_kn_shinkaitomoshibi", "深海の灯火", "戦いのはじめに再生 +15 と集中・回復した 量の 50% が 相手への ダメージに なる", { startFx: [["regen", 15], ["focus"]], healHit: 0.5 }),
     ],
     plan: [G("hpBelow", 30, "e_kn_seimeinoizumi"), G("debuffed", undefined, "e_kn_tsumetaihikari"), G("selfNotHas", "regen", "e_kn_hikarinotsubu"), G("hpBelow", 60, "e_kn_shinkaikago"), G("every", 2, "e_kn_inochinohikari"), G("always", undefined, "e_kn_hikaritai")] },
 
@@ -3076,16 +3077,34 @@ export const ENEMY_TREES = {
 
 Object.assign(ENEMY_TREES, TREES3, FU_F, FU_E, FU_D, FU_C, FU_B, FU_A, FU_S, FU_EX);
 
+// ペット用の お手本の 作戦（鹿さんの 決め 2026-11-07「ペットの お手本だけ」）。お手本の 作戦が 状態異常・自分の 強化を 先に 使い すぎて 弱かった ツリーだけ。
+// 数は 奥義を 撃つ MP の しきい（Claude が はかって 決めた。単体で 40〜60%、ボスは 55〜65%）。ダンジョンの 敵は plan の まま
+const PET_PLAN = { e_barrel: null, e_lizard: null, e_stormship: 44, e_thief: 46, e_wolf: 25, e_witch: 34, e_gull: 11, e3_galebird: 26, e3_jerboa: 26, e3_iwayagi: 34, e3_boss_sandworm: 26, e3_fortune: 16, e3_scribe: 12, e3_sandfirefly: 12,
+  e3_windbird: 12, e3_falcon: 12, e3_sunsetlizard: 12, e3_flamingo: 12, e3_dragonegg: 12, e3_desertrose: 12, e3_jackal: 12, e3_leopard: 12, e3_amagumo: 12, e3_chimebat: 12 };
+for (const [id, at] of Object.entries(PET_PLAN)) ENEMY_TREES[id].petPlan = attackPlan(ENEMY_TREES[id], at);
+// 回復の ツリー（回復した 量の 一部が ダメージに なる）は、回復を こまめに 使う お手本
+const PET_PLAN_HAND = {
+  e_lantern: [G("debuffed", undefined, "e_kiyomenohi"), G("hpBelow", 30, "e_michibiki"), G("selfNotHas", "blessing", "e_inorinohi"), G("foeNotHas", "burn", "e_onibi"), G("always", undefined, "e_onibi"), G("always", undefined, "e_lanterntataku")],
+  e_deepfish: [G("hpBelow", 50, "e_kn_seimeinoizumi"), G("selfNotHas", "regen", "e_kn_shinkaikago"), G("always", undefined, "e_kn_inochinohikari"), G("always", undefined, "e_kn_mekuramashi"), G("always", undefined, "e_kn_hikaritai")],
+};
+for (const [id, pl] of Object.entries(PET_PLAN_HAND)) ENEMY_TREES[id].petPlan = pl;
+// 敵用の 写し（鹿さんの 決め 2026-11-07「敵の ボスは 前の 数」）：サブツリーを そろえた ボスは、ダンジョンの 敵としては 前の 数の まま 戦う。
+// id ＋ FOE の ツリー（行き先 なし・図鑑にも 出ない）。技の id にも FOE を 付けて、ペット用の 技と 数を 分ける。敵を 作る ときは builds.js の petAt が 写しを えらぶ
+export const FOE = "_foe";
+const foeCopy = (id, list) => { const t = ENEMY_TREES[id]; const { petPlan, foeList, ...rest } = t;
+  ENEMY_TREES[id + FOE] = { ...rest, dungeon: null, foeOf: id, list: list.map((s) => ({ ...s, id: s.id + FOE })), plan: t.plan.map((g) => ({ ...g, do: g.do + FOE })) }; };
+for (const [id, list] of Object.entries(FOE_LISTS)) foeCopy(id, list);
+for (const [id, t] of Object.entries(ENEMY_TREES)) if (t.foeList) foeCopy(id, t.foeList);
 // スキルツリーの 進化（配合。docs/mono-link-haigou.md・イルルカ／ジョーカー3 の スキルの 派生）：最大まで 振った ツリーは 配合で「＋」が 受けつぐ 候補に 出る
 // 「＋」は 同じ 技で 威力 1.3 倍（技の 名前にも ＋）。id は もとの id ＋ EVO。行き先は なし（図鑑には 出ない・捕まえられない）
 export const EVO = "_ev", EVO_POW = 1.3;
 export const evoOf = (id) => (ENEMY_TREES[id + EVO] ? id + EVO : null);
 for (const [id, t] of Object.entries(ENEMY_TREES)) {
-  if (t.evo) continue;
+  if (t.evo || t.foeOf) continue;
   const list = t.list.map((s) => {
     if (s.kind === "passive") return { ...s, id: s.id + EVO };
     const fx = s.fx.map((x) => (x.t === "dmg" ? { ...x, pow: Math.round(x.pow * EVO_POW) } : x));
     return { ...s, id: s.id + EVO, name: s.name + "＋", fx, text: describe(fx) };
   });
-  ENEMY_TREES[id + EVO] = { ...t, name: t.name + "＋", dungeon: null, evo: id, list, plan: t.plan.map((g) => ({ ...g, do: g.do + EVO })) };
+  ENEMY_TREES[id + EVO] = { ...t, name: t.name + "＋", dungeon: null, evo: id, list, plan: t.plan.map((g) => ({ ...g, do: g.do + EVO })), ...(t.petPlan ? { petPlan: t.petPlan.map((g) => ({ ...g, do: g.do + EVO })) } : {}) };
 }

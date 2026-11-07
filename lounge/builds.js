@@ -25,12 +25,13 @@ export const PLANS = {
 };
 
 // type の Lv のペット（branch：{ 1: "R" } で分岐①を右に。seed：個体差。free：手で振ったステータス。subs：サブツリー。main：敵のツリー）
-// ガンビット：サブツリーのお手本から「いつでも」以外の行を先に入れ、そのあとに職業のお手本。o.gambits で自分で決めることもできる
+// ガンビット：サブツリーのお手本（ペット用の petPlan が あれば それ）から「いつでも」以外の行を先に入れ、そのあとに職業のお手本。o.gambits で自分で決めることもできる
 const AUTO_OF = { attacker: "attack" };
 export function petAt(type, lv, o = {}) {
+  if (o.main && ENEMY_TREES[o.main + "_foe"]) o = { ...o, main: o.main + "_foe" };   // 敵は 前の 数の 写し（鹿さんの 決め「敵の ボスは 前の 数」。enemy-trees.js の FOE）
   const p = buildPet(type, lv, o), has = (g) => p.learnedSkills.includes(g.do);
   const own = o.main ? ENEMY_TREES[o.main].plan : PLANS[type].gambits;
-  const fromSubs = (o.subs || []).flatMap(([id]) => ENEMY_TREES[id].plan.filter((g) => g.if[0] !== "always" && has(g)));
+  const fromSubs = (o.subs || []).flatMap(([id]) => (ENEMY_TREES[id].petPlan || ENEMY_TREES[id].plan).filter((g) => g.if[0] !== "always" && has(g)));
   const gambits = (o.gambits || [...fromSubs, ...own]).filter(has).slice(0, gambitSlots(lv, p.keywords));
   const used = [...new Set(gambits.map((g) => g.do))], set = [...used, ...p.learnedSkills.filter((s) => !used.includes(s))].slice(0, SET_SLOTS);
   return { type, lv, stats: p.stats, set, passives: passiveSet(p.passives, o.passives), gambits, auto: PLANS[type]?.auto || AUTO_OF[type] || "balance", trees: p.trees };

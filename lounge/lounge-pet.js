@@ -72,7 +72,7 @@ export function fighterOf(pet, rec) {
   for (const k in stats) stats[k] = Math.round(stats[k]);
   if (pet.carry && !skills.includes(pet.carry)) skills.push(pet.carry);   // 前の 職業から 持ちこした 技
   const can = (g) => skills.includes(g.do) || (SKILL[g.do] && SKILL[g.do].type === null);
-  const fromSubs = pet.subs.flatMap((id) => ENEMY_TREES[id].plan.filter((g) => g.if[0] !== "always" && skills.includes(g.do)));
+  const fromSubs = pet.subs.flatMap((id) => (ENEMY_TREES[id].petPlan || ENEMY_TREES[id].plan).filter((g) => g.if[0] !== "always" && skills.includes(g.do)));
   const gambits = (pet.gambits || [...fromSubs, ...PLANS[pet.type].gambits]).filter(can).slice(0, gambitSlots(pet.lv, keywords));
   const used = [...new Set(gambits.map((g) => g.do).filter((id) => skills.includes(id)))], set = [...used, ...skills.filter((s) => !used.includes(s))].slice(0, SET_SLOTS);
   return { type: pet.type, lv: pet.lv, stats, set, passives: passiveSet(passives, pet.passives), gambits, auto: pet.style || PLANS[pet.type].auto || "balance", trees, name: pet.name, species: pet.species, equip: rec ? equippedOf(pet, rec) : [], detail: detailOf(pet) };

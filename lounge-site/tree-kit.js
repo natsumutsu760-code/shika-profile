@@ -9,6 +9,15 @@ export const F = (id, a, o = {}) => ({ t: "fx", id, who: "foe", ...(typeof a ===
 export const M = (id, a, o = {}) => ({ t: "fx", id, who: "me", ...(typeof a === "number" && EFFECTS[id].dur !== "turn" && EFFECTS[id].dur !== "once" ? { amt: a } : a != null ? { turns: a } : {}), ...o });   // 自分に
 export const H = (pct) => ({ t: "heal", pct }), CURE = { t: "cure" }, DIS = (n) => ({ t: "dispel", n }), MPD = (n) => ({ t: "mpDrain", n }), SH = (pct) => ({ t: "shield", pct });
 
+// ペット用の お手本の 作戦（攻め中心。鹿さんの 決め 2026-11-07「ペットの お手本だけ」：敵の 作戦は そのまま）
+// MP が bigAt 以上なら 奥義、もとの 作戦の「はじめに・相手に ない とき・自分に ない とき」の 行（テーマを 保つ）、あとは 威力の 大きい 順に 攻撃
+export function attackPlan(t, bigAt) {
+  const pw = (n) => (n.fx || []).filter((x) => x.t === "dmg").reduce((a, x) => a + x.pow * (x.hits || 1), 0);
+  const sk = t.list.filter((n) => n.kind !== "passive"), big = [...sk].sort((a, b) => b.mp - a.mp)[0];
+  return [{ if: ["mpAtLeast", bigAt ?? big.mp], do: big.id }, ...t.plan.filter((g) => ["first", "foeNotHas", "selfNotHas"].includes(g.if[0]) && g.do !== big.id),
+    ...sk.filter((n) => n !== big && pw(n) > 0).sort((a, b) => pw(b) - pw(a)).map((n) => ({ if: ["always"], do: n.id }))];
+}
+
 // fx から説明文を作る
 export function describe(fx) {
   const out = [];

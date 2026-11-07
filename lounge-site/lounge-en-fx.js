@@ -22,6 +22,8 @@ export const RULES = [
   // 戦いの はじめ
   [/^戦いのはじめに相手(全員)?(?:に|を)(.+)$/, (m, p) => { const b = both(p, m[2]); return b && `Start of battle: ${m[1] ? "all foes" : "foe"} ${b}`; }],
   [/^戦いのはじめに(.+)$/, (m, p) => { const b = both(p, m[1]); return b && `Start of battle: ${b}`; }],
+  [/^受けた ダメージ（継続ダメージも）の (\d+)% を 貫通に ためる$/, (m) => `Store ${m[1]}% of damage taken (incl. damage over time) as Pierce`],   // 守りの サブツリー（2026-11-07）
+  [/^回復した 量の (\d+)% が 相手への ダメージに なる$/, (m) => `Healing also deals ${m[1]}% of the amount as damage to the foe`],   // 回復の サブツリー（2026-11-07）
   [/^自分にバリアを付けるたびに(.+)$/, (m, p) => { const b = both(p, m[1]); return b && `Each time you gain a Barrier: ${b}`; }],   // 重なる光 など（複数バリアの 廃止、2026-11-07）
   // 付ける 量・ターン
   [/^付ける(.+?) \+(\d+) ターン$/, (m, p) => p(m[1]) && `${p(m[1])} you inflict +${m[2]} turn${m[2] === "1" ? "" : "s"}`],
@@ -42,6 +44,7 @@ export const RULES = [
   [/^毎ターン HP ([\d.]+)% 回復$/, (m) => `Heal ${m[1]}% HP each turn`],
   [/^毎ターン MP \+(\d+)$/, (m) => `MP +${m[1]} each turn`],   // ミカネル島の パッシブ（MP の 自然回復）
   [/^与えたダメージの (\d+)% を回復$/, (m) => `Heal ${m[1]}% of damage dealt`],
+  [/^加速の あいだ、与える ダメージ \+(\d+)%$/, (m) => `While Hasted, damage dealt +${m[1]}%`],   // 超音波（2026-11-07）
   [/^回復する量 \+(\d+)%$/, (m) => `Healing +${m[1]}%`],
   [/^自分のシールドの量 \+(\d+)%$/, (m) => `Your Shield +${m[1]}%`],
   [/^(.+)に強い（(\d+)% で防ぐ）$/, (m, p) => or(p, m[1]) && `Resist ${or(p, m[1])} (${m[2]}% block)`],

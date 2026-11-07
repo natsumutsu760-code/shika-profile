@@ -624,6 +624,7 @@ export function simulateTeams(SA, SB, seed, opts = {}) {
       me.brace = 0;
       if (me.fx.regen) {
         const a = heal(me, me.maxHp * me.fx.regen.amt / 100, tn); if (a) tick.items.push({ who: i, heal: a, why: "再生" });
+        if (a > 0 && me.P.healHit && foe && foe.hp > 0) { const d = Math.max(1, Math.round(a * me.P.healHit)); hurt(foe, d, tn); tn.push(`${foe.name} はくやしがって ${d} のダメージ`); }   // 回復した 量の 一部が ダメージに（再生も。2026-11-07 回復の サブツリー）
         if (me.P.regenWater) cntAdd(me, "water", me.P.regenWater);                                  // 水はけが いい
         if (me.fx.regen && me.P.regenKeep) { me.fx.regen.amt = Math.floor(me.fx.regen.amt * me.P.regenKeep); if (me.fx.regen.amt <= 0) delete me.fx.regen; } else halve(me, "regen");   // ぬくぬく：3/4 に しか 減らない（腐敗で 回復が ダメージに なって 倒れたら 再生は もう ない）
       }
@@ -858,7 +859,8 @@ export function simulateTeams(SA, SB, seed, opts = {}) {
         if (!quiet) e.log = `${me.name} の ${e.name}！` + (e.hits.length ? (hs.length ? ` ${tgt.name} に ${hs.map((h) => h.dmg).join(" + ")}${hs.some((h) => h.crit) ? "（会心！）" : ""}` : e.hits.some((h) => h.blocked) ? "" : ` ${tgt.name} はよけた`) : "") + (e.heal ? ` HP +${e.heal}` : "") + (e.notes.length ? "　" + e.notes.join("　") : "");
         // 行動のあと：集中・祝福・猛毒
         if (me.hp > 0 && me.fx.focus) me.mp = Math.min(me.maxMp, me.mp + Math.round(me.maxMp * 0.2));
-        if (me.hp > 0 && me.fx.blessing) { const a = heal(me, me.maxHp * 0.2, e.notes); if (a > 0) e.heal += a; }
+        if (me.hp > 0 && me.fx.blessing) { const a = heal(me, me.maxHp * 0.2, e.notes); if (a > 0) e.heal += a;
+          if (a > 0 && me.P.healHit && foe.hp > 0) { const d = Math.max(1, Math.round(a * me.P.healHit)); hurt(foe, d, e.notes); e.healHit = (e.healHit || 0) + d; e.notes.push(`${foe.name} はくやしがって ${d} のダメージ`); } }   // 祝福の 回復も
         if (me.hp > 0 && me.fx.venom) { const its = []; dot(me, me.maxHp * 0.2, "猛毒", its, i, e.notes); if (its[0]) e.venom = its[0].dmg; }
       }
       const last = !(rep === 0 && me.again && me.hp > 0 && alive(0).length && alive(1).length);

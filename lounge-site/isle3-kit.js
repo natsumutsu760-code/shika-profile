@@ -126,5 +126,28 @@ export function tree3(code, dungeon, rank, enemy, name, type, th, sec, names, o 
     if (!(n.fx || []).some((x) => x.t === "fx" && x.id === "barrier" && over(x.amt))) return n;
     const fx = n.fx.flatMap((x) => (x.t === "fx" && x.id === "barrier" && over(x.amt) ? [{ ...x, amt: 1 }, M(ALT, 20 * (x.amt - 1))] : [x])); return { ...n, fx, text: describe(fx) };
   });
-  return { name, enemy, dungeon, rank, type, main: T.main, sub: T.sub, theme: th, list, plan };
+  // ボスの サブツリーを 55〜65% に そろえる（鹿さんの 決め 2026-11-07「少し 上で そろえる」）。型は 通常と 同じ ままで、ボスだけ 1 本ずつ 割合 k で 下げる
+  const tu = BOSS_TUNE[code], foeList = tu ? list : undefined;   // foeList：そろえる 前（ダンジョンの 敵は こちら。鹿さんの 決め「敵の ボスは 前の 数」）
+  if (tu) {
+    const k = tu.k, r2 = (v) => Math.round(v * 100) / 100, ri = (v) => Math.max(1, Math.round(v));
+    const big = list.filter((x) => x.kind !== "passive").reduce((a, x) => (x.mp > a.mp ? x : a));
+    list = list.map((n) => {
+      if (n.kind === "passive") { const p = structuredClone(n.p);
+        for (const key of ["auraFx", "onHitFx", "whenHitFx"]) for (const a of p[key] || []) a[1] = r2(a[1] * k);
+        for (const a of p.startFoeFx || []) if (a[1] != null) a[1] = ri(a[1] * k);
+        for (const f of Object.keys(p.fxAmtAdd || {})) p.fxAmtAdd[f] = ri(p.fxAmtAdd[f] * k);
+        if (tu.self) for (const key of Object.keys(p)) if (/Mul$/.test(key) && typeof p[key] === "number") p[key] = r2(1 + (p[key] - 1) * k);
+        return { ...n, p, text: ptext(p) }; }
+      const fx = n.fx.map((x0) => { const x = { ...x0 };
+        if (x.t === "dmg" && n === big) x.pow = ri(x.pow * k);
+        if (x.t === "fx" && x.who === "foe") { if (x.chance) x.chance = r2(x.chance * k); if (x.amt) x.amt = ri(x.amt * k); }
+        if (tu.self && x.t === "fx" && x.who === "me" && x.id.startsWith("up_") && x.amt) x.amt = ri(x.amt * k);
+        return x; });
+      return { ...n, fx, mp: n === big ? Math.min(22, Math.round(n.mp / k)) : n.mp, text: describe(fx) };
+    });
+  }
+  return { name, enemy, dungeon, rank, type, main: T.main, sub: T.sub, theme: th, list, plan, ...(foeList ? { foeList } : {}) };
 }
+// ボスごとの 割合（Claude が はかって 決めた。1 より 小さい ＝ 下げる。奥義の 威力 ×k・MP ÷k〈22 まで〉、相手に 付ける 量と 確率 ×k、パッシブの 確率・はじめに 相手に 付ける 量・付ける 量 +N ×k。self は 自分の 上昇・能力 +% も）
+const BOSS_TUNE = { boss_moonserpent: { k: 0.37, self: true }, boss_roc: { k: 0.74 }, boss_general: { k: 0.92 }, boss_lightwarden: { k: 0.88 }, boss_griffon: { k: 0.96 }, boss_bonedragon: { k: 0.83 }, boss_sphinx: { k: 0.92 }, boss_djinn: { k: 0.92 },
+  boss_antlion: { k: 1.15 }, boss_bodyguard: { k: 1.23 }, boss_gategiant: { k: 1.15 }, boss_pillar: { k: 1.08 }, boss_namazu: { k: 1.23 }, boss_colossus: { k: 1.23 } };   // 1 より 大きい ＝ 上げる（55% より 弱かった 6 本）
