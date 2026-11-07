@@ -115,7 +115,7 @@ export const TREES = {
       S(8, "f_he_haganenodaisharin", "鋼の大車輪", "waza", 12, [D(26, { stat: "def" }), M("barrier", 1)]),
       P(1, "f_he_kataikora", "かたいこうら", "受けるダメージ −5%", { dmgCut: 5 }),
       P(2, "f_he_haganenohada", "はがねの肌", "DEF +5%", { defMul: 1.05 }),
-      P(3, "f_he_marumarinokotsu", "丸まりのこつ", "自分に付けるバリア +1", { barrierPlus: 1 }),
+      P(3, "f_he_marumarinokotsu", "丸まりのこつ", "自分にバリアを付けるたびに装甲 +15", { barrierAlso: [["armor", 15]] }),
       P(4, "f_he_tsumenochikara", "爪の力", "技のダメージ +10%", { wazaDmg: 10 }),
       P(5, "f_he_omoikarada", "重い体", "HP +10%", { hpMul: 1.1 }),
       P(6, "f_he_shinbozuyosa", "しんぼう強さ", "毎ターン HP 2% 回復", { hpRegen: 0.02 }),

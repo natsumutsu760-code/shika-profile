@@ -419,7 +419,7 @@ export const TREES = {
       P(4, "f_do_mamorikokoro", "守りの心得", "防御中に受けるダメージがさらに −10%", { guardBonus: 0.1 }),
       P(5, "f_do_omoidoro", "重い泥", "HP +10%", { hpMul: 1.1 }),
       P(6, "f_do_doronoyoroi", "泥のよろい", "戦いのはじめに装甲 +20", { startFx: [["armor", 20]] }),
-      P(7, "f_do_dorodangonoou", "どろだんごの王", "受けるダメージ −5%・戦いのはじめにバリア +2", { dmgCut: 5, startFx: [["barrier", 2]] }),
+      P(7, "f_do_dorodangonoou", "どろだんごの王", "受けるダメージ −5%・戦いのはじめにバリア +1 と装甲 +20", { dmgCut: 5, startFx: [["barrier", 1], ["armor", 20]] }),
     ],
     plan: [G("first", undefined, "f_do_dorokatame"), G("hpBelow", 50, "f_do_nurikasane"), G("mpAtLeast", 11, "f_do_ookorogari"), G("every", 3, "f_do_kachikachi"), G("every", 4, "f_do_dorohane"), G("every", 2, "f_do_korokoro"), G("always", undefined, "f_do_korogariatari")] },
 };

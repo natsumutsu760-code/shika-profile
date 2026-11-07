@@ -22,6 +22,7 @@ export const RULES = [
   // 戦いの はじめ
   [/^戦いのはじめに相手(全員)?(?:に|を)(.+)$/, (m, p) => { const b = both(p, m[2]); return b && `Start of battle: ${m[1] ? "all foes" : "foe"} ${b}`; }],
   [/^戦いのはじめに(.+)$/, (m, p) => { const b = both(p, m[1]); return b && `Start of battle: ${b}`; }],
+  [/^自分にバリアを付けるたびに(.+)$/, (m, p) => { const b = both(p, m[1]); return b && `Each time you gain a Barrier: ${b}`; }],   // 重なる光 など（複数バリアの 廃止、2026-11-07）
   // 付ける 量・ターン
   [/^付ける(.+?) \+(\d+) ターン$/, (m, p) => p(m[1]) && `${p(m[1])} you inflict +${m[2]} turn${m[2] === "1" ? "" : "s"}`],
   [/^付ける(.+?) \+(\d+)$/, (m, p) => p(m[1]) && `${p(m[1])} you inflict +${m[2]}`],

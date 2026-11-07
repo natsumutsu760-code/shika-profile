@@ -18,7 +18,7 @@ export const NEW_OPS = {
   accuracy: { cat: "戦い方", label: "命中", v: [2, 3, 4, 6, 8], fmt: pct("相手の 回避 −N%") },
   firstHitOp: { cat: "戦い方", label: "最初の一撃", v: [5, 8, 12, 16, 20], fmt: pct("最初に 当てた 攻撃 ＋N%") },
   regenOp: { cat: "戦い方", label: "自然回復", v: [0.5, 0.8, 1, 1.5, 2], fmt: pct("毎ターン 最大 HP の N% 回復") },
-  barrierOp: { cat: "戦い方", label: "開幕バリア", v: [0, 0, 1, 1, 2], from: 3, fmt: pct("戦いの はじめに、攻撃を N 回 防ぐ") },
+  barrierOp: { cat: "戦い方", label: "開幕バリア", v: [0, 0, 1, 1, 2], from: 3, fmt: (x) => `戦いの はじめに バリア（攻撃を 1 回 防ぐ）${x > 1 ? `と 装甲 +${20 * (x - 1)}` : ""}` },   // バリアは 1 つまで。2 を こえた 分は 装甲（2026-11-07）
   execute: { cat: "戦い方", label: "とどめ", v: [5, 8, 12, 16, 20], fmt: pct("HP 3 割 以下の 相手へ ＋N%") },
   desperate: { cat: "戦い方", label: "背水", v: [6, 10, 14, 18, 24], fmt: pct("自分の HP が 減るほど ＋（HP 1 で ＋N%）") },
   // 守りの 工夫

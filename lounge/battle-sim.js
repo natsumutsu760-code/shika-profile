@@ -252,7 +252,7 @@ export function simulateTeams(SA, SB, seed, opts = {}) {
     let a = typeof o.amt === "number" ? o.amt : 1, turns = o.turns ?? rollTurns(R, D.base);
     if (from && from !== t && from.P.fxAmtAdd?.[id] && D.dur === "stack") a += from.P.fxAmtAdd[id];
     if (from?.P.fxAmtMul?.[id]) a = Math.round(a * from.P.fxAmtMul[id]);
-    if (id === "barrier" && from === t && t.P.barrierPlus) a += t.P.barrierPlus;
+    if (id === "barrier" && from === t && t.P.barrierAlso) for (const [bid, bn] of t.P.barrierAlso) addFx(t, bid, { amt: bn }, notes, t);   // 重なる光 など：バリアを 付ける たびに ほかの 守りも（バリアは 1 つまで。2026-11-07）
     if (turns != null && !D.buff && from && from !== t && from.P.extendDebuff) turns += from.P.extendDebuff;
     if (turns != null && !D.buff && from !== t && t.P.debuffTurnCut && turns >= 2) turns = Math.max(1, turns - t.P.debuffTurnCut);   // 白紙（2 ターン 以上の デバフだけ）
     if (turns != null && from && from !== t && from.P.extendIds?.[id]) turns += from.P.extendIds[id];
@@ -452,7 +452,7 @@ export function simulateTeams(SA, SB, seed, opts = {}) {
   // P.counterSlip（ユニークスフィア などで 付く 予定）：カウンター中は 継続ダメージの 半分も 返す
   function dot(f, d, why, items, i, notes) {
     if (f.fx.guard) d *= 0.5 * (1 - (f.P.guardBonus || 0));
-    if (f.fx.barrier && f.P.barrierDotCut) d *= 1 - f.P.barrierDotCut;   // 雨に ぬれない
+    if ((f.fx.barrier || f.fx.shield?.amt > 0) && f.P.barrierDotCut) d *= 1 - f.P.barrierDotCut;   // 雨に ぬれない（バリアか シールドが ある あいだ。複数バリアの 廃止で シールドも、2026-11-07）
     if (f.P.lowHpCut && f.hp <= f.maxHp * 0.5) d *= 1 - f.P.lowHpCut;   // がんこ（継続ダメージも。資料の「受ける ダメージ −15%」。2026-11-04）
     const x = Math.max(1, Math.round(d)); f.dot += x; hurt(f, x, notes); items.push({ who: i, dmg: x, why });
     if (f.hp > 0) hurtUp(f, false, false, notes);
@@ -585,7 +585,9 @@ export function simulateTeams(SA, SB, seed, opts = {}) {
   }
 
   if (!quiet) ev.push({ type: "start", ganbari: gIdx, gap, fighters: F.map((f) => ({ name: f.name, owner: f.c.owner, lv: f.c.lv, type: f.c.type, maxHp: f.maxHp, maxMp: f.maxMp, ...(duel ? {} : { side: f.side }) })) });
-  F.forEach((f) => { for (const [id, n, tu] of f.P.startFx || []) { addFx(f, id, { amt: n, turns: tu }, [], f); if (f.fx[id]) f.fx[id].perm = true; } });   // パッシブ・装備の「戦いのはじめに」
+  // はじめの バリアは 1 つまで。パッシブ・装備・OP で 2 つ 以上に なったら、こえた 分は 装甲 +20 ずつ（複数バリアの 廃止、鹿さんの 決め 2026-11-07）
+  const startList = (f) => { const L = f.P.startFx || [], nb = L.filter(([id]) => id === "barrier").reduce((a, [, n]) => a + (n ?? 1), 0); if (nb <= 1) return L; return [...L.filter(([id]) => id !== "barrier"), ["barrier", 1], ["armor", 20 * (nb - 1)]]; };
+  F.forEach((f) => { for (const [id, n, tu] of startList(f)) { addFx(f, id, { amt: n, turns: tu }, [], f); if (f.fx[id]) f.fx[id].perm = true; } });   // パッシブ・装備の「戦いのはじめに」
   F.forEach((f) => { for (const [id, n, tu] of f.P.startFoeFx || []) for (const t of F.filter((g) => g.side !== f.side)) addFx(t, id, { amt: n, turns: tu }, [], f); });
   // 精鋭の 解析ツリー（2026-11-04）：teamMul（味方 全員の 能力。ソロは solo）・startDispel・onceFx の start・rollFx の start
   F.forEach((f) => {

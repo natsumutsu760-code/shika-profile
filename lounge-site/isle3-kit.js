@@ -2,7 +2,7 @@
 // 島 2 と 同じ 形（技 8・パッシブ 7・作戦）。技の 威力と MP は 島 2 の 50 本の 平均に そろえた（技① 威力 9・MP 3 … 技⑧ 威力 28・MP 12）
 // テーマ（状態異常か バフ 1 つ）と 役（5 タイプ）から 技と パッシブを 組み、名前だけ 1 体ずつ 付ける（ぜんぶ Claude の 案。鹿さんが 直せる）
 // 敵は 分かれ道で いつも 左（技④・技⑥・パッシブ③・⑤）を 取る（trees.js の AUTO_ORDER）ので、作戦は 左の 技だけで 組む。右は 研究して サブツリーに した 人が えらべる
-import { D, F, M, H, CURE, DIS, SH, S, P, G } from "./tree-kit.js";
+import { D, F, M, H, CURE, DIS, SH, S, P, G, describe } from "./tree-kit.js";
 import { EFFECTS } from "./effects.js";
 
 const STACK = new Set(["poison", "burn", "sickness", "frostbite", "weakness", "paralysis"]);
@@ -118,5 +118,13 @@ export function tree3(code, dungeon, rank, enemy, name, type, th, sec, names, o 
       ps(1, T.small), ps(2, p2), ps(3, p2.mpRegen && T.p3.mpRegen ? { wazaDmg: 10 } : T.p3), ps(4, { [T.mul]: 1.1 }), ps(5, { hpMul: 1.1 }), ps(6, { crit: 0.05 }), ps(7, p7)];
     plan = [G("first", undefined, s(4)), G("selfNotHas", th, s(2)), G("mpAtLeast", 14, s(8)), G("every", 3, s(3)), G("every", 2, s(6)), G("always", undefined, s(1))];
   }
+  // 複数バリアは 廃止（鹿さんの 決め、2026-11-07）：バリアは 1 つまで。こえる 分は 守りの 体（ディフェンダー・アタッカー）なら 装甲、清め（ヒーラー）なら 障壁、ほかは 幻影を +20 ずつ
+  const ALT = { defender: "armor", attacker: "armor", healer: "ward" }[type] || "mirage", over = (v) => (v ?? 1) > 1;
+  list = list.map((n) => {
+    if (n.kind === "passive") { const sf = n.p.startFx; if (!sf || !sf.some(([id, v]) => id === "barrier" && over(v))) return n;
+      const p = { ...n.p, startFx: sf.flatMap(([id, v, ...r]) => (id === "barrier" && over(v) ? [["barrier", 1], [ALT, 20 * (v - 1)]] : [[id, v, ...r]])) }; return { ...n, p, text: ptext(p) }; }
+    if (!(n.fx || []).some((x) => x.t === "fx" && x.id === "barrier" && over(x.amt))) return n;
+    const fx = n.fx.flatMap((x) => (x.t === "fx" && x.id === "barrier" && over(x.amt) ? [{ ...x, amt: 1 }, M(ALT, 20 * (x.amt - 1))] : [x])); return { ...n, fx, text: describe(fx) };
+  });
   return { name, enemy, dungeon, rank, type, main: T.main, sub: T.sub, theme: th, list, plan };
 }

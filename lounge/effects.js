@@ -13,7 +13,7 @@ export const EFFECTS = {
   blessing: { label: "祝福", buff: true, dur: "turn", base: [3, 5], text: "行動のあとに 最大 HP の 20% を回復" },
   reincarnation: { label: "輪廻", buff: true, dur: "once", base: null, text: "撃破されると、状態が ぜんぶ 消えてから HP 1 で 復活する" },
   guard: { label: "防御", buff: true, dur: "turn", base: 1, stance: true, text: "受ける ダメージが 半分（継続ダメージも）" },
-  barrier: { label: "バリア", buff: true, dur: "stack", base: null, cap: 10, text: "直接攻撃を 1 回むこうにして、量が 1 減る" },
+  barrier: { label: "バリア", buff: true, dur: "stack", base: null, cap: 1, text: "直接攻撃を 1 回むこうにして消える（1 つまで。重ねても ふえない）" },   // 複数バリアは 廃止（鹿さんの 決め、2026-11-07）
   substitute: { label: "身代わり", buff: true, dur: "turn", base: 1, stance: true, solo: "guard", text: "味方への 直接攻撃を 代わりに 受ける（ソロの ときは 防御）" },
   shield: { label: "シールド", buff: true, dur: "value", base: null, cap: "hp", text: "ダメージをその分だけ吸収する" },
   overheal: { label: "オーバーヒール", buff: true, dur: "value", base: 5, cap: "hp", text: "最大 HP をこえて回復した分をためて、ダメージを吸収する（シールドより先）" },
