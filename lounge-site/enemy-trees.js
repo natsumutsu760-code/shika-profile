@@ -12,6 +12,10 @@ import { TREES as FU_B } from "./enemy-trees-fusion-b.js";
 import { TREES as FU_A } from "./enemy-trees-fusion-a.js";
 import { TREES as FU_S } from "./enemy-trees-fusion-s.js";
 import { TREES as FU_EX } from "./enemy-trees-fusion-ex.js";
+// インフェルノの 悪魔 34 体（2026-11-07。別枠）
+import { TREES as INF_CB } from "./enemy-trees-inferno-cb.js";
+import { TREES as INF_A } from "./enemy-trees-inferno-a.js";
+import { TREES as INF_SEX } from "./enemy-trees-inferno-sex.js";
 // 3 つめの 島「ミカネル島」の 敵 85 体（isle3-data.js。2026-11-04、Claude の 案）
 import { TREES3 } from "./isle3-data.js";
 import { FOE_LISTS } from "./enemy-trees-foe.js";   // ダンジョンの 敵が 使う ボスの 前の 数（島 1・2）
@@ -3075,7 +3079,7 @@ export const ENEMY_TREES = {
     plan: [G("first", undefined, "f_hh_yurerushokudai"), G("mpAtLeast", 10, "f_hh_kuzureochiru"), G("every", 2, "f_hh_shikakegaeshi"), G("foeNotHas", "confusion", "f_hh_yurerushokudai"), G("every", 3, "f_hh_boreinosawagi"), G("always", undefined, "f_hh_tobirabatan")] },
 };
 
-Object.assign(ENEMY_TREES, TREES3, FU_F, FU_E, FU_D, FU_C, FU_B, FU_A, FU_S, FU_EX);
+Object.assign(ENEMY_TREES, TREES3, FU_F, FU_E, FU_D, FU_C, FU_B, FU_A, FU_S, FU_EX, INF_CB, INF_A, INF_SEX);
 
 // ペット用の お手本の 作戦（鹿さんの 決め 2026-11-07「ペットの お手本だけ」）。お手本の 作戦が 状態異常・自分の 強化を 先に 使い すぎて 弱かった ツリーだけ。
 // 数は 奥義を 撃つ MP の しきい（Claude が はかって 決めた。単体で 40〜60%、ボスは 55〜65%）。ダンジョンの 敵は plan の まま

@@ -10,6 +10,9 @@ import { TREE_EN as T_B, SKILL_EN as S_B } from "./lounge-en-fusion-b.js";
 import { TREE_EN as T_A, SKILL_EN as S_A } from "./lounge-en-fusion-a.js";
 import { TREE_EN as T_S, SKILL_EN as S_S } from "./lounge-en-fusion-s.js";
 import { TREE_EN as T_EX, SKILL_EN as S_EX } from "./lounge-en-fusion-ex.js";
+import { TREE_EN as TI_CB, SKILL_EN as SI_CB } from "./lounge-en-inferno-cb.js";   // インフェルノの 悪魔
+import { TREE_EN as TI_A, SKILL_EN as SI_A } from "./lounge-en-inferno-a.js";   // インフェルノの 悪魔
+import { TREE_EN as TI_SEX, SKILL_EN as SI_SEX } from "./lounge-en-inferno-sex.js";   // インフェルノの 悪魔
 
 export const TREE3_EN = {
   f_puchijelly: ["Petit Jelly", "Wobbling Afterimage"],
@@ -1297,5 +1300,5 @@ export const SKILL3_EN = {
   f_ae_shinenkaranozoku: "Watcher from the Abyss",
 };
 
-Object.assign(TREE3_EN, T_F, T_E, T_D, T_C, T_B, T_A, T_S, T_EX);
-Object.assign(SKILL3_EN, S_F, S_E, S_D, S_C, S_B, S_A, S_S, S_EX);
+Object.assign(TREE3_EN, T_F, T_E, T_D, T_C, T_B, T_A, T_S, T_EX, TI_CB, TI_A, TI_SEX);
+Object.assign(SKILL3_EN, S_F, S_E, S_D, S_C, S_B, S_A, S_S, S_EX, SI_CB, SI_A, SI_SEX);

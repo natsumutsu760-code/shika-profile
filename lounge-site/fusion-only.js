@@ -264,6 +264,47 @@ const ROWS = [
   ["f_amakakeruseijuu", "am", "隠された聖獣", "Hidden Holy Beast", "divine", "EX", "healer", "blessing", "特殊", "人の 前に めったに すがたを 見せない 聖なる 獣。ペガサスと グリフォンの 血を ひく"],
 ];
 
+
+// インフェルノの 悪魔 34 体（鹿物語の インフェルノ「炎の 悪魔祓い」。鹿さんの 決め、2026-11-07）
+// ゴエティアの 30 体と 大罪の 4 体。上の 240 種とは 別枠（ランクごとの 30・系統ごとの 15 の 数に 入れない）。系統は みな 悪魔系
+// ランクは ゴエティアの 位：王 S・君主と 公爵 A・侯爵と 伯爵 B・総裁 C・大罪 EX。ぜんぶ 特殊な レシピ（下の SPECIAL・FOUR）だけで 生まれる
+const INFERNO = [
+  ["f_bael", "bb", "バアル", "Bael", "demon", "S", "technician", "mirage", "特殊", "ゴエティアの 第一の 王。ひきがえる・人・猫の 三つの 頭。すがたを 消す 術を さずける（赤い 炎）"],
+  ["f_paimon", "pa", "パイモン", "Paimon", "demon", "S", "caster", "confusion", "特殊", "楽隊を ひきつれ ひとこぶらくだに のる 王。あらゆる 学問と 芸を 教える（金に 近い 白い 炎）"],
+  ["f_beleth", "bt", "ベレト", "Beleth", "demon", "S", "attacker", "daze", "特殊", "青白い 馬に のる おそろしい 王。前を ゆく ラッパの 音で 相手を ふるえさせる（紫の 炎）"],
+  ["f_purson", "pu", "プルソン", "Purson", "demon", "S", "technician", "clarity", "特殊", "獅子の 顔で まむしを 持つ 王。かくされた 物と 過去・未来を 知る（緑の 炎）"],
+  ["f_vassago", "vg", "ウァサゴ", "Vassago", "demon", "A", "healer", "blessing", "特殊", "やさしい 性質の 君主。なくし物を 見つけ、過去と 未来を 告げる（白い 炎）"],
+  ["f_sitri", "sv", "シトリー", "Sitri", "demon", "A", "caster", "daze", "特殊", "豹の 頭と グリフォンの 翼の 君主。見た 者の 心を まどわせる（赤い 炎）"],
+  ["f_agares", "as", "アガレス", "Agares", "demon", "A", "attacker", "stun", "特殊", "大鷹を 手に わにに のる 老いた 公爵。地震を おこす（緑の 炎）"],
+  ["f_barbatos", "bs", "バルバトス", "Barbatos", "demon", "A", "technician", "pierce", "特殊", "狩人と 四人の 王を つれた 公爵。けものの 声を 聞き、弓で ねらう（緑の 炎）"],
+  ["f_gusion", "gu", "グシオン", "Gusion", "demon", "A", "healer", "ward", "特殊", "犬の 頭の 公爵。あらそいを しずめ、仲なおりを とりもつ（青い 炎）"],
+  ["f_eligos", "eg", "エリゴス", "Eligos", "demon", "A", "attacker", "mastery", "特殊", "槍と 旗を もつ 騎士の 公爵。戦の ゆくえを 知る（赤い 炎）"],
+  ["f_zepar", "ze", "ゼパル", "Zepar", "demon", "A", "technician", "weakness", "特殊", "赤い よろいの 兵の 公爵。相手の 力を くじく（赤い 炎）"],
+  ["f_bathin", "bh", "バティン", "Bathin", "demon", "A", "technician", "haste", "特殊", "へびの 尾で 青白い 馬に のる 公爵。人を 一瞬で 遠くへ はこぶ（白い 炎）"],
+  ["f_sallos", "sx", "サレオス", "Sallos", "demon", "A", "defender", "barrier", "特殊", "公爵の 冠で わにに のる 兵。おだやかで、争いを このまない（青い 炎）"],
+  ["f_aim", "ai", "アイム", "Aim", "demon", "A", "caster", "burn", "特殊", "へび・人・子牛の 三つの 頭で まむしに のる 公爵。たいまつで 町を 燃やす（赤い 炎）"],
+  ["f_bune", "bc", "ブネ", "Bune", "demon", "A", "defender", "reincarnation", "特殊", "犬・グリフォン・人の 三つの 頭の 竜の 公爵。死者の 眠る 場所を うつす（紫の 炎）"],
+  ["f_berith", "bi", "ベリト", "Berith", "demon", "A", "technician", "confusion", "特殊", "赤い 馬に のる 赤い 兵の 公爵。金属を 金に かえるが、うそつき（金に 近い 赤い 炎）"],
+  ["f_astaroth", "at", "アスタロト", "Astaroth", "demon", "A", "caster", "sickness", "特殊", "竜に のり まむしを 持つ 堕ちた 天使の 公爵。息に 毒気が ある（紫の 炎）"],
+  ["f_gamigin", "gm", "ガミジン", "Gamigin", "demon", "B", "caster", "freeze", "特殊", "小さな 馬の すがたの 侯爵。おぼれた 者の たましいを よびだす（青い 炎）"],
+  ["f_amon", "ao", "アモン", "Amon", "demon", "B", "attacker", "burn", "特殊", "へびの 尾の 狼に からすの 頭。口から 炎を はく 侯爵（赤い 炎）"],
+  ["f_leraje", "lr", "レラジェ", "Leraje", "demon", "B", "technician", "rot", "特殊", "緑の 服の 弓の 侯爵。矢の 傷を くさらせる（緑の 炎）"],
+  ["f_naberius", "nb", "ナベリウス", "Naberius", "demon", "B", "technician", "silence", "特殊", "三つ首の 犬とも 黒い 鶴とも いわれる 侯爵。しゃがれ声で 口を ふさぐ（紫の 炎）"],
+  ["f_ronove", "rn", "ロノウェ", "Ronove", "demon", "B", "caster", "focus", "特殊", "杖を もつ 怪物の 侯爵。ことばを 教え、しもべを あたえる（白い 炎）"],
+  ["f_forneus", "fo", "フォルネウス", "Forneus", "demon", "B", "caster", "frostbite", "特殊", "大きな 海の 怪物の 侯爵。弁舌で 敵まで 味方に する（青い 炎）"],
+  ["f_marchosias", "mh", "マルコシアス", "Marchosias", "demon", "B", "attacker", "charge", "特殊", "グリフォンの 翼と へびの 尾の 狼の 侯爵。炎を はく 強い 戦士（赤い 炎）"],
+  ["f_furfur", "ff", "フルフル", "Furfur", "demon", "B", "caster", "paralysis", "特殊", "燃える 尾と 翼の 鹿の 伯爵。雷と 稲妻を おこす（白い 炎）"],
+  ["f_ipos", "io", "イポス", "Ipos", "demon", "B", "attacker", "frenzy", "特殊", "獅子の 頭・がちょうの 足・うさぎの 尾の 伯爵。勇気を さずける（金に 近い 白い 炎）"],
+  ["f_marbas", "mq", "マルバス", "Marbas", "demon", "C", "technician", "sickness", "特殊", "大きな 獅子の すがたの 総裁。病を おこし、病を なおす（緑の 炎）"],
+  ["f_buer", "bf", "ブエル", "Buer", "demon", "C", "healer", "regen", "特殊", "車輪の ように 足が 並ぶ 獅子の 総裁。薬草を 教え、傷を いやす（緑の 炎）"],
+  ["f_botis", "bg", "ボティス", "Botis", "demon", "C", "technician", "venom", "特殊", "醜い まむしの すがたで あらわれる 総裁。剣と 角を もつ（紫の 炎）"],
+  ["f_morax", "mx", "モラクス", "Morax", "demon", "C", "defender", "armor", "特殊", "人の 顔の 牡牛の 総裁。星と 石の ふしぎを 知る（青い 炎）"],
+  ["f_mammon", "mv", "マモン", "Mammon", "demon", "EX", "technician", "weakness", "特殊", "強欲の 大罪の 悪魔。金貨の 雨を ふらせ、すべてを 自分の 物に する（金の 炎）"],
+  ["f_beelzebub", "bz", "ベルゼブブ", "Beelzebub", "demon", "EX", "attacker", "poison", "特殊", "暴食の 大罪の 悪魔。はえの 王。何でも のみこむ（緑の 炎）"],
+  ["f_leviathan", "lv", "レヴィアタン", "Leviathan", "demon", "EX", "defender", "freeze", "特殊", "嫉妬の 大罪の 悪魔。海の 大蛇。人の いちばん 良い 物を まねて うばう（青い 炎）"],
+  ["f_lucifer", "lu", "ルシファー", "Lucifer", "demon", "EX", "attacker", "burn", "特殊", "傲慢の 大罪の 悪魔。堕ちた 明けの 明星。運命を 書き換える（白い 炎）"],
+];
+
 const RANKS = ["F", "E", "D", "C", "B", "A", "S", "EX"];
 const LO = [1, 8, 16, 26, 36, 46, 56, 66], WIDTH = [7, 8, 10, 10, 10, 10, 10, 14];   // ランクの Lv の はば（ランクの 中で ならべる ための 仮の Lv）
 const nth = {}, CNT = RANKS.map((r) => ROWS.filter((x) => x[5] === r).length);   // ランクごとの 数（いまは 30）
@@ -272,6 +313,12 @@ export const ROSTER = ROWS.map(([tree, code, name, en, fam, rank, type, theme, h
   const r = RANKS.indexOf(rank), i = (nth[r] = (nth[r] ?? -1) + 1);
   return { tree, code, name, en, fam, rank: r, type, theme, how, note, lv: LO[r] + Math.floor(((i + 0.5) * WIDTH[r]) / CNT[r]) };
 });
+// インフェルノの 悪魔（別枠。grp: "inferno"）。仮の Lv は 同じ ランクの 中で ならべる だけ
+const nthI = {}, CNTI = RANKS.map((r) => INFERNO.filter((x) => x[5] === r).length);
+ROSTER.push(...INFERNO.map(([tree, code, name, en, fam, rank, type, theme, how, note]) => {
+  const r = RANKS.indexOf(rank), i = (nthI[r] = (nthI[r] ?? -1) + 1);
+  return { tree, code, name, en, fam, rank: r, type, theme, how, note, grp: "inferno", lv: LO[r] + Math.floor(((i + 0.5) * WIDTH[r]) / CNTI[r]) };
+}));
 
 // 特殊配合：{ a, b, child }（a・b は 種族の ツリー id か「fam:系統」。親の 順は どちらでも）
 export const SPECIAL = [
@@ -308,6 +355,40 @@ export const SPECIAL = [
   { a: "f_moonfang", b: "f_vampire", child: "f_furuichinokemono" },         // ムーンファング × ヴァンパイア（月の 夜の 獣と 古い 血）
   { a: "f_livingmail", b: "e_goldcrab", child: "f_ougonnokyozou" },         // リビングメイル × 金貨ガニ（動く よろいと 黄金）
   { a: "f_pegasus", b: "f_griffon", child: "f_amakakeruseijuu" },           // ペガサス × グリフォン（天を かける 二つの 血）
+  // インフェルノの 悪魔（2026-11-07。鹿さんの 決め：ぜんぶ 特殊な レシピ。伝承の 姿や 力に ちなんだ 組み合わせ）
+  { a: "f_beelzebufo", b: "f_kuwaru", child: "f_bael" },                    // バアル＝ベルゼブフォ × クワール（ひきがえるの 頭と、すがたを くらます 猫の 獣）
+  { a: "e_bard", b: "f_demonlord", child: "f_paimon" },                     // パイモン＝迷子の吟遊詩人 × デーモンロード（楽隊を つれた 王）
+  { a: "f_nightmare", b: "f_holybell", child: "f_beleth" },                 // ベレト＝ナイトメア × カンパネル（馬に のり、前で 鳴る 音）
+  { a: "f_manticore", b: "f_suishohebi", child: "f_purson" },               // プルソン＝マンティコア × バジリスク（獅子の 顔と まむし）
+  { a: "f_tsujiuranaishi", b: "fam:demon", child: "f_vassago" },            // ウァサゴ＝辻占い師 × 悪魔系（なくし物と 未来を 告げる）
+  { a: "f_griffon", b: "f_succubus", child: "f_sitri" },                    // シトリー＝グリフォン × サキュバス（グリフォンの 翼・心を まどわす）
+  { a: "f_elderlizardman", b: "f_sonicfalcon", child: "f_agares" },         // アガレス＝エルダーリザードマン × ソニックファルコン（わにと 大鷹）
+  { a: "f_kakedashikariudo", b: "fam:demon", child: "f_barbatos" },         // バルバトス＝かけだし狩人 × 悪魔系（狩人を つれた 公爵）
+  { a: "f_tabinoshudoshi", b: "fam:demon", child: "f_gusion" },             // グシオン＝旅の修道士 × 悪魔系（仲なおりを とりもつ）
+  { a: "f_ironknight", b: "fam:demon", child: "f_eligos" },                 // エリゴス＝アイアンナイト × 悪魔系（騎士の 公爵）
+  { a: "f_minaraisenshi", b: "f_incubus", child: "f_zepar" },               // ゼパル＝みならい戦士 × インキュバス（兵の すがた・力を くじく）
+  { a: "f_pegasus", b: "fam:demon", child: "f_bathin" },                    // バティン＝ペガサス × 悪魔系（青白い 馬・一瞬で はこぶ）
+  { a: "f_lizardman", b: "fam:demon", child: "f_sallos" },                  // サレオス＝リザードマン × 悪魔系（わにに のる 兵）
+  { a: "f_okibicoyote", b: "f_hydra", child: "f_aim" },                     // アイム＝熾火コヨーテ × ヒドラ（三つの 頭と たいまつの 火）
+  { a: "f_wyvern", b: "f_watashimori", child: "f_bune" },                   // ブネ＝ワイバーン × 冥河の渡し守（竜の すがた・死者の 場所を うつす）
+  { a: "e_goldcrab", b: "fam:demon", child: "f_berith" },                   // ベリト＝金貨ガニ × 悪魔系（金属を 金に かえる）
+  { a: "f_tennotsukai", b: "f_drake", child: "f_astaroth" },                // アスタロト＝ルミエル × ドレイク（竜に のる 堕ちた 天使）
+  { a: "f_nightmare", b: "e_ghostsailor", child: "f_gamigin" },             // ガミジン＝ナイトメア × 幽霊水夫（小さな 馬・おぼれた 者の たましい）
+  { a: "f_okibicoyote", b: "f_kogarasu", child: "f_amon" },                 // アモン＝熾火コヨーテ × 盗っ人ガラス（炎を はく 狼と からすの 頭）
+  { a: "f_bonearcher", b: "fam:demon", child: "f_leraje" },                 // レラジェ＝ボーンアーチャー × 悪魔系（傷を くさらせる 弓）
+  { a: "f_ghoulhound", b: "f_yotaka", child: "f_naberius" },                // ナベリウス＝グールハウンド × ストリクス（犬と 黒い 鳥）
+  { a: "f_majuroach", b: "f_lesserdemon", child: "f_ronove" },              // ロノウェ＝魔獣ローチェア × レッサーデーモン（怪物の すがた・しもべを あたえる）
+  { a: "f_seaserpent", b: "e_siren", child: "f_forneus" },                  // フォルネウス＝シーサーペント × セイレーン（海の 怪物と 声の 力）
+  { a: "f_griffon", b: "f_moonfang", child: "f_marchosias" },               // マルコシアス＝グリフォン × ムーンファング（グリフォンの 翼の 狼）
+  { a: "f_battleelk", b: "f_thunderhawk", child: "f_furfur" },              // フルフル＝バトルエルク × サンダーホーク（翼の 鹿・雷）
+  { a: "e_hare", b: "fam:divine", child: "f_ipos" },                        // イポス＝ホーンラビット × 神聖系（うさぎの 尾の 天使の すがた）
+  { a: "f_kibaneko", b: "fam:demon", child: "f_marbas" },                   // マルバス＝キバネコ × 悪魔系（大きな 獅子）
+  { a: "f_mandragora", b: "fam:demon", child: "f_buer" },                   // ブエル＝マンドラゴラ × 悪魔系（薬草を 教える）
+  { a: "f_tsuchinoko", b: "fam:demon", child: "f_botis" },                  // ボティス＝ツチノコ × 悪魔系（まむしの すがた）
+  { a: "f_tsunoinoshishi", b: "f_geode", child: "f_morax" },                // モラクス＝ツノイノシシ × ジオドーラ（牡牛と 石の 知恵）
+  { a: "f_berith", b: "f_ougonnokyozou", child: "f_mammon" },               // マモン＝ベリト × オーレリオ（金を 生む 悪魔と 黄金の 像。強欲）
+  { a: "f_voidqueen", b: "f_bael", child: "f_beelzebub" },                  // ベルゼブブ＝ヴォイドクイーン × バアル（虫の 女王と 王バアル。はえの 王）
+  { a: "f_kaishounoou", b: "f_forneus", child: "f_leviathan" },             // レヴィアタン＝海嘯の王タイダロス × フォルネウス（海の 王と 海の 怪物）
 ];
 // 4 体配合：{ gp: [祖父母 4 種], child }（両親の それぞれの 親の 組み合わせ。順は どちらでも）
 export const FOUR = [
@@ -319,4 +400,6 @@ export const FOUR = [
   { gp: ["f_whitewhale", "f_orca", "f_seaserpent", "f_kraken"], child: "f_kaishounoou" },                          // 海の 大物 4 種
   { gp: ["f_magmajelly", "f_aurorajelly", "f_ikazuchijelly", "f_granjelly"], child: "f_genshojelly" },             // 火・氷・雷・大きな ゼリー（すべての ゼリーの はじまりへ）
   { gp: ["f_ugomeki", "f_doppelganger", "f_tentacles", "f_hoshikurai"], child: "f_konton" },                       // 異形 4 種が まざる
+  // インフェルノの 悪魔（2026-11-07）
+  { gp: ["f_mammon", "f_beelzebub", "f_leviathan", "f_archangel"], child: "f_lucifer" },                          // ルシファー＝大罪の 3 体 と アークエンジェル（堕ちた 天使の 長）
 ];
