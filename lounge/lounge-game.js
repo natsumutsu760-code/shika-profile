@@ -294,7 +294,7 @@ function mythicItem(m, R) {
 export function insLose(rec, t, mats, now) {
   if (!t.ins || !INS_PLAN[t.ins.plan]) return null;
   const P = INS_PLAN[t.ins.plan], back = [];
-  let keep = Math.floor(mats.reduce((a, m) => a + m.n, 0) * P.back + 1e-9);
+  let keep = Math.ceil(mats.reduce((a, m) => a + m.n, 0) * P.back - 1e-9);   // 切り上げ：素材を 1 こでも 失えば 支払いが 出る（2026-11-07 鹿さんの カード「ぜんぶ 直す」。前は 切り捨てで 1 こだと 0）
   for (const m of mats) { if (keep <= 0) break; const n = Math.min(m.n, keep); back.push({ id: m.id, q: m.q || 0, n }); keep -= n; }
   if (!back.length) return null;
   const at = now + (rec.perks && rec.perks.insFast ? 0 : P.wait);

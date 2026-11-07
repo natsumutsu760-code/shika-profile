@@ -453,7 +453,7 @@ export class Viewer {
   // ほかの 人に 見せる 分だけ（部屋と 名前。持ち物の 数や 玉は 出さない）
   view(rec) { return { name: rec.name, login: rec.login, room: rec.room }; }
   mine(rec, w) {
-    const now = Date.now(); dropOld(rec, now); facMigrate(rec); facDue(rec, now);
+    const now = Date.now(); dropOld(rec, now); facMigrate(rec); facDue(rec, now); insDue(rec, now);   // 時間が 来た 保険の 支払いも 届けて 見せる（なにか 操作するまで タスクが 0 の ままに 見えた。2026-11-07）
     return { id: rec.id, lock: locked(rec, this.env), lockKind: lockKind(), login: rec.login, name: rec.name, nameAt: rec.nameAt, names: rec.names, room: rec.room, own: ownView(rec.own), wallet: this.purse(rec, w), waiting: rec.ledger.unknown.length,
       pets: rec.pets.map((p) => ({ ...p, ...(p.type ? { sp: { all: spTotal(p.lv), left: spTotal(p.lv) - spUsed(p) }, freeLeft: freeIsAuto(p) ? 0 : freeTotal(p.lv) - Object.values(p.free || {}).reduce((a, v) => a + v, 0), build: fighterOf(p, rec), resetPrice: RESET_PRICE(p.lv) } : {}) })),
       tamed: rec.tamed, party: rec.party, mine: mineView(rec, now), farmv: farmvView(rec, now), crawl: crawlView(rec), bz: { ...bzMe(rec, now), open: !bzLocked(rec, this.env) }, stock: { open: !stockLocked(rec, this.env), h: (rec.stock && rec.stock.h) || {} }, smelt: rec.smelt || [], loop: rec.loop || null, lab: rec.lab, labQ: rec.labQ || [], hideout: rec.hideout, knob: rec.knob || {}, fac: facView(rec, now), credits: rec.credits, snacks: rec.snacks, tools: rec.tools, explore: rec.explore, seen: rec.seen, met: rec.met,

@@ -153,8 +153,13 @@ export function priProgress(rec, tid, t, k) {
   if (g.type === "stockHold") { const h = stockH(rec); return Math.min(k.need, g.co ? h[g.co] || 0 : Object.values(h).reduce((a, n) => a + (n > 0 ? n : 0), 0)); }   // トークンを 合わせて N（g.co が あれば その 会社だけ）
   if (g.type === "stockCos") return Math.min(k.need, Object.values(stockH(rec)).filter((n) => n > 0).length);   // N 社の トークンを 持つ
   if (g.type === "stockGroups") return Math.min(k.need, new Set(Object.entries(stockH(rec)).filter(([co, n]) => n > 0 && STOCK_CO[co] && STOCK_CO[co].g !== "neutral").map(([co]) => STOCK_CO[co].g)).size);   // 3 つの グループ（中立は 数えない）
+  if (g.type === "payout") return Math.min(k.need, Math.max(t.pk === pkey(k) ? t.pp || 0 : 0, (rec.tally.payout || 0) - payUsed(tid, t)));
   return Math.min(k.need, t.pk === pkey(k) ? t.pp || 0 : 0);
 }
+// 保険の 支払い：今の タスクに なる 前に うけとった 分も 数える（2026-11-07 鹿さんの カード「ぜんぶ 直す」。2 時間 待つ あいだに 次の タスクへ 進むと 数えられなかった）
+// rec.tally.payout（うけとった 回数の 合計）から、前の 支払いの タスクで 使った 分（t.payUsed。ない 人は 終えた 支払いの タスクの 数）を 引く
+const payTasks = (tid) => (PRIMARY[tid] || []).flatMap((C, ci) => C.tasks.filter((x) => x.goal && x.goal.type === "payout").map((x) => [ci + 1, x.no, x.need || 1]));
+const payUsed = (tid, t) => t.payUsed ?? payTasks(tid).filter(([c, no]) => isDone(t.pd, c, no)).reduce((a, x) => a + x[2], 0);
 // 納める 物を 引く（品質の 低い 物から・拾った 物だけ）
 function takeFound(rec, id, q, n) {
   let left = n;
@@ -178,6 +183,7 @@ export function primaryDone(rec, b, day) {
   if (g.type === "deliverAny") { let left = k.need; for (const id of g.mats) { const n = Math.min(left, found(rec, id, g.q || 0)); if (n) takeFound(rec, id, g.q, n); left -= n; if (!left) break; } }
   if (g.type === "deliverEq") takeEq(rec, g, k.need, b.uid);
   if (g.type === "and") for (const x of g.parts) { if (x.type === "deliver" && !x.keep) takeFound(rec, x.mat, x.q, x.need); if (x.type === "deliverEq") takeEq(rec, x, x.need, b.uid); }
+  if (g.type === "payout") t.payUsed = payUsed(b.tid, t) + k.need;   // 使った 支払いの 回数（つぎの 支払いの タスクに 使いまわさない）
   t.pd[k.c] = (t.pd[k.c] || 0) | (1 << (k.no - 1));
   delete t.pk; delete t.pp;
   const rep = PRI_REP(k.c);
@@ -374,7 +380,7 @@ export function deeplinkView(rec, day) {
     // プライマリー：章ごとの 終えた 数と 止まって いる わけ（まだ ない しくみ）、いまの タスク
     const chs = chaptersOf(s.id).map((C, i) => ({ c: i + 1, title: C.title, done: C.tasks.filter((k) => isDone(t.pd, i + 1, k.no)).length, n: C.tasks.length, sys: [...new Set(C.tasks.filter(sysOff).map((k) => k.sys))], sysN: C.tasks.filter((k) => sysOff(k) && !isDone(t.pd, i + 1, k.no)).length }));   // 止まる わけは 動いて いない しくみだけ
     const k = PRIMARY[s.id] ? curTask(s.id, t.pd, lv) : null;
-    const pri = k ? { c: k.c, no: k.no, say: k.say, text: k.text, need: k.need, unit: k.unit, have: priProgress(rec, s.id, t, k), credits: k.credits, rep: PRI_REP(k.c), ...(k.unlock ? { unlock: k.unlock } : {}), ...(k.key ? { key: k.key } : {}) } : null;
+    const pri = k ? { c: k.c, no: k.no, say: k.say, text: k.text, need: k.need, unit: k.unit, have: priProgress(rec, s.id, t, k), credits: k.credits, rep: PRI_REP(k.c), ...(k.unlock ? { unlock: k.unlock } : {}), ...(k.key ? { key: k.key } : {}), ...(k.goal && k.goal.type === "payout" ? { pay: 1 } : {}) } : null;   // pay：保険の 支払いの タスク（画面が 支払い待ちを そえる）
     return { id: s.id, rep: t.rep, lv, pd: t.pd, chs, pri, chain: task(ks.chain, t.cp, false, t), daily: task(ks.daily, t.dp, !!t.ddone), shop };
   });
   const keys = DUNGEONS.filter((d) => d.hidden && hasKey(rec, d.id)).map((d) => d.id);

@@ -64,6 +64,7 @@
   .pri .prog { display:flex; align-items:center; gap:8px; font-size:13px; color:var(--dim); } .pri .prog i { flex:0 0 160px; height:6px; border:1px solid var(--line); } .pri .prog i b { display:block; height:100%; background:var(--dim); }
   .pri .prog.full { color:var(--ok); } .pri .prog.full i b { background:var(--ok); box-shadow:0 0 6px var(--ok); }
   .pri .sub { font-size:13px; color:var(--dim); } .pri .f { margin-top:4px; }
+  .inswait { margin:8px 0 0; font-size:13px; color:var(--cyan); } .pri .inswait { margin:0; }
   .pri.stop .do { font-size:15px; color:var(--warn, #FF8A7A); text-shadow:none; }
   .chs { margin-top:12px; font-size:13px; color:var(--dim); } .chs summary { cursor:pointer; } .chs li { display:flex; justify-content:space-between; gap:12px; padding:4px 2px; border-bottom:1px dashed var(--line); }
   .chs small { display:block; color:var(--warn, #FF8A7A); font-size:11px; text-align:right; }
@@ -240,8 +241,11 @@ Object.assign(S, { stab: "list", sg: "all", ssort: "group", sco: STOCK_CO[q.get(
 const stockOpen = () => !!(ME && ME.stock && ME.stock.open);
 const cleanK = (k) => (k && Array.isArray(k.list) ? { ...k, list: k.list.filter((x) => STOCK_CO[x.co]), news: (k.news || []).filter((n) => STOCK_CO[n.co]) } : k);
 async function loadStock() { if (!stockOpen()) return; const r = await act("stock.view", {}).catch(() => ({ ok: false })); K = r.ok ? cleanK(r.stock) : { err: true, lock: r.lock, why: r.why }; }
+let insT = 0;   // 保険の 支払いの 時間に 読み直す タイマー
 async function load() {
   ME = await me(); D = ME.deeplink || { traders: [], perks: {}, items: {}, recipes: [], keys: [] };
+  clearTimeout(insT); const due = Math.min(...(D.ins || []).map((x) => x.at)) - Date.now();   // 支払いが 届く 時間に 読み直す（支払いの タスクが 1 に なる）
+  if (due > 0 && due < 6 * 3600e3) insT = setTimeout(() => load().then(() => { if (document.getElementById("crt").classList.contains("ready")) render(); }), due + 1500);
   const b = ME.denied ? null : await board(); B = b && Array.isArray(b.list) ? b : { list: [], staff: false };
 }
 await load();
@@ -283,7 +287,7 @@ function traderHtml(t) {
   const priN = v.pri && v.pri.have >= v.pri.need ? 1 : 0;
   return `<header class="who ${sp ? "sp" : ""}"><span class="cam" aria-hidden="true">${face(t.id)}</span><div><h2>${sp ? `${t.name}の ${t.dir}` : t.name}</h2><p>${t.animal}・${esc(t.co || "")}${t.group ? `（${esc(t.group)}）` : ""}</p></div>
       <div class="rep">友好度 <b>Lv${lv}</b> / ${LV_MAX}　${meter}<span class="meter"><i style="width:${top || !next ? 100 : ((rep - base) / (next - base)) * 100}%"></i></span></div></header>
-    <p class="say">${esc(t.say)}</p>
+    <p class="say">${esc(t.say)}</p>${t.id === "minerva" && !(S.tab === "story" && v.pri && v.pri.pay) ? insLine() : ""}
     <div class="tabs" role="tablist"><button role="tab" data-tab="story" aria-selected="${S.tab === "story"}">物語${priN ? ` <span class="new">●</span>` : ""}</button><button role="tab" data-tab="tasks" aria-selected="${S.tab === "tasks"}">タスク ${list.filter((k) => !k.done).length}</button><button role="tab" data-tab="shop" aria-selected="${S.tab === "shop"}">ショップ ${t.shop.length}</button></div>
     ${S.tab === "story" ? storyHtml(t, v) : S.tab === "tasks" ? `<ul class="rows">${tasks}</ul>` : (t.id === "junk" ? lookHtml() : "") + auHtml(t.id) + shopHtml(t)}${sp && S.tab === "shop" ? `<p class="note">アメジストは 招待・毎晩の 大会・虹保留・!アメジスト交換（玉 500 → 1）で 手に 入る</p>` : ""}`;
 }
@@ -296,7 +300,7 @@ function storyHtml(t, v) {
   const full = k && k.have >= k.need, allDone = chs.every((c) => c.done >= c.n);
   const card = k ? `<div class="pri"><p class="ch">第 ${k.c} 章「${esc(C.title)}」　${C.done} / ${C.n}</p><p class="q">${esc(k.say)}</p>
       <p class="do">${esc(k.text)}</p>
-      <span class="prog ${full ? "full" : ""}"><i><b style="width:${Math.min(100, (k.have / k.need) * 100)}%"></b></i>${Math.min(k.have, k.need)}${u} / ${k.need}${u}</span>
+      <span class="prog ${full ? "full" : ""}"><i><b style="width:${Math.min(100, (k.have / k.need) * 100)}%"></b></i>${Math.min(k.have, k.need)}${u} / ${k.need}${u}</span>${k.pay ? insLine() : ""}
       <p class="sub">ごほうび　<span class="rw">${rw}</span></p>
       <div class="f"><button class="btn" data-pri="${k.c}:${k.no}" ${full ? "" : "disabled"}>${/納める/.test(k.text) ? "納める" : "報告する"}</button></div></div>`
     : allDone ? `<div class="pri stop"><p class="ch">第 ${chs.length} 章まで ぜんぶ 終えた</p><p class="do">つぎの 章は 新しい 島と いっしょに 出る</p></div>`
@@ -304,6 +308,12 @@ function storyHtml(t, v) {
     : `<div class="pri stop"><p class="ch">第 ${cc.c} 章「${esc(cc.title)}」</p><p class="do">友好度を Lv${(cc.c - 1) * CH_LV} に すると 始まる</p></div>`;
   const list = chs.map((c) => `<li><span>第 ${c.c} 章「${esc(c.title)}」</span><span>${c.done} / ${c.n}${c.sys.length ? `<small>止まる：${c.sys.map(esc).join("・")}</small>` : ""}</span></li>`).join("");
   return `${card}<details class="chs"><summary>章の 一覧（${chs.length} 章）</summary><ul>${list}</ul></details>`;
+}
+// 保険の 支払い待ち（ミネルバの 画面と 支払いの タスク。2026-11-07 鹿さんの カード「ぜんぶ 直す」：2 時間 待つ ことが 見えず「報告できない」と 思われた）
+function insLine() {
+  const L = (D.ins || []).slice().sort((a, b) => a.at - b.at); if (!L.length) return "";
+  const m = Math.max(1, Math.ceil((L[0].at - Date.now()) / 6e4));
+  return `<p class="inswait">${L.length > 1 ? `支払い待ち ${L.length} 件：つぎは あと ${m} 分（素材 ${L[0].n} こ）` : `支払い待ち：あと ${m} 分（素材 ${L[0].n} こ）`}</p>`;
 }
 // のこりの数（left は 門番の 数。null は かぎり なし）
 const stockText = (it, st) => (it.sell || it.trade ? "" : it.once ? (st.done ? "" : "1 回だけ") : st.left == null ? "" : st.left ? `${it.week ? "今週" : "きょう"} のこり ${st.left}` : `${it.week ? "来週" : "あした"} もどる`);
