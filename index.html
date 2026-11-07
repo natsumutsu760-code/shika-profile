@@ -480,12 +480,34 @@ html:not([lang="en"]) .en-only { display: none !important; }
 .exo-act > span { flex: 1 1 100%; font: 800 14px/1.3 var(--jp); color: #FFE7A3; }
 .exo-act .key { flex: 1; min-height: 44px; }
 .key.exo-do { background: #FF5A2F; color: #fff; }
-.key.exo-do.sure, .key.exo-c.sure { background: #C2410C; color: #fff; }
-.exo-hand { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(200px, 100%), 1fr)); gap: 6px; }
-.key.exo-c { text-align: left; padding: 8px 10px; color: #fff; background: rgba(0,0,0,.4); border-left: 5px solid var(--kc); font: 800 14.5px/1.3 var(--jp); }
-.key.exo-c small { display: block; margin-top: 2px; color: #FFD9B8; font: 700 12px/1.3 var(--jp); }
-.key.exo-c .kd { display: inline-block; margin-right: 6px; padding: 1px 6px; border-radius: 6px; background: var(--kc); color: #1A0505; font: 800 11px/1.5 var(--jp); vertical-align: 1px; }
-.key.exo-c.sure small::before, .key.exo-do.sure small::before { content: none; }
+.key.exo-do.sure { background: #C2410C; color: #fff; }
+.key.exo-do.sure small::before { content: none; }
+/* 手札：トランプの ような 縦長の カードを 扇に 並べる。押すと 持ち上がり、下に くわしい 説明と「使う」（2026-11-07 鹿さん「手札と言ってるのでカードの見た目で反映してください」） */
+.exo-fan { display: flex; justify-content: center; padding: 22px 16px 4px; } /* 左右の 余白：傾けた 端の カードの 角が 切れない ように */
+.exo-card { --w: min(104px, calc((100% + (var(--n) - 1) * 14px) / var(--n))); position: relative; flex: none; width: var(--w); aspect-ratio: 5 / 7; margin-left: -14px; padding: 6px 5px 7px; display: flex; flex-direction: column; align-items: center; justify-content: space-between; border: 2px solid var(--kc); border-radius: 10px; cursor: pointer; color: #fff;
+  background: radial-gradient(circle at 50% 46%, color-mix(in srgb, var(--kc) 30%, transparent), transparent 62%), linear-gradient(172deg, #561410, #1C0504 78%); box-shadow: 0 6px 14px rgba(0,0,0,.55); transform: rotate(var(--r)) translateY(var(--y, 0px)); transform-origin: 50% 130%; transition: transform .16s ease-out, box-shadow .16s; }
+.exo-card:first-child { margin-left: 0; }
+.exo-card::before { content: ""; position: absolute; inset: 3px; border: 1px solid rgba(255,231,214,.18); border-radius: 7px; pointer-events: none; }
+.exo-card.up { --y: -18px; transform: rotate(0deg) translateY(-18px); z-index: 5; box-shadow: 0 0 0 2.5px #FFD54A, 0 12px 24px rgba(0,0,0,.6); }
+.exo-card .ck { align-self: stretch; padding: 1px 0; border-radius: 4px; background: var(--kc); color: #1A0505; font: 800 10px/1.4 var(--jp); text-align: center; white-space: nowrap; overflow: hidden; }
+.exo-card .cg { font: 900 clamp(24px, 7.4vw, 34px)/1 var(--jp); color: var(--kc); text-shadow: 0 0 12px var(--kc), 0 2px 0 rgba(0,0,0,.5); white-space: nowrap; }
+.exo-card .cg.sm { font-size: clamp(17px, 5vw, 23px); }
+.exo-card .cn { font: 800 11px/1.25 var(--jp); text-align: center; word-break: keep-all; overflow-wrap: anywhere; }
+.exo-cdet { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; margin-top: 10px; padding: 9px 10px; border-radius: 12px; border-left: 4px solid var(--kc); background: rgba(0,0,0,.32); }
+.exo-cdet > span { flex: 1 1 180px; min-width: 0; font: 800 15px/1.3 var(--jp); color: #FFE7D6; }
+.exo-cdet > span small { display: block; margin-top: 2px; font: 700 12.5px/1.35 var(--jp); color: #FFD9B8; }
+.exo-cdet .key { flex: none; min-width: 96px; min-height: 44px; }
+@media (prefers-reduced-motion: reduce) { .exo-card { transition: none; } }
+.exo-handbar { position: sticky; bottom: calc(-18px - env(safe-area-inset-bottom)); margin: 14px -14px calc(-18px - env(safe-area-inset-bottom)); padding: 12px 14px calc(14px + env(safe-area-inset-bottom)); background: linear-gradient(rgba(18,3,3,0), #120303 34%); }
+.exo-handbar .exo-note { text-align: center; }
+.exo-handbtn { position: relative; display: flex; align-items: center; justify-content: center; gap: 10px; width: 100%; min-height: 52px; border: 0; border-radius: 14px; background: linear-gradient(170deg, #FFC24A, #F08A1C); color: #2A0A00; font: 900 17px/1 var(--jp); box-shadow: 0 4px 0 #9A4A08; cursor: pointer; }
+.exo-handbtn:active { transform: translateY(2px); box-shadow: 0 2px 0 #9A4A08; }
+.exo-handbtn i { width: 14px; height: 20px; margin-right: -14px; border: 2px solid #2A0A00; border-radius: 3px; background: #FFE7A3; transform: rotate(-12deg); } /* 小さな カード 3 まい */
+.exo-handbtn i + i { transform: rotate(0deg); } .exo-handbtn i + i + i { transform: rotate(12deg); margin-right: 6px; }
+.exo-handbtn b { min-width: 24px; height: 24px; padding: 0 6px; border-radius: 12px; background: #2A0A00; color: #FFD54A; font: 800 14px/24px var(--num); }
+#exo-hand-pop { position: fixed; inset: 0; z-index: 410; display: flex; align-items: flex-end; justify-content: center; background: rgba(8, 2, 2, .5); }
+#exo-hand-pop[hidden] { display: none; }
+@media (min-width: 900px) { #exo-hand-pop { align-items: center; } }
 .exo-pact { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
 .key.exo-pk { padding: 10px 6px; background: #5A1A08; color: #fff; font: 900 14px/1.25 var(--jp); }
 .key.exo-pk small { display: block; margin-top: 3px; color: #FFD9B8; font: 700 11.5px/1.3 var(--jp); }
@@ -1223,6 +1245,7 @@ function pskClean(o) {
     ["そのほか", "#22CC88", [["!けいじばん こんにちは", "ラウンジの掲示板に書く（1 分に 1 回・120 字まで）"], ["!バグ報告 ガチャのあと画面が止まった", "不具合を配信者に知らせる（30 秒に 1 回・300 字まで）"], ["!花火", "画面に花火（!ハート でハート）"], [null, "888 で拍手、草 で草が生える"], ["!モノリンク", "MONO LINK の URL をチャットで受け取る（!サイト でも）"]]]
   ];
   var NOTES = [
+    ["MONO LINK", "2026-11-07", ["悪魔祓いのポップアップに「手札を出す」ボタンができました。押すと手札がカードの見た目で並び、カードを押すと持ち上がって、説明と「使う」ボタンが出ます"]],
     ["build 123", "2026-11-07", ["鹿物語 Ver.1.8.52：インフェルノの悪魔祓いを作りなおしました。ヒントで炎は自動では消えず、自分で推理してしぼります", "ヘソに玉を入れると、ときどきカードが配られます（5 まいまで）。配信ページの「ゲーム」タブの「祓魔」ボタンで、手札と悪魔の表が開きます（コメントの !カード 1 でも使えます）", "カードは 3 種類：候補をしぼる問い（番号は 4 より大きい？・炎の色を問う など。答えはみんなに見えます）・大罪の悪魔の力・出玉", "悪魔を祓うと次の悪魔が憑き、みんなの解答権が戻ります。1 回のインフェルノで 3 体祓うと、3 体目を祓った人が契約をえらべます（!契約 1〜3）。10 体のうち 2〜3 体は、色か大きさが「？」です"]],
     ["MONO LINK", "2026-11-07", ["上の財布の ⇄ の窓から、そのまま交換できるようになりました（玉を借りる・換金・アメジスト）。数を入れて 2 回押すと決まります。配信中に使えます"]],
     ["build 122", "2026-11-07", ["鹿物語 Ver.1.8.51：ワームホール・メモリ改ざん・魂の取引の行き先の 5 番目が、プラチナからジャグリングモードになりました（7 つの行き先：アストロ・インフェルノ・クラッキング・金鹿・ジャグリング・RUSH・パラドックス）", "ワームホールなどからモードに入ったとき、右上の表示が前のモードのまま残っていたのを直しました", "電チューの爆発で台がゆれなくなっていたのを直しました"]],
@@ -2864,6 +2887,12 @@ var ShikaWheel = (function () {
   var EXO_CARD_EN = { gt4: ["Number above 4?", ""], gt7: ["Number above 7?", ""], mid: ["Number 4–8?", ""], even: ["Even number?", ""], color: ["Ask the color", ""], size: ["Ask the size", ""],
     light: ["Raise a light", "Reveals every ? flame"], spark: ["Sparks fly", "Shows 2 demons that are not it"], mammon: ["Mammon", "50 balls rain down"], beelzebub: ["Beelzebub", "The center pocket widens for 3s"],
     leviathan: ["Leviathan", "Copies the best reserve"], lucifer: ["Lucifer", "Rewrites a reel into a reach"], tulip: ["Tulip 15s", "The tulip opens for 15s"], plus: ["Next win +100", "The next jackpot pays +100"] };
+  // カードの 顔：[大きな 字, 短い 名前, 英語の 短い 名前]。大罪の 悪魔は 罪の 字（強欲＝欲・暴食＝食・嫉妬＝妬・傲慢＝傲）
+  var EXO_FACE = { gt4: ["＞4", "4 より大？", "Above 4?"], gt7: ["＞7", "7 より大？", "Above 7?"], mid: ["4–8", "4〜8？", "4–8?"], even: ["偶", "偶数？", "Even?"],
+    color: ["色", "色を問う", "Color"], size: ["大", "大きさ", "Size"], light: ["灯", "灯り", "Light"], spark: ["火", "火の粉", "Sparks"],
+    mammon: ["欲", "マモン", "Mammon"], beelzebub: ["食", "ベルゼブブ", "Beelzebub"], leviathan: ["妬", "レヴィアタン", "Leviathan"], lucifer: ["傲", "ルシファー", "Lucifer"],
+    tulip: ["電", "電チュー", "Tulip"], plus: ["+100", "当たり +100", "Win +100"] };
+  var exoCard = -1, exoCardK = ""; // えらんで いる 手札（何まい目か と その カード）
   var EXO_PACT_UI = [["灼熱の契約", "当たると出玉 +20%", "Blazing Pact", "Wins pay +20%"], ["不滅の契約", "延長抽選が 90% で通る", "Undying Pact", "Extension passes 90%"], ["火種の契約", "当たるとプライズ +2", "Ember Pact", "Wins give +2 prizes"]];
   function exoImg(x) { // 24×24 のドット絵（MONO LINK のインフェルノの悪魔と同じ絵）を 1 度だけ描く
     if (!x.sp || !Array.isArray(x.sp.px) || !Array.isArray(x.sp.pal)) return "";
@@ -2912,6 +2941,7 @@ var ShikaWheel = (function () {
       el.hidden = false;
     }
     if (exoOpen) drawExoPop();
+    if (exoHandOpen) drawExoHand();
   }
   function drawExoPop() {
     var pop = $("exo-pop");
@@ -2947,17 +2977,40 @@ var ShikaWheel = (function () {
         '<button type="button" class="key" data-exo="mark">' + (exoMarks[exoSel] ? (en ? "Unmark" : "印をはずす") : (en ? "Mark ✕" : "ちがう ✕")) + "</button>" +
         '<button type="button" class="key exo-do" data-cmd="!祓う ' + sn + '" data-sure="1">' + (en ? "Exorcise" : "祓う") + "<small>" + (en ? "tap twice" : "2 回押す") + "</small></button></div>";
     }
-    h += '<p class="exo-sec">' + (en ? "Your cards" : "手札") + "</p>" + (mine.length ? '<div class="exo-hand">' + mine.map(function (k) {
-      var C = (S.cards || {})[k] || [k, "q", ""], K = EXO_KIND[C[1]] || EXO_KIND.q, E2 = EXO_CARD_EN[k];
-      return '<button type="button" class="key exo-c" data-cmd="!カード ' + esc(k) + '" data-sure="1" style="--kc:' + K[2] + '"><span class="kd">' + esc(en ? K[1] : K[0]) + "</span>" + esc(en && E2 ? E2[0] : C[0]) + "<small>" + esc(en && E2 ? E2[1] || "" : C[2] || "") + "</small></button>";
-    }).join("") + "</div>" : '<p class="exo-note">' + (en ? "Get cards when your ball goes into the center pocket" : "ヘソに玉を入れるとカードが配られます") + "</p>");
+    h += '<div class="exo-handbar">' + (mine.length ? '<button type="button" class="exo-handbtn" data-exo="hand"><i></i><i></i><i></i>' + (en ? "Show your hand" : "手札を出す") + "<b>" + mine.length + "</b></button>" :
+      '<p class="exo-note">' + (en ? "Get cards when your ball goes into the center pocket" : "手札はまだありません。ヘソに玉を入れるとカードが配られます") + "</p>") + "</div>";
     sh.innerHTML = h; sh.scrollTop = top;
     if (keepCmd) { var nb = sh.querySelector('[data-cmd="' + keepCmd.replace(/"/g, "") + '"]'); if (nb && nb.dataset.sure) { nb.classList.add("sure"); nb._sure = setTimeout(function () { nb.classList.remove("sure"); }, 3500); } }
     pop.hidden = false;
   }
+  // 手札の ポップアップ（2 枚目）：悪魔祓いの ポップアップの「手札を出す」から（2026-11-07 鹿さん「手札を出すボタンを付けてさらにポップアップで出す」）
+  var exoHandOpen = false;
+  function drawExoHand() {
+    var hp = $("exo-hand-pop");
+    if (!hp) {
+      $("v-live").insertAdjacentHTML("beforeend", '<div id="exo-hand-pop" hidden role="dialog" aria-modal="true" aria-label="手札"><div class="exo-sheet exo-hsheet" id="exo-hsheet"></div></div>');
+      hp = $("exo-hand-pop"); hp.addEventListener("click", function (e) { if (e.target === hp) exoHand(false); });
+    }
+    var S = exoS; if (!S || !S.on) { exoHand(false); return; }
+    var en = LANG === "en", mine = exoMine(), h = "";
+    if (mine[exoCard] !== exoCardK) { exoCard = -1; exoCardK = ""; } // 使った・入れかわった ときは えらびを 外す
+    var cinfo = function (k) { var C = (S.cards || {})[k] || [k, "q", ""], E2 = EXO_CARD_EN[k]; return { K: EXO_KIND[C[1]] || EXO_KIND.q, name: en && E2 ? E2[0] : C[0], desc: en && E2 ? E2[1] || "" : C[2] || "" }; };
+    h += '<div class="exo-head">' + (en ? "Your hand" : "手札") + "<small>" + (en ? "Tap a card, then Use" : "カードを押して「使う」") + '</small><button type="button" class="exo-x" data-exo="hand-close" aria-label="' + (en ? "Close" : "とじる") + '">✕</button></div>';
+    if (mine.length) {
+      h += '<div class="exo-fan" style="--n:' + mine.length + '">' + mine.map(function (k, i) {
+        var I = cinfo(k), F = EXO_FACE[k] || ["？", I.name, I.name], r = mine.length > 1 ? (i - (mine.length - 1) / 2) * 4 : 0;
+        return '<button type="button" class="exo-card' + (exoCard === i ? " up" : "") + '" data-exo="card" data-i="' + i + '" style="--kc:' + I.K[2] + ";--r:" + r + 'deg" aria-label="' + esc(I.name) + '">' +
+          '<span class="ck">' + esc(en ? I.K[1] : I.K[0]) + '</span><span class="cg' + (F[0].length > 3 ? " sm" : "") + '">' + esc(F[0]) + '</span><span class="cn">' + esc(en ? F[2] : F[1]) + "</span></button>";
+      }).join("") + "</div>";
+      if (exoCard >= 0) { var I2 = cinfo(exoCardK);
+        h += '<div class="exo-cdet" style="--kc:' + I2.K[2] + '"><span>' + esc(I2.name) + (I2.desc ? "<small>" + esc(I2.desc) + "</small>" : "") + '</span><button type="button" class="key exo-do" data-cmd="!カード ' + esc(exoCardK) + '" data-exo-use="1">' + (en ? "Use" : "使う") + "</button></div>"; }
+    } else h += '<p class="exo-note">' + (en ? "Get cards when your ball goes into the center pocket" : "ヘソに玉を入れるとカードが配られます") + "</p>";
+    $("exo-hsheet").innerHTML = h; hp.hidden = false;
+  }
+  function exoHand(on) { exoHandOpen = !!on; if (exoHandOpen) drawExoHand(); else { var hp = $("exo-hand-pop"); if (hp) hp.hidden = true; } }
   function exoPop(on) {
     exoOpen = !!on; document.body.classList.toggle("exo-lock", exoOpen);
-    if (exoOpen) drawExoPop(); else { var p = $("exo-pop"); if (p) p.hidden = true; }
+    if (exoOpen) drawExoPop(); else { var p = $("exo-pop"); if (p) p.hidden = true; exoHand(false); }
   }
   function exoAct(b) {
     var a = b.dataset.exo;
@@ -2965,8 +3018,11 @@ var ShikaWheel = (function () {
     else if (a === "close") exoPop(false);
     else if (a === "sel") { var i = +b.dataset.i; exoSel = exoSel === i ? -1 : i; drawExoPop(); }
     else if (a === "mark" && exoSel >= 0) { exoMarks[exoSel] = !exoMarks[exoSel]; drawExoPop(); }
+    else if (a === "card") { var ci = +b.dataset.i, mk = exoMine(); if (exoCard === ci) { exoCard = -1; exoCardK = ""; } else { exoCard = ci; exoCardK = mk[ci] || ""; } drawExoHand(); }
+    else if (a === "hand") exoHand(true);
+    else if (a === "hand-close") exoHand(false);
   }
-  document.addEventListener("keydown", function (e) { if (e.key === "Escape" && exoOpen) exoPop(false); });
+  document.addEventListener("keydown", function (e) { if (e.key !== "Escape") return; if (exoHandOpen) exoHand(false); else if (exoOpen) exoPop(false); });
   if (/^(127\.0\.0\.1|localhost)$/.test(location.hostname)) window.__exoTest = function (d, me) { if (me != null) meName = me; if (!$("exo-pick")) $("lp-game").insertAdjacentHTML("afterbegin", '<div class="exo-pick" id="exo-pick" hidden></div>'); exoS = d; drawExo(); }; // 手元の試験だけ
   function key(cmd, label, sub, o) {
     o = o || {};
@@ -3747,7 +3803,8 @@ var ShikaWheel = (function () {
     if (b.dataset.n) { fireN = +b.dataset.n; $("fire-n").querySelectorAll("button").forEach(function (o) { o.setAttribute("aria-pressed", String(o === b)); }); return; }
     if (b.id === "fire") { send(fireN ? "!発射 " + fireN : "!発射", b); return; }   // 0：いつもの数（プレステージの スキル）
     if (b.dataset.wk) { wearKind = b.dataset.wk; drawWear(); return; }
-    if (b.dataset.exo) { exoAct(b); return; } // 悪魔祓いの ポップアップ（開く・とじる・悪魔を えらぶ・印）
+    if (b.dataset.exoUse) { send(b.dataset.cmd, b); exoCard = -1; exoCardK = ""; exoHand(false); return; } // 手札の「使う」：答えは 元の ポップアップの「わかったこと」に 出る
+    if (b.dataset.exo) { exoAct(b); return; } // 悪魔祓いの ポップアップ（開く・とじる・悪魔を えらぶ・印・手札）
     if (b.dataset.cmd) { if (b.dataset.sure) sure(b); else send(b.dataset.cmd, b); }
   });
   $("push").addEventListener("keydown", function (e) { if (e.key === " " || e.key === "Enter") { var p = $("push"); p.classList.add("hit"); setTimeout(function () { p.classList.remove("hit"); }, 120); } });
