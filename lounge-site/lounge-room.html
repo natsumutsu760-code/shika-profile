@@ -396,7 +396,7 @@ function petLabel(t) {
   const talk = t < pet.sayUntil, zz = pet.mode === "sleep" && !talk;
   bub.hidden = S.edit || (!talk && !zz); if (bub.hidden || !pet.g) return;
   bub.className = zz ? "bub zzz" : "bub"; bub.textContent = zz ? "Zzz" : pet.say;
-  const v = pet.pos.clone().setY(zz ? 1.75 : 2.1).project(cam);   // ふだ（ペット）の 上に bub.style.left = `${((v.x + 1) / 2) * view.clientWidth}px`; bub.style.top = `${((1 - v.y) / 2) * view.clientHeight}px`;
+  const v = pet.pos.clone().setY(zz ? 1.75 : 2.1).project(cam); bub.style.left = `${((v.x + 1) / 2) * view.clientWidth}px`; bub.style.top = `${((1 - v.y) / 2) * view.clientHeight}px`;   // ふだ（ペット）の 上に（2026-11-07：この 説明が 行の 途中に 入り、ふきだしの 位置が 決まって いなかった）
 }
 function pat(t) {
   const woke = pet.mode === "sleep"; pet.say = woke && PET_SP === "shika" ? "……ねてた。" : PAT[PET_SP]; pet.sayUntil = t + 2.6;
