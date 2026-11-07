@@ -657,6 +657,11 @@ export class Lounge {
       let d; try { d = JSON.parse(msg.slice(2)); } catch (e) { return; }
       if (!d || typeof d !== "object" || Array.isArray(d)) return;
       this.exo = { d, at: Date.now() }; this.toViewers({ t: "exo", d });
+      // 魂の 取引の 知らせ（配信ページの コメント欄に @名前。2026-11-07 鹿さん「選択権がある人に分かりやすく通知してください。」・カード「チャットに知らせ」）
+      const R = d.on && typeof d.right === "string" ? d.right.slice(0, 40) : "", DL = d.on && d.deal && typeof d.deal === "object" ? d.deal : null, DB = DL && typeof DL.by === "string" ? DL.by.slice(0, 40) : "";
+      if (R && R !== this.exoRight && !DB) this.toViewers({ t: "sys", text: "@" + R + " さんが魂の取引の権利を手に入れました（インフェルノの終わりに行き先をえらべます・いま " + (Math.floor(+d.rightN) || 7) + " こ）", at: Date.now() });
+      if (DB && DB !== this.exoDealBy) this.toViewers({ t: "sys", text: "@" + DB + " さん、いま魂の取引で行き先をえらべます：!取引 1〜" + (Array.isArray(DL.d) ? DL.d.length : 7) + "（配信ページのゲームタブのボタンでも・20 秒）", at: Date.now() });
+      this.exoRight = R; this.exoDealBy = DB;
       return;
     }
     if ((a.ver || 0) < MX_V) return; // 古い版の OBS からは受け取らない
