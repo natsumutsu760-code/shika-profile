@@ -11,6 +11,7 @@ import { sale, upkeepSale, gearCo } from "./lounge-stock.js";   // 株：払っ�
 import { VALUE } from "./materials.js";
 import { ensureTrade, giveTrade, bump, tripEvents, hasKey, slotKind } from "./lounge-trade.js";
 import { ensureReq, giveReq } from "./lounge-req.js";
+import { giveAu } from "./lounge-auction.js";   // 競り・フリマ（落札した 品・もどる 品・売れた 知らせ）
 import { ensurePet, autoFill, fighterOf, mateOf, givePet, equippedUids, moveOldSlots } from "./lounge-pet.js";
 
 export const LV_MAX = Infinity;                            // ペットと なかまの Lv に 上限は ない（鹿さんの決め、2026-10-25。前は 40。ステータスも Lv と いっしょに 伸びつづける）
@@ -132,6 +133,7 @@ export function give(rec, g, now) {
   if (g.voidTrip) { const t = rec.trips.find((x) => x.uid === g.voidTrip); if (t && !t.done) t.void = 1; }   // 派遣の 玉が あとで 払えなかったと わかった（返事が おくれた とき）：その 派遣の 収穫は なし
   giveTrade(rec, g, now);                        // 友好度・とくべつな 品・道具・レシピ・買い取りの 上乗せ・売りきれの もどし
   giveReq(rec, g, now);                          // みんなの依頼（送る・やめる・もらった 物・もどった 物）
+  giveAu(rec, g, now);                           // 競り・フリマ
   givePet(rec, g);                               // 振り直し・職業を かえる
   if (g.pet) addPet(rec, g.pet);                 // アメジストで むかえた 子（払えたと わかった とき）
   if (g.ev) for (const e of [].concat(g.ev)) bump(rec, e, jstDay(now || Date.now()));   // タスクに 数える（作る・合成・おやつ・買う。物を 渡せた ときだけ）

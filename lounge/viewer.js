@@ -5,7 +5,7 @@
 // ほかの 頼みが 入ると、同じ 人が すばやく 2 回 押した とき 2 重に 使えて しまうので
 // 派遣の 計算は 出かけた あと アラームで 戦い 1 回ずつ（Cloudflare の 無料の プランは 1 回 10 ミリ秒まで）。とちゅうは「sim」に しまう
 import { cleanRoom, STARTER_OWN, STARTER_ROOM, N, SALE_IDS, priceOn, jstDay, pullId, GACHA_COST } from "./lounge-rules.js";
-import { locked, lockedAct, lockWhy, lockKind, bzLocked, BZ_WHY, stockLocked, STOCK_WHY } from "./lounge-lock.js";   // 大工事の あいだの ロック
+import { locked, lockedAct, lockWhy, lockKind, bzLocked, BZ_WHY, stockLocked, STOCK_WHY, auLocked, AU_WHY } from "./lounge-lock.js";   // 大工事の あいだの ロック
 import { emptyLedger, balanceOf, trimSent, toObs, settle } from "./ledger.js";
 import { buyPlan, sellAct, boxSell, tradeAct, taskDone, useItem, deeplinkView, actEvents, dlVisit, bump } from "./lounge-trade.js";
 import { facMigrate, facDue, facStart, facPut, facRush, facFuel, facScaffold, facKnob, facView } from "./lounge-facility.js";   // 施設の 建設と つまみ（施設の 作り直し、2026-11-03）
@@ -29,7 +29,8 @@ import { arenaFighter, ensureArena, duelCheck, duelDone, arenaMine, encReady, en
 import { hidden } from "./lounge-gate.js";
 import { bzStart, bzRecall, bzCollect, bzAppraise, bzSell, bzDone, bzMe } from "./lounge-border.js";   // ボーダーゾーン（2026-11-05 作りはじめ）
 import { bzStep } from "./border.js";
-import { stockAct, stockFlush, sale } from "./lounge-stock.js";   // 株（トークン）：売り買い・売り上げを 取引所（Market）へ
+import { stockAct, stockFlush, sale } from "./lounge-stock.js";
+import { auAct, auSettle } from "./lounge-auction.js";   // 競り（ガラク）・フリマ（アンビル・ピーコ）：Market の 競り場へ   // 株（トークン）：売り買い・売り上げを 取引所（Market）へ
 import { resetOld, resetDue, RESET_GEN } from "./lounge-reset.js";
 import { prizeView, prizePlan } from "./lounge-prize.js";   // パチンコの 景品（シーズンラインナップ。鹿さんの 決め 2026-11-03）   // 大工事の あとの リセット（鹿さんの 決め 2026-11-03）
 
@@ -96,6 +97,7 @@ export class Viewer {
     if (changed) await this.save(rec);
     if (rec.ledger.pending.length + rec.ledger.unknown.length) await this.mark(rec);   // 知らせそこねて いても ここで もう 1 回
     if (rec.req.out.length && this.env.MARKET) { await this.flushReq(rec); await this.save(rec); }   // 依頼の 板に 送りそこねた 分
+    if (rec.au && rec.au.out && rec.au.out.length && this.env.MARKET) { await auSettle(this, rec); await this.save(rec); }   // 競り・フリマの 返事の とどかなかった 頼み
     if (rec.stock && (rec.stock.send || (rec.stock.q && Object.keys(rec.stock.q).length)) && this.env.MARKET) { await stockFlush(this, rec); await this.save(rec); }   // 株の 売り上げの 送りそこね（!換金 など act の 外で 数えた 分も）
     if (rec.trips.some((t) => t.calc) && (await this.state.storage.getAlarm()) == null) await this.state.storage.setAlarm(Date.now());   // 派遣の 計算が 止まって いたら もう 1 回
     else if (rec.loop && rec.loop.on && (await this.state.storage.getAlarm()) == null) { const t = rec.trips.find((x) => !x.done); if (t) await this.state.storage.setAlarm(Math.max(Date.now(), t.end)); }   // 周回の アラームが 止まって いたら
@@ -422,6 +424,7 @@ export class Viewer {
       r = stockLocked(rec, this.env) ? { ok: false, lock: true, why: STOCK_WHY } : await stockAct(this, rec, body, op);
       if (r.ok && r.ev) { for (const e of r.ev) bump(rec, e, jstDay(now)); delete r.ev; }   // 主タスク（買う・売る・もうけて 売る・ニュースの 会社）
     }
+    else if (/^au\.(view|list|bid|buy|end)$/.test(String(body.a))) r = auLocked(rec, this.env) ? { ok: false, lock: true, why: AU_WHY } : await auAct(this, rec, body, now);   // 競り・フリマ（タスクは 門番の 中で 数える）
     else if (typeof body.a === "string" && Object.prototype.hasOwnProperty.call(PLANS, body.a)) {   // お金が いる やること：計画を 作って 帳簿で 払う（「constructor」などは 通さない）
       const plan = PLANS[body.a](rec, body, this.env);
       r = plan.costs ? await this.charge(rec, plan, wallet) : plan;

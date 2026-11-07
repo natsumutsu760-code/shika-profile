@@ -1,0 +1,305 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DEEP LINK — 競り</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DotGothic16&display=swap">
+<style>
+  /* 競り（ガラク）・フリマ（アンビル・ピーコ）。?m=auc|anvil|hanger。決まりは auction.js・門番は lounge-server/lounge-auction.js
+     鹿さんの 決め（2026-11-07）：別の ページ・出せるのは ぜんぶ・フリマも いっしょに・形は「B カードの 棚＋小窓」（品の カードを 並べ、押すと 小さな 窓で 入札・出す・えらぶ）
+     タブは さがす（ほかの 人の 出品）・出す（自分の 持ち物）・自分の（出して いる 物。売れ残りは えらぶ）。見た目は DEEP LINK/: と 同じ 黒い 端末 */
+  :root {
+    --bg:#0B0816; --bg2:#120D22; --line:rgba(255,181,71,.26); --line2:rgba(255,181,71,.5);
+    --amber:#FFB547; --dim:#B98A4E; --text:#FFE4B8; --cyan:#46D4FF; --violet:#B79BFF; --ok:#7CF0B0; --ng:#FF6B78; --warn:#FF8A7A;
+    --glow:0 0 6px rgba(255,181,71,.45); --f:"DotGothic16", "Hiragino Kaku Gothic ProN", monospace;
+  }
+  * { box-sizing:border-box; }
+  html { background:var(--bg); }
+  body { margin:0; min-height:100vh; background:radial-gradient(120% 90% at 50% 0%, #1A1230 0%, var(--bg) 60%); color:var(--text); font:400 16px/1.7 var(--f); word-break:auto-phrase; text-wrap:pretty; }
+  body::after { content:""; position:fixed; inset:0; pointer-events:none; z-index:9; background:repeating-linear-gradient(0deg, rgba(0,0,0,.18) 0 1px, transparent 1px 3px); }
+  button, input { font:inherit; color:inherit; }
+  button { cursor:pointer; background:none; border:0; padding:0; } button:disabled { cursor:not-allowed; }
+  :focus-visible { outline:2px solid var(--cyan); outline-offset:2px; }
+  h1, h2, h3, p, ul { margin:0; padding:0; } ul { list-style:none; }
+  a { color:var(--amber); }
+  .crt { max-width:1100px; margin:0 auto; padding:18px clamp(16px, 3vw, 28px) 40px; }
+  .bar { display:flex; align-items:end; justify-content:space-between; gap:12px; padding-bottom:10px; border-bottom:1px solid var(--line2); flex-wrap:wrap; }
+  .logo { font:400 clamp(26px, 4vw, 36px)/1 var(--f); color:var(--amber); letter-spacing:.04em; text-shadow:var(--glow), 2px 0 0 rgba(70,212,255,.35), -2px 0 0 rgba(255,107,120,.3); text-decoration:none; white-space:nowrap; }
+  .logo span { color:var(--violet); }
+  .head { display:flex; align-items:baseline; gap:12px; flex-wrap:wrap; margin:14px 0 4px; }
+  .head h1 { font:400 26px/1.2 var(--f); color:var(--amber); text-shadow:var(--glow); }
+  .head small { color:var(--dim); font-size:14px; } .head .back { margin-left:auto; font-size:14px; text-decoration:none; }
+  .news { margin:8px 0 2px; display:grid; gap:2px; font-size:14px; }
+  .news li { display:flex; gap:8px; align-items:baseline; flex-wrap:wrap; } .news li::before { content:"＞"; color:var(--dim); }
+  .news .k { color:var(--ok); } .news .k.ng { color:var(--warn); } .news .x { color:var(--dim); } .news b { font-weight:400; color:var(--cyan); }
+  .tabs { display:flex; gap:0; border-bottom:1px solid var(--line); margin-top:10px; overflow-x:auto; }
+  .tabs button { min-height:40px; padding:6px 16px; border:1px solid transparent; border-bottom:0; color:var(--dim); white-space:nowrap; display:inline-flex; align-items:center; gap:6px; }
+  .tabs button[aria-selected="true"] { color:var(--amber); border-color:var(--line); background:var(--bg2); margin-bottom:-1px; text-shadow:var(--glow); }
+  .tabs .n { font-size:13px; color:var(--cyan); } .tabs .dot { color:var(--ok); font-size:13px; }
+  .pane { padding:12px 0; }
+  .msg { min-height:0; margin:8px 0 0; font-size:14px; color:var(--ok); } .msg.ng { color:var(--warn); } .msg:empty { display:none; }
+  .filt { display:grid; gap:6px; padding:8px 10px; border:1px solid var(--line); background:rgba(18,13,34,.6); margin-bottom:12px; }
+  .filt .rw { display:flex; flex-wrap:wrap; align-items:center; gap:6px; } .filt .lb { font-size:13px; color:var(--dim); margin-right:4px; }
+  .chip { min-height:32px; padding:3px 12px; border:1px solid var(--line2); color:var(--text); font-size:14px; display:inline-flex; gap:6px; align-items:center; }
+  .chip small { color:var(--cyan); font-size:13px; } .chip[aria-pressed="true"] { background:var(--amber); color:var(--bg); border-color:var(--amber); } .chip[aria-pressed="true"] small { color:var(--bg); }
+  .info { font-size:13px; color:var(--dim); margin-bottom:10px; display:flex; flex-wrap:wrap; gap:4px 14px; } .info b { font-weight:400; color:var(--text); }
+  .grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(min(168px, 100%), 1fr)); gap:10px; }
+  .card { position:relative; display:grid; grid-template-columns:40px minmax(0, 1fr); gap:4px 10px; align-items:start; padding:10px; border:1px solid var(--line); background:rgba(18,13,34,.72); text-align:left; min-height:96px; }
+  .card:hover, .card:focus-visible { border-color:var(--amber); background:rgba(255,181,71,.08); }
+  .card .ic { grid-row:span 3; width:40px; height:40px; display:grid; place-items:center; border:1px solid var(--line); background:rgba(255,181,71,.06); font-size:20px; color:var(--amber); }
+  .card .ic img { width:34px; height:34px; image-rendering:pixelated; object-fit:contain; }
+  .card .nm { min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:var(--text); font-size:15px; }
+  .card .sb { font-size:13px; color:var(--dim); } .card .sb .st { color:var(--amber); }
+  .card .pr { font-size:13px; color:var(--dim); display:flex; flex-wrap:wrap; gap:0 6px; align-items:baseline; } .card .pr b { font-weight:400; font-size:17px; color:var(--cyan); text-shadow:0 0 6px rgba(70,212,255,.45); }
+  .card .tm { grid-column:1 / -1; font-size:12px; color:var(--dim); display:flex; gap:8px; justify-content:space-between; }
+  .tag { font-size:12px; padding:0 6px; border:1px solid var(--line2); color:var(--amber); white-space:nowrap; } .tag.ok { color:var(--ok); border-color:rgba(124,240,176,.5); } .tag.ng { color:var(--warn); border-color:rgba(255,138,122,.5); } .tag.me { color:var(--cyan); border-color:rgba(70,212,255,.5); }
+  .card.left { border-color:rgba(124,240,176,.6); }
+  .empty { padding:18px 4px; color:var(--dim); }
+  /* 小窓 */
+  dialog { width:min(440px, calc(100vw - 32px)); max-height:calc(100vh - 32px); overflow:auto; padding:0; border:1px solid var(--amber); background:var(--bg2); color:var(--text); box-shadow:0 0 0 1px rgba(255,181,71,.2), 0 20px 60px rgba(0,0,0,.6); }
+  dialog::backdrop { background:rgba(5,3,12,.72); }
+  .dl { padding:16px 16px 18px; display:grid; gap:10px; }
+  .dl .hd { display:grid; grid-template-columns:48px minmax(0, 1fr) auto; gap:10px; align-items:center; }
+  .dl .hd .ic { width:48px; height:48px; display:grid; place-items:center; border:1px solid var(--line2); font-size:24px; color:var(--amber); } .dl .hd .ic img { width:40px; height:40px; image-rendering:pixelated; object-fit:contain; }
+  .dl h2 { font:400 19px/1.3 var(--f); color:var(--amber); text-shadow:var(--glow); } .dl .hd small { display:block; font-size:13px; color:var(--dim); }
+  .dl .x { min-width:36px; min-height:36px; color:var(--dim); font-size:20px; align-self:start; }
+  .dl .ops { font-size:13px; color:var(--text); display:flex; flex-wrap:wrap; gap:4px; } .dl .ops span { padding:0 6px; border:1px solid var(--line); }
+  .dl .kv { display:grid; grid-template-columns:auto 1fr; gap:2px 14px; font-size:14px; } .dl .kv dt { color:var(--dim); } .dl .kv dd { margin:0; text-align:right; } .dl .kv dd b { font-weight:400; color:var(--cyan); font-size:18px; }
+  .dl .who { font-size:13px; color:var(--dim); } .dl .who b { font-weight:400; color:var(--cyan); }
+  .dl .in { display:flex; gap:8px; align-items:center; flex-wrap:wrap; } .dl .in label { font-size:14px; color:var(--dim); min-width:7.5em; }
+  .dl input[type=number] { width:9em; min-height:36px; padding:4px 8px; background:var(--bg); border:1px solid var(--line2); color:var(--text); font-size:16px; }
+  .dl .hint { font-size:13px; color:var(--dim); }
+  .dl .why { font-size:13px; color:var(--warn); } .dl .why:empty { display:none; }
+  .dl .go { display:flex; gap:8px; flex-wrap:wrap; }
+  .btn { min-height:40px; padding:6px 14px; border:1px solid var(--amber); color:var(--amber); white-space:nowrap; }
+  .btn::before { content:"[ "; } .btn::after { content:" ]"; }
+  .btn:hover:not(:disabled), .btn:focus-visible { background:var(--amber); color:var(--bg); }
+  .btn.main { background:var(--amber); color:var(--bg); flex:1; } .btn.main:hover:not(:disabled) { filter:brightness(1.1); }
+  .btn:disabled { border-color:var(--line); color:var(--dim); background:none; }
+  .btn.sub { border-color:var(--cyan); color:var(--cyan); } .btn.sub:hover:not(:disabled) { background:var(--cyan); color:var(--bg); }
+  @media (max-width:560px) { .grid { grid-template-columns:repeat(2, minmax(0, 1fr)); gap:8px; } .card { grid-template-columns:32px minmax(0, 1fr); padding:8px; } .card .ic { width:32px; height:32px; font-size:16px; } .card .ic img { width:28px; height:28px; } .tabs button { padding:6px 12px; } }
+</style>
+</head>
+<body>
+<div class="crt">
+  <header class="bar"><a class="logo" href="deeplink.html?boot=0" aria-label="DEEP LINK/:">DEEP LINK<span>/:</span></a><div id="wallet"></div></header>
+  <section class="head"><h1 id="ttl">競り</h1><small id="sub"></small><a class="back" id="back" href="deeplink.html?boot=0">＜ 店へ もどる</a></section>
+  <ul class="news" id="news"></ul>
+  <div class="tabs" role="tablist" id="tabs"></div>
+  <p class="msg" id="msg" role="status"></p>
+  <div class="pane" id="pane"><p class="empty">競り場に つないで います …</p></div>
+</div>
+<dialog id="dlg"><div class="dl" id="dlb"></div></dialog>
+<script type="module">
+import { t, enReady } from "./lounge-en.js";
+import { me, act, busy } from "./lounge-client.js";
+import { AU_MODES, isMode, feeOf, cutOf, takePrice, endHows } from "./auction.js";
+import { MAT_NAME, sellPrice } from "./materials.js";
+import { matPic } from "./mat-icons.js";
+import { baseOf } from "./equip.js";
+import { ALL_OPS } from "./op-new.js";
+import { SAMPLES, SAMPLE_PRICE } from "./border.js";
+import { mountWallet } from "./wallet-bar.js"; mountWallet({ host: document.getElementById("wallet"), theme: "dark" });
+
+const Q = new URLSearchParams(location.search), MODE = isMode(Q.get("m")) ? Q.get("m") : "auc", M = AU_MODES[MODE], BID = !!M.bid;
+const KIND = { mat: "素材", sphere: "スフィア", equip: "装備", sample: "サンプル" }, GLYPH = { sphere: "◎", equip: "▲", sample: "◇" };
+const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);
+const fmt = (n) => Number(n || 0).toLocaleString("ja-JP");
+let S = { tab: "find", kind: "all", sort: BID ? "end" : "cheap", v: null, me: null, credits: 0, seen: 0 };
+try { S.seen = +localStorage.getItem("ml-au-seen-" + MODE) || 0; const tb = localStorage.getItem("ml-au-tab"); if (["find", "sell", "mine"].includes(tb)) S.tab = tb; } catch (e) {}
+
+// 見出し：場の 名前・どの 店か・もどる 先
+document.getElementById("ttl").textContent = M.name;
+document.getElementById("sub").textContent = BID ? "ガラク・サルベージ" : MODE === "anvil" ? "アンビル（武器）" : "ピーコ（防具）";
+document.getElementById("back").href = `deeplink.html?go=${M.tid}&tab=shop&boot=0`;
+document.getElementById("back").textContent = { auc: "＜ ガラクの 店", anvil: "＜ アンビルの 店", hanger: "＜ ピーコの 店" }[MODE];
+document.title = "DEEP LINK — " + M.name;
+
+// 品の 名前・小さな 字・絵
+const opName = (op) => (ALL_OPS[op] && ALL_OPS[op].label) || op;
+const itemName = (it) => (it.k === "mat" ? MAT_NAME[it.id] || it.id : it.k === "sphere" ? opName(it.op) : it.k === "equip" ? (baseOf(it.base) || {}).name || it.base : (SAMPLES[it.id] || {}).name || it.id);
+const itemSub = (it) => (it.k === "mat" ? `${it.q ? `品質${it.q} ` : ""}×${fmt(it.n)}` : it.k === "sample" && !it.known ? "鑑定まえ" : `★${it.star}`);
+const subKind = (it) => (it.k === "mat" ? esc(itemSub(it)) : `<span class="st">${esc(itemSub(it))}</span>・${kindOf(it)}`);   // カードの 小さな 字（★と しゅるい）
+const kindOf = (it) => (it.k === "sphere" ? "スフィア" : it.k === "sample" ? "サンプル" : it.k === "equip" ? ((baseOf(it.base) || {}).slot === "weapon" ? "武器" : "防具") : "");
+const pic = (it) => (it.k === "mat" ? `<img src="${matPic(it.id)}" alt="">` : `<span aria-hidden="true">${GLYPH[it.k]}</span>`);
+const leftText = (ms) => (ms <= 0 ? "まもなく 終わる" : ms < 3600e3 ? `のこり ${Math.max(1, Math.ceil(ms / 60e3))} 分` : ms < 864e5 ? `のこり ${Math.floor(ms / 3600e3)} 時間` : `のこり ${Math.floor(ms / 864e5)} 日`);
+const nowPrice = (L) => (BID ? (L.bid ? L.bid.amt : L.start) : L.price);
+
+// 自分の 持ち物から 出せる 物（素材は 同じ 品質を まとめる・付けて いる 装備は 出さない・フリマは 作った その 部位の 装備だけ）
+function sellable() {
+  const m = S.me || {}, own = m.own || {}, out = [];
+  const worn = new Set([...(m.pets || []), ...(m.tamed || [])].flatMap((x) => Object.values(x.equip || {})).filter(Boolean));
+  if (BID) {
+    const g = new Map(); for (const x of own.mats || []) { const k = x.id + ":" + (x.q || 0); g.set(k, (g.get(k) || 0) + x.n); }
+    for (const [k, n] of g) { const [id, q] = k.split(":"); if (n > 0) out.push({ key: "m:" + k, it: { k: "mat", id, q: +q, n }, pick: { k: "mat", id, q: +q } }); }
+    for (const s of own.spheres || []) if (s.known) out.push({ key: "s:" + s.uid, it: { k: "sphere", op: s.op, star: s.star }, pick: { k: "sphere", uid: s.uid } });
+    for (const s of (m.bz && m.bz.samples) || []) out.push({ key: "x:" + s.uid, it: { k: "sample", id: s.id, star: s.star, known: !!s.known }, pick: { k: "sample", uid: s.uid } });
+  }
+  for (const e of own.equip || []) {
+    if (worn.has(e.uid)) continue;
+    const weapon = (baseOf(e.base) || {}).slot === "weapon";
+    if (!BID && (!e.mk || weapon !== (M.slot === "weapon"))) continue;
+    out.push({ key: "e:" + e.uid, it: { k: "equip", base: e.base, star: e.star, ops: e.ops || [], ...(e.mk ? { mk: 1 } : {}) }, pick: { k: "equip", uid: e.uid } });
+  }
+  return out;
+}
+
+async function load() {
+  const [v, m] = await Promise.all([act("au.view", { mode: MODE }), me()]);
+  S.me = m && !m.denied ? m : S.me;
+  if (v && v.ok) { S.v = v; S.credits = v.credits ?? S.credits; } else if (!S.v) S.v = { ok: false, why: (v && v.why) || "競り場に つながらない" };
+  if (m && m.credits != null) S.credits = m.credits;
+  render();
+}
+
+// ---------- 描く ----------
+const chipRow = (label, key, opts, cur) => `<div class="rw"><span class="lb">${label}</span>${opts.map(([v, txt, n]) => `<button class="chip" data-${key}="${v}" aria-pressed="${cur === v}">${txt}${n != null ? `<small>${n}</small>` : ""}</button>`).join("")}</div>`;
+function filters(items, kindKey, sorts) {
+  const counts = new Map(); for (const x of items) { const k = kindKey(x); counts.set(k, (counts.get(k) || 0) + 1); }
+  const kinds = [...counts].filter(([, n]) => n > 0);
+  if (S.kind !== "all" && !counts.get(S.kind)) S.kind = "all";
+  const rows = (kinds.length > 1 ? chipRow("しゅるい", "kind", [["all", "ぜんぶ", items.length], ...kinds.map(([k, n]) => [k, k, n])], S.kind) : "") + (sorts && items.length > 1 ? chipRow("ならべる", "sort", sorts, S.sort) : "");
+  return rows ? `<div class="filt">${rows}</div>` : "";
+}
+const findKind = (L) => (BID ? KIND[L.item.k] : `★${L.item.star}`);
+function findCard(L) {
+  const top = L.bid && L.bid.me;
+  return `<button class="card" data-find="${L.lid}"><span class="ic">${pic(L.item)}</span><span class="nm">${esc(itemName(L.item))}</span><span class="sb">${subKind(L.item)}</span>
+    <span class="pr">${BID ? `<span>${L.bid ? "いま" : "開始"}</span>` : ""}<b>${fmt(nowPrice(L))}</b></span><span class="tm"><span>${leftText(L.until - Date.now())}</span>${top ? `<span class="tag me">最高値</span>` : L.buyout ? `<span>即決 ${fmt(L.buyout)}</span>` : ""}</span></button>`;
+}
+function sellCard(x) {
+  return `<button class="card" data-sell="${esc(x.key)}"><span class="ic">${pic(x.it)}</span><span class="nm">${esc(itemName(x.it))}</span><span class="sb">${subKind(x.it)}</span><span class="pr">${x.it.k === "equip" && x.it.ops.length ? `<span>OP ${x.it.ops.length}</span>` : ""}</span></button>`;
+}
+const ST = { open: ["", ""], left: ["売れ残り", "ok"], sold: ["売れた", "me"], back: ["もどった", ""], taken: ["引き取り", ""], scrapped: ["リサイクル", ""] };
+function mineCard(L) {
+  const [lb, cl] = L.status === "open" && L.bid ? [`入札 ${L.bids}`, "me"] : ST[L.status] || [L.status, ""];
+  const pr = L.status === "sold" ? `<b>${fmt(L.amt)}</b>` : L.status === "taken" ? `<b>＋${fmt(L.got)}</b>` : L.status === "scrapped" ? `<span>素材</span><b>${fmt(L.got)}</b>` : ["back"].includes(L.status) ? "" : `${BID ? `<span>${L.bid ? "いま" : "開始"}</span>` : ""}<b>${fmt(nowPrice(L))}</b>`;
+  return `<button class="card ${L.status === "left" ? "left" : ""}" data-mine="${L.lid}"><span class="ic">${pic(L.item)}</span><span class="nm">${esc(itemName(L.item))}</span><span class="sb">${esc(itemSub(L.item))}</span>
+    <span class="pr">${pr}</span><span class="tm"><span>${L.status === "open" ? leftText(L.until - Date.now()) : ""}</span>${lb ? `<span class="tag ${cl}">${lb}</span>` : ""}</span></button>`;
+}
+function newsHtml() {
+  const log = ((S.v && S.v.log) || []).filter((x) => x.at > S.seen).slice(0, 3);
+  const name = (x) => (x.item ? `<span class="nm">${esc(itemName(x.item))}</span>` : "");
+  const line = (x) => x.k === "sold" ? `<span class="k">売れた</span>${name(x)}<b>＋${fmt(x.amt - cutOf(MODE, x.amt))}</b>`
+    : x.k === "won" ? `<span class="k">落札</span>${name(x)}<span class="x">とどいた</span>`
+    : x.k === "outbid" ? `<span class="k ng">入札で ぬかれた</span>${name(x)}<span class="x">もどった</span><b>${fmt(x.amt)}</b>`
+    : x.k === "take" ? `<span class="k">引き取り</span>${name(x)}<b>＋${fmt(x.got)}</b>`
+    : x.k === "scrap" ? `<span class="k">リサイクル</span>${name(x)}<span class="x">素材</span><b>${fmt(x.got)}</b>`
+    : `<span class="k">もどった</span>${name(x)}`;
+  return log.map((x) => `<li>${line(x)}</li>`).join("");
+}
+function render() {
+  const v = S.v || {}, list = (v.list || []).filter((L) => !L.mine), mine = v.mine || [], left = mine.filter((L) => L.status === "left").length, act1 = mine.filter((L) => L.status === "open" || L.status === "left").length;
+  document.getElementById("news").innerHTML = newsHtml();
+  document.getElementById("tabs").innerHTML = [["find", "さがす", list.length ? `<span class="n">${list.length}</span>` : ""], ["sell", "出す", ""], ["mine", "自分の", act1 ? `<span class="n">${act1}</span>${left ? `<span class="dot">●${left}</span>` : ""}` : ""]]
+    .map(([k, txt, n]) => `<button role="tab" data-tab="${k}" aria-selected="${S.tab === k}">${txt}${n}</button>`).join("");
+  const P = document.getElementById("pane");
+  if (!v.ok) { P.innerHTML = `<p class="empty">${esc(v.why || "競り場に つながらない")}</p>`; return; }
+  if (S.tab === "find") {
+    const sorts = BID ? [["end", "終わりが 近い"], ["cheap", "安い"], ["new", "新しい"]] : [["cheap", "安い"], ["new", "新しい"], ["star", "★が 高い"]];
+    let xs = list.filter((L) => S.kind === "all" || findKind(L) === S.kind);
+    xs = xs.sort(S.sort === "cheap" ? (a, b) => nowPrice(a) - nowPrice(b) : S.sort === "new" ? (a, b) => b.at - a.at : S.sort === "star" ? (a, b) => (b.item.star || 0) - (a.item.star || 0) : (a, b) => a.until - b.until);
+    P.innerHTML = list.length ? filters(list, findKind, sorts) + `<div class="grid">${xs.map(findCard).join("")}</div>` : `<p class="empty">いま 出て いる 品は ない</p>`;
+  } else if (S.tab === "sell") {
+    if (!v.open) { P.innerHTML = `<p class="empty">ピーコの 店で「防具の 委託」を うけとると 出せる　<a href="deeplink.html?go=hanger&tab=shop&boot=0">＞ ピーコの 店</a></p>`; return; }
+    const all = sellable(), xs = all.filter((x) => S.kind === "all" || (BID ? KIND[x.it.k] : `★${x.it.star}`) === S.kind);
+    const used = mine.filter((L) => L.status === "open" || L.status === "left").length;
+    const info = `<p class="info"><span>枠 <b>${used}</b> / <b>${v.slots}</b></span><span>${M.feeMin > 1 ? `出品料 ${Math.round(M.fee * 100)}%（最低 ${M.feeMin}）・売れたら ${Math.round(M.cut * 100)}%・期限 ${Math.round(M.ms / 864e5)} 日` : `出品料 ${Math.round(M.fee * 100)}%・売れたら ${Math.round(M.cut * 100)}%・期限 ${Math.round(M.ms / 864e5)} 日`}</span></p>`;
+    P.innerHTML = info + (all.length ? filters(all, (x) => (BID ? KIND[x.it.k] : `★${x.it.star}`), null) + `<div class="grid">${xs.map(sellCard).join("")}</div>` : `<p class="empty">${BID ? "出せる 物が ない" : M.slot === "weapon" ? "出せる 装備が ない（作業台で 作った 武器だけ）" : "出せる 装備が ない（作業台で 作った 防具だけ）"}</p>`);
+  } else {
+    const order = { left: 0, open: 1 }, xs = [...mine].sort((a, b) => (order[a.status] ?? 2) - (order[b.status] ?? 2) || b.at - a.at);
+    P.innerHTML = xs.length ? `<div class="grid">${xs.map(mineCard).join("")}</div>` : `<p class="empty">出して いる 物は ない</p>`;
+  }
+}
+
+// ---------- 小窓 ----------
+const D = document.getElementById("dlg"), DB = document.getElementById("dlb");
+const head = (it, sub2) => `<div class="hd"><span class="ic">${pic(it)}</span><div><h2>${esc(itemName(it))}</h2><small>${esc(itemSub(it))}${kindOf(it) ? `・${kindOf(it)}` : ""}${sub2 || ""}</small></div><button class="x" data-do="close" aria-label="とじる">×</button></div>`
+  + (it.k === "equip" && it.ops && it.ops.length ? `<p class="ops">${it.ops.map((o) => `<span>${esc(opName(o))}</span>`).join("")}</p>` : "");
+const open = (html) => { DB.innerHTML = html; if (!D.open) D.showModal(); };
+const close = () => { if (D.open) D.close(); };
+function findDlg(L) {
+  const min = L.min, top = L.bid && L.bid.me, cr = S.credits;
+  const kv = BID ? `<dl class="kv"><dt>${L.bid ? "いま" : "開始値"}</dt><dd><b>${fmt(nowPrice(L))}</b></dd><dt>次に 入れられる</dt><dd>${fmt(min)} から</dd>${L.buyout ? `<dt>即決</dt><dd>${fmt(L.buyout)}</dd>` : ""}<dt>入札</dt><dd>${L.bids} 回</dd><dt>期限</dt><dd>${leftText(L.until - Date.now())}</dd></dl>`
+    : `<dl class="kv"><dt>値段</dt><dd><b>${fmt(L.price)}</b></dd><dt>期限</dt><dd>${leftText(L.until - Date.now())}</dd></dl>`;
+  const who = `<p class="who">出品：<b data-notr>${esc(L.name)}</b>${top ? `　<span class="tag me">あなたが 最高値</span>` : ""}</p>`;
+  const go = BID ? `<div class="in"><label for="amt">入れる 値</label><input id="amt" type="number" min="${min}" step="1" inputmode="numeric" value="${min}"></div><p class="why" id="why">${cr < min ? `クレジットが 足りない：あと ${fmt(min - cr)}` : ""}</p>
+      <div class="go"><button class="btn main" data-do="bid" data-lid="${L.lid}" ${cr < min ? "disabled" : ""}>入札する</button>${L.buyout ? `<button class="btn sub" data-do="buyout" data-lid="${L.lid}" data-amt="${L.buyout}" ${cr < L.buyout ? "disabled" : ""}>即決 ${fmt(L.buyout)}</button>` : ""}</div>`
+    : `<p class="why" id="why">${cr < L.price ? `クレジットが 足りない：あと ${fmt(L.price - cr)}` : ""}</p><div class="go"><button class="btn main" data-do="buy" data-lid="${L.lid}" data-amt="${L.price}" ${cr < L.price ? "disabled" : ""}>買う ${fmt(L.price)}</button></div>`;
+  open(head(L.item) + who + kv + go);
+}
+const guess = (it) => Math.max(1, it.k === "mat" ? sellPrice({ id: it.id, q: it.q }) * it.n : it.k === "sphere" ? 100 * it.star : it.k === "sample" ? SAMPLE_PRICE[(it.known ? it.star : 1) - 1] : Math.max(10, takePrice(it) * 3));   // はじめに 入れて おく 値（Claude の 案。自分で かえる）
+function sellDlg(x) {
+  const it = x.it, n = it.k === "mat" ? Math.min(999, it.n) : 1;
+  const ins = (it.k === "mat" ? `<div class="in"><label for="cnt">数</label><input id="cnt" type="number" min="1" max="${n}" step="1" inputmode="numeric" value="${n}"></div>` : "")
+    + `<div class="in"><label for="price">${BID ? "開始値" : "値段"}</label><input id="price" type="number" min="1" step="1" inputmode="numeric" value="${guess({ ...it, n })}" data-auto="1"></div>`
+    + (BID ? `<div class="in"><label for="buyout">即決</label><input id="buyout" type="number" min="0" step="1" inputmode="numeric" placeholder="なし"></div>` : "");
+  const end = it.k === "equip" ? `<p class="hint">売れ残ったら：引き取り ${fmt(takePrice(it))} か リサイクル（素材の 5 割）</p>` : `<p class="hint">売れ残ったら もどる</p>`;
+  open(head(it) + ins + end + `<p class="why" id="why"></p><div class="go"><button class="btn main" data-do="list" data-key="${esc(x.key)}" id="listgo">出す</button></div>`);
+  sellFee();
+}
+function sellFee() {
+  const p = Math.floor(+(document.getElementById("price") || {}).value || 0), f = p > 0 ? feeOf(MODE, p) : 0, why = document.getElementById("why"), b = DB.querySelector('[data-do="list"]');
+  if (!b) return; b.textContent = `出す（出品料 ${fmt(f)}）`;
+  const bo = document.getElementById("buyout"), bv = bo && bo.value ? Math.floor(+bo.value) : 0;
+  const w = p < 1 ? (BID ? "開始値を 入れて" : "値段を 入れて") : bv && bv <= p ? "即決は 開始値より 高く" : S.credits < f ? `出品料が 足りない：あと ${fmt(f - S.credits)}` : "";
+  why.textContent = w; b.disabled = !!w;
+}
+function mineDlg(L) {
+  const kv = L.status === "sold" ? `<dl class="kv"><dt>売れた 値</dt><dd><b>${fmt(L.amt)}</b></dd><dt>手数料</dt><dd>−${fmt(L.cut)}</dd><dt>うけとり</dt><dd>${fmt(L.amt - L.cut)}</dd></dl>`
+    : L.status === "open" ? `<dl class="kv"><dt>${BID ? (L.bid ? "いま" : "開始値") : "値段"}</dt><dd><b>${fmt(nowPrice(L))}</b></dd>${BID ? `<dt>入札</dt><dd>${L.bids} 回</dd>` : ""}<dt>期限</dt><dd>${leftText(L.until - Date.now())}</dd></dl>` : "";
+  let go = "";
+  const hows = L.hows || [];
+  const pick = (title) => `<p class="hint">${title}</p><div class="go">${hows.includes("take") ? `<button class="btn main" data-do="end" data-how="take" data-lid="${L.lid}">引き取り ${fmt(L.take)}</button><button class="btn sub" data-do="end" data-how="scrap" data-lid="${L.lid}">リサイクル（素材の 5 割）</button>` : `<button class="btn main" data-do="end" data-how="back" data-lid="${L.lid}">取り下げて もどす</button>`}</div>`;
+  if (L.status === "left") go = pick("売れ残った。どちらかを えらぶ（7 日 えらばないと 引き取り）");
+  else if (L.status === "open" && L.bid) go = `<p class="hint">入札が ある ので 取り下げられない</p>`;
+  else if (L.status === "open") go = pick(hows.includes("take") ? "取り下げる（品は もどらない）" : "取り下げる");
+  open(head(L.item) + kv + go + `<p class="why" id="why"></p>`);
+}
+
+// ---------- 押した とき ----------
+const say = (txt, ng) => { const m = document.getElementById("msg"); m.textContent = txt; m.className = "msg" + (ng ? " ng" : ""); };
+document.addEventListener("click", async (e) => {
+  const b = e.target.closest("button"); if (!b) return;
+  if (b.dataset.tab) { S.tab = b.dataset.tab; S.kind = "all"; say(""); try { localStorage.setItem("ml-au-tab", S.tab); } catch (x) {} render(); return; }
+  if (b.dataset.kind) { S.kind = b.dataset.kind; render(); return; }
+  if (b.dataset.sort) { S.sort = b.dataset.sort; render(); return; }
+  if (b.dataset.find) { const L = (S.v.list || []).find((x) => x.lid === b.dataset.find); if (L) findDlg(L); return; }
+  if (b.dataset.sell) { const x = sellable().find((y) => y.key === b.dataset.sell); if (x) sellDlg(x); return; }
+  if (b.dataset.mine) { const L = (S.v.mine || []).find((x) => x.lid === b.dataset.mine); if (L) mineDlg(L); return; }
+  const d = b.dataset.do; if (!d) return;
+  if (d === "close") { close(); return; }
+  const why = document.getElementById("why");
+  let body, done;
+  if (d === "bid") { body = ["au.bid", { lid: b.dataset.lid, amt: Math.floor(+document.getElementById("amt").value || 0) }]; done = (j) => (j.sold ? "即決で 落札した（品は すぐ とどく）" : "入札した"); }
+  else if (d === "buyout") { body = ["au.bid", { lid: b.dataset.lid, amt: +b.dataset.amt }]; done = () => "即決で 落札した（品は すぐ とどく）"; }
+  else if (d === "buy") { body = ["au.buy", { lid: b.dataset.lid, amt: +b.dataset.amt }]; done = () => "買った（品は すぐ とどく）"; }
+  else if (d === "list") {
+    const x = sellable().find((y) => y.key === b.dataset.key); if (!x) return;
+    const item = x.pick.k === "mat" ? { ...x.pick, n: Math.floor(+document.getElementById("cnt").value || 0) } : x.pick, bo = document.getElementById("buyout");
+    body = ["au.list", { mode: MODE, item, price: Math.floor(+document.getElementById("price").value || 0), ...(bo && bo.value ? { buyout: Math.floor(+bo.value) } : {}) }]; done = () => "出した";
+  } else if (d === "end") { body = ["au.end", { lid: b.dataset.lid, how: b.dataset.how }]; done = () => (b.dataset.how === "take" ? "引き取った" : b.dataset.how === "scrap" ? "リサイクルした" : "取り下げた"); }
+  else return;
+  const j = await busy(b, () => act(body[0], body[1]));
+  if (j && j.credits != null) S.credits = j.credits;
+  if (!j || !j.ok) { if (why) why.textContent = (j && j.why) || "うまく いかなかった"; return; }
+  close(); say(done(j)); if (d === "list") S.tab = "mine";
+  setTimeout(load, 400);   // とどく 物（Market の 送る 箱）を 待ってから 読み直す
+});
+document.addEventListener("input", (e) => {
+  if (e.target.id === "price") e.target.dataset.auto = "";
+  if (e.target.id === "cnt") { const pr = document.getElementById("price"), x = sellable().find((y) => y.key === DB.querySelector('[data-do="list"]')?.dataset.key); if (pr && pr.dataset.auto && x) { pr.value = guess({ ...x.it, n: Math.max(1, Math.floor(+e.target.value || 1)) }); sellFee(); } }
+  if (["price", "buyout"].includes(e.target.id)) sellFee(); if (e.target.id === "amt") { const L = (S.v.list || []).find((x) => x.lid === DB.querySelector('[data-do="bid"]')?.dataset.lid), a = Math.floor(+e.target.value || 0), why = document.getElementById("why"), bb = DB.querySelector('[data-do="bid"]'); if (!L) return; const w = a < L.min ? `${fmt(L.min)} から 入れられる（5% 刻み）` : a > S.credits ? `クレジットが 足りない：あと ${fmt(a - S.credits)}` : ""; why.textContent = w; bb.disabled = !!w; } });
+D.addEventListener("click", (e) => { if (e.target === D) close(); });   // 外を 押すと とじる
+// 見たら おしらせを 既読に
+addEventListener("pagehide", () => { try { localStorage.setItem("ml-au-seen-" + MODE, String(Date.now())); } catch (e) {} });
+
+await enReady;
+await load();
+try { localStorage.setItem("ml-au-seen-" + MODE, String(Date.now())); } catch (e) {}
+setInterval(() => { if (!D.open && document.visibilityState === "visible") load(); }, 60e3);   // 1 分ごとに 読み直す（入札・のこり時間）
+window.ready = true;
+</script>
+</body>
+</html>

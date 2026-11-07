@@ -6,9 +6,10 @@ import { TRADERS, SPECIAL, chainTask, dailyTask, TASK_TIDS, sellPrice, GATHER, f
   PRIMARY, PRI_REP, lvOf, shopLv, shopCh, curTask, isDone, unlockedBy, KEY_BY, DUNGEONS, chaptersOf, SYS_ON, sysOff } from "./game.js";
 import { putMats, putEquip, dropOld } from "./lounge-game.js";
 import { sale, coOf } from "./lounge-stock.js";
-import { STOCK_OPEN } from "./lounge-lock.js";
+import { STOCK_OPEN, AU_OPEN } from "./lounge-lock.js";
 import { CO as STOCK_CO } from "./stocks.js";
-if (STOCK_OPEN) SYS_ON.add("トークン");   // トークンの 主タスクは 公開して いる ときだけ 数える（お休み中は とばして その 章で 止まる）
+if (STOCK_OPEN) SYS_ON.add("トークン");
+if (AU_OPEN) { SYS_ON.add("競り"); SYS_ON.add("フリマ"); }   // 競り・フリマの 主タスク（2026-11-07）   // トークンの 主タスクは 公開して いる ときだけ 数える（お休み中は とばして その 章で 止まる）
 import { equippedUids } from "./lounge-pet.js";   // lounge-game.js も ここを 読む（どちらも 呼ぶ ときに 使うだけ なので 大丈夫）
 
 export const SHOPS = [...TRADERS, SPECIAL];

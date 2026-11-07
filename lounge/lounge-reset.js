@@ -8,7 +8,7 @@ export const RESET_GEN = 1;   // 2026-11-03 build 112 で 1（鹿さんの OK・
 //   商人の 好感度と タスク・闘技場の 記録・会った 敵の 記録。アメジストは オーバーレイの 帳簿の 側（overlay-obs.html）
 // 残す 物：名前・ログイン・玉と アメジストの 帳簿の やりとり（ledger・ops）・部屋と 家具（room・own.furniture）・数の 番号（uidN）
 const WIPE = ["pets", "tamed", "party", "trips", "loop", "explore", "seen", "met", "items", "snacks", "tools", "autoSell",
-  "hideout", "lab", "mine", "smelt", "farm", "farmv", "seeds", "arena", "enc", "traders", "perks", "recipes", "tally"];   // farmv・seeds：新しい 農園と 種
+  "hideout", "lab", "mine", "smelt", "farm", "farmv", "seeds", "arena", "enc", "traders", "perks", "recipes", "tally", "au"];   // farmv・seeds：新しい 農園と 種
 const WIPE_OWN = ["equip", "att", "cores", "mats", "box"];
 
 // まだ 消して いない 記録か（Viewer は 消す 前に 写しを とる）
@@ -34,7 +34,7 @@ export function resetOld(rec, gen = RESET_GEN) {
 export async function marketReset(st, gen = RESET_GEN) {
   if (((await st.get("resetGen")) || 0) >= gen) return false;
   const bak = async (k, v) => { if ((await st.get("bak:" + k)) === undefined) await st.put("bak:" + k, v); };
-  for (const p of ["o:", "r:", "a:"]) for (const [k, v] of await st.list({ prefix: p })) await bak(k, v);
+  for (const p of ["o:", "r:", "a:", "au:"]) for (const [k, v] of await st.list({ prefix: p })) await bak(k, v);
   for (const [k, m] of await st.list({ prefix: "o:" })) {
     const earn = (Array.isArray(m.earn) ? m.earn : []).filter((e) => e && e.kind === "balls" && e.d > 0);
     if (earn.length) await st.put(k, { to: m.to, mid: m.mid, earn, ...(m.why ? { why: m.why } : {}), ...(m.clear ? { clear: m.clear } : {}) });
@@ -46,6 +46,7 @@ export async function marketReset(st, gen = RESET_GEN) {
     await st.delete(k);
   }
   for (const k of (await st.list({ prefix: "a:" })).keys()) await st.delete(k);
+  for (const k of (await st.list({ prefix: "au:" })).keys()) await st.delete(k);   // 競り・フリマの 出品（品は 消す 決まりの 物。2026-11-07 から）
   await st.put("resetGen", gen);
   return true;
 }

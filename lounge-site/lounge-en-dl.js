@@ -29,7 +29,7 @@ export const WORDS = {
   "武器 ★1": "Weapon ★1", "武器 ★2": "Weapon ★2", "武器 ★3": "Weapon ★3", "武器 ★3・OP を 1 つ えらべる": "Weapon ★3 · choose 1 OP", "4 しゅるいから えらぶ。OP は くじ": "Choose from 4 types. OPs are random",
   "防具 ★1": "Armor ★1", "防具 ★2": "Armor ★2", "防具 ★3": "Armor ★3", "防具 ★3・OP を 1 つ えらべる": "Armor ★3 · choose 1 OP", "あたま・くびの 8 しゅるいから えらぶ。OP は くじ": "Choose from 8 head/neck types. OPs are random",
   "アタッチメントの 素材": "Attachment materials", "工房で 武器の アタッチメントを 作る 敵の素材。しゅるいを えらぶ": "Enemy materials for weapon attachments at the Workshop. Choose the type",
-  "武器の 委託の 枠 ＋1": "Weapon consignment slot +1", "作った 武器を 店に 並べる 枠": "A slot to list weapons you made", "防具の 委託": "Armor consignment", "作った 防具を 店に 並べて 売る": "List armor you made in the shop",
+  "武器の 委託の 枠 ＋1": "Weapon consignment slot +1", "作った 武器を この 店の フリマに 並べる 枠": "A slot to list weapons you made at this shop's flea market", "防具の 委託": "Armor consignment", "作った 防具を この 店の フリマに 並べて 売れる": "Lets you list armor you made at this shop's flea market",
   "装備開発・施設で 使う": "Used for gear development and facilities", "星麻を 織った 布": "Cloth woven from star flax", "天綿を 織った 布": "Cloth woven from sky cotton", "白砂綿を 織った 布": "Cloth woven from white-sand cotton",
   "保険（ふつう）": "Insurance (basic)", "派遣に 出る ときに 掛ける。力つきたら 失った 素材の 半分が 2 時間 あとに 届く": "Taken out when you set off. If you collapse, half of the lost materials arrive 2 hours later",
   "手厚い 保険": "Full insurance", "保険料 2 倍。失った 素材が ぜんぶ 30 分 あとに 届く": "Double premium. All lost materials arrive 30 minutes later", "保険料 割引": "Premium discount", "保険料 −20%": "Premium −20%",

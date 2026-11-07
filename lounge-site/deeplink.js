@@ -50,7 +50,7 @@ export const TRADERS = [
       { id: "h-acc2", name: "防具 ★2", note: "あたま・くびの 8 しゅるいから えらぶ。OP は くじ", price: 360, cur: "credits", lv: 10, stock: 2, left: 2, get: { acc: 2 }, pick: ARMOR },
       { id: "h-acc3", name: "防具 ★3", note: "あたま・くびの 8 しゅるいから えらぶ。OP は くじ", price: 1200, cur: "credits", lv: 20, stock: 1, left: 1, get: { acc: 3 }, pick: ARMOR },
       { id: "h-acc3op", name: "防具 ★3・OP を 1 つ えらべる", note: "のこりの OP は くじ", price: 2500, cur: "credits", lv: 30, stock: 1, left: 1, get: { acc: 3, op: true }, pick: ARMOR },
-      { id: "h-consign", name: "防具の 委託", note: "作った 防具を 店に 並べて 売る", price: 0, cur: "credits", lv: 1, soon: "フリマ" },
+      { id: "h-consign", name: "防具の 委託", note: "作った 防具を この 店の フリマに 並べて 売れる", price: 0, cur: "credits", lv: 1, once: true, get: { perk: "consignH" } },   // フリマ（2026-11-07）。auction.js の perkOpen
       { id: "h-starflax", name: "麻の布", note: "星麻を 織った 布", price: 240, cur: "credits", lv: 1, stock: 3, left: 3, get: { mat: "flax_cloth" } },
       { id: "h-skycotton", name: "天の布", note: "天綿を 織った 布", price: 300, cur: "credits", lv: 1, stock: 3, left: 3, get: { mat: "sky_cloth" } },
       { id: "h-whitesand", name: "白砂の布", note: "白砂綿を 織った 布", price: 300, cur: "credits", lv: 1, stock: 3, left: 3, get: { mat: "whitesand_cloth" } },
@@ -83,7 +83,7 @@ export const TRADERS = [
       { id: "a-w3", name: "武器 ★3", note: "4 しゅるいから えらぶ。OP は くじ", price: 1200, cur: "credits", lv: 20, stock: 1, left: 1, get: { acc: 3 }, pick: WEAPON },
       { id: "a-w3op", name: "武器 ★3・OP を 1 つ えらべる", note: "のこりの OP は くじ", price: 2500, cur: "credits", lv: 30, stock: 1, left: 1, get: { acc: 3, op: true }, pick: WEAPON },
       { id: "a-attmat", name: "アタッチメントの 素材", note: "工房で 武器の アタッチメントを 作る 敵の素材。しゅるいを えらぶ", price: 80, cur: "credits", lv: 10, stock: 3, left: 3, get: { mat: "pick" }, pick: ATT_MATS },
-      { id: "a-consign", name: "武器の 委託の 枠 ＋1", note: "作った 武器を 店に 並べる 枠", price: 0, cur: "credits", lv: 1, soon: "フリマ" },
+      { id: "a-consign", name: "武器の 委託の 枠 ＋1", note: "作った 武器を この 店の フリマに 並べる 枠", price: 0, cur: "credits", lv: 1, once: true, get: { perk: "consignA" } },   // フリマ（2026-11-07）。auction.js の perkSlot
       { id: "a-bar", name: "鉄の延べ棒", note: "装備開発・施設で 使う", price: 100, cur: "credits", lv: 1, stock: 5, left: 5, get: { mat: "iron_bar" } },
       { id: "a-silver", name: "銀の延べ棒", note: "装備開発・施設で 使う", price: 240, cur: "credits", lv: 1, stock: 3, left: 3, get: { mat: "silver_bar" } },
       { id: "a-gold", name: "金の延べ棒", note: "装備開発・施設で 使う", price: 600, cur: "credits", lv: 1, stock: 1, left: 1, get: { mat: "gold_bar" } },

@@ -17,6 +17,10 @@ export const BZ_WHY = "準備中（ボーダーゾーンは、公開まで も�
 // みんなに 開いた：鹿さんの カード（2026-11-06）「出す・みんなに公開」→ 同じ 日に、売りの 番号を くり返して クレジットが ふえる 穴が 見つかり、カード「止めて、直しも出す」で いったん 止めた → 穴を 直した あと カード「いま開く」で また 開いた（2026-11-06）
 export const STOCK_OPEN = true;
 export const STOCK_WHY = "準備中（トークンは、公開まで もう 少し お待ちください）";
+// 競り・フリマ（2026-11-07 作りはじめ。鹿さんの 頼み「ガラクのタスク解放のためフリーマーケット実装」）：AU_OPEN を false に すると 2 人だけ（主タスクの 競り・フリマも 止まる）
+export const AU_OPEN = true;
+export const AU_WHY = "準備中（競り・フリマは、公開まで もう 少し お待ちください）";
+export const auLocked = (rec, env) => !AU_OPEN && !(env && env.LOCK_OFF) && !LOCK_PASS.has(String(rec.id));
 export const stockLocked = (rec, env) => !STOCK_OPEN && !(env && env.LOCK_OFF) && !LOCK_PASS.has(String(rec.id));
 export const bzLocked = (rec, env) => !BZ_OPEN && !(env && env.LOCK_OFF) && !LOCK_PASS.has(String(rec.id));
 export const locked = (rec, env) => (LOCK || !PET_OPEN) && !(env && env.LOCK_OFF) && !LOCK_PASS.has(String(rec.id));
