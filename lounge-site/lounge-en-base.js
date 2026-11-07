@@ -4,6 +4,7 @@ const P = (p, s) => p(s) || s;
 const n1 = (n, one, many) => (n === "1" ? `1 ${one}` : `${n} ${many}`);
 
 export const WORDS = {
+  "品質なし": "Unrated", "×#・# こ #": "×#1 · #3 each",   // スタッシュの 売る 小窓（2026-11-07）
   // 素材の 手に入る 所（mat-pop.js。2026-11-05）
   "手に入る 所": "Where to get it", "持って いる #": "You have #", "行く ›": "Go ›", "とじる": "Close", "まだ 手に入る 所の 記録が ない": "No known source yet", "ほか # か所": "# more places",
   "農園": "Farm", "ボーダーゾーン": "Border Zone", "工房の 精錬": "Workshop smelting", "工房の 加工": "Workshop processing", "なかまに 掘らせる": "Send a companion to dig",
