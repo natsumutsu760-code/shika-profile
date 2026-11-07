@@ -650,6 +650,15 @@ export class Lounge {
       if (ver >= MX_V) this.mxToFollowers(JSON.stringify({ t: "mx-src", src, on: 1 }));
       return;
     }
+    // 鹿物語の 悪魔祓いの 状態（"ex" ＋ JSON）→ 配信ページの 全員へ。ゲームタブで 悪魔を えらぶ（スマホでは 配信の 表が 読めない。2026-11-07 鹿さんの 頼み）
+    // いちばん 新しい 物を 覚えて、あとから 開いた 人にも hello で 渡す
+    if (msg.slice(0, 2) === "ex") {
+      if (a.src !== "pa" || msg.length > 60000) return;
+      let d; try { d = JSON.parse(msg.slice(2)); } catch (e) { return; }
+      if (!d || typeof d !== "object" || Array.isArray(d)) return;
+      this.exo = { d, at: Date.now() }; this.toViewers({ t: "exo", d });
+      return;
+    }
     if ((a.ver || 0) < MX_V) return; // 古い版の OBS からは受け取らない
     if (msg.length > 1100000) return;
     const k = msg.slice(0, 2);
@@ -667,7 +676,7 @@ export class Lounge {
     if (!m || typeof m !== "object") return;
     const a = this.att(ws), now = Date.now();
     if (a.v) { // 配信ページから
-      if (m.t === "hi") ws.send(JSON.stringify({ t: "hello", obs: this.obsSockets().length ? 1 : 0, likes: this.likes, cap: this.capOn && now - this.capOn < 90000 ? 1 : 0 }));
+      if (m.t === "hi") ws.send(JSON.stringify({ t: "hello", obs: this.obsSockets().length ? 1 : 0, likes: this.likes, cap: this.capOn && now - this.capOn < 90000 ? 1 : 0, exo: this.exo && now - this.exo.at < 30 * 60000 ? this.exo.d : null }));
       // 見ている人の言語（"en" なら字幕を英語で受け取る）
       if (m.t === "lang") { const lang = m.v === "en" ? "en" : "ja"; if (a.lang !== lang) ws.serializeAttachment({ ...a, lang }); return; }
       // 配信者から：声を文字にしたもの（Chrome の音声認識）。fin が 1 のものだけ英語に訳して、全員に届ける

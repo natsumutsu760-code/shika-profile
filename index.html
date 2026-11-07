@@ -442,6 +442,60 @@ html:not([lang="en"]) .en-only { display: none !important; }
 .queued { box-shadow: inset 0 0 0 2.5px var(--ink) !important; }
 .sent { animation: pop .45s var(--spring); }
 @keyframes pop { 40% { transform: scale(.92); } }
+/* 悪魔祓い（鹿物語のインフェルノ）：ゲームタブの「祓魔」ボタン → ポップアップに 手札と 悪魔を 指定する パネル
+   （2026-11-07 鹿さん「インフェルノの時のみゲームのタブで祓魔ボタンを押すとポップアップが開き、悪魔の正体を探るための手札と悪魔を指定するパネルが出てくる。」） */
+.exo-pick { margin: 0 0 12px; padding: 10px 12px; border-radius: 14px; background: linear-gradient(160deg, #3A0A0A, #160404); color: #FFE7D6; display: flex; align-items: center; gap: 10px; }
+.exo-sum { flex: 1; min-width: 0; font: 900 16px/1.2 var(--jp); color: #FFB02E; }
+.exo-sum small { display: block; margin-top: 3px; font: 700 12.5px/1.35 var(--jp); color: #FFD9B8; }
+.exo-go { position: relative; flex: none; padding: 13px 20px; border: 0; border-radius: 12px; background: #FF5A2F; color: #fff; font: 900 17px/1 var(--jp); box-shadow: 0 4px 0 #9A2A10; cursor: pointer; }
+.exo-go:active { transform: translateY(2px); box-shadow: 0 2px 0 #9A2A10; }
+.exo-go b { position: absolute; top: -7px; right: -7px; min-width: 22px; height: 22px; padding: 0 5px; border-radius: 11px; background: #FFD54A; color: #2A0A00; font: 800 13px/22px var(--num); }
+#exo-pop { position: fixed; inset: 0; z-index: 400; display: flex; align-items: flex-end; justify-content: center; background: rgba(8, 2, 2, .62); }
+#exo-pop[hidden] { display: none; }
+.exo-sheet { width: min(760px, 100%); max-height: 90vh; max-height: 90dvh; overflow-y: auto; overscroll-behavior: contain; padding: 12px 14px calc(18px + env(safe-area-inset-bottom)); border-radius: 20px 20px 0 0; background: linear-gradient(170deg, #3A0A0A, #120303); color: #FFE7D6; }
+@media (min-width: 900px) { #exo-pop { align-items: center; } .exo-sheet { border-radius: 20px; } }
+.exo-head { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; margin-bottom: 8px; font: 900 18px/1.2 var(--jp); color: #FFB02E; }
+.exo-head small { font: 700 12.5px/1.3 var(--jp); color: #FFD9B8; }
+.exo-x { margin-left: auto; width: 40px; height: 40px; border: 0; border-radius: 50%; background: rgba(255,255,255,.1); color: #FFE7D6; font: 700 20px/1 var(--jp); cursor: pointer; }
+.exo-sec { margin: 12px 0 6px; font: 800 12.5px/1.2 var(--jp); color: #FFB02E; }
+.exo-note { margin: 4px 0 0; font: 700 12.5px/1.4 var(--jp); color: #FFD9B8; }
+.exo-clue { list-style: none; margin: 0; padding: 0; font: 700 14px/1.45 var(--jp); color: #FFE7A3; }
+.exo-clue li::before { content: "▸ "; color: #FF7A2F; }
+.exo-clue li i { font-style: normal; margin-right: 6px; color: #FFB02E; }
+.exo-clue li + li { color: rgba(255,231,163,.62); font-size: 13px; }
+.exo-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(144px, calc(50% - 3px)), 1fr)); gap: 6px; }
+.key.exo-k { position: relative; display: grid; grid-template-columns: 40px minmax(0, 1fr); column-gap: 7px; align-items: center; padding: 4px 7px; color: #fff; background: rgba(0,0,0,.4); box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--fc) 60%, transparent); text-align: left; }
+.key.exo-k .exo-ic { grid-row: span 2; position: relative; width: 40px; height: 40px; }
+.key.exo-k .exo-ic img, .key.exo-k .exo-ic i { display: block; width: 40px; height: 40px; image-rendering: pixelated; filter: drop-shadow(0 0 4px var(--fc)); }
+.key.exo-k .exo-ic b { position: absolute; left: -5px; top: -5px; min-width: 19px; height: 19px; padding: 0 4px; border-radius: 10px; background: #FFB02E; color: #2A0A00; font: 800 12px/19px var(--num); text-align: center; }
+.key.exo-k .exo-n { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font: 900 15px/1.2 var(--jp); letter-spacing: -.01em; }
+.key.exo-k .exo-n.long { font-size: 13px; letter-spacing: -.03em; } /* マルコシアス・レヴィアタン */
+.key.exo-k small { margin-top: 1px; color: #FFD9B8; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.key.exo-k:disabled { opacity: .3; filter: grayscale(1); transform: none; cursor: default; }
+.key.exo-k.ans { opacity: 1; filter: none; box-shadow: 0 0 0 2px #FFD54A, 0 0 14px rgba(255,213,74,.6); }
+.key.exo-k.sel { box-shadow: 0 0 0 2.5px #FFD54A; background: rgba(255,213,74,.14); }
+.key.exo-k.x { opacity: .42; } /* 自分で つけた「ちがう」の 印 */
+.key.exo-k.x::after { content: "✕"; position: absolute; right: 8px; top: 50%; transform: translateY(-50%); font: 900 22px/1 var(--jp); color: #FF7A7A; }
+.exo-act { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 8px; padding: 8px; border-radius: 12px; background: rgba(255,213,74,.1); }
+.exo-act > span { flex: 1 1 100%; font: 800 14px/1.3 var(--jp); color: #FFE7A3; }
+.exo-act .key { flex: 1; min-height: 44px; }
+.key.exo-do { background: #FF5A2F; color: #fff; }
+.key.exo-do.sure, .key.exo-c.sure { background: #C2410C; color: #fff; }
+.exo-hand { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(200px, 100%), 1fr)); gap: 6px; }
+.key.exo-c { text-align: left; padding: 8px 10px; color: #fff; background: rgba(0,0,0,.4); border-left: 5px solid var(--kc); font: 800 14.5px/1.3 var(--jp); }
+.key.exo-c small { display: block; margin-top: 2px; color: #FFD9B8; font: 700 12px/1.3 var(--jp); }
+.key.exo-c .kd { display: inline-block; margin-right: 6px; padding: 1px 6px; border-radius: 6px; background: var(--kc); color: #1A0505; font: 800 11px/1.5 var(--jp); vertical-align: 1px; }
+.key.exo-c.sure small::before, .key.exo-do.sure small::before { content: none; }
+.exo-pact { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
+.key.exo-pk { padding: 10px 6px; background: #5A1A08; color: #fff; font: 900 14px/1.25 var(--jp); }
+.key.exo-pk small { display: block; margin-top: 3px; color: #FFD9B8; font: 700 11.5px/1.3 var(--jp); }
+.exo-near { display: inline-flex; align-items: center; gap: 4px; font: 700 12px/1 var(--jp); color: #FFD9B8; }
+.exo-near i { width: 10px; height: 10px; border-radius: 50%; border: 2px solid #B36BFF; }
+.exo-near i.on { background: #B36BFF; box-shadow: 0 0 6px #B36BFF; }
+body.exo-lock { overflow: hidden; }
+body.exo-lock .dock { display: none; } /* 下の ボタン列が 手札に かぶらない ように */
+#lt-game { position: relative; }
+#lt-game.exo-on::after { content: ""; position: absolute; top: 3px; right: 3px; width: 8px; height: 8px; border-radius: 50%; background: #FF3D6E; }
 .pnote { margin: 0 0 6px; font-size: 11px; color: var(--soft); }
 .pnote.xpnote { margin-top: 10px; }
 .keys { display: flex; flex-wrap: wrap; gap: 6px; }
@@ -1165,10 +1219,11 @@ function pskClean(o) {
 /* PRESTIGE-SKILLS:END */
   var CMDS = [
     ["見た目と記録", "#2EA8FF", [["!プロフ", "配信画面に自分のカードを出す"], ["!レベル", "レベルと、次のレベルまでを見る"], ["!プレステージ", "Lv.100 から。30 秒以内に 2 回打つと Lv.1 にもどり、レベルに P1・P2…が付く（持ち物・称号・持ち玉はそのまま）"], ["!スキル 放熱", "プレステージでもらったメモリーコアでスキルを取る・Lv を上げる（!スキル でのこりのコア。自分のページの「スキル」に星座の地図）"], ["!スキン 名前", "カードのスキンを変える（名前なしで一覧）"], ["!アイコン 名前", "アイコンを変える"], ["!二つ名 名前", "名前の上に出る二つ名を変える"], ["!フォント 名前", "名前と弾幕の書体を変える"], ["!玉スキン 名前", "鹿物語で落ちる自分の玉の見た目を変える"], ["!持ち物", "持っている物と手に入れ方を見る"], ["!サイト", "MONO LINK:// のアドレスを出す"]]],
-    ["鹿物語（パチンコ）", "#FF5A64", [[null, "なんでもコメントすると玉がもらえる（はじめは 10 玉）"], ["!発射 5", "持ち玉を打つ（数字なしは 1 発）。みんな同時に打てる。1 人連続 50 発でオーバーヒートし、冷えるまで 1 発ずつ。ルーレット・ジャックポットのあいだは打てない"], ["!オート", "スキル「オート」を取った人だけ。入れると 3〜1 秒に 1 発ずつ自動で打つ（ゲージは上げない）。もう一度で切る。持ち玉が 0・配信から離れると切れる"], ["!強く", "打ち出しを強く（!弱く で弱く）"], ["!押せ", "連打チャンス・最終決戦でみんなで押す。ブチ切れ中は PUSH が赤いときだけ数え、30 回で玉の雨"], ["!解読 123", "クラッキング中に 3 桁の暗号を当てる（HIT・BLOW のヒントつき・1 人 3 回まで・5 秒に 1 回）。解けたら電チューが開き、解いた人に +300 玉と二つ名「ハッカー」。開いた電チューに玉が入ると 30% でルーレット"], ["!改ざん 4", "メモリ改ざん：クラッキングを解いた人が電チューに玉を 10 個入れると、終わるときに行き先を 7 つから選べる（20 秒）。番号か名前（!改ざん 金鹿）で"], ["!ポート 42", "メモリ改ざんのポート探し：0〜99 の隠れたポートをみんなで探す（40 秒・近いと HOT）。早く見つけるほど、選んだ行き先へ飛びやすい"], ["!祓う 3", "インフェルノの悪魔祓い：焦げ跡のヒントから悪魔を当てる（番号か名前・1 人 2 回まで）。当てた人に +300 玉と電チュー開放。外すと悪魔が近づき、6 で逃げる"], ["!取引 2", "悪魔を祓った人だけ：インフェルノの終わりの魂の取引で、行き先を番号か名前で選ぶ"], ["!玉", "自分の持ち玉を見る"], ["!ランキング", "左上に持ち玉ランキングを 8 秒出す（派遣の中継中も）"], ["!アメジスト交換 3", "持ち玉 500 をアメジスト 1 に交換（!アメジスト交換 全部 で持ち玉の分だけ。前の !リソース交換 も使える）"], ["!経験値 1000", "持ち玉をプロフィールの経験値に変える（ふだんは 1 玉で経験値 1。!経験値 全部 で全部）"], ["!宝くじ 3", "毎日の宝くじを買う（1 枚 1,000 玉・1 人 10 枚まで）。毎日 21:00 に自動で抽選。1等 1 本（最低 10,000 玉）・2等 2 本・3等 5 本。数なしで、いまの 1等を見る（!宝くじ 結果 で前の結果）"], ["!ジャンボ 1", "ジャンボ宝くじを買う（1 枚 10,000 玉・5 枚まで）。日曜 21:00 に抽選。1等の番号はだれも持っていないこともあり、そのときは次の日曜へ繰り越し"], ["!ナンバーズ 482", "3 桁の数字を 1 口 1,000 玉で買う（10 口まで・いくつか並べても・おまかせ でも）。毎日 21:00 に抽選。ぴったりでストレート・並びちがいでボックス・下 2 桁でミニ。当たった人で山分けし、いなければ繰り越し"], ["!定期券", "スキル「定期券」を取った人だけ。毎日 20:50 に毎日の宝くじを自動で買う（持ち玉があるときだけ）。もう一度で切る"], ["!せんべい", "ミニゲームに参加（!数字 3・!グー も）"], ["!ハイロー 1000", "ミニゲーム「ハイアンドロー」に玉を賭けて参加（100〜10,000 玉）。次のカードが上なら !ハイ・下なら !ロー。外したら全損で脱落、当たりやすい側ほど倍率は低い。2 回戦から !やめ で降りられる（5 回戦まで）。最後に賞金を賭けたダブルアップ（!左 か !右・鹿なら ×2・ドクロなら没収・3 回まで）"], ["!予想 ヘソ", "ミニゲーム「行き先予想」：上から落ちる金の玉の行き先を当てる（ヘソ・左・右・アウト）。ヘソは保留が金、左・右は保留が金＋200 玉、アウトは +30 玉"], ["!チキン 100", "ミニゲーム「チキンレース」に玉を賭けて参加（10〜1,000 玉）。倍率は 8 秒で 2 倍・最大 20 倍。爆発の前に !降りる で、そのときの倍率で受け取り。爆発したら全損"], ["!降りる", "チキンレースで降りて受け取る（配信の遅れの分はさかのぼって判定）"], ["!ガチャ", "持ち玉 500 でコスメガチャ（★5 2%・★4 10%、10 回で ★4 以上・60 回で ★5 確定）"], ["!ガチャ10", "持ち玉 5000 で 10 連（★4 以上が 1 つは出る）"], ["!お店", "いまお店に並んでいる 5 品を見る"], ["!購入 1", "お店の品物を持ち玉で買う（番号は 1〜5）"]]],
+    ["鹿物語（パチンコ）", "#FF5A64", [[null, "なんでもコメントすると玉がもらえる（はじめは 10 玉）"], ["!発射 5", "持ち玉を打つ（数字なしは 1 発）。みんな同時に打てる。1 人連続 50 発でオーバーヒートし、冷えるまで 1 発ずつ。ルーレット・ジャックポットのあいだは打てない"], ["!オート", "スキル「オート」を取った人だけ。入れると 3〜1 秒に 1 発ずつ自動で打つ（ゲージは上げない）。もう一度で切る。持ち玉が 0・配信から離れると切れる"], ["!強く", "打ち出しを強く（!弱く で弱く）"], ["!押せ", "連打チャンス・最終決戦でみんなで押す。ブチ切れ中は PUSH が赤いときだけ数え、30 回で玉の雨"], ["!解読 123", "クラッキング中に 3 桁の暗号を当てる（HIT・BLOW のヒントつき・1 人 3 回まで・5 秒に 1 回）。解けたら電チューが開き、解いた人に +300 玉と二つ名「ハッカー」。開いた電チューに玉が入ると 30% でルーレット"], ["!改ざん 4", "メモリ改ざん：クラッキングを解いた人が電チューに玉を 10 個入れると、終わるときに行き先を 7 つから選べる（20 秒）。番号か名前（!改ざん 金鹿）で"], ["!ポート 42", "メモリ改ざんのポート探し：0〜99 の隠れたポートをみんなで探す（40 秒・近いと HOT）。早く見つけるほど、選んだ行き先へ飛びやすい"], ["!祓う 3", "インフェルノの悪魔祓い：ヒントとカードの答えから自分で推理して悪魔を当てる（番号か名前・1 人 2 回まで）。当てた人に +300 玉と電チュー開放、次の悪魔が憑いてみんなの解答権が戻る。外すと悪魔が近づき、6 で逃げる。配信ページの「ゲーム」タブの「祓魔」からも"], ["!カード 1", "インフェルノで手札のカードを使う（1 まい目）。カードはヘソに玉を入れると配られる（5 まいまで）。候補をしぼる問いの答えはみんなに見える"], ["!契約 2", "1 回のインフェルノで 3 体目を祓った人だけ：契約をえらぶ（1 灼熱・2 不滅・3 火種。20 秒）"], ["!取引 2", "悪魔を祓った人だけ：インフェルノの終わりの魂の取引で、行き先を番号か名前で選ぶ"], ["!玉", "自分の持ち玉を見る"], ["!ランキング", "左上に持ち玉ランキングを 8 秒出す（派遣の中継中も）"], ["!アメジスト交換 3", "持ち玉 500 をアメジスト 1 に交換（!アメジスト交換 全部 で持ち玉の分だけ。前の !リソース交換 も使える）"], ["!経験値 1000", "持ち玉をプロフィールの経験値に変える（ふだんは 1 玉で経験値 1。!経験値 全部 で全部）"], ["!宝くじ 3", "毎日の宝くじを買う（1 枚 1,000 玉・1 人 10 枚まで）。毎日 21:00 に自動で抽選。1等 1 本（最低 10,000 玉）・2等 2 本・3等 5 本。数なしで、いまの 1等を見る（!宝くじ 結果 で前の結果）"], ["!ジャンボ 1", "ジャンボ宝くじを買う（1 枚 10,000 玉・5 枚まで）。日曜 21:00 に抽選。1等の番号はだれも持っていないこともあり、そのときは次の日曜へ繰り越し"], ["!ナンバーズ 482", "3 桁の数字を 1 口 1,000 玉で買う（10 口まで・いくつか並べても・おまかせ でも）。毎日 21:00 に抽選。ぴったりでストレート・並びちがいでボックス・下 2 桁でミニ。当たった人で山分けし、いなければ繰り越し"], ["!定期券", "スキル「定期券」を取った人だけ。毎日 20:50 に毎日の宝くじを自動で買う（持ち玉があるときだけ）。もう一度で切る"], ["!せんべい", "ミニゲームに参加（!数字 3・!グー も）"], ["!ハイロー 1000", "ミニゲーム「ハイアンドロー」に玉を賭けて参加（100〜10,000 玉）。次のカードが上なら !ハイ・下なら !ロー。外したら全損で脱落、当たりやすい側ほど倍率は低い。2 回戦から !やめ で降りられる（5 回戦まで）。最後に賞金を賭けたダブルアップ（!左 か !右・鹿なら ×2・ドクロなら没収・3 回まで）"], ["!予想 ヘソ", "ミニゲーム「行き先予想」：上から落ちる金の玉の行き先を当てる（ヘソ・左・右・アウト）。ヘソは保留が金、左・右は保留が金＋200 玉、アウトは +30 玉"], ["!チキン 100", "ミニゲーム「チキンレース」に玉を賭けて参加（10〜1,000 玉）。倍率は 8 秒で 2 倍・最大 20 倍。爆発の前に !降りる で、そのときの倍率で受け取り。爆発したら全損"], ["!降りる", "チキンレースで降りて受け取る（配信の遅れの分はさかのぼって判定）"], ["!ガチャ", "持ち玉 500 でコスメガチャ（★5 2%・★4 10%、10 回で ★4 以上・60 回で ★5 確定）"], ["!ガチャ10", "持ち玉 5000 で 10 連（★4 以上が 1 つは出る）"], ["!お店", "いまお店に並んでいる 5 品を見る"], ["!購入 1", "お店の品物を持ち玉で買う（番号は 1〜5）"]]],
     ["そのほか", "#22CC88", [["!けいじばん こんにちは", "ラウンジの掲示板に書く（1 分に 1 回・120 字まで）"], ["!バグ報告 ガチャのあと画面が止まった", "不具合を配信者に知らせる（30 秒に 1 回・300 字まで）"], ["!花火", "画面に花火（!ハート でハート）"], [null, "888 で拍手、草 で草が生える"], ["!モノリンク", "MONO LINK の URL をチャットで受け取る（!サイト でも）"]]]
   ];
   var NOTES = [
+    ["build 123", "2026-11-07", ["鹿物語 Ver.1.8.52：インフェルノの悪魔祓いを作りなおしました。ヒントで炎は自動では消えず、自分で推理してしぼります", "ヘソに玉を入れると、ときどきカードが配られます（5 まいまで）。配信ページの「ゲーム」タブの「祓魔」ボタンで、手札と悪魔の表が開きます（コメントの !カード 1 でも使えます）", "カードは 3 種類：候補をしぼる問い（番号は 4 より大きい？・炎の色を問う など。答えはみんなに見えます）・大罪の悪魔の力・出玉", "悪魔を祓うと次の悪魔が憑き、みんなの解答権が戻ります。1 回のインフェルノで 3 体祓うと、3 体目を祓った人が契約をえらべます（!契約 1〜3）。10 体のうち 2〜3 体は、色か大きさが「？」です"]],
     ["MONO LINK", "2026-11-07", ["上の財布の ⇄ の窓から、そのまま交換できるようになりました（玉を借りる・換金・アメジスト）。数を入れて 2 回押すと決まります。配信中に使えます"]],
     ["build 122", "2026-11-07", ["鹿物語 Ver.1.8.51：ワームホール・メモリ改ざん・魂の取引の行き先の 5 番目が、プラチナからジャグリングモードになりました（7 つの行き先：アストロ・インフェルノ・クラッキング・金鹿・ジャグリング・RUSH・パラドックス）", "ワームホールなどからモードに入ったとき、右上の表示が前のモードのまま残っていたのを直しました", "電チューの爆発で台がゆれなくなっていたのを直しました"]],
     ["MONO LINK", "2026-11-07", ["ラウンジの部屋で、ペットのふきだしがペットの上に出るように直しました（10 月 24 日から、ふきだしの位置が決まっていませんでした）"]],
@@ -2800,6 +2855,119 @@ var ShikaWheel = (function () {
   }
 
   // ---- タブの中身 ----
+  // ---- 悪魔祓い（鹿物語のインフェルノ）：鹿物語 → 門番 → ここ（{t:"exo"}）。ゲームタブの「祓魔」→ ポップアップに 手札と 悪魔の 表 ----
+  // 2026-11-07 鹿さん「スマホからだと悪魔祓いの悪魔の表が小さすぎて文字が読めません。ゲームタブで悪魔を指定できるようにしてください。」
+  // 同じ日の 原案「インフェルノの時のみゲームのタブで祓魔ボタンを押すとポップアップが開き、悪魔の正体を探るための手札と悪魔を指定するパネルが出てくる。…」
+  var exoS = null, exoImgC = {}, exoOpen = false, exoSel = -1, exoMarks = {}, exoRound = 0;
+  var EXO_EN_COLOR = { "赤": "Red", "青": "Blue", "紫": "Purple", "緑": "Green", "白": "White" }, EXO_EN_SIZE = { "火の粉": "Spark", "灯火": "Candle", "松明": "Torch", "篝火": "Bonfire", "業火": "Hellfire" };
+  var EXO_KIND = { q: ["しぼる", "Clue", "#7FD3FF"], sin: ["悪魔のバフ", "Demon", "#C99BFF"], pay: ["出玉", "Payout", "#FFD54A"] };
+  var EXO_CARD_EN = { gt4: ["Number above 4?", ""], gt7: ["Number above 7?", ""], mid: ["Number 4–8?", ""], even: ["Even number?", ""], color: ["Ask the color", ""], size: ["Ask the size", ""],
+    light: ["Raise a light", "Reveals every ? flame"], spark: ["Sparks fly", "Shows 2 demons that are not it"], mammon: ["Mammon", "50 balls rain down"], beelzebub: ["Beelzebub", "The center pocket widens for 3s"],
+    leviathan: ["Leviathan", "Copies the best reserve"], lucifer: ["Lucifer", "Rewrites a reel into a reach"], tulip: ["Tulip 15s", "The tulip opens for 15s"], plus: ["Next win +100", "The next jackpot pays +100"] };
+  var EXO_PACT_UI = [["灼熱の契約", "当たると出玉 +20%", "Blazing Pact", "Wins pay +20%"], ["不滅の契約", "延長抽選が 90% で通る", "Undying Pact", "Extension passes 90%"], ["火種の契約", "当たるとプライズ +2", "Ember Pact", "Wins give +2 prizes"]];
+  function exoImg(x) { // 24×24 のドット絵（MONO LINK のインフェルノの悪魔と同じ絵）を 1 度だけ描く
+    if (!x.sp || !Array.isArray(x.sp.px) || !Array.isArray(x.sp.pal)) return "";
+    if (exoImgC[x.n]) return exoImgC[x.n];
+    var c = document.createElement("canvas"); c.width = 24; c.height = 24; var g = c.getContext("2d");
+    x.sp.px.slice(0, 24).forEach(function (row, y) { row = String(row); for (var i = 0; i < 24 && i < row.length; i++) { var col = x.sp.pal[row.charCodeAt(i) - 97]; if (!/^#[0-9a-f]{3,8}$/i.test(col || "")) continue; g.fillStyle = col; g.fillRect(i, y, 1, 1); } });
+    return (exoImgC[x.n] = c.toDataURL());
+  }
+  function exoT(t) { // ヒント・カードの答え（英語の画面では英語に）
+    if (LANG !== "en" || !exoS) return t;
+    var nm = {}; (exoS.d || []).forEach(function (x) { nm[x.n] = x.en || x.n; });
+    var N = function (v) { return nm[v] || v; }, C = function (v) { return EXO_EN_COLOR[v] || v; }, Z = function (v) { return EXO_EN_SIZE[v] || v; }, m;
+    if ((m = /^色は (\S+) ではない$/.exec(t))) return "Not " + C(m[1]);
+    if ((m = /^色は (\S+)$/.exec(t))) return "The flame is " + C(m[1]);
+    if ((m = /^大きさは (\S+) ではない$/.exec(t))) return "Not a " + Z(m[1]);
+    if ((m = /^大きさは (\S+)$/.exec(t))) return "Size is " + Z(m[1]);
+    if ((m = /^(\S+) より 大きい$/.exec(t))) return "Bigger than a " + Z(m[1]);
+    if ((m = /^(\S+) より 小さい$/.exec(t))) return "Smaller than a " + Z(m[1]);
+    if ((m = /^番号は (\d+) より 大きい$/.exec(t))) return "Number is above " + m[1];
+    if ((m = /^番号は (\d+) 以下$/.exec(t))) return "Number is " + m[1] + " or below";
+    if (t === "番号は 4〜8") return "Number is 4–8"; if (t === "番号は 4〜8 ではない") return "Number is not 4–8";
+    if (t === "番号は 奇数") return "Number is odd"; if (t === "番号は 偶数") return "Number is even";
+    if ((m = /^？の 姿が 明かされた（(\d+) 体）$/.exec(t))) return "Hidden flames revealed (" + m[1] + ")";
+    if (t === "かくれた 姿は なかった") return "No hidden flames"; if (t === "はじく 炎が なかった") return "No flames to spark";
+    if ((m = /^(\S+) と (\S+) ではない$/.exec(t))) return "Not " + N(m[1]) + " or " + N(m[2]);
+    if ((m = /^(.+)：(\S+) ではない$/.exec(t))) return m[1] + ": not " + N(m[2]);
+    return t;
+  }
+  function exoMine() { // 自分の 手札（鹿物語は 表示名で 数える。サイトの meName と 同じ）
+    var S = exoS, me = String(meName || "").toLowerCase(); if (!S || !S.hands || !me) return [];
+    var k = Object.keys(S.hands).filter(function (n) { return n.toLowerCase() === me; })[0];
+    return k && Array.isArray(S.hands[k]) ? S.hands[k] : [];
+  }
+  function exoIsMe(n) { return !!n && !!meName && String(n).toLowerCase() === String(meName).toLowerCase(); }
+  function drawExo() {
+    var S = exoS, on = !!(S && S.on && Array.isArray(S.d) && S.d.length), tab = $("lt-game");
+    if (tab) tab.classList.toggle("exo-on", on && !S.fled);
+    var el = $("exo-pick");
+    if (!on) { if (el) { el.hidden = true; el.innerHTML = ""; } if (exoOpen) exoPop(false); return; }
+    if (S.round !== exoRound) { exoRound = S.round; exoSel = -1; exoMarks = {}; } // 次の 悪魔に かわったら 印を 消す
+    var en = LANG === "en", mine = exoMine(), won = +S.won || 0, at = +S.pactAt || 3;
+    var sum = S.fled ? (en ? "The demon got away" : "悪魔に逃げられた") : (en ? "Exorcised " + won + " · pact at " + at + " · near " + (+S.near || 0) + "/" + (+S.nearMax || 6) : "祓った " + won + " 体（" + at + " 体で契約）・近づく " + (+S.near || 0) + "/" + (+S.nearMax || 6));
+    if (el) {
+      el.innerHTML = '<div class="exo-sum">' + (en ? "Exorcism" : "悪魔祓い") + "<small>" + esc(sum) + (mine.length ? (en ? " · " + mine.length + " cards" : "・手札 " + mine.length + " まい") : "") + "</small></div>" +
+        '<button type="button" class="exo-go" data-exo="open">' + (en ? "Exorcise" : "祓魔") + (mine.length ? "<b>" + mine.length + "</b>" : "") + "</button>";
+      el.hidden = false;
+    }
+    if (exoOpen) drawExoPop();
+  }
+  function drawExoPop() {
+    var pop = $("exo-pop");
+    if (!pop) {
+      $("v-live").insertAdjacentHTML("beforeend", '<div id="exo-pop" hidden role="dialog" aria-modal="true" aria-label="悪魔祓い"><div class="exo-sheet" id="exo-sheet"></div></div>');
+      pop = $("exo-pop"); pop.addEventListener("click", function (e) { if (e.target === pop) exoPop(false); });
+    }
+    var S = exoS; if (!S || !S.on) { exoPop(false); return; }
+    var sh = $("exo-sheet"), keep = sh.querySelector(".key.sure"), keepCmd = keep && keep.dataset.cmd, top = sh.scrollTop; // 2 回押しの 1 回目と スクロールを 残す（1 秒ごとに 描きなおす ことが ある）
+    var en = LANG === "en", done = !!S.fled, mine = exoMine(), tries = +S.tries || 2, h = "";
+    var near = ""; for (var k = 0; k < Math.min(12, +S.nearMax || 6); k++) near += "<i" + (k < (+S.near || 0) ? ' class="on"' : "") + "></i>";
+    h += '<div class="exo-head">' + (done ? (en ? "The demon got away" : "悪魔に逃げられた") : (en ? "Exorcism" : "悪魔祓い")) +
+      "<small>" + esc(en ? "Exorcised " + (+S.won || 0) + " · " + tries + " tries each" : "祓った " + (+S.won || 0) + " 体・1 人 " + tries + " 回まで") + "</small>" +
+      (done ? "" : '<span class="exo-near" title="' + (en ? "The demon draws near" : "悪魔が近づく") + '"><span>' + (en ? "Near" : "近づく") + "</span>" + near + "</span>") +
+      '<button type="button" class="exo-x" data-exo="close" aria-label="' + (en ? "Close" : "とじる") + '">✕</button></div>';
+    if (S.pick && S.pick.u) {
+      if (exoIsMe(S.pick.u)) h += '<p class="exo-sec">' + (en ? "Choose a pact (" + (+S.pick.left || 0) + "s)" : "契約をえらぶ（のこり " + (+S.pick.left || 0) + " 秒）") + '</p><div class="exo-pact">' +
+        EXO_PACT_UI.map(function (p, i) { return '<button type="button" class="key exo-pk" data-cmd="!契約 ' + (i + 1) + '">' + esc(en ? p[2] : p[0]) + "<small>" + esc(en ? p[3] : p[1]) + "</small></button>"; }).join("") + "</div>";
+      else h += '<p class="exo-note">' + esc(en ? S.pick.u + " is choosing a pact" : S.pick.u + " さんが契約をえらんでいます") + "</p>";
+    } else if (S.pact) h += '<p class="exo-note">' + esc((S.pact.n || "") + "：" + (S.pact.d || "") + (en ? " (" + S.pact.left + " spins)" : "（のこり " + S.pact.left + " 回転）")) + "</p>";
+    var clues = (S.clues || []).slice(-4).reverse().map(function (c) { var t = typeof c === "string" ? c : c.t, by = typeof c === "string" ? "" : c.by; return "<li>" + (by ? "<i>" + esc(by) + "</i>" : "") + esc(exoT(String(t || ""))) + "</li>"; }).join("");
+    h += '<p class="exo-sec">' + (en ? "Clues" : "わかったこと") + "</p>" + (clues ? '<ul class="exo-clue">' + clues + "</ul>" : '<p class="exo-note">' + (en ? "No clues yet" : "まだありません") + "</p>");
+    h += '<p class="exo-sec">' + (en ? "Demons (tap to pick)" : "悪魔（押してえらぶ）") + '</p><div class="exo-grid">' + S.d.map(function (x, i) {
+      var n = i + 1, img = exoImg(x), cc = /^#[0-9a-f]{3,8}$/i.test(x.cc || "") ? x.cc : "#8A84A0", nm = en && x.en ? x.en : x.n;
+      var cl = x.cl ? (en ? EXO_EN_COLOR[x.cl] || x.cl : x.cl) : "？", sz = x.sz ? (en ? EXO_EN_SIZE[x.sz] || x.sz : x.sz) : "？";
+      return '<button type="button" class="key exo-k' + (done && +S.ans === n ? " ans" : "") + (exoSel === i ? " sel" : "") + (exoMarks[i] ? " x" : "") + '" data-exo="sel" data-i="' + i + '"' + (x.out || done ? " disabled" : "") + ' style="--fc:' + cc + '">' +
+        '<span class="exo-ic">' + (img ? '<img src="' + img + '" alt="">' : "<i></i>") + "<b>" + n + "</b></span>" +
+        '<span class="exo-n' + (!(en && x.en) && String(x.n).length >= 6 ? " long" : "") + '">' + esc(nm) + "</span><small>" + esc(en ? cl + ", " + sz : cl + "・" + sz) + "</small></button>";
+    }).join("") + "</div>";
+    var sel = exoSel >= 0 && !done && S.d[exoSel] && !S.d[exoSel].out ? S.d[exoSel] : null;
+    if (sel) { var sn = exoSel + 1, snm = en && sel.en ? sel.en : sel.n;
+      h += '<div class="exo-act"><span>' + sn + " " + esc(snm) + "</span>" +
+        '<button type="button" class="key" data-exo="mark">' + (exoMarks[exoSel] ? (en ? "Unmark" : "印をはずす") : (en ? "Mark ✕" : "ちがう ✕")) + "</button>" +
+        '<button type="button" class="key exo-do" data-cmd="!祓う ' + sn + '" data-sure="1">' + (en ? "Exorcise" : "祓う") + "<small>" + (en ? "tap twice" : "2 回押す") + "</small></button></div>";
+    }
+    h += '<p class="exo-sec">' + (en ? "Your cards" : "手札") + "</p>" + (mine.length ? '<div class="exo-hand">' + mine.map(function (k) {
+      var C = (S.cards || {})[k] || [k, "q", ""], K = EXO_KIND[C[1]] || EXO_KIND.q, E2 = EXO_CARD_EN[k];
+      return '<button type="button" class="key exo-c" data-cmd="!カード ' + esc(k) + '" data-sure="1" style="--kc:' + K[2] + '"><span class="kd">' + esc(en ? K[1] : K[0]) + "</span>" + esc(en && E2 ? E2[0] : C[0]) + "<small>" + esc(en && E2 ? E2[1] || "" : C[2] || "") + "</small></button>";
+    }).join("") + "</div>" : '<p class="exo-note">' + (en ? "Get cards when your ball goes into the center pocket" : "ヘソに玉を入れるとカードが配られます") + "</p>");
+    sh.innerHTML = h; sh.scrollTop = top;
+    if (keepCmd) { var nb = sh.querySelector('[data-cmd="' + keepCmd.replace(/"/g, "") + '"]'); if (nb && nb.dataset.sure) { nb.classList.add("sure"); nb._sure = setTimeout(function () { nb.classList.remove("sure"); }, 3500); } }
+    pop.hidden = false;
+  }
+  function exoPop(on) {
+    exoOpen = !!on; document.body.classList.toggle("exo-lock", exoOpen);
+    if (exoOpen) drawExoPop(); else { var p = $("exo-pop"); if (p) p.hidden = true; }
+  }
+  function exoAct(b) {
+    var a = b.dataset.exo;
+    if (a === "open") exoPop(true);
+    else if (a === "close") exoPop(false);
+    else if (a === "sel") { var i = +b.dataset.i; exoSel = exoSel === i ? -1 : i; drawExoPop(); }
+    else if (a === "mark" && exoSel >= 0) { exoMarks[exoSel] = !exoMarks[exoSel]; drawExoPop(); }
+  }
+  document.addEventListener("keydown", function (e) { if (e.key === "Escape" && exoOpen) exoPop(false); });
+  if (/^(127\.0\.0\.1|localhost)$/.test(location.hostname)) window.__exoTest = function (d, me) { if (me != null) meName = me; if (!$("exo-pick")) $("lp-game").insertAdjacentHTML("afterbegin", '<div class="exo-pick" id="exo-pick" hidden></div>'); exoS = d; drawExo(); }; // 手元の試験だけ
   function key(cmd, label, sub, o) {
     o = o || {};
     return '<button type="button" class="key' + (o.cls ? " " + o.cls : "") + '" data-cmd="' + esc(cmd) + '"' + (o.sure ? ' data-sure="1"' : "") + (o.on != null ? ' aria-pressed="' + !!o.on + '"' : "") + '>' + esc(label) + (sub ? "<small>" + esc(sub) + "</small>" : "") + "</button>";
@@ -2808,7 +2976,7 @@ var ShikaWheel = (function () {
   function drawPanes() {
     if (!data) return;
     var sh = shopNow();
-    $("lp-game").innerHTML = '<p class="pnote">配信の画面にミニゲームが出たときに押します</p>'
+    $("lp-game").innerHTML = '<div class="exo-pick" id="exo-pick" hidden></div><p class="pnote">配信の画面にミニゲームが出たときに押します</p>'
       + keys([key("!せんべい", "せんべい"), key("!グー", "グー"), key("!チョキ", "チョキ"), key("!パー", "パー")])
       + '<div class="keys nums">' + [1, 2, 3, 4, 5, 6, 7, 8, 9].map(function (n) { return key("!数字 " + n, String(n)); }).join("") + "</div>"
       + '<p class="pnote xpnote">ハイアンドロー（玉を賭けるボタンは 2 回押すと決まります）</p>'
@@ -2817,6 +2985,7 @@ var ShikaWheel = (function () {
       + keys([key("!予想 ヘソ", "ヘソ"), key("!予想 左", "左"), key("!予想 右", "右"), key("!予想 アウト", "アウト")])
       + '<p class="pnote xpnote">チキンレース（賭けるボタンは 2 回押すと決まります）</p>'
       + keys([key("!チキン 100", "参加", "100 玉", { sure: 1 }), key("!チキン 1000", "参加", "1,000 玉", { sure: 1 }), key("!降りる", "降りる")]);
+    drawExo();
     $("lp-gacha").innerHTML = '<p class="pnote">玉を使うボタンは、2 回押すと決まります</p>'
       + keys([key("!ガチャ", "ガチャ", "500 玉", { sure: 1 }), key("!ガチャ10", "ガチャ 10 連", "5,000 玉", { sure: 1 }), key("!お店", "お店を見る")])
       + (sh ? '<div class="keys scroll">' + sh.items.map(function (it) { return key("!購入 " + it.no, it.no + "　" + it.name, stars(it.r) + "　" + fmt(it.price) + " 玉", { sure: 1 }); }).join("") + "</div>"
@@ -3164,7 +3333,9 @@ var ShikaWheel = (function () {
     "ミニゲーム「ハイアンドロー」に玉を賭けて参加（100〜10,000 玉）。次のカードが上なら !ハイ・下なら !ロー。外したら全損で脱落、当たりやすい側ほど倍率は低い。2 回戦から !やめ で降りられる（5 回戦まで）。最後に賞金を賭けたダブルアップ（!左 か !右・鹿なら ×2・ドクロなら没収・3 回まで）": "Bet balls to join the High & Low mini game (100–10,000). Call !ハイ if the next card is higher, !ロー if lower. A miss loses the whole bet and you're out; the likelier side pays less. From round 2, !やめ cashes out (up to 5 rounds). At the end, a double-up on your winnings (!左 or !右: the deer doubles, the skull takes it all; up to 3 times)",
     "ハイアンドロー（玉を賭けるボタンは 2 回押すと決まります）": "High & Low (the bet button needs two taps)",
     "連打チャンス・最終決戦でみんなで押す。ブチ切れ中は PUSH が赤いときだけ数え、30 回で玉の雨": "Everyone mashes during the button chance and final battle. In Rage mode only presses while PUSH is red count; 30 presses bring a rain of balls",
-    "インフェルノの悪魔祓い：焦げ跡のヒントから悪魔を当てる（番号か名前・1 人 2 回まで）。当てた人に +300 玉と電チュー開放。外すと悪魔が近づき、6 で逃げる": "Inferno exorcism: name the demon from the scorch-mark clues (number or name, 2 tries each). The winner gets +300 balls and the electric tulip opens. Misses bring the demon closer; at 6 it escapes",
+    "インフェルノの悪魔祓い：ヒントとカードの答えから自分で推理して悪魔を当てる（番号か名前・1 人 2 回まで）。当てた人に +300 玉と電チュー開放、次の悪魔が憑いてみんなの解答権が戻る。外すと悪魔が近づき、6 で逃げる。配信ページの「ゲーム」タブの「祓魔」からも": "Inferno exorcism: work out the demon yourself from the clues and card answers (number or name, 2 tries each). The winner gets +300 balls and the tulip opens; a new demon appears and everyone\'s tries come back. Misses bring the demon closer; at 6 it escapes. Also from Exorcise in the Game tab",
+    "インフェルノで手札のカードを使う（1 まい目）。カードはヘソに玉を入れると配られる（5 まいまで）。候補をしぼる問いの答えはみんなに見える": "Inferno: use a card from your hand (1 = the first). Cards come when your ball goes into the center pocket (up to 5). Clue answers are shown to everyone",
+    "1 回のインフェルノで 3 体目を祓った人だけ：契約をえらぶ（1 灼熱・2 不滅・3 火種。20 秒）": "Only whoever exorcises the 3rd demon in one Inferno: choose a pact (1 Blazing, 2 Undying, 3 Ember; 20s)",
     "悪魔を祓った人だけ：インフェルノの終わりの魂の取引で、行き先を番号か名前で選ぶ": "Exorcist only: choose where to go in the soul deal at the end of Inferno (number or name)",
     "ミニゲーム「行き先予想」：上から落ちる金の玉の行き先を当てる（ヘソ・左・右・アウト）。ヘソは保留が金、左・右は保留が金＋200 玉、アウトは +30 玉": "Mini game \"Where will it land\": guess where the gold ball dropped from the top ends up (center pocket, left, right, out). Center: a gold hold. Left/right: a gold hold + 200 balls. Out: +30 balls",
     "ミニゲーム「チキンレース」に玉を賭けて参加（10〜1,000 玉）。倍率は 8 秒で 2 倍・最大 20 倍。爆発の前に !降りる で、そのときの倍率で受け取り。爆発したら全損": "Bet balls to join the Chicken Race mini game (10–1,000). The multiplier doubles every 8 seconds, up to ×20. Type !降りる before it explodes to cash out at that multiplier; if it explodes, you lose the bet",
@@ -3404,7 +3575,7 @@ var ShikaWheel = (function () {
   }
   document.addEventListener("click", function (e) { if (e.target.closest(".langbtn")) setLang(LANG === "en" ? "ja" : "en"); });
   function setLang(v) {
-    LANG = v; lsSet("ml-lang", LANG); drawLang(); enApply();
+    LANG = v; lsSet("ml-lang", LANG); drawLang(); enApply(); drawExo();
     if (lws && lws.readyState === 1) lws.send(JSON.stringify({ t: "lang", v: LANG }));
     ccOn = ccDefault(); drawCC(); trOn = trDefault(); drawTr();
   }
@@ -3511,8 +3682,9 @@ var ShikaWheel = (function () {
     if (m.t === "cap") { if (!capLive) { capLive = true; drawCC(); } capShow(m); return; }
     if (m.t === "cap-on") { capLive = !!m.on; drawCC(); if (!capLive) capEl.innerHTML = ""; return; }
     if (m.t === "tr") { trGot(m); return; }
-    if (m.t === "hello") { capLive = !!m.cap; drawCC(); setObs(m.obs); var L = m.likes || {}; Object.keys(L).forEach(function (k) { likeN[k] = L[k]; }); chat.querySelectorAll(".like").forEach(function (b) { paintLike(b, b.dataset.like); }); }
+    if (m.t === "hello") { capLive = !!m.cap; drawCC(); setObs(m.obs); exoS = m.exo && typeof m.exo === "object" ? m.exo : null; drawExo(); var L = m.likes || {}; Object.keys(L).forEach(function (k) { likeN[k] = L[k]; }); chat.querySelectorAll(".like").forEach(function (b) { paintLike(b, b.dataset.like); }); }
     else if (m.t === "obs") setObs(m.on);
+    else if (m.t === "exo") { exoS = m.d && typeof m.d === "object" ? m.d : null; drawExo(); } // 鹿物語の悪魔祓い（ゲームタブ）
     else if (m.t === "mx-ok") { mxOn = true; mxSrcOn.ov = !!m.ov; mxSrcOn.pa = !!m.pa; mxMsg(); }
     else if (m.t === "mx-no") { mxOn = false; if (liveOpen) player(canSound()); } // ミラーは配信者とモデレーターだけ。ほかの人はふつうの映像
     else if (m.t === "mx-src") { mxSrcOn[m.src === "pa" ? "pa" : "ov"] = !!m.on; mxMsg(); }
@@ -3575,6 +3747,7 @@ var ShikaWheel = (function () {
     if (b.dataset.n) { fireN = +b.dataset.n; $("fire-n").querySelectorAll("button").forEach(function (o) { o.setAttribute("aria-pressed", String(o === b)); }); return; }
     if (b.id === "fire") { send(fireN ? "!発射 " + fireN : "!発射", b); return; }   // 0：いつもの数（プレステージの スキル）
     if (b.dataset.wk) { wearKind = b.dataset.wk; drawWear(); return; }
+    if (b.dataset.exo) { exoAct(b); return; } // 悪魔祓いの ポップアップ（開く・とじる・悪魔を えらぶ・印）
     if (b.dataset.cmd) { if (b.dataset.sure) sure(b); else send(b.dataset.cmd, b); }
   });
   $("push").addEventListener("keydown", function (e) { if (e.key === " " || e.key === "Enter") { var p = $("push"); p.classList.add("hit"); setTimeout(function () { p.classList.remove("hit"); }, 120); } });
