@@ -174,7 +174,7 @@ function soilPanel() {
 }
 // ---------- プリセット（鹿さんの 頼み 2026-11-05「プリセットを組んで植える機能を追加してください」→ カード「A 塗って組む」）----------
 // 時間の 肥料（2026-11-08 鹿さん「クレジットで買える植えた全作物を成長させる肥料を実装してください。」）：CLR が 売る。買うと その場で 畑 ぜんぶに まく
-// 1・3・5・10 時間。値段は 畑の 中身で 決まる（進む ぶんの 作物の CLR の 買い取り × 1.5。門番の farmv.grow と 同じ 計算）。回数の 上限は ない
+// 1・3・5・10 時間。値段は 畑の 中身で 決まる（進む ぶんの 作物の CLR の 買い取り × 15。門番の farmv.grow と 同じ 計算）。回数の 上限は ない
 const growRows = () => { const f = S.field, t = now(); return GROW_H.map((h) => { const plan = growPlan(f, t, h); return { h, n: plan.length, ripe: plan.filter((p) => p.ripe).length, price: growPrice(f, t, h, sellPrice) }; }); };
 let growKey = "";
 function growPanel() {
