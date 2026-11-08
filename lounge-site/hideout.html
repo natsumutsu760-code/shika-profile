@@ -189,6 +189,7 @@
   <section class="panel wallet" aria-label="持っている物"><h1>地下の 隠れ家 <a class="roomlink" href="hideout-room.html">部屋を 見る</a></h1></section>
   <nav class="tabs" id="tabs"></nav>
   <div class="room" id="room" role="tabpanel"><div id="left"></div><aside class="panel detail" id="detail" aria-live="polite"></aside></div>
+  <dialog id="skpop"><div class="cpop-in"><button class="cpop-x" type="button" aria-label="閉じる">×</button><section id="skd" aria-live="polite"></section></div></dialog>
 </main>
 <p class="toast" id="toast" role="status"></p>
 <dialog class="sellbox" id="sellbox" aria-label="素材を 売る"></dialog>
@@ -197,7 +198,9 @@ import "./lounge-en.js";   // 英語の 画面（MONO LINK の サイトの EN�
 import { mountCraftNav } from "./craft-nav.js";
 import "./mat-pop.js";   // 素材を 押すと 手に入る 所（2026-11-05）
 import { FACILITIES, SNACK_RECIPES, storageCap, facMax, facFx, hasKnob, upkeep, FUEL } from "./facilities.js";   // 施設の 作り直し（2026-11-03）：Lv1〜100・建設（始める → 素材 → 時間）・つまみ・維持費。画面は 鹿さんが えらんだ A「1 列の 流れ」
-import { snackCraftHtml, addSnackCss } from "./snack-craft.js";
+import { snackCraftHtml, addSnackCss, snackUi, snackTab, nutPopHtml } from "./snack-craft.js";
+import { nutSnack } from "./nutrition.js";
+import { craftPop } from "./craft-pop.js";   // 栄養の おやつを 作る 小窓（作業台と 同じ。2026-11-08）
 import { MAT_NAME, MAT_FROM, HIDDEN_MAT, GATHER, ENEMY_MAT, BOX_DAYS, sellPrice } from "./materials.js";
 import { DUNGEONS, ISLAND_OPEN } from "./dungeons.js";
 import { baseOf } from "./equip.js";
@@ -241,6 +244,7 @@ function load(m) {
   S.lv = Object.fromEntries(FACILITIES.map((f) => [f.id, (m.hideout || {})[f.id] || 0]));
   S.fac = Object.fromEntries((m.fac || []).map((x) => [x.id, x])); S.at = Date.now();   // 門番の 施設の ようす（Lv・つまみ・維持費・建設・次の Lv）
   S.inv = ((m.own && m.own.mats) || []).map((x) => ({ id: x.id, n: x.n, q: x.q || 0 }));
+  S.items = (m.deeplink && m.deeplink.items) || m.items || {};   // 栄養の おやつの 持ち数
   const box = (m.own && m.own.box) || [];
   S.box = box.filter((x) => !x.equip).map((x) => ({ id: x.id, n: x.n, q: x.q || 0, days: days(x.until), name: MAT_NAME[x.id] }));
   S.boxEq = box.filter((x) => x.equip).map((x) => ({ ...x.equip, days: days(x.until) }));
@@ -251,6 +255,7 @@ const qf = FACILITIES.some((f) => f.id === q.get("f")) ? q.get("f") : null;
 S.tab = qf ? tabOf(qf).id : TABS.some((t) => t.id === q.get("t")) ? q.get("t") : "make";
 // クラフトの 札から 来た とき（?f=snack&craft=1）：おやつ工房の 欄だけ 見せて、頭は 作業台・工房と 同じ 切りかえの 札（鹿さんの 頼み 2026-11-05）
 if (q.get("craft") && qf === "snack") { document.body.classList.add("craft"); mountCraftNav("snack"); }
+snackTab(q.get("sk"));   // ?sk=nut：栄養の おやつの タブで 開く
 // 倉庫の 中の タブ（鹿さんの決め、2026-10-25）：スタッシュ → 強化 → 預かり箱 の 順。1 つずつ 出す（?st= で えらんで 開く。配信ページの「スタッシュ」の タブも ここ）
 const STORE_TABS = [["stash", "スタッシュ"], ["up", "強化"], ["box", "預かり箱"]];
 S.st = STORE_TABS.some(([k]) => k === q.get("st")) ? q.get("st") : qf && tabOf(qf).id === "store" ? "up" : "stash";
@@ -399,7 +404,7 @@ function detailHtml() {
   const f = F(S.sel), v = V(f.id), lv = v.lv, kn = hasKnob(f) && lv > 0, k = S.dragId === f.id && S.drag != null ? S.drag : v.knob;
   const uses = `${f.id === "bench" && lv ? `<a class="use" href="bench.html">作業台を つかう</a>` : ""}${f.id === "armory" ? `<a class="use" href="equip.html">装備を 見る</a>` : ""}${f.id === "workshop" && lv ? `<a class="use" href="workshop.html">工房を つかう</a>` : ""}${f.id === "mine" && lv ? `<a class="use" href="mine.html">坑道を ひらく</a>` : ""}${f.id === "lab" && lv ? `<a class="use" href="tame.html">なかまを 研究する</a>` : ""}`;
   const head = `<header style="--c:${COLOR[f.id]}">${icon(f.id)}<div><h2>${f.name} ${lvn(f.id)}</h2><p>${esc(f.text)}</p></div></header>${uses}`;
-  const cook = f.id === "snack" && lv ? `<section class="craft" aria-label="おやつを 作る"><span class="need-h">おやつを 作る</span>${snackCraftHtml(v.knob, S.inv)}</section>` : "";   // おやつ工房：ここで 作る（なかまの 画面でも 同じ 物）
+  const cook = f.id === "snack" && lv ? `<section class="craft" aria-label="おやつを 作る"><span class="need-h">おやつを 作る</span>${snackCraftHtml(v.knob, S.inv, { nut: S.items })}</section>` : "";   // おやつ工房：ここで 作る（なかまの 画面でも 同じ 物）
   const now = lv ? `<div class="nowbox"><p class="now"><small>いま${kn && k < lv ? `（つまみ Lv${k}）` : ""}</small><span data-fx>${esc(facFx(f.id, k))}</span></p>${kn ? knobHtml(f, v, k) : ""}</div>` : "";
   const nx = v.build ? "" : lv >= v.max ? `<p class="done">いちばん 上の Lv${lv}</p>` : !v.next ? `<p class="soon">無線機を 作ると Lv${lv + 1} から 上げられる（ビサイ諸島の 素材が いる）</p>` : `<div class="next"><small>Lv${lv + 1} に すると</small><p>${esc(lv ? fxDiff(facFx(f.id, lv), v.next.fx) : v.next.fx)}</p></div>`;
   return head + cook + now + nx + (v.build ? buildingHtml(f, v) : v.next ? startHtml(f, v) : "");
@@ -412,6 +417,7 @@ function render() {
   const tk = document.querySelector(".stash .tk"); if (tk) padGrids(tk);
   document.getElementById("detail").innerHTML = detailHtml();
   document.getElementById("detail").classList.toggle("up", S.up === S.sel);
+  document.getElementById("skd").innerHTML = nutPopHtml(S.inv, S.items);
   S.up = null;
 }
 const small = () => matchMedia("(max-width:860px)").matches, calm = () => matchMedia("(prefers-reduced-motion:reduce)").matches;
@@ -426,10 +432,13 @@ async function ask(b, a, body, msg) {
   if (r.ok) { if (r.done) S.up = body.id; toast(msg(r)); } else toast(waitText);
   render();
 }
+const skPop = craftPop(document.getElementById("skpop"), { label: "おやつを 作る", width: "480px" });
 document.querySelector("main").addEventListener("click", async (e) => {
   const b = e.target.closest("button"); if (!b || b.disabled) return;
   if (b.dataset.tab) return pickTab(b.dataset.tab);
   if (b.dataset.st) { S.st = b.dataset.st; q.set("t", "store"); q.set("st", S.st); history.replaceState(null, "", "?" + q.toString()); render(); return document.querySelector(`[data-st="${S.st}"]`)?.focus(); }
+  const sk = snackUi(b); if (sk) { render(); if (sk === "open") skPop.open(); return; }   // おやつの タブ・しぼりこみ・数・栄養の おやつを えらぶ
+  if (b.dataset.nutgo) return ask(b, "nut.craft", { id: b.dataset.nutgo, n: +b.dataset.n }, (r) => `${nutSnack(r.id).name}を ${r.n} こ 作った`);
   if (b.dataset.snack) return ask(b, "snack.craft", { id: b.dataset.snack, n: +b.dataset.n }, (r) => `${SNACK_RECIPES.find((x) => x.id === r.id).name}を ${r.n} こ 作った`);
   if (b.dataset.act) { S[b.dataset.act] = b.dataset.v; if (b.dataset.act === "si") S.sw = "all"; render(); return document.querySelector(`[data-act="${b.dataset.act}"][data-v="${b.dataset.v}"]`)?.focus(); }
   if (b.dataset.m) { openSell(b.dataset.m); render(); return; }   // 売る 小窓（2026-11-07。前は マス目の 下に くわしい 所を 出して いた）

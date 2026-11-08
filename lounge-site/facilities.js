@@ -22,7 +22,7 @@ export const NO_RADIO_MAX = 40;   // 無線機が ない ときに 上げられ�
 const ALL = [
   { id: "bench", kind: "tool", name: "作業台", text: "装備を 作る・合成する" },
   { id: "lab", kind: "make", name: "研究所", text: "捕まえた 敵の 研究が 安く・早く なる" },
-  { id: "snack", kind: "tool", name: "おやつ工房", text: "素材から 懐柔の おやつを 作る" },
+  { id: "snack", kind: "tool", name: "おやつ工房", text: "素材から 懐柔と 栄養の おやつを 作る" },
   { id: "maproom", kind: "trip", name: "地図室", text: "採取と 敵の 素材が ふえる" },
   { id: "medic", kind: "trip", name: "救護室", text: "休憩の 回復と、倒れた 子の 起きあがり" },
   { id: "gym", kind: "trip", name: "トレーニング室", text: "派遣の 経験値が ふえる" },

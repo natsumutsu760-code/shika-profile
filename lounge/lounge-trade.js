@@ -391,6 +391,7 @@ export function actEvents(rec, a, r, b, day) {
   if (!r || !r.ok) return;
   const evs = [];
   if (a === "snack.craft") evs.push({ type: "cook", n: r.n || 1, ...(r.id === "snack3" ? { kind: "snack3" } : {}) });
+  else if (a === "nut.craft") evs.push({ type: "cook", n: r.n || 1 });   // 栄養の おやつも おやつ工房で 作る 物（鹿さんの カード「数える」、2026-11-08）
   else if (a === "smelt.take") evs.push({ type: "smelt", n: r.got || 0 });
   else if (a === "ws.att") evs.push({ type: "oproll", n: 1, slot: "weapon" });   // 工房の 武器の アタッチメント（素材で ★と OP を 引く）
   else if (a === "ws.draw") evs.push({ type: "oproll", n: 1, slot: r.slot });   // 工房の 素材の OP 抽選（空いた 枠）

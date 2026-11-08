@@ -41,6 +41,14 @@ export const DETAIL = {
   chase: { label: "追撃", en: "Follow-up Attack", new: true },
 };
 
+// 詳細ステータスの しゅるい（Claude の 案、2026-11-05。ステータスの 画面の タブ・おやつ工房の しぼりこみで 同じ 物を 使う）
+export const DETAIL_GROUPS = [
+  ["atk", "攻め", ["crit", "critDmg", "wazaDmg", "itazuraDmg", "dmgAdd", "hit", "inflict", "graze", "chase", "counter"]],
+  ["def", "守り", ["dmgCut", "dmgCutAdd", "evade", "critRes", "pierceRes", "statusRes"]],
+  ["heal", "回復", ["drain", "healUp", "regen", "mpEff"]],
+  ["ref", "参照", ["refAtk", "refDef", "refInt", "refRes", "refAgi", "refDex", "refLuk"]],
+];
+
 // 栄養の おやつ 27（おやつ工房で 作物から 作る）。sp：とくべつおやつにも なる 作物（懐柔の ＋3 は その まま）
 export const NUT_SNACKS = [
   { id: "nut_bread", name: "パン", en: "Bread", crop: "kaido_wheat", stat: "dmgCutAdd" },

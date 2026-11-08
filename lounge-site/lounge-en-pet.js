@@ -18,6 +18,10 @@ export const WORDS = {
   "リセットして います…": "Resetting…", "詳細ステータスを リセットした": "Detailed Stats reset", "上限突破して います…": "Breaking the limit…", "上限突破：キャップ #% に": "Limit broken: cap is now #%",
   "おやつで 詳細ステータスを 育てる": "Grow Detailed Stats with treats", "ぜんぶ 見る（#）": "See all (#)", "数": "Qty", "おやつ工房が まだ ない（隠れ家で 作る）": "No treat kitchen yet (build it in the hideout)",
   "足りない：# あと #": "Missing: # ×#",
+  // クラフトの おやつ工房の 栄養の おやつ（snack-craft.js。2026-11-08）
+  "懐柔の おやつ": "Taming treats", "栄養の おやつ": "Nutrition treats", "おやつの しゅるい": "Treat type", "しゅるい": "Type", "ならべる": "Sort", "ぜんぶ": "All",
+  "作れる順": "Makeable first", "島の 順": "By island",
+  "作れる #": "Can make #", "1 こ あげるごと": "per treat fed", "持って いる ×#": "Owned ×#", "あげる ›": "Feed ›", "作った おやつを あげる ›": "Feed the treats you made ›",
   // ---- なかま（tame.html） ----
   "（すっかり なかよし。いっしょに 行きたそうに こっちを 見ている）": "(Best friends now. Looking at you like it wants to come along)",
   "もぐもぐ！（すこし 近くに すわった）": "Munch munch! (sat a little closer)", "……もぐ。（まだ 少し はなれて 見ている）": "……munch. (still watching from a little way off)",
@@ -127,6 +131,7 @@ export const RULES = [
   [/^(.+)を あげる$/, (m, p) => `Feed ${P(p, m[1])}`], [/^(.+)を 作る$/, (m, p) => `Make ${P(p, m[1])}`],
   [/^(.+)を (\d+) こ あげた：(.+) ＋([\d.]+)%(?:（腹八分目で ＋(\d+)）)?$/, (m, p) => `Fed ${P(p, m[1])} ×${m[2]}: ${P(p, m[3])} +${m[4]}%${m[5] ? ` (+${m[5]} from “just right”)` : ""}`],
   [/^(.+)を (\d+) こ 作った$/, (m, p) => `Made ${P(p, m[1])} ×${m[2]}`],
+  [/^(.+)を (\d+) こ 作る$/, (m, p) => `Make ${P(p, m[1])} ×${m[2]}`],   // クラフトの おやつ工房の 小窓（2026-11-08）
   // 配合と サブスキル（名前が 入る 文）
   [/^近親配合（双子・きょうだいどうし）：(ATK|DEF|INT|RES|AGI|DEX|LUK)の 受けつぎが 50%・ほかの 力は 8 割$/, (m) => `Inbreeding (twins or siblings): ${m[1]} inherited at 50%, other stats at 80%`],
   [/^(.+?)(?:＋(\d+))?が 双子で 生まれた（(.+)）$/, (m, p) => `${P(p, m[1])}${m[2] ? "+" + m[2] : ""} was born as twins (${P(p, m[3])})`],

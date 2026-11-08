@@ -434,7 +434,7 @@ export const NEW_OP_EN = {
 export const FAC_EN = {   // 名前・説明（効果の 1 行は Lv で かわるので lounge-en-base.js の 形の 決まりで 訳す。2026-11-03 施設の 作り直し）
   bench: ["Workbench", "Craft and fuse gear"],
   lab: ["Lab", "Cheaper and faster research on captured enemies"],
-  snack: ["Treat Kitchen", "Make taming treats from materials"],
+  snack: ["Treat Kitchen", "Make taming and nutrition treats from materials"],
   maproom: ["Map Room", "More gathering and enemy materials"],
   medic: ["Infirmary", "Rest recovery, and fallen members getting back up"],
   gym: ["Training Room", "More expedition XP"],

@@ -151,7 +151,7 @@ import { itemStats } from "./equip.js";
 import { me, act, busy, waitText } from "./lounge-client.js";   // ペットの 記録と ステータスを 振るのは 門番（見本では ブラウザの 中の ためしの 門番）
 import { mountWallet } from "./wallet-bar.js"; mountWallet();   // 上の 通貨の 札（玉・アメジスト・クレジット）と 両替
 import { petInfo, linkTabs, gateHtml, addGateCss, toast } from "./pet-head.js";
-import { detailOpen, DETAIL, nutOf, nutTotal, nutCap, detailPct } from "./nutrition.js";   // 栄養（詳細ステータス）の 入口は 開いてから
+import { detailOpen, DETAIL, DETAIL_GROUPS, nutOf, nutTotal, nutCap, detailPct } from "./nutrition.js";   // 栄養（詳細ステータス）の 入口は 開いてから
 
 const q = new URLSearchParams(location.search), view = q.get("view") || "pet";
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
@@ -181,12 +181,7 @@ const sumOf = (o) => Object.values(o || {}).reduce((a, v) => a + v, 0);
 
 // 通常（HP〜LUK）と 詳細（栄養の 27）を 切りかえる（鹿さんの 頼み、2026-11-05「通常ステータスの表示と詳細ステータスの表示で切り替えられるように」）
 // 詳細の 数は 栄養（おやつ）と 装備の OP の 合計。スキルツリーの パッシブは 条件つきが 多いので 入れない。しゅるいの タブで 分ける（Claude の 案）
-const DGROUP = [
-  ["atk", "攻め", ["crit", "critDmg", "wazaDmg", "itazuraDmg", "dmgAdd", "hit", "inflict", "graze", "chase", "counter"]],
-  ["def", "守り", ["dmgCut", "dmgCutAdd", "evade", "critRes", "pierceRes", "statusRes"]],
-  ["heal", "回復", ["drain", "healUp", "regen", "mpEff"]],
-  ["ref", "参照", ["refAtk", "refDef", "refInt", "refRes", "refAgi", "refDex", "refLuk"]],
-];
+const DGROUP = DETAIL_GROUPS;   // しゅるいの 表は nutrition.js に 1 つ（おやつ工房と 同じ。2026-11-08）
 const lsGet = (k) => { try { return localStorage.getItem(k); } catch (e) { return null; } }, lsSet = (k, v) => { try { localStorage.setItem(k, v); } catch (e) {} };
 let STV = (q.get("st") || lsGet("ml-stview")) === "detail" ? "detail" : "base", DTAB = "atk";   // えらんだ 表示は この 端末に 覚える
 const r1 = (x) => Math.round(x * 10) / 10;
