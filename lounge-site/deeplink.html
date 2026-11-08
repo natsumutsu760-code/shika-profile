@@ -120,6 +120,23 @@
   /* みんなの依頼 */
   .post { margin-top:16px; padding:12px 14px; border:1px dashed var(--line2); display:grid; gap:8px; }
   .post h3 { font:400 15px/1.4 var(--f); color:var(--amber); }
+  /* スフィアの 鑑定の 結果の 小窓（2026-11-08 鹿さん「その場で結果のポップアップを出すように」）。★4 から 目立たせる */
+  #lkd { width:min(420px, calc(100vw - 32px)); max-height:calc(100vh - 32px); overflow:auto; padding:0; border:1px solid var(--amber); background:var(--bg2); color:var(--text); box-shadow:0 0 0 1px rgba(255,181,71,.2), 0 20px 60px rgba(0,0,0,.6); font:400 15px/1.6 var(--f); }
+  #lkd::backdrop { background:rgba(5,3,12,.72); }
+  #lkd .lkd-b { display:grid; gap:12px; padding:18px 18px 16px; }
+  #lkd h3 { margin:0; font:400 20px/1.3 var(--f); color:var(--amber); text-shadow:var(--glow); }
+  #lkd .lkd-sub { margin:-8px 0 0; font-size:13px; color:var(--dim); }
+  #lkd ul { list-style:none; margin:0; padding:0; display:grid; gap:6px; max-height:52vh; overflow:auto; }
+  #lkd li { display:grid; grid-template-columns:auto minmax(0,1fr) auto; align-items:center; gap:2px 10px; padding:8px 10px; border:1px solid var(--line); background:rgba(255,181,71,.04); }
+  #lkd .lkd-st { grid-row:span 2; width:3.2em; font-size:14px; letter-spacing:-1px; color:var(--dim); white-space:nowrap; }
+  #lkd .lkd-op { font-size:16px; color:var(--text); }
+  #lkd .lkd-fx { grid-column:2; font-size:13px; color:var(--dim); }
+  #lkd .lkd-n { grid-row:span 2; grid-column:3; grid-row-start:1; font-size:15px; color:var(--amber); }
+  #lkd li.s4 { border-color:var(--amber); box-shadow:inset 0 0 12px rgba(255,181,71,.18); } #lkd li.s4 .lkd-st { color:var(--amber); text-shadow:var(--glow); }
+  #lkd li.s5 { border-color:var(--violet); box-shadow:inset 0 0 14px rgba(183,155,255,.25); } #lkd li.s5 .lkd-st, #lkd li.s5 .lkd-op { color:var(--violet); text-shadow:0 0 6px rgba(183,155,255,.6); }
+  #lkd .lkd-left { margin:0; font-size:13px; color:var(--warn, #FF8A7A); }
+  #lkd .lkd-f { display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; }
+  #lkd .lkd-f a { color:var(--amber); font-size:14px; } #lkd .lkd-f .btn { margin-left:auto; }
   /* スフィアの 鑑定：1 行（見出し・まだの 数・1 こ／ぜんぶ・値・ボタン。スマホでは 2 行に 折れる） */
   .post .lk { display:flex; flex-wrap:wrap; align-items:center; gap:6px 12px; } .post .lk .lk-n { margin-right:auto; font-size:14px; color:var(--text); }
   .seg { display:inline-flex; border:1px solid var(--line2); } .seg button { min-height:32px; padding:0 12px; font-size:14px; color:var(--dim); } .seg button + button { border-left:1px solid var(--line2); }
@@ -213,6 +230,7 @@
     <section class="pane" id="pane" aria-live="polite"></section>
   </main>
   <p class="toast" id="toast" role="status"></p>
+  <dialog id="lkd" aria-label="鑑定の 結果"><div class="lkd-b" id="lkdb"></div></dialog>
 </div>
 <script type="module">
 import { t, enReady } from "./lounge-en.js";   // 英語の 画面（MONO LINK の サイトの EN／日本語 と 同じ 決まり。英語の ときだけ 辞書を 読む）。起動の 文字送りは 訳してから 打つ
@@ -220,7 +238,7 @@ import { TRADERS, SPECIAL, insPrice, REQ_FEE, REQ_MAX, REQ_LIMITS, NOTE_PRESETS,
 import { repAt, lvOfPts, LV_MAX, CH_LV, UNLOCK_BY } from "./primary.js";   // 友好度 Lv100・章の プライマリータスク
 import { MAT_NAME, GATHER, sellPrice, MAT_FROM, HIDDEN_MAT, BAR_SELL, matIsle, matOpen } from "./materials.js";   // matOpen：大工事の 畑が つながる まで 作物は 出さない
 import { matPic } from "./mat-icons.js";
-import { BASES, OPS, ALL_OPS, baseOf } from "./equip.js";
+import { BASES, OPS, ALL_OPS, baseOf, opVal } from "./equip.js";
 import { CRAFT, SYNTH } from "./recipes.js";
 import { DUNGEONS, TOOLS, ISLAND_OPEN } from "./dungeons.js";
 import { SPHERE_LOOK } from "./sphere.js";   // スフィアの 鑑定（ガラク。2026-11-04）
@@ -466,6 +484,28 @@ function render() {
 let tid;
 const toast = (s) => { const el = document.getElementById("toast"); el.textContent = s; el.classList.add("on"); clearTimeout(tid); tid = setTimeout(() => el.classList.remove("on"), 3200); };
 // 門番に 頼んで、記録と 板を 読みなおして 描きなおす
+// スフィアの 鑑定：結果は その場で 小窓に 出す（2026-11-08 鹿さん「スフィアの鑑定で、その場で結果のポップアップを出すようにしてください。」。前は 下の 短い 知らせ）
+async function lookAsk(b, a, body) {
+  const r = await busy(b, () => act(a, body), "…");
+  if (!r.ok && !r.wait) { toast(r.why || "できませんでした"); return r; }
+  await load(); render();
+  if (r.ok) { const got = r.spheres || [r.sphere]; lookShow(got, got.length * SPHERE_LOOK, r.left || 0); } else toast(waitText);   // 答えの credits は 払った あとの 持ち金（門番が 上書き）なので、値は 数 × 鑑定料
+  return r;
+}
+// 同じ OP・★は 1 行に まとめて「×N」。★の 高い 順。★4 から 目立たせる（CSS の s4・s5）
+function lookShow(list, cost, left) {
+  const g = new Map();
+  for (const x of list) { const k = x.op + "@" + x.star; g.set(k, { op: x.op, star: x.star, n: ((g.get(k) || {}).n || 0) + 1 }); }
+  const rows = [...g.values()].sort((a, c) => c.star - a.star || (ALL_OPS[a.op]?.label || a.op).localeCompare(ALL_OPS[c.op]?.label || c.op, "ja"));
+  const fx = (o) => { const O = ALL_OPS[o.op]; return O && O.fmt ? O.fmt(opVal(o.op, o.star)) : ""; };
+  document.getElementById("lkdb").innerHTML = `<h3>鑑定の 結果</h3><p class="lkd-sub">${list.length} こ（クレジット ${fmt(cost)}）</p>
+    <ul>${rows.map((o) => `<li class="s${o.star}"><span class="lkd-st" aria-label="★${o.star}">${"★".repeat(o.star)}</span><b class="lkd-op">${esc(ALL_OPS[o.op]?.label || o.op)}</b>${o.n > 1 ? `<span class="lkd-n">×${o.n}</span>` : ""}<span class="lkd-fx">${esc(fx(o))}</span></li>`).join("")}</ul>
+    ${left ? `<p class="lkd-left">まだ ${left} こ（クレジットが 足りない）</p>` : ""}
+    <div class="lkd-f"><a href="equip.html">&gt; 装備の 空いた 枠に はめる</a><button class="btn" data-lkdclose>とじる</button></div>`;
+  const d = document.getElementById("lkd"); if (!d.open) d.showModal();
+  d.querySelector("[data-lkdclose]").focus();
+}
+document.getElementById("lkd").addEventListener("click", (e) => { if (e.target.id === "lkd" || e.target.closest("[data-lkdclose]")) e.currentTarget.close(); });
 async function ask(b, a, body, msg) {
   const r = await busy(b, () => act(a, body), "…");
   if (!r.ok && !r.wait) { toast(r.why || "できませんでした"); return r; }
@@ -505,9 +545,8 @@ document.getElementById("term").addEventListener("click", async (e) => {
   // スフィアの 鑑定：1 こ／ぜんぶ を えらぶ（えらんだ 方は この ブラウザに おぼえる）・鑑定する
   if (d.lkm) { S.lookAll = d.lkm === "all"; try { localStorage.setItem("ml-look-all", S.lookAll ? "1" : "0"); } catch (e) {} render(); return document.querySelector(`[data-lkm="${d.lkm}"]`)?.focus(); }
   if (d.lookgo) { const unk = ((ME.own && ME.own.spheres) || []).filter((y) => !y.known), opName = (op) => (ALL_OPS[op] ? ALL_OPS[op].label : op); if (!unk.length) return;
-    if (S.lookAll && unk.length > 1) return ask(b, "sphere.lookAll", {}, (r) => { const top = [...r.spheres].sort((a, c) => c.star - a.star).slice(0, 3);
-      return `鑑定した ${r.n} こ：${top.map((x) => `${opName(x.op)} ★${x.star}`).join("・")}${r.n > top.length ? ` ほか ${r.n - top.length} こ` : ""}`; });
-    return ask(b, "sphere.look", { uid: unk[0].uid }, (r) => `鑑定した：${opName(r.sphere.op)} ★${r.sphere.star}`); }
+    if (S.lookAll && unk.length > 1) return lookAsk(b, "sphere.lookAll", {});
+    return lookAsk(b, "sphere.look", { uid: unk[0].uid }); }
   if (d.item) { const sh = t, it = sh.shop.find((x) => x.id === d.item);
     if (it.sell || it.trade || it.pick) { S.open = S.open === it.id ? null : it.id; S.sell = {}; return render(); }
     return ask(b, "trader.buy", { tid: sh.id, item: it.id }, () => `買った：${it.name}${it.tool ? "（冒険の じゅんびで 持っていける）" : ""}`); }

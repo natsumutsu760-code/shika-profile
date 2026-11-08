@@ -27,7 +27,7 @@ export const WORDS = {
   "はめられる スフィアが ない（同じ OP は 2 つ 付けない）": "No Sphere fits (the same OP can't be added twice)", "DEEP LINK/: の ガラク": "Garak in DEEP LINK/:",
   "もう一度 押すと 売る（+#）": "Tap again to sell (+#)", "素材を ぜんぶ 売る": "Sell all materials", "ぜんぶ 売る": "Sell all", "倉庫の その しゅるいが いっぱい：素材を 使うと あく": "That type is full: use materials to make room",   // あずかり箱（2026-11-06）
   "まだ # こ": "# left", "1 こ": "One", "クレジットが 足りないので # こまで": "Not enough credits: up to #",   // スフィアの 鑑定（2026-11-06）
-  "スフィアの 鑑定": "Sphere appraisal", "鑑定する": "Appraise", "鑑定して いない スフィアは ない": "No unappraised Spheres", "> 装備の 空いた 枠に はめる": "> Set them into empty gear slots",
+  "スフィアの 鑑定": "Sphere appraisal", "鑑定する": "Appraise", "鑑定して いない スフィアは ない": "No unappraised Spheres", "> 装備の 空いた 枠に はめる": "> Set them into empty gear slots", "鑑定の 結果": "Appraisal results", "# こ（クレジット #）": "#1 (#2 credits)", "まだ # こ（クレジットが 足りない）": "#1 left (not enough credits)",
   "届いた装備・スフィア": "Gear & Spheres received", "中身は DEEP LINK/: の ガラクで 鑑定（空いた OP の 枠に はめる）": "Appraise them with Garak in DEEP LINK/: (set into empty OP slots)",
   "今回は 装備も スフィアも 出なかった（スフィアは 宝箱から まれに。装備は 作業台の「開発」で 作る）": "No gear or Spheres this time (Spheres rarely come from chests; make gear with Develop at the Workbench)",
   // ---- 装備（equip.html） ----
