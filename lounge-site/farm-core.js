@@ -63,6 +63,46 @@ export function stageAt(cell, now, soil) {
   return { stage: "over", p: 1, left: 0 };
 }
 
+// ---------- 時間の 肥料（CLR が 売る。クレジットで 買って その場で 畑 ぜんぶに まく。持ち物には 入らない）----------
+// 2026-11-08 鹿さん「クレジットで買える植えた全作物を成長させる肥料を実装してください。」→ カード「農園で買ってすぐまく」・
+//   「使える回数上限なし。一回1,3,5,10時間スキップできる物をそれぞれ見合う価格設定にお願いします。」・値段は「畑の中身で決まる」
+// 芽と 若葉の 作物が、それぞれ N 時間ぶん 育つ（実る 所で 止まる。実って いる 物・放っておいた あと・かわった 物・スプリンクラーは そのまま）
+// 値段：進む ぶんの 作物を CLR に 売った 額の ならし（品質・金色と 虹色の くじも 入れる）× 1.5。上限なしでも「買う → とる → 売る」で もうからない
+export const GROW_H = [1, 3, 5, 10];
+export const GROW_MULT = 1.5, GROW_MIN = 10;
+// その マスを とった ときの CLR の 買い取りの ならし（sell：素材 1 この 売値。materials.js の sellPrice を 渡す。ここは 素材の 表を 読まない）
+export function harvestWorth(field, i, sell) {
+  const cell = field.cells[i], c = cell && CROP[cell.id]; if (!c) return 0;
+  const fx = soilFx(field.soil, c), span = c.get[1] - c.get[0] + 1, one = (q) => sell({ id: c.mat, q, n: 1 });
+  let n = 0; for (let k = c.get[0]; k <= c.get[1]; k++) n += Math.max(1, k + fx.get) / span;   // とれる 数（harvest と 同じ：1 こは かならず）
+  const pr = COLOR_RATE.rainbow * fx.color, pg = COLOR_RATE.gold * fx.color, up = qualityBonus(field.lv);
+  const qw = SPR_Q[Math.min(3, sprTier(field, i) + ((FERT[cell.fert] || {}).q || 0))], tot = Object.values(qw).reduce((a, b) => a + b, 0);
+  let plain = 0; for (const [q, w] of Object.entries(qw)) plain += (w / tot) * ((1 - up) * one(+q) + up * one(Math.min(5, +q + 1)));
+  return n * ((1 - pr - pg) * plain + pg * one(4) + pr * one(5));
+}
+// N 時間で どの マスが どれだけ 育つか → [{ i, adv（進む ms）, frac（育つ 時間の うち 進む 割合）, ripe（これで 実る）}]
+export function growPlan(field, now, hours) {
+  const out = [], cap = hours * H;
+  field.cells.forEach((cell, i) => {
+    if (!cell || !cell.id || !CROP[cell.id] || !inField(field.lv, i)) return;
+    const st = stageAt(cell, now, field.soil); if (st.stage !== "sprout" && st.stage !== "young") return;
+    const g = growMs(CROP[cell.id], field.soil, cell.fert), rest = g - (now - cell.at), adv = Math.min(cap, rest);
+    if (adv > 0) out.push({ i, adv, frac: adv / g, ripe: adv >= rest });
+  });
+  return out;
+}
+// 値段（クレジット。10 きざみで 上げる）。育つ 作物が なければ 0（買えない）
+export function growPrice(field, now, hours, sell) {
+  const plan = growPlan(field, now, hours); if (!plan.length) return 0;
+  const v = plan.reduce((a, p) => a + p.frac * harvestWorth(field, p.i, sell), 0) * GROW_MULT;
+  return Math.max(GROW_MIN, Math.ceil(v / 10) * 10);
+}
+// まく：植えた 時を 前へ ずらす（育ちは 植えた 時からの 時間で 決まる）→ 育った マスの 数
+export function growApply(field, now, hours) {
+  const plan = growPlan(field, now, hours); for (const p of plan) field.cells[p.i].at -= p.adv;
+  return plan;
+}
+
 // ---------- かけ合わせ ----------
 // となりあう（上下左右と ななめ）2 つの 作物が どちらも 実って いると、その 両方に となりあう あいた マスに、1 時間ごとに 芽が 出る ことが ある
 export const CROSS_BASE = 0.05;

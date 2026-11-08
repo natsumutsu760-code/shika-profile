@@ -1,12 +1,13 @@
 // 新しい 農園（3D の 畑。鹿さんの 決め 2026-11-03：試しの 形で つなぐ。docs/mono-link-release-plan.md）。畑の 決まりは lounge-proto/farm-core.js
-// 受付：farmv.plant {i, id, fert?}・farmv.harvest {i}・farmv.harvestAll {}・farmv.preset {slot, cells}・farmv.plantPreset {slot, fert?}・farmv.spr {i, kind?}・farmv.soil {soil}・farmv.skin {skin}。どれも はじめに 時間を 進めて、かけ合わせを 起こす
+// 受付：farmv.plant {i, id, fert?}・farmv.harvest {i}・farmv.harvestAll {}・farmv.preset {slot, cells}・farmv.plantPreset {slot, fert?}・farmv.spr {i, kind?}・farmv.soil {soil}・farmv.grow {h, max}・farmv.skin {skin}。どれも はじめに 時間を 進めて、かけ合わせを 起こす
 // 記録：rec.farmv = { field, known：図鑑に のった 作物の id, skin }・rec.seeds = { 作物の id: 数 }
 //   種：「種から」の 作物は 派遣の 採取で 拾う（作物の 表の at）。生まれた 品種は 収穫で 種も とれる（どちらも 鹿さんの 決め）。植えると 1 こ へる
 //   とれた 作物は 倉庫の 素材へ（派遣と 同じ putMats。入りきらない 分は あずかり箱）
 //   肥料と スプリンクラーは 工房で 作って rec.items に 入る（前の 隠れ家の 畑は 2026-11-03 に 消して ここに まとめた。鹿さんの 決め）
 //   土は CLR が 売る：かえる たびに 土の 値段（クレジット）を 払う
 import { CROP, farmOpen } from "./crops.js";
-import { newField, plant, harvest, advance, setSoil, addXp, XP, inField, FERT, SPRINKLERS, placeSpr, takeSpr, SOILS, stageAt, W } from "./farm-core.js";
+import { newField, plant, harvest, advance, setSoil, addXp, XP, inField, FERT, SPRINKLERS, placeSpr, takeSpr, SOILS, stageAt, W, GROW_H, growPrice, growApply } from "./farm-core.js";
+import { sellPrice } from "./materials.js";
 import { putMats } from "./lounge-game.js";
 import { sale } from "./lounge-stock.js";
 
@@ -140,6 +141,21 @@ export function farmvSoil(rec, b, now, R) {
   if (s.price > (rec.credits || 0)) return { ok: false, why: `クレジットが 足りない：あと ${s.price - (rec.credits || 0)}` };
   const r = setSoil(F.field, soil, now); if (!r.ok) return r;
   rec.credits = (rec.credits || 0) - s.price; sale(rec, "CLR", s.price); return { ok: true, paid: s.price };   // 土は クロロシス・バイオテック（株）
+}
+
+// 時間の 肥料（2026-11-08 鹿さん「クレジットで買える植えた全作物を成長させる肥料を実装してください。」。決まりは farm-core.js の growPlan）
+// h：1・3・5・10 時間。max：画面が 見せた 値段（時間が たつと 値段が かわるので、それより 高く なって いたら 払わずに 断る）。CLR が 売る（土と 同じ）
+export function farmvGrow(rec, b, now, R) {
+  if (!farmOpen()) return CLOSED;
+  const F = tick(rec, now, R), h = b && b.h;
+  if (!GROW_H.includes(h)) return { ok: false, why: "その 肥料は ない" };
+  const price = growPrice(F.field, now, h, sellPrice);
+  if (!price) return { ok: false, why: "育って いる 作物が ない" };
+  if (b.max != null && price > b.max) return { ok: false, why: `値段が かわった：いま ${price.toLocaleString()} クレジット`, price };
+  if (price > (rec.credits || 0)) return { ok: false, why: `クレジットが 足りない：あと ${(price - (rec.credits || 0)).toLocaleString()}`, price };
+  const plan = growApply(F.field, now, h);
+  rec.credits = (rec.credits || 0) - price; sale(rec, "CLR", price);   // クロロシス・バイオテック（株）
+  return { ok: true, paid: price, h, n: plan.length, ripe: plan.filter((p) => p.ripe).length };
 }
 
 export function farmvSkin(rec, b, now) {

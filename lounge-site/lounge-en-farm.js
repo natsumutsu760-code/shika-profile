@@ -28,6 +28,8 @@ export const WORDS = {
   "プリセット": "Preset", "塗る": "Paint", "いまの 畑から": "Copy current field", "保存": "Save", "空き": "Empty", "# マス": "# plots",
   "種を えらんで マスを 押すと 塗れる": "Pick a seed, then tap plots to paint", "塗る 種を えらんで": "Pick a seed to paint", "プリセット # に 保存した": "Saved to Preset #",
   "あいて いる マスが ない": "No empty plots", "植えられる マスが ない": "No plots to plant",
+  // 時間の 肥料（2026-11-08）
+  "時間の 肥料": "Time Fertilizer", "まだ 実らない": "Won't ripen yet", "育って いる 作物が ない": "Nothing is growing",
   // 図鑑
   "種類": "Type", "並べる": "Sort", "番号": "Number", "のった 順": "By discovery",
   // 門番（lounge-farmv.js）
@@ -62,4 +64,10 @@ export const RULES = [
   [/^(LEGENDARY! |金色！ )?(.+?) ×(\d+)(?: ほか (\d+))?（倉庫へ）$/, (m, p) => p(m[2]) && `${m[1] ? (m[1].startsWith("L") ? "LEGENDARY! " : "Gold! ") : ""}${p(m[2])} ×${m[3]}${m[4] ? ` + ${m[4]} more` : ""} (to Storage)`],
   [/^種から・農業 Lv(\d+)$/, (m) => `From seed · Farming Lv${m[1]}`],
   [/^かえて (\d+) 時間は かえられない$/, (m) => `You can't change it again for ${m[1]} hours`],
+  // 時間の 肥料（2026-11-08）
+  [/^(?:芽と 若葉の 作物 (\d+) マスが 育つ（実る 所で 止まる）|育って いる 作物が ない（植えると まける）)・持って いる ([\d,]+) クレジット$/, (m) => `${m[1] ? `${m[1]} growing plots advance (they stop once ripe)` : "Nothing is growing (plant something first)"} · You have ${m[2]} Credits`],
+  [/^(\d+) 時間 進む$/, (m) => `Advance ${m[1]} h`], [/^([\d,]+) クレジット$/, (m) => `${m[1]} Credits`],
+  [/^(?:実る (\d+) マス|まだ 実らない)(?:・足りない：あと ([\d,]+))?$/, (m) => `${m[1] ? `${m[1]} will ripen` : "Won't ripen yet"}${m[2] ? ` · ${m[2]} short` : ""}`],
+  [/^(\d+) 時間 進めた：(\d+) マスが 育った(?:・(\d+) マス 実った)?（([\d,]+) クレジット）$/, (m) => `Advanced ${m[1]} h: ${m[2]} plots grew${m[3] ? ` · ${m[3]} ripened` : ""} (${m[4]} Credits)`],
+  [/^値段が かわった：いま ([\d,]+) クレジット$/, (m) => `The price changed: now ${m[1]} Credits`], [/^クレジットが 足りない：あと ([\d,]+)$/, (m) => `Not enough credits: ${m[1]} short`],
 ];
