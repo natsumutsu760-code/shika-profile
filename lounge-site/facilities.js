@@ -1,5 +1,5 @@
 // ラウンジの 施設（大工事で 作り直し。鹿さんの 決め、2026-10-29 の 11〜14 回目の カード・2026-11-03「施設から」。数は docs/mono-link-numbers.md の 4 章の 案）
-// - 11 こ（地下の 拡張は なくした）。Lv1〜100 で なめらかに のびる（無線機だけ 島ごとに 1 段）
+// - 12 こ（地下の 拡張は なくした。製材所は 2026-11-11 に 足した）。Lv1〜100 で なめらかに のびる（無線機だけ 島ごとに 1 段）
 // - つまみ：上げた Lv までの どこでも えらべる（rec.knob）。効果と 維持費は えらんだ Lv。倉庫・武器庫・無線機は つまみ なし
 // - 建設：クレジットを 払って 始め、素材を 分けて 入れる。進み ＝「入れた 素材の 割合」と「経った 時間 ÷ 工期」の 小さい 方
 //   グラナート建設（残りの 時間を 半分・残りの 分 × 1 クレジット、最低 50）・ヘリクス電力の 燃料（60 クレジットで 30 分）で 早く なる
@@ -12,6 +12,7 @@ import { GATHER, ENEMY_MAT, ORE_MAT } from "./materials.js";
 import { DUNGEONS, DUNGEONS_ALL, ISLAND_OPEN } from "./dungeons.js";
 import { FARM_OPEN } from "./crops.js";
 import { MINE_ADD } from "./mine.js";
+import { saws, sawOff, sawMore } from "./sawmill.js";   // 製材所（2026-11-11）
 
 export const FAC_MAX = 100;
 export const BAND_AT = [1, 20, 50, 80];
@@ -30,6 +31,7 @@ const ALL = [
   { id: "armory", kind: "keep", name: "武器庫", text: "装備を 持てる 数が ふえる（はじめは 200 こ）" },
   { id: "workshop", kind: "tool", name: "工房", text: "道具と 武器の アタッチメントを 作る・精錬・加工" },
   { id: "mine", kind: "mine", name: "坑道", text: "パーティに いない なかまが 鉱石と ガラクタを 掘る" },
+  { id: "sawmill", kind: "tool", name: "製材所", text: "畑で 育てた 木の 原木を 板に する" },   // 2026-11-11 鹿さん「施設に製材所と畑で植林できるようにしてからこれらを実装したいです。」（sawmill.js）
   { id: "radio", kind: "radio", name: "無線機", isle: 2, max: 1, text: "島の 電波を ひろって、ほかの 島へ 船を 出す" },   // 段 ＝ 行ける 島。Lv2 で ミカネル島（鹿さんの 決め、2026-11-03。島 3 が 出るまでは 1 段）
 ];
 export const FACILITIES_ALL = ALL;
@@ -77,6 +79,7 @@ export function facFx(id, lv) {
     case "storage": return `1 しゅるい ${storageCap(lv)} こ まで`;
     case "armory": return `装備 ${equipCapOf(lv).toLocaleString("ja-JP")} こ まで`;
     case "mine": return lv ? `${mineSlotsOf(lv)} 体・1 時間に ${mineRateOf(lv).toFixed(1)} こ` : "まだ ない";
+    case "sawmill": return lv ? `のこぎり台 ${saws(lv)} 台・時間 −${p(sawOff(lv))}・板 ＋1 枚 ${p(sawMore(lv))}` : "まだ ない";
     case "radio": return lv >= 2 ? "ビサイ諸島と ミカネル島へ 行ける・ほかの 施設を Lv41 から 上げられる" : lv ? "ビサイ諸島へ 行ける・ほかの 施設を Lv41 から 上げられる" : "まだ ない";
   }
   return "";
@@ -109,9 +112,9 @@ const foes = (ids) => ids.flatMap((d) => { const x = DUNGEONS_ALL.find((y) => y.
 const I2 = DUNGEONS_ALL.filter((d) => d.isle === 2 && !d.hidden).sort((a, b) => a.lv - b.lv).map((d) => d.id);
 const TIERS = [
   { to: 20, gather: gath(["hals", "morph"]), extra: foes(["hals", "morph"]), n: (L) => 1 + Math.floor(L / 10) },
-  { to: 40, gather: gath(["kurai", "crystal"]), extra: [...foes(["kurai", "crystal"]), "copper_bar", "iron_bar"], n: (L) => 1 + Math.floor((L - 20) / 6) },
-  { to: 60, gather: gath(I2.slice(0, 4)), extra: [...(FARM_OPEN ? ["iron_bamboo", "night_bamboo", "bamboo_lumber", "nightbamboo_lumber"] : []), "iron_bar", "silver_bar"], n: (L) => 2 + Math.floor((L - 40) / 5) },
-  { to: 100, gather: gath(I2.slice(4)), extra: [...(FARM_OPEN ? ["black_bamboo", "blackbamboo_lumber"] : []), "silver_bar", "gold_bar"], n: (L) => 2 + Math.floor((L - 60) / 10) },
+  { to: 40, gather: gath(["kurai", "crystal"]), extra: [...foes(["kurai", "crystal"]), "copper_bar", "iron_bar", ...(FARM_OPEN ? ["kashi_board"] : [])], n: (L) => 1 + Math.floor((L - 20) / 6) },   // 板は 製材所（2026-11-11。カード「板は 足場と 施設の 建設」）
+  { to: 60, gather: gath(I2.slice(0, 4)), extra: [...(FARM_OPEN ? ["iron_bamboo", "night_bamboo", "bamboo_lumber", "nightbamboo_lumber", "chaagi_board"] : []), "iron_bar", "silver_bar"], n: (L) => 2 + Math.floor((L - 40) / 5) },
+  { to: 100, gather: gath(I2.slice(4)), extra: [...(FARM_OPEN ? ["black_bamboo", "blackbamboo_lumber", "chaagi_board"] : []), "silver_bar", "gold_bar"], n: (L) => 2 + Math.floor((L - 60) / 10) },
 ];
 export const tierOf = (L) => TIERS.findIndex((t) => L <= t.to);
 // 延べ棒の もとの 鉱石が 坑道で 出る Lv（坑道を 上げる ときは、その Lv より 下で 出る 鉱石の 延べ棒だけ ── まだ 掘れない 鉱石の 延べ棒で 行き止まりに しない）

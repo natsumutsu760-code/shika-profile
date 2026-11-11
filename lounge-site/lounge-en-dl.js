@@ -16,7 +16,7 @@ export const WORDS = {
   "会社の 窓口": "Company desks", "預金・鉱石": "Savings · Ores", "好感度・預金": "Standing · Savings", "顔の ない 会社の カウンター": "Counters of faceless companies", "預金": "Savings", "鉱石": "Ores", "利子": "Interest",
   "セレナ信託（ハルモニア）：預金だけ。毎晩 #:# に 利子が たまる": "Serena Trust (Harmonia): savings only. Interest builds every night at 22:00",
   "預けて いる": "Deposited", "たまった 利子": "Interest", "額": "Amount", "預ける": "Deposit", "引き出す": "Withdraw", "# から 利子が つく（# 日 #.#%）": "Interest starts at 100 (0.2% a day)",
-  "毎晩 ＋#（# 日 #.#%）": "+#1 every night (#3.#4% a day)", "ドルン鉱業（SVA）：ダンジョンで 出ない 鉱石を 売る。# 日 各 # こまで": "Dorn Mining (SVA): sells ores you cannot find in dungeons. Up to #2 each a day",
+  "毎晩 ＋#（# 日 #.#%）": "+#1 every night (#3.#4% a day)", "ドルン鉱業（SVA）：ダンジョンで 出ない 鉱石と 燃料を 売る。# 日 各 # こまで": "Dorn Mining (SVA): sells ores and fuel you cannot find in dungeons. Up to #2 each a day",
   "派遣の 準備で 買う": "Buy when preparing a trip", "情報屋の 割引": "Info broker discount", "情報屋の 品 −#%": "Info broker items −#%", "ボーダーゾーンの 遭遇率 下げ": "Fewer Border Zone encounters", "遭遇戦 −#%": "Encounters −#%",
   "侵入の 気配": "Intruder sense", "侵入の 阻止": "Block intruders", "出発の ときに、侵入が 起きるか（と その Lv）が わかる": "Shows at departure whether an intruder will come (and its Lv)", "この 派遣の 侵入 #%": "Intruder chance #% on this trip",
   "招待が 届いた": "Invitation received", "無線機 Lv2 で 招待": "Invite at Radio Lv2",

@@ -5,7 +5,9 @@ const n1 = (n, one, many) => (n === "1" ? `1 ${one}` : `${n} ${many}`);
 
 export const WORDS = {
   // 石炭を くべる（工房の 炉。2026-11-11）
-  "石炭を くべる": "Add coal", "# こで # 分 早く・持って いる # こ": "#1 coal = #2 min sooner · you have #3", "# こ（ぜんぶ できる）": "# (finishes all)", "石炭は 坑道か ドルン鉱業（DEEP LINK/: の 窓口）で": "Get coal from the mine or Dorn Mining (DEEP LINK/: desks)",
+  "石炭を くべる": "Add coal", "# こで # 分 早く・持って いる # こ": "#1 = #2 min sooner · you have #3", "# こで # 時間 早く・持って いる # こ": "#1 = #2 h sooner · you have #3", "# こ（ぜんぶ できる）": "# (finishes all)", "石炭は 坑道か ドルン鉱業（DEEP LINK/: の 窓口）で": "Get coal from the mine or Dorn Mining (DEEP LINK/: desks)",
+  // 燃料（2026-11-11：薪・石炭・石油）
+  "燃料を くべる": "Add fuel", "燃料は 坑道・工房の 加工・ドルン鉱業（DEEP LINK/: の 窓口）で": "Get fuel from the mine, Workshop processing, or Dorn Mining (DEEP LINK/: desks)", "原油は くべられない（工房の 加工で 石油に する）": "Crude oil can't be burned (refine it into petroleum in the Workshop)", "くべる 物を えらんで": "Choose what to add",
   "品質なし": "Unrated", "×#・# こ #": "×#1 · #3 each",   // スタッシュの 売る 小窓（2026-11-07）
   // 素材の 手に入る 所（mat-pop.js。2026-11-05）
   "手に入る 所": "Where to get it", "持って いる #": "You have #", "行く ›": "Go ›", "とじる": "Close", "まだ 手に入る 所の 記録が ない": "No known source yet", "ほか # か所": "# more places",
@@ -96,6 +98,14 @@ export const WORDS = {
   // 工房の 精錬（workshop.html。鹿さんの 決め、2026-10-31）
   "精錬": "Smelting", "受けとれる #": "Ready #", "空いて いる": "Empty", "炉 #": "Furnace #", "炉": "Furnaces", "延べ棒": "Ingots", "入れる 延べ棒を えらぶ": "Choose an ingot to smelt",
   "受けとる": "Collect", "受けとる（# 本）": "Collect (#)", "入れる 数": "Amount", "本 できた": "done", "ぜんぶ できた": "All done", "炉が 空いて いない": "No free furnace",
+  // 製材所（sawmill.html。2026-11-11）
+  "製材所を つかう": "Use the Sawmill", "木は 農園で 育てる": "Grow trees on the Farm", "のこぎり台": "Saw benches", "板": "Boards", "のこぎり台 #": "Saw bench #", "受けとれる # 本": "Ready #",
+  "原木 # 本": "# logs", "原木が ない": "No logs", "製材所が まだ ない": "No Sawmill yet", "隠れ家で 製材所を 作る": "Build a Sawmill in the Hideout", "作る 板を えらぶ": "Choose a board to cut",
+  "本 切った": "cut", "ぜんぶ 切った": "All cut", "受けとる（板 # 枚〜）": "Collect (# boards+)", "もう 1 回 押すと やめる（まだの 原木は もどる）": "Tap again to stop (uncut logs are returned)",
+  "製材": "Sawing", "のこぎり台が 空いて いない": "No free saw bench", "できた 板を 受けとると 台が 空く": "Collect finished boards to free a bench", "燃料": "Fuel",
+  "のこぎり台 # 台": "# saw benches", "時間 −#%": "Time −#%", "板 ＋# 枚 #%": "+#1 board #2%",
+  "製材所が まだ ない（隠れ家で 作る）": "No Sawmill yet (build it in the Hideout)", "のこぎり台を えらんで": "Choose a saw bench", "その 台は 使って いる": "That bench is in use",
+  "作る 板を えらんで": "Choose a board", "その 台は 空いて いる": "That bench is empty",
   "鉱石は 坑道で 掘る ›": "Dig ore in the Mine ›", "できた 延べ棒を 受けとると 炉が 空く": "Collect finished ingots to free a furnace",
   "入れて います…": "Loading…", "入れられませんでした": "Couldn't load it", "受けとって います…": "Collecting…", "受けとれませんでした": "Couldn't collect",
   "やめて います…": "Stopping…", "やめられませんでした": "Couldn't stop", "もう 1 回 押すと やめる（まだの 分の 鉱石は もどる）": "Tap again to stop (unsmelted ore is returned)",
@@ -128,6 +138,7 @@ export const WORDS = {
 };
 
 export const RULES = [
+  [/^(.+)を (\d+) こ くべた（(\d+) (分|時間)(?: (\d+) 分)? 早く）$/, (m, p) => `Added ${m[2]} ${P(p, m[1])} (${m[3]}${m[4] === "分" ? " min" : " h"}${m[5] ? ` ${m[5]} min` : ""} sooner)`],   // 燃料（2026-11-11）
   // 素材の 手に入る 所（mat-pop.js）：名前は 「・」で 分けて 1 つずつ 訳す
   [/^(.+) が 落とす（結晶）$/, (m, p) => `Dropped by ${m[1].split("・").map((x) => P(p, x)).join(", ")} (crystal)`],
   [/^(.+) が 落とす$/, (m, p) => `Dropped by ${m[1].split("・").map((x) => P(p, x)).join(", ")}`],
@@ -208,7 +219,7 @@ export const RULES = [
   [/^([\d,]+) こ たまった・いっぱい まで あと (.+)$/, (m, p) => `${m[1]} stored · full in ${P(p, m[2])}`], [/^(.+)に 掘らせる$/, (m, p) => `Send ${P(p, m[1])} to dig`],
   [/^(.+)を 置いた$/, (m, p) => p(m[1]) && `Placed the ${p(m[1])}`], [/^(.+)が もどった(.*)$/, (m, p) => `${P(p, m[1])} came back${m[2] ? " " + P(p, m[2]) : ""}`],
   [/^(.+)が 掘りはじめた$/, (m, p) => `${P(p, m[1])} started digging`], [/^(.+)を (\d+) マスに 植えた$/, (m, p) => p(m[1]) && `Planted ${p(m[1])} in ${m[2]} plots`],
-  [/^(.+) (\d+) → 1 こ$/, (m, p) => p(m[1]) && `${p(m[1])} ×${m[2]} → 1`],   // 工房の 加工
+  [/^(.+) (\d+) → (\d+) こ$/, (m, p) => p(m[1]) && `${p(m[1])} ×${m[2]} → ${m[3]}`],   // 工房の 加工（原木 1 → 薪 3 も）
   [/^(パン|薬草あめ|ジャム|串焼き|苔ようかん|コーヒー|麦茶|草餅|笹だんご|ハーブクッキー|チョコ|星の パン|ラテ|よもぎ団子|タルト|クッキー|ココナッツ|天ぷら|黒糖|ジュース|ニライ麦茶|ビターチョコ|キャンディ|ゼリー|パイ|シャーベット|プリン)が 足りない：あと (\d+)$/, (m, p) => `Not enough ${P(p, m[1])}: ${m[2]} more`],   // 栄養の おやつ
   // 研究の 葉（2026-10-31）
   [/^アメジスト ([\d,]+) ＋ (.+) (\d+) で サブツリーに つけられる（この子は のこる）$/, (m, p) => p(m[2]) && `Costs ${m[1]} Amethyst + ${m[3]} ${p(m[2])} to add as a subtree (this companion stays)`],
@@ -220,6 +231,13 @@ export const RULES = [
   [/^つぎの 1 本 あと (.+)・ぜんぶ (.+)$/, (m, p) => p(m[1]) && `Next in ${p(m[1])} · all by ${m[2]}`],
   [/^炉 (\d) に 入れる（(\d+) 本・(.+)）$/, (m, p) => p(m[3]) && `Load Furnace ${m[1]} (${m[2]} · ${p(m[3])})`],
   [/^炉 (\d) に 入れた（ぜんぶ (.+)）$/, (m) => `Loaded Furnace ${m[1]} (all by ${m[2]})`],
+  // 製材所（2026-11-11）
+  [/^原木 1 本 → 板 (\d+) 枚(?:（(\d+)% で ＋1 枚）)?・1 本 (.+)$/, (m, p) => p(m[3]) && `1 log → ${m[1]} boards${m[2] ? ` (${m[2]}% chance of +1)` : ""} · ${p(m[3])} each`],
+  [/^台 (\d) に 入れる（(\d+) 本・(.+)）$/, (m, p) => p(m[3]) && `Load Bench ${m[1]} (${m[2]} · ${p(m[3])})`],
+  [/^台 (\d) に 入れた（ぜんぶ (.+)）$/, (m) => `Loaded Bench ${m[1]} (all by ${m[2]})`],
+  [/^(.+)を (\d+) 枚 受けとった(?:（(\d+) 枚 多く できた）)?(?:（倉庫が いっぱいで (\d+) 枚は あずかり箱へ）)?$/, (m, p) => p(m[1]) && `Collected ${p(m[1])} ×${m[2]}${m[3] ? ` (${m[3]} extra)` : ""}${m[4] ? ` (storage full: ${m[4]} went to the holding box)` : ""}`],
+  [/^やめた（(?:板 (\d+) 枚 受けとり、)?原木 (\d+) 本を もどした）$/, (m) => `Stopped (${m[1] ? `collected ${m[1]} boards, ` : ""}returned ${m[2]} logs)`],
+  [/^(.+)は 農園で 育てる ›$/, (m, p) => p(m[1]) && `Grow ${p(m[1])} on the Farm ›`],
   [/^(.+)を (\d+) 本 受けとった(?:（倉庫が いっぱいで (\d+) 本は あずかり箱へ）)?$/, (m, p) => p(m[1]) && `Collected ${p(m[1])} ×${m[2]}${m[3] ? ` (storage full: ${m[3]} went to the holding box)` : ""}`],
   [/^やめた（(?:(\d+) 本 受けとり、)?(\d+) 本ぶんの 鉱石を もどした）$/, (m) => `Stopped (${m[1] ? `collected ${m[1]}, ` : ""}returned ore for ${m[2]})`],
   [/^自動で リサイクル(.+)$/, (m, p) => `Auto-recycle ${P(p, m[1].trim())}`],

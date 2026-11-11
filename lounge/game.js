@@ -22,9 +22,10 @@ export { SPHERE_LOOK, SPHERE_MAX, opLive, DRAW, rollDraw } from "./sphere.js";  
 export { TRADERS, SPECIAL, repLv, insPrice, INS_PLAN, INTEL, INTEL_IDS, intelPrice, shipPrice, fastPrice, FAST, SHIP, REQ_FEE, RES_VALUE, NOTE_PRESETS, NOTE_MAX, NOTE_HIDE_AT, noteBlock } from "./deeplink.js";
 export { PRIMARY, PRI_REP, lvOf, lvCap, shopLv, shopCh, curTask, curChapter, chapterOpen, chaptersOf, isDone, unlockedBy, KEY_BY, CH_LV, SYS_ON, sysOff } from "./primary.js";
 export { chainTask, dailyTask, TASK_TIDS } from "./tasks.js";
-export { WS_ITEMS, wsOpen, wsLvOk, attBand, attStarW, WS_MAX, ATT_BASES, ATT_KINDS, ATT_MAX, attBase, rollAtt, withAtt, attName, SMELT, SMELT_MAX, SMELT_COAL, furnaces, smeltOf, smeltDone, WS_PROC, PROC_MAX, procOpen, procOf } from "./workshop.js";   // 工房（道具・アタッチメント）
+export { WS_ITEMS, wsOpen, wsLvOk, attBand, attStarW, WS_MAX, ATT_BASES, ATT_KINDS, ATT_MAX, attBase, rollAtt, withAtt, attName, SMELT, SMELT_MAX, SMELT_COAL, SMELT_FUEL, FUEL_MAX, fuelOf, furnaces, smeltOf, smeltDone, WS_PROC, PROC_MAX, procOpen, procOf } from "./workshop.js";   // 工房（道具・アタッチメント）
 export { PRIZE_ALWAYS, prizeOf, FURN_PRICE, furnLineup, prizeSlot, slotUntil } from "./prizes.js";   // パチンコの 景品（シーズンラインナップ）
-export { mineSlots, mineHours, mineRate, mineDig, MINE_BOOST, boostH, mineCount, mineExact } from "./mine.js";   // 坑道（前の 隠れ家の 畑は 2026-11-03 に 消した）
+export { SAW, SAW_MAX, sawOf, saws, sawOff, sawMore, sawMs, sawDone } from "./sawmill.js";   // 製材所（2026-11-11）
+export { mineSlots, mineHours, mineRate, mineDig, MINE_BOOST, boostH, mineCount, mineExact, DRN_SHOP } from "./mine.js";   // 坑道（前の 隠れ家の 畑は 2026-11-03 に 消した）
 export { RANKS, FAMILIES, SPECIES, speciesOf, famOf, candidates, skillOptions, makeChild, canFuse, TWIN_RATE, inbred, researchLeaf } from "./fusion.js";
 export { BITEMS, isBItem, bagOf } from "./battle-items.js";   // 戦いで 使う アイテム
 export { detailOpen, DETAIL, NUT_SNACKS, nutSnack, NUT_CROP_N, NUT_CRAFT_MAX, NUT, nutOf, nutTotal, nutCap, nutSettle, nutAway, isSweet, eatWait, mysteryRoll } from "./nutrition.js";   // 詳細ステータス・栄養   // モンスターの 配合

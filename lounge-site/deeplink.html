@@ -391,7 +391,7 @@ function deskHtml() {
   if (tab === "gaff") return head + gaffHtml();
   if (tab === "clr") return head + clrHtml(K);
   if (tab === "ldn") return head + ldnHtml(K);
-  if (tab === "drn") return head + `<p class="say">ドルン鉱業（SVA）：ダンジョンで 出ない 鉱石を 売る。1 日 各 ${50} こまで</p>
+  if (tab === "drn") return head + `<p class="say">ドルン鉱業（SVA）：ダンジョンで 出ない 鉱石と 燃料を 売る。1 日 各 ${50} こまで</p>
     <ul class="rows">${K.drn.map((x) => `<li><div class="t">${esc(x.name)}<span class="sub">${x.left ? `きょう のこり ${x.left}` : "あした もどる"}</span></div>
       <div class="act"><span class="price">${cur("credits", x.price)}</span><button class="btn" data-drn="${x.id}" data-n="1" ${x.left && credits() >= x.price ? "" : "disabled"}>1 こ</button><button class="btn" data-drn="${x.id}" data-n="10" ${x.left >= 10 && credits() >= x.price * 10 ? "" : "disabled"}>10 こ</button></div></li>`).join("")}</ul>`;
   const B = K.bank;

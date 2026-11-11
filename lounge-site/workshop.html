@@ -67,6 +67,8 @@
   .detail header .ic svg { width:46px; height:46px; }
   .detail h2 { font:900 21px/1.25 var(--jp); } .detail header p { font:700 12.5px/1.5 var(--jp); color:var(--soft); }
   .tag { display:inline-block; margin-right:6px; padding:3px 9px; border-radius:99px; font:900 12px/1.2 var(--jp); background:#FFE9DE; color:#A8461A; }
+  .coal .fuel { display:grid; grid-template-columns:28px minmax(0, 1fr); gap:4px 10px; align-items:center; margin-top:8px; }   /* 燃料を くべる（薪・石炭・石油） */
+  .coal .fuel img { width:28px; height:28px; image-rendering:pixelated; } .coal .fuel b { font:900 13px/1.3 var(--jp); } .coal .fuel small { display:block; font:700 12px/1.4 var(--jp); color:var(--soft); } .coal .fuel .picks { grid-column:2; }
   .fxs { margin-left:8px; padding:2px 8px; border-radius:99px; font:800 11.5px/1.2 var(--jp); background:#E6F6EC; color:#1F7A47; }   /* 家具の 効果（暖炉 など） */
   .facts { display:grid; gap:7px; }
   .facts div { display:grid; grid-template-columns:76px minmax(0, 1fr); gap:8px; align-items:baseline; font:700 13px/1.5 var(--jp); }
@@ -112,7 +114,7 @@ import "./lounge-en.js";   // 英語の 画面（MONO LINK の サイトの EN�
 import { mountCraftNav } from "./craft-nav.js";
 import "./mat-pop.js";   // 素材を 押すと 手に入る 所（2026-11-05） mountCraftNav("workshop");   // クラフトの 施設を 1 回で 切りかえる 札（鹿さんの 頼み 2026-11-05）
 import { craftPop } from "./craft-pop.js";   // えらんだ 物を 作る ポップアップ（2026-11-05）
-import { WS_ITEMS, wsOpen, wsLvOk, WS_MAX, ATT_BASES, ATT_KINDS, attStarW, attOpN, SMELT, SMELT_MAX, SMELT_COAL, furnaces, smeltOf, smeltDone, WS_PROC, PROC_MAX, procOpen, procOf } from "./workshop.js";
+import { WS_ITEMS, wsOpen, wsLvOk, WS_MAX, ATT_BASES, ATT_KINDS, attStarW, attOpN, SMELT, SMELT_MAX, SMELT_COAL, SMELT_FUEL, FUEL_MAX, fuelOf, furnaces, smeltOf, smeltDone, WS_PROC, PROC_MAX, procOpen, procOf } from "./workshop.js";
 import { facLv, upkeep, BAND_AT } from "./facilities.js";   // 施設の 作り直し（2026-11-03）：工房 Lv1〜100・つまみ・作る たびの 維持費（道具と アタッチメント）。r.lv は 段（Lv1・20・50・80）
 import { OPS } from "./equip.js";
 import { TOOLS } from "./dungeons.js";
@@ -141,7 +143,7 @@ function load(m) {
 load(await me());
 const have = (id, qMin = 0) => S.mats.filter((m) => m.id === id && (m.q || 0) >= qMin).reduce((a, m) => a + m.n, 0);
 // k：i:道具・p:加工（作物 → 布・建材。大工事の 畑が つながってから）・a:アタッチメント・s:延べ棒（精錬の レシピ）・f:炉の 番号
-const procR = (key) => { const r = procOf(key); return r && { ...r, name: MAT_NAME[r.id] + (r.key !== r.id ? `（${MAT_NAME[r.mats[0][0]]}）` : ""), note: `${r.mats.map(([id, c]) => `${MAT_NAME[id]} ${c}`).join("・")} → 1 こ`, lv: 1, credits: 0 }; };
+const procR = (key) => { const r = procOf(key); return r && { ...r, name: MAT_NAME[r.id] + (r.key !== r.id ? `（${MAT_NAME[r.mats[0][0]]}）` : ""), note: `${r.mats.map(([id, c]) => `${MAT_NAME[id]} ${c}`).join("・")} → ${r.out || 1} こ`, lv: 1, credits: 0 }; };
 const R = (k) => (k.startsWith("i:") ? WS_ITEMS.find((x) => x.id === k.slice(2)) : k.startsWith("p:") ? procR(k.slice(2)) : k.startsWith("a:") ? ATT_BASES.find((x) => x.id === k.slice(2))
   : k.startsWith("s:") ? (smeltOf(k.slice(2)) && { ...smeltOf(k.slice(2)), name: MAT_NAME[k.slice(2)] }) : /^f:\d$/.test(k) && +k.slice(2) < furnaces(S.built) ? { id: "furnace", i: +k.slice(2) } : null);
 const keysOf = (tab) => (tab === "item" ? WS_ITEMS.filter(wsOpen).map((x) => "i:" + x.id) : tab === "proc" ? WS_PROC.map((x) => "p:" + x.key) : tab === "att" ? ATT_BASES.map((x) => "a:" + x.id)
@@ -172,7 +174,8 @@ function groupsOf() {
     const groupOf = (k) => { const t = R(k).to.tools; return t ? TOOLS[Object.keys(t)[0]].kind || "派遣の 道具" : R(k).group || "品"; }, ks = keysOf("item");
     return [...new Set(ks.map(groupOf))].map((g) => [g, ks.filter((k) => groupOf(k) === g)]);
   }
-  if (S.tab === "proc") { const ks = keysOf("proc"), cloth = new Set(["cotton_cloth", "flax_cloth", "sky_cloth", "whitesand_cloth", "sylph_sail", "pearl_silk"]); return [["布", ks.filter((k) => cloth.has(R(k).id))], ["建材", ks.filter((k) => !cloth.has(R(k).id))]]; }
+  if (S.tab === "proc") { const ks = keysOf("proc"), cloth = new Set(["cotton_cloth", "flax_cloth", "sky_cloth", "whitesand_cloth", "sylph_sail", "pearl_silk"]), fuel = new Set(["firewood", "petroleum"]);   // 燃料（薪・石油。2026-11-11）は 見出しを 分ける
+    return [["布", ks.filter((k) => cloth.has(R(k).id))], ["建材", ks.filter((k) => !cloth.has(R(k).id) && !fuel.has(R(k).id))], ["燃料", ks.filter((k) => fuel.has(R(k).id))]].filter(([, x]) => x.length); }
   if (S.tab === "smelt") { const ks = keysOf("smelt"), fs = ks.filter((k) => k.startsWith("f:")); return [...(fs.length ? [["炉", fs]] : []), ["延べ棒", ks.filter((k) => k.startsWith("s:"))]]; }
   return Object.entries(ATT_KINDS).map(([kind, K]) => [K.label, ATT_BASES.filter((b) => b.kind === kind).map((b) => "a:" + b.id)]);
 }
@@ -197,13 +200,15 @@ function madeHtml() {
   return `<div class="made"><span class="ic">${wsIcon(a.base)}</span><div><h3><small>できた！</small>${esc(b.name)} ${stars(a.star)}</h3><ul>${a.ops.map((o) => `<li>${esc(OPS[o].fmt(OPS[o].v[a.star - 1]))}</li>`).join("")}</ul><a href="equip.html">武器に 付ける ›</a></div></div>`;
 }
 // 精錬：延べ棒を えらぶと 使う物と「炉に 入れる」、炉を えらぶと できた 数と「受けとる」
-// 石炭を くべる（2026-11-11 鹿さん「石炭で精錬が早く終わる仕組みも作り実装してください」）：1 こで 15 分 早く。いる 分だけ 使う
-const coalHave = () => S.mats.filter((m) => m.id === SMELT_COAL.id).reduce((a, m) => a + m.n, 0);
+// 燃料を くべる（2026-11-11 鹿さん「石炭の時間短縮を1時間に変更。薪、石油、原油を実装してください。」）：持って いる 燃料だけ 1 行ずつ（薪 30 分・石炭 1 時間・石油 3 時間）
+const haveOf = (id) => S.mats.filter((m) => m.id === id).reduce((a, m) => a + m.n, 0);
 function coalHtml(i, d, now) {
-  const need = Math.ceil(Math.max(0, d.end - now) / (SMELT_COAL.min * 60000)), have = coalHave(), all = Math.min(need, have, SMELT_COAL.max);
-  return `<div class="coal"><span class="need-h">石炭を くべる<small>1 こで ${SMELT_COAL.min} 分 早く・持って いる ${have} こ</small></span>
-    <div class="picks"><button data-coal="${i}" data-n="1" ${have ? "" : "disabled"}>1 こ</button>${all > 1 ? `<button data-coal="${i}" data-n="${all}">${all} こ${all >= need ? "（ぜんぶ できる）" : ""}</button>` : ""}</div>
-    ${have ? "" : `<p class="why">石炭は 坑道か ドルン鉱業（DEEP LINK/: の 窓口）で</p>`}</div>`;
+  const left = Math.max(0, d.end - now), rows = SMELT_FUEL.map((f) => ({ ...f, have: haveOf(f.id), need: Math.ceil(left / (f.min * 60000)) })), any = rows.some((r) => r.have);
+  const list = any ? rows.filter((r) => r.have) : rows.filter((r) => r.id === SMELT_COAL.id);
+  return `<div class="coal"><span class="need-h">燃料を くべる</span>${list.map((r) => { const all = Math.min(r.need, r.have, FUEL_MAX);
+    return `<div class="fuel"><img src="${matPic(r.id)}" alt=""><span><b>${esc(MAT_NAME[r.id])}</b><small>1 こで ${dur(r.min * 60000)} 早く・持って いる ${r.have} こ</small></span>
+      <div class="picks"><button data-coal="${i}" data-fuel="${r.id}" data-n="1" ${r.have ? "" : "disabled"}>1 こ</button>${all > 1 ? `<button data-coal="${i}" data-fuel="${r.id}" data-n="${all}">${all} こ${all >= r.need ? "（ぜんぶ できる）" : ""}</button>` : ""}</div></div>`; }).join("")}
+    ${any ? "" : `<p class="why">燃料は 坑道・工房の 加工・ドルン鉱業（DEEP LINK/: の 窓口）で</p>`}</div>`;
 }
 function smeltDetail(k) {
   if (!S.built) return `<div class="lockbox"><p>工房が まだ ない</p><a href="hideout.html?f=workshop">隠れ家で 工房を 作る</a></div>`;
@@ -257,7 +262,7 @@ async function make(b, k) {
   const res = await busy(b, () => (k.startsWith("p:") ? act("ws.proc", { key: r.key, n }) : isItem ? act("ws.make", { id: r.id, n }) : act("ws.att", { base: r.id })), "作って います…");
   if (!res.ok) return toast(res.why || "できませんでした");
   load(await me());
-  if (isItem) { S.made = null; toast(`${r.name}を ${n} こ 作った`); } else S.made = res.att;
+  if (isItem) { S.made = null; toast(`${r.name}を ${res.n || n} こ 作った`); } else S.made = res.att;   // 加工は 1 回で 何こか できる 物も ある（原木 → 薪 3）
   render();
 }
 const pop = craftPop(document.getElementById("pop"), { label: "作る" });
@@ -272,9 +277,9 @@ document.querySelector("main").addEventListener("click", async (e) => {
     load(await me()); S.sel = "f:" + slot; S.n = 1; render(); return toast(`炉 ${slot + 1} に 入れた（ぜんぶ ${clock(res.end)}）`);
   }
   if (b.dataset.coal) {
-    const res = await busy(b, () => act("smelt.coal", { slot: +b.dataset.coal, n: +b.dataset.n }), "くべて います…");
+    const fu = fuelOf(b.dataset.fuel) || SMELT_COAL, res = await busy(b, () => act("smelt.coal", { slot: +b.dataset.coal, n: +b.dataset.n, id: fu.id }), "くべて います…");
     if (!res.ok) return toast(res.why || "くべられませんでした");
-    load(await me()); render(); return toast(`石炭を ${res.used} こ くべた（${res.used * SMELT_COAL.min} 分 早く）`);
+    load(await me()); render(); return toast(`${MAT_NAME[fu.id]}を ${res.used} こ くべた（${dur(res.used * fu.min * 60000)} 早く）`);
   }
   if (b.dataset.take) {
     const res = await busy(b, () => act("smelt.take", { slot: +b.dataset.take }), "受けとって います…");

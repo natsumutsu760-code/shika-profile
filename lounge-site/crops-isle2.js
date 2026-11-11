@@ -5,6 +5,7 @@ export default {
   mats: [
     { id: "salt_hay", name: "潮干し草", en: "Salt Hay", value: 18, look: { form: "hay", c: ["#D9CFA0", "#7FC8A9"] } },
     { id: "worldtree_leaf", name: "世界樹の葉", en: "World Tree Leaf", value: 1200, look: { form: "leaf", c: ["#7FE0D0", "#FFE38A"] } },
+    { id: "chaagi_log", name: "チャーギの原木", en: "Chaagi Log", value: 50, look: { form: "log", c: ["#D9A273", "#7A4A32"] } },   // 植林（2026-11-11）
   ],
   crops: [
     // ---- 種から 育てる ----
@@ -13,6 +14,8 @@ export default {
     { id: "aasa", name: "アーサ", en: "Aasa Seaweed", kind: "seed", lv: 34, at: ["inoh"], h: 4, get: [3, 4], use: "おやつ", look: { form: "seaweed", c: ["#5BC46A", "#2E8B57"] } },
     { id: "seagrass", name: "潮風の草", en: "Sea Breeze Grass", kind: "seed", lv: 36, at: ["inoh"], h: 4, get: [3, 5], after: { into: "salt_hay" }, use: "装備開発。潮干し草は 建設・クラフト", look: { form: "grass", c: ["#7FC8A9", "#E9F5F0"] } },
 
+    // 植林：チャーギ（沖縄の 言葉で イヌマキ。古い 家の 柱の 木）。育ったら 切って 原木
+    { id: "chaagi", name: "チャーギ", en: "Chaagi", kind: "seed", lv: 38, at: ["gama", "tida"], h: 16, get: [3, 5], mat: "chaagi_log", value: 50, use: "原木は 製材所で 板", look: { form: "tree", c: ["#2F6B4F", "#C8443C"] } },
     // ---- かけ合わせで 生まれる ----
     { id: "uuji", name: "ウージ", en: "Uuji Sugarcane", kind: "cross", from: ["seagrass", "ironbamboo_shoot"], h: 6, use: "おやつ（黒糖）", look: { form: "cane", c: ["#8DBF4E", "#C9A15A"] } },
     { id: "inoh_grape", name: "イノーぶどう", en: "Inoh Grapes", kind: "cross", from: ["aasa", "aasa"], h: 5, use: "おやつ", look: { form: "vine", c: ["#46B37A", "#B9F0C8"] } },

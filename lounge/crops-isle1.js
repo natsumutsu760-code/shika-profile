@@ -15,6 +15,7 @@ export default {
     { id: "black_bamboo", name: "黒竹", en: "Black Bamboo", value: 55, look: { form: "stalk", c: ["#2A2A33", "#7FA7C9"] } },
     { id: "moonspore", name: "月夜の胞子", en: "Moonlit Spores", value: 50, look: { form: "spore", c: ["#F1E9A8", "#5B5BA8"] } },
     { id: "dreamtree_leaf", name: "夢幻樹の葉", en: "Dreamtree Leaf", value: 700, look: { form: "leaf", c: ["#D7B8FF", "#7FE0D0"] } },
+    { id: "kashi_log", name: "カシの原木", en: "Oak Log", value: 22, look: { form: "log", c: ["#E2C08A", "#6E5A48"] } },   // 植林（2026-11-11。値は Claude の 案）
   ],
   crops: [
     // ---- 種から 育てる ----
@@ -28,6 +29,8 @@ export default {
     { id: "wakebean", name: "目覚め豆", en: "Wake Bean", kind: "seed", lv: 12, at: ["kurai"], h: 6, get: [2, 3], use: "家具（コーヒーメーカー）・おやつ", look: { form: "bean", c: ["#7A4A2B", "#C8303A"] } },
     { id: "nightbloom", name: "夜咲き草", en: "Night Bloom", kind: "seed", lv: 15, at: ["kurai"], h: 6, get: [2, 3], use: "装備開発・家具（夜の 明かり）", look: { form: "flower", c: ["#6C5BD4", "#F2E58A"] } },
 
+    // 植林（2026-11-11 鹿さん「施設に製材所と畑で植林できるようにしてからこれらを実装したいです。」→ カード「植えて 切る」「島ごとに 1 つ」）：育ったら 切って 原木（mat）。原木は 製材所で 板
+    { id: "kashi", name: "カシ", en: "Oak", kind: "seed", lv: 6, at: ["morph"], h: 12, get: [3, 5], mat: "kashi_log", value: 22, use: "原木は 製材所で 板・工房で 薪", look: { form: "tree", c: ["#3F7A3A", "#A8C850"] } },
     // ---- かけ合わせで 生まれる ----
     { id: "inn_wheat", name: "宿場麦", en: "Waystation Barley", kind: "cross", from: ["kaido_wheat", "kaido_wheat"], h: 3, after: { into: "straw" }, use: "おやつ（麦茶）", look: { form: "grain", c: ["#D7A84A", "#8E6A2C"] } },
     { id: "healherb", name: "癒し草", en: "Healing Herb", kind: "cross", from: ["herb", "herb"], h: 3, use: "おやつ（草餅）・薬", look: { form: "leafy", c: ["#8EDB7A", "#3E9A52"] } },

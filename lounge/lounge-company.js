@@ -7,7 +7,7 @@ import { bump } from "./lounge-trade.js";
 import { putMats } from "./lounge-game.js";
 import { sale } from "./lounge-stock.js";
 import { jstDay } from "./lounge-rules.js";
-import { MAT_NAME } from "./game.js";
+import { MAT_NAME, DRN_SHOP } from "./game.js";   // DRN_SHOP：売る 物と 値段（lounge-proto/mine.js。手に入る 所の 窓も 読む）
 import { coMult, priced } from "./lounge-faction.js";   // グループの 好感度で 割引・割増
 import { roomFxAll, fxOf } from "./lounge-furn.js";   // 家具の 効果（金庫：利子 ＋1%）
 import { FURN } from "./lounge-rules.js";
@@ -55,8 +55,8 @@ export function bankInt(rec, b, now = Date.now()) {
 }
 
 // ---------- 採掘の 店（ドルン鉱業・DRN・SVA）----------
-// 値段（1 こ。相場より 割高。坑道で 掘った 石を 売ると この 3 割）。石材は まだ ない 素材なので 小石と レンガ（坑道と 同じ あつかい）
-export const DRN_SHOP = [["pebble", 10], ["brick", 10], ["coal", 15], ["copperore", 20], ["ironore", 30], ["silverore", 80], ["goldore", 200]];
+// 値段（1 こ。相場より 割高。坑道で 掘った 石を 売ると この 3 割）。石材は まだ ない 素材なので 小石と レンガ（坑道と 同じ あつかい）。表は lounge-proto/mine.js の DRN_SHOP（燃料も。2026-11-11）
+export { DRN_SHOP };
 export const DRN_DAY = 50;
 const drnOf = (rec, now) => { const D = (rec.drn ||= { day: -1, got: {}, n: 0 }), day = jstDay(now); if (D.day !== day) { D.day = day; D.got = {}; } return D; };
 export function drnBuy(rec, b, now = Date.now()) {

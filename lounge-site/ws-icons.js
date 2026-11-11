@@ -49,4 +49,5 @@ Object.assign(ICONS, {
   pot_mp: W(bottle("#7AA8FF", "#2E56B8")), pot_mp2: W(bottle("#7AA8FF", "#2E56B8") + STAR),
   pot_atk: W(bottle("#FFB04A", "#B86A12")), pot_def: W(bottle("#9AA8BE", "#4A5468")), pot_agi: W(bottle("#7FE0D0", "#1E8A7A")),
 });
+ICONS.scaffold_board = ICONS.scaffold;   // 板の 足場（2026-11-11）は 足場と 同じ 物
 export const wsIcon = (id) => ICONS[id] || W(`<circle cx="16" cy="16" r="10" fill="#DCE3F0"/>`);

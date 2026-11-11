@@ -1,0 +1,175 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lounge Sawmill</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Zen+Maru+Gothic:wght@500;700;900&display=swap">
+<style>
+  /* MONO LINK のラウンジ：製材所（2026-11-11 鹿さん「施設に製材所と畑で植林できるようにしてからこれらを実装したいです。」）
+     畑で 育てた 木の 原木を のこぎり台に 入れると、1 本ずつ 時間で 板が 2 枚 できる。工房の 精錬の 欄と 同じ 形（カード「工房の 炉と 同じ 形」）
+     左で のこぎり台・板を えらぶ → 小窓で 入れる／受けとる・やめる。データは sawmill.js、門番は lounge-sawmill.js */
+  :root {
+    --space:#F6F8FC; --ink:#1B2340; --soft:#6A7394; --line:#DCE3F0;
+    --sky:#2EA8FF; --coral:#FF5A64; --leaf:#22CC88; --sw:#A0703A;
+    --jp:"Zen Maru Gothic", "Hiragino Maru Gothic ProN", sans-serif; --num:"Fredoka", "Zen Maru Gothic", sans-serif;
+    --lift:0 18px 40px -18px rgba(27,35,64,.35), 0 2px 0 rgba(27,35,64,.06);
+  }
+  * { box-sizing:border-box; }
+  body { margin:0; min-height:100vh; background:radial-gradient(120% 80% at 50% 0%, #FFFFFF 0%, var(--space) 55%, #EAF0FA 100%); color:var(--ink); font:500 16px/1.65 var(--jp); word-break:auto-phrase; text-wrap:pretty; }
+  button { font:inherit; color:inherit; cursor:pointer; }
+  button:disabled { cursor:not-allowed; }
+  :focus-visible { outline:3px solid var(--sky); outline-offset:3px; border-radius:12px; }
+  h1, h2, h3, p, ul { margin:0; padding:0; } ul { list-style:none; }
+  .top { display:flex; align-items:center; gap:10px; padding:12px clamp(16px, 4vw, 40px); }
+  .top b { font:700 22px/1 var(--num); letter-spacing:.06em; } .top b i { font-style:normal; color:var(--sky); }
+  .top small { font:700 13px/1 var(--jp); color:var(--soft); margin-left:6px; } .top small a { color:inherit; }
+  main { max-width:1060px; margin:0 auto; padding:0 clamp(16px, 4vw, 40px) 48px; display:grid; grid-template-columns:minmax(0, 1fr); gap:14px; align-items:start; }
+  .panel { background:rgba(255,255,255,.92); border-radius:26px; box-shadow:var(--lift); padding:clamp(14px, 2.4vw, 20px); }
+  .head { display:flex; flex-wrap:wrap; gap:8px 16px; align-items:center; padding:12px 20px; }
+  .head h1 { font:900 20px/1.2 var(--jp); display:flex; align-items:center; gap:10px; margin-right:auto; }
+  .head h1 small { font:600 13px/1 var(--num); color:#7A4E1E; background:#F6EBDD; padding:4px 9px; border-radius:99px; }
+  .head a { font:900 13px/1 var(--jp); color:#1E6FB0; text-decoration:none; padding:9px 14px; border-radius:999px; background:#E9F6FF; }
+  .jelly { border:0; border-radius:999px; padding:14px 18px; font:900 16px/1 var(--jp); background:var(--sw); color:#fff; box-shadow:0 5px 0 rgba(160,112,58,.3); width:100%; }
+  .jelly:disabled { background:#C9D1E2; box-shadow:0 5px 0 #E3E8F2; }
+  .grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(180px, 1fr)); gap:8px; }
+  .node { display:grid; grid-template-columns:40px minmax(0, 1fr); gap:9px; align-items:center; min-height:58px; padding:8px 10px 8px 8px; text-align:left; border-radius:16px; border:2px solid #CCD4E4; background:#fff; }
+  .node .ic { width:40px; height:40px; border-radius:12px; display:grid; place-items:center; background:var(--space); }
+  .node .ic svg { width:32px; height:32px; } .node .ic img { width:30px; height:30px; image-rendering:pixelated; }
+  .node b { display:block; font:800 13.5px/1.3 var(--jp); }
+  .node small { display:block; font:700 12px/1.25 var(--jp); color:var(--soft); }
+  .node.can { border-color:var(--ink); } .node.can small { color:#0E8F5A; }
+  .node.empty { border-style:dashed; } .node.busy small { color:var(--soft); }
+  .node[aria-pressed="true"] { box-shadow:0 0 0 3px var(--sky); }
+  .sec { margin:12px 2px 8px; font:900 12px/1.2 var(--jp); color:var(--soft); } .sec:first-of-type { margin-top:0; }
+  .prog { height:10px; border-radius:99px; background:#EDF1F8; overflow:hidden; } .prog i { display:block; height:100%; border-radius:99px; background:var(--sw); }
+  .now { display:grid; gap:6px; font:700 13px/1.5 var(--jp); } .now b { font:600 18px/1 var(--num); }
+  .picks { display:flex; flex-wrap:wrap; gap:6px; } .picks button { display:inline-flex; align-items:center; gap:6px; padding:6px 12px 6px 6px; border-radius:999px; border:1.5px solid var(--line); background:#fff; font:800 13px/1 var(--jp); } .picks img { width:24px; height:24px; image-rendering:pixelated; }
+  .sub-act { border:0; background:none; padding:4px; font:800 12.5px/1.4 var(--jp); color:var(--soft); text-decoration:underline; text-underline-offset:3px; justify-self:center; }
+  .sub-act.arm { color:var(--coral); }
+  .more { justify-self:center; font:900 13px/1 var(--jp); color:#1E6FB0; text-decoration:none; }
+  .detail { display:grid; gap:12px; scroll-margin:12px; }
+  .detail header { display:grid; grid-template-columns:58px minmax(0, 1fr); gap:12px; align-items:center; }
+  .detail header .ic { width:58px; height:58px; border-radius:16px; display:grid; place-items:center; background:var(--space); }
+  .detail header .ic svg { width:46px; height:46px; } .detail header .ic img { width:42px; height:42px; image-rendering:pixelated; }
+  .detail h2 { font:900 21px/1.25 var(--jp); } .detail header p { font:700 12.5px/1.5 var(--jp); color:var(--soft); }
+  .tag { display:inline-block; margin-right:6px; padding:3px 9px; border-radius:99px; font:900 12px/1.2 var(--jp); background:#F6EBDD; color:#7A4E1E; }
+  .need-h { display:block; font:900 12px/1.3 var(--jp); color:var(--soft); margin-bottom:2px; }
+  .need li { display:grid; grid-template-columns:28px minmax(0, 1fr) auto; gap:8px; align-items:center; padding:5px 0; font:700 14px/1.35 var(--jp); }
+  .need img { width:24px; height:24px; object-fit:contain; image-rendering:pixelated; }
+  .need .n { font:600 15px/1 var(--num); white-space:nowrap; color:#0E8F5A; } .need .ng .n { color:var(--coral); }
+  .qty { display:flex; flex-wrap:wrap; gap:6px; align-items:center; }
+  .qty span { font:900 12px/1 var(--jp); color:var(--soft); margin-right:4px; }
+  .qty button { min-width:44px; padding:8px 12px; border-radius:999px; border:1.5px solid var(--line); background:#fff; font:700 13px/1 var(--num); }
+  .qty button[aria-pressed="true"] { background:var(--ink); color:#fff; border-color:var(--ink); }
+  .why { font:700 13px/1.5 var(--jp); color:var(--coral); text-align:center; }
+  .lockbox { font:700 14px/1.6 var(--jp); } .lockbox a { display:inline-block; margin-top:8px; font:900 14px/1 var(--jp); color:#1E6FB0; }
+  @media (max-width:520px) { .grid { grid-template-columns:minmax(0, 1fr) minmax(0, 1fr); } .node { grid-template-columns:34px minmax(0, 1fr); padding:7px; } .node .ic { width:34px; height:34px; } .node .ic svg { width:28px; height:28px; } }
+  .toast { position:fixed; left:50%; bottom:24px; transform:translateX(-50%) translateY(16px); max-width:calc(100vw - 32px); padding:10px 18px; border-radius:20px; background:var(--ink); color:#fff; font:700 14px/1.4 var(--jp); opacity:0; transition:opacity .2s, transform .2s; pointer-events:none; text-align:center; z-index:5; }
+  .toast.on { opacity:1; transform:translateX(-50%); }
+  @media (prefers-reduced-motion:reduce) { .toast { transition:none; } }
+</style>
+</head>
+<body>
+<header class="top"><a href="/" style="color:inherit;text-decoration:none" aria-label="MONO LINK の サイトへ"><b>MONO LINK<i>://</i></b></a><small><a href="lounge-room.html">ラウンジ</a> ／ <a href="hideout.html?f=sawmill">地下の 隠れ家</a> ／ 製材所</small></header>
+<main>
+  <section class="panel head" aria-label="製材所"><h1>製材所 <small id="lv"></small></h1><a href="garden.html">木は 農園で 育てる</a></section>
+  <section class="panel" aria-label="のこぎり台と 板"><div id="list"></div></section>
+  <dialog id="pop"><div class="cpop-in"><button class="cpop-x" type="button" aria-label="閉じる">×</button><section class="detail" id="detail" aria-live="polite"></section></div></dialog>
+</main>
+<p class="toast" id="toast" role="status"></p>
+<script type="module">
+import "./lounge-en.js";   // 英語の 画面（英語の ときだけ 辞書を 読む）
+import { mountCraftNav } from "./craft-nav.js";
+import "./mat-pop.js";   // 素材を 押すと 手に入る 所
+import { craftPop } from "./craft-pop.js";
+import { SAW, SAW_MAX, sawOf, saws, sawMs, sawMore, sawDone } from "./sawmill.js";
+import { MAT_NAME } from "./materials.js";
+import { matPic } from "./mat-icons.js";
+import { me, act, busy } from "./lounge-client.js";   // 製材所の Lv・原木・入れる／受けとるは 門番から（板の くじも 門番が 引く）
+import { mountWallet } from "./wallet-bar.js"; mountWallet();
+mountCraftNav("sawmill");   // クラフトの 施設を 1 回で 切りかえる 札
+
+const fmt = (n) => Number(n).toLocaleString("ja-JP");
+const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
+const S = { lv: 0, mats: [], saw: [], sel: null, n: 1, stopArm: -1 };
+let ME = null;
+function load(m) { ME = m; S.lv = (m.hideout || {}).sawmill || 0; S.mats = (m.own && m.own.mats) || []; S.saw = m.saw || []; }
+load(await me());
+const have = (id) => S.mats.filter((m) => m.id === id).reduce((a, m) => a + m.n, 0);
+// k：t:のこぎり台の 番号・b:板（レシピ）
+const R = (k) => (k.startsWith("b:") ? sawOf(k.slice(2)) : /^t:\d$/.test(k) && +k.slice(2) < saws(S.lv) ? { i: +k.slice(2) } : null);
+const keys = () => [...Array.from({ length: saws(S.lv) }, (_, i) => "t:" + i), ...SAW.map((r) => "b:" + r.id)];
+const tableOf = (k) => { const f = S.saw[+k.slice(2)]; return f ? { f, d: sawDone(f, Date.now()) } : null; };
+const canN = (k) => Math.max(0, Math.min(SAW_MAX, have(R(k).log)));
+const stateOf = (k) => (k.startsWith("t:") ? (!tableOf(k) ? "empty" : tableOf(k).d.done ? "can" : "busy") : canN(k) > 0 ? "can" : "short");
+const dur = (ms) => { const m = Math.max(1, Math.ceil(ms / 60000)); return m < 60 ? `${m} 分` : `${Math.floor(m / 60)} 時間${m % 60 ? ` ${m % 60} 分` : ""}`; };
+const clock = (t) => { const d = new Date(t), hm = `${d.getHours()}:${String(d.getMinutes()).padStart(2, "0")}`; return d.toDateString() === new Date().toDateString() ? hm : `${d.getMonth() + 1}/${d.getDate()} ${hm}`; };
+const SAW_SVG = `<svg viewBox="0 0 32 32" aria-hidden="true"><path d="M3 22h26v4H3z" fill="#8A5A32"/><path d="M6 26v4M26 26v4" stroke="#6E4524" stroke-width="2.4"/><circle cx="16" cy="15" r="8" fill="#C9CED8"/><circle cx="16" cy="15" r="2.2" fill="#6A7088"/><path d="M16 5.5l1.6 2.4h-3.2zM24.6 10l-.4 2.9-2.6-1.4zM24.6 20l-2.9.4.9-2.8zM16 24.5l-1.6-2.4h3.2zM7.4 20l.4-2.9 2.6 1.4zM7.4 10l2.9-.4-.9 2.8z" fill="#9AA2B4"/></svg>`;
+const picOf = (k) => (k.startsWith("b:") ? `<img src="${matPic(k.slice(2))}" alt="">` : tableOf(k) ? `<img src="${matPic(tableOf(k).f.id)}" alt="">` : SAW_SVG);
+const WORD = { can: (k) => (k.startsWith("t:") ? `受けとれる ${tableOf(k).d.done} 本` : `原木 ${canN(k)} 本`), short: () => "原木が ない", empty: () => "空いて いる", busy: (k) => `あと ${dur(tableOf(k).d.next - Date.now())}` };
+function node(k) {
+  const st = stateOf(k), name = k.startsWith("t:") ? `のこぎり台 ${+k.slice(2) + 1}` : MAT_NAME[k.slice(2)];
+  return `<button class="node ${st}" data-k="${k}" aria-pressed="${S.sel === k}"><span class="ic">${picOf(k)}</span><span><b>${esc(name)}</b><small>${esc(WORD[st](k))}</small></span></button>`;
+}
+function listHtml() {
+  if (!S.lv) return `<div class="lockbox"><p>製材所が まだ ない</p><a href="hideout.html?f=sawmill">隠れ家で 製材所を 作る</a></div>`;
+  const ks = keys(), ts = ks.filter((k) => k.startsWith("t:")), bs = ks.filter((k) => k.startsWith("b:"));
+  return `<p class="sec">のこぎり台</p><div class="grid">${ts.map(node).join("")}</div><p class="sec">板</p><div class="grid">${bs.map(node).join("")}</div>`;
+}
+function rowHtml(x) { return `<li class="${x.have < x.need ? "ng" : ""}" data-mat="${x.id}" data-have="${x.have}"><img src="${matPic(x.id)}" alt=""><span>${esc(MAT_NAME[x.id])}</span><span class="n">${fmt(x.have)} / ${fmt(x.need)}</span></li>`; }
+function detailHtml() {
+  const k = S.sel; if (!k || !R(k)) return "";
+  if (k.startsWith("t:")) {
+    const i = +k.slice(2), x = tableOf(k), head = `<header><span class="ic">${picOf(k)}</span><div><span class="tag">のこぎり台 ${i + 1}</span><h2>${x ? esc(MAT_NAME[x.f.id]) : "空いて いる"}</h2></div></header>`;
+    if (!x) return head + `<div><span class="need-h">作る 板を えらぶ</span><div class="picks">${SAW.map((r) => `<button data-k="b:${r.id}"><img src="${matPic(r.id)}" alt="">${esc(MAT_NAME[r.id])}</button>`).join("")}</div></div>`;
+    const { d } = x, now = Date.now(), all = d.done + d.left;
+    return head + `<div class="now"><span><b>${d.done} / ${all}</b> 本 切った</span><div class="prog"><i style="width:${Math.round((d.done / all) * 100)}%"></i></div>
+      <span>${d.left ? `つぎの 1 本 あと ${dur(d.next - now)}・ぜんぶ ${clock(d.end)}` : "ぜんぶ 切った"}</span></div>
+      <button class="jelly" data-take="${i}" ${d.done ? "" : "disabled"}>受けとる${d.done ? `（板 ${d.done * sawOf(x.f.id).out} 枚〜）` : ""}</button>
+      ${d.left ? `<button class="sub-act${S.stopArm === i ? " arm" : ""}" data-stop="${i}">${S.stopArm === i ? "もう 1 回 押すと やめる（まだの 原木は もどる）" : "やめる"}</button>` : ""}`;
+  }
+  const r = R(k), n = Math.max(1, Math.min(S.n, SAW_MAX)), max = canN(k), one = sawMs(r, S.lv), more = Math.round(sawMore(S.lv) * 100);
+  const free = Array.from({ length: saws(S.lv) }, (_, i) => i).find((i) => !S.saw[i]);
+  const head = `<header><span class="ic">${picOf(k)}</span><div><span class="tag">製材</span><h2>${esc(MAT_NAME[r.id])}</h2><p>原木 1 本 → 板 ${r.out} 枚${more ? `（${more}% で ＋1 枚）` : ""}・1 本 ${dur(one)}</p></div></header>`;
+  const row = { id: r.log, need: n, have: have(r.log) }, lack = row.have < row.need;
+  const qty = `<div class="qty" role="group" aria-label="入れる 数"><span>入れる 数</span>${[1, 5, 10].map((v) => `<button data-n="${v}" aria-pressed="${n === v}">${v}</button>`).join("")}<button data-n="max" aria-pressed="${max > 1 && n === max && ![1, 5, 10].includes(n)}" ${max > 1 ? "" : "disabled"}>${max > 1 ? `ぜんぶ ${max}` : "ぜんぶ"}</button></div>`;
+  return head + qty + `<div><span class="need-h">使う物</span><ul class="need">${rowHtml(row)}</ul></div>
+    <button class="jelly" data-put="${r.id}" ${lack || free === undefined ? "disabled" : ""}>${free === undefined ? "のこぎり台が 空いて いない" : `台 ${free + 1} に 入れる（${n} 本・${dur(n * one)}）`}</button>
+    ${lack ? `<p class="why">足りない：${esc(MAT_NAME[r.log])} あと ${fmt(row.need - row.have)}</p><a class="more" href="garden.html">${esc(MAT_NAME[r.log].replace("の原木", ""))}は 農園で 育てる ›</a>` : free === undefined ? `<p class="why">できた 板を 受けとると 台が 空く</p>` : ""}`;
+}
+function render() {
+  document.getElementById("lv").textContent = S.lv ? `Lv${S.lv}` : "まだ ない";
+  document.getElementById("list").innerHTML = listHtml(); document.getElementById("detail").innerHTML = detailHtml();
+}
+let tid;
+const toast = (t) => { const el = document.getElementById("toast"); el.textContent = t; el.classList.add("on"); clearTimeout(tid); tid = setTimeout(() => el.classList.remove("on"), 4200); };
+const pop = craftPop(document.getElementById("pop"), { label: "製材" });
+document.querySelector("main").addEventListener("click", async (e) => {
+  const b = e.target.closest("button"); if (!b || b.disabled) return;
+  if (b.dataset.put) {   // 空いて いる いちばん 前の 台に 入れる
+    const slot = Array.from({ length: saws(S.lv) }, (_, i) => i).find((i) => !S.saw[i]), n = Math.max(1, Math.min(S.n, SAW_MAX));
+    const res = await busy(b, () => act("saw.put", { slot, id: b.dataset.put, n }), "入れて います…");
+    if (!res.ok) return toast(res.why || "入れられませんでした");
+    load(await me()); S.sel = "t:" + slot; S.n = 1; render(); return toast(`台 ${slot + 1} に 入れた（ぜんぶ ${clock(res.end)}）`);
+  }
+  if (b.dataset.take) {
+    const res = await busy(b, () => act("saw.take", { slot: +b.dataset.take }), "受けとって います…");
+    if (!res.ok) return toast(res.why || "受けとれませんでした");
+    load(await me()); render(); return toast(`${MAT_NAME[res.id]}を ${res.got} 枚 受けとった${res.more ? `（${res.more} 枚 多く できた）` : ""}${res.boxed ? `（倉庫が いっぱいで ${res.boxed} 枚は あずかり箱へ）` : ""}`);
+  }
+  if (b.dataset.stop) {   // やめるは 2 回 押す
+    const i = +b.dataset.stop; if (S.stopArm !== i) { S.stopArm = i; return render(); }
+    const res = await busy(b, () => act("saw.stop", { slot: i }), "やめて います…"); S.stopArm = -1;
+    if (!res.ok) return toast(res.why || "やめられませんでした");
+    load(await me()); render(); return toast(`やめた（${res.got ? `板 ${res.got} 枚 受けとり、` : ""}原木 ${res.back} 本を もどした）`);
+  }
+  if (b.dataset.k) { if (S.sel !== b.dataset.k) { S.n = 1; S.stopArm = -1; } S.sel = b.dataset.k; render(); document.querySelector(`[data-k="${S.sel}"]`)?.focus({ preventScroll: true }); pop.open(); return; }
+  if (b.dataset.n) { S.n = b.dataset.n === "max" ? canN(S.sel) : +b.dataset.n; return render(); }
+});
+if (ME.denied || ME.ok === false) document.querySelector("main").innerHTML = `<section class="panel head"><h1>入れません</h1><span>${esc(ME.why || "もう 1 回 開いて ください")}</span>${ME.login ? `<a href="/">MONO LINK で ログイン</a>` : ""}</section>`;
+else { render(); setInterval(render, 30000); }   // のこりの 時間を 動かす
+window.ready = true;
+</script>
+</body>
+</html>

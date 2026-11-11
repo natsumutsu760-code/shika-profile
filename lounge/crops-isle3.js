@@ -5,6 +5,7 @@ export default {
   isle: 3,
   mats: [
     { id: "goldtree_leaf", name: "黄金樹の葉", en: "Golden Tree Leaf", value: 2000, look: { form: "leaf", c: ["#FFD86A", "#FFF6C8"] } },
+    { id: "acacia_log", name: "アカシアの原木", en: "Acacia Log", value: 100, look: { form: "log", c: ["#E8B860", "#5A3A28"] } },   // 植林（2026-11-11）
   ],
   crops: [
     // ---- 種から 育てる ----
@@ -14,6 +15,8 @@ export default {
     { id: "cactus", name: "サボテン", en: "Cactus", kind: "seed", lv: 56, at: ["akaiwa", "sakyu"], h: 6, get: [2, 3], use: "おやつ（サボテンの実）", look: { form: "cactus", c: ["#4E9A5A", "#F06A8A"] } },
     { id: "papyrus", name: "パピルス", en: "Papyrus", kind: "seed", lv: 58, at: ["seran"], h: 5, get: [3, 5], use: "家具・装備開発", look: { form: "grass", c: ["#9FBF5A", "#E6D79A"] } },
 
+    // 植林：アカシア（赤い 台地の 木）。育ったら 切って 原木
+    { id: "acacia", name: "アカシア", en: "Acacia", kind: "seed", lv: 60, at: ["akaiwa", "noru"], h: 20, get: [3, 5], mat: "acacia_log", value: 100, use: "原木は 製材所で 板", look: { form: "tree", c: ["#7FA040", "#FFD23F"] } },
     // ---- かけ合わせで 生まれる・土地や 自然の 名前 ----
     { id: "mika_lotus", name: "ミカ蓮", en: "Mika Lotus", kind: "cross", land: "ミカの湖", from: ["lotus", "lotus"], h: 8, use: "とくべつおやつ", look: { form: "flower", c: ["#FFD6E8", "#FFF4B0"] } },
     { id: "dune_cotton", name: "砂丘綿", en: "Dune Cotton", kind: "cross", land: "大砂丘", from: ["whitesand_cotton", "desert_sage"], h: 8, use: "布（島 3 の 防具の 開発）", look: { form: "cotton", c: ["#F4E4C0", "#D9B779"] } },

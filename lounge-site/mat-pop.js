@@ -1,12 +1,13 @@
 // 素材の 手に入る 所の ポップアップ（2026-11-05 鹿さん「要求素材をタップしたら入手先がわかるよう表示するポップアップを実装してください」）
 // 使い方：素材の 行に data-mat="素材の id"（あれば data-have="持って いる 数"）を 付けて、この ファイルを import する だけ。押すと 開く（Enter でも）
-// 手に入る 所は データから 作る：冒険の 採取・かくし通路・敵が 落とす・敵の 結晶・坑道・工房の 精錬と 加工・農園・クローラー・ボーダーゾーン
+// 手に入る 所は データから 作る：冒険の 採取・かくし通路・敵が 落とす・敵の 結晶・坑道・工房の 精錬と 加工・製材所・農園・クローラー・ボーダーゾーン
 // <dialog> で 開く（作業台・工房の「作る」ポップアップ〈craft-pop.js〉の 上にも 重なる）。行き先へ 行く ボタン つき
 import { GATHER, ENEMY_MAT, CRYSTAL, SCRAP, BORDER, MAT_NAME } from "./materials.js";
 import { DUNGEONS_ALL } from "./dungeons.js";
 import { CROPS } from "./crops.js";
 import { WS_PROC, SMELT } from "./workshop.js";
-import { mineFind } from "./mine.js";
+import { mineFind, DRN_SHOP } from "./mine.js";
+import { SAW } from "./sawmill.js";   // 製材所（2026-11-11）
 import { matPic } from "./mat-icons.js";
 
 const ISLE = { 2: "ビサイ諸島", 3: "ミカネル島" };
@@ -27,9 +28,12 @@ for (const d of DUNGEONS_ALL) {
 }
 // 坑道（地下の 隠れ家）
 for (const id of Object.keys(mineFind(999))) add(id, { where: "坑道", how: "なかまに 掘らせる", href: "mine.html" });
+// ドルン鉱業（DEEP LINK/: の 会社の 窓口。鉱石・石材・燃料を クレジットで。2026-11-11）
+for (const [id] of DRN_SHOP) add(id, { where: "DEEP LINK/: の 窓口", how: "ドルン鉱業で 買う", href: "deeplink.html?go=desk" });
 // 工房：精錬（鉱石 → 延べ棒）・加工（作物 → 布・建材）
 for (const r of SMELT) add(r.id, { where: "工房の 精錬", how: recipe(r.mats), href: "workshop.html?t=smelt" });
 for (const r of WS_PROC) add(r.id, { where: "工房の 加工", how: recipe(r.mats), href: "workshop.html?t=proc" });
+for (const r of SAW) add(r.id, { where: "製材所", how: recipe([[r.log, 1]]), href: "sawmill.html" });   // 原木 1 本 → 板 2 枚
 // 農園：育てる（種は 冒険の 採取で 拾う・かけ合わせ）・実った まま 置いて おくと かわる
 for (const c of CROPS) {
   const how = c.kind === "cross" && c.from ? `${c.from.map(nm).join(" × ")} の かけ合わせ` : c.at?.length ? `種は ${c.at.map((x) => DNAME[x] || x).join("・")} の 採取で` : "育てる";

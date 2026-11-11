@@ -7,7 +7,7 @@ import { EFFECTS } from "./effects.js";
 import { ENEMY_TREES } from "./enemy-trees.js";
 import { TYPES, COMMON, TREES } from "./skills.js";
 import { DUNGEONS_ALL, PURPOSES, TOOLS, RUNS } from "./dungeons.js";
-import { GATHER, ENEMY_MAT, CRYSTAL, SCRAP, BORDER, ORE, BARS, CLOTH, LUMBER } from "./materials.js";
+import { GATHER, ENEMY_MAT, CRYSTAL, SCRAP, BORDER, ORE, BARS, CLOTH, LUMBER, FUEL } from "./materials.js";
 import { CROPS, CROP_MATS } from "./crops.js";   // 作物（大工事の 農業）の 英語は 作物の 表の en
 import { KINDS, SLOTS, FORMS, MATS, COLS, BASES, UPPER, OPS } from "./equip.js";
 import { NEW_OPS } from "./op-defs.js";
@@ -71,10 +71,11 @@ export const MAT_EN = {
   rampart_stone: "Rampart Stone", old_girder: "Old Girder", rampart_plaster: "Rampart Plaster", kevlar_fiber: "Kevlar Fiber", extinguisher: "Fire Suppressant", rubber_scrap: "Rubber Scrap",
   mixed_alloy: "Mixed Alloy", molten_marker: "Molten Border Marker", torn_flag: "Torn Flag Cloth", solder_resist: "Solder Resist", sync_board: "Sync Board", cpu_chip: "CPU Chip",
   // 鉱石と 延べ棒（坑道・工房の 精錬）
-  coal: "Coal", copperore: "Copper Ore", silverore: "Silver Ore", goldore: "Gold Ore",
+  coal: "Coal", copperore: "Copper Ore", silverore: "Silver Ore", goldore: "Gold Ore", firewood: "Firewood", crude_oil: "Crude Oil", petroleum: "Petroleum",
   copper_bar: "Copper Ingot", iron_bar: "Iron Ingot", silver_bar: "Silver Ingot", gold_bar: "Gold Ingot",
   // 布と 建材（工房の 加工）
   cotton_cloth: "Cotton Cloth", flax_cloth: "Flax Cloth", sky_cloth: "Sky Cloth", whitesand_cloth: "White-Sand Cloth", sylph_sail: "Sylph Sailcloth", pearl_silk: "Pearl Silk",
+  kashi_board: "Oak Board", chaagi_board: "Chaagi Board", acacia_board: "Acacia Board",   // 製材所の 板（2026-11-11）
   bamboo_lumber: "Bamboo Lumber", nightbamboo_lumber: "Night Bamboo Lumber", blackbamboo_lumber: "Black Bamboo Lumber", stormbamboo_lumber: "Storm Bamboo Lumber", straw_bundle: "Straw Bundle",
 };
 
@@ -443,6 +444,7 @@ export const FAC_EN = {   // 名前・説明（効果の 1 行は Lv で かわ�
   workshop: ["Workshop", "Make tools and weapon attachments · smelt · process"],
   mine: ["Mine", "Companions not in your party dig ore and junk"],
   radio: ["Radio", "Pick up island signals and send a boat to other islands"],
+  sawmill: ["Sawmill", "Turn logs from trees grown on the farm into boards"],   // 2026-11-11
 };
 export const SNACK_EN = { snack: "Taming Treat", snack3: "Special Treat" };
 export const PC_EN = ["PC", "Enter DEEP LINK/:. Just place it (no levels)"];
@@ -462,7 +464,7 @@ export const WS_EN = {
   charm_para: ["Paralysis Ward Charm", "Expedition tool: harder to be paralyzed"], charm_stun: ["Stun Ward Charm", "Expedition tool: harder to be stunned"],
   fert: ["Fertilizer", "Farm: spread when planting to cut grow time by 30% (1 per plot)"], fert2: ["Better Fertilizer", "Farm: grow time −30%, and quality goes up one sprinkler tier"],
   detox: ["Detox Tea", "Pets & companions: reset detailed stats (only before reaching the cap)"],
-  scaffold: ["Scaffold", "Facility: use it while building to advance construction by 2 hours"], pickaxe: ["Pickaxe", "Mine: for 12 hours, dig ×1.3"], lamp: ["Lamp", "Mine: for 12 hours, silver and gold ore are twice as likely"],
+  scaffold: ["Scaffold", "Facility: use it while building to advance construction by 2 hours"], scaffold_board: ["Board Scaffold", "Facility: use it while building to advance construction by 2 hours (same as Scaffold)"], pickaxe: ["Pickaxe", "Mine: for 12 hours, dig ×1.3"], lamp: ["Lamp", "Mine: for 12 hours, silver and gold ore are twice as likely"],
 };
 export const ATTK_EN = { tip: "Tip", grip: "Grip" };
 export const ATT_EN = { spike: "Spike Cap", lens: "Magnifier", bulb: "Tiny Bulb", rubber: "Rubber Cap", tape: "Grip Tape", strap: "Strap", weight: "Weight", bell: "Bell" };
@@ -546,7 +548,7 @@ export function nameWords() {
   ["結晶Ⅰ", "結晶Ⅱ", "結晶Ⅲ", "結晶核Ⅰ", "結晶核Ⅱ"].forEach((ja, i) => put(ja, ["Crystal I", "Crystal II", "Crystal III", "Crystal Core I", "Crystal Core II"][i]));
   for (const [id, ja] of Object.values(SCRAP).flat()) put(ja, MAT_EN[id]);
   for (const [id, ja] of Object.values(BORDER).flat()) put(ja, MAT_EN[id]);
-  for (const [id, ja] of [...ORE, ...BARS, ...CLOTH, ...LUMBER]) put(ja, MAT_EN[id]);
+  for (const [id, ja] of [...ORE, ...BARS, ...CLOTH, ...LUMBER, ...FUEL]) put(ja, MAT_EN[id]);
   for (const c of [...CROPS, ...CROP_MATS]) put(c.name, c.en);
   for (const x of NUT_SNACKS) put(x.name, x.en);   // 栄養の おやつ
   for (const x of Object.values(DETAIL)) put(x.label, x.en);   // 詳細ステータス

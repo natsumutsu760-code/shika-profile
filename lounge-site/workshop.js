@@ -24,6 +24,8 @@ export const WS_ITEMS = [
   { id: "pickaxe", name: "つるはし", note: "坑道：使うと 12 時間、掘る 数 ×1.3", lv: 1, to: { items: { pickaxe: 1 } }, mats: [["iron_bar", 2], ["oldnail", 6], ["brick", 4]], credits: 200 },
   // 足場（鹿さんの 決め、2026-10-31：施設の 建設に 待ち時間が 入ったら 作る。2026-11-05 に 入れた。数は Claude の 案：素材 10 こ・2 時間）
   { id: "scaffold", name: "足場", note: "施設：建てて いる 途中に 使うと 建設が 2 時間 進む", lv: 1, to: { items: { scaffold: 1 } }, mats: [["bamboo_lumber", 4], ["straw_bundle", 6]], credits: 50, farm: true },
+  // 板の 足場（2026-11-11。製材所の カード「板は 足場と 施設の 建設」）：同じ 足場を カシの板で。材料の ねうちは 竹の 足場と 同じ くらい（板 12 × 12 ＋ わら束 6 × 8 ＝ 192）
+  { id: "scaffold_board", name: "板の足場", note: "施設：建てて いる 途中に 使うと 建設が 2 時間 進む（足場と 同じ 物）", lv: 1, to: { items: { scaffold: 1 } }, mats: [["kashi_board", 12], ["straw_bundle", 6]], credits: 50, farm: true },
   { id: "lamp", name: "ランプ", note: "坑道：使うと 12 時間、銀鉱石と 金鉱石が 2 倍 出やすい", lv: 1, to: { items: { lamp: 1 } }, mats: [["copper_bar", 2], ["candle", 6], ["glowstone", 2]], credits: 300 },
   // 薬・エンチャント・お守り（鹿さんの 決め、2026-10-31。docs/mono-link-crafting.md）。島 1 で ぜんぶ 作れ、島 2（工房 Lv4）で 上の 版。farm：作物が いる（大工事の 畑が つながってから）
   { id: "tea_heal", name: "元気のお茶（癒し草）", note: "派遣の 道具：力つきても 1 回だけ 全回復", lv: 2, to: { tools: { tea: 1 } }, mats: [["healherb", 3]], credits: 1500, farm: true },
@@ -57,9 +59,14 @@ export const WS_PROC = [
   { id: "whitesand_cloth", mats: [["whitesand_cotton", 3]] }, { id: "sylph_sail", mats: [["sylph_linen", 3]] }, { id: "pearl_silk", mats: [["pearl_silkcotton", 3]] },
   { id: "bamboo_lumber", mats: [["iron_bamboo", 3]] }, { id: "nightbamboo_lumber", mats: [["night_bamboo", 3]] }, { id: "blackbamboo_lumber", mats: [["black_bamboo", 3]] },
   { id: "stormbamboo_lumber", mats: [["storm_bamboo", 3]] }, { id: "straw_bundle", mats: [["straw", 3]] }, { id: "straw_bundle", key: "straw_bundle_hay", mats: [["salt_hay", 1]] },
-].map((r) => ({ key: r.key || r.id, ...r }));
+  // 燃料（2026-11-11 カード「1と2」）：薪は 流木・船の木材・鉄竹 1 こから 1 こ・石油は 原油 2 こから 1 こ
+  { id: "firewood", key: "firewood_drift", mats: [["driftwood", 1]] }, { id: "firewood", key: "firewood_ship", mats: [["shipwood", 1]] }, { id: "firewood", key: "firewood_bamboo", mats: [["iron_bamboo", 1]] },
+  { id: "petroleum", mats: [["crude_oil", 2]] },
+  // 植林の 原木から 薪（2026-11-11。カード「工房のみ」「製材所は無し」＝ 薪は 工房だけ。原木を 足したのは Claude の 案）：カシの原木 1 → 薪 3（out：1 回で できる 数）
+  { id: "firewood", key: "firewood_kashi", mats: [["kashi_log", 1]], out: 3 },
+].map((r) => ({ key: r.key || r.id, out: 1, ...r }));
 export const PROC_MAX = 50;   // 1 回に 作れる 数
-export const procOpen = () => farmOpen();
+export const procOpen = (r) => farmOpen() || !!(r && (r.id === "firewood" || r.id === "petroleum"));   // 燃料の 加工は 畑に よらない
 export const procOf = (key) => WS_PROC.find((r) => r.key === key) || null;
 
 // ---------- 精錬（鹿さんの 決め、2026-10-31。docs/mono-link-crafting.md）：鉱石 → 延べ棒 ----------
@@ -73,7 +80,12 @@ export const SMELT = [
 ];
 export const SMELT_MAX = 50;   // 1 つの 炉に 1 回で 入れられる 本数
 // 石炭で 早める（2026-11-11 鹿さん「石炭で精錬が早く終わる仕組みも作り実装してください」。数は Claude）：動いて いる 炉に 石炭を くべると 1 こ 15 分 早く 終わる。いる 分だけ 使う
-export const SMELT_COAL = { id: "coal", min: 15, max: 99 };
+// 炉に くべる 燃料：1 こで その 分 早く 終わる（2026-11-11 鹿さん「石炭の時間短縮を1時間に変更。薪、石油、原油を実装してください。」→ カード「原油は燃やせない」）
+//   薪 30 分・石炭 60 分（前は 15 分）・石油 180 分。原油は くべられない（加工で 石油に する）。1 回に 99 こまで
+export const SMELT_FUEL = [{ id: "firewood", min: 30 }, { id: "coal", min: 60 }, { id: "petroleum", min: 180 }];
+export const FUEL_MAX = 99;
+export const fuelOf = (id) => SMELT_FUEL.find((f) => f.id === id) || null;
+export const SMELT_COAL = { id: "coal", min: 60, max: FUEL_MAX };   // 前の 名前（石炭だけ だった ころ）
 export const furnaces = (wsLv) => [1, 20, 50, 80].filter((x) => (wsLv || 0) >= x).length;   // 炉の 数は 段（工房 Lv1・20・50・80 で 1〜4。施設の 作り直し、2026-11-03）
 export const smeltOf = (id) => SMELT.find((x) => x.id === id) || null;
 // 炉の ようす。f：{ id, n, at }（at：いま 作って いる 1 本目を 入れた 時刻）。done：できた 本数・next：つぎの 1 本が できる 時刻・end：ぜんぶ できる 時刻

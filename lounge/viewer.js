@@ -21,7 +21,8 @@ import { swapPlan, cashDo } from "./lounge-money.js";   // 両替（玉・クレ
 import { coreTake, coreSet } from "./lounge-core.js";   // ブランクコア（OP を 抜く・付ける）
 import { devPlan, uniquePlan, sphereLook, sphereLookAll, sphereSet, drawOp } from "./lounge-equip.js";   // 装備開発・スフィア（2026-11-04）
 import { tameFuse, tameSp } from "./lounge-fuse.js";   // モンスターの 配合・なかまの スキルポイント
-import { wsMake, wsAtt, wsProc, attSet, attOff, attDrop, smeltPut, smeltTake, smeltStop, smeltCoal } from "./lounge-workshop.js";   // 工房（道具・アタッチメント・精錬）
+import { wsMake, wsAtt, wsProc, attSet, attOff, attDrop, smeltPut, smeltTake, smeltStop, smeltCoal } from "./lounge-workshop.js";
+import { sawPut, sawTake, sawStop } from "./lounge-sawmill.js";   // 製材所（2026-11-11）   // 工房（道具・アタッチメント・精錬）
 import { bankPut, bankTake, bankInt, drnBuy, ldnBuy, clrGive, deskView } from "./lounge-company.js";   // 会社の 窓口（預金・鉱石の 店。2026-11-11）
 import { linkSign, linkWin, fightBonus, linkView } from "./lounge-link.js";   // LINKERS の 格付けと 契約（2026-11-11）
 import { fxOf } from "./lounge-furn.js";   // 家具：格付けの 点（壁の大型モニター など）
@@ -407,6 +408,9 @@ export class Viewer {
     else if (body.a === "smelt.take") r = smeltTake(rec, body, now);
     else if (body.a === "smelt.stop") r = smeltStop(rec, body, now);
     else if (body.a === "smelt.coal") r = smeltCoal(rec, body, now);   // 石炭を くべて 早める（2026-11-11）
+    else if (body.a === "saw.put") r = sawPut(rec, body, now);         // 製材所：のこぎり台に 原木を 入れる・受けとる・やめる（2026-11-11）
+    else if (body.a === "saw.take") r = sawTake(rec, body, now, rand);
+    else if (body.a === "saw.stop") r = sawStop(rec, body, now, rand);
     else if (body.a === "bank.put") r = bankPut(rec, body, now);       // 会社の 窓口（2026-11-11）：預金（セレナ信託）・鉱石（ドルン鉱業）
     else if (body.a === "bank.take") r = bankTake(rec, body, now);
     else if (body.a === "bank.int") r = bankInt(rec, body, now);
@@ -476,7 +480,7 @@ export class Viewer {
     const now = Date.now(); dropOld(rec, now); facMigrate(rec); facDue(rec, now); insDue(rec, now);   // 時間が 来た 保険の 支払いも 届けて 見せる（なにか 操作するまで タスクが 0 の ままに 見えた。2026-11-07）
     return { id: rec.id, lock: locked(rec, this.env), lockKind: lockKind(), login: rec.login, name: rec.name, nameAt: rec.nameAt, names: rec.names, room: rec.room, own: ownView(rec.own), wallet: this.purse(rec, w), waiting: rec.ledger.unknown.length,
       pets: rec.pets.map((p) => ({ ...p, ...(p.type ? { sp: { all: spTotal(p.lv), left: spTotal(p.lv) - spUsed(p) }, freeLeft: freeIsAuto(p) ? 0 : freeTotal(p.lv) - Object.values(p.free || {}).reduce((a, v) => a + v, 0), build: fighterOf(p, rec), resetPrice: RESET_PRICE(p.lv) } : {}) })),
-      tamed: rec.tamed, party: rec.party, mine: mineView(rec, now), farmv: farmvView(rec, now), crawl: crawlView(rec), order: orderView(rec), ess: essView(rec), bz: { ...bzMe(rec, now), open: !bzLocked(rec, this.env) }, stock: { open: !stockLocked(rec, this.env), h: (rec.stock && rec.stock.h) || {} }, smelt: rec.smelt || [], loop: rec.loop || null, lab: rec.lab, labQ: rec.labQ || [], hideout: rec.hideout, knob: rec.knob || {}, fac: facView(rec, now), credits: rec.credits, snacks: rec.snacks, tools: rec.tools, explore: rec.explore, seen: rec.seen, met: rec.met,
+      tamed: rec.tamed, party: rec.party, mine: mineView(rec, now), farmv: farmvView(rec, now), crawl: crawlView(rec), order: orderView(rec), ess: essView(rec), bz: { ...bzMe(rec, now), open: !bzLocked(rec, this.env) }, stock: { open: !stockLocked(rec, this.env), h: (rec.stock && rec.stock.h) || {} }, smelt: rec.smelt || [], saw: rec.saw || [], loop: rec.loop || null, lab: rec.lab, labQ: rec.labQ || [], hideout: rec.hideout, knob: rec.knob || {}, fac: facView(rec, now), credits: rec.credits, snacks: rec.snacks, tools: rec.tools, explore: rec.explore, seen: rec.seen, met: rec.met,
       stash: { cap: stashCap(rec) }, equipCap: equipCap(rec), autoSell: rec.autoSell || null, trips: rec.trips.map((t) => tripView(t, now)), deeplink: deeplinkView(rec, jstDay(now)), desk: deskView(rec, now), req: { mine: rec.req.mine, sending: rec.req.out.length } };
   }
 

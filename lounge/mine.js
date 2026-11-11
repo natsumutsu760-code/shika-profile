@@ -11,8 +11,12 @@ const H = 3600 * 1000;
 // Lv20 の ろうそく・布・水晶のかけら・Lv50 の 光る石は 前の 坑道 Lv2・Lv3 の 物（Claude の 案で のこした）
 export const MINE_ADD = [
   [1, { pebble: 24, brick: 20, oldnail: 20, coal: 14 }], [10, { copperore: 12 }], [20, { candle: 8, oldcloth: 8, crystalbit: 6 }], [25, { ironore: 18 }],
+  [40, { crude_oil: 8 }],   // 原油（2026-11-11 鹿さん「…薪、石油、原油を実装してください。」→ カード「1と2」：坑道 Lv40 から）
   [45, { silverore: 6 }], [50, { glowstone: 12, silverore: 4 }], [60, { rainbowcrystal: 1 }], [70, { goldore: 5 }], [85, { capestone: 12, bluestone: 10, obsidian: 10, thunderstone: 8 }],
 ];
+// ドルン鉱業（DEEP LINK/: の 会社の 窓口）で 売る 物と 値段（1 こ）。門番は lounge-company.js の drnBuy・画面は 手に入る 所（mat-pop.js）も 読む
+//   燃料は 2026-11-11（カード「1と2」：薪・原油・石油も 店で 買える。石油は 原油 2 こ ＝ 40 より 少し 高い）
+export const DRN_SHOP = [["pebble", 10], ["brick", 10], ["firewood", 10], ["coal", 15], ["crude_oil", 20], ["petroleum", 50], ["copperore", 20], ["ironore", 30], ["silverore", 80], ["goldore", 200]];
 export function mineFind(lv) { const w = {}; for (const [at, add] of MINE_ADD) if ((lv || 0) >= at) for (const [k, v] of Object.entries(add)) w[k] = (w[k] || 0) + v; return w; }
 const BAND_AT = [1, 20, 50, 80];   // facilities.js の 段と 同じ
 export const mineSlots = (mineLv) => BAND_AT.filter((x) => (mineLv || 0) >= x).length;   // 掘る 子の 数（1〜4）

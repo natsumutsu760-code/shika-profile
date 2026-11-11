@@ -52,9 +52,11 @@ export const BORDER_MAT = new Set(Object.values(BORDER).flatMap((l) => l.map(([i
 export const ORE = [["coal", "石炭"], ["copperore", "銅鉱石"], ["silverore", "銀鉱石"], ["goldore", "金鉱石"]];
 export const BARS = [["copper_bar", "銅の延べ棒"], ["iron_bar", "鉄の延べ棒"], ["silver_bar", "銀の延べ棒"], ["gold_bar", "金の延べ棒"]];
 export const ORE_MAT = new Set([...ORE, ...BARS].map(([id]) => id));
+// 炉の 燃料（2026-11-11 鹿さん「石炭の時間短縮を1時間に変更。薪、石油、原油を実装してください。」）。原油は 燃やせない（石油の 材料）。workshop.js の SMELT_FUEL
+export const FUEL = [["firewood", "薪"], ["crude_oil", "原油"], ["petroleum", "石油"]];
 // 工房で 作物を 加工した 素材（鹿さんの 決め、2026-10-31。docs/mono-link-crafting.md）：綿・麻 → 布、竹・わら → 建材。workshop.js の WS_PROC
 export const CLOTH = [["cotton_cloth", "綿の布"], ["flax_cloth", "麻の布"], ["sky_cloth", "天の布"], ["whitesand_cloth", "白砂の布"], ["sylph_sail", "シルフ帆布"], ["pearl_silk", "真珠絹"]];
-export const LUMBER = [["bamboo_lumber", "竹の建材"], ["nightbamboo_lumber", "夜竹の建材"], ["blackbamboo_lumber", "黒竹の建材"], ["stormbamboo_lumber", "嵐竹の建材"], ["straw_bundle", "わら束"]];
+export const LUMBER = [["bamboo_lumber", "竹の建材"], ["nightbamboo_lumber", "夜竹の建材"], ["blackbamboo_lumber", "黒竹の建材"], ["stormbamboo_lumber", "嵐竹の建材"], ["straw_bundle", "わら束"], ["kashi_board", "カシの板"], ["chaagi_board", "チャーギの板"], ["acacia_board", "アカシアの板"]];   // 板は 製材所で 原木から（2026-11-11）
 // 敵の素材（キーは敵のツリーの id）
 const ENEMY_MAT1 = {
   e_hare: ["hare_horn", "ウサギの角"], e_thief: ["goblin_knife", "ゴブリンのナイフ"], e_watch: ["kobold_fur", "コボルトの毛"], e_bard: ["old_score", "古い楽譜"], e_boss_thief: ["crown_shard", "王冠のかけら"],
@@ -146,10 +148,12 @@ export const VALUE = {
   mixed_alloy: 30, molten_marker: 25, torn_flag: 18, solder_resist: 28, sync_board: 40, cpu_chip: 55,
   // 鉱石と 延べ棒（延べ棒は 鉱石 3 こ ＋ 石炭 の 値に 少し 上乗せ）
   coal: 3, copperore: 4, silverore: 12, goldore: 30,
+  firewood: 2, crude_oil: 6, petroleum: 15,   // 燃料（2026-11-11。薪 30 分・石炭 1 時間・石油 3 時間 ぶん。石油は 原油 2 こから）
   copper_bar: 17, iron_bar: 20, silver_bar: 46, gold_bar: 104,
   // 布と 建材（作物 3 この 相場に 少し 上乗せ）
   cotton_cloth: 32, flax_cloth: 115, sky_cloth: 145, whitesand_cloth: 145, sylph_sail: 170, pearl_silk: 250,
   bamboo_lumber: 40, nightbamboo_lumber: 130, blackbamboo_lumber: 170, stormbamboo_lumber: 145, straw_bundle: 8,
+  kashi_board: 12, chaagi_board: 27, acacia_board: 55,   // 製材所の 板（原木 1 → 2 枚。竹の建材と 同じ くらい 加工で ふえる。Claude の 案、2026-11-11）
   // ミカネル島（Claude の 案、2026-11-04：ビサイ諸島の 線を のばした。採取 9〜60・かくし通路の レア 70〜120・敵の 素材〈品質 1〉11〜33）
   // ミカの湖
   oasis_water: 9, date_fruit: 11, lake_reed: 16, lotus: 25, mika_pearl: 75,
@@ -213,7 +217,7 @@ export const gatherPick = (list, r) => { const w = list.map(([id]) => 1 / Math.s
 export const dropRate = (rk, id) => (rk === "通常" ? Math.min(0.4, Math.max(0.12, ENEMY_DROP.通常 * (10 / (VALUE[id] || 10)) ** 0.35)) : ENEMY_DROP[rk]);
 
 // 素材の名前（id から）
-export const MAT_NAME = Object.fromEntries([...Object.values(GATHER).flatMap((g) => [...g.mats, g.hidden]), ...Object.values(ENEMY_MAT), ...Object.values(CRYSTAL), ...Object.values(SCRAP).flat(), ...Object.values(BORDER).flat(), ...ORE, ...BARS, ...CLOTH, ...LUMBER]);
+export const MAT_NAME = Object.fromEntries([...Object.values(GATHER).flatMap((g) => [...g.mats, g.hidden]), ...Object.values(ENEMY_MAT), ...Object.values(CRYSTAL), ...Object.values(SCRAP).flat(), ...Object.values(BORDER).flat(), ...ORE, ...BARS, ...CLOTH, ...LUMBER, ...FUEL]);
 export const MAT_NAME_BASE = { ...MAT_NAME };   // 作物を 足す 前（tools/crop-check.mjs が「いまの 素材」と して 見る）
 // 作物（大工事の 農業）と 作物から できる 素材の 名前も（前から ある 素材は その まま。並びは うしろに 足す）
 for (const [id, name] of [...CROPS.map((c) => [c.id, c.name]), ...CROP_MATS.map((m) => [m.id, m.name])]) if (!(id in MAT_NAME)) MAT_NAME[id] = name;
