@@ -151,15 +151,15 @@ export function farmvSoil(rec, b, now, R) {
 // h：1・3・5・10 時間。max：画面が 見せた 値段（時間が たつと 値段が かわるので、それより 高く なって いたら 払わずに 断る）。CLR が 売る（土と 同じ）
 export function farmvGrow(rec, b, now, R) {
   if (!farmOpen()) return CLOSED;
-  const F = tick(rec, now, R), h = b && b.h;
+  const F = tick(rec, now, R), h = b && b.h, mode = b && b.mode === "turn" ? "turn" : "grow";   // turn：実った 麦・竹の子などを かわらせる（2026-11-11）
   if (!GROW_H.includes(h)) return { ok: false, why: "その 肥料は ない" };
-  const price = growPrice(F.field, now, h, sellPrice);
-  if (!price) return { ok: false, why: "育って いる 作物が ない" };
+  const price = growPrice(F.field, now, h, sellPrice, mode);
+  if (!price) return { ok: false, why: mode === "turn" ? "かわる 作物が 実って いない（麦・竹の子 など）" : "育って いる 作物が ない" };
   if (b.max != null && price > b.max) return { ok: false, why: `値段が かわった：いま ${price.toLocaleString()} クレジット`, price };
   if (price > (rec.credits || 0)) return { ok: false, why: `クレジットが 足りない：あと ${(price - (rec.credits || 0)).toLocaleString()}`, price };
-  const plan = growApply(F.field, now, h);
+  const plan = growApply(F.field, now, h, mode);
   rec.credits = (rec.credits || 0) - price; sale(rec, "CLR", price);   // クロロシス・バイオテック（株）
-  return { ok: true, paid: price, h, n: plan.length, ripe: plan.filter((p) => p.ripe).length };
+  return { ok: true, paid: price, h, mode, n: plan.length, ripe: plan.filter((p) => p.ripe).length };
 }
 
 export function farmvSkin(rec, b, now) {

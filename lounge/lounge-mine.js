@@ -1,7 +1,7 @@
 // 坑道（鹿さんの頼み、2026-10-25）。決まりの 中身は 見本の lounge-proto/mine.js
 // 受付：mine.set {uid, on}・mine.collect・mine.use {item}。記録：rec.mine = { on: [{ uid, at }], pickaxe?, lamp? }
 // 前は 隠れ家の 畑（farm.*）も ここに あったが、2026-11-03 に 消して 新しい 農園（lounge-farmv.js）に まとめた（鹿さんの 決め）
-import { mineSlots, mineHours, mineRate, mineDig, MINE_BOOST, boostH, mineCount, facLv, upkeep } from "./game.js";
+import { mineSlots, mineHours, mineRate, mineDig, MINE_BOOST, boostH, mineCount, mineExact, facLv, upkeep } from "./game.js";
 import { give, payUpkeep } from "./lounge-game.js";
 
 const H = 3600 * 1000;
@@ -16,7 +16,8 @@ function digOut(rec, w, R, now) {
   if (!c || !h) return [];
   const lv = facLv(rec, "mine"), a = w.at, b = w.at + h * H, rate = mineRate(lv), M = rec.mine;   // 1 時間に 2 ＋ 坑道の Lv / 25 こ（前は 掘る 子の Lv）
   w.at = now - w.at >= 12 * H ? now : w.at + h * H;   // いっぱいに なって いたら いまから、ちがえば 端数の 時間は のこす
-  const n = mineCount(h, rate, a, M.pickaxe), lampN = Math.round((n * boostH(M.lamp, a, b)) / h);
+  const x = mineExact(h, rate, a, M.pickaxe, w.fr), n = Math.floor(x + 1e-9), lampN = Math.round((n * boostH(M.lamp, a, b)) / h);
+  w.fr = Math.round((x - n) * 1000) / 1000; if (!w.fr) delete w.fr;   // 端数は 次へ 持ちこす（窓口 #11：つるはしの 分が 切りすてで 0 に ならない ように）
   return [...mineDig(R, lv, n - lampN), ...(lampN ? mineDig(R, lv, lampN, true) : [])];
 }
 // つるはし・ランプを 使う（坑道 ぜんたいに 12 時間。続けて 使うと のびる）。b：{ item }
@@ -80,5 +81,5 @@ export function mineView(rec, now = Date.now()) {
   ensureMine(rec);
   const mlv = rec.hideout.mine || 0, klv = facLv(rec, "mine");
   return { slots: mineSlots(mlv), lv: klv, rate: mineRate(klv), fee: upkeep("mine", klv), pickaxe: rec.mine.pickaxe || [], lamp: rec.mine.lamp || [], now,
-    on: rec.mine.on.map((w) => { const c = rec.tamed.find((x) => x.uid === w.uid); return { uid: w.uid, at: w.at, h: mineHours(w.at, now), rate: mineRate(klv), ...(c ? {} : { gone: 1 }) }; }) };
+    on: rec.mine.on.map((w) => { const c = rec.tamed.find((x) => x.uid === w.uid); return { uid: w.uid, at: w.at, h: mineHours(w.at, now), rate: mineRate(klv), ...(w.fr ? { fr: w.fr } : {}), ...(c ? {} : { gone: 1 }) }; }) };
 }

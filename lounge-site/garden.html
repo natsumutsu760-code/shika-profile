@@ -68,6 +68,7 @@
   .shead { border:0; background:none; padding:0; font:900 14px/1 var(--jp); display:flex; align-items:center; gap:6px; pointer-events:none; } .shead .tri { display:none; }
   .chip { padding:6px 11px; border-radius:999px; border:1.5px solid var(--line); background:#fff; font:900 12.5px/1 var(--jp); color:var(--soft); }
   .chip[aria-pressed="true"] { background:var(--ink); color:#fff; border-color:var(--ink); } .chip:disabled { opacity:.4; }
+  #growp .gtabs { display:flex; gap:6px; margin:4px 0 2px; }   /* 時間の 肥料：育てる／かわらせる */
   .chip i { font:600 12px/1 var(--num); font-style:normal; margin-left:4px; opacity:.8; }
   .slist { display:grid; grid-template-columns:repeat(auto-fill, minmax(84px, 1fr)); gap:6px; max-height:290px; overflow:auto; padding:2px; }
   .seed { display:grid; justify-items:center; gap:2px; padding:8px 4px 6px; border-radius:16px; border:2px solid transparent; background:#F6F3EC; font:900 12px/1.2 var(--jp); text-align:center; }
@@ -129,7 +130,7 @@ import { makeFarm, SKINS } from "./farm3d.js";
 import { CROPS as CROPS_ALL, CROP, KIND, afterOf } from "./crops.js";
 import { ISLAND_OPEN } from "./dungeons.js";
 const CROPS = CROPS_ALL.filter((c) => c.isle <= ISLAND_OPEN);   // ゲームに 出て いる 島の 作物だけ（ミカネル島は 鹿さんの OK まで 出さない）
-import { newField, fieldSize, inField, W, stageAt, plant, harvest, advance, setSoil, addXp, xpNext, SOILS, growMs, FIELD, FERT, SPRINKLERS, sprTier, SPR_Q, SOIL_LOCK_H, GROW_H, growPlan, growPrice } from "./farm-core.js";
+import { newField, fieldSize, inField, W, stageAt, plant, harvest, advance, setSoil, addXp, xpNext, SOILS, growMs, FIELD, FERT, SPRINKLERS, sprTier, SPR_Q, SOIL_LOCK_H, GROW_H, growPlan, growPrice, graceMs } from "./farm-core.js";
 import { wsIcon } from "./ws-icons.js";
 import { cropPic } from "./crop-art.js";
 import { matPic } from "./mat-icons.js";
@@ -175,14 +176,22 @@ function soilPanel() {
 // ---------- プリセット（鹿さんの 頼み 2026-11-05「プリセットを組んで植える機能を追加してください」→ カード「A 塗って組む」）----------
 // 時間の 肥料（2026-11-08 鹿さん「クレジットで買える植えた全作物を成長させる肥料を実装してください。」）：CLR が 売る。買うと その場で 畑 ぜんぶに まく
 // 1・3・5・10 時間。値段は 畑の 中身で 決まる（進む ぶんの 作物の CLR の 買い取り × 15。門番の farmv.grow と 同じ 計算）。回数の 上限は ない
-const growRows = () => { const f = S.field, t = now(); return GROW_H.map((h) => { const plan = growPlan(f, t, h); return { h, n: plan.length, ripe: plan.filter((p) => p.ripe).length, price: growPrice(f, t, h, sellPrice) }; }); };
+// かわらせる（2026-11-11 鹿さん「あとたけのこと麦は育ってからの肥料が使用できないので修正してください。」）：実った 麦・竹の子などの 猶予を 進めて、わら・竹に かわらせる。育てると 分けて タブに
+let GROWM = "grow";
+const growRows = (mode = GROWM) => { const f = S.field, t = now(); return GROW_H.map((h) => { const plan = growPlan(f, t, h, mode); return { h, n: plan.length, ripe: plan.filter((p) => p.ripe).length, price: growPrice(f, t, h, sellPrice, mode), into: [...new Set(plan.map((p) => p.into).filter(Boolean))] }; }); };
 let growKey = "";
 function growPanel() {
-  const rows = growRows(), n = rows[0].n; growKey = rows.map((r) => r.price + ":" + r.ripe).join() + ":" + CRED;
+  const cnt = { grow: growRows("grow")[0].n, turn: growRows("turn")[0].n };
+  if (!cnt[GROWM] && cnt[GROWM === "grow" ? "turn" : "grow"]) GROWM = GROWM === "grow" ? "turn" : "grow";   // 中身の ある 方を 開く
+  const rows = growRows(), n = rows[0].n, turn = GROWM === "turn"; growKey = GROWM + ":" + rows.map((r) => r.price + ":" + r.ripe).join() + ":" + CRED + ":" + cnt.turn;
+  const tabs = `<div class="gtabs" role="tablist">${[["grow", "育てる"], ["turn", "かわらせる"]].map(([k, t]) => `<button class="chip" role="tab" data-growm="${k}" aria-pressed="${GROWM === k}" ${cnt[k] ? "" : "disabled"}>${t}<i>${cnt[k]}</i></button>`).join("")}</div>`;
+  const into = turn ? rows[0].into.map((m) => MAT_NAME[m] || m).join("・") : "";
+  const sub = turn ? (n ? `実った 作物 ${n} マスが ${into}に 近づく（実ってから ${Math.round(graceMs(CROP.kaido_wheat, S.field.soil) / 3600e3)} 時間で かわる）` : "かわる 作物が 実って いない（麦・竹の子 など）")
+    : n ? `芽と 若葉の 作物 ${n} マスが 育つ（実る 所で 止まる）` : "育って いる 作物が ない（植えると まける）";
   return `<section class="panel" id="growp"><div class="soilh"><h2>時間の 肥料</h2><button class="chip" data-grow-close="1">とじる</button></div>
-    <p class="gsub">${n ? `芽と 若葉の 作物 ${n} マスが 育つ（実る 所で 止まる）` : "育って いる 作物が ない（植えると まける）"}・持って いる ${CRED.toLocaleString()} クレジット</p>
+    ${tabs}<p class="gsub">${sub}・持って いる ${CRED.toLocaleString()} クレジット</p>
     ${n ? rows.map((r) => { const short = r.price > CRED ? r.price - CRED : 0;
-      return `<div class="srow"><b>${r.h} 時間 進む</b><button class="chip" data-grow="${r.h}" data-price="${r.price}" ${short ? "disabled" : ""}>${r.price.toLocaleString()} クレジット</button><small>${r.ripe ? `実る ${r.ripe} マス` : "まだ 実らない"}${short ? `・足りない：あと ${short.toLocaleString()}` : ""}</small></div>`; }).join("") : ""}</section>`;
+      return `<div class="srow"><b>${r.h} 時間 進む</b><button class="chip" data-grow="${r.h}" data-price="${r.price}" ${short ? "disabled" : ""}>${r.price.toLocaleString()} クレジット</button><small>${turn ? (r.ripe ? `かわる ${r.ripe} マス` : "まだ かわらない") : r.ripe ? `実る ${r.ripe} マス` : "まだ 実らない"}${short ? `・足りない：あと ${short.toLocaleString()}` : ""}</small></div>`; }).join("") : ""}</section>`;
 }
 
 // 3 つまで。いまの 畑の 広さの マス目を 塗る（種が なくても 組める）。「いまの 畑から」で 写す。植えるのは あいた マスだけ（門番の farmv.plantPreset）
@@ -262,6 +271,7 @@ document.getElementById("side").addEventListener("click", async (e) => {
   if (b.dataset.fert !== undefined) { FSEL = b.dataset.fert || null; side(); return; }
   if (b.dataset.soilClose) { SOILV = false; side(); return; }
   if (b.dataset.growClose) { GROWV = false; growBtn(); side(); return; }
+  if (b.dataset.growm) { GROWM = b.dataset.growm; side(); return; }
   if (b.dataset.paint !== undefined) { PPAINT = PPAINT === b.dataset.paint ? null : b.dataset.paint; side(); return; }
   if (b.dataset.pcell) { if (PPAINT == null) { toast("塗る 種を えらんで"); return; } const i = +b.dataset.pcell; if (PPAINT === "") delete PE[i]; else PE[i] = PPAINT; PDIRTY = true; side(); return; }
   if (b.dataset.pcopy) { PE = {}; S.field.cells.forEach((c, i) => { if (c && !c.obj && !c.spr && CROP[c.id] && inField(S.field.lv, i)) PE[i] = c.id; }); PDIRTY = true; side(); return; }
@@ -288,8 +298,9 @@ document.getElementById("side").addEventListener("click", async (e) => {
       if (!j.ok) toast(j.why); else { take(j.farmv, j); SOILV = false; toast(`${SOILS[S.field.soil].name}に した${j.paid ? `（${j.paid.toLocaleString()} クレジット）` : ""}`); opts(); }
     }
     if (b.dataset.grow) {
-      const h = +b.dataset.grow, j = await act("farmv.grow", { h, max: +b.dataset.price });
+      const h = +b.dataset.grow, mode = GROWM, j = await act("farmv.grow", { h, max: +b.dataset.price, mode });
       if (!j.ok) toast(j.why);
+      else if (mode === "turn") { take(j.farmv, j); toast(`${h} 時間 進めた：${j.n} マス${j.ripe ? `・${j.ripe} マスが かわった` : ""}（${j.paid.toLocaleString()} クレジット）`); }
       else { take(j.farmv, j); toast(`${h} 時間 進めた：${j.n} マスが 育った${j.ripe ? `・${j.ripe} マス 実った` : ""}（${j.paid.toLocaleString()} クレジット）`); }
     }
     if (b.dataset.do === "harvest" || b.dataset.do === "tap") {
@@ -396,7 +407,7 @@ async function ask() {
 let lastR = -1e9;
 function loop(ms) {
   clockS = ms / 1000;
-  if (ms - last > 1000) { last = ms; if (farm.show(S.field, now())) head(); if (GROWV && !busyF) { const k = growRows().map((r) => r.price + ":" + r.ripe).join() + ":" + CRED; if (k !== growKey) side(); } if (ms - lastAsk > 60000) { lastAsk = ms; ask(); } }
+  if (ms - last > 1000) { last = ms; if (farm.show(S.field, now())) head(); if (GROWV && !busyF) { const k = GROWM + ":" + growRows().map((r) => r.price + ":" + r.ripe).join() + ":" + CRED + ":" + growRows("turn")[0].n; if (k !== growKey) side(); } if (ms - lastAsk > 60000) { lastAsk = ms; ask(); } }
   if (farm.busy() || ms - lastR > 66) { lastR = ms; farm.tick(clockS); r.render(sc, cam); }
   requestAnimationFrame(loop);
 }

@@ -30,6 +30,7 @@ export const WORDS = {
   "あいて いる マスが ない": "No empty plots", "植えられる マスが ない": "No plots to plant",
   // 時間の 肥料（2026-11-08）
   "時間の 肥料": "Time Fertilizer", "まだ 実らない": "Won't ripen yet", "育って いる 作物が ない": "Nothing is growing",
+  "かわらせる": "Transform", "まだ かわらない": "Won't transform yet", "かわる 作物が 実って いない（麦・竹の子 など）": "No ripe crops that transform (wheat, bamboo shoots, etc.)",
   // 図鑑
   "種類": "Type", "並べる": "Sort", "番号": "Number", "のった 順": "By discovery",
   // 門番（lounge-farmv.js）
@@ -66,6 +67,9 @@ export const RULES = [
   [/^かえて (\d+) 時間は かえられない$/, (m) => `You can't change it again for ${m[1]} hours`],
   // 時間の 肥料（2026-11-08）
   [/^(?:芽と 若葉の 作物 (\d+) マスが 育つ（実る 所で 止まる）|育って いる 作物が ない（植えると まける）)・持って いる ([\d,]+) クレジット$/, (m) => `${m[1] ? `${m[1]} growing plots advance (they stop once ripe)` : "Nothing is growing (plant something first)"} · You have ${m[2]} Credits`],
+  [/^(?:実った 作物 (\d+) マスが (.+)に 近づく（実ってから (\d+) 時間で かわる）|かわる 作物が 実って いない（麦・竹の子 など）)・持って いる ([\d,]+) クレジット$/, (m, p) => `${m[1] ? `${m[1]} ripe plots move toward ${m[2].split("・").map((x) => P(p, x)).join(" · ")} (they transform ${m[3]} h after ripening)` : "No ripe crops that transform (wheat, bamboo shoots, etc.)"} · You have ${m[4]} Credits`],
+  [/^(?:かわる (\d+) マス|まだ かわらない)(?:・足りない：あと ([\d,]+))?$/, (m) => `${m[1] ? `${m[1]} will transform` : "Won't transform yet"}${m[2] ? ` · ${m[2]} short` : ""}`],
+  [/^(\d+) 時間 進めた：(\d+) マス(?:・(\d+) マスが かわった)?（([\d,]+) クレジット）$/, (m) => `Advanced ${m[1]} h: ${m[2]} plots${m[3] ? ` · ${m[3]} transformed` : ""} (${m[4]} Credits)`],
   [/^(\d+) 時間 進む$/, (m) => `Advance ${m[1]} h`], [/^([\d,]+) クレジット$/, (m) => `${m[1]} Credits`],
   [/^(?:実る (\d+) マス|まだ 実らない)(?:・足りない：あと ([\d,]+))?$/, (m) => `${m[1] ? `${m[1]} will ripen` : "Won't ripen yet"}${m[2] ? ` · ${m[2]} short` : ""}`],
   [/^(\d+) 時間 進めた：(\d+) マスが 育った(?:・(\d+) マス 実った)?（([\d,]+) クレジット）$/, (m) => `Advanced ${m[1]} h: ${m[2]} plots grew${m[3] ? ` · ${m[3]} ripened` : ""} (${m[4]} Credits)`],

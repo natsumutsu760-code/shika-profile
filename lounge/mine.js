@@ -25,7 +25,10 @@ export const mineHours = (at, now) => Math.max(0, Math.min(MINE_CAP_H, Math.floo
 export const MINE_BOOST = { pickaxe: { h: 12, more: 0.3, lv: 1 }, lamp: { h: 12, rare: 2, lv: 45 } };   // ランプは 銀鉱石が 出る Lv45 から
 // 効いて いた 時間（掘った 時間 [a, b] と 使った 時間 [{ from, to }] の 重なり。時間）と、掘れた 数（つるはしの 分も。門番と 画面で 同じ 計算）
 export const boostH = (list, a, b) => (Array.isArray(list) ? list.reduce((s, x) => s + Math.max(0, Math.min(b, x.to) - Math.max(a, x.from)), 0) / H : 0);
-export const mineCount = (h, rate, at, pick) => Math.floor(h * rate) + Math.floor(boostH(pick, at, at + h * H) * rate * MINE_BOOST.pickaxe.more);
+// fr：前に うけとった ときの 端数（子ごとに 持ちこす。2026-11-11 窓口 #11 おたこまるさん「つまみでレベルを変更した場合つるはしが作用しませんでした」）
+//   前は ふつうの 分と つるはしの 分を べつべつに 切りすてて いて、1 時間に 3.33 こ より 少ない（坑道 Lv33 まで・つまみを 下げた とき）と、1 時間ごとに うけとると つるはしの 分が 0 だった
+export const mineExact = (h, rate, at, pick, fr = 0) => h * rate + boostH(pick, at, at + h * H) * rate * MINE_BOOST.pickaxe.more + (Number.isFinite(fr) && fr > 0 && fr < 1 ? fr : 0);
+export const mineCount = (h, rate, at, pick, fr = 0) => Math.floor(mineExact(h, rate, at, pick, fr) + 1e-9);
 export function mineDig(R, mineLv, n, lamp = false) {
   const base = mineFind(mineLv), out = {};
   const w = lamp ? Object.fromEntries(Object.entries(base).map(([k, v]) => [k, /^(silverore|goldore)$/.test(k) ? v * MINE_BOOST.lamp.rare : v])) : base;

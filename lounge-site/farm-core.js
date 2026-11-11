@@ -80,26 +80,38 @@ export function harvestWorth(field, i, sell) {
   let plain = 0; for (const [q, w] of Object.entries(qw)) plain += (w / tot) * ((1 - up) * one(+q) + up * one(Math.min(5, +q + 1)));
   return n * ((1 - pr - pg) * plain + pg * one(4) + pr * one(5));
 }
-// N 時間で どの マスが どれだけ 育つか → [{ i, adv（進む ms）, frac（育つ 時間の うち 進む 割合）, ripe（これで 実る）}]
-export function growPlan(field, now, hours) {
+// かわらせる（mode "turn"。2026-11-11 鹿さん「あとたけのこと麦は育ってからの肥料が使用できないので修正してください。」）
+//   実った 物の うち、放っておくと かわる 作物（麦 → わら・竹の子 → 竹 など。crops の after.into）だけ、実ってからの 猶予を N 時間 進める（猶予が おわると かわる）
+//   〔C〕「育てる」と 分けた：畑 ぜんぶに まくので、いっしょに すると 麦が ほしい ときも わらに かわって しまう。枯れる・逃げる 作物は 進めない
+export const turnsInto = (crop) => { const a = afterOf(crop); return a.kind === "turn" ? a.into : null; };
+// N 時間で どの マスが どれだけ 育つか → [{ i, adv（進む ms）, frac（育つ 時間の うち 進む 割合）, ripe（これで 実る。mode "turn" は これで かわる）, into? }]
+export function growPlan(field, now, hours, mode = "grow") {
   const out = [], cap = hours * H;
   field.cells.forEach((cell, i) => {
     if (!cell || !cell.id || !CROP[cell.id] || !inField(field.lv, i)) return;
-    const st = stageAt(cell, now, field.soil); if (st.stage !== "sprout" && st.stage !== "young") return;
+    const st = stageAt(cell, now, field.soil);
+    if (mode === "turn") {
+      const c = CROP[cell.id], into = turnsInto(c); if (st.stage !== "ripe" || !into) return;
+      const gr = graceMs(c, field.soil), rest = growMs(c, field.soil, cell.fert) + gr - (now - cell.at), adv = Math.min(cap, rest);
+      if (adv > 0) out.push({ i, adv, frac: adv / gr, ripe: adv >= rest, into });
+      return;
+    }
+    if (st.stage !== "sprout" && st.stage !== "young") return;
     const g = growMs(CROP[cell.id], field.soil, cell.fert), rest = g - (now - cell.at), adv = Math.min(cap, rest);
     if (adv > 0) out.push({ i, adv, frac: adv / g, ripe: adv >= rest });
   });
   return out;
 }
-// 値段（クレジット。10 きざみで 上げる）。育つ 作物が なければ 0（買えない）
-export function growPrice(field, now, hours, sell) {
-  const plan = growPlan(field, now, hours); if (!plan.length) return 0;
-  const v = plan.reduce((a, p) => a + p.frac * harvestWorth(field, p.i, sell), 0) * GROW_MULT;
+// 値段（クレジット。10 きざみで 上げる）。育つ 作物が なければ 0（買えない）。かわらせるは かわった 物（1 こ・品質 0）の 買い取り × 進む 割合 × 15
+export function growPrice(field, now, hours, sell, mode = "grow") {
+  const plan = growPlan(field, now, hours, mode); if (!plan.length) return 0;
+  const worth = (p) => (mode === "turn" ? sell({ id: p.into, q: 0, n: 1 }) : harvestWorth(field, p.i, sell));
+  const v = plan.reduce((a, p) => a + p.frac * worth(p), 0) * GROW_MULT;
   return Math.max(GROW_MIN, Math.ceil(v / 10) * 10);
 }
 // まく：植えた 時を 前へ ずらす（育ちは 植えた 時からの 時間で 決まる）→ 育った マスの 数
-export function growApply(field, now, hours) {
-  const plan = growPlan(field, now, hours); for (const p of plan) field.cells[p.i].at -= p.adv;
+export function growApply(field, now, hours, mode = "grow") {
+  const plan = growPlan(field, now, hours, mode); for (const p of plan) field.cells[p.i].at -= p.adv;
   return plan;
 }
 
