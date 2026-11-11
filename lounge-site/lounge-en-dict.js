@@ -17,8 +17,9 @@ import * as FARM from "./lounge-en-farm.js";   // 農園（2026-11-05）
 import * as BZ from "./lounge-en-border.js";   // ボーダーゾーン（2026-11-05）
 import * as STK from "./lounge-en-stock.js";   // 株（2026-11-05）
 import * as AUC from "./lounge-en-auction.js";   // 競り・フリマ（2026-11-07）
+import * as LAB from "./lounge-en-lab.js";   // 研究所の エッセンス（2026-11-11）
 
-const pages = [AUC, STK, BZ, FARM, FX, SRV, UI, TRIP, PET, BASE, DL, ARENA];   // せまい 決まりの 多い 順（効果の 説明は いちばん せまいので 先・闘技場の「X は Y」は いちばん 広いので 最後）
+const pages = [LAB, AUC, STK, BZ, FARM, FX, SRV, UI, TRIP, PET, BASE, DL, ARENA];   // せまい 決まりの 多い 順（効果の 説明は いちばん せまいので 先・闘技場の「X は Y」は いちばん 広いので 最後）
 export const WORDS = Object.assign({}, nameWords(), ...pages.map((x) => x.WORDS));
 
 // ペットの 名前と しゅるい（「ペリカンのポスケ」→「Posuke the Pelican」）

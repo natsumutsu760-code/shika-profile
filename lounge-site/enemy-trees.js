@@ -18,11 +18,12 @@ import { TREES as INF_A } from "./enemy-trees-inferno-a.js";
 import { TREES as INF_SEX } from "./enemy-trees-inferno-sex.js";
 // 3 つめの 島「ミカネル島」の 敵 85 体（isle3-data.js。2026-11-04、Claude の 案）
 import { TREES3 } from "./isle3-data.js";
+import { buildCombo } from "./combo-trees.js";   // 特殊複合スキル（2 種族の 全通り）を 使う ときに 組み立てる
 import { FOE_LISTS } from "./enemy-trees-foe.js";   // ダンジョンの 敵が 使う ボスの 前の 数（島 1・2）
 
 export { describe };
 
-export const ENEMY_TREES = {
+const TREES0 = {   // 下で ENEMY_TREES（複合ツリーを 使う ときに 組み立てる 入れ物）に 包む
   // ===== ハルス街道 =====
   e_hare: { name: "草原の跳ね足", enemy: "ホーンラビット", dungeon: "hals", rank: "通常", type: "technician", main: "agi", sub: "dex", theme: "paralysis",
     list: [
@@ -3078,6 +3079,24 @@ export const ENEMY_TREES = {
     ],
     plan: [G("first", undefined, "f_hh_yurerushokudai"), G("mpAtLeast", 10, "f_hh_kuzureochiru"), G("every", 2, "f_hh_shikakegaeshi"), G("foeNotHas", "confusion", "f_hh_yurerushokudai"), G("every", 3, "f_hh_boreinosawagi"), G("always", undefined, "f_hh_tobirabatan")] },
 };
+// 特殊複合スキル（docs/mono-link-essence.md。2 種族の 全通り 約 9.2 万 本）：前もって 作らず、id（cx:種+種）を さわった ときに combo-trees.js が 組み立てて ここに 入れる
+// ふつうの id は そのまま（速さは かわらない。2026-11-11 に はかった）
+// 技・パッシブは skills.js の SKILL にも 入れる（setComboSkills で 入れ物を もらう）
+const isCx = (k) => typeof k === "string" && k.startsWith("cx:");
+const MADE = Object.create(null);
+let SKILL_OUT = null;
+const putSkills = (id, t) => { if (SKILL_OUT) for (const s of t.list) SKILL_OUT[s.id] = { ...s, type: t.type, tree: id }; };
+function makeCombo(id) {
+  if (MADE[id]) return; MADE[id] = 1;
+  const t = buildCombo(TREES0, id); if (!t) return;
+  TREES0[id] = t; putSkills(id, t);
+}
+export const setComboSkills = (o) => { SKILL_OUT = o; for (const id in MADE) if (TREES0[id]) putSkills(id, TREES0[id]); };
+export const ENEMY_TREES = new Proxy(TREES0, {
+  get: (t, k) => { const v = t[k]; return v !== undefined || !isCx(k) ? v : (makeCombo(k), t[k]); },
+  has: (t, k) => k in t || (isCx(k) && (makeCombo(k), k in t)),
+  getOwnPropertyDescriptor: (t, k) => { if (!(k in t) && isCx(k)) makeCombo(k); return Reflect.getOwnPropertyDescriptor(t, k); },
+});
 
 Object.assign(ENEMY_TREES, TREES3, FU_F, FU_E, FU_D, FU_C, FU_B, FU_A, FU_S, FU_EX, INF_CB, INF_A, INF_SEX);
 

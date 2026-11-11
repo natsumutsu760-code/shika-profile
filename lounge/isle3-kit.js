@@ -151,3 +151,5 @@ export function tree3(code, dungeon, rank, enemy, name, type, th, sec, names, o 
 // ボスごとの 割合（Claude が はかって 決めた。1 より 小さい ＝ 下げる。奥義の 威力 ×k・MP ÷k〈22 まで〉、相手に 付ける 量と 確率 ×k、パッシブの 確率・はじめに 相手に 付ける 量・付ける 量 +N ×k。self は 自分の 上昇・能力 +% も）
 const BOSS_TUNE = { boss_moonserpent: { k: 0.37, self: true }, boss_roc: { k: 0.74 }, boss_general: { k: 0.92 }, boss_lightwarden: { k: 0.88 }, boss_griffon: { k: 0.96 }, boss_bonedragon: { k: 0.83 }, boss_sphinx: { k: 0.92 }, boss_djinn: { k: 0.92 },
   boss_antlion: { k: 1.15 }, boss_bodyguard: { k: 1.23 }, boss_gategiant: { k: 1.15 }, boss_pillar: { k: 1.08 }, boss_namazu: { k: 1.23 }, boss_colossus: { k: 1.23 } };   // 1 より 大きい ＝ 上げる（55% より 弱かった 6 本）
+// 特殊複合スキル（combo-trees.js）も 同じ 量と 言い回しで 組む
+export { ap, gn, fx1, onHit, AMT, TURN, SMALL, ADD, CC, STACK, isStack, TY };

@@ -8,7 +8,7 @@
 //   shield：最大 HP の pct のシールド
 //   heal（最大 HP の pct を回復）・cure（自分のデバフを全部消す＝浄化）・dispel（相手のバフを n こ消す）・mp（MP を n 回復）・slow（次の番は後から動く）・pin（おさえこみ）
 import { BITEMS } from "./battle-items.js";
-import { ENEMY_TREES } from "./enemy-trees.js";
+import { ENEMY_TREES, setComboSkills } from "./enemy-trees.js";
 import { MAIN_TREES, MAIN_TREE_LIST } from "./main-trees.js";
 
 // 役割（敵の ツリーの type。色と ラベルに 使う）と、メインの ツリー 12 本（ペットの type）
@@ -32,9 +32,17 @@ export const COMMON = {
 export const TREES = MAIN_TREE_LIST;
 
 // id → 技（タイプも付ける）。敵ツリーの技は、その敵のタイプ（色に使う）と tree（どのツリーか）を付ける
-export const SKILL = Object.fromEntries([
+// 複合ツリー（cx:種+種）の 技・パッシブ（id は ツリーの id ＋「:s1」など）は、ツリーを 組み立てる ときに ここへ 入る。まだ なければ ツリーを さわって 組み立てる
+const cxTree = (k) => (typeof k === "string" && k.startsWith("cx:") && k.lastIndexOf(":") > 2 ? k.slice(0, k.lastIndexOf(":")) : null);
+const SKILL0 = Object.fromEntries([
   ...Object.entries(COMMON).map(([id, s]) => [id, { id, ...s, type: null }]),
   ...Object.entries(BITEMS).map(([id, s]) => [id, { id, ...s, type: null, item: true }]),   // 戦いの アイテム（ガンビットで 使う。袋に ある ときだけ）
   ...Object.entries(TREES).flatMap(([type, list]) => list.map((s) => [s.id, { ...s, type, tree: type }])),
   ...Object.entries(ENEMY_TREES).flatMap(([tree, t]) => t.list.map((s) => [s.id, { ...s, type: t.type, tree }])),
 ]);
+setComboSkills(SKILL0);
+export const SKILL = new Proxy(SKILL0, {
+  get: (t, k) => { const v = t[k]; if (v !== undefined) return v; const tr = cxTree(k); if (tr) ENEMY_TREES[tr]; return tr ? t[k] : v; },
+  has: (t, k) => k in t || (!!cxTree(k) && (ENEMY_TREES[cxTree(k)], k in t)),
+  getOwnPropertyDescriptor: (t, k) => { if (!(k in t) && cxTree(k)) ENEMY_TREES[cxTree(k)]; return Reflect.getOwnPropertyDescriptor(t, k); },
+});

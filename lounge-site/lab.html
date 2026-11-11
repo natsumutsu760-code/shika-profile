@@ -1,0 +1,391 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lounge Lab</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Zen+Maru+Gothic:wght@500;700;900&display=swap">
+<style>
+  /* MONO LINK のラウンジ：研究所の エッセンス（鹿さんの 原案と カード 2026-11-11。docs/mono-link-essence.md）
+     あまった 仲間から その 種の エッセンスを 抽出 → ためて サブツリー・上位スキル「＋」・特殊スキルを つくる（アメジストなし・すぐ）→ いらない 分は クレジットで 売る
+     タブは 3 つ（抽出・つくる・売る。鹿さんの 決め「A：3 つのタブ」）。左で えらぶ・右で 決める（スマホでは 決める パネルを 下に 貼りつける）。決まりは essence.js、門番は lounge-server/lounge-essence.js */
+  :root {
+    --space:#F6F8FC; --ink:#1B2340; --soft:#6A7394; --line:#DCE3F0;
+    --sky:#2EA8FF; --coral:#FF5A64; --leaf:#22CC88; --lab:#7B5CF0; --lab-dk:#5B3FC4; --lab-bg:#F4F0FF;
+    --jp:"Zen Maru Gothic", "Hiragino Maru Gothic ProN", sans-serif; --num:"Fredoka", "Zen Maru Gothic", sans-serif;
+    --lift:0 18px 40px -18px rgba(27,35,64,.35), 0 2px 0 rgba(27,35,64,.06);
+  }
+  * { box-sizing:border-box; }
+  body { margin:0; min-height:100vh; background:radial-gradient(120% 80% at 50% 0%, #FFFFFF 0%, var(--space) 55%, #EAF0FA 100%); color:var(--ink); font:500 16px/1.65 var(--jp); word-break:auto-phrase; text-wrap:pretty; }
+  button { font:inherit; color:inherit; cursor:pointer; }
+  button:disabled { cursor:not-allowed; }
+  :focus-visible { outline:3px solid var(--sky); outline-offset:3px; border-radius:12px; }
+  h1, h2, h3, p, ul { margin:0; padding:0; } ul { list-style:none; }
+  [hidden] { display:none !important; }
+  .top { display:flex; align-items:center; gap:10px; padding:12px clamp(16px, 4vw, 40px); }
+  .top b { font:700 22px/1 var(--num); letter-spacing:.06em; } .top b i { font-style:normal; color:var(--sky); }
+  .top small { font:700 13px/1 var(--jp); color:var(--soft); margin-left:6px; } .top small a { color:inherit; }
+  main { max-width:1100px; margin:0 auto; padding:0 clamp(16px, 4vw, 40px) 48px; display:grid; gap:12px; }
+  .panel { background:rgba(255,255,255,.92); border-radius:26px; box-shadow:var(--lift); padding:clamp(14px, 2.4vw, 20px); }
+  .head { display:flex; flex-wrap:wrap; gap:8px 16px; align-items:center; padding:12px 20px; }
+  .head h1 { font:900 20px/1.2 var(--jp); display:flex; align-items:center; gap:10px; margin-right:auto; }
+  .head h1 small { font:600 13px/1 var(--num); color:var(--lab-dk); background:var(--lab-bg); padding:4px 9px; border-radius:99px; }
+  .head a { font:900 13px/1 var(--jp); color:#1E6FB0; text-decoration:none; padding:9px 14px; border-radius:999px; background:#E9F6FF; }
+  .vtabs { display:flex; gap:6px; }
+  .vtabs button { flex:none; display:flex; align-items:center; gap:7px; min-height:40px; border:1.5px solid var(--line); background:#fff; border-radius:14px; padding:10px 18px; font:900 14px/1 var(--jp); }
+  .vtabs button[aria-selected="true"] { background:var(--ink); border-color:var(--ink); color:#fff; box-shadow:0 4px 0 rgba(27,35,64,.2); }
+  .vtabs small { min-width:20px; height:20px; padding:0 6px; border-radius:99px; background:var(--coral); color:#fff; font:600 12px/20px var(--num); text-align:center; }
+  .room { display:grid; grid-template-columns:minmax(0, 1fr) 380px; gap:14px; align-items:start; }
+  .room > :only-child { grid-column:1 / -1; }
+  .side { position:sticky; top:12px; display:grid; gap:12px; }
+  .list h2 { font:900 17px/1.3 var(--jp); margin-bottom:8px; } .list h2 small { font:700 12px/1 var(--jp); color:var(--soft); margin-left:8px; }
+  .lead { font:700 13px/1.6 var(--jp); color:var(--soft); }
+  .fline { display:flex; align-items:center; gap:6px; flex-wrap:wrap; margin:0 0 12px; } .fline .gap { flex:1; }
+  .chip { border:1.5px solid var(--line); background:#fff; border-radius:999px; min-height:32px; padding:6px 12px; font:700 12px/1 var(--jp); display:inline-flex; align-items:center; gap:5px; }
+  .chip small { font:600 12px/1 var(--num); color:var(--soft); }
+  .chip[aria-pressed="true"] { background:var(--ink); border-color:var(--ink); color:#fff; } .chip[aria-pressed="true"] small { color:rgba(255,255,255,.7); }
+  .chip:disabled { opacity:.4; }
+  .chip.ghost { border-style:dashed; color:var(--soft); }
+  .rkl { display:inline-block; min-width:22px; padding:2px 6px; border-radius:6px; background:var(--ink); color:#fff; font:600 12px/1.2 var(--num); text-align:center; }
+  .kd { display:inline-block; padding:2px 8px; border-radius:6px; font:700 12px/1.3 var(--jp); background:var(--lab-bg); color:var(--lab-dk); white-space:nowrap; }
+  .kd.evo { background:#FFF1D6; color:#A86A00; } .kd.special { background:#FFE6EE; color:#B8336A; }
+  .jelly { border:0; border-radius:999px; padding:14px 18px; font:900 16px/1 var(--jp); background:var(--lab); color:#fff; box-shadow:0 5px 0 rgba(123,92,240,.3); width:100%; }
+  .jelly.warn { background:var(--coral); box-shadow:0 5px 0 rgba(255,90,100,.3); }
+  .jelly:disabled { background:#C9D1E2; box-shadow:0 5px 0 #E3E8F2; }
+  .say { padding:10px 14px; border-radius:16px; background:var(--space); font:700 14px/1.55 var(--jp); color:var(--soft); }
+  .why { font:700 13px/1.5 var(--jp); color:var(--coral); text-align:center; }
+  .warnline { font:700 13px/1.5 var(--jp); color:#C2333B; }
+  /* エッセンスの 印：その 種の ドット絵を 紫の 光に 入れる */
+  .ess { --s:44px; position:relative; flex:none; width:var(--s); height:var(--s); border-radius:30%; display:grid; place-items:center; background:radial-gradient(circle at 50% 60%, color-mix(in srgb, var(--lab) 30%, #fff) 0 38%, var(--lab-bg) 72%); box-shadow:inset 0 0 0 1.5px #E2D9FF; }
+  .ess img { width:var(--px, 24px); height:var(--px, 24px); image-rendering:pixelated; filter:drop-shadow(0 0 3px rgba(123,92,240,.6)); }
+  .ess::after { content:""; position:absolute; right:3px; top:3px; width:8px; height:11px; background:var(--lab); clip-path:polygon(50% 0, 100% 55%, 50% 100%, 0 55%); }
+  .ess.duo img { position:absolute; width:calc(var(--px) * .9); height:calc(var(--px) * .9); } .ess.duo img:first-child { left:6%; top:8%; } .ess.duo img + img { right:6%; bottom:6%; }   /* 特殊複合：2 種族の 絵 */
+  .kd.combo { background:#E3F6FF; color:#1E6FB0; }
+  .ess .ev { position:absolute; left:-3px; bottom:-3px; padding:1px 5px; border-radius:6px; background:#E59A00; color:#fff; font:600 12px/1.2 var(--num); }
+  /* 抽出：丸い アイコンの 一覧（なかまの 画面と 同じ 形） */
+  .dex { display:grid; grid-template-columns:repeat(auto-fill, minmax(84px, 1fr)); gap:8px 4px; }
+  .dx { position:relative; width:100%; display:grid; justify-items:center; gap:2px; padding:6px 2px 8px; border:0; background:none; border-radius:16px; text-align:center; }
+  .dx[aria-pressed="true"] { background:#F1EDFF; box-shadow:inset 0 0 0 2px var(--lab); }
+  .dx[aria-pressed="true"]::after { content:"✓"; position:absolute; left:8px; top:6px; width:22px; height:22px; border-radius:50%; background:var(--lab); color:#fff; font:900 13px/22px var(--jp); }
+  .dx .face { position:relative; width:62px; height:62px; border-radius:50%; display:grid; place-items:center; background:radial-gradient(ellipse 34% 9% at 50% 84%, rgba(27,35,64,.16), transparent), color-mix(in srgb, var(--c) 16%, #fff); box-shadow:0 0 0 2px #fff, 0 0 0 4px #E3E8F2; }
+  .dx .face img { width:48px; height:48px; image-rendering:pixelated; margin-top:-6%; }
+  .dx .face .rkl { position:absolute; right:-8px; top:-4px; }
+  .dx b { max-width:100%; font:700 12px/1.25 var(--jp); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .dx small { font:600 12px/1.2 var(--num); color:var(--soft); }
+  .dx small.lock { font:700 12px/1.2 var(--jp); color:#A86A00; }
+  .dx:disabled { opacity:.45; }
+  .plus { margin-left:3px; font:600 .9em/1 var(--num); color:#D38A00; }
+  /* つくる・売る：カードの 一覧（工房と 同じ 形） */
+  .grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(200px, 1fr)); gap:8px; }
+  .node { display:grid; grid-template-columns:44px minmax(0, 1fr); gap:10px; align-items:center; min-height:62px; padding:8px 10px 8px 8px; text-align:left; border-radius:16px; border:2px solid #CCD4E4; background:#fff; }
+  .node b { display:block; font:800 13.5px/1.3 var(--jp); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .node small { display:block; font:700 12px/1.3 var(--jp); color:var(--soft); }
+  .node small.ok { color:#0E8F5A; } .node small.short { color:var(--coral); }
+  .node .bar { display:block; height:6px; margin-top:4px; border-radius:9px; background:#EDF1F8; overflow:hidden; } .node .bar i { display:block; height:100%; border-radius:9px; background:var(--lab); }
+  .node.can { border-color:var(--lab); }
+  .node[aria-pressed="true"] { box-shadow:0 0 0 3px var(--sky); border-color:var(--sky); }
+  .node.pick[aria-pressed="true"] { box-shadow:0 0 0 3px var(--lab); border-color:var(--lab); background:#FAF8FF; }
+  /* 決める パネル */
+  .dhead { display:grid; grid-template-columns:auto minmax(0, 1fr); gap:12px; align-items:center; }
+  .dhead h2 { font:900 19px/1.3 var(--jp); } .dhead p { margin-top:3px; display:flex; flex-wrap:wrap; gap:4px 6px; align-items:center; font:700 12.5px/1.4 var(--jp); color:var(--soft); }
+  .sum { display:flex; align-items:baseline; justify-content:space-between; font:900 13px/1.3 var(--jp); color:var(--soft); }
+  .sum b { font:600 26px/1 var(--num); color:var(--ink); margin:0 3px; }
+  .rows { display:grid; gap:6px; }
+  .rows li { display:grid; grid-template-columns:auto minmax(0, 1fr) auto; gap:9px; align-items:center; font:700 13.5px/1.35 var(--jp); }
+  .rows li small { display:block; font:700 12px/1.3 var(--jp); color:var(--soft); }
+  .rows .n { font:600 16px/1 var(--num); white-space:nowrap; color:#0E8F5A; } .rows .ng .n { color:var(--coral); }
+  .rows .more { grid-template-columns:1fr; font:700 12px/1.3 var(--jp); color:var(--soft); }
+  .req { font:700 13px/1.5 var(--jp); } .req.ok { color:#0E8F5A; } .req.ng { color:var(--coral); }
+  details.skl summary { cursor:pointer; font:900 13px/1.4 var(--jp); color:#1E6FB0; padding:4px 0; }
+  details.skl ul { display:grid; gap:4px; margin-top:6px; max-height:260px; overflow:auto; }
+  details.skl li { font:700 12.5px/1.45 var(--jp); } details.skl li b { margin-right:6px; } details.skl li span { color:var(--soft); }
+  details.skl li i { font-style:normal; margin-right:6px; padding:0 6px; border-radius:6px; background:var(--space); font:600 12px/1.5 var(--num); color:var(--soft); }
+  .stepper { display:grid; grid-template-columns:44px minmax(0, 1fr) 44px auto; gap:8px; align-items:center; }
+  .stepper button.sq { width:44px; height:44px; border-radius:14px; border:1.5px solid var(--line); background:#fff; font:600 22px/1 var(--num); box-shadow:0 3px 0 var(--line); }
+  .stepper button.sq:disabled { opacity:.4; }
+  .stepper input { width:100%; min-width:0; height:44px; border-radius:14px; border:1.5px solid var(--line); text-align:center; font:600 22px/1 var(--num); color:var(--ink); }
+  .stepper .all { border:1.5px solid var(--line); background:#fff; border-radius:999px; min-height:36px; padding:8px 12px; font:700 12px/1 var(--jp); white-space:nowrap; }
+  .lockbox { display:grid; justify-items:center; gap:10px; text-align:center; padding:28px 20px; } .lockbox h2 { font:900 20px/1.3 var(--jp); }
+  .lockbox a { font:900 14px/1 var(--jp); color:#1E6FB0; }
+  .gate { max-width:520px; margin:24px auto 0; text-align:center; display:grid; justify-items:center; gap:10px; padding:28px 24px; }
+  .gate h2 { font:900 22px/1.3 var(--jp); } .gate p { margin:0; font:700 13px/1.6 var(--jp); color:var(--soft); } .gate .go { max-width:320px; text-decoration:none; display:block; }
+  .toast { position:fixed; left:50%; bottom:24px; z-index:20; transform:translate(-50%, 16px); opacity:0; pointer-events:none; max-width:calc(100vw - 32px); padding:12px 18px; border-radius:16px; background:var(--ink); color:#fff; font:700 14px/1.4 var(--jp); box-shadow:var(--lift); transition:opacity .2s, transform .2s; text-align:center; }
+  .toast.on { opacity:1; transform:translate(-50%, 0); }
+  @media (max-width:820px) {
+    .room { grid-template-columns:minmax(0, 1fr); }
+    .room.multi > .side { position:sticky; top:auto; bottom:10px; z-index:3; max-height:52vh; overflow:auto; gap:10px; box-shadow:0 -6px 30px -10px rgba(27,35,64,.35), var(--lift); }   /* えらびながら 押せる ように 下に 貼りつける */
+    .room.multi > .side { background:#fff; padding:12px 14px; }
+    .room.multi > .side .rows, .room.multi > .side > .lead { display:none; }   /* スマホは 数と ボタンだけ（種ごとの 行は PC で 見る） */
+    .room.multi > .side .dhead { gap:10px; } .room.multi > .side .dhead .ess { --s:40px !important; --px:24px !important; } .room.multi > .side .dhead h2 { font-size:16px; }
+    .toast { bottom:auto; top:16px; transform:translate(-50%, -16px); }   /* 下に 貼りつけた パネルの ボタンに かぶらない ように 上に */
+    .room.single > .side { position:static; order:-1; scroll-margin:12px; }   /* つくる：決める パネルを 一覧の 上に（えらぶと ここへ 動く） */
+    .vtabs button { flex:1; justify-content:center; padding:10px 8px; }
+    .grid { grid-template-columns:minmax(0, 1fr); }
+  }
+  @media (prefers-reduced-motion:reduce) { .toast { transition:none; } }
+</style>
+</head>
+<body>
+<header class="top"><a href="/" style="color:inherit;text-decoration:none" aria-label="MONO LINK の サイトへ"><b>MONO LINK<i>://</i></b></a><small><a href="lounge-room.html">ラウンジ</a> ／ <a href="hideout.html?f=lab">地下の 隠れ家</a> ／ 研究所</small></header>
+<main id="app"></main>
+<p class="toast" id="toast" role="status" aria-live="polite"></p>
+<script type="module">
+import "./lounge-en.js";   // 英語の 画面（英語の ときだけ 辞書を 読む）
+import { ENEMY_TREES } from "./enemy-trees.js";
+import { TYPES } from "./skills.js";
+import { spriteURL } from "./sprites.js";
+import { rankOf } from "./dungeon-sim.js";
+import { SPECIES, speciesOf, famOf, RANKS } from "./fusion.js";
+import { ESS_RECIPES, comboRecipes, essPlan, essWhy, essYield, essPrice, essName, essRank, famName, ESS_MAX } from "./essence.js";
+import { me, act, busy } from "./lounge-client.js";   // なかま・エッセンス・研究ずみは 門番から（見本では ブラウザの 中の ためしの 門番）
+import { mountWallet } from "./wallet-bar.js"; mountWallet();   // 上の 通貨の 札（クレジットが ふえるのが 見える）
+import { gateHtml } from "./pet-head.js";
+
+const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
+const fmt = (n) => Number(n || 0).toLocaleString("ja-JP");
+const TAB0 = new URLSearchParams(location.search).get("tab");
+let ME = null;
+const S = { tab: ["ext", "make", "sell"].includes(TAB0) ? TAB0 : "ext",
+  ex: { f: "all", sort: "rank", pick: new Set(), sure: false },        // 抽出：しぼり（all・dup かぶり・通常/希少/配合/ボス）・ならべ（rank・lv）・えらんだ 子
+  mk: { f: "all", sel: null },                                         // つくる：しぼり（all・sub・evo・special）・えらんだ レシピ（kind:id）
+  sl: { f: "all", sort: "price", pick: new Set(), n: 1, sure: false }, // 売る：しぼり（all・通常/希少/配合/ボス）・ならべ（price・n）・えらんだ 種・数
+  all: [] };
+const CATS = ["通常", "希少", "配合", "ボス"];
+const KIND = { sub: "サブツリー", evo: "上位スキル「＋」", special: "特殊スキル", combo: "特殊複合スキル" };
+const baseOf = (id) => String(id).replace(/_ev$/, "");
+const rkl = (tree) => { const s = speciesOf(tree); return s ? `<span class="rkl">${RANKS[s.rank]}</span>` : ""; };
+const essIc = (tree, s = 44, evo = false, tree2 = null) => `<span class="ess${tree2 ? " duo" : ""}" style="--s:${s}px;--px:${s >= 52 ? 48 : 24}px" aria-hidden="true"><img src="${spriteURL(tree)}" alt="">${tree2 ? `<img src="${spriteURL(tree2)}" alt="">` : ""}${evo ? `<span class="ev">＋</span>` : ""}</span>`;
+const spName = (tree) => (speciesOf(tree) || ENEMY_TREES[tree] || { name: tree }).name;
+const catOf = (tree) => (ENEMY_TREES[tree] || {}).rank || "通常";
+
+// 門番の 記録を 画面の 形に。抽出できない 子（パーティ・出かけて いる・坑道）は わけを 付けて うすく
+function load(m) {
+  ME = m;
+  const away = new Set((m.trips || []).filter((t) => !t.done).flatMap((t) => t.party || []));
+  const mine = new Set(((m.mine && m.mine.on) || []).map((w) => w.uid));
+  S.all = (m.tamed || []).map((c) => { const inParty = (m.party || []).includes(c.uid);
+    return { ...c, inParty, lock: inParty ? "パーティ" : away.has(c.uid) ? "出かけて いる" : mine.has(c.uid) ? "坑道" : "" }; });
+  const ok = new Set(S.all.filter((c) => !c.lock).map((c) => c.uid));
+  for (const u of [...S.ex.pick]) if (!ok.has(u)) S.ex.pick.delete(u);
+  const ess = m.ess || {};
+  for (const t of [...S.sl.pick]) if (!(ess[t] > 0)) S.sl.pick.delete(t);
+}
+const labLv = () => ((ME && ME.hideout) || {}).lab || 0;
+
+// ---------- 抽出 ----------
+// かぶり：同じ 種が 2 体 以上 いる とき、1 体（パーティの 子 → ＋の 大きい 子 → Lv の 高い 子）を のこした 残り
+function dupSet() {
+  const g = {}; for (const c of S.all) (g[c.tree] ||= []).push(c);
+  const out = new Set();
+  for (const list of Object.values(g)) { if (list.length < 2) continue;
+    const keep = [...list].sort((a, b) => b.inParty - a.inParty || (b.plus || 0) - (a.plus || 0) || b.lv - a.lv)[0];
+    for (const c of list) if (c !== keep && !c.lock) out.add(c.uid); }
+  return out;
+}
+const inEx = (c, f, dup) => f === "all" || (f === "dup" ? dup.has(c.uid) : rankOf(c) === f);
+const exSort = (a, b) => (!!a.lock - !!b.lock) || (S.ex.sort === "lv" ? a.lv - b.lv || essRank(a.tree) - essRank(b.tree) : essRank(a.tree) - essRank(b.tree) || (a.tree < b.tree ? -1 : a.tree > b.tree ? 1 : 0) || a.lv - b.lv);
+function exList() {
+  const dup = dupSet(), F = S.ex;
+  if (!S.all.length) return `<section class="panel list"><h2>あまった 子</h2><p class="lead">なかまが いない。派遣で 勝つと、ときどき 敵を 捕まえる</p></section>`;
+  const list = S.all.filter((c) => inEx(c, F.f, dup)).sort(exSort), free = list.filter((c) => !c.lock);
+  const chip = (v, label) => { const n = S.all.filter((c) => inEx(c, v, dup)).length;
+    return `<button class="chip" data-act="exf" data-v="${v}" aria-pressed="${F.f === v}" ${n === 0 && F.f !== v ? "disabled" : ""}>${label}<small>${n}</small></button>`; };
+  const item = (c) => { const T = TYPES[c.type] || { color: "#8E6CFF" }, on = F.pick.has(c.uid);
+    return `<li><button class="dx" data-act="expick" data-u="${esc(c.uid)}" aria-pressed="${on}" ${c.lock ? "disabled" : ""} aria-label="${esc(c.name)} Lv${c.lv}${c.lock ? `（${c.lock}）` : ""}" title="${esc(c.name)}${c.lock ? `：${c.lock}` : ""}">
+      <span class="face" style="--c:${T.color}"><img src="${spriteURL(c.tree)}" alt="">${rkl(c.tree)}</span><b>${esc(c.name)}${c.plus ? `<span class="plus">＋${c.plus}</span>` : ""}</b>${c.lock ? `<small class="lock">${c.lock}</small>` : `<small>Lv${c.lv}</small>`}</button></li>`; };
+  const sel = free.filter((c) => !F.pick.has(c.uid)).length;
+  return `<section class="panel list" aria-label="あまった 子"><h2>あまった 子<small>ぜんぶで ${S.all.length} 体</small></h2>
+    <div class="fline" role="group" aria-label="しぼりこみと ならべかた">${chip("all", "すべて")}${chip("dup", "かぶり")}${CATS.map((r) => chip(r, r)).join("")}<span class="gap"></span>
+      <button class="chip" data-act="exsort" aria-label="ならべかた：${F.sort === "lv" ? "Lv の 低い順（押すと ランク順）" : "ランクの 低い順（押すと Lv順）"}">⇅ ${F.sort === "lv" ? "Lv順" : "ランク順"}</button></div>
+    ${list.length ? `<div class="fline">${sel ? `<button class="chip ghost" data-act="exall">見えている 子を ぜんぶ えらぶ<small>${sel}</small></button>` : ""}${F.pick.size ? `<button class="chip ghost" data-act="exnone">えらびを はずす</button>` : ""}</div>
+      <ul class="dex">${list.map(item).join("")}</ul>` : `<p class="lead">この しぼりこみの 子は いない</p>`}
+  </section>`;
+}
+function exSide() {
+  if (!S.all.length) return "";
+  const F = S.ex, picks = S.all.filter((c) => F.pick.has(c.uid));
+  if (!picks.length) return `<aside class="panel side" aria-label="抽出"><p class="say">一覧から 抽出する 子を えらぶ（いくつでも）</p></aside>`;
+  const got = {}; for (const c of picks) got[c.tree] = (got[c.tree] || 0) + essYield(c.tree);
+  const ess = ME.ess || {}, rows = Object.entries(got).sort((a, b) => b[1] - a[1]);
+  const total = rows.reduce((a, [, n]) => a + n, 0);
+  const li = ([t, n]) => `<li>${essIc(t, 36)}<span>${esc(essName(t))}<small>持って いる ${fmt(ess[t] || 0)} → ${fmt(Math.min(ESS_MAX, (ess[t] || 0) + n))}</small></span><span class="n">＋${n}</span></li>`;
+  const big = picks.filter((c) => (c.plus || 0) > 0 || c.gen || essRank(c.tree) >= 5);   // ＋の 子・配合で 生まれた 子・A 以上は ひとこと（大事な 子を まちがえて 手放さない）
+  return `<aside class="panel side" aria-label="抽出">
+    <div class="sum"><span>えらんだ 子<b>${picks.length}</b>体</span><span>エッセンス<b>${total}</b>こ</span></div>
+    <ul class="rows">${rows.slice(0, 6).map(li).join("")}${rows.length > 6 ? `<li class="more">ほか ${rows.length - 6} 種</li>` : ""}</ul>
+    ${big.length ? `<p class="warnline">大事そうな 子：${big.slice(0, 2).map((c) => esc(c.name) + (c.plus ? "＋" + c.plus : "")).join("・")}${big.length > 2 ? ` ほか ${big.length - 2} 体` : ""}</p>` : ""}
+    <p class="lead">${picks.length} 体とは おわかれ（付けて いた 装備は 持ち物に もどる）</p>
+    <button class="jelly ${F.sure ? "warn" : ""}" data-act="extract">${F.sure ? "もう 一度 押すと 抽出する" : "抽出する"}</button>
+  </aside>`;
+}
+
+// ---------- つくる ----------
+// 出すのは：持って いない・研究中で ない・（上位は もとの ツリーを 持って いる）・作れるか エッセンスが 1 こでも ある 物（特殊は 半分 より 多く）
+function recipes() {
+  const ess = ME.ess || {}, lab = ME.lab || [];
+  return [...ESS_RECIPES.filter((r) => !lab.includes(r.id) && !(ME.labQ || []).some((x) => x.tree === r.id) && r.req.every((t) => lab.includes(t))), ...comboRecipes(ME)]   // 複合は 両方の ツリーを 持って いて 半分 より 多く たまった 組だけ
+    .map((r) => { const p = essPlan(ess, r), tot = r.need.reduce((a, x) => a + x.n, 0), have = tot - p.short.reduce((a, s) => a + (s.n - s.have), 0), why = essWhy(ME, r);
+      return { r, p, tot, have, why, key: r.kind + ":" + r.id }; })
+    .filter((x) => !x.why || (x.r.kind === "special" ? x.have * 2 > x.tot : x.have > 0))   // 特殊は 半分を こえた 物だけ（系統の 枠が 1 つ うまった だけで 何十も 並ばない ように）
+    .sort((a, b) => (!!a.why - !!b.why) || b.have / b.tot - a.have / a.tot || (a.r.id < b.r.id ? -1 : 1));
+}
+const icTree = (r) => (r.kind === "evo" ? baseOf(r.id) : r.kind === "combo" ? ENEMY_TREES[r.id].combo[0] : r.id);
+const icTree2 = (r) => (r.kind === "combo" ? ENEMY_TREES[r.id].combo[1] : null);
+function mkList(all) {
+  const F = S.mk, list = all.filter((x) => F.f === "all" || x.r.kind === F.f);
+  if (!all.length) return `<section class="panel list"><h2>つくる</h2><p class="lead">エッセンスを 抽出すると、作れる 物が ここに 出る</p></section>`;
+  const chip = (v, label) => { const n = all.filter((x) => v === "all" || x.r.kind === v).length;
+    return `<button class="chip" data-act="mkf" data-v="${v}" aria-pressed="${F.f === v}" ${n === 0 && F.f !== v ? "disabled" : ""}>${label}<small>${n}</small></button>`; };
+  const card = (x) => { const T = ENEMY_TREES[x.r.id] || { name: x.r.id }, left = x.tot - x.have;
+    return `<button class="node ${x.why ? "" : "can"}" data-act="mkpick" data-v="${x.key}" aria-pressed="${F.sel === x.key}">${essIc(icTree(x.r), 44, x.r.kind === "evo", icTree2(x.r))}
+      <span><b>${esc(T.name)}</b><small class="${x.why ? "" : "ok"}">${x.why ? `${esc(KIND[x.r.kind])}・あと ${left}` : `${esc(KIND[x.r.kind])}・作れる`}</small><span class="bar"><i style="width:${Math.round((x.have / x.tot) * 100)}%"></i></span></span></button>`; };
+  return `<section class="panel list" aria-label="つくれる 物"><h2>つくる<small>アメジストなし・すぐ</small></h2>
+    <div class="fline" role="group" aria-label="しぼりこみ">${chip("all", "すべて")}${chip("sub", "サブツリー")}${chip("evo", "上位「＋」")}${chip("special", "特殊")}${chip("combo", "複合")}</div>
+    ${list.length ? `<div class="grid">${list.map(card).join("")}</div>` : `<p class="lead">この しゅるいで 作れそうな 物は まだ ない</p>`}
+  </section>`;
+}
+function mkSide(all) {
+  if (!all.length) return "";
+  const x = all.find((y) => y.key === S.mk.sel);
+  if (!x) return `<aside class="panel side" aria-label="つくる"><p class="say">一覧から 作る 物を えらぶ</p></aside>`;
+  const r = x.r, T = ENEMY_TREES[r.id] || { name: r.id, list: [] }, ess = ME.ess || {};
+  const famHave = (fam) => Object.entries(ess).filter(([t, n]) => n > 0 && famOf(t) === fam).reduce((a, [, n]) => a + n, 0);
+  const rows = r.need.map((p) => { const have = p.tree ? ess[p.tree] || 0 : famHave(p.fam), ok = have >= p.n;
+    const pic = p.tree || (SPECIES.find((x) => x.fam === p.fam) || {}).tree;   // 系統の 枠は その 系統の 代表の 種の 絵
+    return `<li class="${ok ? "" : "ng"}">${essIc(pic, 36)}<span>${p.tree ? esc(essName(p.tree)) : `${esc(famName(p.fam))}の エッセンス`}<small>${p.tree ? `${RANKS[essRank(p.tree)]}・${esc(spName(p.tree))}を 抽出` : "その 系統の どの 種でも"}</small></span><span class="n">${fmt(Math.min(have, p.n))} / ${p.n}</span></li>`; }).join("");
+  const famUse = r.need.some((p) => p.fam) && x.p.ok ? `<p class="lead">使う：${Object.entries(x.p.take).map(([t, n]) => `${esc(spName(t))} ${n}`).join("・")}</p>` : "";
+  const req = r.req.map((t) => `<p class="req ok">✓ 「${esc((ENEMY_TREES[t] || { name: t }).name)}」を 持って いる</p>`).join("");
+  const sk = (T.list || []).map((s) => `<li><i>${s.slot}</i><b>${esc(s.name)}</b><span>${esc(s.text || "")}</span></li>`).join("");
+  const sp = speciesOf(icTree(r)), duo = r.kind === "combo" ? T.combo : null;
+  const who = duo ? `<span>${esc(spName(duo[0]))} × ${esc(spName(duo[1]))}</span>` : sp ? `<span class="rkl">${RANKS[sp.rank]}</span><span>${esc(sp.name)}</span>` : "";
+  return `<aside class="panel side" aria-label="つくる" id="mkside">
+    <div class="dhead">${essIc(icTree(r), 56, r.kind === "evo", icTree2(r))}<div><h2>${esc(T.name)}</h2><p><span class="kd ${r.kind}">${esc(KIND[r.kind])}</span>${who}</p></div></div>
+    <ul class="rows">${rows}</ul>${famUse}${req}
+    ${sk ? `<details class="skl"><summary>技を 見る（${(T.list || []).length}）</summary><ul>${sk}</ul></details>` : ""}
+    ${x.why ? `<p class="why">${esc(x.why)}</p>` : `<button class="jelly" data-act="make">つくる</button>`}
+  </aside>`;
+}
+
+// ---------- 売る ----------
+const held = () => Object.entries(ME.ess || {}).filter(([, n]) => n > 0).map(([t, n]) => ({ t, n }));
+const treeDone = (t) => { const lab = ME.lab || []; return lab.includes(t) && (!ENEMY_TREES[t + "_ev"] || lab.includes(t + "_ev")); };   // その 種の サブツリーも「＋」も 持って いる
+function slList() {
+  const F = S.sl, all = held();
+  if (!all.length) return `<section class="panel list"><h2>売る</h2><p class="lead">エッセンスを 持って いない（抽出の タブで 作る）</p></section>`;
+  const inF = (x, v = F.f) => v === "all" || catOf(x.t) === v;
+  const list = all.filter((x) => inF(x)).sort(F.sort === "n" ? (a, b) => b.n - a.n || essPrice(b.t) - essPrice(a.t) : (a, b) => essPrice(b.t) - essPrice(a.t) || b.n - a.n);
+  const chip = (v, label) => { const n = all.filter((x) => inF(x, v)).length;
+    return `<button class="chip" data-act="slf" data-v="${v}" aria-pressed="${F.f === v}" ${n === 0 && F.f !== v ? "disabled" : ""}>${label}<small>${n}</small></button>`; };
+  const card = (x) => `<button class="node pick" data-act="slpick" data-v="${esc(x.t)}" aria-pressed="${F.pick.has(x.t)}">${essIc(x.t, 44)}
+      <span><b>${esc(spName(x.t))}</b><small>×${fmt(x.n)}・1 こ ${fmt(essPrice(x.t))}${treeDone(x.t) ? "・ツリー ずみ" : ""}</small></span></button>`;
+  return `<section class="panel list" aria-label="持って いる エッセンス"><h2>エッセンス<small>${all.length} 種</small></h2>
+    <div class="fline" role="group" aria-label="しぼりこみと ならべかた">${chip("all", "すべて")}${CATS.map((r) => chip(r, r)).join("")}<span class="gap"></span>
+      <button class="chip" data-act="slsort" aria-label="ならべかた：${F.sort === "n" ? "数の 多い順（押すと 売値の 高い順）" : "売値の 高い順（押すと 数の 多い順）"}">⇅ ${F.sort === "n" ? "数順" : "売値順"}</button></div>
+    ${list.length ? `<div class="grid">${list.map(card).join("")}</div>` : `<p class="lead">この しぼりこみの エッセンスは ない</p>`}
+  </section>`;
+}
+function slSide() {
+  const F = S.sl, ess = ME.ess || {}, picks = held().filter((x) => F.pick.has(x.t));
+  if (!held().length) return "";
+  if (!picks.length) return `<aside class="panel side" aria-label="売る"><p class="say">売る エッセンスを えらぶ（いくつでも）</p></aside>`;
+  if (picks.length === 1) {
+    const x = picks[0]; F.n = Math.max(1, Math.min(x.n, F.n | 0 || 1));
+    return `<aside class="panel side" aria-label="売る">
+      <div class="dhead">${essIc(x.t, 52)}<div><h2>${esc(essName(x.t))}</h2><p><span class="rkl">${RANKS[essRank(x.t)]}</span><span>持って いる ${fmt(x.n)} こ・1 こ ${fmt(essPrice(x.t))}</span></p></div></div>
+      <div class="stepper"><button class="sq" data-act="sldec" aria-label="1 こ へらす" ${F.n <= 1 ? "disabled" : ""}>−</button><input id="sln" type="number" inputmode="numeric" min="1" max="${x.n}" value="${F.n}" aria-label="売る 数"><button class="sq" data-act="slinc" aria-label="1 こ ふやす" ${F.n >= x.n ? "disabled" : ""}>＋</button><button class="all" data-act="slmax">ぜんぶ（${fmt(x.n)}）</button></div>
+      <div class="sum"><span>もらえる</span><span><b id="slpay">${fmt(F.n * essPrice(x.t))}</b>クレジット</span></div>
+      <button class="jelly" data-act="sell" id="slgo">${F.n} こ 売る</button>
+    </aside>`;
+  }
+  const pay = picks.reduce((a, x) => a + x.n * essPrice(x.t), 0), n = picks.reduce((a, x) => a + x.n, 0);
+  const li = (x) => `<li>${essIc(x.t, 36)}<span>${esc(spName(x.t))}<small>×${fmt(x.n)}・1 こ ${fmt(essPrice(x.t))}</small></span><span class="n">${fmt(x.n * essPrice(x.t))}</span></li>`;
+  return `<aside class="panel side" aria-label="売る">
+    <div class="sum"><span>えらんだ<b>${picks.length}</b>種</span><span><b>${fmt(n)}</b>こ</span></div>
+    <ul class="rows">${picks.slice(0, 6).map(li).join("")}${picks.length > 6 ? `<li class="more">ほか ${picks.length - 6} 種</li>` : ""}</ul>
+    <div class="sum"><span>もらえる</span><span><b>${fmt(pay)}</b>クレジット</span></div>
+    <button class="jelly ${F.sure ? "warn" : ""}" data-act="sellall">${F.sure ? "もう 一度 押すと ぜんぶ 売る" : "えらんだ 種を ぜんぶ 売る"}</button>
+  </aside>`;
+}
+
+// ---------- 画面 ----------
+function render() {
+  const app = document.getElementById("app");
+  if (ME.denied || ME.ok === false) { app.innerHTML = gateHtml(ME, esc); return; }
+  const lv = labLv();
+  const head = `<section class="panel head" aria-label="研究所"><h1>研究所${lv ? ` <small>Lv${lv}</small>` : ""}</h1>${lv ? `<a href="tame.html">なかまを 研究する（アメジスト） ›</a>` : ""}</section>`;
+  if (!lv) { app.innerHTML = head + `<section class="panel lockbox"><h2>研究所が まだ ない</h2><a href="hideout.html?f=lab">隠れ家で 研究所を 作る ›</a></section>`; return; }
+  const all = recipes(), canMake = all.filter((x) => !x.why).length, dup = dupSet().size;
+  if (S.tab === "make" && S.mk.sel && !all.some((x) => x.key === S.mk.sel)) S.mk.sel = null;
+  if (S.tab === "make" && !S.mk.sel && all.length && innerWidth > 820) S.mk.sel = all[0].key;   // PC は はじめの 物を えらんで おく（スマホは 押した 物だけ）
+  const T = [["ext", "抽出", dup], ["make", "つくる", canMake], ["sell", "売る", 0]];
+  const tabs = `<nav class="vtabs" role="tablist" aria-label="研究所で すること">${T.map(([k, l, n]) => `<button role="tab" data-act="tab" data-v="${k}" aria-selected="${S.tab === k}">${l}${n ? `<small aria-label="${k === "ext" ? `かぶりの 子 ${n} 体` : `作れる 物 ${n}`}">${n}</small>` : ""}</button>`).join("")}</nav>`;
+  const body = S.tab === "ext" ? `<div class="room multi">${exList()}${exSide()}</div>`
+    : S.tab === "make" ? `<div class="room single">${mkList(all)}${mkSide(all)}</div>`
+    : `<div class="room multi">${slList()}${slSide()}</div>`;
+  app.innerHTML = head + tabs + body;
+}
+
+let toastT = 0;
+const toast = (t) => { const el = document.getElementById("toast"); el.textContent = t; el.classList.add("on"); clearTimeout(toastT); toastT = setTimeout(() => el.classList.remove("on"), 4200); };
+async function ask(b, a, body, ok) {
+  const r = await busy(b, () => act(a, body));
+  if (!r.ok) toast(r.why || "できませんでした");
+  load(await me()); if (r.ok) ok(r);
+  render();
+}
+const slOne = () => held().find((x) => S.sl.pick.has(x.t));
+
+document.getElementById("app").addEventListener("click", async (e) => {
+  const b = e.target.closest("[data-act]"); if (!b || b.disabled) return;
+  const a = b.dataset.act, v = b.dataset.v;
+  if (a !== "extract") S.ex.sure = false;
+  if (a !== "sellall") S.sl.sure = false;
+  if (a === "tab") { S.tab = v; try { history.replaceState(null, "", `?tab=${v}`); } catch (er) {} }
+  // 抽出
+  if (a === "exf") S.ex.f = v;
+  if (a === "exsort") S.ex.sort = S.ex.sort === "lv" ? "rank" : "lv";
+  if (a === "expick") { const u = b.dataset.u; if (S.ex.pick.has(u)) S.ex.pick.delete(u); else S.ex.pick.add(u); }
+  if (a === "exall") { const dup = dupSet(); for (const c of S.all) if (!c.lock && inEx(c, S.ex.f, dup)) S.ex.pick.add(c.uid); }
+  if (a === "exnone") S.ex.pick.clear();
+  if (a === "extract") {
+    if (!S.ex.sure) S.ex.sure = true;   // 子とは おわかれ なので 2 回 押して 決める
+    else { const uids = [...S.ex.pick]; S.ex.sure = false;
+      return ask(b, "ess.extract", { uids }, (r) => { S.ex.pick.clear(); if (S.ex.f === "dup" && !dupSet().size) S.ex.f = "all"; const n = Object.values(r.got || {}).reduce((x, y) => x + y, 0); toast(`${r.n} 体から エッセンスを ${n} こ 抽出した`); }); }
+  }
+  // つくる
+  if (a === "mkf") S.mk.f = v;
+  if (a === "mkpick") { S.mk.sel = v; if (innerWidth <= 820) { render(); return document.getElementById("mkside")?.scrollIntoView({ behavior: "smooth", block: "start" }); } }
+  if (a === "make") { const i = S.mk.sel.indexOf(":"), kind = S.mk.sel.slice(0, i), id = S.mk.sel.slice(i + 1), name = (ENEMY_TREES[id] || { name: id }).name;   // 複合の id（cx:種+種）にも「:」が ある ので 最初の「:」で 分ける
+    return ask(b, "ess.make", { kind, id }, () => { S.mk.sel = null; toast(`「${name}」が できた。スキルツリーの サブツリーに 付けられる`); }); }
+  // 売る
+  if (a === "slf") S.sl.f = v;
+  if (a === "slsort") S.sl.sort = S.sl.sort === "n" ? "price" : "n";
+  if (a === "slpick") { if (S.sl.pick.has(v)) S.sl.pick.delete(v); else S.sl.pick.add(v); const one = slOne(); S.sl.n = one ? one.n : 1; }   // 1 種だけの ときは ぜんぶの 数から
+  if (a === "sldec") S.sl.n = Math.max(1, S.sl.n - 1);
+  if (a === "slinc") { const one = slOne(); S.sl.n = Math.min(one ? one.n : 1, S.sl.n + 1); }
+  if (a === "slmax") { const one = slOne(); S.sl.n = one ? one.n : 1; }
+  if (a === "sell") { const one = slOne(), n = S.sl.n;
+    return ask(b, "ess.sell", { tree: one.t, n }, (r) => { toast(`${essName(one.t)}を ${r.n} こ 売った（＋${fmt(r.paid)} クレジット）`); }); }
+  if (a === "sellall") {
+    if (!S.sl.sure) S.sl.sure = true;
+    else { const all = [...S.sl.pick]; S.sl.sure = false;
+      return ask(b, "ess.sell", { all }, (r) => { S.sl.pick.clear(); toast(`エッセンスを ${fmt(r.n)} こ 売った（＋${fmt(r.paid)} クレジット）`); }); }
+  }
+  render();
+  const again = document.querySelector(`[data-act="${a}"]${v !== undefined ? `[data-v="${CSS.escape(v)}"]` : ""}${b.dataset.u !== undefined ? `[data-u="${CSS.escape(b.dataset.u)}"]` : ""}`); if (again) again.focus();
+});
+// 売る 数：打った 数で 合計と ボタンを かえる（描きなおすと 打って いる 所が 消えるので、字だけ かえる）
+document.getElementById("app").addEventListener("input", (e) => {
+  if (e.target.id !== "sln") return; const one = slOne(); if (!one) return;
+  const n = Math.max(1, Math.min(one.n, Math.floor(Number(e.target.value)) || 1)); S.sl.n = n;
+  document.getElementById("slpay").textContent = fmt(n * essPrice(one.t)); document.getElementById("slgo").textContent = `${n} こ 売る`;
+});
+document.getElementById("app").addEventListener("change", (e) => { if (e.target.id === "sln") render(); });
+
+load(await me());
+render();
+window.ready = true;
+window.__lab = () => S;   // 試験の 道具から 見る
+</script>
+</body>
+</html>

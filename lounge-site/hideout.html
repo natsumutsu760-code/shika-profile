@@ -402,7 +402,7 @@ function buildingHtml(f, v) {
 const fxDiff = (now, next) => { const a = String(now).split("・"), d = String(next).split("・").filter((x) => !a.includes(x)); return d.length ? d.join("・") : next; };
 function detailHtml() {
   const f = F(S.sel), v = V(f.id), lv = v.lv, kn = hasKnob(f) && lv > 0, k = S.dragId === f.id && S.drag != null ? S.drag : v.knob;
-  const uses = `${f.id === "bench" && lv ? `<a class="use" href="bench.html">作業台を つかう</a>` : ""}${f.id === "armory" ? `<a class="use" href="equip.html">装備を 見る</a>` : ""}${f.id === "workshop" && lv ? `<a class="use" href="workshop.html">工房を つかう</a>` : ""}${f.id === "mine" && lv ? `<a class="use" href="mine.html">坑道を ひらく</a>` : ""}${f.id === "lab" && lv ? `<a class="use" href="tame.html">なかまを 研究する</a>` : ""}`;
+  const uses = `${f.id === "bench" && lv ? `<a class="use" href="bench.html">作業台を つかう</a>` : ""}${f.id === "armory" ? `<a class="use" href="equip.html">装備を 見る</a>` : ""}${f.id === "workshop" && lv ? `<a class="use" href="workshop.html">工房を つかう</a>` : ""}${f.id === "mine" && lv ? `<a class="use" href="mine.html">坑道を ひらく</a>` : ""}${f.id === "lab" && lv ? `<a class="use" href="lab.html">研究所を つかう</a>` : ""}`;
   const head = `<header style="--c:${COLOR[f.id]}">${icon(f.id)}<div><h2>${f.name} ${lvn(f.id)}</h2><p>${esc(f.text)}</p></div></header>${uses}`;
   const cook = f.id === "snack" && lv ? `<section class="craft" aria-label="おやつを 作る"><span class="need-h">おやつを 作る</span>${snackCraftHtml(v.knob, S.inv, { nut: S.items })}</section>` : "";   // おやつ工房：ここで 作る（なかまの 画面でも 同じ 物）
   const now = lv ? `<div class="nowbox"><p class="now"><small>いま${kn && k < lv ? `（つまみ Lv${k}）` : ""}</small><span data-fx>${esc(facFx(f.id, k))}</span></p>${kn ? knobHtml(f, v, k) : ""}</div>` : "";
