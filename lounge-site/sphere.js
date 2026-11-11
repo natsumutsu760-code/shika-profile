@@ -99,7 +99,7 @@ export function rollSphere(did, r) {
   for (;;) { const pool = r() < SPHERE_ODDS.land && fav.length ? fav : others(did, t.ops), op = pool[Math.floor(r() * pool.length)]; if (opAt(op, star)) return { op, star }; }
 }
 // 素材の OP 抽選 1 回（did：その 素材の 行き先。ex：もう 付いて いる OP〈同じ OP は 2 つ 付けない ので 引き直す〉）→ op
-export function rollDraw(matId, q, did, r, ex = []) {
+export function rollDraw(matId, q, did, r, ex = [], favUp = 0) {   // favUp：家具で 得意な OP が 出やすい
   const fav = MAT_OP[matId], land = SPHERE[did].ops.filter(opLive), f = opLive(fav) ? [fav] : land;
-  for (;;) { const x = r(), pool = x < DRAW.odds.fav && f.length ? f : x < DRAW.odds.fav + DRAW.odds.land && land.length ? land : others(did, [fav, ...SPHERE[did].ops]), op = pool[Math.floor(r() * pool.length)]; if (opAt(op, q) && !ex.includes(op)) return op; }
+  for (;;) { const x = r(), pool = x < DRAW.odds.fav + favUp && f.length ? f : x < DRAW.odds.fav + favUp + DRAW.odds.land && land.length ? land : others(did, [fav, ...SPHERE[did].ops]), op = pool[Math.floor(r() * pool.length)]; if (opAt(op, q) && !ex.includes(op)) return op; }
 }

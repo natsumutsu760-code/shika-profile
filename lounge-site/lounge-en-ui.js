@@ -3,6 +3,7 @@
 const n1 = (n, one, many) => (n === "1" ? `1 ${one}` : `${n} ${many}`);
 
 export const WORDS = {
+  "通信": "Transmission", "無線機が 知らない 周波数を 拾った。": "Your radio picked up an unknown frequency.", "あとで": "Later", "通信を 聞く": "Listen",
   "工事中": "Under construction", "MONO LINK の 大工事の あいだは、ラウンジの 部屋と ショップだけ 使えます": "While MONO LINK is under major construction, only your lounge room and the shop are open", "部屋へ": "To your room", "ショップへ": "To the shop", "工事中（MONO LINK の 大工事の あいだは、ラウンジの 部屋と ショップだけ 使えます）": "Under construction (while MONO LINK is under major construction, only your lounge room and the shop are open)",
   // ---- 通貨（wallet-bar.js）と 門番との やりとり（lounge-client.js） ----
   "玉": "Balls", "アメジスト": "Amethyst", "クレジット": "Credits",

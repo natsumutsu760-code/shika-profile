@@ -163,4 +163,13 @@ export function mapExtra(lv, mats, did, R) {
   });
   return { mats: out, gather, drop };
 }
+// 家具の 効果（採取・敵の 素材が ふえる 確率。furn-fx.js の gather・drop）。地図室の mapExtra と 同じ 数え方で、べつの くじ
+export function furnExtra(add, mats, did, R) {
+  const d = DUNGEONS_ALL.find((x) => x.id === did), gs = new Set(((GATHER[did] || {}).mats || []).map(([id]) => id));
+  const foe = new Set(((d && d.foes) || []).map((f) => (ENEMY_MAT[f.tree] || [])[0]));
+  let gather = 0, drop = 0;
+  const out = mats.map((m) => { const g = gs.has(m.id), f = foe.has(m.id), p = g ? add.gather || 0 : f ? add.drop || 0 : 0; if (!p) return m;
+    let k = 0; for (let i = 0; i < m.n; i++) if (R() < p) k++; if (g) gather += k; else drop += k; return k ? { ...m, n: m.n + k } : m; });
+  return { mats: out, gather, drop };
+}
 export const PC = { id: "pc", name: "PC", text: "DEEP LINK/: に 入れる。置くだけ（Lv なし）" };

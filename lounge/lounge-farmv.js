@@ -10,6 +10,9 @@ import { newField, plant, harvest, advance, setSoil, addXp, XP, inField, FERT, S
 import { sellPrice } from "./materials.js";
 import { putMats } from "./lounge-game.js";
 import { sale } from "./lounge-stock.js";
+import { growMs } from "./farm-core.js";
+import { fxOf } from "./lounge-furn.js";   // 部屋の 家具の 効果（2026-11-11。./furn-fx.js）
+
 
 export const SEED_BACK = [1, 2];                 // 生まれた 品種を 収穫した ときに とれる 種（Claude の 仮）
 export const FARM_SKINS = ["box", "greenhouse"];  // 畑の 見た目（lounge-proto/farm3d.js の SKINS と 同じ id。門番は three.js を 読まない）
@@ -21,7 +24,7 @@ export function ensureFarmv(rec, now = Date.now()) {
   return rec.farmv;
 }
 // 前に 進めた 時から now まで、1 時間ずつ かけ合わせを 進める
-function tick(rec, now, R) { const F = ensureFarmv(rec, now); advance(F.field, now, R, new Set(F.known)); return F; }
+function tick(rec, now, R) { const F = ensureFarmv(rec, now), cr = fxOf(rec, "cross"), co = fxOf(rec, "color"); if (cr || co) F.field.fx = { cross: cr, color: co }; else delete F.field.fx; advance(F.field, now, R, new Set(F.known)); return F; }   // fx：家具（鉢植え・じょうろ・ネオン）
 
 export function farmvPlant(rec, b, now, R) {
   if (!farmOpen()) return CLOSED;
@@ -34,6 +37,7 @@ export function farmvPlant(rec, b, now, R) {
   if (fert != null && !Object.prototype.hasOwnProperty.call(FERT, fert)) return { ok: false, why: "その 肥料は ない" };
   if (fert && !(((rec.items || {})[fert] || 0) > 0)) return { ok: false, why: "肥料が ない（工房で 作る）" };
   const r = plant(F.field, b.i, c.id, now, fert); if (!r.ok) return r;
+  { const cf = fxOf(rec, "crop"), cell = F.field.cells[b.i]; if (cf > 0 && cell) cell.at -= Math.round(growMs(c, F.field.soil, cell.fert) * cf); }   // 家具（コーヒーメーカー・観葉植物）：育つ 時間が 少し 短い
   rec.seeds[c.id]--; if (!rec.seeds[c.id]) delete rec.seeds[c.id];
   if (fert) rec.items[fert]--;
   return { ok: true };

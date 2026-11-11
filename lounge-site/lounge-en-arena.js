@@ -14,6 +14,11 @@ export const WORDS = {
   "前の 大会": "Last tournament", "試合中…": "Match in progress…", "守った": "Defended", "やられた": "Lost", "派遣先": "Expedition", "留守の あいだ": "While you were away", "まだ 記録が ない": "No records yet",
   "さがして います…": "Searching…", "相手を よんで います…": "Calling the opponent…", "よんで います…": "Calling…", "申しこんで います…": "Entering…", "とりけして います…": "Withdrawing…",
   "参加を やめました": "Withdrew", "いまは Orbit Arena に つながらない": "Can't reach the Orbit Arena right now", "その 戦いは もう ない": "That battle is gone",
+  // 格付け・LINKERS の 契約（2026-11-11）
+  "格付け": "Rank", "LINKERS の 格付け": "LINKERS rank", "まだ だれも 戦って いない": "Nobody has fought yet", "#点": "# pts", "毎週 月曜に 点が 1 割 へる": "Points shrink by 10% every Monday",
+  "契約中": "Under contract", "1 勝ごと": "Per win", "これまで": "So far", "ファイトマネー": "Fight money", "会社からの 申しこみ": "Company offers", "契約する": "Sign", "LINKERS の 契約": "LINKERS contract",
+  "格付けが C に なると 会社から 申しこみが 来る": "Reach rank C and companies will make offers", "格付けが C に なると 会社から 申しこみが 来る（Orbit Arena で 勝つ）": "Reach rank C and companies will make offers (win in the Orbit Arena)",
+  "契約して います…": "Signing…", "いまの 契約が 終わってから（1 社だけ）": "Wait until your current contract ends (one company at a time)", "その 会社からの 申しこみは ない": "No offer from that company",
   // ---- 戦いの 絵（battle-view.js） ----
   "ミス": "Miss", "浄化": "Cleanse", "はじけた": "Popped", "オート": "Auto", "▲バフ": "▲Buff", "がんばり": "Grit", "8 ターンで決着せず": "No result in 8 turns", "勝負あり！": "It's decided!",
   "（30 ターンでも決着せず・HP の割合）": "(no result in 30 turns · decided by HP %)",
@@ -29,6 +34,7 @@ export const WORDS = {
 const FX = (p, s) => p(s);   // 状態の 名前
 export const RULES = [
   // 闘技場
+  [/^([\d,]+) クレジット・好感度 ＋1（1 日 5 まで）$/, (m) => `${n1(m[1], "credit", "credits")} · standing +1 (up to 5 a day)`],
   [/^(.+) の 相棒$/, (m) => `${m[1]}'s partner`], [/^きょうは もう (\d+) 回 戦った（あした また）$/, (m) => `Already fought ${m[1]} times today (come back tomorrow)`],
   [/^クレジット(.*)$/, (m, p) => `Credits${m[1] ? " " + P(p, m[1]) : ""}`], [/^（(.+)に 勝った）$/, (m) => `(beat ${m[1]})`], [/^(.+)から 見る$/, (m, p) => `Watch from ${P(p, m[1])}`],
   [/^([\d,]+) クレジット(.*)$/, (m, p) => `${n1(m[1], "credit", "credits")}${m[2] ? " " + P(p, m[2]) : ""}`],
@@ -36,6 +42,12 @@ export const RULES = [
   [/^(\d+) 分前$/, (m) => `${m[1]} min ago`], [/^(\d+) 日前$/, (m) => `${n1(m[1], "day", "days")} ago`], [/^(\d+) 時間前$/, (m) => `${m[1]} h ago`],
   [/^(.+) の (.+)に$/, (m, p) => `vs ${m[1]}'s ${P(p, m[2])}:`], [/^(.+) の (.+)が 来た →$/, (m, p) => `${m[1]}'s ${P(p, m[2])} came →`],
   [/^(.+)で (.+) の (.+)と ばったり →(?: (勝った|負けた))?$/, (m, p) => `Ran into ${m[2]}'s ${P(p, m[3])} in ${P(p, m[1])} →${m[4] ? (m[4] === "勝った" ? " Won" : " Lost") : ""}`],
+  [/^戦った ([\d,]+) 人の 中で$/, (m) => `Among ${m[1]} fighters`], [/^([SABC]) 上 (\d+)%$/, (m) => `${m[1]} top ${m[2]}%`], [/^D のこり$/, () => "D rest"],
+  [/^勝ち ＋(\d+)・負け −(\d+)（デュエル・大会）$/, (m) => `Win +${m[1]} · loss −${m[2]} (duels and tournaments)`], [/^あと (\d+) 日$/, (m) => `${n1(m[1], "day", "days")} left`],
+  [/^([\d,]+) 勝・([\d,]+) クレジット$/, (m) => `${m[1]} wins · ${n1(m[2], "credit", "credits")}`],
+  [/^(\d+) 社だけ・(\d+) 日$/, (m) => `One company · ${n1(m[2], "day", "days")}`], [/^(SVA|ハルモニア|TCU)・1 勝 ([\d,]+) クレジット$/, (m) => `${m[1] === "ハルモニア" ? "Harmonia" : m[1]} · ${n1(m[2], "credit", "credits")} per win`],
+  [/^契約しました（(\d+) 日）$/, (m) => `Signed (${n1(m[1], "day", "days")})`],
+  [/^契約 ＋([\d,]+)・格付け ([SABCD])（([\d,]+) 点）$/, (m) => `Contract +${m[1]} · Rank ${m[2]} (${m[3]} pts)`], [/^契約 ＋([\d,]+)$/, (m) => `Contract +${m[1]}`], [/^格付け ([SABCD])（([\d,]+) 点）$/, (m) => `Rank ${m[1]} (${m[2]} pts)`],
   [/^(\d+) 勝 (\d+) 敗$/, (m) => `${m[1]}W ${m[2]}L`], [/^(.+) → (.+) の 勝ち$/, (m, p) => `${P(p, m[1])} → ${P(p, m[2])} wins`], [/^参加しました（きょう (\d+):00）$/, (m) => `Entered (today ${m[1]}:00 JST)`],
   // 戦いの 絵
   [/^デバフ (\d+) つ はじけた！$/, (m) => `${m[1]} debuffs popped!`], [/^ターン (\d+) は計算で進めた$/, (m) => `Turn ${m[1]} was simulated`],

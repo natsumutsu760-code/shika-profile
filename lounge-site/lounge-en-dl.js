@@ -4,6 +4,22 @@ const P = (p, s) => p(s) || s;
 const n1 = (n, one, many) => (n === "1" ? `1 ${one}` : `${n} ${many}`);
 
 export const WORDS = {
+  // 会社の 窓口（2026-11-11）
+  "家具": "Furniture", "リンデン家具工房（TCU）：部屋に 置いて いる 間だけ はたらく。となりあう 組み合わせで もっと": "Linden Furniture Works (TCU): works only while placed in your room. Neighbors combine for more",
+  "いま 部屋で はたらいて いる": "Working in your room now", "まだ ない（ラウンジの 部屋に 家具を 置く）": "None yet (place furniture in your lounge room)", "それだけでは はたらかない": "Does nothing on its own", "持って いる #": "Owned #", "買う": "Buy",
+  "精錬の 時間": "Smelting time", "作物の 育つ 時間": "Crop growth time", "かけ合わせ": "Crossbreeding", "色ちがい": "Color variants", "研究の 時間": "Research time", "研究の アメジスト": "Research amethyst", "開発で 高い ★": "High ★ in development", "OP 抽選で 良い OP": "Good OP in OP draws",
+  "おやつ ＋# こ": "+# snack", "休憩の 回復": "Rest recovery", "派遣の 経験値": "Trip EXP", "採取": "Gathering", "敵の 素材": "Enemy materials", "希少な 敵に 会う": "Meeting rare enemies", "力つきても 持ち帰る": "Keep loot on collapse", "預金の 利子": "Savings interest", "保険の 支払いが 届く 時間": "Insurance payout wait", "ファイトマネー": "Fight money", "格付けの 点": "Rating points",
+  "グループ": "Groups", "盟友": "Ally", "信頼": "Trusted", "なじみ": "Familiar", "冷たい": "Cold", "敵対": "Hostile", "値段 −#%": "Prices −#%", "値段 ＋#%": "Prices +#%", "ファイトマネー ＋#%": "Fight money +#%", "サンプル ＋#%": "Samples +#%", "トークン ×#.#": "Tokens ×#1.#2", "トークン ×#.##": "Tokens ×#1.#2",
+  "1 つが 上がると、ほかの 2 つは 半分 下がる。トークンを 持つと 上がりやすい（上乗せの 分は ほかを 下げない）": "When one rises, the other two drop by half. Holding tokens makes it rise faster (the bonus part does not lower the others)",
+  "上がる：その グループの 商人の 物語 ＋#・タスク ＋#・サービスに # クレジット 払うごとに ＋#（# 日 ＋# まで）": "Raise it: that group's trader story +3 · tasks +1 · +1 per 500 credits spent on services (up to +5 a day)",
+  "注文": "Orders", "クロロシス・バイオテック（ハルモニア）：畑の 作物を 買いとる。毎日 # 件・# 件 # 回": "Chlorosis Biotech (Harmonia): buys farm crops. #1 orders a day, once each", "足りない：あと #（畑で 育てる）": "Short #1 (grow it on the farm)", "あした また 出る": "New ones tomorrow", "届けた": "Delivered", "届けた：# クレジット": "Delivered: #1 credits", "みんなの 依頼で 作物を たのむと、手数料は クロロシスに 入る": "Crop requests on the board pay their fee to Chlorosis",
+  "会社の 窓口": "Company desks", "預金・鉱石": "Savings · Ores", "好感度・預金": "Standing · Savings", "顔の ない 会社の カウンター": "Counters of faceless companies", "預金": "Savings", "鉱石": "Ores", "利子": "Interest",
+  "セレナ信託（ハルモニア）：預金だけ。毎晩 #:# に 利子が たまる": "Serena Trust (Harmonia): savings only. Interest builds every night at 22:00",
+  "預けて いる": "Deposited", "たまった 利子": "Interest", "額": "Amount", "預ける": "Deposit", "引き出す": "Withdraw", "# から 利子が つく（# 日 #.#%）": "Interest starts at 100 (0.2% a day)",
+  "毎晩 ＋#（# 日 #.#%）": "+#1 every night (#3.#4% a day)", "ドルン鉱業（SVA）：ダンジョンで 出ない 鉱石を 売る。# 日 各 # こまで": "Dorn Mining (SVA): sells ores you cannot find in dungeons. Up to #2 each a day",
+  "派遣の 準備で 買う": "Buy when preparing a trip", "情報屋の 割引": "Info broker discount", "情報屋の 品 −#%": "Info broker items −#%", "ボーダーゾーンの 遭遇率 下げ": "Fewer Border Zone encounters", "遭遇戦 −#%": "Encounters −#%",
+  "侵入の 気配": "Intruder sense", "侵入の 阻止": "Block intruders", "出発の ときに、侵入が 起きるか（と その Lv）が わかる": "Shows at departure whether an intruder will come (and its Lv)", "この 派遣の 侵入 #%": "Intruder chance #% on this trip",
+  "招待が 届いた": "Invitation received", "無線機 Lv2 で 招待": "Invite at Radio Lv2",
   "商人": "Traders", "< ラウンジに もどる": "< Back to Lounge", "> 商人": "> Traders", "友好度 Lv#": "Rapport Lv#", "友好 ＋#": "Rapport +#", "みんなの依頼": "Requests board", "クローラー": "Crawler", "先行体験版": "Early access",
   "ごほうび": "Reward", "拾った物": "Found", "おわった": "Done", "報告する": "Report", "友好度": "Rapport", "タスク #": "Tasks #", "ショップ #": "Shop #", "タスク": "Tasks", "ショップ": "Shop",
   "いちばん上": "Max", "1 回だけ": "Once only", "今週": "This week", "来週": "Next week", "あした": "Tomorrow", "売る": "Sell", "交換する": "Trade", "買った": "Bought", "売り切れ": "Sold out",

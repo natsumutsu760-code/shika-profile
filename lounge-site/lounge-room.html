@@ -121,6 +121,29 @@ if (ME.denied || ME.ok === false) {
   document.querySelector("main").innerHTML = `<section class="panel" style="max-width:520px;margin:24px auto;text-align:center;padding:28px 24px"><h2 style="margin:0 0 8px">入れません</h2><p>${String(ME.why || "もう 1 回 開いて ください").replace(/[&<>"]/g, "")}</p>${ME.login ? `<p><a href="/">MONO LINK で ログイン</a></p>` : ""}</section>`;
   window.ready = true; await new Promise(() => {});
 }
+// 島 3 の 夜の 招待（2026-11-11 鹿さん「島3を解放した時点でイントロイベント発生、その際のフラグが立っておりません」）
+//   無線機が 島 3 に 届く 段（Lv2）に なると、部屋で 知らない 周波数からの 通信が 鳴る。聞くと クローラーの はじまり（UNKNOWN の 無線 → 誓約書に サイン → 門番の order.sign）
+//   「あとで」は この タブの あいだだけ しまう（サインするまで 次に 開いた ときも 鳴る）
+if (ME.order && ME.order.ready && !ME.order.signed) {
+  let later = false; try { later = sessionStorage.getItem("ml-order-later") === "1"; } catch (e) {}
+  if (!later) {
+    const st = document.createElement("style");
+    st.textContent = `#orderCall{position:fixed;inset:0;z-index:50;display:grid;place-items:center;padding:16px;background:#0B0E16C0}
+#orderCall .oc{width:min(440px,100%);background:#0E0F12;color:#E8ECF4;border:1px solid #2A3040;border-radius:10px;padding:20px 18px;display:grid;gap:14px}
+#orderCall .who{font:600 12px/1 var(--num);letter-spacing:.18em;color:#8C93A8;display:flex;gap:10px;align-items:center}
+#orderCall .em{width:28px;height:28px;border-radius:6px;border:1px dashed #ffffff44}
+#orderCall p{margin:0;font-size:16px;line-height:1.8}
+#orderCall .row{display:flex;gap:10px;justify-content:flex-end;flex-wrap:wrap}
+#orderCall a,#orderCall button{min-height:40px;padding:8px 16px;border-radius:8px;font:600 14px var(--jp);text-decoration:none;cursor:pointer}
+#orderCall a{background:var(--sky);color:#fff;border:0;display:inline-flex;align-items:center}
+#orderCall button{background:none;color:#B9C0D2;border:1px solid #3A4152}`;
+    document.head.appendChild(st);
+    const d = document.createElement("div"); d.id = "orderCall";
+    d.innerHTML = `<div class="oc" role="dialog" aria-modal="true" aria-label="通信"><div class="who"><span class="em" aria-hidden="true"></span>UNKNOWN</div><p>無線機が 知らない 周波数を 拾った。</p><div class="row"><button type="button" id="ocLater">あとで</button><a href="crawler.html" id="ocGo">通信を 聞く</a></div></div>`;
+    document.body.appendChild(d);
+    d.querySelector("#ocLater").onclick = () => { try { sessionStorage.setItem("ml-order-later", "1"); } catch (e) {} d.remove(); };
+  }
+}
 const GDN = !ME.lock && !!ME.farmv;   // 庭への扉（新しい 農園）：農園が 開いて いて、ロックで とめられて いない 人だけ（いまは 鹿さんと おたこまるさん）
 const MP = ME.pets && ME.pets[0];   // 1 匹目（まだ いなければ 部屋には いない。ふだは「ペットを むかえる」）
 let OWN = (ME.own && ME.own.furniture) || {};   // お店（lounge-shop.html）で 買うと ふえる

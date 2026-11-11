@@ -123,7 +123,7 @@ export function crossHour(field, now, R, known) {
   field.cells.forEach((cell, i) => {
     if (cell || !inField(field.lv, i)) return;
     for (const { child } of crossCandidates(field, i, now)) {
-      if (R() < crossChance(child, field.soil, field.lv)) { field.cells[i] = { id: child.id, at: now, cross: true }; born.push({ i, id: child.id, isNew: known ? !known.has(child.id) : false }); break; }
+      if (R() < crossChance(child, field.soil, field.lv) * (1 + ((field.fx && field.fx.cross) || 0))) { field.cells[i] = { id: child.id, at: now, cross: true }; born.push({ i, id: child.id, isNew: known ? !known.has(child.id) : false }); break; }
     }
   });
   return born;
@@ -183,7 +183,7 @@ export function harvest(field, i, now, R) {
     field.cells[i] = null; return { ok: true, items: [], gone: a.kind };   // 枯れた（wither）・逃げた（flee）
   }
   const fx = soilFx(field.soil, c), n = Math.max(1, c.get[0] + Math.floor(R() * (c.get[1] - c.get[0] + 1)) + fx.get);
-  const x = R(), color = x < COLOR_RATE.rainbow * fx.color ? "rainbow" : x < (COLOR_RATE.rainbow + COLOR_RATE.gold) * fx.color ? "gold" : null;
+  const cm = fx.color * (1 + ((field.fx && field.fx.color) || 0)), x = R(), color = x < COLOR_RATE.rainbow * cm ? "rainbow" : x < (COLOR_RATE.rainbow + COLOR_RATE.gold) * cm ? "gold" : null;   // field.fx：家具
   const out = {}, qw = SPR_Q[Math.min(3, sprTier(field, i) + ((FERT[cell.fert] || {}).q || 0))];
   for (let k = 0; k < n; k++) { const q = color === "rainbow" ? 5 : color === "gold" ? 4 : Math.min(5, pickW(R, qw) + (R() < qualityBonus(field.lv) ? 1 : 0)); out[q] = (out[q] || 0) + 1; }
   field.cells[i] = null;

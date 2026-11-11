@@ -5,6 +5,13 @@ const P = (p, s) => p(s) || s;   // 名前（訳せなければ そのまま）
 
 export const WORDS = {
   "出る 敵と 物を 見る": "See enemies and drops",   // 2026-11-05
+  // 情報屋・運び屋（2026-11-11）
+  "情報屋・運び屋": "Info broker & courier", "情報屋": "Info broker", "運び屋": "Courier", "# つ": "#", "クレジット #": "# credits",
+  "侵入の 気配": "Intruder sense", "侵入の 阻止": "Block intruders", "侵入が 起きるか わかる": "Shows if an intruder will come", "侵入 0%": "Intruders 0%", "希少な 敵 ×#": "Rare enemies ×#", "侵入 #% → #%": "Intruders #1% → #2%",
+  "侵入や 希少な 敵の 出方を かえる": "Change how intruders and rare enemies appear", "侵入の 呼び寄せは ヨルの 第 # 章で 開く": "Call an intruder unlocks in Yoru's Chapter #",
+  "先送り # 回": "Ship ahead ×#", "早足": "Quick march", "派遣の まんなかで 素材を # こ 倉庫へ": "Halfway through, # materials go to storage", "派遣の #/# と #/# で 素材を # こずつ 倉庫へ": "At 1/3 and 2/3 of the trip, #5 materials each go to storage",
+  "先送り：拾った 素材を 途中で 倉庫へ": "Ship ahead: send materials to storage mid-trip", "力つきても のこる": "kept even if you collapse", "早足：# 割 早く 帰る": "Quick march: back #0% sooner",
+  "侵入の 気配：あり（Lv#）": "Intruder sense: yes (Lv#)", "侵入の 気配：なし": "Intruder sense: none",
   "保険": "Insurance", "なし": "None", "ふつう": "Basic", "手厚い": "Full", "力つきると 集めた 素材を ぜんぶ 失う": "If you collapse, you lose all the materials you gathered", "手厚い 保険は ミネルバの 店で 開く": "Full insurance unlocks at Minerva's shop",
   // 島（ビサイ諸島）
   "マッサラ島": "Massara Island", "ビサイ諸島": "Bisai Isles", "ニライ村": "Nirai Village", "島": "Island", "隠れ家に 無線機を 作ると 行ける": "Build a Radio in your hideout to go here",

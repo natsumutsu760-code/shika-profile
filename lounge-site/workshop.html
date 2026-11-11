@@ -111,7 +111,7 @@ import "./lounge-en.js";   // 英語の 画面（MONO LINK の サイトの EN�
 import { mountCraftNav } from "./craft-nav.js";
 import "./mat-pop.js";   // 素材を 押すと 手に入る 所（2026-11-05） mountCraftNav("workshop");   // クラフトの 施設を 1 回で 切りかえる 札（鹿さんの 頼み 2026-11-05）
 import { craftPop } from "./craft-pop.js";   // えらんだ 物を 作る ポップアップ（2026-11-05）
-import { WS_ITEMS, wsOpen, wsLvOk, WS_MAX, ATT_BASES, ATT_KINDS, attStarW, attOpN, SMELT, SMELT_MAX, furnaces, smeltOf, smeltDone, WS_PROC, PROC_MAX, procOpen, procOf } from "./workshop.js";
+import { WS_ITEMS, wsOpen, wsLvOk, WS_MAX, ATT_BASES, ATT_KINDS, attStarW, attOpN, SMELT, SMELT_MAX, SMELT_COAL, furnaces, smeltOf, smeltDone, WS_PROC, PROC_MAX, procOpen, procOf } from "./workshop.js";
 import { facLv, upkeep, BAND_AT } from "./facilities.js";   // 施設の 作り直し（2026-11-03）：工房 Lv1〜100・つまみ・作る たびの 維持費（道具と アタッチメント）。r.lv は 段（Lv1・20・50・80）
 import { OPS } from "./equip.js";
 import { TOOLS } from "./dungeons.js";
@@ -196,6 +196,14 @@ function madeHtml() {
   return `<div class="made"><span class="ic">${wsIcon(a.base)}</span><div><h3><small>できた！</small>${esc(b.name)} ${stars(a.star)}</h3><ul>${a.ops.map((o) => `<li>${esc(OPS[o].fmt(OPS[o].v[a.star - 1]))}</li>`).join("")}</ul><a href="equip.html">武器に 付ける ›</a></div></div>`;
 }
 // 精錬：延べ棒を えらぶと 使う物と「炉に 入れる」、炉を えらぶと できた 数と「受けとる」
+// 石炭を くべる（2026-11-11 鹿さん「石炭で精錬が早く終わる仕組みも作り実装してください」）：1 こで 15 分 早く。いる 分だけ 使う
+const coalHave = () => S.mats.filter((m) => m.id === SMELT_COAL.id).reduce((a, m) => a + m.n, 0);
+function coalHtml(i, d, now) {
+  const need = Math.ceil(Math.max(0, d.end - now) / (SMELT_COAL.min * 60000)), have = coalHave(), all = Math.min(need, have, SMELT_COAL.max);
+  return `<div class="coal"><span class="need-h">石炭を くべる<small>1 こで ${SMELT_COAL.min} 分 早く・持って いる ${have} こ</small></span>
+    <div class="picks"><button data-coal="${i}" data-n="1" ${have ? "" : "disabled"}>1 こ</button>${all > 1 ? `<button data-coal="${i}" data-n="${all}">${all} こ${all >= need ? "（ぜんぶ できる）" : ""}</button>` : ""}</div>
+    ${have ? "" : `<p class="why">石炭は 坑道か ドルン鉱業（DEEP LINK/: の 窓口）で</p>`}</div>`;
+}
 function smeltDetail(k) {
   if (!S.built) return `<div class="lockbox"><p>工房が まだ ない</p><a href="hideout.html?f=workshop">隠れ家で 工房を 作る</a></div>`;
   if (k.startsWith("f:")) {
@@ -205,6 +213,7 @@ function smeltDetail(k) {
     return head + `<div class="furn-now"><span><b>${d.done} / ${d.done + d.left}</b> 本 できた</span><div class="prog"><i style="width:${Math.round((d.done / (d.done + d.left)) * 100)}%"></i></div>
       <span>${d.left ? `つぎの 1 本 あと ${dur(d.next - now)}・ぜんぶ ${clock(d.end)}` : "ぜんぶ できた"}</span></div>
       <button class="jelly" data-take="${i}" ${d.done ? "" : "disabled"}>受けとる${d.done ? `（${d.done} 本）` : ""}</button>
+      ${d.left ? coalHtml(i, d, now) : ""}
       ${d.left ? `<button class="sub-act${S.stopArm === i ? " arm" : ""}" data-stop="${i}">${S.stopArm === i ? "もう 1 回 押すと やめる（まだの 分の 鉱石は もどる）" : "やめる"}</button>` : ""}`;
   }
   const r = R(k), n = Math.max(1, Math.min(S.n, SMELT_MAX)), max = canN(k), free = Array.from({ length: furnaces(S.built) }, (_, i) => i).find((i) => !S.smelt[i]);
@@ -259,6 +268,11 @@ document.querySelector("main").addEventListener("click", async (e) => {
     const res = await busy(b, () => act("smelt.put", { slot, id: b.dataset.smelt, n }), "入れて います…");
     if (!res.ok) return toast(res.why || "入れられませんでした");
     load(await me()); S.sel = "f:" + slot; S.n = 1; render(); return toast(`炉 ${slot + 1} に 入れた（ぜんぶ ${clock(res.end)}）`);
+  }
+  if (b.dataset.coal) {
+    const res = await busy(b, () => act("smelt.coal", { slot: +b.dataset.coal, n: +b.dataset.n }), "くべて います…");
+    if (!res.ok) return toast(res.why || "くべられませんでした");
+    load(await me()); render(); return toast(`石炭を ${res.used} こ くべた（${res.used * SMELT_COAL.min} 分 早く）`);
   }
   if (b.dataset.take) {
     const res = await busy(b, () => act("smelt.take", { slot: +b.dataset.take }), "受けとって います…");

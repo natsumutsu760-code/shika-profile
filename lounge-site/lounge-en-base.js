@@ -4,6 +4,8 @@ const P = (p, s) => p(s) || s;
 const n1 = (n, one, many) => (n === "1" ? `1 ${one}` : `${n} ${many}`);
 
 export const WORDS = {
+  // 石炭を くべる（工房の 炉。2026-11-11）
+  "石炭を くべる": "Add coal", "# こで # 分 早く・持って いる # こ": "#1 coal = #2 min sooner · you have #3", "# こ（ぜんぶ できる）": "# (finishes all)", "石炭は 坑道か ドルン鉱業（DEEP LINK/: の 窓口）で": "Get coal from the mine or Dorn Mining (DEEP LINK/: desks)",
   "品質なし": "Unrated", "×#・# こ #": "×#1 · #3 each",   // スタッシュの 売る 小窓（2026-11-07）
   // 素材の 手に入る 所（mat-pop.js。2026-11-05）
   "手に入る 所": "Where to get it", "持って いる #": "You have #", "行く ›": "Go ›", "とじる": "Close", "まだ 手に入る 所の 記録が ない": "No known source yet", "ほか # か所": "# more places",

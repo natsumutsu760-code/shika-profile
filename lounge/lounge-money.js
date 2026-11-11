@@ -44,12 +44,12 @@ export function cashDo(rec, b, open = CASH.open) {
   rec.cash ||= { done: {}, order: [] };
   if (Object.prototype.hasOwnProperty.call(rec.cash.done, mid)) return { ...rec.cash.done[mid], again: true };
   const n = Number.isInteger(b.n) && b.n >= 1 && b.n <= CASH.max ? b.n : 0;
-  let r;
+  let r, ev = null;
   if (!open) r = { ok: false, why: "MONO LINK の 公開の あとで 使える" };
   else if (b.kind === "cash") {
     const u = Math.floor(n / CASH.perBalls);
     if (u < 1) r = { ok: false, why: `換金は 玉 ${CASH.perBalls} こから（${CASH.perBalls} 玉 → ${CASH.credits} クレジット）` };
-    else { rec.credits = (rec.credits || 0) + u * CASH.credits; sale(rec, "NOX", u * CASH.credits); r = { ok: true, kind: "cash", balls: u * CASH.perBalls, credits: u * CASH.credits }; }
+    else { rec.credits = (rec.credits || 0) + u * CASH.credits; sale(rec, "NOX", u * CASH.credits); r = { ok: true, kind: "cash", balls: u * CASH.perBalls, credits: u * CASH.credits }; ev = { type: "cash", n: 1 }; }   // ev：主タスク「鹿物語で !換金 を N 回」（門番が 数える。同じ 頼みの やりなおしでは 数えない）
   } else if (b.kind === "lend") {
     const cost = n * CASH.lend;
     if (!n) r = { ok: false, why: "借りる 玉の 数を 入れて" };
@@ -58,5 +58,5 @@ export function cashDo(rec, b, open = CASH.open) {
   } else r = { ok: false, why: "こわれた 頼み" };
   rec.cash.done[mid] = r; rec.cash.order.push(mid);
   while (rec.cash.order.length > CASH.keep) delete rec.cash.done[rec.cash.order.shift()];
-  return { ...r, save: true };
+  return { ...r, save: true, ...(ev ? { ev } : {}) };
 }

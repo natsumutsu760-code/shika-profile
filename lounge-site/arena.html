@@ -99,7 +99,15 @@
   .log li { display:grid; grid-template-columns:28px minmax(0, 1fr) auto; gap:10px; align-items:center; padding:8px 4px; border-bottom:1.5px solid var(--line); font:700 13.5px/1.4 var(--jp); }
   .log li:last-child { border-bottom:0; } .log .ic { font-size:18px; text-align:center; } .log small { font:600 12px/1 var(--num); color:var(--soft); }
   .log .ok { color:#0E8F5A; font-weight:900; } .log .ng { color:#9AA1B8; font-weight:900; }
-  @media (max-width:860px) { .tour { grid-template-columns:minmax(0, 1fr); } }
+  /* 格付け・LINKERS の 契約（2026-11-11）*/
+  .rank { display:grid; grid-template-columns:minmax(0, 1fr) minmax(0, 1.2fr); gap:14px; align-items:start; }
+  .rk { display:flex; align-items:center; gap:16px; } .rk .ltr { font:400 64px/1 var(--pop); color:var(--ar); min-width:56px; text-align:center; } .rk.d .ltr { color:#9AA1B8; }
+  .rk p { font:800 13px/1.5 var(--jp); color:var(--soft); } .rk p b { font:600 26px/1.1 var(--num); color:var(--ink); margin-right:4px; }
+  .ladder { display:flex; gap:6px; flex-wrap:wrap; } .ladder span { padding:3px 10px; border-radius:99px; background:#fff; font:800 12px/1.4 var(--jp); color:var(--soft); } .ladder span.on { background:var(--ar); color:#fff; }
+  .offer { display:grid; grid-template-columns:minmax(0, 1fr) auto; gap:4px 12px; align-items:center; padding:10px 14px; border-radius:16px; background:#fff; }
+  .offer b { font:900 15px/1.3 var(--jp); } .offer small { grid-column:1; font:700 12px/1.4 var(--jp); color:var(--soft); } .offer .jelly { grid-row:1 / span 2; grid-column:2; width:auto; padding:10px 16px; }
+  .ctr { display:grid; grid-template-columns:auto 1fr; gap:4px 12px; font:700 13px/1.5 var(--jp); } .ctr span:nth-child(odd) { color:var(--soft); font-weight:800; }
+  @media (max-width:860px) { .tour, .rank { grid-template-columns:minmax(0, 1fr); } }
   .more summary { cursor:pointer; margin-top:10px; font:900 13px/1.4 var(--jp); color:#1E6FB0; } .more .round:first-of-type { margin-top:8px; }
   @media (max-width:640px) {
     .ahead h2 { width:100%; font-size:22px; } .gtabs { flex-wrap:nowrap; } .gtabs button { padding:7px 11px; font-size:13px; }
@@ -130,7 +138,7 @@ import "./lounge-en.js";   // 英語の 画面（MONO LINK の サイトの EN�
 import { PETS } from "./quiz.js";
 import { TYPES } from "./skills.js";
 import { simulate } from "./battle-sim.js";
-import { DUEL, duelPay, tierOf, TIERS, TOUR, TOUR_PAY, roundName } from "./arena.js";
+import { DUEL, duelPay, tierOf, TIERS, TOUR, TOUR_PAY, roundName, RATE, RATE_RANKS, LINK } from "./arena.js";
 import { petInfo, linkTabs, gateHtml, addGateCss } from "./pet-head.js";
 import { DUNGEONS } from "./dungeons.js";
 import { me, act, busy } from "./lounge-client.js";   // 名簿・相手・大会・戦いの くじは 門番（相手の いまの 強さも 門番が 組み立てる）
@@ -140,7 +148,7 @@ addGateCss();
 const q = new URLSearchParams(location.search);
 const fmt = (n) => Number(n || 0).toLocaleString("ja-JP");
 const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
-const TABS = [["duel", "デュエル"], ["tour", "トーナメント"], ["log", "記録"]];
+const TABS = [["duel", "デュエル"], ["tour", "トーナメント"], ["rank", "格付け"], ["log", "記録"]];
 const S = { tab: TABS.some(([k]) => k === q.get("t")) ? q.get("t") : "duel", V: null, fight: null };
 const main = document.getElementById("main");
 const imgOf = (qid) => (PETS[qid] || PETS.nemu).img;
@@ -155,15 +163,15 @@ function petHtml() {
     <div class="pow">強さ<b>${fmt(V.me.power)}</b></div></section>
   <nav class="tabs" role="tablist"><button role="tab" aria-selected="false">ステータス</button><button role="tab" aria-selected="false">スキルツリー</button><button role="tab" aria-selected="false">ガンビット</button><button role="tab" aria-selected="false">装備</button><button role="tab" aria-selected="false">冒険</button><button role="tab" aria-selected="false">なかま</button><button role="tab" aria-selected="true">Orbit Arena</button></nav>`;
 }
-const tabBadge = (k) => { const V = S.V; if (k === "duel") return V.left.paid > 0 && V.foes.length ? V.left.paid : 0; if (k === "tour") return V.tour && V.tour.state === "open" && !V.tour.entered ? 1 : 0; return 0; };
+const tabBadge = (k) => { const V = S.V; if (k === "rank") return V.lk && !V.lk.link && V.lk.offers.length ? 1 : 0; if (k === "duel") return V.left.paid > 0 && V.foes.length ? V.left.paid : 0; if (k === "tour") return V.tour && V.tour.state === "open" && !V.tour.entered ? 1 : 0; return 0; };
 
 // ---------- デュエル ----------
 function payHtml(c) {
   const V = S.V;
   if (V.beat.includes(c.id)) return `<p class="pay none">きょうは もらった</p>`;
   if (V.left.paid <= 0) return `<p class="pay none">ごほうび なし</p>`;
-  const p = duelPay(V.me.power, c.power);
-  return `<p class="pay">+${fmt(p.credits)}<small> クレジット</small>${p.res ? `<small>＋アメジスト ${p.res}</small>` : ""}</p>`;
+  const p = duelPay(V.me.power, c.power), bonus = (V.lk && V.lk.bonus) || 0;   // ファイトマネーの 上乗せ（契約・家具）
+  return `<p class="pay">+${fmt(Math.round(p.credits * (1 + bonus)))}<small> クレジット</small>${p.res ? `<small>＋アメジスト ${p.res}</small>` : ""}</p>`;
 }
 function foeHtml(c) {
   const t = tierOf(S.V.me.power, c.power), label = TIERS.find(([k]) => k === t)[1], over = S.V.left.duels <= 0;
@@ -186,7 +194,8 @@ function resultHtml() {
   const F = S.fight, r = F.r;
   if (F.kind === "match") return `<div class="result win"><span class="big">勝負あり</span><p>${esc(F.title)}</p><button class="mini" data-do="back">もどる</button></div>`;
   const pay = r.pay ? `<b>+${fmt(r.pay.credits)}</b> クレジット${r.pay.res ? `・アメジスト ＋${r.pay.res}` : ""}${r.pay.label ? `（${r.pay.label}に 勝った）` : ""}` : r.win ? "ごほうびは なし（きょうの 分は もらった）" : "何も へらない";
-  return `<div class="result ${r.win ? "win" : "lose"}"><span class="big">${r.win ? (r.upset ? "下克上！" : "勝ち！") : "負け…"}</span><p>${pay}</p><button class="jelly" data-do="back" style="width:auto;padding:12px 22px">つぎの 相手へ</button></div>`;
+  const extra = [r.link && `契約 ＋${fmt(r.link.pay)}`, r.rate && `格付け ${r.rate.rank}（${fmt(r.rate.pt)} 点）`].filter(Boolean).join("・");
+  return `<div class="result ${r.win ? "win" : "lose"}"><span class="big">${r.win ? (r.upset ? "下克上！" : "勝ち！") : "負け…"}</span><p>${pay}${extra ? `<br><small>${extra}</small>` : ""}</p><button class="jelly" data-do="back" style="width:auto;padding:12px 22px">つぎの 相手へ</button></div>`;
 }
 // 3D で 見せる（門番と 同じ 種で 計算しなおす。ちがう 結果に なったら 3D は 出さずに 結果だけ）
 async function showFight(A, B, seed, win) {
@@ -226,6 +235,23 @@ function tourHtml() {
   return `<div class="tour">${now}${last}</div>`;
 }
 
+// ---------- 格付け・LINKERS の 契約（2026-11-11。lounge-arena.js の 点・lounge-link.js の 契約）----------
+const GNAME = { sva: "SVA", harmonia: "ハルモニア", tcu: "TCU" };
+function rankHtml() {
+  const K = S.V.lk || { rate: null, link: null, offers: [], bonus: 0, pay: LINK.pay }, R = K.rate || { pt: 0, rank: "D", f: 0, n: 0 };
+  const card = `<div class="box"><h3>LINKERS の 格付け<small>${R.n ? `戦った ${fmt(R.n)} 人の 中で` : "まだ だれも 戦って いない"}</small></h3>
+      <div class="rk ${R.rank === "D" ? "d" : ""}"><span class="ltr">${R.rank}</span><p><b>${fmt(R.pt)}</b>点<br>勝ち ＋${RATE.win}・負け −${RATE.lose}（デュエル・大会）</p></div>
+      <div class="ladder">${[...RATE_RANKS.map(([k, p]) => [k, `上 ${Math.round(p * 100)}%`]), ["D", "のこり"]].map(([k, t]) => `<span class="${R.rank === k ? "on" : ""}">${k} ${t}</span>`).join("")}</div>
+      <p class="count"><small>毎週 月曜に 点が 1 割 へる</small></p></div>`;
+  const L = K.link, days = L ? Math.max(0, Math.ceil((L.until - Date.now()) / 864e5)) : 0;
+  const right = L ? `<div class="box"><h3>契約中<small>あと ${days} 日</small></h3><p class="place">${esc(L.name)}</p>
+      <div class="ctr"><span>1 勝ごと</span><span>${fmt(L.per)} クレジット・好感度 ＋1（1 日 5 まで）</span><span>これまで</span><span>${fmt(L.wins)} 勝・${fmt(L.paid)} クレジット</span>${K.bonus ? `<span>ファイトマネー</span><span>＋${Math.round(K.bonus * 100)}%</span>` : ""}</div></div>`
+    : K.offers.length ? `<div class="box"><h3>会社からの 申しこみ<small>1 社だけ・${LINK.days} 日</small></h3>
+      ${K.offers.map((o) => `<div class="offer"><b>${esc(o.name)}</b><small>${GNAME[o.g] || ""}・1 勝 ${fmt(K.pay[R.rank] || K.pay.C)} クレジット</small><button class="jelly" data-link="${esc(o.co)}">契約する</button></div>`).join("")}</div>`
+    : `<div class="box"><h3>LINKERS の 契約</h3><div class="empty"><p>格付けが C に なると 会社から 申しこみが 来る</p></div></div>`;
+  return `<div class="rank">${card}${right}</div>`;
+}
+
 // ---------- 記録 ----------
 function logHtml() {
   const V = S.V, ago = (t) => { const m = Math.floor((Date.now() - t) / 60000); return m < 60 ? `${m} 分前` : m < 1440 ? `${Math.floor(m / 60)} 時間前` : `${Math.floor(m / 1440)} 日前`; };
@@ -237,7 +263,7 @@ function logHtml() {
 }
 
 function render() {
-  const body = S.tab === "duel" ? duelHtml() : S.tab === "tour" ? tourHtml() : logHtml();
+  const body = S.tab === "duel" ? duelHtml() : S.tab === "tour" ? tourHtml() : S.tab === "rank" ? rankHtml() : logHtml();
   main.innerHTML = petHtml() + `<section class="panel"><div class="ahead"><h2>Orbit Arena</h2><div class="gtabs" role="tablist">${TABS.map(([k, label]) => { const n = tabBadge(k); return `<button role="tab" data-tab="${k}" aria-selected="${S.tab === k}">${label}${n ? `<em>${n}</em>` : ""}</button>`; }).join("")}</div></div><div id="body">${body}</div></section>`;
   linkTabs(main);
 }
@@ -273,6 +299,11 @@ main.addEventListener("click", async (e) => {
   }
   if (d.do === "skip" && S.fight && S.fight.view) return S.fight.view.skip();
   if (d.do === "back") { if (S.fight && S.fight.view) S.fight.view.destroy(); const was = S.fight && S.fight.kind; S.fight = null; if (was === "duel") await reload(); return render(); }
+  if (d.link) {   // LINKERS の 契約
+    const r = await busy(b, () => act("link.sign", { co: d.link }), "契約して います…");
+    if (!r.ok) return toast(r.why || "できませんでした");
+    await reload(); toast(`契約しました（${LINK.days} 日）`); return render();
+  }
   if (d.entry != null) {
     const r = await busy(b, () => act("arena.entry", { on: d.entry === "1" }), d.entry === "1" ? "申しこんで います…" : "とりけして います…");
     if (!r.ok) return toast(r.why || "できませんでした");

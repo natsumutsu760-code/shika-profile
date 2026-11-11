@@ -1,10 +1,12 @@
 // 工房（鹿さんの頼み、2026-10-25）：道具・品を 作る（ws.make）・武器の アタッチメントを 作る（ws.att）・付ける（att.set）・はずす（att.off）・すてる（att.drop）
 // 決まりの 中身は 見本の lounge-proto/workshop.js。支払いは 素材 ＋ クレジット（帳簿を 使わない ので その場で 決まる）
 // アタッチメントは 記録の own.att に { uid, base, star, ops, on }（on：付けて いる 武器の uid か null）。武器が 合成・売る・届けるで なくなっても、アタッチメントは のこる（付いて いない 扱い）
-import { WS_ITEMS, wsOpen, wsLvOk, WS_MAX, ATT_MAX, attBase, rollAtt, baseOf, SMELT_MAX, furnaces, smeltOf, smeltDone, PROC_MAX, procOpen, procOf } from "./game.js";
+import { WS_ITEMS, wsOpen, wsLvOk, WS_MAX, ATT_MAX, attBase, rollAtt, baseOf, SMELT_MAX, SMELT_COAL, furnaces, smeltOf, smeltDone, PROC_MAX, procOpen, procOf } from "./game.js";
 import { takeMats, applyTake, give, putMats, makeFee, payUpkeep } from "./lounge-game.js";
 import { sale, wsCo } from "./lounge-stock.js";   // 株：道具の 代金は 物ごとの 子会社・アタッチメントは ヴァルコ火器
 import { facLv, wsMore, wsSave } from "./game.js";
+import { fxOf } from "./lounge-furn.js";   // 部屋の 家具の 効果（2026-11-11。./furn-fx.js）
+
 
 const newUid = (rec, p) => p + (++rec.uidN).toString(36);
 export const ensureWs = (rec) => { rec.own.att ||= []; return rec; };
@@ -81,8 +83,9 @@ export function smeltPut(rec, b, now = Date.now()) {
   const t = takeMats(rec, r.mats.map(([id, k]) => [id, k * n, 0]), { now });
   if (t.why) return { ok: false, why: t.why };
   applyTake(rec, t.picks);
-  rec.smelt[i] = { id: r.id, n, at: now, in: t.picks.map((p) => ({ id: p.id, q: p.q, n: p.n, ...(p.b ? { b: 1 } : {}) })) };   // takeMats は 同じ 品質なら 買った 物から 取る
-  return { ok: true, slot: i, end: smeltDone(rec.smelt[i], now).end };
+  const ms = Math.round(r.min * 60000 * (1 - fxOf(rec, "smelt")));   // 家具（暖炉・フロアランプ など）で 早く
+  rec.smelt[i] = { id: r.id, n, at: now, ...(ms !== r.min * 60000 ? { ms } : {}), in: t.picks.map((p) => ({ id: p.id, q: p.q, n: p.n, ...(p.b ? { b: 1 } : {}) })) };   // takeMats は 同じ 品質なら 買った 物から 取る
+  return { ok: true, slot: i, end: smeltDone(rec.smelt[i], now).end, ...(ms !== r.min * 60000 ? { fast: 1 } : {}) };
 }
 // 素材の 並び（list：id・q・n・b）から、1 つ ぶん（mats）ずつ k 回 前から 使う。買った 素材（b）を 使った 回数を かえす（list は 減る）
 function useUnits(list, mats, k) {
@@ -110,8 +113,24 @@ export function smeltTake(rec, b, now = Date.now()) {
   const d = smeltDone(f, now);
   if (!d.done) return { ok: false, why: `まだ できて いない（あと ${Math.ceil((d.next - now) / 60000)} 分）` };
   const g = { ...f, in: f.in && f.in.map((p) => ({ ...p })) }, put = putMats(rec, barsOf(f.id, d.done, useIn(g, d.done)), now);
-  if (d.left) rec.smelt[i] = { ...g, n: d.left, at: f.at + d.done * smeltOf(f.id).min * 60000 }; else rec.smelt[i] = null;
+  if (d.left) rec.smelt[i] = { ...g, n: d.left, at: f.at + d.done * (f.ms || smeltOf(f.id).min * 60000) }; else rec.smelt[i] = null;
   return { ok: true, id: f.id, got: d.done, boxed: put.box.reduce((a, m) => a + m.n, 0) };
+}
+// 石炭を くべる（smelt.coal）：のこりの 時間を 1 こ 15 分 ずつ 縮める（f.at を 前に ずらす。のこりより 多くは 使わない）
+export function smeltCoal(rec, b, now = Date.now()) {
+  rec.smelt ||= [];
+  const i = slotOf(rec, b), f = i >= 0 && rec.smelt[i];
+  if (!f) return { ok: false, why: "その 炉は 空いて いる" };
+  const d = smeltDone(f, now), left = d.end - now, step = SMELT_COAL.min * 60000;
+  if (left <= 0) return { ok: false, why: "もう ぜんぶ できて いる" };
+  const want = Number.isInteger(b.n) && b.n >= 1 && b.n <= SMELT_COAL.max ? b.n : 0;
+  if (!want) return { ok: false, why: `くべる 石炭は 1〜${SMELT_COAL.max} こ` };
+  const n = Math.min(want, Math.ceil(left / step));
+  const t = takeMats(rec, [[SMELT_COAL.id, n, 0]], { now });
+  if (t.why) return { ok: false, why: t.why };
+  applyTake(rec, t.picks);
+  f.at -= n * step;
+  return { ok: true, slot: i, used: n, end: smeltDone(f, now).end };
 }
 // やめる：できた 分は 受けとり、まだの 分の 鉱石と 石炭は もどす（とちゅうの 1 本も もどす）
 export function smeltStop(rec, b, now = Date.now()) {

@@ -406,7 +406,7 @@ async function page() {
 const LOUNGE_TYPE = { html: "text/html; charset=utf-8", js: "text/javascript; charset=utf-8", png: "image/png", jpg: "image/jpeg", webp: "image/webp", svg: "image/svg+xml" };
 async function loungePage(p, ver) {
   if (p === "/lounge" || p === "/lounge/") return new Response(null, { status: 302, headers: { Location: "/lounge/lounge-room.html" } });
-  const m = /^\/lounge\/((?:img\/)?[a-z0-9][a-z0-9_-]*\.(html|js|png|jpg|webp|svg))$/.exec(p);
+  const m = /^\/lounge\/((?:img\/|pixelfx\/(?:core|fx\/[a-z]+)\/)?_?[a-z0-9][a-z0-9_-]*\.(html|js|png|jpg|webp|svg))$/.exec(p);   // pixelfx：クローラーの エフェクト（2026-11-11。前は 道が なく クローラーが 開かなかった）
   if (!m) return null;
   // ?v=版 は JS だけ・見た ことの ある 版だけ その 版の まま（中身が かわらないので ずっと ためて よい）。HTML と 絵は いつも いまの 版
   const now = await headSha(), pinned = m[2] === "js" && SHA_RX.test(ver || "") && seenHeads.includes(ver), v = pinned ? ver : now;

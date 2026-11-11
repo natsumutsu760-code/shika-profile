@@ -10,7 +10,7 @@ import { petAt } from "./builds.js";
 import { growOf, PLUS_RATE, INBRED_LOW } from "./monster.js";
 import { OPS, rollCombo, comboOf, opCount, baseOf } from "./equip.js";
 import { UNIQUE_RATE, uniquesOf, uniqueOf } from "./unique-equip.js";
-import { DUNGEONS, RUNS, RARE_RATE, CAPTURE, GROUP, SNACK_DROP, TICK, ENCOUNTER, REST, TRAP, FLOOR_LV, BATTLE_TICKS, PURPOSES, CHEST_STAR, BOSS_STAR, MYTHIC, BOSS_RESOURCE, EXP_PER_LV, CREDIT, TOOLS, toolList, ENCH_RATE, ENCH_AMT, CHARM_RES, LURE_SHARE, NET_MULT, INVADE, MEDIC } from "./dungeons.js";
+import { DUNGEONS, RUNS, RARE_RATE, CAPTURE, GROUP, SNACK_DROP, TICK, ENCOUNTER, REST, TRAP, FLOOR_LV, BATTLE_TICKS, PURPOSES, CHEST_STAR, BOSS_STAR, MYTHIC, BOSS_RESOURCE, BOSS_TWIN, EXP_PER_LV, CREDIT, TOOLS, toolList, ENCH_RATE, ENCH_AMT, CHARM_RES, LURE_SHARE, NET_MULT, INVADE, MEDIC } from "./dungeons.js";
 import { ENEMY_TREES } from "./enemy-trees.js";
 import { ROSTER } from "./fusion-only.js";
 import { BAG_USE_MAX } from "./battle-items.js";
@@ -91,7 +91,7 @@ export function tripInit(party, dungeonId, runKey, seed, opts = {}) {
   const prog = JSON.parse(JSON.stringify(opts.progress || newProgress()));
   const S = {
     lite: !!opts.lite, did: dungeonId, runKey, purpose, tool, tools, used: {}, fl: Number.isInteger(opts.floor) && opts.floor >= 1 && opts.floor <= floorsOpen(dungeonId, prog) ? opts.floor : 0, ti: purpose === "target" ? pick() : -1, li: tools.includes("lure") ? pick() : -1,
-    r: { R: seed * 2654435761 >>> 0, C: seed * 40503 + 7 >>> 0, M: seed * 69069 + 13 >>> 0, Q: seed * 2246822519 + 3 >>> 0, X: seed * 3266489917 + 11 >>> 0, SD: seed * 668265263 + 17 >>> 0, K: seed * 1597334677 + 19 >>> 0, SP: seed * 3812015801 + 23 >>> 0 },   // C は希少な敵・捕獲・おやつ、M は素材、Q は ユニーク装備、X は 侵入、K は 結晶、SP は スフィア（ほかの結果が変わらないように）
+    r: { R: seed * 2654435761 >>> 0, C: seed * 40503 + 7 >>> 0, M: seed * 69069 + 13 >>> 0, Q: seed * 2246822519 + 3 >>> 0, X: seed * 3266489917 + 11 >>> 0, SD: seed * 668265263 + 17 >>> 0, K: seed * 1597334677 + 19 >>> 0, SP: seed * 3812015801 + 23 >>> 0, B: seed * 2891336453 + 29 >>> 0 },   // C は希少な敵・捕獲・おやつ、M は素材、Q は ユニーク装備、X は 侵入、K は 結晶、SP は スフィア（ほかの結果が変わらないように）
     prog, before: Array.from({ length: FLOORS }, (_, i) => floorRatio(dungeonId, prog, i + 1)), budget: Math.round(RUNS[runKey].sec / TICK),
     team: (Array.isArray(party) ? party : [party]).map((c) => { const v = vitalsOf(c); return { c, maxHp: v.maxHp, maxMp: v.maxMp, hp: v.maxHp, mp: v.maxMp, down: false }; }),
     nt: 0, track: [], log: [], battles: [], captured: [], chests: [], gathered: [], drops: [], mats: [], seeds: {},
@@ -99,15 +99,23 @@ export function tripInit(party, dungeonId, runKey, seed, opts = {}) {
     snacks: 0, exp: 0, credits: 0, kills: 0, wins: 0, rests: 0, traps: 0, steps: 0, bossDone: false, mythic: false, unique: null, resource: 0, toolUsed: false, start: 1,
     med: Math.max(0, Math.min(100, opts.medic | 0)), st: opts.stairs ? 1 : 0,
     bag: opts.items ? { ...opts.items } : null, bagUsed: {},   // 戦いの アイテムの 袋（ガンビットで 使う。使った 数は bagUsed）
+    // 情報屋（ヨル・NOX）と 運び屋（CRV）。2026-11-11 鹿さん「8つの仕組み…作り実装してください」。数は docs/mono-link-services-plan.md
+    intel: Array.isArray(opts.intel) ? opts.intel.filter((k) => INTEL_FX[k]) : [], ship: Math.max(0, Math.min(2, opts.ship | 0)), shipped: [],
+    rup: Math.max(0, Math.min(1, +opts.restUp || 0)), mup: Math.max(0, Math.min(1, +opts.rareUp || 0)),   // 家具：休憩の 回復・希少な 敵（furn-fx.js の rest・meet）
   };
   S.inv = invader(S, d);
   machine(S).begin();
   return S;
 }
+// 情報屋の 品の 中身（値段は deeplink.js の INTEL）。呼び寄せ：侵入 1% → 20%・阻止：0%・希少種：希少な 敵 3 倍・気配：起きるかを 出発の ときに 知らせる（計算は かわらない）
+export const INTEL_FX = { sense: {}, call: { inv: 0.2 }, stop: { inv: 0 }, rare: { rare: 3 } };
+const invadeRate = (S) => { const I = S.intel || []; return I.includes("stop") ? 0 : I.includes("call") ? INTEL_FX.call.inv : INVADE.rate; };
+// 運び屋の 先送り：派遣の 時間の まんなか（2 回なら 1/3 と 2/3）で、それまでに 拾った 素材を 30 こまで 守る（力つきても 失わない）
+export const SHIP_MAX = 30;
 // 侵入する かを 出発の ときに 決める（X の 乱数だけ 使う。侵入しない 派遣の 結果は 前と 同じ）
 const INVADERS = () => ROSTER.filter((s) => INVADE.ranks.includes(s.rank) && ENEMY_TREES[s.tree]);
 function invader(S, d) {
-  const X = rngIn(S.r, "X"); if (X() >= INVADE.rate) return null;
+  const X = rngIn(S.r, "X"); if (X() >= invadeRate(S)) return null;   // 乱数は いつも 1 つ 引く（呼び寄せ・阻止で 割合だけ かわる）
   const list = INVADERS(); if (!list.length) return null;
   const s = list[Math.floor(X() * list.length)], lv = (d.isle || 1) * INVADE.lvStep + Math.floor(X() * INVADE.lvStep);
   return { tree: s.tree, name: s.name, type: s.type, lv, at: Math.floor(S.budget * (0.2 + 0.6 * X())), done: false };
@@ -118,7 +126,7 @@ export function tripResult(S) {
   const d = DUNGEONS.find((x) => x.id === S.did), after = Array.from({ length: FLOORS }, (_, i) => floorRatio(S.did, S.prog, i + 1));
   const materials = S.mats.map(([, m]) => m).sort((a, b) => (a.q ? 1 : 0) - (b.q ? 1 : 0) || b.q - a.q || b.n - a.n);
   return { dungeon: d, run: RUNS[S.runKey], purpose: S.purpose, target: S.ti >= 0 ? [...d.foes, d.rare][S.ti] : null, tool: S.tool, tools: S.tools || (S.tool ? [S.tool] : []), toolUsed: S.toolUsed, toolsUsed: { ...(S.used || {}) }, battles: S.battles, wins: S.wins, kills: S.kills,
-    cleared: S.reason !== "wipe", reason: S.reason, bossDefeated: S.bossDone, drops: S.drops, chests: S.chests, mythic: S.mythic ? d.mythic : null, unique: S.unique ? uniqueOf(S.unique) : null, resource: S.resource, exp: Math.max(1, Math.round(S.exp)), credits: S.credits,
+    cleared: S.reason !== "wipe", reason: S.reason, bossDefeated: S.bossDone, bossCount: S.bossDone ? S.bossN || 1 : 0, intel: S.intel || [], shipped: (S.shipped || []).flat().map(({ id, q, n }) => ({ id, q, n })), ship: S.ship || 0, drops: S.drops, chests: S.chests, mythic: S.mythic ? d.mythic : null, unique: S.unique ? uniqueOf(S.unique) : null, resource: S.resource, exp: Math.max(1, Math.round(S.exp)), credits: S.credits,
     captured: S.captured, snacks: S.snacks, materials, spheres: (S.spheres || []).map((x) => ({ ...x })), seeds: { ...(S.seeds || {}) }, gathered: S.gathered, traps: S.traps, rests: S.rests, steps: S.steps, startFloor: S.start, endFloor: S.floor, before: S.before, after, progress: S.prog,
     track: S.track, log: S.log, budget: S.budget, ticks: Math.min(S.budget, S.nt), down: S.team.filter((m) => m.down).map((m) => m.c.name), risen: S.risen || 0, invader: S.inv && S.inv.done ? S.inv : null, itemsUsed: S.bagUsed || {} };
 }
@@ -143,7 +151,7 @@ function machine(S) {
   const persist = () => { if (S.floor) prog.floors[S.floor] = { seen: [...seen], hidden: S.hiddenOpen }; };
   const revealAt = (cx, cy) => { for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) { const x = cx + dx, y = cy + dy; if (x >= 0 && y >= 0 && x < GW && y < GH) seen.add(keyOf(x, y)); } };
   const reveal = () => revealAt(S.pos.x, S.pos.y);
-  const rest = MEDIC.rest(S.med || 0), rise = MEDIC.up(S.med || 0);   // 救護室（とちゅうで しまった 前の S は 0）
+  const rest = MEDIC.rest(S.med || 0) * (1 + (S.rup || 0)), rise = MEDIC.up(S.med || 0);   // 救護室（とちゅうで しまった 前の S は 0）
   const ratio = () => { let tot = 0, got = 0; const hid = new Set(map.hidden.map(([x, y]) => keyOf(x, y))); for (const k of reach) if (!hid.has(k)) { tot++; if (seen.has(k)) got++; } return tot ? got / tot : 1; };
   const openHidden = (loud) => { S.hiddenOpen = true; for (const [x, y, t] of map.hidden) grid[y][x] = t; reach = reachOf(grid, map.start); if (loud) say("かべの むこうに かくし通路を 見つけた！"); };
   const checkHidden = () => { if (!S.hiddenOpen && map.hidden.length && ratio() >= 1) { openHidden(true); persist(); } };
@@ -192,7 +200,7 @@ function machine(S) {
   function group() {
     if (target) return Array.from({ length: target === d.rare ? 1 : pickW(R, GROUP) }, () => lvUp(target));
     if (lureFoe && C() < LURE_SHARE[rankOf(lureFoe)]) { use("lure"); return Array.from({ length: lureFoe === d.rare ? 1 : pickW(R, GROUP) }, () => lvUp(lureFoe)); }
-    return Array.from({ length: pickW(R, GROUP) }, () => lvUp(d.rare && C() < RARE_RATE ? d.rare : d.foes[Math.floor(R() * d.foes.length)]));
+    return Array.from({ length: pickW(R, GROUP) }, () => lvUp(d.rare && C() < RARE_RATE * ((S.intel || []).includes("rare") ? INTEL_FX.rare.rare : 1) * (1 + (S.mup || 0)) ? d.rare : d.foes[Math.floor(R() * d.foes.length)]));
   }
   // 薬・エンチャント・お守り（鹿さんの 決め、2026-10-31）：戦いの 能力に 足す 分（extraP）と、1 回だけ 効く 物（once）
   // 持って いる 道具 ぜんぶの 分を 足す。src：戦いの 能力に 足した 道具（香・エンチャント・お守りは これで なくなる）。onceBy：どの 薬が 1 回だけの 物を 出したか
@@ -209,9 +217,9 @@ function machine(S) {
     }
     return { extraP: Object.keys(x).length ? x : null, src, once, onceBy };
   }
-  function fight(g, boss) {
+  function fight(g, boss, nb = boss ? 1 : 0) {   // nb：先頭から 何体が ボスか（たまに 2 体）
     fought++;
-    const tf = toolFight(), up = alive(), me = up.map((m) => ({ ...m.c, startHp: m.hp, startMp: m.mp, startFx: m.fx, ...(tf.extraP ? { extraP: tf.extraP } : {}) })), foes = g.map((f, k) => ({ ...foeOf(f), boss: boss && k === 0 }));
+    const tf = toolFight(), up = alive(), me = up.map((m) => ({ ...m.c, startHp: m.hp, startMp: m.mp, startFx: m.fx, ...(tf.extraP ? { extraP: tf.extraP } : {}) })), foes = g.map((f, k) => ({ ...foeOf(f), boss: k < nb }));
     const ev = simulateTeams(me, foes, Math.floor(R() * 1e9), { pve: true, quiet: S.lite, ...(tf.once ? { once: tf.once } : {}), ...(S.bag ? { items: S.bag, itemCap: Math.max(0, BAG_USE_MAX - Object.values(S.bagUsed).reduce((a, n) => a + n, 0)) } : {}) }), end = ev.at(-1), win = end.winner === 0, cost = BATTLE_TICKS(end.turns || 1);
     if (end.items) for (const [k, n] of Object.entries(end.items)) S.bagUsed[k] = (S.bagUsed[k] || 0) + n;   // S.bag は 戦いの 中で へった
     for (const id of tf.src) if (!TOOLS[id].keep) use(id);   // 香・エンチャント・お守りは 持って いけば なくなる。薬（keep）は 使った ときだけ（使わなければ 帰りに もどる）
@@ -219,15 +227,15 @@ function machine(S) {
     if (end.used && end.used.revive && tf.onceBy.revive) { use(tf.onceBy.revive); say(`${TOOLS[tf.onceBy.revive].name}で 立ちあがった`, "sys"); }
     up.forEach((m, k) => { m.hp = Math.max(0, end.final[k].hp); m.mp = end.final[k].mp; m.fx = end.carry[k]; if (m.hp <= 0 || !win) m.down = true; });
     const b = S.battles.length, kill = win ? null : g.map((f, k) => k).filter((k) => end.final[up.length + k].hp <= 0);   // 負けた 戦いで たおせた 敵（何番め）
-    S.battles.push({ foe: g[0], foes: g, boss, win, ...(kill ? { kill } : {}), ...(S.lite ? {} : { ev }), party: up.map((m) => m.c.name), floor: S.floor, tick: S.tick, cost });
-    say(`${boss ? "ボスの " : ""}${g[0].name}${g.length > 1 ? ` たち（${g.length} たい）` : ""}と 戦った。${win ? "勝った！" : kill.length ? `${kill.length} たい たおしたが、力つきた……` : "力つきた……"}`, "btl");
+    S.battles.push({ foe: g[0], foes: g, boss, ...(nb > 1 ? { nb } : {}), win, ...(kill ? { kill } : {}), ...(S.lite ? {} : { ev }), party: up.map((m) => m.c.name), floor: S.floor, tick: S.tick, cost });
+    say(`${boss ? "ボスの " : ""}${g[0].name}${nb > 1 ? ` ${nb} たい${g.length > nb ? `と なかま（${g.length - nb} たい）` : ""}` : g.length > 1 ? ` たち（${g.length} たい）` : ""}と 戦った。${win ? "勝った！" : kill.length ? `${kill.length} たい たおしたが、力つきた……` : "力つきた……"}`, "btl");
     for (let i = 0; i < cost; i++) { snap("b", b); S.tick++; }
     const lvOf = (list) => list.reduce((s, f) => s + f.lv, 0);
     // 敵の素材：深い階ほど品質が高い（希少な敵 ＋1、ボスはいつも 5 を 2 こ）
     // 敵の 結晶（装備開発の 中心）：素材とは べつの くじ K（素材の くじの 順番は かわらない）
     const dropCrystal = (f, rk) => { const c = CRYSTAL[f.tree]; if (!c || K() >= CRYSTAL_DROP[rk]) return;
       const q = rk === "ボス" ? 5 : Math.min(5, pickW(K, QUALITY[S.floor]) + (rk === "希少" ? 1 : 0)); for (let i = 0; i < (rk === "ボス" ? 2 : 1); i++) addMat(c, q); };
-    const dropMats = (ks) => { for (const k of ks) { const f = g[k], rk = boss && k === 0 ? "ボス" : rankOf(f); dropCrystal(f, rk); if (M() >= dropRate(rk, ENEMY_MAT[f.tree][0])) continue;   // 高い 素材ほど 落ちにくい（鹿さんの 頼み、2026-10-29）
+    const dropMats = (ks) => { for (const k of ks) { const f = g[k], rk = k < nb ? "ボス" : rankOf(f); dropCrystal(f, rk); if (M() >= dropRate(rk, ENEMY_MAT[f.tree][0])) continue;   // 高い 素材ほど 落ちにくい（鹿さんの 頼み、2026-10-29）
       const q = rk === "ボス" ? 5 : Math.min(5, pickW(M, QUALITY[S.floor]) + (rk === "希少" ? 1 : 0)); for (let i = 0; i < (rk === "ボス" ? 2 : 1); i++) addMat(ENEMY_MAT[f.tree], q); } };
     // 負けても、たおせた 敵は 勝った ときと 同じ（経験値・クレジット・素材）、たおせなかった 敵は 経験値の 半分（鹿さんの決め、2026-10-25）
     // 捕まえる・おやつ・ボスの ごほうびは 勝った ときだけ
@@ -239,10 +247,10 @@ function machine(S) {
     dropMats(g.map((f, k) => k));
     if (C() < SNACK_DROP) { S.snacks++; say("おやつを 拾った", "sys"); }
     if (boss) {
-      S.bossDone = true; prog.bossKills++; S.resource += BOSS_RESOURCE; S.credits += CREDIT.boss; rollItem(R, d, pickW(R, BOSS_STAR)); S.chests.push({ floor: S.floor, boss: true });   // ボスの ランダム装備は 出さない（鹿さんの 決め 2026-11-05「ボスのランダム装備をやめる」。装備は 開発で 作る。くじの 順番を かえない ため 引くだけ 引く。ミシック・ユニークは 出る）
+      S.bossDone = true; S.bossN = nb; prog.bossKills += nb; S.resource += BOSS_RESOURCE; S.credits += CREDIT.boss; rollItem(R, d, pickW(R, BOSS_STAR)); S.chests.push({ floor: S.floor, boss: true });   // ボスの ランダム装備は 出さない（鹿さんの 決め 2026-11-05「ボスのランダム装備をやめる」。装備は 開発で 作る。くじの 順番を かえない ため 引くだけ 引く。ミシック・ユニークは 出る）
       if (R() < MYTHIC) S.mythic = true;
       { const us = uniquesOf(d.id); if (us.length && Q() < UNIQUE_RATE) S.unique = us[Math.floor(Q() * us.length)].id; }
-      say("ボスを たおした！");
+      say(nb > 1 ? `ボスを ${nb} たい たおした！` : "ボスを たおした！");
     }
   }
   // 侵入：先頭の 生きて いる 子に 1 対 1 で 挑む（オーバーレイの 帯の simulate と 同じ 計算。同じ 種で 同じ 戦い）
@@ -262,11 +270,21 @@ function machine(S) {
     say(`${lead.c.name}が 侵入して きた ${v.name}を たおした！`, "btl");
     if (X() < INVADE.capture) { v.caught = true; S.captured.push({ ...f, lv: 1 }); say(`${v.name}を 捕まえた！`); }
   }
+  // 先送り：時間が 来たら、まだ 送って いない 素材を 30 こまで 守る（素材の 数え方は かえない。力つきた ときに 門番が これだけ のこす）
+  function ship() {
+    if (!S.ship || S.shipped.length >= S.ship || S.tick < Math.floor((S.budget * (S.shipped.length + 1)) / (S.ship + 1))) return;
+    const sent = new Map(); for (const g of S.shipped) for (const m of g) sent.set(m.k, (sent.get(m.k) || 0) + m.n);
+    const go = []; let room = SHIP_MAX;
+    for (const [k, m] of mats) { if (room <= 0) break; const n = Math.min(m.n - (sent.get(k) || 0), room); if (n > 0) { go.push({ k, id: m.id, q: m.q, n }); room -= n; } }
+    S.shipped.push(go);
+    say(go.length ? `運び屋に 素材を ${go.reduce((a, m) => a + m.n, 0)} こ 先に 送った` : "運び屋が 来たが、送る 素材が なかった", "sys");
+  }
   function step(p) {
-    S.prev = S.pos; S.pos = p; S.steps++; reveal(); checkHidden();
+    S.prev = S.pos; S.pos = p; S.steps++; reveal(); checkHidden(); ship();
     if (S.inv && !S.inv.done && S.tick >= S.inv.at) { invade(); return; }
     const t = grid[p.y][p.x], k = keyOf(p.x, p.y), hid = map.hidden.some(([x, y]) => x === p.x && y === p.y);
-    if (t === T.BOSS && !S.bossDone) { fight([d.boss, ...Array.from({ length: pickW(R, GROUP) - 1 }, () => lvUp(d.foes[Math.floor(R() * d.foes.length)]))], true); return; }
+    if (t === T.BOSS && !S.bossDone) { const nb = rngIn(S.r, "B")() < BOSS_TWIN ? 2 : 1, n = pickW(R, GROUP);   // 2 体の くじは べつの 乱数 B（1 体の ときの 戦いは 前と 同じ）
+      fight([...Array(nb).fill(d.boss), ...Array.from({ length: Math.max(0, n - nb) }, () => lvUp(d.foes[Math.floor(R() * d.foes.length)]))], true, nb); return; }
     if (t === T.TRAP && !done.has(k)) {
       done.add(k);
       if (R() < TRAP.avoid) say("罠を 見ぬいた", "sys");

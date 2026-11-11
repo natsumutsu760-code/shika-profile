@@ -7,6 +7,7 @@
 //    取引の 返事が とどかなかった ときは rec.stock.out に のこし、つぎに /stock/settle で たしかめる（したなら その 答え、して いなければ 取り消しの しるしを のこす）
 import { STOCKS, isCo, ST, salesPart, priceOf, tradePrice, tradeCost, noiseAt, minShares } from "./stocks.js";
 import { baseOf } from "./equip.js";
+import { gaffPaid } from "./lounge-faction.js";   // サービスに 払った 額で グループの 好感度（2026-11-11）
 
 const HOUR = 3600e3, JST = 9 * HOUR;
 const ymd = (ms) => new Date(ms + JST).toISOString().slice(0, 10);
@@ -22,6 +23,18 @@ export function sale(rec, co, n) {
   const S = (rec.stock ||= {}), q = (S.q ||= {});
   q[co] = Math.round((q[co] || 0) + n);
   if (!q[co]) delete q[co];
+  if (n > 0) gaffPaid(rec, co, n);   // 500 ごとに その グループの 好感度 ＋1（1 日 ＋5 まで。lounge-trade.js の actEvents で 数える）
+}
+// 手数料を もどす（みんなの依頼が 板に 出なかった とき）：入れた 会社の 売り上げから 引き、好感度の「払った 額」も もどす（2026-11-11。保険の 支払いの 引き算とは 別）
+export function refundSale(rec, co, n) {
+  if (!isCo(co) || !(n > 0)) return;
+  sale(rec, co, -n); gaffPaid(rec, co, -n);
+}
+// LINKERS の 契約：契約した 子の 勝ちで その 会社の 売り上げ（トークンの 値が 上がる。好感度の「サービスに 払った 額」には 数えない。2026-11-11）
+export function winSale(rec, co, n) {
+  if (!isCo(co) || !(n > 0)) return;
+  const q = ((rec.stock ||= {}).q ||= {});
+  q[co] = Math.round((q[co] || 0) + n);
 }
 // 施設の 維持費：4 割は ヘリクス電力（電気代）・6 割は グラナート建設（鹿さんの 構想「既存の 設備も…維持コスト」→ 割り方は Claude の 案）
 export const upkeepSale = (rec, fee) => { if (!(fee > 0)) return; const h = Math.round(fee * 0.4); sale(rec, "HLX", h); sale(rec, "GRN", fee - h); };

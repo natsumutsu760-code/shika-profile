@@ -28,6 +28,23 @@ export const FURN = [
   { id: "spacewin", name: "宇宙の見える窓", star: 5, place: "wall", size: 2, glows: true },
   { id: "rack", name: "サーバーラック", star: 0, kind: "設備", place: "floor", size: [1, 1], glows: true },
   { id: "pc", name: "PC", star: 0, kind: "DEEP LINK/: の 入口", place: "floor", size: [1, 1], glows: true, keep: true },
+  // リンデン家具工房（LDN・TCU）で クレジットで 買う 家具（2026-11-11。効果は furn-fx.js。ldn：値段〈クレジット〉。お店・ガチャには 出ない）
+  { id: "fireplace", name: "暖炉", star: 3, place: "floor", size: [2, 1], glows: true, ldn: 2400 },
+  { id: "woodpile", name: "薪置き場", star: 1, place: "floor", size: [1, 1], ldn: 800 },
+  { id: "coffee", name: "コーヒーメーカー", star: 2, place: "floor", size: [1, 1], ldn: 2000 },
+  { id: "beans", name: "目覚め豆の袋", star: 1, place: "floor", size: [1, 1], ldn: 800 },
+  { id: "writedesk", name: "書きもの机", star: 2, place: "floor", size: [2, 1], ldn: 1500 },
+  { id: "worklamp", name: "作業灯", star: 1, place: "floor", size: [1, 1], glows: true, ldn: 1200 },
+  { id: "toolwall", name: "工具かべ", star: 1, place: "wall", size: 2, ldn: 1200 },
+  { id: "hammock", name: "ハンモック", star: 3, place: "floor", size: [2, 1], ldn: 2400 },
+  { id: "mapframe", name: "地図の額", star: 2, place: "wall", size: 2, ldn: 1600 },
+  { id: "globe", name: "地球儀", star: 1, place: "floor", size: [1, 1], ldn: 1200 },
+  { id: "pot", name: "鉢植え", star: 2, place: "floor", size: [1, 1], ldn: 1600 },
+  { id: "wateringcan", name: "じょうろ", star: 1, place: "floor", size: [1, 1], ldn: 800 },
+  { id: "vault", name: "金庫", star: 1, place: "floor", size: [1, 1], ldn: 1500 },
+  { id: "trophy", name: "トロフィー棚", star: 1, place: "floor", size: [1, 1], ldn: 1200 },
+  { id: "dummy", name: "練習用の木人", star: 1, place: "floor", size: [1, 1], ldn: 1200 },
+  { id: "firstaid", name: "救急箱", star: 3, place: "wall", size: 1, ldn: 2000 },
 ];
 export const F = (id) => FURN.find((f) => f.id === id);
 
@@ -69,7 +86,7 @@ export function cleanRoom(items, own, n = N) {
 }
 
 // ---------- お店（鹿さんの決め：日替わりの 棚・カタログ・インテリアガチャ）----------
-export const SALE_IDS = FURN.filter((f) => f.star > 0).map((f) => f.id);   // お店に ならぶ 家具（設備と PC は べつ）
+export const SALE_IDS = FURN.filter((f) => f.star > 0 && !f.ldn).map((f) => f.id);   // お店に ならぶ 家具（設備と PC は べつ）
 export const DAILY_N = 3, DAILY_OFF = 0.2;                      // 日替わり：毎日 0 時（日本時間）に 3 つ。いつもの 2 割引き。みんな 同じ 品
 export const GACHA_COST = 10, GACHA_RATE = { 1: 50, 2: 30, 3: 14, 4: 5, 5: 1 };   // 1 回 10 アメジスト。かぶったら 2 こ目として 持てる
 export const salePrice = (f) => Math.round(PRICE[f.star] * (1 - DAILY_OFF));

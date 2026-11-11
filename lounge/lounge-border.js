@@ -4,6 +4,7 @@
 // まだ ない 物：ほかの プレイヤーとの「ばったり」（2 段め）・運び屋（CRV）・グループの 好感度（いまは「ふつう」の あつかい）
 import { BZ_AREAS, BZ_RUNS, BZ_STEP_S, PRIORITY, RETURN, KEY_MAX, SAMPLES, APPRAISE_FEE, GROUP_NAME, samplePrice, capLv, bzInit, bzRecall as bzRecallSim, bzResult, matValue, bzInsPrice, bzLow, bzLowWhy, bzIsleOk, BZ_ISLE_WHY } from "./border.js";
 import { growthStats } from "./trees.js";
+import { orderSigned, ORDER_SIGN_WHY } from "./lounge-order.js";   // 島 3 の 夜の 招待（2026-11-11）
 import { fighterOf, mateOf, putMats, insLose, levelUp } from "./lounge-game.js";
 import { autoFill } from "./lounge-pet.js";
 import { sale } from "./lounge-stock.js";
@@ -32,6 +33,7 @@ export function bzStart(rec, b, now, seed) {
   if (!pet) return { ok: false, why: "まだ ペットが いない" };
   if (!pet.type) return { ok: false, why: "さきに 職業を えらんで" };
   if (!bzIsleOk(rec.hideout)) return { ok: false, why: BZ_ISLE_WHY };   // 島 3 へ 行けるまで 閉じる（鹿さんの 決め 2026-11-06）
+  if (!orderSigned(rec)) return { ok: false, why: ORDER_SIGN_WHY };   // 島 3 の 夜の 招待（誓約書に サイン）で 開く（はじまりの 決め。2026-11-11 フラグを 足した）
   const Z = ensureBz(rec);
   if (Z.run) return { ok: false, why: "もう ボーダーゾーンに 出て いる" };
   if (rec.trips.some((t) => !t.done)) return { ok: false, why: "派遣から 帰って から" };
@@ -154,5 +156,5 @@ export function bzView(r, now) {
 }
 export function bzMe(rec, now) {
   const Z = rec.bz || { run: null, log: [], samples: [] };
-  return { run: bzView(Z.run, now), log: Z.log, samples: Z.samples, isle: bzIsleOk(rec.hideout), keys: (rec.items && rec.items.key_bz) || 0, crateKeys: (rec.items && rec.items.key_crate) || 0, aff: Object.fromEntries(Object.keys(GROUP_NAME).map((g) => [g, groupAff(rec, g)])) };
+  return { run: bzView(Z.run, now), log: Z.log, samples: Z.samples, isle: bzIsleOk(rec.hideout), signed: orderSigned(rec), keys: (rec.items && rec.items.key_bz) || 0, crateKeys: (rec.items && rec.items.key_crate) || 0, aff: Object.fromEntries(Object.keys(GROUP_NAME).map((g) => [g, groupAff(rec, g)])) };
 }

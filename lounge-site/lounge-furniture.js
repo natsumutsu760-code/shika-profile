@@ -109,6 +109,25 @@ const SHAPES = [
     [[-0.4, 1.9], [0.3, 2.05], [0.5, 1.45], [-0.15, 1.25], [0.05, 1.75], [-0.55, 1.5]].forEach(([x, y]) => K.box(g, 0.05, 0.05, 0.02, K.glow("#FFFFFF", 2), x, y, 0.08));
     const pl = new THREE.Mesh(new THREE.IcosahedronGeometry(0.22, 1), K.glow("#FF8FC4", 0.9)); pl.position.set(0.25, 1.55, 0.1); g.add(pl);
     K.light(g, "#8E6CFF", 5, 4, 0, 1.6, 0.8); } },
+  // リンデン家具工房の 家具（2026-11-11。効果は furn-fx.js）
+  { id: "fireplace", build: (K, g) => {
+    K.box(g, 1.8, 1.1, 0.6, K.mat("#B9583F"), 0, 0, -0.18); K.box(g, 1.95, 0.12, 0.7, K.mat("#7A3A2A"), 0, 1.1, -0.15);
+    K.box(g, 0.9, 0.6, 0.1, K.mat(INK), 0, 0.12, 0.13); K.box(g, 0.7, 0.32, 0.08, K.glow("#FF8A3D", 2.2), 0, 0.16, 0.17); K.light(g, "#FF8A3D", 5, 3.5, 0, 0.6, 0.6); } },
+  { id: "woodpile", build: (K, g) => { [0, 1, 2].forEach((r) => [-0.2, 0, 0.2].slice(0, 3 - r).forEach((x) => { const c = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.1, 0.7, 6), K.mat(r % 2 ? "#A8703F" : "#8A5A36")); c.rotation.z = Math.PI / 2; c.position.set(0, 0.1 + r * 0.19, x + r * 0.1); c.castShadow = true; g.add(c); })); } },
+  { id: "coffee", build: (K, g) => { K.box(g, 0.6, 0.7, 0.5, K.mat("#FFFFFF")); K.box(g, 0.45, 0.45, 0.42, K.mat(INK), 0, 0.7); K.cyl(g, 0.12, 0.1, 0.22, K.mat("#C98B55"), 0.12, 0.7, 0.12, 8); K.box(g, 0.1, 0.06, 0.02, K.glow("#22CC88", 2), -0.15, 1.05, 0.22); } },
+  { id: "beans", build: (K, g) => { K.cyl(g, 0.24, 0.28, 0.5, K.mat("#C9A86A"), 0, 0, 0, 8); K.cyl(g, 0.18, 0.24, 0.12, K.mat("#8A5A36"), 0, 0.5, 0, 8); } },
+  { id: "writedesk", build: (K, g) => { K.box(g, 1.6, 0.08, 0.7, K.mat("#C98B55"), 0, 0.72, -0.05); [[-0.72, -0.3], [0.72, -0.3], [-0.72, 0.22], [0.72, 0.22]].forEach(([x, z]) => K.box(g, 0.08, 0.72, 0.08, K.mat("#8A5A36"), x, 0, z)); K.box(g, 0.4, 0.04, 0.3, K.mat("#FFFFFF"), -0.3, 0.8, 0); K.cyl(g, 0.04, 0.04, 0.2, K.mat(INK), 0.4, 0.8, 0); } },
+  { id: "worklamp", build: (K, g) => { K.cyl(g, 0.22, 0.22, 0.05, K.mat("#FFC21A"), 0, 0, 0, 8); K.cyl(g, 0.03, 0.03, 1.2, K.mat(INK)); K.box(g, 0.34, 0.16, 0.26, K.glow("#FFF2C2", 2), 0.1, 1.2, 0.08); K.light(g, "#FFF2C2", 3, 3, 0, 1.3, 0.5); } },
+  { id: "toolwall", build: (K, g) => { K.box(g, 1.9, 1.0, 0.06, K.mat("#8A5A36"), 0, 1.2, 0); [[-0.6, 1.5, "#C9D3EA"], [-0.2, 1.4, "#FF5A64"], [0.3, 1.55, "#C9D3EA"], [0.65, 1.35, "#FFC21A"]].forEach(([x, y, c]) => K.box(g, 0.12, 0.5, 0.08, K.mat(c), x, y - 0.25, 0.05)); } },
+  { id: "hammock", build: (K, g) => { [-0.9, 0.9].forEach((x) => K.box(g, 0.08, 1.2, 0.08, K.mat("#8A5A36"), x, 0, 0)); K.box(g, 1.6, 0.12, 0.6, K.mat("#FF8FB1"), 0, 0.5, 0); K.box(g, 1.4, 0.1, 0.5, K.mat("#FFE3A3"), 0, 0.6, 0); } },
+  { id: "mapframe", build: (K, g) => { K.box(g, 1.9, 1.1, 0.06, K.mat("#8A5A36"), 0, 1.25, 0); K.box(g, 1.7, 0.9, 0.07, K.mat("#F3E3B8"), 0, 1.35, 0.01); [[-0.4, 1.6, "#22CC88"], [0.3, 1.5, "#22CC88"], [0.1, 1.8, "#2EA8FF"]].forEach(([x, y, c]) => K.box(g, 0.4, 0.2, 0.02, K.mat(c), x, y - 0.1, 0.05)); } },
+  { id: "globe", build: (K, g) => { K.cyl(g, 0.2, 0.25, 0.08, K.mat("#8A5A36"), 0, 0, 0, 8); K.cyl(g, 0.03, 0.03, 0.5, K.mat("#C9A86A")); const s = new THREE.Mesh(new THREE.IcosahedronGeometry(0.3, 1), K.mat("#2EA8FF")); s.position.set(0, 0.85, 0); s.castShadow = true; g.add(s); } },
+  { id: "pot", build: (K, g) => plant(K, g, 0.75) },
+  { id: "wateringcan", build: (K, g) => { K.cyl(g, 0.2, 0.22, 0.4, K.mat("#22CC88"), 0, 0, 0, 8); const sp = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.05, 0.4, 6), K.mat("#22CC88")); sp.rotation.z = -1; sp.position.set(0.28, 0.35, 0); g.add(sp); } },
+  { id: "vault", build: (K, g) => { K.box(g, 0.7, 0.8, 0.6, K.mat("#5C6B8A")); K.box(g, 0.55, 0.6, 0.04, K.mat("#7D8CAD"), 0, 0.1, 0.3); K.cyl(g, 0.09, 0.09, 0.05, K.mat("#FFC21A"), 0.1, 0.38, 0.33, 8); } },
+  { id: "trophy", build: (K, g) => { K.box(g, 0.8, 1.4, 0.4, K.mat("#FFFFFF"), 0, 0, -0.2); [0.5, 0.95].forEach((y) => K.box(g, 0.76, 0.04, 0.36, K.mat("#DCE3F0"), 0, y, -0.18)); [[-0.2, 0.55], [0.15, 0.55], [0, 1.0]].forEach(([x, y]) => K.cyl(g, 0.06, 0.04, 0.22, K.glow("#FFC21A", 0.8), x, y, -0.15, 6)); } },
+  { id: "dummy", build: (K, g) => { K.cyl(g, 0.25, 0.3, 0.1, K.mat("#8A5A36"), 0, 0, 0, 8); K.cyl(g, 0.06, 0.06, 0.6, K.mat("#8A5A36")); K.cyl(g, 0.22, 0.2, 0.55, K.mat("#C9A86A"), 0, 0.6, 0, 8); K.box(g, 0.8, 0.08, 0.08, K.mat("#8A5A36"), 0, 0.95, 0); const h = new THREE.Mesh(new THREE.IcosahedronGeometry(0.16, 0), K.mat("#C9A86A")); h.position.set(0, 1.3, 0); g.add(h); } },
+  { id: "firstaid", build: (K, g) => { K.box(g, 0.7, 0.55, 0.16, K.mat("#FFFFFF"), 0, 1.3, 0.04); K.box(g, 0.32, 0.1, 0.02, K.mat("#FF5A64"), 0, 1.53, 0.13); K.box(g, 0.1, 0.32, 0.02, K.mat("#FF5A64"), 0, 1.42, 0.13); } },
   // 設備（家具では ないが、ここで 動かせる）と、しまえない 物
   { id: "rack", build: (K, g) => {
     K.box(g, 0.8, 2.0, 0.8, K.mat(INK));

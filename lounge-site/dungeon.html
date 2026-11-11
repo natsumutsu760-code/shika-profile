@@ -176,6 +176,19 @@
   .ins .lcnt button { border:1.5px solid var(--line); background:#fff; border-radius:99px; padding:4px 9px; font:700 12px/1 var(--jp); color:var(--soft); white-space:nowrap; }
   .ins .lcnt button[aria-pressed="true"] { background:var(--ink); border-color:var(--ink); color:#fff; }
   .ins .why { flex-basis:100%; font:700 12px/1.3 var(--jp); color:var(--soft); }
+  .svc { margin-top:12px; padding:8px 10px; border-radius:16px; background:var(--space); }
+  .svc summary { display:flex; align-items:center; gap:8px; cursor:pointer; font:900 14px/1.3 var(--jp); color:var(--ink); list-style:none; }
+  .svc summary::-webkit-details-marker { display:none; }
+  .svc summary .sv { margin-left:auto; font:700 12px/1 var(--jp); color:var(--soft); }
+  .svc .row { display:flex; flex-wrap:wrap; align-items:center; gap:6px; margin-top:10px; }
+  .svc .lb { font:700 12px/1 var(--jp); color:var(--soft); min-width:3.6em; }
+  .svc .row button { border:1.5px solid var(--line); background:#fff; border-radius:99px; padding:5px 10px; font:700 12px/1.2 var(--jp); color:var(--ink); }
+  .svc .row button small { margin-left:4px; color:var(--soft); font-weight:700; }
+  .svc .row button[aria-pressed="true"] { background:var(--ink); border-color:var(--ink); color:#fff; }
+  .svc .row button[aria-pressed="true"] small { color:#cfd6ea; }
+  .svc .row button:disabled { opacity:.45; }
+  .svc .why { margin:6px 0 0; font:700 12px/1.4 var(--jp); color:var(--soft); }
+  .sense { margin:6px 0 0; font:700 13px/1.3 var(--jp); color:var(--ink); }
   /* 周回の まとめ */
   .lsum { margin-bottom:12px; padding:12px 16px; border:2px solid #BDEBD3; background:#F3FCF7; }
   .lsum.stop { border-color:#FFD98A; background:#FFFBEF; }
@@ -451,7 +464,7 @@ import { spriteURL } from "./sprites.js";
 import { GATHER, ENEMY_MAT, MAT_FROM, MAT_NAME, HIDDEN_MAT, sellPrice, toStash, stashHave, BOX_DAYS } from "./materials.js";
 import { researchLeaf } from "./fusion.js";   // 研究の 葉（大工事の 畑が つながってから）
 import { me, act, busy } from "./lounge-client.js";
-import { insPrice } from "./deeplink.js";   // 保険（ミネルバ。出発の 前に 掛ける）
+import { insPrice, INTEL, intelPrice, shipPrice, fastPrice, FAST, SHIP } from "./deeplink.js";   // 保険（ミネルバ。出発の 前に 掛ける）・情報屋（ヨル）・運び屋（CRV）
 import { facLv } from "./facilities.js";   // 施設の つまみの Lv（見通しの 計算）
 import { mountWallet } from "./wallet-bar.js"; mountWallet();   // 上の 通貨の 札（玉・アメジスト・クレジット）と 両替
 import { fillPet, petInfo, linkTabs, gateHtml } from "./pet-head.js";   // ペット・探索の 進み・道具・出発・うけとるは 門番から（見本では ブラウザの 中の ためしの 門番）
@@ -704,11 +717,28 @@ function loopHtml(where) {
 }
 // 保険（ミネルバ・AMB）：力つきて 帰ると その 派遣で 集めた 素材を ぜんぶ 失う。掛けて いれば あとで 一部が 届く（鹿さんの 決め、2026-10-29・11-03）
 const PERKS = () => ((ME.deeplink && ME.deeplink.perks) || {});
+// グループの 好感度で 値段（門番と 同じ：保険は ハルモニア・運び屋は TCU。2026-11-11）
+const gMul = (g) => 1 + ((((ME.deeplink && ME.deeplink.gaff) || []).find((x) => x.g === g) || {}).price || 0), gPrice = (n, g) => (n > 0 ? Math.max(1, Math.round(n * gMul(g))) : 0);
 const prepIns = () => (q.get("ins") === "2" && PERKS().ins2 ? 2 : q.get("ins") === "1" ? 1 : 0);
 function insHtml(d) {
   const cur = prepIns(), plans = [[0, "なし"], [1, "ふつう"], ...(PERKS().ins2 ? [[2, "手厚い"]] : [])];
   return `<div class="ins" role="group" aria-label="保険">保険<div class="lcnt">${plans.map(([k, t]) => `<button data-ins="${k}" aria-pressed="${cur === k}">${t}</button>`).join("")}</div>
-    <span class="why">${cur ? `保険料 ${insPrice(d, cur, PERKS())} クレジット・力つきても 素材の ${cur === 2 ? "ぜんぶ" : "半分"}が ${cur === 2 ? "30 分" : "2 時間"} あとに 届く` : "力つきると 集めた 素材を ぜんぶ 失う"}</span></div>`;
+    <span class="why">${cur ? `保険料 ${gPrice(insPrice(d, cur, PERKS()), "harmonia")} クレジット・力つきても 素材の ${cur === 2 ? "ぜんぶ" : "半分"}が ${cur === 2 ? "30 分" : "2 時間"} あとに 届く` : "力つきると 集めた 素材を ぜんぶ 失う"}</span></div>`;
+}
+// 情報屋（ヨル・NOX）と 運び屋（CRV）：出発の ときに 買う（2026-11-11 鹿さん「8つの仕組み…作り実装してください」）。えらんだ 物は アドレスに のこす（intel=sense,stop・ship=1・fast=1）
+const prepIntel = () => (q.get("intel") || "").split(",").filter((k) => INTEL[k]);
+const prepShip = () => Math.min(SHIP.max, Math.max(0, parseInt(q.get("ship") || "0", 10) || 0));
+const prepFast = () => q.get("fast") === "1";
+const callOpen = () => { const y = ((ME.deeplink && ME.deeplink.traders) || []).find((x) => x.id === "special"), it = y && y.shop.find((s) => s.id === "y-call"); return !!(it && it.open); };
+function svcHtml(d) {
+  const I = prepIntel(), sh = prepShip(), fa = prepFast(), P = PERKS(), n = I.length + (sh ? 1 : 0) + (fa ? 1 : 0);
+  const sum = I.reduce((a, k) => a + intelPrice(d, k, P), 0) + gPrice(shipPrice(d, sh) + (fa ? fastPrice(d) : 0), "tcu");
+  const iBtn = (k) => `<button data-intel="${k}" aria-pressed="${I.includes(k)}" ${k === "call" && !callOpen() ? "disabled" : ""}>${esc(INTEL[k].name)}<small>${intelPrice(d, k, P)}</small></button>`;
+  return `<details class="svc"${n ? " open" : ""}><summary><span>情報屋・運び屋</span><span class="sv">${n ? `<span>${n} つ</span>・<span>クレジット ${sum.toLocaleString("ja-JP")}</span>` : "なし"}</span></summary>
+    <div class="row" role="group" aria-label="情報屋"><span class="lb">情報屋</span>${Object.keys(INTEL).map(iBtn).join("")}</div>
+    <p class="why">${(I.length ? I.map((k) => `<span>${esc(INTEL[k].text)}</span>`) : ["<span>侵入や 希少な 敵の 出方を かえる</span>"]).concat(callOpen() ? [] : ["<span>侵入の 呼び寄せは ヨルの 第 1 章で 開く</span>"]).join("・")}</p>
+    <div class="row" role="group" aria-label="運び屋"><span class="lb">運び屋</span>${[1, 2].map((v) => `<button data-ship="${v}" aria-pressed="${sh === v}">先送り ${v} 回<small>${gPrice(shipPrice(d, v), "tcu")}</small></button>`).join("")}<button data-fast aria-pressed="${fa}">早足<small>${gPrice(fastPrice(d), "tcu")}</small></button></div>
+    <p class="why"><span>${sh === 2 ? "派遣の 1/3 と 2/3 で 素材を 30 こずつ 倉庫へ" : sh ? "派遣の まんなかで 素材を 30 こ 倉庫へ" : "先送り：拾った 素材を 途中で 倉庫へ"}</span>・<span>力つきても のこる</span>${fa ? "・<span>早足：1 割 早く 帰る</span>" : ""}</p></details>`;
 }
 // 周回の まとめ：開いた ときに、門番が うけとった 分を まとめて 見せる（とじると 消える）
 const soldGain = (s) => `素材 <b>${s.mats}</b> こ`;   // 自動で リサイクルした 分（装備は 売れない。2026-10-28 の 決め）   // 自動で 売った 分
@@ -787,6 +817,7 @@ function renderPrep() {
       <div class="outlook" style="--ec:${ec}"><span class="lab">見通し</span><p>${metric}</p><p class="w"><i class="bar"><b style="width:${Math.round(o.wipe * 100)}%"></b></i>力つきる <b>${Math.round(o.wipe * 100)}%</b><small>${word}</small></p></div>
       ${fullHtml(d)}
       ${insHtml(d)}
+      ${svcHtml(d)}
       ${loopHtml("prep")}
       <button class="jelly sky go" data-go="play"><svg viewBox="0 0 30 18" aria-hidden="true"><rect x="1" y="2" width="28" height="14" rx="6" fill="#fff"/><rect x="4" y="5" width="22" height="8" rx="3" fill="#1B2340"/><circle cx="23" cy="7" r="1.3" fill="#52F2A0"/></svg>ゴーグルをつけて出発${[tripCost(d) ? `玉 ${tripCost(d).toLocaleString("ja-JP")}` : "", prepLoop() !== null ? `周回 ${loopName(prepLoop())}` : ""].filter(Boolean).map((x, i, a) => (i ? "・" : "（") + x + (i === a.length - 1 ? "）" : "")).join("")}</button>${tripCost(d) && prepLoop() !== null ? `<p class="gowhy">周回は 1 回ごとに 玉 ${tripCost(d).toLocaleString("ja-JP")}（足りなく なったら 止まる）</p>` : ""}<p class="why" id="goWhy"></p>
     </aside></div>`;
@@ -795,7 +826,7 @@ function renderPrep() {
 // ---------- 出かけている途中：ゴーグルの中に、いまの階の地図 ----------
 function logLines(b, upto) {
   const out = [], foe = b.foe.name;
-  out.push({ sys: true, t: b.inv ? `侵入者だ！ 高レベルの ${foe}（Lv${b.foe.lv}）が あらわれた！` : `${b.boss ? "ボスの " : ""}${foe}${b.foes.length > 1 ? ` たち` : ""} が あらわれた！` });
+  out.push({ sys: true, t: b.inv ? `侵入者だ！ 高レベルの ${foe}（Lv${b.foe.lv}）が あらわれた！` : `${b.boss ? "ボスの " : ""}${foe}${b.nb > 1 ? ` ${b.nb} たい` : b.foes.length > 1 ? ` たち` : ""} が あらわれた！` });
   for (const e of b.ev.slice(0, upto)) if (e.type === "act" && e.log) out.push({ by: e.who < b.party.length ? (e.by === "auto" ? "オ" : "①②③④⑤⑥⑦⑧"[e.by - 1] || "") : "", t: e.log });
   return out;
 }
@@ -814,22 +845,23 @@ let PLAY = null;   // 出かけた ときと 同じ 種・行き先・パーテ�
 const BACK_WHY = { wipe: "力つきた……", explore: "探索を おえた", boss: "ボスを たおした", gather: "採取を おえた" };
 function renderPlay() {
   const t = TRIP, did = t.did, d = DUNGEONS.find((x) => x.id === did), run = RUNS[t.run], pu = t.purpose;
-  if (!PLAY) { const party = t.team ? t.team.map((c, k) => ({ ...c, owner: k ? "" : ME.name })) : [PET, ...t.party.slice(1).map(mateOf).filter(Boolean)]; PLAY = { party, res: runDungeon(party, did, t.run, t.seed, { purpose: pu, target: t.target, tools: t.tools || (t.tool ? [t.tool] : []), floor: t.floor, progress: PROG[did], medic: t.med || 0, stairs: !!t.st, ...(t.bag ? { items: t.bag } : {}) }) }; }   // 出かけた ときの 形（team。門番と 同じ）。前の 記録には ないので いまの 形
+  if (!PLAY) { const party = t.team ? t.team.map((c, k) => ({ ...c, owner: k ? "" : ME.name })) : [PET, ...t.party.slice(1).map(mateOf).filter(Boolean)]; PLAY = { party, res: runDungeon(party, did, t.run, t.seed, { purpose: pu, target: t.target, tools: t.tools || (t.tool ? [t.tool] : []), floor: t.floor, progress: PROG[did], medic: t.med || 0, stairs: !!t.st, ...(t.bag ? { items: t.bag } : {}), ...(t.intel ? { intel: t.intel } : {}), ...(t.ship ? { ship: t.ship } : {}), ...(t.fx && t.fx.rest ? { restUp: t.fx.rest } : {}), ...(t.fx && t.fx.meet ? { rareUp: t.fx.meet } : {}) }) }; }   // 出かけた ときの 形（team。門番と 同じ）。前の 記録には ないので いまの 形
   const { party: TP, res } = PLAY, now = Date.now();
-  if (t.calc) t.end = t.start + Math.min(res.budget, res.track.length) * TICK * 1000;   // 門番が まだ 計算中：帰る 時間は この ブラウザの 計算で（同じ 種なので 同じ）
-  const at = Math.max(0, Math.min(res.track.length - 1, Math.floor((now - t.start) / (TICK * 1000))));
+  const SPD = t.fast ? FAST.spd : 1;   // 早足（運び屋）：同じ 道のりを 1 割 早く
+  if (t.calc) t.end = t.start + Math.round(Math.min(res.budget, res.track.length) * TICK * 1000 * SPD);   // 門番が まだ 計算中：帰る 時間は この ブラウザの 計算で（同じ 種なので 同じ）
+  const at = Math.max(0, Math.min(res.track.length - 1, Math.floor((now - t.start) / (TICK * 1000 * SPD))));
   const tr = res.track[at], f = tr.f, seen = new Set(PROG[did].floors[f]?.seen || []), opened = new Set();
   for (let k = 0; k <= at; k++) { const p = res.track[k]; if (p.f !== f) continue; opened.add(keyOf(p.x, p.y)); for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) if (p.x + dx >= 0 && p.y + dy >= 0 && p.x + dx < GW && p.y + dy < GH) seen.add(keyOf(p.x + dx, p.y + dy)); }
   const hidOpen = !!PROG[did].floors[f]?.hidden || res.log.some((l) => l.t <= at && l.s.includes("かくし通路を 見つけた") && res.track[l.t]?.f === f);
   const pct = Math.round(exploredRatio(did, f, [...seen]) * 100), act = tr.a === "b" ? "戦っている" : tr.a === "r" ? "休憩中" : "探索中", actAt = tr.a === "w" ? `${f} 階を 探索中` : `${f} 階で ${act}`;
   const wonSoFar = res.battles.filter((b) => b.tick + b.cost <= at && b.win).length;
   // のこりは えらんだ コースの 時間で 数える（鹿さんの決め、2026-10-25）。早めに 帰る（力つきた・やる ことを おえた）ことは、その 場面に なって はじめて 出す
-  const full = t.start + run.sec * 1000, back = now >= t.end && t.end < full;
+  const full = t.start + Math.round(run.sec * 1000 * SPD), back = now >= t.end && t.end < full;
   let side = "", lines;
   if (tr.a === "b") {
     const b = res.battles[tr.b], acts = b.ev.filter((e) => e.type === "act"), frac = Math.min(1, (at - b.tick + 1) / b.cost), upto = acts.length ? b.ev.indexOf(acts[Math.max(0, Math.min(acts.length - 1, Math.floor(acts.length * frac) - 1))]) + 1 : 1;
     const last = b.ev.slice(0, upto).filter((e) => e.after).at(-1)?.after ?? [], fs = b.ev[0].fighters, np = b.party.length;
-    side = `<div class="bpanel"><div class="bspr">${b.foes.map((ff, k) => `<img class="${b.boss && k === 0 ? "boss" : ""} ${(last[np + k]?.hp ?? 1) <= 0 ? "down" : ""}" src="${spriteURL(ff.tree)}" alt="${esc(ff.name)}" style="--k:${k}">`).join("")}</div>
+    side = `<div class="bpanel"><div class="bspr">${b.foes.map((ff, k) => `<img class="${b.boss && k < (b.nb || 1) ? "boss" : ""} ${(last[np + k]?.hp ?? 1) <= 0 ? "down" : ""}" src="${spriteURL(ff.tree)}" alt="${esc(ff.name)}" style="--k:${k}">`).join("")}</div>
       ${b.foes.map((ff, k) => { const a = last[np + k], mx = fs[np + k].maxHp; return `<div class="meter" style="--mc:#FF7A86"><div><span>${esc(ff.name)} Lv${ff.lv}</span><span>HP ${a?.hp ?? mx}/${mx}</span></div><i><b style="width:${Math.round(((a?.hp ?? mx) / mx) * 100)}%"></b></i></div>`; }).join("")}</div>`;
     lines = logLines(b, upto).slice(-5);
   } else {
@@ -845,6 +877,7 @@ function renderPlay() {
       <p class="where">${esc(d.name)} ${actAt}<small>${run.sec / 60} 分コース・${PURPOSES[pu].name}・${wonSoFar} 戦 勝った</small></p>
       ${back ? `<div class="timer back"><b>帰って くる</b><small>${BACK_WHY[res.reason === "wipe" ? "wipe" : pu] || ""}</small></div>` : `<div class="timer"><b>${mm(Math.max(0, (full - now) / 1000))}</b><small>のこり</small></div>`}
       <div class="pbar ${back ? `cut ${res.reason === "wipe" ? "wipe" : ""}` : ""}"><i style="width:${Math.round(Math.min(1, (Math.min(now, t.end) - t.start) / Math.max(1, full - t.start)) * 100)}%"></i></div>
+      ${t.sense ? `<p class="sense">侵入の 気配：${t.sense.lv ? `あり（Lv${t.sense.lv}）` : "なし"}</p>` : ""}
       ${loopHtml("play")}
       <div class="spacer"></div>
     </section>
@@ -946,6 +979,10 @@ function bind() {
   on("[data-tg]", (b) => reopen("tg", b.dataset.tg));
   on("[data-tool]", (b) => { const k = b.dataset.tool, cur = opts().tools, next = !k ? [] : cur.includes(k) ? cur.filter((x) => x !== k) : [...cur, k].slice(0, TOOL_MAX); if (next.length) q.set("tool", next.join(",")); else q.delete("tool"); location.search = q.toString(); });   // 押すと 入る・もう一度で 外す（3 つまで）
   on("[data-ins]", (b) => { if (+b.dataset.ins) q.set("ins", b.dataset.ins); else q.delete("ins"); location.search = q.toString(); });
+  on("[data-intel]", (b) => { const k = b.dataset.intel, cur = prepIntel(), I = cur.includes(k) ? cur.filter((x) => x !== k) : [...cur.filter((x) => !((k === "call" && x === "stop") || (k === "stop" && x === "call"))), k];   // 呼び寄せと 阻止は どちらか
+    if (I.length) q.set("intel", I.join(",")); else q.delete("intel"); location.search = q.toString(); });
+  on("[data-ship]", (b) => { if (prepShip() === +b.dataset.ship) q.delete("ship"); else q.set("ship", b.dataset.ship); location.search = q.toString(); });
+  on("[data-fast]", () => { if (prepFast()) q.delete("fast"); else q.set("fast", "1"); location.search = q.toString(); });
   on("[data-step]", (b) => { if (b.dataset.step) q.set("step", b.dataset.step); else q.delete("step"); location.search = q.toString(); });
   // 職業：えらぶと 右（スマホは 下）の くわしい所が かわる
   on("[data-job]", (b) => { JOB = b.dataset.job; paint(); if (innerWidth <= 820) document.getElementById("jdet").scrollIntoView({ behavior: "smooth", block: "start" }); });
@@ -956,7 +993,7 @@ function bind() {
   // 出発：門番が 行き先・時間・目的・道具を たしかめて、道のりを 1 回 計算する
   on("[data-go]", async (b) => {
     const { did, rk, pu, tg, tools, fl } = opts(), html = b.innerHTML;
-    const r = await busy(b, () => act("trip.start", { did, run: rk, purpose: pu, target: tg, tools, floor: fl || undefined, loop: prepLoop() ?? undefined, ins: prepIns() || undefined }), "出発して います…");
+    const r = await busy(b, () => act("trip.start", { did, run: rk, purpose: pu, target: tg, tools, floor: fl || undefined, loop: prepLoop() ?? undefined, ins: prepIns() || undefined, intel: prepIntel().length ? prepIntel() : undefined, ship: prepShip() || undefined, fast: prepFast() || undefined }), "出発して います…");
     if (r.ok) { if (r.enc) try { sessionStorage.setItem("ml-enc", JSON.stringify({ name: r.enc.foe.name, pet: r.enc.foe.pet, win: r.enc.win, credits: r.enc.credits, res: r.enc.res })); } catch (e) {} location.href = location.pathname; return; }   // 派遣先で ばったり（⑤）：読みなおした あとで 知らせる
     b.innerHTML = html; document.getElementById("goWhy").textContent = r.why || "出発できませんでした";
   });

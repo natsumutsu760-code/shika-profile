@@ -108,13 +108,31 @@ export const SPECIAL = { id: "special", name: "ヨル", animal: "黒ネコ", dir
     { id: "y-charm", name: "くじの お守り", note: "次の 作る・合成で ★ ＋1", price: 8, cur: "res", lv: 1, stock: 1, left: 1, get: { items: { charm: 1 } } },
     // クレートの カードキー：ブラックマーケット（ヨル）で アメジスト 6（鹿さんの 決め、2026-10-30。mono-link-economy.md・crawler-missions.md。パチンコの 景品と 同じ 物。2026-11-05 に 入れた：前は 景品だけ だった）
     { id: "y-cratekey", name: "クレートの カードキー", note: "クローラーの 施錠された クレートを 開ける（パチンコの 景品と 同じ 物）", price: 6, cur: "res", lv: 1, get: { items: { key_crate: 1 } } },
-    { id: "y-call", name: "侵入の 呼び寄せ", note: "この 派遣の 侵入 1% → 20%", price: 0, cur: "credits", lv: 1, soon: "情報屋" },
-    { id: "y-rare", name: "希少種の 呼び寄せ", note: "この 派遣の 希少な 敵 ×3", price: 0, cur: "credits", lv: 1, soon: "情報屋" },
+    // 情報屋（2026-11-11 鹿さん「8つの仕組み…作り実装してください」）：派遣の 準備で 買う（保険と 同じ。値段は INTEL × 島）。呼び寄せは ヨル 第 1 章 10 こ目で 開く
+    { id: "y-sense", name: "侵入の 気配", note: "出発の ときに、侵入が 起きるか（と その Lv）が わかる", price: 0, cur: "credits", lv: 1, intel: "sense" },
+    { id: "y-stop", name: "侵入の 阻止", note: "この 派遣の 侵入 0%", price: 0, cur: "credits", lv: 1, intel: "stop" },
+    { id: "y-rare", name: "希少種の 呼び寄せ", note: "この 派遣の 希少な 敵 ×3", price: 0, cur: "credits", lv: 1, intel: "rare" },
+    { id: "y-call", name: "侵入の 呼び寄せ", note: "この 派遣の 侵入 1% → 20%", price: 0, cur: "credits", lv: 1, intel: "call" },
+    { id: "y-intel", name: "情報屋の 割引", note: "情報屋の 品 −20%", price: 3, cur: "res", lv: 1, once: true, get: { perk: "intelCheap" } },   // ヨル 第 2 章 10 こ目で 開く（前は 希少種の 呼び寄せ。1 章 8 こ目で 使うので はじめから 買える ように した。Claude）
+    { id: "y-bz", name: "ボーダーゾーンの 遭遇率 下げ", note: "遭遇戦 −20%", price: 100, cur: "credits", lv: 1, soon: "ボーダーゾーン" },
   ] };
 // 保険料（Claude の 案。数の 決まりは docs/mono-link-numbers.md「保険・ふつう 行き先の 稼ぎの 目安 × 15%（暗い村 26・水晶洞窟 35・島 2 40〜60）」）
 // ふつう：力つきたら 失った 素材の 50% が 2 時間 あと。手厚い（ins2 を 買うと）：保険料 2 倍・100% が 30 分 あと
 export const INS_BASE = { hals: 15, morph: 20, kurai: 26, crystal: 35 };
 export const INS_PLAN = { 1: { mult: 1, back: 0.5, wait: 2 * 3600e3 }, 2: { mult: 2, back: 1, wait: 30 * 60e3 } };
+// 情報屋（ヨル・NOX）と 運び屋（CRV・TCU）の 値段（docs/mono-link-services-plan.md。Claude の 案）。島 1 の 値段 × 島の 番号。1 派遣に 各 1 つ
+export const INTEL = {
+  sense: { name: "侵入の 気配", base: 30, text: "侵入が 起きるか わかる" },
+  stop: { name: "侵入の 阻止", base: 50, text: "侵入 0%" },
+  rare: { name: "希少種の 呼び寄せ", base: 100, text: "希少な 敵 ×3" },
+  call: { name: "侵入の 呼び寄せ", base: 300, text: "侵入 1% → 20%" },
+};
+export const INTEL_IDS = Object.keys(INTEL);
+export const SHIP = { base: 30, max: 2 }, FAST = { base: 40, spd: 0.9 };   // 先送り（1 回 30・2 回まで）・早足（同じ 道のりを 1 割 早く 帰る）
+const isleN = (d) => (d && d.isle) || 1;
+export const intelPrice = (d, k, perks = {}) => (INTEL[k] ? Math.max(1, Math.round(INTEL[k].base * isleN(d) * (perks.intelCheap ? 0.8 : 1))) : 0);
+export const shipPrice = (d, n) => (n > 0 ? SHIP.base * isleN(d) * Math.min(n, SHIP.max) : 0);
+export const fastPrice = (d) => FAST.base * isleN(d);
 export function insPrice(d, plan, perks = {}) {
   const P = INS_PLAN[plan]; if (!d || !P) return 0;
   const isle = d.isle || 1, same = DUNGEONS.filter((x) => (x.isle || 1) === isle), i = isle >= 2 ? same.findIndex((x) => x.id === d.id) : -1;

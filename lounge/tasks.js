@@ -25,6 +25,10 @@ const quality = (n) => Math.min(5, 1 + Math.floor(n / 6));
 // じょうけん：5 こ目から ときどき 付く。ごほうび ×1.5
 export const CONDS = ["力つきずに 帰る 派遣で", "休憩を しない 派遣で", "道具を 持たない 派遣で", "1 回の 派遣で", "10 分 コースで"];
 const COND_RATE = 0.25, COND_MULT = 1.5;
+// 「1 回の 派遣で」の 上限（2026-11-11）：10 分の 派遣 1 回で 届く 数の 真ん中（測った 数：宝箱 3・採取 6・同じ 敵 8）。
+// 鹿さんの カード「もっと少なく」（前の 案は 上 25%：宝箱 4・採取 8・たおす 12）。
+// ボスは 1 回に 1 体、たまに 2 体 いっしょ（dungeons.js の BOSS_TWIN。鹿さんの 決め「たまに 2 体いっしょに出る」）なので 2
+const ONE_TRIP = CONDS.indexOf("1 回の 派遣で"), ONE_MAX = { boss: 2, chest: 3, gather: 6, kill: 8 };
 
 // ごほうびの クレジット（docs/mono-link-numbers.md の 1 章の 案：ランダムの タスクは 島 1 で 30〜60・島 2 で 60〜120。派遣 1 周の 2〜5 割。上限 なしで 出るので 小さめ）
 // 進むほど 上がり、20 こ目で 頭打ち。毎日の タスクは その 半分（Claude の 案）。タスクの ごほうびは クレジット・素材・品の 解放〈2026-10-29〉。アメジストは タスクから 出さない〈2026-10-28〉
@@ -108,6 +112,7 @@ function build(tid, n, R, daily) {
   if (!k) k = list[0](R, n, d);
   let mult = 1;
   if (k.cond && n >= 5 && R() < COND_RATE) { k.condText = pick(R, CONDS); k.goal.cond = CONDS.indexOf(k.condText); mult = COND_MULT; }
+  if (k.goal.cond === ONE_TRIP && ONE_MAX[k.goal.type]) k.need = Math.min(k.need, ONE_MAX[k.goal.type]);   // 1 回の 派遣で 届く 数まで
   delete k.cond;
   if (daily) { if (k.unit !== "%") k.need = Math.max(1, Math.round(k.need * 0.5)); k.reward = { credits: Math.max(10, round10((creditsOf(d, n) / 2) * mult)), rep: 4 }; return k; }
   k.reward = { credits: round10(creditsOf(d, n) * mult), rep: 12 + 3 * Math.min(n, 6) };   // 友好度 15〜30 点（資料の 案）

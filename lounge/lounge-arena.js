@@ -3,7 +3,8 @@
 // Market（みんなの 箱）：名簿 "a:c:" + id・守りの 記録 "a:d:" + id・大会 "a:t:" + 日・大会の ペット "a:f:" + 日 + ":" + id
 //   受付中の 大会の 日 "a:open"・進めて いる 大会の 日 "a:runq"・さいごに 終わった 大会の 日 "a:last"。22:00 の アラームで 大会を 少しずつ 進める（CPU の 上限が あるので 1 回に 数試合）
 // ごほうび：デュエルは その場で（クレジットは 記録・アメジストは 帳簿）。大会は Market の 送る 箱（"o:"）から Viewer の /inbox へ
-import { DUEL, duelPay, pickFoes, TOUR, TOUR_PAY, tourDay, tourAt, bracketOf, bandMatches, matchSeed, simulate, fighterPower, ENC } from "./game.js";
+// LINKERS の 格付け（2026-11-11）：名簿の 札に 点（pt）・点の 週（pw）・格付けで 戦った 数（f）。段の 線は "a:rk"（1 日 1 回）。決まりは lounge-proto/arena.js の RATE
+import { DUEL, duelPay, pickFoes, TOUR, TOUR_PAY, tourDay, tourAt, bracketOf, bandMatches, matchSeed, simulate, fighterPower, ENC, RATE, RATE_RANKS, rateWeek, rateRank } from "./game.js";
 import { fighterOf } from "./lounge-game.js";
 import { hidden } from "./lounge-gate.js";   // 入れない 人は 相手に えらばない・大会から はずす・名前を 出さない
 
@@ -35,14 +36,14 @@ export function duelCheck(rec, A, b) {
   return { me, foe };
 }
 // デュエルの 結果を 記録に 入れる。theirs：相手の /fighter の 答え。R：くじ。返す 物は 画面へ（3D で 見せる 材料つき）
-export function duelDone(rec, A, me, theirs, R, now) {
+export function duelDone(rec, A, me, theirs, R, now, bonus = 0) {   // bonus：ファイトマネーの 上乗せ（契約した 会社の グループの 好感度・家具。lounge-link.js の fightBonus）
   const seed = Math.floor(R() * 2 ** 31), end = simulate(me.f, theirs.f, seed, { quiet: true }).at(-1), win = end.winner === 0;
   A.n++; if (win) A.w++; else A.l++;
   let pay = null;
   if (win && A.paid < DUEL.paidPerDay && !A.beat.includes(theirs.card.id)) {
     const p = duelPay(me.card.power, theirs.card.power);
-    pay = { credits: p.credits, res: p.res, label: p.label };
-    A.paid++; A.beat.push(theirs.card.id); rec.credits += p.credits;
+    pay = { credits: Math.round(p.credits * (1 + bonus)), res: p.res, label: p.label };
+    A.paid++; A.beat.push(theirs.card.id); rec.credits += pay.credits;
   }
   A.log = [{ at: now, name: theirs.card.name, pet: theirs.card.pet.name, win, pay }, ...A.log].slice(0, 10);
   return { ok: true, A: me.f, B: theirs.f, seed, win, upset: !!end.upset, pay, me: me.card, foe: theirs.card, left: { duels: DUEL.perDay - A.n, paid: DUEL.paidPerDay - A.paid },
@@ -73,14 +74,36 @@ async function cardsOf(mk) {
   return mk.cards;
 }
 // 札を 新しく する（勝ち負けは 名簿の 方が 持つ）
-async function putCard(mk, card, now, d = {}) {
+// 点は 週ごとに 1 割 0 に 近づく（読む ときに 追いつく）
+export const ptNow = (c, now) => { const k = Math.min(52, Math.max(0, rateWeek(now) - (c.pw ?? rateWeek(now)))); return Math.round((c.pt || 0) * Math.pow(RATE.decay, k)); };
+async function putCard(mk, card, now, d = {}, seen = now) {   // seen：最後に 来た 時刻（守った 人・大会の 点は 前の まま）
   const C = await cardsOf(mk), old = C[card.id] || { w: 0, l: 0, hw: 0, hl: 0 };
-  const c = { id: String(card.id), name: String(card.name || "").slice(0, 40), pet: card.pet, power: Math.round(+card.power || 0), at: now,
-    w: old.w + (d.w || 0), l: old.l + (d.l || 0), hw: old.hw + (d.hw || 0), hl: old.hl + (d.hl || 0) };   // hw・hl：留守の あいだに 守った・やられた
+  const pt = ptNow(old, now);
+  const c = { id: String(card.id), name: String(card.name || "").slice(0, 40), pet: card.pet, power: Math.round(+card.power || 0), at: seen,
+    w: old.w + (d.w || 0), l: old.l + (d.l || 0), hw: old.hw + (d.hw || 0), hl: old.hl + (d.hl || 0),   // hw・hl：留守の あいだに 守った・やられた
+    pt: d.pt != null ? Math.max(0, pt + d.pt) : pt, pw: rateWeek(now), f: (old.f || 0) + (d.pt != null ? 1 : 0) };   // 格付けの 点・その 週・格付けで 戦った 数
   C[c.id] = c; await mk.state.storage.put("a:c:" + c.id, c);
   return c;
 }
 const pub = (c) => ({ id: c.id, name: c.name, pet: c.pet, power: c.power });
+// 段の 線（1 回でも 戦った 人の 点を 高い 順に 並べ、上 1%・5%・20%・30%・50% の 人の 点）。1 日 1 回 決める
+//   〔C〕戦った 人が 50 人 より 少ない あいだは 毎回 引きなおす（はじめの 日に「だれも 戦って いない」線の まま 1 日 D に 止まらない ため。少ないので 軽い）
+export function cutsOf(cards, now) {
+  const pts = Object.values(cards).filter((c) => (c.f || 0) > 0).map((c) => ptNow(c, now)).sort((a, b) => b - a), n = pts.length;
+  if (!n) return { n: 0, cuts: null };
+  const at = (p) => pts[Math.max(0, Math.ceil(n * p) - 1)];
+  return { n, cuts: { ...Object.fromEntries(RATE_RANKS.map(([k, p]) => [k, at(p)])), t30: at(0.3) } };
+}
+async function rankCuts(mk, now) {
+  const st = mk.state.storage, day = Math.floor((now + 9 * 3600e3) / 864e5), old = await st.get("a:rk");
+  if (old && old.day === day && old.n >= 50) return old;
+  const r = { day, ...cutsOf(await cardsOf(mk), now) };
+  await st.put("a:rk", r);
+  return r;
+}
+// 自分の 格付け（点は いま・段の 線は きょうの 分）。t30：上の 3 割・t50：上の 半分（C 以上）
+export const rateView = (c, rk, now) => { const pt = ptNow(c, now), rank = rateRank(pt, rk.cuts); return { pt, rank, f: c.f || 0, n: rk.n, t30: pt > 0 && !!rk.cuts && pt >= rk.cuts.t30, t50: rank !== "D" }; };
+const winPt = (rk) => Math.round(RATE.win * (1 + (Number.isFinite(+rk) ? Math.min(1, Math.max(0, +rk)) : 0)));   // rk：家具（壁の大型モニター など）の 格付けの 点 ＋%
 async function pushEnc(st, id, e) { const list = (await st.get("a:e:" + id)) || []; await st.put("a:e:" + id, [e, ...list].slice(0, 6)); }
 // 大会を 画面の 形に（名前は 参加した ときの 札から）
 function tourView(t, id) {
@@ -102,20 +125,21 @@ export async function arenaFetch(mk, url, b, now) {
     const day = tourDay(now), last = await st.get("a:last");
     const out = { ok: true, card: me, def: ((await st.get("a:d:" + id)) || []).filter((x) => !x.by || !hidden(gate, x.by)).slice(0, 10), tour: tourView((await st.get("a:t:" + day)) || newTour(day), id), last: last ? tourView(await st.get("a:t:" + last), id) : null };
     out.enc = ((await st.get("a:e:" + id)) || []).filter((x) => !hidden(gate, x.by)).map(({ A, B, seed, ...x }) => x);   // 派遣先の 戦い（見る 材料は 出さない）
+    out.rate = rateView(me, await rankCuts(mk, now), now);   // LINKERS の 格付け
     if (b.pick) out.foes = pickFoes(Object.values(C).filter((c) => now - c.at < OLD_MS && !hidden(gate, c.id)), id, me.power, Math.random).map(pub);
     return J(out);
   }
   // デュエルの 記録（挑んだ 人の Viewer から）：a は 挑んだ 人の 札、b は 相手の id、win は 挑んだ 人が 勝ったか
   if (url.pathname === "/arena/log") {
     if (!b.a || !b.b) return J({ ok: false });
-    await putCard(mk, b.a, now, b.win ? { w: 1 } : { l: 1 });
+    const me = await putCard(mk, b.a, now, b.win ? { w: 1, pt: winPt(b.rk) } : { l: 1, pt: -RATE.lose });   // 格付けの 点は 挑んだ 人だけ（〔C〕守る 側は 留守なので 動かさない）
     const C = await cardsOf(mk), d = C[String(b.b)];
     if (d) {
-      await putCard(mk, d, d.at, b.win ? { hl: 1 } : { hw: 1 });
+      await putCard(mk, d, now, b.win ? { hl: 1 } : { hw: 1 }, d.at);
       const list = (await st.get("a:d:" + d.id)) || [];
       await st.put("a:d:" + d.id, [{ at: now, by: String(b.a.id), name: b.a.name, pet: (b.a.pet || {}).name || "", held: !b.win }, ...list].slice(0, 20));
     }
-    return J({ ok: true });
+    return J({ ok: true, rate: rateView(me, await rankCuts(mk, now), now) });
   }
   // 大会に 出る・やめる（その 日の 22:00 まで）
   if (url.pathname === "/arena/entry") {
@@ -212,6 +236,9 @@ async function tourStep(mk, day, now) {
     const [fa, fb] = await Promise.all([st.get(`a:f:${day}:${m.a}`), st.get(`a:f:${day}:${m.b}`)]);
     const end = simulate(fa.f, fb.f, m.seed, { quiet: true }).at(-1);
     m.w = end.winner; m.upset = !!end.upset; budget--;
+    const C = await cardsOf(mk), [wi, li] = m.w === 0 ? [m.a, m.b] : [m.b, m.a], wf = m.w === 0 ? fa : fb;   // 格付けの 点（大会の 1 試合ごと）
+    if (C[wi]) await putCard(mk, C[wi], now, { pt: winPt(wf.rk) }, C[wi].at);
+    if (C[li]) await putCard(mk, C[li], now, { pt: -RATE.lose }, C[li].at);
   }
   if (R.every((m) => m.w != null)) {
     const win = R.map((m) => (m.w === 0 ? m.a : m.b));
@@ -225,9 +252,10 @@ async function tourStep(mk, day, now) {
       place[win[0]] = 1; place[fin.w === 0 ? fin.b : fin.a] = 2;
       if (t.rounds.length >= 2) for (const m of t.rounds[t.rounds.length - 2]) { const lose = m.w === 0 ? m.b : m.a; if (lose != null) place[lose] = 4; }
       t.place = place; t.state = "done";
+      const wins = {}; for (const Rd of t.rounds) for (const m of Rd) if (m.a != null && m.b != null) { const w = m.w === 0 ? m.a : m.b; wins[w] = (wins[w] || 0) + 1; }   // 勝った 試合の 数（LINKERS の 契約の 払い）
       for (const [id, pl] of Object.entries(place)) {
         const P = TOUR_PAY[pl] || TOUR_PAY.all, mid = `arena:${day}:${id}`;
-        await st.put("o:" + mid, { to: id, mid, why: "arena:" + day, give: { credits: P.credits }, earn: P.res ? [{ kind: "res", d: P.res }] : [] });
+        await st.put("o:" + mid, { to: id, mid, why: "arena:" + day, give: { credits: P.credits }, earn: P.res ? [{ kind: "res", d: P.res }] : [], wins: wins[id] || 0 });
       }
       await st.put("a:t:" + day, t); await st.put("a:last", day);
       // 配信中なら ベスト 8 からの 試合を オーバーレイの 帯へ（1 回で 送る。ペットは Twitch の id で なく 番号で）

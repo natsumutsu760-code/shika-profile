@@ -7,6 +7,8 @@
 import { MAT_NAME, sellPrice, baseOf, REQ_FEE, RES_VALUE, NOTE_PRESETS, NOTE_HIDE_AT, noteBlock } from "./game.js";
 import { putMats, putEquip, takeMats } from "./lounge-game.js";
 import { equippedUids } from "./lounge-pet.js";
+import { CROPS } from "./crops.js";
+const CROP_MAT = new Set(CROPS.map((c) => c.mat));   // 作物の 注文の 手数料は クロロシス・バイオテック（CLR）の 売り上げ（2026-11-11 鹿さん「8つの仕組み…」。〔決〕CLR が 手数料）
 import { sale } from "./lounge-stock.js";   // 株：依頼の 手数料は ノクス仲介の 売り上げ（お礼は あずかる だけ）   // lounge-game.js も ここを 読む（どちらも 呼ぶ ときに 使うだけ）
 
 export const LIMIT_MS = [6, 24, 72, 168].map((h) => h * 3600e3);   // 6 時間・1 日・3 日・7 日（deeplink.js の REQ_LIMITS と 同じ 順）
@@ -77,11 +79,11 @@ export function reqPostPlan(rec, b, extra = []) {
   if (eq.some((e) => !e) || new Set(us).size !== us.length) return { ok: false, why: "お礼の 装備を えらびなおして（付けて いる 物は はずして から）" };
   const reward = { credits, res: resN, ...items({ mats: t.taken, equip: eq }) };
   if (!valueOf(reward)) return { ok: false, why: "お礼を えらんで" };
-  const fee = feeOf(reward), rid = `${rec.id}:${rec.at.toString(36)}:q${++rec.req.n}`;
+  const fee = feeOf(reward), rid = `${rec.id}:${rec.at.toString(36)}:q${++rec.req.n}`, co = want.mat && CROP_MAT.has(want.mat) ? "CLR" : "NOX";   // 手数料を 入れる 会社（もどす ときも 同じ 会社から）
   if (credits + fee > (rec.credits || 0)) return { ok: false, why: `クレジットが 足りない：あと ${(credits + fee - (rec.credits || 0)).toLocaleString("ja-JP")}（お礼と 手数料）` };
-  const data = { rid, by: rec.id, name: rec.name, want, reward, fee, note: nt.note, limit: b.limit };
+  const data = { rid, by: rec.id, name: rec.name, want, reward, fee, co, note: nt.note, limit: b.limit };
   return { costs: [{ kind: "res", d: -resN }].filter((c) => c.d), why: "req:" + rid,
-    take: () => { rec.own.mats = t.mats; rec.own.equip = rec.own.equip.filter((e) => !eq.includes(e)); rec.credits -= credits + fee; sale(rec, "NOX", fee); rec.req.mine = rid; rec.req.wait[rid] = data; },
+    take: () => { rec.own.mats = t.mats; rec.own.equip = rec.own.equip.filter((e) => !eq.includes(e)); rec.credits -= credits + fee; sale(rec, co, fee); rec.req.mine = rid; rec.req.wait[rid] = data; },
     grant: { reqSend: rid }, refund: { reqDrop: rid, reqBack: items({ mats: t.taken, equip: eq }), credits: credits + fee }, info: { rid, fee } };
 }
 // 届ける 物を 取る（素材は 品質の 低い 物から・買った 物から、装備は uid か ★の いちばん 低い 物）

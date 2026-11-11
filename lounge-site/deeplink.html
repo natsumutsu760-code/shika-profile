@@ -49,7 +49,7 @@
   .dir button, .dir a.go { width:100%; display:grid; grid-template-columns:28px minmax(0, 1fr) auto; gap:8px; align-items:center; padding:6px 14px; text-align:left; }
   .dir a.go { color:inherit; text-decoration:none; box-sizing:border-box; } .dir a.go .mk { color:var(--cyan); } .dir a.go small { font-size:12px; color:var(--dim); } .dir a.go:hover { background:rgba(255,181,71,.1); }   /* クローラーの 入口（ほかの 画面へ とぶ） */
   .dir button .mk { color:var(--amber); } .dir button .mk img { display:block; width:28px; height:28px; object-fit:cover; object-position:50% 18%; border-radius:6px; background:rgba(255,181,71,.12); } .dir button small { font-size:12px; color:var(--dim); }
-  .dir button .new { color:var(--ok); font-size:12px; }
+  .dir button .new, .dir a.go .new { color:var(--ok); font-size:12px; }
   .pd-bar .mk img { display:block; width:28px; height:28px; object-fit:cover; object-position:50% 18%; border-radius:6px; } .pd-bar .new { color:var(--ok); } .pd-bar .mk { color:var(--amber); }
   .dir button[aria-current="true"] { background:var(--amber); color:var(--bg); text-shadow:none; }
   .dir button[aria-current="true"] .mk, .dir button[aria-current="true"] small, .dir button[aria-current="true"] .new { color:var(--bg); }
@@ -214,6 +214,21 @@
   }
   @media (prefers-reduced-motion:reduce) { .logo i { animation:none; } .ready .term { animation:none; } .meter i { transition:none; } }
   .bye { color:var(--dim); font-size:13px; text-decoration:none; white-space:nowrap; } .bye:hover, .bye:focus-visible { color:var(--amber); }
+  .gaff .gbar { display:flex; align-items:center; gap:10px; min-width:0; }
+  .gaff .meter { position:relative; display:block; width:120px; max-width:40vw; height:8px; border:1px solid var(--dim); border-radius:4px; }
+  .gaff .meter::after { content:""; position:absolute; left:50%; top:-3px; bottom:-3px; width:1px; background:var(--dim); }
+  .gaff .meter i { position:absolute; top:0; bottom:0; background:var(--amber); border-radius:3px; }
+  .gaff .gbar b { min-width:3em; text-align:right; font-variant-numeric:tabular-nums; }
+  .gaff .gfx { grid-column:1 / -1; display:flex; flex-wrap:wrap; gap:6px; font-size:.85em; color:var(--ok); }
+  .fxnow { margin:8px 0 12px; padding:8px 10px; border:1px dashed var(--dim); border-radius:8px; }
+  .fxnow p { margin:2px 0; }
+  .desk-cam { display:grid !important; place-items:center; font-size:40px; line-height:1; color:var(--amber, #f5b54a); }
+  .desk-bank { display:grid; gap:10px; margin:10px 0; }
+  .desk-bank .bal, .desk-bank .int { display:flex; align-items:baseline; gap:10px; flex-wrap:wrap; }
+  .desk-bank .bal b, .desk-bank .int b { font-size:1.6em; font-variant-numeric:tabular-nums; }
+  .desk-bank .int .btn { margin-left:auto; }
+  .desk-bank .mv { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+  .desk-bank .mv input { width:9em; max-width:100%; font:inherit; padding:6px 8px; border-radius:8px; border:1px solid currentColor; background:transparent; color:inherit; }
 </style>
 </head>
 <body>
@@ -234,7 +249,9 @@
 </div>
 <script type="module">
 import { t, enReady } from "./lounge-en.js";   // 英語の 画面（MONO LINK の サイトの EN／日本語 と 同じ 決まり。英語の ときだけ 辞書を 読む）。起動の 文字送りは 訳してから 打つ
-import { TRADERS, SPECIAL, insPrice, REQ_FEE, REQ_MAX, REQ_LIMITS, NOTE_PRESETS, NOTE_MAX, NOTE_HIDE_AT, noteBlock, RES_VALUE } from "./deeplink.js";
+import { TRADERS, SPECIAL, insPrice, intelPrice, REQ_FEE, REQ_MAX, REQ_LIMITS, NOTE_PRESETS, NOTE_MAX, NOTE_HIDE_AT, noteBlock, RES_VALUE } from "./deeplink.js";
+import { FURN_FX, FURN_SYN, FX_NAME, FX_DOWN } from "./furn-fx.js";   // 家具の 効果（2026-11-11）
+import { FURN as FURN_ALL } from "./lounge-rules.js";
 import { repAt, lvOfPts, LV_MAX, CH_LV, UNLOCK_BY } from "./primary.js";   // 友好度 Lv100・章の プライマリータスク
 import { MAT_NAME, GATHER, sellPrice, MAT_FROM, HIDDEN_MAT, BAR_SELL, matIsle, matOpen } from "./materials.js";   // matOpen：大工事の 畑が つながる まで 作物は 出さない
 import { matPic } from "./mat-icons.js";
@@ -288,10 +305,12 @@ const ready = (v) => tasksOf(v).filter((k) => !k.done && k.have >= k.need).lengt
 const matsBy = () => { const m = new Map(); for (const x of ME.own.mats || []) { const k = `${x.id}:${x.q || 0}`; m.set(k, { id: x.id, q: x.q || 0, n: (m.get(k)?.n || 0) + x.n }); } return [...m.values()]; };
 const haveMat = (id, q = 0) => (ME.own.mats || []).filter((x) => x.id === id && (x.q || 0) >= q).reduce((a, x) => a + x.n, 0);
 
+// クローラー・ボーダーゾーンの 札：島 3 の 夜の 招待（ME.order。2026-11-11）。届く 前は 開き方、届いたら 赤い 丸、サインの あとは いつもの 札
+const invTag = (dflt) => { const o = ME && ME.order; if (!o || o.signed) return dflt; return o.ready ? `<span class="new">●</span> 招待が 届いた` : "無線機 Lv2 で 招待"; };
 function dirHtml() {
   const row = (t, sp) => { const v = view(t.id); return `<button data-go="${t.id}" class="${sp ? "sp" : ""}" aria-current="${S.go === t.id}"><span class="mk">${face(t.id)}</span><span class="nm">${t.dir || t.name}</span><small>Lv${v.lv || 1}${ready(v) ? ` <span class="new">●${ready(v)}</span>` : ""}</small></button>`; };
   return `<p class="pr">&gt; 商人</p><ul>${TRADERS.map((t) => `<li>${row(t)}</li>`).join("")}</ul>
-    <p class="pr">&gt; ほか</p><ul><li>${row(SPECIAL, true)}</li><li><button data-go="board" aria-current="${S.go === "board"}"><span class="mk">✉</span><span class="nm">みんなの依頼</span><small>${B.list.length}</small></button></li>${stockOpen() ? `<li><button data-go="stock" aria-current="${S.go === "stock"}"><span class="mk">▲</span><span class="nm">トークン</span><small>${heldN(K) ? `保有 ${heldN(K)}` : ""}${newsNew(K) ? ` <span class="new">●${newsNew(K)}</span>` : ""}</small></button></li>` : ""}<li><a class="go" href="crawler.html"><span class="mk" aria-hidden="true">▣</span><span class="nm">クローラー</span><small>先行体験版</small></a></li><li><a class="go" href="border.html"><span class="mk" aria-hidden="true">◇</span><span class="nm">ボーダーゾーン</span><small>集めて 脱出</small></a></li></ul>`;   // クローラー（企業の ミッション）：2026-11-05 鹿さん「クローラーとボーダーゾーンも」で みんなに 入口
+    <p class="pr">&gt; ほか</p><ul><li>${row(SPECIAL, true)}</li><li><button data-go="desk" aria-current="${S.go === "desk"}"><span class="mk">▣</span><span class="nm">会社の 窓口</span><small>${ME.desk && ME.desk.bank.acc ? `<span class="new">●</span> 利子` : "好感度・預金"}</small></button></li><li><button data-go="board" aria-current="${S.go === "board"}"><span class="mk">✉</span><span class="nm">みんなの依頼</span><small>${B.list.length}</small></button></li>${stockOpen() ? `<li><button data-go="stock" aria-current="${S.go === "stock"}"><span class="mk">▲</span><span class="nm">トークン</span><small>${heldN(K) ? `保有 ${heldN(K)}` : ""}${newsNew(K) ? ` <span class="new">●${newsNew(K)}</span>` : ""}</small></button></li>` : ""}<li><a class="go" href="crawler.html"><span class="mk" aria-hidden="true">▣</span><span class="nm">クローラー</span><small>${invTag("先行体験版")}</small></a></li><li><a class="go" href="border.html"><span class="mk" aria-hidden="true">◇</span><span class="nm">ボーダーゾーン</span><small>${invTag("集めて 脱出")}</small></a></li></ul>`;   // クローラー（企業の ミッション）：2026-11-05 鹿さん「クローラーとボーダーゾーンも」で みんなに 入口
 }
 function traderHtml(t) {
   const v = view(t.id), lv = v.lv || 1, rep = v.rep || 0, list = tasksOf(v), sp = t === SPECIAL;
@@ -303,7 +322,7 @@ function traderHtml(t) {
       <span class="sub">ごほうび　<span class="rw">${rewardText(k.reward)}</span></span></div>
       <div class="act">${k.done ? "" : `<button class="btn" data-task="${k.which}" ${full ? "" : "disabled"}>${k.kind === "納める" ? "納める" : "報告する"}</button>`}</div></li>`; }).join("");
   const priN = v.pri && v.pri.have >= v.pri.need ? 1 : 0;
-  return `<header class="who ${sp ? "sp" : ""}"><span class="cam" aria-hidden="true">${face(t.id)}</span><div><h2>${sp ? `${t.name}の ${t.dir}` : t.name}</h2><p>${t.animal}・${esc(t.co || "")}${t.group ? `（${esc(t.group)}）` : ""}</p></div>
+  return `<header class="who ${sp ? "sp" : ""}"><span class="cam" aria-hidden="true">${face(t.id)}</span><div><h2>${sp ? `${t.name}の ${t.dir}` : t.name}</h2><p>${t.animal}・${esc(t.co || "")}${t.group ? `（${esc(t.group)}${gaffOf(t.group) ? `・${esc(gaffOf(t.group).tier)} ${gaffOf(t.group).v}` : ""}）` : ""}</p></div>
       <div class="rep">友好度 <b>Lv${lv}</b> / ${LV_MAX}　${meter}<span class="meter"><i style="width:${top || !next ? 100 : ((rep - base) / (next - base)) * 100}%"></i></span></div></header>
     <p class="say">${esc(t.say)}</p>${t.id === "minerva" && !(S.tab === "story" && v.pri && v.pri.pay) ? insLine() : ""}
     <div class="tabs" role="tablist"><button role="tab" data-tab="story" aria-selected="${S.tab === "story"}">物語${priN ? ` <span class="new">●</span>` : ""}</button><button role="tab" data-tab="tasks" aria-selected="${S.tab === "tasks"}">タスク ${list.filter((k) => !k.done).length}</button><button role="tab" data-tab="shop" aria-selected="${S.tab === "shop"}">ショップ ${t.shop.length}</button></div>
@@ -327,6 +346,64 @@ function storyHtml(t, v) {
   const list = chs.map((c) => `<li><span>第 ${c.c} 章「${esc(c.title)}」</span><span>${c.done} / ${c.n}${c.sys.length ? `<small>止まる：${c.sys.map(esc).join("・")}</small>` : ""}</span></li>`).join("");
   return `${card}<details class="chs"><summary>章の 一覧（${chs.length} 章）</summary><ul>${list}</ul></details>`;
 }
+// ---------- 会社の 窓口（顔の ない 子会社。2026-11-11 鹿さん「8つの仕組み…作り実装してください」。docs/mono-link-services-plan.md）----------
+// 預金：セレナ信託（SRN・ハルモニア）／鉱石：ドルン鉱業（DRN・SVA）。情報屋（NOX）と 運び屋（CRV）は 派遣の 準備で 買う
+const DESK_TABS = [["gaff", "グループ"], ["clr", "注文"], ["bank", "預金"], ["drn", "鉱石"], ["ldn", "家具"]];
+// グループの 好感度（2026-11-11。lounge-faction.js）：−100〜100・段・値段の 割引／割増・フリマの 枠・ファイトマネー
+const pct = (x) => (x > 0 ? `＋${Math.round(x * 100)}%` : `−${Math.round(-x * 100)}%`);
+const gaffOf = (name) => (D.gaff || []).find((x) => x.name === name || x.g === name) || null;
+const tidMul = (t) => { const g = gaffOf(t.group || ""); return 1 + (g ? g.price : 0); };
+const priced = (n, m) => (n > 0 ? Math.max(1, Math.round(n * m)) : 0);
+// 家具（リンデン家具工房・LDN・TCU。2026-11-11）：効果の ある 新しい 家具を クレジットで。部屋に 置いて いる 間だけ はたらく（furn-fx.js）
+const fxText = (o) => Object.entries(o).map(([k, v]) => `${FX_NAME[k]} ${FX_DOWN.has(k) ? "−" : "＋"}${Math.round(v * 100)}%`).join("・");
+const furnName = (id) => (FURN_ALL.find((f) => f.id === id) || {}).name || id;
+function ldnHtml(K) {
+  const R = K.room || { fx: {}, syn: [] }, now = Object.keys(R.fx || {});
+  const pairOf = (id) => FURN_SYN.filter(([a, b]) => a === id || b === id).map(([a, b, o]) => `${furnName(a === id ? b : a)}の となり：${fxText(o)}`);
+  return `<p class="say">リンデン家具工房（TCU）：部屋に 置いて いる 間だけ はたらく。となりあう 組み合わせで もっと</p>
+    <div class="fxnow"><span class="need-h">いま 部屋で はたらいて いる</span>${now.length ? `<p>${esc(fxText(R.fx))}</p>${R.syn.length ? `<p class="sub">シナジー ${R.syn.length}：${R.syn.map(([a, b]) => `${esc(furnName(a))}＋${esc(furnName(b))}`).join("・")}</p>` : ""}` : `<p class="sub">まだ ない（ラウンジの 部屋に 家具を 置く）</p>`}</div>
+    <ul class="rows">${(K.ldn || []).map((x) => { const own = FURN_FX[x.id], pairs = pairOf(x.id);
+      return `<li><div class="t">${esc(x.name)}${x.have ? `<span class="kd">持って いる ${x.have}</span>` : ""}<span class="sub">${own ? esc(fxText(own)) : "それだけでは はたらかない"}${pairs.length ? `<br>${pairs.map(esc).join("<br>")}` : ""}</span></div>
+        <div class="act"><span class="price">${cur("credits", x.price)}</span><button class="btn" data-ldn="${x.id}" ${credits() >= x.price ? "" : "disabled"}>買う</button></div></li>`; }).join("")}</ul>`;
+}
+function gaffHtml() {
+  const L = D.gaff || [];
+  return `<p class="say">1 つが 上がると、ほかの 2 つは 半分 下がる。トークンを 持つと 上がりやすい（上乗せの 分は ほかを 下げない）</p>
+    <ul class="rows gaff">${L.map((x) => { const fx = [x.price && `値段 ${pct(x.price)}`, x.fight && `ファイトマネー ${pct(x.fight)}`, x.sample && `サンプル ${pct(x.sample)}`].filter(Boolean);
+      return `<li><div class="t">${esc(x.name)}<span class="sub">${esc(x.tier)}${x.hold > 1 ? `・トークン ×${x.hold}` : ""}</span></div>
+        <div class="act gbar"><span class="meter" aria-hidden="true"><i style="left:${x.v < 0 ? 50 + x.v / 2 : 50}%;width:${Math.abs(x.v) / 2}%"></i></span><b>${x.v > 0 ? "＋" : ""}${x.v}</b></div>
+        ${fx.length ? `<div class="gfx">${fx.map((f) => `<span>${f}</span>`).join("")}</div>` : ""}</li>`; }).join("")}</ul>
+    <p class="note">上がる：その グループの 商人の 物語 ＋3・タスク ＋1・サービスに 500 クレジット 払うごとに ＋1（1 日 ＋5 まで）</p>`;
+}
+// 注文の 掲示板（クロロシス・バイオテック・CLR。2026-11-11）：会社が 毎日 3 件 出す 作物の 注文（相場の 1.2 倍）。持って いる 物を 上に
+const clrReady = (K) => (K.clr || []).filter((o) => !o.done && o.have >= o.n).length;
+function clrHtml(K) {
+  const L = (K.clr || []).slice().sort((a, b) => (a.done - b.done) || ((b.have >= b.n) - (a.have >= a.n)));
+  return `<p class="say">クロロシス・バイオテック（ハルモニア）：畑の 作物を 買いとる。毎日 3 件・1 件 1 回</p>
+    <ul class="rows">${L.map((o) => `<li><div class="t">${esc(o.name)} ×${o.n}<span class="sub">${o.done ? "あした また 出る" : o.have >= o.n ? `持って いる ${o.have}` : `足りない：あと ${o.n - o.have}（畑で 育てる）`}</span></div>
+      <div class="act"><span class="price">${cur("credits", o.pay)}</span><button class="btn" data-clr="${o.i}" ${!o.done && o.have >= o.n ? "" : "disabled"}>${o.done ? "届けた" : "届ける"}</button></div></li>`).join("")}</ul>
+    <p class="note">みんなの 依頼で 作物を たのむと、手数料は クロロシスに 入る</p>`;
+}
+function deskHtml() {
+  const K = ME.desk || { bank: { bal: 0, acc: 0, cap: 100000, rate: 0.002, next: 0 }, drn: [] }, tab = DESK_TABS.some(([k]) => k === S.dtab) ? S.dtab : "gaff";
+  const head = `<header class="who sp"><span class="cam desk-cam" aria-hidden="true">▣</span><div><h2>会社の 窓口</h2><p>顔の ない 会社の カウンター</p></div></header>
+    <div class="tabs" role="tablist">${DESK_TABS.map(([k, t]) => `<button role="tab" data-dtab="${k}" aria-selected="${tab === k}">${t}${k === "bank" && K.bank.acc ? ` <span class="new">●</span>` : ""}${k === "clr" && clrReady(K) ? ` <span class="new">${clrReady(K)}</span>` : ""}</button>`).join("")}</div>`;
+  if (tab === "gaff") return head + gaffHtml();
+  if (tab === "clr") return head + clrHtml(K);
+  if (tab === "ldn") return head + ldnHtml(K);
+  if (tab === "drn") return head + `<p class="say">ドルン鉱業（SVA）：ダンジョンで 出ない 鉱石を 売る。1 日 各 ${50} こまで</p>
+    <ul class="rows">${K.drn.map((x) => `<li><div class="t">${esc(x.name)}<span class="sub">${x.left ? `きょう のこり ${x.left}` : "あした もどる"}</span></div>
+      <div class="act"><span class="price">${cur("credits", x.price)}</span><button class="btn" data-drn="${x.id}" data-n="1" ${x.left && credits() >= x.price ? "" : "disabled"}>1 こ</button><button class="btn" data-drn="${x.id}" data-n="10" ${x.left >= 10 && credits() >= x.price * 10 ? "" : "disabled"}>10 こ</button></div></li>`).join("")}</ul>`;
+  const B = K.bank;
+  return head + `<p class="say">セレナ信託（ハルモニア）：預金だけ。毎晩 22:00 に 利子が たまる</p>
+    <div class="desk-bank">
+      <div class="bal"><span>預けて いる</span><b>${fmt(B.bal)}</b><small>/ ${fmt(B.cap)}</small></div>
+      <div class="int"><span>たまった 利子</span><b>${fmt(B.acc)}</b><button class="btn" data-bint ${B.acc ? "" : "disabled"}>うけとる</button></div>
+      <p class="sub">${B.next ? `毎晩 ＋${fmt(B.next)}（1 日 ${(B.rate * 100).toFixed(1)}%）` : "100 から 利子が つく（1 日 0.2%）"}</p>
+      <div class="mv"><label for="bk-n">額</label><input id="bk-n" type="number" min="1" step="100" inputmode="numeric" value="${S.bn || 1000}">
+        <button class="btn" data-bput>預ける</button><button class="btn" data-btake ${B.bal ? "" : "disabled"}>引き出す</button></div>
+    </div>`;
+}
 // 保険の 支払い待ち（ミネルバの 画面と 支払いの タスク。2026-11-07 鹿さんの カード「ぜんぶ 直す」：2 時間 待つ ことが 見えず「報告できない」と 思われた）
 function insLine() {
   const L = (D.ins || []).slice().sort((a, b) => a.at - b.at); if (!L.length) return "";
@@ -340,11 +417,12 @@ const choiceName = (it, id) => (it.get.mat ? MAT_NAME[id] : it.get.acc ? baseOf(
 function shopHtml(t) {
   const v = view(t.id), w = W();
   return `<ul class="rows">${t.shop.map((it) => { const st = v.shop.find((x) => x.id === it.id) || {}, locked = st.open === false, out = it.once ? st.done : !it.sell && !it.trade && st.left === 0;
-    const poor = !it.sell && !it.trade && !it.ins && (it.cur === "res" ? !!w && w.res < it.price : credits() < it.price), cant = out || poor;
+    const pz = it.cur === "credits" ? priced(it.price, tidMul(t)) : it.price;   // グループの 好感度で 割引・割増（門番と 同じ 計算）
+    const poor = !it.sell && !it.trade && !it.ins && !it.intel && (it.cur === "res" ? !!w && w.res < pz : credits() < pz), cant = out || poor;
     const u = UNLOCK_BY[it.id], lockTxt = it.soon ? `${esc(it.soon)}が できたら` : st.lock && u ? `${esc(nameOf(u[0]))}の 第 ${u[1]} 章で 開く` : st.ch ? `第 ${st.ch} 章を 終えると 買える` : `友好度 Lv${it.lv} で 買える`;
     const label = it.sell ? "売る" : it.trade ? "交換する" : out ? (it.once ? "買った" : "売り切れ") : it.pick ? "えらぶ" : "買う";
     return `<li><div class="t">${esc(it.name)}${it.tool ? `<span class="kd tool">持ち物</span>` : ""}<span class="sub">${esc(it.note)}</span></div>
-      <div class="act">${it.sell || it.trade || it.soon ? "" : it.ins ? `<span class="price"><span class="c">${insRange()}</span><small class="stock">派遣に 出る ときに 掛ける</small></span>` : `<span class="price">${cur(it.cur, it.price)}<small class="stock ${out && !it.once ? "out" : ""}">${stockText(it, st)}</small></span>`}${locked ? `<span class="lock">${lockTxt}</span>` : it.ins ? "" : `<button class="btn" data-item="${it.id}" aria-expanded="${S.open === it.id}" ${cant ? "disabled" : ""}>${label}</button>`}</div></li>
+      <div class="act">${it.sell || it.trade || it.soon ? "" : it.ins ? `<span class="price"><span class="c">${insRange()}</span><small class="stock">派遣に 出る ときに 掛ける</small></span>` : it.intel ? `<span class="price"><span class="c">${intelRange(it.intel)}</span><small class="stock">派遣の 準備で 買う</small></span>` : `<span class="price">${cur(it.cur, pz)}<small class="stock ${out && !it.once ? "out" : ""}">${stockText(it, st)}</small></span>`}${locked ? `<span class="lock">${lockTxt}</span>` : it.ins || it.intel ? "" : `<button class="btn" data-item="${it.id}" aria-expanded="${S.open === it.id}" ${cant ? "disabled" : ""}>${label}</button>`}</div></li>
       ${S.open === it.id && !locked ? `<li class="pnl">${it.sell ? sellHtml() : it.trade ? tradeHtml() : pickHtml(t, it)}</li>` : ""}`; }).join("")}</ul>`;
 }
 // スフィアの 鑑定（ガラク）：宝箱から 出た スフィアは 中身が わからない。1 行に まとめる（鹿さん 2026-11-06「もっとギュッとコンパクトに」「一括か単体か選べるように」）
@@ -368,6 +446,7 @@ function lookHtml() {
   return `<div class="post look">${head}${why}${known ? `<p class="f">鑑定した スフィア ${known} こ　<a href="equip.html" style="color:var(--amber)">&gt; 装備の 空いた 枠に はめる</a></p>` : ""}</div>`;
 }
 // 保険料の はば（ふつう。行き先しだい）
+const intelRange = (k) => { const p = [1, 2, 3].map((isle) => intelPrice({ isle }, k, D.perks || {})); return `クレジット ${p[0]}〜${p[2]}`; };   // 情報屋の 品（島 1〜3）
 const insRange = () => { const p = DUNGEONS.map((d) => insPrice(d, 1, D.perks || {})); return `クレジット ${Math.min(...p)}〜${Math.max(...p)}`; };
 // えらんで 買う：素材・装備の もと・レシピ（★3 の OP えらびも）
 function pickHtml(t, it) {
@@ -479,7 +558,7 @@ function render() {
   document.getElementById("dir").innerHTML = dirHtml();
   { const cur = document.querySelector('#dir [aria-current="true"]'), n = [...document.querySelectorAll("#dir .new")].reduce((a, e) => a + (parseInt(e.textContent.replace(/\D/g, ""), 10) || 0), 0);   // 引き出しの 帯：いまの 商人と 丸の 合計
     DRAW.label(`${cur ? (cur.querySelector(".mk") || {}).outerHTML || "" : ""}<span>${esc(cur ? cur.querySelector(".nm").textContent : "")}</span>${n ? `<span class="new">●${n}</span>` : ""}`); }
-  document.getElementById("pane").innerHTML = S.go === "board" ? boardHtml() : S.go === "stock" ? stockPane(K, { ...S, credits: credits() }) : traderHtml(META[S.go] || META.junk);
+  document.getElementById("pane").innerHTML = S.go === "desk" ? deskHtml() : S.go === "board" ? boardHtml() : S.go === "stock" ? stockPane(K, { ...S, credits: credits() }) : traderHtml(META[S.go] || META.junk);
 }
 let tid;
 const toast = (s) => { const el = document.getElementById("toast"); el.textContent = s; el.classList.add("on"); clearTimeout(tid); tid = setTimeout(() => el.classList.remove("on"), 3200); };
@@ -538,6 +617,14 @@ document.getElementById("term").addEventListener("click", async (e) => {
     if (r.ok && r.stock) { K = cleanK(r.stock); render(); } else if (r.wait) { await loadStock(); render(); }
     return; }
   if (d.tab) { S.tab = d.tab; S.open = null; render(); return document.querySelector(`[data-tab="${d.tab}"]`)?.focus(); }
+  // 会社の 窓口：預金・鉱石
+  if (d.dtab) { S.dtab = d.dtab; render(); return document.querySelector(`[data-dtab="${d.dtab}"]`)?.focus(); }
+  if (d.ldn) return ask(b, "ldn.buy", { id: d.ldn }, (r) => `買った：${furnName(r.id)}（${fmt(r.cost)} クレジット）　ラウンジの 部屋に 置くと はたらく`);
+  if (d.clr != null) return ask(b, "clr.give", { i: +d.clr }, (r) => `届けた：${fmt(r.pay)} クレジット`);
+  if (d.drn) return ask(b, "drn.buy", { id: d.drn, n: +d.n }, (r) => `買った：${MAT_NAME[r.id] || r.id} ${r.n} こ（${fmt(r.cost)} クレジット）${r.boxed ? `　倉庫が いっぱいで ${r.boxed} こは あずかり箱へ` : ""}`);
+  if (d.bint !== undefined) return ask(b, "bank.int", {}, (r) => `利子 ${fmt(r.got)} クレジットを うけとった`);
+  if (d.bput !== undefined || d.btake !== undefined) { const n = Math.floor(+(document.getElementById("bk-n") || {}).value || 0); S.bn = n || S.bn;
+    return ask(b, d.bput !== undefined ? "bank.put" : "bank.take", { n }, (r) => `${d.bput !== undefined ? "預けた" : "引き出した"}：${fmt(n)}（預けて いる ${fmt(r.bal)}）`); }
   // 報告・納める：つながりは 次の タスクが 出る（終わりは ない）、きょうの タスクは あした 新しく なる
   if (d.pri) { const [c, no] = d.pri.split(":").map(Number), before = view(t.id).lv;
     return ask(b, "task.done", { tid: t.id, which: "primary", c, no }, (r) => `受けとった！ クレジット ＋${fmt(r.gain || 0)}${r.unlock ? `　店に「${itemName(r.unlock)}」が 並んだ` : ""}${r.key ? `　${DNAME[r.key] || r.key}へ 行ける` : ""}${view(t.id).lv > before ? `　友好度 Lv${view(t.id).lv} に なった` : ""}`); }

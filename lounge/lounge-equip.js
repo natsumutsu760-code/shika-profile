@@ -10,6 +10,8 @@ import { sale, gearCo } from "./lounge-stock.js";   // 株：装備の 代金は
 import { jstDay } from "./lounge-rules.js";
 import { uniqueOf, uniqueRecipe, UNIQUE_BENCH_LV } from "./unique-equip.js";
 import { uniqueMats } from "./materials.js";
+import { fxOf } from "./lounge-furn.js";   // 部屋の 家具の 効果（2026-11-11。./furn-fx.js）
+
 
 const pickW = (R, w) => { const t = Object.values(w).reduce((a, b) => a + b, 0); let x = R() * t; for (const [k, v] of Object.entries(w)) if ((x -= v) < 0) return +k; return +Object.keys(w)[0]; };
 const haveQ = (rec, id, q) => rec.own.mats.filter((m) => m.id === id && (m.q || 0) === q).reduce((a, m) => a + m.n, 0);
@@ -28,7 +30,7 @@ export function devPlan(rec, b, R) {
   if (fee + need.credits > (rec.credits || 0)) return { ok: false, why: feeWhy(fee + need.credits, rec, fee) };
   const t = takeMats(rec, [[need.xtal, need.n, q], ...need.mats]);   // 結晶は えらんだ 段だけ（上で 数を たしかめた。品質の 低い 順に 取るので 上の 段は 使わない）
   if (t.why) return { ok: false, why: t.why };
-  const star = pickW(R, devStarW(q, benchStarMax(lv), benchTopUp(lv))), item = { base: base.id, star, ops: [] };   // 先に 引いて おく（id は 表の 正しい 形）
+  const star = pickW(R, devStarW(q, benchStarMax(lv), benchTopUp(lv) + fxOf(rec, "star"))), item = { base: base.id, star, ops: [] };   // 先に 引いて おく（id は 表の 正しい 形）
   return { costs: [], why: "dev:" + id, take: () => { rec.own.mats = t.mats; rec.credits -= need.credits; sale(rec, gearCo(id), need.credits); payUpkeep(rec, fee); },
     grant: { equip: [{ ...item, mk: 1 }], ev: { type: "craft", n: 1, star, slot: slotKind(id), cry: q, cryOf: base.tree } },   // タスクの「開発する」に 数える（結晶の 段・どの 敵の 結晶か も）
     refund: { mats: t.taken, credits: need.credits + fee }, item, info: { credits: need.credits, ...(fee ? { fee } : {}) } };
@@ -115,7 +117,7 @@ export function drawOp(rec, b, R, now = Date.now()) {
   const t = takeMats(rec, [[id, DRAW.mats, q]], { now });   // えらんだ 品質だけ（上で 数を たしかめた）
   if (t.why) return { ok: false, why: t.why };
   applyTake(rec, t.picks); rec.credits -= price; sale(rec, gearCo(it.base), price); payUpkeep(rec, fee, now);
-  const op = rollDraw(id, q, w.d.id, R, it.ops);
+  const op = rollDraw(id, q, w.d.id, R, it.ops, fxOf(rec, "opGood"));   // 家具（作業灯＋工具かべ）：素材の 得意な OP が 少し 出やすい
   it.ops = [...it.ops, op];
   if (q !== it.star) it.opStar = { ...(it.opStar || {}), [it.ops.length - 1]: q };   // 強さは 素材の 品質の ★
   return { ok: true, uid: it.uid, op, star: q, slot: slotKind(it.base), credits: price, ...(fee ? { fee } : {}) };

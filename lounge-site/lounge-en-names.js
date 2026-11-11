@@ -470,6 +470,8 @@ export const FURN_EN = {
   plant: "Houseplant", cushion: "Cushion", rug: "Rug", mat: "Mat", window: "Window", sofa: "Sofa", lowtable: "Coffee Table", shelf: "Bookshelf", lamp: "Floor Lamp",
   desk: "Gaming Desk", chair: "Gaming Chair", bed: "Bed", tank: "Aquarium", neon: "Neon Sign", arcade: "Arcade Cabinet", bigmon: "Big Wall Monitor",
   holo: "Deer Hologram", spacewin: "Space Window", rack: "Server Rack", pc: "PC",
+  fireplace: "Fireplace", woodpile: "Woodpile", coffee: "Coffee Maker", beans: "Wake-up Bean Sack", writedesk: "Writing Desk", worklamp: "Work Lamp", toolwall: "Tool Wall", hammock: "Hammock",
+  mapframe: "Framed Map", globe: "Globe", pot: "Flower Pot", wateringcan: "Watering Can", vault: "Safe", trophy: "Trophy Shelf", dummy: "Training Dummy", firstaid: "First-aid Box",
 };
 
 // ---- はじめての 子（クイズ）と ペット ----

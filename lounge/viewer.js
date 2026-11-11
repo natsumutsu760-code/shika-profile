@@ -10,6 +10,7 @@ import { emptyLedger, balanceOf, trimSent, toObs, settle } from "./ledger.js";
 import { buyPlan, sellAct, boxSell, tradeAct, taskDone, useItem, deeplinkView, actEvents, dlVisit, bump } from "./lounge-trade.js";
 import { facMigrate, facDue, facStart, facPut, facRush, facFuel, facScaffold, facKnob, facView } from "./lounge-facility.js";   // 施設の 建設と つまみ（施設の 作り直し、2026-11-03）
 import { crawlSave, crawlView } from "./lounge-crawl.js";   // クローラーの 進み（M-018。2026-11-05）
+import { orderSign, orderView } from "./lounge-order.js";   // 島 3 の 夜の 招待（誓約書に サイン → クローラーと ボーダーゾーンが 開く。2026-11-11）
 import { reqPostPlan, takeFor, items } from "./lounge-req.js";
 import { petTake, petGrow, petSub, petStat, petGambits, petPassives, petStyle, equipSet, equipBest, respecPlan, fighterOf, spTotal, spUsed, freeTotal, RESET_PRICE } from "./lounge-pet.js";
 import { freeIsAuto } from "./trees.js";   // 手で 振る ポイントが 自動か
@@ -19,7 +20,10 @@ import { swapPlan, cashDo } from "./lounge-money.js";   // 両替（玉・クレ
 import { coreTake, coreSet } from "./lounge-core.js";   // ブランクコア（OP を 抜く・付ける）
 import { devPlan, uniquePlan, sphereLook, sphereLookAll, sphereSet, drawOp } from "./lounge-equip.js";   // 装備開発・スフィア（2026-11-04）
 import { tameFuse, tameSp } from "./lounge-fuse.js";   // モンスターの 配合・なかまの スキルポイント
-import { wsMake, wsAtt, wsProc, attSet, attOff, attDrop, smeltPut, smeltTake, smeltStop } from "./lounge-workshop.js";   // 工房（道具・アタッチメント・精錬）
+import { wsMake, wsAtt, wsProc, attSet, attOff, attDrop, smeltPut, smeltTake, smeltStop, smeltCoal } from "./lounge-workshop.js";   // 工房（道具・アタッチメント・精錬）
+import { bankPut, bankTake, bankInt, drnBuy, ldnBuy, clrGive, deskView } from "./lounge-company.js";   // 会社の 窓口（預金・鉱石の 店。2026-11-11）
+import { linkSign, linkWin, fightBonus, linkView } from "./lounge-link.js";   // LINKERS の 格付けと 契約（2026-11-11）
+import { fxOf } from "./lounge-furn.js";   // 家具：格付けの 点（壁の大型モニター など）
 import { mineSet, mineCollect, mineUse, mineLeave, mineView } from "./lounge-mine.js";   // 坑道（前の 隠れ家の 畑は 2026-11-03 に 消して 新しい 農園に まとめた）
 import { farmvPlant, farmvHarvest, farmvHarvestAll, farmvPreset, farmvPlantPreset, farmvSpr, farmvSoil, farmvGrow, farmvSkin, farmvView } from "./lounge-farmv.js";   // 新しい 農園（3D の 畑。鹿さんの 決め 2026-11-03）
 import { nutCraft, nutFeed, nutDetox, nutBreak } from "./lounge-nutrition.js";   // 詳細ステータス・栄養
@@ -29,7 +33,7 @@ import { arenaFighter, ensureArena, duelCheck, duelDone, arenaMine, encReady, en
 import { hidden } from "./lounge-gate.js";
 import { bzStart, bzRecall, bzCollect, bzAppraise, bzSell, bzDone, bzMe } from "./lounge-border.js";   // ボーダーゾーン（2026-11-05 作りはじめ）
 import { bzStep } from "./border.js";
-import { stockAct, stockFlush, sale } from "./lounge-stock.js";
+import { stockAct, stockFlush, sale, refundSale } from "./lounge-stock.js";
 import { auAct, auSettle } from "./lounge-auction.js";   // 競り（ガラク）・フリマ（アンビル・ピーコ）：Market の 競り場へ   // 株（トークン）：売り買い・売り上げを 取引所（Market）へ
 import { resetOld, resetDue, RESET_GEN } from "./lounge-reset.js";
 import { prizeView, prizePlan } from "./lounge-prize.js";   // パチンコの 景品（シーズンラインナップ。鹿さんの 決め 2026-11-03）   // 大工事の あとの リセット（鹿さんの 決め 2026-11-03）
@@ -208,13 +212,13 @@ export class Viewer {
       try { j = await (await this.market().fetch("https://market/" + e.k, { method: "POST", body: JSON.stringify(body) })).json(); } catch (x) { got[e.k + e.rid] = { ok: false, wait: true }; continue; }
       R.out = R.out.filter((x) => x !== e);
       got[e.k + e.rid] = j;
-      const back = async (rw, fee = 0) => { if (fee) sale(rec, "NOX", -fee); const cr = rw.credits != null; this.give(rec, { reqBack: rw, ...(cr ? { credits: rw.credits + fee } : {}) }); for (const [kind, d] of [["balls", (rw.balls || 0) + (cr ? 0 : fee)], ["res", rw.res || 0]]) if (d > 0) await this.earn(rec, kind, d, "req:" + e.rid); };   // お礼と 手数料は クレジット（前に 玉で 出した 依頼は 玉で もどす）
-      if (e.k === "post" && !j.ok) { await back(e.data.reward, e.data.fee); if (R.mine === e.rid) R.mine = null; }   // 板に 出せなかった：手数料も もどす
+      const back = async (rw, fee = 0, co = "NOX") => { if (fee) refundSale(rec, co || "NOX", fee); const cr = rw.credits != null; this.give(rec, { reqBack: rw, ...(cr ? { credits: rw.credits + fee } : {}) }); for (const [kind, d] of [["balls", (rw.balls || 0) + (cr ? 0 : fee)], ["res", rw.res || 0]]) if (d > 0) await this.earn(rec, kind, d, "req:" + e.rid); };   // お礼と 手数料は クレジット（前に 玉で 出した 依頼は 玉で もどす）
+      if (e.k === "post" && !j.ok) { await back(e.data.reward, e.data.fee, e.data.co); if (R.mine === e.rid) R.mine = null; }   // 板に 出せなかった：手数料も もどす
       if (e.k === "claim") {
         if (j.ok) { this.give(rec, { reqGet: j.reward, ...(j.reward.credits ? { credits: j.reward.credits } : {}) }); for (const [kind, d] of [["balls", j.reward.balls], ["res", j.reward.res]]) if (d > 0) await this.earn(rec, kind, d, "req:" + e.rid); }
         else this.give(rec, { reqBack: e.items });   // 届けられなかった 物は もどす
       }
-      if (e.k === "cancel" && j.ok) { await back(j.never ? e.data.reward : j.reward, j.never ? e.data.fee : 0); if (R.mine === e.rid) R.mine = null; }   // 取り下げ：手数料は もどらない（板に 出て いなかった ときだけ もどす）
+      if (e.k === "cancel" && j.ok) { await back(j.never ? e.data.reward : j.reward, j.never ? e.data.fee : 0, e.data.co); if (R.mine === e.rid) R.mine = null; }   // 取り下げ：手数料は もどらない（板に 出て いなかった ときだけ もどす）
     }
     return got;
   }
@@ -279,7 +283,8 @@ export class Viewer {
       const pick = b.a === "arena.foes" || !A.foes.length, m = await this.arenaAsk("view", { id: rec.id, card: me.card, pick });
       if (!m || !m.ok) return { ok: false, why: "いまは Orbit Arena に つながらない" };
       if (m.foes) A.foes = m.foes;
-      return { ok: true, me: { ...me.card, w: A.w, l: A.l }, ...arenaMine(A), def: m.def, hold: { w: m.card.hw, l: m.card.hl }, tour: m.tour, last: m.last, enc: m.enc || [] };
+      if (m.rate) A.rate = { ...m.rate, at: now };   // LINKERS の 格付け（主タスクの「上の 半分」などが 読む）
+      return { ok: true, me: { ...me.card, w: A.w, l: A.l }, ...arenaMine(A), def: m.def, hold: { w: m.card.hw, l: m.card.hl }, tour: m.tour, last: m.last, enc: m.enc || [], lk: linkView(rec, now) };
     }
     if (b.a === "arena.match") {   // 大会の 試合を あとから 見る 材料
       try { return await (await this.market().fetch(`https://market/arena/match?day=${encodeURIComponent(String(b.day || ""))}&r=${+b.r || 0}&m=${+b.m || 0}`)).json(); } catch (e) { return { ok: false, why: "いまは Orbit Arena に つながらない" }; }
@@ -293,8 +298,10 @@ export class Viewer {
     let theirs = null;
     try { theirs = await (await this.env.VIEWER.get(this.env.VIEWER.idFromName("v:" + c.foe.id)).fetch("https://viewer/fighter")).json(); } catch (e) {}
     if (!theirs || !theirs.f) return { ok: false, why: "相手に つながらない（入れかえて べつの 相手に）" };
-    const r = duelDone(rec, A, c.me, theirs, rand, now);
-    await this.arenaAsk("log", { id: rec.id, a: c.me.card, b: c.foe.id, win: r.win });   // 相手の 守りの 記録（つながらなくても 勝負は そのまま）
+    const r = duelDone(rec, A, c.me, theirs, rand, now, fightBonus(rec, now));   // ファイトマネー：契約した 会社の グループの 好感度・家具
+    if (r.win) { const lw = linkWin(rec, 1, now); if (lw) r.link = lw; }   // LINKERS の 契約：1 勝ごとの 払い
+    const lg = await this.arenaAsk("log", { id: rec.id, a: c.me.card, b: c.foe.id, win: r.win, rk: fxOf(rec, "rank") });   // 相手の 守りの 記録・格付けの 点（つながらなくても 勝負は そのまま）
+    if (lg && lg.rate) { A.rate = { ...lg.rate, at: now }; r.rate = lg.rate; }
     return r;
   }
 
@@ -387,6 +394,7 @@ export class Viewer {
     else if (body.a === "bz.collect") { r = bzCollect(rec, now); if (r.ok) await this.state.storage.delete("bzsim"); }
     else if (body.a === "bz.appraise") r = bzAppraise(rec, body);   // 鑑定（ガラク）
     else if (body.a === "bz.sell") r = bzSell(rec, body);           // 会社に 納める
+    else if (body.a === "order.sign") r = orderSign(rec, now);   // 島 3 の 夜の 招待の 誓約書に サイン
     else if (body.a === "crawl.save") r = crawlSave(rec, body, now);   // クローラーの 進み（どの 機械でも 同じ に）
     else if (body.a === "fac.knob") r = facKnob(rec, body, now);
     else if (body.a === "ws.att") r = wsAtt(rec, body, rand, now);
@@ -394,6 +402,14 @@ export class Viewer {
     else if (body.a === "smelt.put") r = smeltPut(rec, body, now);     // 精錬：炉に 入れる・受けとる・やめる
     else if (body.a === "smelt.take") r = smeltTake(rec, body, now);
     else if (body.a === "smelt.stop") r = smeltStop(rec, body, now);
+    else if (body.a === "smelt.coal") r = smeltCoal(rec, body, now);   // 石炭を くべて 早める（2026-11-11）
+    else if (body.a === "bank.put") r = bankPut(rec, body, now);       // 会社の 窓口（2026-11-11）：預金（セレナ信託）・鉱石（ドルン鉱業）
+    else if (body.a === "bank.take") r = bankTake(rec, body, now);
+    else if (body.a === "bank.int") r = bankInt(rec, body, now);
+    else if (body.a === "drn.buy") r = drnBuy(rec, body, now);
+    else if (body.a === "clr.give") r = clrGive(rec, body, now);
+    else if (body.a === "link.sign") r = linkSign(rec, body, now);
+    else if (body.a === "ldn.buy") r = ldnBuy(rec, body, now);       // リンデン家具工房（効果の ある 家具）
     else if (body.a === "att.set") r = attSet(rec, body);
     else if (body.a === "att.off") r = attOff(rec, body);
     else if (body.a === "att.drop") r = attDrop(rec, body);
@@ -456,8 +472,8 @@ export class Viewer {
     const now = Date.now(); dropOld(rec, now); facMigrate(rec); facDue(rec, now); insDue(rec, now);   // 時間が 来た 保険の 支払いも 届けて 見せる（なにか 操作するまで タスクが 0 の ままに 見えた。2026-11-07）
     return { id: rec.id, lock: locked(rec, this.env), lockKind: lockKind(), login: rec.login, name: rec.name, nameAt: rec.nameAt, names: rec.names, room: rec.room, own: ownView(rec.own), wallet: this.purse(rec, w), waiting: rec.ledger.unknown.length,
       pets: rec.pets.map((p) => ({ ...p, ...(p.type ? { sp: { all: spTotal(p.lv), left: spTotal(p.lv) - spUsed(p) }, freeLeft: freeIsAuto(p) ? 0 : freeTotal(p.lv) - Object.values(p.free || {}).reduce((a, v) => a + v, 0), build: fighterOf(p, rec), resetPrice: RESET_PRICE(p.lv) } : {}) })),
-      tamed: rec.tamed, party: rec.party, mine: mineView(rec, now), farmv: farmvView(rec, now), crawl: crawlView(rec), bz: { ...bzMe(rec, now), open: !bzLocked(rec, this.env) }, stock: { open: !stockLocked(rec, this.env), h: (rec.stock && rec.stock.h) || {} }, smelt: rec.smelt || [], loop: rec.loop || null, lab: rec.lab, labQ: rec.labQ || [], hideout: rec.hideout, knob: rec.knob || {}, fac: facView(rec, now), credits: rec.credits, snacks: rec.snacks, tools: rec.tools, explore: rec.explore, seen: rec.seen, met: rec.met,
-      stash: { cap: stashCap(rec) }, equipCap: equipCap(rec), autoSell: rec.autoSell || null, trips: rec.trips.map((t) => tripView(t, now)), deeplink: deeplinkView(rec, jstDay(now)), req: { mine: rec.req.mine, sending: rec.req.out.length } };
+      tamed: rec.tamed, party: rec.party, mine: mineView(rec, now), farmv: farmvView(rec, now), crawl: crawlView(rec), order: orderView(rec), bz: { ...bzMe(rec, now), open: !bzLocked(rec, this.env) }, stock: { open: !stockLocked(rec, this.env), h: (rec.stock && rec.stock.h) || {} }, smelt: rec.smelt || [], loop: rec.loop || null, lab: rec.lab, labQ: rec.labQ || [], hideout: rec.hideout, knob: rec.knob || {}, fac: facView(rec, now), credits: rec.credits, snacks: rec.snacks, tools: rec.tools, explore: rec.explore, seen: rec.seen, met: rec.met,
+      stash: { cap: stashCap(rec) }, equipCap: equipCap(rec), autoSell: rec.autoSell || null, trips: rec.trips.map((t) => tripView(t, now)), deeplink: deeplinkView(rec, jstDay(now)), desk: deskView(rec, now), req: { mine: rec.req.mine, sending: rec.req.out.length } };
   }
 
   async fetch(req) {
@@ -466,7 +482,7 @@ export class Viewer {
       if (url.pathname === "/init" && req.method === "POST") { const who = await req.json(); return res(this.mine(await this.run(() => this.init(who)), who.wallet)); }
       if (url.pathname === "/public") { const rec = await this.load(); return rec ? res(this.view(rec)) : res({ error: "none" }, 404); }
       // 闘技場から：いまの ペットの 戦う 形（読むだけ。順番待ちを 通らない ので、デュエルの 相手どうしで 待ちあわない）
-      if (url.pathname === "/fighter") { const rec = await this.load(), f = rec && !locked(rec, this.env) && arenaFighter(rec); return f ? res(f) : res({ error: "none" }, 404); }
+      if (url.pathname === "/fighter") { const rec = await this.load(), f = rec && !locked(rec, this.env) && arenaFighter(rec); return f ? res({ ...f, rk: fxOf(rec, "rank") }) : res({ error: "none" }, 404); }   // rk：大会の 格付けの 点の 上乗せ（家具）
       if (url.pathname === "/act" && req.method === "POST") {
         this.hits = this.hits.filter((t) => now - t < RATE.ms);
         if (this.hits.length >= RATE.n) return res({ ok: false, why: "1 秒に 5 回まで" }, 429);
@@ -480,7 +496,7 @@ export class Viewer {
         return res(await this.run(async () => {
           const rec = await this.load();
           if (!rec) return { ok: false, why: "MONO LINK に まだ 入って いない（ラウンジを 1 回 開くと 使える）" };
-          const r = cashDo(rec, b); if (r.save) { delete r.save; await this.save(rec); }
+          const r = cashDo(rec, b); if (r.ev) { bump(rec, r.ev, jstDay()); delete r.ev; } if (r.save) { delete r.save; await this.save(rec); }   // 換金は 主タスクに 数える（ヨル）
           return r;
         }));
       }
@@ -490,7 +506,9 @@ export class Viewer {
         return res(await this.run(async () => {
           const rec = await this.load();
           if (!rec || typeof m.mid !== "string" || rec.req.done.includes(m.mid)) return { ok: true };
-          this.give(rec, m.give);
+          const arena = typeof m.why === "string" && m.why.startsWith("arena:"), now = Date.now();   // 大会の 賞金：ファイトマネーの 上乗せ・LINKERS の 契約の 払い（2026-11-11）
+          this.give(rec, arena && m.give && m.give.credits > 0 ? { ...m.give, credits: Math.round(m.give.credits * (1 + fightBonus(rec, now))) } : m.give);
+          if (arena && Number.isInteger(m.wins) && m.wins > 0) linkWin(rec, Math.min(m.wins, 5), now);
           for (const e of Array.isArray(m.earn) ? m.earn : []) if ((e.kind === "balls" || e.kind === "res") && Number.isInteger(e.d) && e.d > 0) await this.earn(rec, e.kind, e.d, typeof m.why === "string" ? m.why : "req:" + m.mid);   // why：闘技場の 大会は "arena:日"
           if (m.clear && rec.req.mine === m.clear) rec.req.mine = null;
           if (m.clear) rec.req.out = rec.req.out.filter((x) => !(x.k === "post" && x.rid === m.clear));   // 板に 出て 終わった 依頼を もう 1 回 出さない

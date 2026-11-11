@@ -72,11 +72,14 @@ export const SMELT = [
   { id: "gold_bar", mats: [["goldore", 3], ["coal", 2]], min: 360 },
 ];
 export const SMELT_MAX = 50;   // 1 つの 炉に 1 回で 入れられる 本数
+// 石炭で 早める（2026-11-11 鹿さん「石炭で精錬が早く終わる仕組みも作り実装してください」。数は Claude）：動いて いる 炉に 石炭を くべると 1 こ 15 分 早く 終わる。いる 分だけ 使う
+export const SMELT_COAL = { id: "coal", min: 15, max: 99 };
 export const furnaces = (wsLv) => [1, 20, 50, 80].filter((x) => (wsLv || 0) >= x).length;   // 炉の 数は 段（工房 Lv1・20・50・80 で 1〜4。施設の 作り直し、2026-11-03）
 export const smeltOf = (id) => SMELT.find((x) => x.id === id) || null;
 // 炉の ようす。f：{ id, n, at }（at：いま 作って いる 1 本目を 入れた 時刻）。done：できた 本数・next：つぎの 1 本が できる 時刻・end：ぜんぶ できる 時刻
 export function smeltDone(f, now) {
-  const ms = smeltOf(f.id).min * 60000, done = Math.max(0, Math.min(f.n, Math.floor((now - f.at) / ms)));
+  const ms = f.ms || smeltOf(f.id).min * 60000, done =   // ms：入れた ときの 1 本の 時間（家具〈暖炉 など〉で 短い）。前の 炉は ない
+    Math.max(0, Math.min(f.n, Math.floor((now - f.at) / ms)));
   return { done, left: f.n - done, next: done < f.n ? f.at + (done + 1) * ms : 0, end: f.at + f.n * ms };
 }
 
