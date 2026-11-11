@@ -3082,16 +3082,27 @@ const TREES0 = {   // 下で ENEMY_TREES（複合ツリーを 使う ときに �
 // 特殊複合スキル（docs/mono-link-essence.md。2 種族の 全通り 約 9.2 万 本）：前もって 作らず、id（cx:種+種）を さわった ときに combo-trees.js が 組み立てて ここに 入れる
 // ふつうの id は そのまま（速さは かわらない。2026-11-11 に はかった）
 // 技・パッシブは skills.js の SKILL にも 入れる（setComboSkills で 入れ物を もらう）
+// 覚えて おく 数に 上限（鹿さんの 決め 2026-11-11「付けます」）：門番の 入れ物は 何人ぶんも 受け持つ ので、ちがう 複合を 使う 人が 増えると たまる（1 本 約 7 KB・入れ物の メモリは 128 MB まで）
+// こえたら 作った 順に 古い 物から 忘れる。忘れた 物は 次に さわった ときに 同じ 中身で 作り直す（決まりで 組み立てる ので 中身は かわらない）
+export const COMBO_KEEP = 2000;
 const isCx = (k) => typeof k === "string" && k.startsWith("cx:");
-const MADE = Object.create(null);
+const MADE = new Map();   // 作った 順（まちがった id も 入れて、何度も 組み立てない）
 let SKILL_OUT = null;
 const putSkills = (id, t) => { if (SKILL_OUT) for (const s of t.list) SKILL_OUT[s.id] = { ...s, type: t.type, tree: id }; };
-function makeCombo(id) {
-  if (MADE[id]) return; MADE[id] = 1;
-  const t = buildCombo(TREES0, id); if (!t) return;
-  TREES0[id] = t; putSkills(id, t);
+function forget(id) {
+  MADE.delete(id);
+  const t = TREES0[id]; if (!t) return;
+  delete TREES0[id];
+  if (SKILL_OUT) for (const s of t.list) delete SKILL_OUT[s.id];
 }
-export const setComboSkills = (o) => { SKILL_OUT = o; for (const id in MADE) if (TREES0[id]) putSkills(id, TREES0[id]); };
+function makeCombo(id) {
+  if (MADE.has(id)) return; MADE.set(id, 1);
+  const t = buildCombo(TREES0, id);
+  if (t) { TREES0[id] = t; putSkills(id, t); }
+  while (MADE.size > COMBO_KEEP) forget(MADE.keys().next().value);
+}
+export const comboKept = () => MADE.size;   // 試験・はかる 道具 用
+export const setComboSkills = (o) => { SKILL_OUT = o; for (const id of MADE.keys()) if (TREES0[id]) putSkills(id, TREES0[id]); };
 export const ENEMY_TREES = new Proxy(TREES0, {
   get: (t, k) => { const v = t[k]; return v !== undefined || !isCx(k) ? v : (makeCombo(k), t[k]); },
   has: (t, k) => k in t || (isCx(k) && (makeCombo(k), k in t)),

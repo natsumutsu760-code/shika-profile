@@ -57,7 +57,10 @@ const pick = (arr, seed) => arr[seed % arr.length];
 const wd = (th, k) => (W[th] || [[th, th], [th, th]])[k & 1];
 
 // 英語の 名前（画面の 英語。lounge-en-lab.js の 決まりが ここを 見る）。ツリーの 名前は 種族の 英語から（{ a, b }）
-const EN = (globalThis.__ML_COMBO_EN ||= new Map());
+// 上限つき（作った 順に 古い 物から 消す。同じ 言葉を また 使った ときは 新しい 方へ 移す）。画面で 出して いる 複合の 分は いつも 新しい ほうに ある
+const EN = (globalThis.__ML_COMBO_EN ||= new Map()), EN_KEEP = 50000;
+const enSet = (k, v) => { EN.delete(k); EN.set(k, v); };
+const enTrim = () => { let n = EN.size - EN_KEEP; if (n <= 0) return; for (const k of EN.keys()) { if (n-- <= 0) break; EN.delete(k); } };
 
 // 主（名前の 前半・役・強い 力）は 格の 高い 方（ボス ＞ 配合 ＞ 希少 ＞ 通常。同じ なら id の 順）。もう 一方の テーマを 2 つめの テーマに
 function order(TR, a, b) {
@@ -123,7 +126,7 @@ export function buildCombo(TR, id, o = {}) {
   const sid = (k) => `${id}:${k}`, d = (pow, x = {}) => D(pow, T.st ? { stat: T.st, ...x } : x);
   const ja = (th, k) => wd(th, k)[0], en = (th, k) => wd(th, k)[1];
   const used = new Set();
-  const uniq = (j, e, alt) => { if (used.has(j) && alt) [j, e] = alt; used.add(j); EN.set(j, e); return j; };
+  const uniq = (j, e, alt) => { if (used.has(j) && alt) [j, e] = alt; used.add(j); enSet(j, e); return j; };
   const noun = (kind, slot, salt) => pick(NOUN[kind][slot], (h >>> (slot * 2 + salt)) & 7);
   const dmgName = (kind, slot, th, k) => { const [nj, ne] = noun(kind, slot, 0), [aj, ae] = noun(kind, slot, 1);
     return uniq(`${ja(th, k)}の${nj}`, `${en(th, k)} ${ne}`, [`${ja(th, k + 1)}の${aj}`, `${en(th, k + 1)} ${ae}`]); };
@@ -183,9 +186,10 @@ export function buildCombo(TR, id, o = {}) {
     dth ? G("foeHas", dth, s("s4")) : G("every", 4, s("s4")), G("always", undefined, s("s1"))];
   const rank = CAT[Math.max(CAT.indexOf(A.rank), CAT.indexOf(B.rank), 0)];
   const name = comboName(TR, p, q);
-  EN.set(name, { a: A.enemy, b: B.enemy });
+  enSet(name, { a: A.enemy, b: B.enemy });
   const k = o.k ?? comboK(A.type, thP, thQ), tuned = tuneList(list, k);
-  for (const x of tuned) if (x.kind !== "passive") EN.set(x.text, { fx: x.fx });   // 技の 説明文（数が 半端な ので 英語は 効果から 作る）
+  for (const x of tuned) if (x.kind !== "passive") enSet(x.text, { fx: x.fx });   // 技の 説明文（数が 半端な ので 英語は 効果から 作る）
+  enTrim();
   return { name, enemy: `${A.enemy}×${B.enemy}`, dungeon: null, rank, type: A.type, main: T.main, sub: T.sub, theme: thP, theme2: thQ, combo: [p, q], k, list: tuned, plan };
 }
 
