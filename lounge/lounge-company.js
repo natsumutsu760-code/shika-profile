@@ -18,13 +18,14 @@ import { rng } from "./game.js";
 // ---------- 預金（セレナ信託・SRN・ハルモニア）----------
 export const BANK = { rate: 0.002, cap: 100000, min: 100, hour: 22 };   // 100 以上 預けて いれば 1 日 少なくとも 1
 const bankDay = (now) => Math.floor((now + (9 - BANK.hour) * 3600e3) / 864e5);   // 日本時間の 22:00 で 日が かわる
-export const interestOf = (bal, boost = 0) => (bal >= BANK.min ? Math.max(1, Math.floor(bal * BANK.rate * (1 + boost))) : 0);   // boost：家具（金庫）の 上乗せ
+// boost：家具（金庫）の 上乗せ。端数も かえす（たまった 利子の 端数は 次へ 持ちこす。2026-11-11 診断：前は 1 日ごとに 切りすてて、預金 50,000 未満では 金庫の ＋1% が 0 だった）
+export const interestOf = (bal, boost = 0) => (bal >= BANK.min ? Math.round(Math.max(1, bal * BANK.rate * (1 + boost)) * 1000) / 1000 : 0);
 function bankOf(rec, now) {
   const B = (rec.bank ||= { bal: 0, acc: 0, d: null });
   const d = bankDay(now);
   if (B.d == null) B.d = d;
   const days = Math.min(365, Math.max(0, d - B.d));
-  if (days) { B.acc += days * interestOf(B.bal, fxOf(rec, "interest")); B.d = d; }
+  if (days) { B.acc = Math.round((B.acc + days * interestOf(B.bal, fxOf(rec, "interest"))) * 1000) / 1000; B.d = d; }
   return B;
 }
 const amount = (b) => (Number.isInteger(b && b.n) && b.n >= 1 ? b.n : 0);
@@ -46,8 +47,9 @@ export function bankTake(rec, b, now = Date.now()) {
 }
 export function bankInt(rec, b, now = Date.now()) {
   const B = bankOf(rec, now);
-  if (!B.acc) return { ok: false, why: "まだ 利子が ない（毎晩 22:00 に たまる）" };
-  const got = B.acc; B.acc = 0; rec.credits = (rec.credits || 0) + got;
+  const got = Math.floor(B.acc + 1e-9);
+  if (!got) return { ok: false, why: "まだ 利子が ない（毎晩 22:00 に たまる）" };
+  B.acc = Math.round((B.acc - got) * 1000) / 1000; rec.credits = (rec.credits || 0) + got;   // 1 に ならない 端数は のこす
   bump(rec, { type: "interest", n: 1 }, jstDay(now));
   return { ok: true, got };
 }
@@ -118,7 +120,7 @@ export function clrGive(rec, b, now = Date.now()) {
 export function deskView(rec, now = Date.now()) {
   const B = bankOf(rec, now), D = drnOf(rec, now), boost = fxOf(rec, "interest"), room = roomFxAll(rec);
   return {
-    bank: { bal: B.bal, acc: B.acc, cap: BANK.cap, rate: BANK.rate * (1 + boost), next: interestOf(B.bal, boost) },
+    bank: { bal: B.bal, acc: Math.floor(B.acc + 1e-9), cap: BANK.cap, rate: BANK.rate * (1 + boost), next: Math.round(interestOf(B.bal, boost) * 10) / 10 },
     ldn: LDN_SHOP.map((f) => ({ id: f.id, name: f.name, price: priced(f.ldn, coMult(rec, "LDN")), have: (rec.own.furniture || {})[f.id] || 0 })),
     room: { fx: room.fx, syn: room.syn },   // いま 部屋で はたらいて いる 家具の 効果
     clr: (() => { const C = clrOf(rec, now); return clrOrders(C.isle, C.day).map((o) => ({ ...o, done: C.done.includes(o.i), have: haveOf(rec, o.mat) })); })(),

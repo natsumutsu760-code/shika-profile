@@ -341,8 +341,9 @@ function feedHtml() {
   const lv = facLv(ME, "snack");   // おやつ工房（作る ところは 隠れ家と 同じ 部品。つまみの Lv）
   const make = lv ? snackCraftHtml(lv, (ME.own && ME.own.mats) || []) : `<p>隠れ家に おやつ工房を 作ると、ここでも 作れる <a href="hideout.html?f=snack">隠れ家へ</a></p>`;
   // 研究：アメジスト（研究所の Lv で 安く）。希少・ボス・配合は 葉も（鹿さんの 決め、2026-10-31。大工事の 畑が つながってから）
-  const rc = Math.ceil(RESEARCH[rankOf(c)] * (1 - (S.labOff || 0))), leaf = researchLeaf(c.tree), lh = leaf ? leafHave(leaf[0]) : 0, lshort = leaf && lh < leaf[1];
-  const lms = labMs(rankOf(c), S.labLv), lfee = upkeep("lab", S.labLv), lq = S.labQ.find((x) => x.tree === c.tree), lshortC = lfee > (ME.credits || 0);
+  const rfx = (ME.desk && ME.desk.room && ME.desk.room.fx) || {};   // 家具（本棚・書きもの机）：門番の researchPlan と 同じ（2026-11-11 鹿さん「家具効果…診断してください」。前は 家具なしの 数を 出して いた）
+  const rc = Math.ceil(RESEARCH[rankOf(c)] * (1 - (S.labOff || 0)) * (1 - (rfx.resCost || 0))), leaf = researchLeaf(c.tree), lh = leaf ? leafHave(leaf[0]) : 0, lshort = leaf && lh < leaf[1];
+  const lms = Math.round(labMs(rankOf(c), S.labLv) * (1 - (rfx.research || 0))), lfee = upkeep("lab", S.labLv), lq = S.labQ.find((x) => x.tree === c.tree), lshortC = lfee > (ME.credits || 0);
   const hrs = (ms) => { const m = Math.max(1, Math.ceil(ms / 60000)); return m < 60 ? `${m} 分` : `${Math.floor(m / 60)} 時間${m % 60 ? ` ${m % 60} 分` : ""}`; };
   const lab = `<div class="lab"><span class="orb" style="--c:#B49BEA;--s:34px" aria-hidden="true">研</span><div><b>研究する（スキルツリー「${esc(T.name)}」）</b>アメジスト ${rc}${leaf ? ` ＋ ${esc(MAT_NAME[leaf[0]])} ${leaf[1]}` : ""} で サブツリーに つけられる（この子は のこる）・${hrs(lms)}${lfee ? `・維持費 ${lfee}` : ""}${lshort ? `<span class="lshort">${esc(MAT_NAME[leaf[0]])} あと ${leaf[1] - lh}（畑で 育てる）</span>` : lshortC && !c.lab && !lq ? `<span class="lshort">維持費の クレジット あと ${lfee - (ME.credits || 0)}</span>` : ""}</div>
       ${c.lab ? `<span class="done">✓ 研究ずみ</span>` : lq ? `<span class="done">研究中・あと ${hrs(lq.at - Date.now())}</span>` : `<button class="jelly light" data-act="lab" ${(S.known && S.res < rc) || lshort || lshortC ? "disabled" : ""}>研究する</button>`}</div>`;

@@ -12,7 +12,7 @@ export const WORDS = {
   "農園": "Farm", "ボーダーゾーン": "Border Zone", "工房の 精錬": "Workshop smelting", "工房の 加工": "Workshop processing", "なかまに 掘らせる": "Send a companion to dig",
   "残骸を 漁る": "Scavenge wreckage", "キャビネットを 漁る": "Scavenge cabinets", "個人ロッカーを 漁る": "Scavenge lockers", "SVA の 施設の 迷宮": "SVA facility mazes", "ハルモニアの 施設の 迷宮": "Harmonia facility mazes",
   "TCU の 施設の 迷宮": "TCU facility mazes", "どこでも まれに": "Rarely, anywhere", "どこでも": "Anywhere", "SVA の 領地": "SVA territory", "ハルモニアの 領地": "Harmonia territory", "TCU の 領地": "TCU territory", "境界": "Borderline",
-  "育てる": "Grow it", "手に入る 所を 見る": "See where to get it",
+  "家具 −#%": "Furniture −#%", "育てる": "Grow it", "手に入る 所を 見る": "See where to get it",
   "足りない：パーティの 外の なかま": "Missing: a companion outside your party", "なかまを 見る ›": "See companions ›",   // 2026-11-05
   "閉じる": "Close",   // 作る ポップアップの ×（craft-pop.js。2026-11-05）
   // ---- 装備開発・結晶・スフィア（2026-11-04） ----

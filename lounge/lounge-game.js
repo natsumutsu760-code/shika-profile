@@ -254,13 +254,14 @@ export function researchPlan(rec, b, unknown = []) {
   if ((rec.labQ || []).some((x) => x.tree === c.tree)) return { ok: false, why: "いま 研究して いる" };
   if (unknown.some((u) => u.grant && (u.grant.lab === c.tree || (u.grant.labQ && u.grant.labQ.tree === c.tree)))) return { ok: false, why: "前の 研究が まだ 決まって いない（配信の 画面の 返事を 待って いる）" };
   // 研究所 Lv1〜100（施設の 作り直し、2026-11-03）：アメジスト −0.5% / Lv・研究の 時間（通常 1・希少 4・配合 6・ボス 12 時間）−0.5% / Lv。研究所が なくても 研究は できる（割引なし・もとの 時間）
-  const lv = facLv(rec, "lab"), cost = Math.ceil(RESEARCH[rankOf(c)] * (1 - labOff(lv)) * (1 - fxOf(rec, "resCost"))), ms = Math.round(labMs(rankOf(c), lv) * (1 - fxOf(rec, "research"))), fee = makeFee(rec, "lab");   // 家具（本棚・書きもの机）
+  // 家具（本棚＋書きもの机）の アメジスト −%：端数を rec.resSv に ためて 1 に なったら 1 引く（2026-11-11 診断：前は 10〜50 アメジストでは 切りあげで 0 に なって いた）
+  const lv = facLv(rec, "lab"), cost0 = Math.ceil(RESEARCH[rankOf(c)] * (1 - labOff(lv))), sv = (Number.isFinite(rec.resSv) ? rec.resSv : 0) + cost0 * fxOf(rec, "resCost"), cut = Math.min(cost0 - 1, Math.floor(sv + 1e-9)), cost = cost0 - Math.max(0, cut), ms = Math.round(labMs(rankOf(c), lv) * (1 - fxOf(rec, "research"))), fee = makeFee(rec, "lab");   // 家具（本棚・書きもの机）
   if (fee > (rec.credits || 0)) return { ok: false, why: feeWhy(fee, rec) };
   const leaf = researchLeaf(c.tree), t = leaf && takeMats(rec, [leaf], { box: true });   // 希少・ボス・配合は 葉も（大工事の 畑が つながってから）
   if (t && t.why) return { ok: false, why: t.why };
   const refund = { ...(t ? { mats: t.picks.filter((p) => !p.box).map(({ id, q, n, b }) => ({ id, q, n, ...(b ? { b: 1 } : {}) })), box: t.picks.filter((p) => p.box).map(({ id, q, n, b, until }) => ({ id, q, n, ...(b ? { b: 1 } : {}), until })) } : {}), ...(fee ? { credits: fee } : {}) };
   return { costs: [{ kind: "res", d: -cost }], why: "lab:" + c.tree, grant: { labQ: { tree: c.tree, ms } }, info: { cost, ms, ...(fee ? { fee } : {}), ...(leaf ? { leaf } : {}) },
-    take: () => { if (t) applyTake(rec, t.picks); payUpkeep(rec, fee); }, refund: Object.keys(refund).length ? refund : null };
+    take: () => { if (t) applyTake(rec, t.picks); payUpkeep(rec, fee); const r3 = Math.round((sv - Math.max(0, cut)) * 1000) / 1000; if (r3 > 0) rec.resSv = r3; else delete rec.resSv; }, refund: Object.keys(refund).length ? refund : null };
 }
 // 進化した スキル（配合で 受けついだ「＋」の ツリー）を 取り出す（鹿さんの決め、2026-10-25）：なかまとは おわかれ・アメジスト 200（研究所の Lv で 安く なる）
 //   取り出した ツリーは 研究ずみ（rec.lab）に なり、どの ペットでも サブツリーに 付けられる。なかまが いなく なるのは 払えた とき（grant.bye）
@@ -417,7 +418,7 @@ export function tripDone(rec, sim) {
   const mx = t.map >= 1 ? mapExtra(t.map, t.got.materials, d.id, rng((seed ^ 0x2545f491) >>> 0)) : null;
   if (mx && mx.gather + mx.drop) { t.got.materials = mx.mats; t.got.map = { gather: mx.gather, drop: mx.drop }; }
   if (t.fx) {   // 家具の 効果（出かけた ときの 物）：経験値・採取と 敵の 素材の おまけ（べつの 種）
-    if (t.fx.exp) t.got.exp = Math.round(t.got.exp * (1 + t.fx.exp));
+    if (t.fx.exp) { const x = t.got.exp * (1 + t.fx.exp), lo = Math.floor(x + 1e-9); t.got.exp = lo + (rng((seed ^ 0x27d4eb2f) >>> 0)() < x - lo ? 1 : 0); }   // 端数は くじで（2026-11-11 診断：前は 四捨五入で 経験値 3 の ＋5% が 消えて いた）
     if (t.fx.gather || t.fx.drop) { const fx = furnExtra(t.fx, t.got.materials, d.id, rng((seed ^ 0x6c078965) >>> 0)); if (fx.gather + fx.drop) { t.got.materials = fx.mats; t.got.furn = { gather: fx.gather, drop: fx.drop }; } }
   }
   t.end = t.start + Math.round(res.ticks * TICK * 1000 * (t.fast ? FAST.spd : 1));   // 早足（運び屋）は 同じ 道のりを 1 割 早く

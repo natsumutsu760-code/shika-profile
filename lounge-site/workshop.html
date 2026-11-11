@@ -67,6 +67,7 @@
   .detail header .ic svg { width:46px; height:46px; }
   .detail h2 { font:900 21px/1.25 var(--jp); } .detail header p { font:700 12.5px/1.5 var(--jp); color:var(--soft); }
   .tag { display:inline-block; margin-right:6px; padding:3px 9px; border-radius:99px; font:900 12px/1.2 var(--jp); background:#FFE9DE; color:#A8461A; }
+  .fxs { margin-left:8px; padding:2px 8px; border-radius:99px; font:800 11.5px/1.2 var(--jp); background:#E6F6EC; color:#1F7A47; }   /* 家具の 効果（暖炉 など） */
   .facts { display:grid; gap:7px; }
   .facts div { display:grid; grid-template-columns:76px minmax(0, 1fr); gap:8px; align-items:baseline; font:700 13px/1.5 var(--jp); }
   .facts .l { font:900 12px/1.4 var(--jp); color:var(--soft); }
@@ -133,7 +134,7 @@ const pic = (id) => matPic(id) || (CROP[id] || CROP_MAT[id] ? cropPic(CROP[id] |
 const S = { lv: 0, cr: 0, mats: [], loose: 0, smelt: [], tab: ["att", "smelt", ...(procOpen() ? ["proc"] : [])].includes(q.get("t")) ? q.get("t") : "item", sel: null, n: 1, made: null, stopArm: -1, only: "" };   // only：しぼりこみ（"" ぜんぶ・can・short）
 let ME = null;
 function load(m) {
-  ME = m; S.built = (m.hideout || {}).workshop || 0; S.lv = facLv(m, "workshop"); S.cr = m.credits || 0; S.mats = (m.own && m.own.mats) || []; S.smelt = m.smelt || [];
+  ME = m; S.built = (m.hideout || {}).workshop || 0; S.lv = facLv(m, "workshop"); S.cr = m.credits || 0; S.mats = (m.own && m.own.mats) || []; S.smelt = m.smelt || []; S.fxSmelt = ((m.desk && m.desk.room && m.desk.room.fx) || {}).smelt || 0;   // 家具（暖炉・フロアランプ など）の 精錬 −%（2026-11-11 鹿さん「家具効果の暖炉が発動していない疑惑」：前は 札が 家具なしの 時間の ままだった）
   const eq = new Set(((m.own && m.own.equip) || []).map((e) => e.uid));
   S.loose = ((m.own && m.own.att) || []).filter((a) => !a.on || !eq.has(a.on)).length;
 }
@@ -217,12 +218,13 @@ function smeltDetail(k) {
       ${d.left ? `<button class="sub-act${S.stopArm === i ? " arm" : ""}" data-stop="${i}">${S.stopArm === i ? "もう 1 回 押すと やめる（まだの 分の 鉱石は もどる）" : "やめる"}</button>` : ""}`;
   }
   const r = R(k), n = Math.max(1, Math.min(S.n, SMELT_MAX)), max = canN(k), free = Array.from({ length: furnaces(S.built) }, (_, i) => i).find((i) => !S.smelt[i]);
-  const head = `<header><span class="ic">${picOf(k)}</span><div><span class="tag">精錬</span><h2>${esc(r.name)}</h2><p>1 本 ${dur(r.min * 60000)}</p></div></header>`;
+  const one = Math.round(r.min * 60000 * (1 - S.fxSmelt));   // 門番の smeltPut と 同じ（入れた ときの 家具で きまる）
+  const head = `<header><span class="ic">${picOf(k)}</span><div><span class="tag">精錬</span><h2>${esc(r.name)}</h2><p>1 本 ${dur(one)}${S.fxSmelt ? `<span class="fxs">家具 −${Math.round(S.fxSmelt * 100)}%</span>` : ""}</p></div></header>`;
   const rows = r.mats.map(([id, c]) => ({ id, q: 0, need: c * n, have: have(id) })), lack = rows.filter((x) => x.have < x.need);
   const why = lack.slice(0, 2).map((x) => `${MAT_NAME[x.id]} あと ${fmt(x.need - x.have)}`).join("、");
   const qty = `<div class="qty" role="group" aria-label="入れる 数"><span>入れる 数</span>${[1, 5, 10].map((v) => `<button data-n="${v}" aria-pressed="${n === v}">${v}</button>`).join("")}<button data-n="max" aria-pressed="${max > 1 && n === max && ![1, 5, 10].includes(n)}" ${max > 1 ? "" : "disabled"}>${max > 1 ? `ぜんぶ ${max}` : "ぜんぶ"}</button></div>`;
   return head + qty + `<div><span class="need-h">使う物</span><ul class="need">${[...lack, ...rows.filter((x) => x.have >= x.need)].map(rowHtml).join("")}</ul></div>
-    <button class="jelly" data-smelt="${r.id}" ${lack.length || free === undefined ? "disabled" : ""}>${free === undefined ? "炉が 空いて いない" : `炉 ${free + 1} に 入れる（${n} 本・${dur(n * r.min * 60000)}）`}</button>
+    <button class="jelly" data-smelt="${r.id}" ${lack.length || free === undefined ? "disabled" : ""}>${free === undefined ? "炉が 空いて いない" : `炉 ${free + 1} に 入れる（${n} 本・${dur(n * one)}）`}</button>
     ${lack.length ? `<p class="why">足りない：${esc(why)}</p><a class="more" href="hideout.html?f=mine">鉱石は 坑道で 掘る ›</a>` : free === undefined ? `<p class="why">できた 延べ棒を 受けとると 炉が 空く</p>` : ""}`;
 }
 function detailHtml() {
