@@ -175,7 +175,7 @@
   /* 本番で 入れない とき（ログインが 切れて いる など） */
   #gate { min-height: 100vh; display: grid; place-content: center; justify-items: center; gap: 14px; padding: 24px 16px; text-align: center; }
   #gate h2 { margin: 0; font-size: 22px; } #gate p { margin: 0; color: var(--sub); max-width: 420px; line-height: 1.7; }
-  #gate a { text-decoration: none; }
+  #gate a { text-decoration: none; } #gate a.btn:not(.main) { color: var(--ink); }   /* ラウンジへ もどる（前は 暗い 地に 青い 字） */
   .radio { width: min(640px, 100%); display: grid; gap: 22px; justify-items: center; cursor: pointer; }
   .radio .rline { display: flex; gap: 14px; align-items: flex-start; width: 100%; background: #0E0F12E0; border: 1px solid var(--line); border-radius: 8px; padding: 14px 16px; }
   .radio .em { width: 30px; height: 30px; border-radius: 6px; border: 1px dashed #ffffff44; flex-shrink: 0; }
@@ -194,6 +194,7 @@
   .paper .row { justify-content: space-between; }
   .paper .link { background: none; border: 0; color: #5A6172; font-size: 13px; text-decoration: underline; padding: 6px 0; }
   .paper .btn.main:disabled { opacity: 0.4; cursor: default; }
+  .paper .sigwhy { margin: 8px 0 0; font-size: 13px; color: #A3262A; }
   #mtabs { display: none; }
   @media (max-width: 860px) {
     .split { grid-template-columns: 1fr; }
@@ -219,7 +220,7 @@
 <script type="importmap">{ "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.169.0/build/three.module.js", "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.169.0/examples/jsm/" } }</script>
 </head>
 <body>
-<section id="gate" hidden><h2>入れません</h2><p id="gateWhy"></p><a id="gateLogin" class="btn main" href="/" hidden>MONO LINK で ログイン</a></section>
+<section id="gate" hidden><h2 id="gateH">入れません</h2><p id="gateWhy"></p><a id="gateLogin" class="btn main" href="/" hidden>MONO LINK で ログイン</a><a id="gateBack" class="btn" href="lounge-room.html" hidden>ラウンジへ もどる</a></section>
 <section id="intro" class="scr" hidden>
   <div id="introRadio" class="radio">
     <div class="rline"><div class="em" aria-hidden="true"></div><div><div class="who mono">UNKNOWN</div><div id="rText"></div></div></div>
@@ -235,6 +236,7 @@
       <div class="rec">推薦人：――</div>
       <div class="sig"><canvas id="sigPad" aria-label="サインを 書く 欄"></canvas><span>ここに サイン</span></div>
       <div class="row"><button class="link" id="sigClear">書きなおす</button><button class="btn main" id="sigOk" disabled>サインする</button></div>
+      <p id="sigWhy" class="sigwhy" hidden></p>
     </div>
   </div>
 </section>
@@ -394,7 +396,15 @@ function sigPad() {
   cv.onpointermove = (e) => { if (!down) return; const p = pt(e); g.beginPath(); g.moveTo(...last); g.lineTo(...p); g.stroke(); len += Math.hypot(p[0] - last[0], p[1] - last[1]); last = p; if (len > 60) { $("sigOk").disabled = false; box.classList.add("inked"); } };
   cv.onpointerup = cv.onpointercancel = () => { down = false; };
   $("sigClear").onclick = () => { g.clearRect(0, 0, cv.width, cv.height); len = 0; $("sigOk").disabled = true; box.classList.remove("inked"); };
-  $("sigOk").onclick = () => { save.signed = true; keep(); home(); };
+  $("sigOk").onclick = async () => {
+    // 本番は 門番に 招待の サイン（島 3 の 夜の 招待の フラグ。order.sign。2026-11-11）。見本は この ブラウザだけ
+    if (toGate) {
+      $("sigOk").disabled = true; $("sigWhy").hidden = true;
+      const r = await gateAct("order.sign");
+      if (!r || !r.ok) { $("sigOk").disabled = false; $("sigWhy").hidden = false; $("sigWhy").textContent = (r && r.why) || "サインが 届かなかった。もう 1 回 押して ください"; return; }
+    }
+    save.signed = true; keep(); home();
+  };
 }
 
 // ---- タブ：掲示板・解析・持ち物（丸の 数は 前に 見た ときから ふえた 物） ----
@@ -509,6 +519,7 @@ const renderer = new THREE.WebGLRenderer({ canvas: $("view"), antialias: true })
 renderer.setPixelRatio(Math.min(2, devicePixelRatio));
 const scene = new THREE.Scene(), cam = new THREE.PerspectiveCamera(62, 1, 0.05, 80);
 let mz = null, S = null, objs = new Map(), from = null, to = null, t0 = 0, plan = null;
+window.__crawl = () => S;   // 試験用：いまの 迷宮の 状態を 見る（ブラウザで 15 本を 通す 確かめ。2026-11-11）
 function build3d() {
   if (mz) { scene.remove(mz.group); mz.group.traverse((o) => o.geometry?.dispose()); }
   mz = makeMaze(S.rows, { theme: S.def.theme, meta: {} });
@@ -768,9 +779,13 @@ const direct = q.get("m") && MISSIONS.find((m) => m.id === q.get("m"));
 // 本番（MONO LINK の サイトの /lounge/crawler.html）では 門番に 聞く。大工事の あいだは 鹿さんと おたこまるさんだけ（鹿さんの カード、2026-11-04）
 // 工事中の 画面は lounge-client.js の me() が ほかの 画面と 同じ 形で 出す。見本（demoMode）では 聞かない
 const gate = demoMode ? null : await me();
+const invite = gate && gate.order;   // 島 3 の 夜の 招待（ready：無線機 Lv2 で 届いた・signed：誓約書に サインした）。古い 門番で 無い ときは 前の まま
 if (gate && (gate.denied || gate.ok === false)) {
   show(null); $("gate").hidden = false; $("gateWhy").textContent = gate.why || "もう 1 回 開いて ください"; $("gateLogin").hidden = !gate.login;
 } else if (gate?.lock) show(null);   // 工事中の 画面は me() が 出した。後ろの ホームも しまう
+else if (invite && !invite.signed && !invite.ready) {   // まだ 招待が 届いて いない（島 3 へ 行けるように なると 届く）
+  show(null); $("gate").hidden = false; $("gateH").textContent = "まだ 招待が 届いて いません"; $("gateWhy").textContent = "隠れ家の 無線機を Lv2 に して ミカネル島へ 行けるように なると、知らない 周波数から 通信が 入ります。"; $("gateBack").hidden = false;
+}
 else {
   // 門番の 進みと この ブラウザの 進みを まぜる（新しい 方を 使い、クリアと サインは 両方の 分を 残す）。?reset=1 の ときは 門番の 進みも 消す
   if (gate && !demoMode && gate.ok !== false) {
@@ -780,7 +795,9 @@ else {
     else if (g) { const done = [...new Set([...(g.done || []), ...(save.done || [])])], signed = save.signed || g.signed; save = { ...save, ...((g.at || 0) > (save.at || 0) ? g : {}), done, ...(signed ? { signed } : {}) }; keep(); }
     else if (save.signed || save.done.length) keep();   // 前に この ブラウザで 進めた 分を 門番へ
   }
-  if (direct) brief(direct); else if ((!save.signed && !save.done.length) || q.get("intro") === "1") intro(); else home(); // はじめての 人は はじまりから（?intro=1 で もう一度）
+  const needSign = invite ? !invite.signed : (!save.signed && !save.done.length);   // 本番は 門番の 招待の フラグ。見本は この ブラウザの サイン
+  if (invite && invite.signed) save.signed = true;
+  if (needSign || q.get("intro") === "1") intro(); else if (direct) brief(direct); else home(); // はじめての 人は はじまりから（?intro=1 で もう一度）
 }
 window.crawl = { get S() { return S; }, get B() { return B; }, act: (a) => { act(S, a); moved(); refresh(); } };
 </script>

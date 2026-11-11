@@ -3,6 +3,7 @@
 const P = (p, s) => p(s) || s;
 
 export const WORDS = {
+  "まだ 招待が 届いて いない（隠れ家の 無線機を Lv2 に すると、知らない 周波数から 通信が 入る）": "No invitation yet (raise the Hideout radio to Lv2 and a transmission will come in on an unknown frequency)", "招待の 誓約書に サインすると 開く（クローラーの はじまり）": "Opens once you sign the invitation pledge (the start of Crawler)",
   // 装備開発・スフィア（2026-11-04）
   "使う 敵の 素材を えらんで": "Choose an enemy material", "素材の 品質を えらんで": "Choose the material quality", "空いた OP の 枠が ない（素材の OP 抽選は 空いた 枠に だけ）": "No empty OP slot (material draws only fill empty slots)", "工房が まだ ない（隠れ家で 作る）": "No Workshop yet (build it in the Hideout)",
   "知らない 装備": "Unknown gear", "使う 結晶の 段を えらんで": "Choose a crystal grade", "その スフィアは ない": "That Sphere doesn't exist", "鑑定する スフィアが ない": "No Spheres to appraise", "あずかり箱に 売れる 素材が ない": "No materials to sell in the holding box", "もう 鑑定して ある": "Already appraised",

@@ -49,7 +49,7 @@
   .dir button, .dir a.go { width:100%; display:grid; grid-template-columns:28px minmax(0, 1fr) auto; gap:8px; align-items:center; padding:6px 14px; text-align:left; }
   .dir a.go { color:inherit; text-decoration:none; box-sizing:border-box; } .dir a.go .mk { color:var(--cyan); } .dir a.go small { font-size:12px; color:var(--dim); } .dir a.go:hover { background:rgba(255,181,71,.1); }   /* クローラーの 入口（ほかの 画面へ とぶ） */
   .dir button .mk { color:var(--amber); } .dir button .mk img { display:block; width:28px; height:28px; object-fit:cover; object-position:50% 18%; border-radius:6px; background:rgba(255,181,71,.12); } .dir button small { font-size:12px; color:var(--dim); }
-  .dir button .new { color:var(--ok); font-size:12px; }
+  .dir button .new, .dir a.go .new { color:var(--ok); font-size:12px; }
   .pd-bar .mk img { display:block; width:28px; height:28px; object-fit:cover; object-position:50% 18%; border-radius:6px; } .pd-bar .new { color:var(--ok); } .pd-bar .mk { color:var(--amber); }
   .dir button[aria-current="true"] { background:var(--amber); color:var(--bg); text-shadow:none; }
   .dir button[aria-current="true"] .mk, .dir button[aria-current="true"] small, .dir button[aria-current="true"] .new { color:var(--bg); }
@@ -288,10 +288,12 @@ const ready = (v) => tasksOf(v).filter((k) => !k.done && k.have >= k.need).lengt
 const matsBy = () => { const m = new Map(); for (const x of ME.own.mats || []) { const k = `${x.id}:${x.q || 0}`; m.set(k, { id: x.id, q: x.q || 0, n: (m.get(k)?.n || 0) + x.n }); } return [...m.values()]; };
 const haveMat = (id, q = 0) => (ME.own.mats || []).filter((x) => x.id === id && (x.q || 0) >= q).reduce((a, x) => a + x.n, 0);
 
+// クローラー・ボーダーゾーンの 札：島 3 の 夜の 招待（ME.order。2026-11-11）。届く 前は 開き方、届いたら 赤い 丸、サインの あとは いつもの 札
+const invTag = (dflt) => { const o = ME && ME.order; if (!o || o.signed) return dflt; return o.ready ? `<span class="new">●</span> 招待が 届いた` : "無線機 Lv2 で 招待"; };
 function dirHtml() {
   const row = (t, sp) => { const v = view(t.id); return `<button data-go="${t.id}" class="${sp ? "sp" : ""}" aria-current="${S.go === t.id}"><span class="mk">${face(t.id)}</span><span class="nm">${t.dir || t.name}</span><small>Lv${v.lv || 1}${ready(v) ? ` <span class="new">●${ready(v)}</span>` : ""}</small></button>`; };
   return `<p class="pr">&gt; 商人</p><ul>${TRADERS.map((t) => `<li>${row(t)}</li>`).join("")}</ul>
-    <p class="pr">&gt; ほか</p><ul><li>${row(SPECIAL, true)}</li><li><button data-go="board" aria-current="${S.go === "board"}"><span class="mk">✉</span><span class="nm">みんなの依頼</span><small>${B.list.length}</small></button></li>${stockOpen() ? `<li><button data-go="stock" aria-current="${S.go === "stock"}"><span class="mk">▲</span><span class="nm">トークン</span><small>${heldN(K) ? `保有 ${heldN(K)}` : ""}${newsNew(K) ? ` <span class="new">●${newsNew(K)}</span>` : ""}</small></button></li>` : ""}<li><a class="go" href="crawler.html"><span class="mk" aria-hidden="true">▣</span><span class="nm">クローラー</span><small>先行体験版</small></a></li><li><a class="go" href="border.html"><span class="mk" aria-hidden="true">◇</span><span class="nm">ボーダーゾーン</span><small>集めて 脱出</small></a></li></ul>`;   // クローラー（企業の ミッション）：2026-11-05 鹿さん「クローラーとボーダーゾーンも」で みんなに 入口
+    <p class="pr">&gt; ほか</p><ul><li>${row(SPECIAL, true)}</li><li><button data-go="board" aria-current="${S.go === "board"}"><span class="mk">✉</span><span class="nm">みんなの依頼</span><small>${B.list.length}</small></button></li>${stockOpen() ? `<li><button data-go="stock" aria-current="${S.go === "stock"}"><span class="mk">▲</span><span class="nm">トークン</span><small>${heldN(K) ? `保有 ${heldN(K)}` : ""}${newsNew(K) ? ` <span class="new">●${newsNew(K)}</span>` : ""}</small></button></li>` : ""}<li><a class="go" href="crawler.html"><span class="mk" aria-hidden="true">▣</span><span class="nm">クローラー</span><small>${invTag("先行体験版")}</small></a></li><li><a class="go" href="border.html"><span class="mk" aria-hidden="true">◇</span><span class="nm">ボーダーゾーン</span><small>${invTag("集めて 脱出")}</small></a></li></ul>`;   // クローラー（企業の ミッション）：2026-11-05 鹿さん「クローラーとボーダーゾーンも」で みんなに 入口
 }
 function traderHtml(t) {
   const v = view(t.id), lv = v.lv || 1, rep = v.rep || 0, list = tasksOf(v), sp = t === SPECIAL;

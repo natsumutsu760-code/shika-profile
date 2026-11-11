@@ -1,5 +1,6 @@
 // 英語の 辞書：ボーダーゾーン（border.html・門番の 返事。2026-11-05）
 export const WORDS = {
+  "招待が 届いて いる": "An invitation has arrived", "知らない 周波数から 通信が 入って います。誓約書に サインすると、ボーダーゾーンと クローラーが 開きます": "A transmission is coming in on an unknown frequency. Sign the pledge to open the Border Zone and Crawler",
   "ボーダーゾーン": "Border Zone", "出撃": "Deploy", "記録": "Log", "サンプル": "Samples", "出撃する": "Deploy", "出撃の 準備": "Prepare", "出撃中": "Deployed",
   "ハルモニアの 領地": "Harmonia Territory", "SVA の 領地": "SVA Territory", "TCU の 領地": "TCU Territory", "境界": "The Border",
   "外縁": "Outer", "中": "Middle", "奥": "Deep", "ハルモニア": "Harmonia",

@@ -343,6 +343,7 @@ function render() {
   if (U.tab === "smp") return head + smpView();
   if (Z.run) return head + runView(Z.run);
   if (Z.isle === false) return head + `<section class="panel lock"><h2>ミカネル島から</h2><p style="margin-top:8px;color:var(--soft)">ボーダーゾーンは、ミカネル島へ 行けるように なると 開きます（隠れ家の 無線機 Lv2）</p><a class="jelly sky" href="hideout.html" style="display:inline-block;margin-top:16px;text-decoration:none">隠れ家へ</a></section>`;   // 2026-11-06 鹿さん「ボーダーゾーンは島3解放までクローズにしてください。」
+  if (Z.signed === false) return head + `<section class="panel lock"><h2>招待が 届いて いる</h2><p style="margin-top:8px;color:var(--soft)">知らない 周波数から 通信が 入って います。誓約書に サインすると、ボーダーゾーンと クローラーが 開きます</p><a class="jelly sky" href="crawler.html" style="display:inline-block;margin-top:16px;text-decoration:none">通信を 聞く</a></section>`;   // 島 3 の 夜の 招待（2026-11-11。サインは クローラーの はじまり）
   return head + `<div class="cols"><div class="map">${areaMap()}</div>${goSide()}</div>`;
 }
 function paint() {

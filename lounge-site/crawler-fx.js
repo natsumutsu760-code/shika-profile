@@ -6,7 +6,9 @@
 // playTurnFx(root, evs, o) → Promise。o：{ n（味方の 数）, hp（手の 前の HP の 配列。書きかえる）, maxHp（配列）, skillName(id), onLog(文), over }
 import { EFFECTS } from "./effects.js";
 import { SKILL } from "./skills.js";
-import { createFrame, clearFrame, createFx, composite } from "./pixelfx/core/index.js";
+// 本体（core）も あとから 読む。前は ふつうの import で、読めないと クローラーの 画面 ぜんぶが 止まった（2026-11-11：本番の 門番が pixelfx の 下の フォルダを 返さず、クローラーが 開かなかった）
+let CORE = null;
+const loadCore = () => (CORE ??= import("./pixelfx/core/index.js").catch(() => null));
 
 // ---- どの 出来事に どの 絵を 出すか ----
 const ST_FX = { poison: "status/poisoned", venom: "status/poisoned", burn: "status/burning", scald: "status/burning", frostbite: "status/frozen", freeze: "status/frozen",
@@ -27,7 +29,7 @@ function hitFx(e) {
 const ALL = [...new Set([...Object.values(ST_FX), ...Object.values(EL_FX), "impacts/hit-spark", "impacts/crit-hit", "impacts/shield-block", "impacts/blunt-hit", "melee/sword-slash", "melee/double-slash", "melee/claw-swipe", "arcane/mana-burst", "holy/heal", "holy/blessing", "spawn/shatter-death"])];
 const MODS = {};
 const load = (name) => (MODS[name] ??= import(`./pixelfx/fx/${name}.js`).catch(() => null));
-export const preloadFx = () => Promise.all(ALL.map(load));   // 戦いが 始まる ときに 読んで おく（最初の 1 手で 待たない）
+export const preloadFx = () => loadCore().then((c) => (c ? Promise.all(ALL.map(load)) : []));   // 戦いが 始まる ときに 読んで おく（最初の 1 手で 待たない）
 
 // ---- ドット絵の キャンバス（1 ドット ＝ PX px。動く 物が ある あいだだけ 描く） ----
 const PX = 2;
@@ -36,9 +38,9 @@ function engine(lay, root) {
   const w = Math.max(1, Math.ceil(root.clientWidth / PX)), h = Math.max(1, Math.ceil(root.clientHeight / PX));
   if (cv.width !== w || cv.height !== h) { cv.width = w; cv.height = h; }
   cv.style.width = `${w * PX}px`; cv.style.height = `${h * PX}px`;
-  const ctx = cv.getContext("2d"), frame = createFrame(w, h), img = new ImageData(w, h), live = [];
-  let raf = 0, last = 0;
-  const paint = () => { clearFrame(frame); for (const f of live) f.draw(frame, "back"); for (const f of live) f.draw(frame, "front"); composite(frame, img.data, null); ctx.putImageData(img, 0, 0); };
+  const ctx = cv.getContext("2d"), live = [];
+  let raf = 0, last = 0, C = null, frame = null, img = null;   // C：pixelfx の 本体（読めた ときだけ）
+  const paint = () => { C.clearFrame(frame); for (const f of live) f.draw(frame, "back"); for (const f of live) f.draw(frame, "front"); C.composite(frame, img.data, null); ctx.putImageData(img, 0, 0); };
   const tick = (now) => {
     const dt = Math.min(0.05, Math.max(0, (now - last) / 1000)); last = now;
     for (const f of live) f.update(dt);
@@ -47,8 +49,9 @@ function engine(lay, root) {
   };
   return {
     async spawn(name, x, y, opt = {}) {
-      const m = name && (await load(name)); if (!m) return false;
-      live.push(createFx(m, { x: Math.round(x / PX), y: Math.round(y / PX), seed: (Math.random() * 1e6) | 0, ...opt }));
+      C = C || (await loadCore()); const m = C && name && (await load(name)); if (!m) return false;   // 読めない ときは false → CSS の 線と 輪で 代わり
+      if (!frame) { frame = C.createFrame(w, h); img = new ImageData(w, h); }
+      live.push(C.createFx(m, { x: Math.round(x / PX), y: Math.round(y / PX), seed: (Math.random() * 1e6) | 0, ...opt }));
       if (!raf) { last = performance.now(); raf = requestAnimationFrame(tick); }
       return true;
     },

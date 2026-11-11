@@ -10,6 +10,7 @@ import { emptyLedger, balanceOf, trimSent, toObs, settle } from "./ledger.js";
 import { buyPlan, sellAct, boxSell, tradeAct, taskDone, useItem, deeplinkView, actEvents, dlVisit, bump } from "./lounge-trade.js";
 import { facMigrate, facDue, facStart, facPut, facRush, facFuel, facScaffold, facKnob, facView } from "./lounge-facility.js";   // 施設の 建設と つまみ（施設の 作り直し、2026-11-03）
 import { crawlSave, crawlView } from "./lounge-crawl.js";   // クローラーの 進み（M-018。2026-11-05）
+import { orderSign, orderView } from "./lounge-order.js";   // 島 3 の 夜の 招待（誓約書に サイン → クローラーと ボーダーゾーンが 開く。2026-11-11）
 import { reqPostPlan, takeFor, items } from "./lounge-req.js";
 import { petTake, petGrow, petSub, petStat, petGambits, petPassives, petStyle, equipSet, equipBest, respecPlan, fighterOf, spTotal, spUsed, freeTotal, RESET_PRICE } from "./lounge-pet.js";
 import { freeIsAuto } from "./trees.js";   // 手で 振る ポイントが 自動か
@@ -387,6 +388,7 @@ export class Viewer {
     else if (body.a === "bz.collect") { r = bzCollect(rec, now); if (r.ok) await this.state.storage.delete("bzsim"); }
     else if (body.a === "bz.appraise") r = bzAppraise(rec, body);   // 鑑定（ガラク）
     else if (body.a === "bz.sell") r = bzSell(rec, body);           // 会社に 納める
+    else if (body.a === "order.sign") r = orderSign(rec, now);   // 島 3 の 夜の 招待の 誓約書に サイン
     else if (body.a === "crawl.save") r = crawlSave(rec, body, now);   // クローラーの 進み（どの 機械でも 同じ に）
     else if (body.a === "fac.knob") r = facKnob(rec, body, now);
     else if (body.a === "ws.att") r = wsAtt(rec, body, rand, now);
@@ -456,7 +458,7 @@ export class Viewer {
     const now = Date.now(); dropOld(rec, now); facMigrate(rec); facDue(rec, now); insDue(rec, now);   // 時間が 来た 保険の 支払いも 届けて 見せる（なにか 操作するまで タスクが 0 の ままに 見えた。2026-11-07）
     return { id: rec.id, lock: locked(rec, this.env), lockKind: lockKind(), login: rec.login, name: rec.name, nameAt: rec.nameAt, names: rec.names, room: rec.room, own: ownView(rec.own), wallet: this.purse(rec, w), waiting: rec.ledger.unknown.length,
       pets: rec.pets.map((p) => ({ ...p, ...(p.type ? { sp: { all: spTotal(p.lv), left: spTotal(p.lv) - spUsed(p) }, freeLeft: freeIsAuto(p) ? 0 : freeTotal(p.lv) - Object.values(p.free || {}).reduce((a, v) => a + v, 0), build: fighterOf(p, rec), resetPrice: RESET_PRICE(p.lv) } : {}) })),
-      tamed: rec.tamed, party: rec.party, mine: mineView(rec, now), farmv: farmvView(rec, now), crawl: crawlView(rec), bz: { ...bzMe(rec, now), open: !bzLocked(rec, this.env) }, stock: { open: !stockLocked(rec, this.env), h: (rec.stock && rec.stock.h) || {} }, smelt: rec.smelt || [], loop: rec.loop || null, lab: rec.lab, labQ: rec.labQ || [], hideout: rec.hideout, knob: rec.knob || {}, fac: facView(rec, now), credits: rec.credits, snacks: rec.snacks, tools: rec.tools, explore: rec.explore, seen: rec.seen, met: rec.met,
+      tamed: rec.tamed, party: rec.party, mine: mineView(rec, now), farmv: farmvView(rec, now), crawl: crawlView(rec), order: orderView(rec), bz: { ...bzMe(rec, now), open: !bzLocked(rec, this.env) }, stock: { open: !stockLocked(rec, this.env), h: (rec.stock && rec.stock.h) || {} }, smelt: rec.smelt || [], loop: rec.loop || null, lab: rec.lab, labQ: rec.labQ || [], hideout: rec.hideout, knob: rec.knob || {}, fac: facView(rec, now), credits: rec.credits, snacks: rec.snacks, tools: rec.tools, explore: rec.explore, seen: rec.seen, met: rec.met,
       stash: { cap: stashCap(rec) }, equipCap: equipCap(rec), autoSell: rec.autoSell || null, trips: rec.trips.map((t) => tripView(t, now)), deeplink: deeplinkView(rec, jstDay(now)), req: { mine: rec.req.mine, sending: rec.req.out.length } };
   }
 

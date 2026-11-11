@@ -4,6 +4,7 @@ const P = (p, s) => p(s) || s;
 const n1 = (n, one, many) => (n === "1" ? `1 ${one}` : `${n} ${many}`);
 
 export const WORDS = {
+  "招待が 届いた": "Invitation received", "無線機 Lv2 で 招待": "Invite at Radio Lv2",
   "商人": "Traders", "< ラウンジに もどる": "< Back to Lounge", "> 商人": "> Traders", "友好度 Lv#": "Rapport Lv#", "友好 ＋#": "Rapport +#", "みんなの依頼": "Requests board", "クローラー": "Crawler", "先行体験版": "Early access",
   "ごほうび": "Reward", "拾った物": "Found", "おわった": "Done", "報告する": "Report", "友好度": "Rapport", "タスク #": "Tasks #", "ショップ #": "Shop #", "タスク": "Tasks", "ショップ": "Shop",
   "いちばん上": "Max", "1 回だけ": "Once only", "今週": "This week", "来週": "Next week", "あした": "Tomorrow", "売る": "Sell", "交換する": "Trade", "買った": "Bought", "売り切れ": "Sold out",
