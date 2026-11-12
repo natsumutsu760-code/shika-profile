@@ -389,7 +389,7 @@ export const FOE_LISTS = {
       S(7, "e_kyuketsuutage", "吸血の宴", "waza", 7, [D(6, { hits: 3, drain: 0.3 })]),
       S(8, "e_taigun", "コウモリの大群", "waza", 12, [D(5, { hits: 6 })]),
       P(1, "e_batbata", "羽ばたき", "回避 +5%", { evade: 0.05 }),
-      P(2, "e_echo", "エコーロケーション", "盲目に強い（50% で防ぐ）", { resistFx: { blind: 50 } }),
+      P(2, "e_echo", "エコーロケーション", "命中 +10%", { accUp: 0.1 }),   // 2026-11-12 鹿さん「こういうスキルを作るなと言いませんでしたっけ？」：盲目・炎上・眠りに 強い（受けた ときだけ はたらく）を いつも はたらく 効果に
       P(3, "e_otonotatsujin", "音の達人", "混乱の相手に +20%", { vsFx: { confusion: 0.2 } }),
       P(4, "e_yaminohane", "闇の羽", "盲目の相手に +15%", { vsFx: { blind: 0.15 } }),
       P(5, "e_choonpakokoro", "超音波の心得", "付ける混乱 +1 ターン", { extendIds: { confusion: 1 } }),

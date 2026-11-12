@@ -360,7 +360,7 @@ const TREES0 = {   // 下で ENEMY_TREES（複合ツリーを 使う ときに �
       S(7, "e_kyuketsuutage", "吸血の宴", "waza", 7, [D(6, { hits: 3, drain: 0.3 })]),
       S(8, "e_taigun", "コウモリの大群", "waza", 12, [D(5, { hits: 6 })]),
       P(1, "e_batbata", "羽ばたき", "回避 +5%", { evade: 0.05 }),
-      P(2, "e_echo", "エコーロケーション", "盲目に強い（50% で防ぐ）", { resistFx: { blind: 50 } }),
+      P(2, "e_echo", "エコーロケーション", "命中 +10%", { accUp: 0.1 }),   // 2026-11-12 鹿さん「こういうスキルを作るなと言いませんでしたっけ？」：盲目・炎上・眠りに 強い（受けた ときだけ はたらく）を いつも はたらく 効果に
       P(3, "e_otonotatsujin", "音の達人", "混乱の相手に +20%", { vsFx: { confusion: 0.2 } }),
       P(4, "e_yaminohane", "闇の羽", "盲目の相手に +15%", { vsFx: { blind: 0.15 } }),
       P(5, "e_choonpakokoro", "超音波の心得", "付ける混乱 +1 ターン", { extendIds: { confusion: 1 } }),
@@ -871,7 +871,7 @@ const TREES0 = {   // 下で ENEMY_TREES（複合ツリーを 使う ときに �
       P(1, "e_zn_nurunuru", "ぬるぬる", "回避 +3%", { evade: 0.03 }),
       P(2, "e_zn_taiden", "帯電", "付ける麻痺 +10", { fxAmtAdd: { paralysis: 10 } }),
       P(3, "e_zn_oiuchi", "しびれの追い打ち", "麻痺の相手に +15%", { vsFx: { paralysis: 0.15 } }),
-      P(4, "e_zn_kuraganome", "暗がりの目", "盲目に強い（50% で防ぐ）", { resistFx: { blind: 50 } }),
+      P(4, "e_zn_kuraganome", "暗がりの目", "命中 +10%", { accUp: 0.1 }),   // 2026-11-12 鹿さん「こういうスキルを作るなと言いませんでしたっけ？」：盲目・炎上・眠りに 強い（受けた ときだけ はたらく）を いつも はたらく 効果に
       P(5, "e_zn_shibirekiba", "しびれの牙", "麻痺の相手への会心 +15%", { critVsFx: { paralysis: 0.15 } }),
       P(6, "e_zn_nagaikarada", "長い体", "HP +10%", { hpMul: 1.1 }),
       P(7, "e_zn_denkitai", "電気の体", "直接攻撃を受けると 20% で相手に麻痺 +15", { whenHitFx: [["paralysis", 0.2, 15]] }),
@@ -954,7 +954,7 @@ const TREES0 = {   // 下で ENEMY_TREES（複合ツリーを 使う ときに �
       P(3, "e_uf_yaketsuku", "焼けつく牙", "炎上か火傷の相手に +15%", { vsFx: { burn: 0.15, scald: 0.15 } }),
       P(4, "e_uf_iwabaashi", "岩場の足", "AGI +10%", { agiMul: 1.1 }),
       P(5, "e_uf_hinokouroko", "火の粉のうろこ", "攻撃のとき 15% で炎上 +2", { onHitFx: [["burn", 0.15, 2]] }),
-      P(6, "e_uf_netsunitsuyoi", "熱に強い", "炎上に強い（50% で防ぐ）", { resistFx: { burn: 50 } }),
+      P(6, "e_uf_netsunitsuyoi", "熱できたえた体", "受けるダメージ −5%", { dmgCut: 5 }),   // 2026-11-12 鹿さん「こういうスキルを作るなと言いませんでしたっけ？」：盲目・炎上・眠りに 強い（受けた ときだけ はたらく）を いつも はたらく 効果に（名前も「熱に強い」から）
       P(7, "e_uf_magmashinzo", "マグマの心臓", "ATK +10%・直接攻撃を受けると 25% で相手に炎上 +2", { atkMul: 1.1, whenHitFx: [["burn", 0.25, 2]] }),
     ],
     plan: [G("first", undefined, "e_uf_hinatabokko"), G("foeNotHas", "burn", "e_uf_yoganhaki"), G("every", 2, "e_uf_funshutsu"), G("mpAtLeast", 10, "e_uf_yoganryu"), G("every", 3, "e_uf_magmashippo"), G("always", undefined, "e_uf_atsuitsume")] },
@@ -3070,7 +3070,7 @@ const TREES0 = {   // 下で ENEMY_TREES（複合ツリーを 使う ときに �
       S(7, "f_hh_akazunoma", "開かずの間", "waza", 7, [M("guard"), M("counter", undefined, { amt: 100 }), M("armor", 20)]),
       S(8, "f_hh_kuzureochiru", "崩れおちる館", "waza", 10, [D(38, { stat: "def", vsFx: { confusion: 0.3 } }), M("counter", undefined, { amt: 100 })]),
       P(1, "f_hh_furuihashira", "古い柱", "受けるダメージ −3%", { dmgCut: 3 }),
-      P(2, "f_hh_nemuranaiyakata", "眠らない館", "眠りに強い（50% で防ぐ）", { resistFx: { sleep: 50 } }),
+      P(2, "f_hh_nemuranaiyakata", "眠らない館", "回避 +3%", { evade: 0.03 }),   // 2026-11-12 鹿さん「こういうスキルを作るなと言いませんでしたっけ？」：盲目・炎上・眠りに 強い（受けた ときだけ はたらく）を いつも はたらく 効果に
       P(3, "f_hh_mayoinoyakata", "まよいの館", "混乱した相手に +15%", { vsFx: { confusion: 0.15 } }),
       P(4, "f_hh_yakatanoshikake", "館のしかけ", "技のダメージ +10%", { wazaDmg: 10 }),
       P(5, "f_hh_yofukenoyakata", "夜ふけの館", "毎ターン MP +1", { mpRegen: 1 }),

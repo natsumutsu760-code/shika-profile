@@ -108,7 +108,7 @@ export const TREES = {
       S(6, "x_wandering_s6", "ひと休み", "waza", 6, [M("blessing", 1)], t(WA, "S6")),
       S(7, "x_wandering_s7", "熱が動いとる", "waza", 6, [M("mirage", 8, { ...all, solo: [M("mirage", 15)] })], t(WA, "S7")),
       S(8, "x_wandering_s8", "長い道のり", "waza", 11, [{ ...CURE, ...all }, M("regen", 6, { ...all, solo: [M("regen", 10)] }), M("blessing", 1, all)], t(WA, "S8")),
-      P(1, "x_wandering_p1", "錆びた体", tx(WA, "P1"), { resistFx: { poison: 10, venom: 10, burn: 10, sickness: 10, frostbite: 10 } }),
+      P(1, "x_wandering_p1", "錆びた体", tx(WA, "P1"), { dmgCut: 3 }),   // 2026-11-12 鹿さん「こういうスキルを作るなと言いませんでしたっけ？」：毒・炎上 などに 強い（受けた ときだけ はたらく）を いつも はたらく 効果に
       P(2, "x_wandering_p2", "ひとり歩き", tx(WA, "P2"), { healMul: 1.1 }),
       P(3, "x_wandering_p3", "道を知っとる", tx(WA, "P3"), { fxAmtMul: { regen: 1.4 } }),
       P(4, "x_wandering_p4", "長話", tx(WA, "P4"), { fxChanceAdd: { sleep: 0.1 } }),

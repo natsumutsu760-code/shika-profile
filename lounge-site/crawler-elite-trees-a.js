@@ -161,7 +161,7 @@ TREES.x_watchful = { name: "ウォッチフル", enemy: R, analysis: true, dunge
     P(1, "x_watchful_p1", "執念", tx(R, "P1"), { momentum: 0.05 }),   // いまの 計算は「前の 番に 当てて いたら」だけ（3 回まで 重ならない）
     P(2, "x_watchful_p2", "狩りの名人", tx(R, "P2"), { vsFx: { paralysis: 0.1 } }),
     P(3, "x_watchful_p3", "長い狩り", tx(R, "P3"), { lateAtk: { after: 5, v: 0.1 } }),
-    P(4, "x_watchful_p4", "鋭い目", tx(R, "P4"), { resistFx: { blind: 30 } }),
+    P(4, "x_watchful_p4", "鋭い目", tx(R, "P4"), { crit: 0.05 }),   // 2026-11-12 鹿さん「こういうスキルを作るなと言いませんでしたっけ？」：盲目・炎上・眠りに 強い（受けた ときだけ はたらく）を いつも はたらく 効果に
     P(5, "x_watchful_p5", "狩人の腕", tx(R, "P5"), { atkMul: 1.05 }),
     P(6, "x_watchful_p6", "気配を読む", tx(R, "P6"), { evade: 0.03 }),
     P(7, "x_watchful_p7", "雪の中の九日", tx(R, "P7"), { startFx: [["pierce", 8]] }),

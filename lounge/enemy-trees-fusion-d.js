@@ -269,7 +269,7 @@ export const TREES = {
       P(1, "f_ml_purupuru", "ぷるぷる", "回避 +3%", { evade: 0.03 }),
       P(2, "f_ml_atsuikarada", "あつい体", "直接攻撃を受けると 20% で相手に炎上 +2", { whenHitFx: [["burn", 0.2, 2]] }),
       P(3, "f_ml_yogannoshin", "溶岩の芯", "ATK +5%", { atkMul: 1.05 }),
-      P(4, "f_ml_kazannoko", "火山の子", "炎上に強い（50% で防ぐ）", { resistFx: { burn: 50 } }),
+      P(4, "f_ml_kazannoko", "火山の子", "炎上の相手に +15%", { vsFx: { burn: 0.15 } }),   // 2026-11-12 鹿さん「こういうスキルを作るなと言いませんでしたっけ？」：盲目・炎上・眠りに 強い（受けた ときだけ はたらく）を いつも はたらく 効果に
       P(5, "f_ml_nietatsuchikara", "煮えたつ力", "付ける炎上 +1", { fxAmtAdd: { burn: 1 } }),
       P(6, "f_ml_torokerukarada", "とろける体", "HP +10%", { hpMul: 1.1 }),
       P(7, "f_ml_kazannoaruji", "火山の主", "攻撃のとき 20% で炎上 +3・ATK +5%", { onHitFx: [["burn", 0.2, 3]], atkMul: 1.05 }),
