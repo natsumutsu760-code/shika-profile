@@ -388,18 +388,24 @@ const ORDER_VOICE = "./voice/order-call.mp3", ORDER_CALL_V = "2";
 let radioVoice = null;
 function intro() {
   show("intro"); $("introRadio").hidden = false; $("introPledge").hidden = true; $("rNext").hidden = true; $("rPlay").hidden = true;
-  const el = $("rText"), still = matchMedia("(prefers-reduced-motion: reduce)").matches; let i = 0, tm = 0; el.textContent = "";
+  const el = $("rText"), still = matchMedia("(prefers-reduced-motion: reduce)").matches; let i = 0, tm = 0, raf = 0; el.textContent = "";
   try { localStorage.setItem("ml-order-call", ORDER_CALL_V); } catch {}   // 招待を 受けた（ラウンジの 窓を もう 出さない）
-  const done = () => { i = RADIO.length; el.textContent = RADIO; $("rNext").hidden = false; clearInterval(tm); };
-  const type = (ms) => { clearInterval(tm); i = 0; el.textContent = ""; tm = setInterval(() => { el.textContent = RADIO.slice(0, ++i); if (i >= RADIO.length) done(); }, ms); };
-  radioVoice?.pause(); const va = (radioVoice = new Audio(ORDER_VOICE));
-  // 声に 合わせて 字幕を 打つ。自動で 鳴らない（ブラウザが 止めた）ときは「声を 聞く」を 出す
-  const speak = () => va.play().then(() => { $("rPlay").hidden = true; if (!still) type(va.duration ? Math.max(40, (va.duration * 920) / RADIO.length) : 70); }).catch(() => { $("rPlay").hidden = false; });
-  if (still) done(); else type(70);
+  const upto = (n) => { i = Math.max(i, Math.min(RADIO.length, n)); el.textContent = RADIO.slice(0, i); };
+  const finish = () => { upto(RADIO.length); clearInterval(tm); cancelAnimationFrame(raf); $("rNext").hidden = false; };
+  radioVoice?.pause(); const va = (radioVoice = new Audio(ORDER_VOICE)); let mine = false;   // mine：こちらで 止めた（受けとる）
+  // 字幕は 声の 進みに 合わせて 打ち、声が 鳴りおわって 出そろう（2026-11-12 鹿さん「セリフが全部表示しきったら音声の再生が終わってしまいます。」
+  //   前は 字幕を 時間で 打って いて、携帯で 字幕だけ 先に 出そろい 声が 止まった）。声が 止まって いる あいだは 字幕も 止まる
+  const follow = () => { cancelAnimationFrame(raf); const step = () => { const d = va.duration; if (d && isFinite(d) && !va.paused) upto(Math.floor(RADIO.length * Math.min(1, va.currentTime / Math.max(0.1, d - 0.35)))); if (!va.ended) raf = requestAnimationFrame(step); }; step(); };
+  const typeFree = () => { clearInterval(tm); tm = setInterval(() => { upto(i + 1); if (i >= RADIO.length) finish(); }, 70); };   // 声が 鳴らない ときだけ 時間で 打つ
+  va.onended = finish;
+  va.onpause = () => { if (!mine && !va.ended) $("rPlay").hidden = false; };   // 声が 止められたら「声を 聞く」で 続きから
+  const speak = () => va.play().then(() => { $("rPlay").hidden = true; clearInterval(tm); if (still) upto(RADIO.length); else follow(); })
+    .catch(() => { $("rPlay").hidden = false; if (still) finish(); else typeFree(); });   // 自動で 鳴らない ときは「声を 聞く」
+  if (still) upto(RADIO.length);
   speak();
-  $("rPlay").onclick = (ev) => { ev.stopPropagation(); va.currentTime = 0; speak(); };
-  $("introRadio").onclick = (ev) => { if (ev.target.id !== "rNext" && ev.target.id !== "rPlay" && i < RADIO.length) done(); }; // 押すと 字幕を 先に ぜんぶ 出す
-  $("rNext").onclick = () => { va.pause(); $("introRadio").hidden = true; $("introPledge").hidden = false; sigPad(); };
+  $("rPlay").onclick = (ev) => { ev.stopPropagation(); if (va.ended) va.currentTime = 0; speak(); };
+  $("introRadio").onclick = (ev) => { if (ev.target.id !== "rNext" && ev.target.id !== "rPlay" && $("rNext").hidden) finish(); }; // 押すと 字幕を 先に ぜんぶ 出す（声は そのまま）
+  $("rNext").onclick = () => { mine = true; va.pause(); cancelAnimationFrame(raf); $("introRadio").hidden = true; $("introPledge").hidden = false; sigPad(); };
 }
 function sigPad() {
   const cv = $("sigPad"), box = cv.parentElement, r = cv.getBoundingClientRect(), dpr = devicePixelRatio || 1;
