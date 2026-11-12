@@ -86,12 +86,28 @@
   .items button { font-size: 12px; padding: 5px 8px; border-radius: 6px; border: 1px solid var(--line); background: #1E2128; }
   /* 戦い（正面に 敵） */
   #fight { position: absolute; inset: 0; background: linear-gradient(#0E0F1200, #0E0F12AA 70%); display: flex; flex-direction: column; justify-content: flex-end; }
-  #foes { display: flex; justify-content: center; align-items: flex-end; gap: 22px; padding: 0 16px 8px; flex: 1; }
-  .foe { display: grid; justify-items: center; gap: 4px; background: none; border: 0; padding: 4px; }
-  .foe img { width: 150px; height: 150px; object-fit: contain; image-rendering: pixelated; filter: drop-shadow(0 6px 10px #0008); }
+  /* 敵の 大きさは 数で 決める（1 体ほど 大きい。高さが 足りない 画面では 縦に 合わせる）。2026-11-12 鹿さん「クローラーの戦闘時敵の表示をもう少し大きくしてください。」前は 150px で そろえて いた */
+  #foes { --fs: 220px; display: flex; flex-direction: column; justify-content: flex-end; padding: 0 16px 8px; flex: 1; }
+  .frow { display: flex; justify-content: center; align-items: stretch; gap: 22px; }   /* 列は 下に 置き、列の 中では 絵の 上を そろえる（札が 2 行に なっても 絵が ずれない） */
+  #foes.n1 { --fs: 320px; } #foes.n2 { --fs: 270px; } #foes.n3 { --fs: 220px; } #foes.n4 { --fs: 180px; }
+  /* 高さの 上限：迷宮の 窓（画面 − 下の 操作 約 127px）から コマンドの 板・精鋭の 台詞・記録 3 行・名前と HP を 引いた 残り（1280×800 で 約 230px。記録が つぶれない） */
+  .foe { --sz: max(120px, min(var(--fs), calc(100vh - 570px))); display: grid; justify-items: center; align-content: start; gap: 4px; background: none; border: 0; padding: 4px; }
+  .foe img { width: var(--sz); height: var(--sz); object-fit: contain; image-rendering: pixelated; filter: drop-shadow(0 6px 10px #0008); }
   .foe.pet img { image-rendering: auto; }
-  .foe .nm { font-size: 13px; letter-spacing: 0.08em; }
-  .foe .bar { width: 120px; }
+  .foe .nm { font-size: 14px; letter-spacing: 0.08em; white-space: nowrap; max-width: calc(var(--sz) + 24px); overflow: hidden; text-overflow: ellipsis; }
+  .foe .bar { width: calc(var(--sz) * 0.8); height: 6px; }
+  /* バフ・デバフの 札（2026-11-12 鹿さん「デバフバフが可視化されているかも確認してください。」→ 前は 出て いなかった）。デバフが 先・色は battle.html の 名札と 同じ 分け方 */
+  .fxs { display: flex; flex-wrap: wrap; justify-content: center; gap: 4px; max-width: calc(var(--sz, 220px) + 24px); }
+  .fxs i { font-style: normal; font-size: 12px; line-height: 1; padding: 4px 7px; border-radius: 999px; white-space: nowrap; color: #D5D8E6; background: #ffffff12; border: 1px solid #ffffff2E; }
+  .fxs i small { font-size: 11px; opacity: 0.75; }
+  .fxs i.y { color: #FFE45C; background: #FFE45C1A; border-color: #FFE45C66; }
+  .fxs i.p { color: #D2B4FF; background: #C9A5FF1A; border-color: #C9A5FF66; }
+  .fxs i.b { color: #9FD6FF; background: #8FD0FF1A; border-color: #8FD0FF66; }
+  .fxs i.g { color: #C3E27A; background: #B5D66A1A; border-color: #B5D66A66; }
+  .fxs i.r { color: #FF9A80; background: #FF8C731A; border-color: #FF8C7366; }
+  .fxs i.up { color: #6FE7AE; background: #5EE0A01A; border-color: #5EE0A066; }
+  .foe .fxs { min-height: 22px; }   /* 札が なくても 1 行ぶん 取って おく（敵の 絵の 高さが そろい、札が 付いた ターンに 絵が 跳ねない） */
+  .mates .m .fxs { justify-content: flex-start; max-width: none; }
   .foe .warn { font-size: 12px; color: #FF6B6B; letter-spacing: 0.06em; animation: warnb 0.8s steps(2) infinite; }
   @keyframes warnb { 50% { opacity: 0.35; } }
   @media (prefers-reduced-motion: reduce) { .foe .warn { animation: none; } }
@@ -99,8 +115,8 @@
   .foe .part .bar { width: 90px; }
   .foe.tgt .nm::before { content: "▶ "; color: var(--amber); }
   .foe.down { opacity: 0.25; }
-  #elite { text-align: center; font-size: 15px; min-height: 26px; padding: 0 16px; color: var(--amber); }
-  #blog { max-height: 96px; overflow: auto; font-size: 13px; color: var(--sub); padding: 4px 16px; text-align: center; }
+  #elite { flex-shrink: 0; text-align: center; font-size: 15px; min-height: 26px; padding: 0 16px; color: var(--amber); }
+  #blog { flex-shrink: 0; max-height: 96px; overflow: auto; font-size: 13px; color: var(--sub); padding: 4px 16px; text-align: center; }
   #cmd { background: var(--panel); border-top: 1px solid var(--line); padding: 10px 12px; display: grid; gap: 8px; }
   .tabs { display: flex; gap: 6px; align-items: center; }
   .tabs button { padding: 5px 12px; border-radius: 999px; border: 1px solid var(--line); background: none; font-size: 13px; }
@@ -215,7 +231,11 @@
     #map { max-width: 320px; margin: 0 auto; }
     /* 戦いの あいだは 画面いっぱい（敵の 絵が 切れない） */
     #fight { position: fixed; inset: 0; z-index: 20; background: linear-gradient(#15171C, var(--bg)); }
-    .foe img { width: 110px; height: 110px; }
+    /* スマホ：横 390 に 3 体 ならぶ 大きさ（前は 110px で そろえて、3 体だと はみ出して いた） */
+    #foes { padding: 0 6px 8px; } .frow { gap: 2px; }
+    #foes.n1 { --fs: 230px; } #foes.n2 { --fs: 170px; } #foes.n3 { --fs: 120px; } #foes.n4 { --fs: 88px; }
+    #foes.n3 .foe .nm, #foes.n4 .foe .nm { font-size: 12px; letter-spacing: 0; }
+    .foe { --sz: max(80px, min(var(--fs), calc(100vh - 640px))); padding: 2px 0; }   /* スマホは コマンドが 折れて 高く、台詞も 2 行に なるので その ぶん 引く */
     #note { bottom: 64px; }
   }
 </style>
@@ -334,6 +354,7 @@ import { ANALYSIS } from "./crawler-analysis-data.js";
 import { ELITE_TREES, eliteTreeOf } from "./crawler-elite-trees.js";
 import { SP_PER_LV } from "./trees.js";
 import { SCRAP } from "./materials.js";
+import { EFFECTS } from "./effects.js";   // バフ・デバフの 名前（戦いの 札。2026-11-12）
 import { me, act as gateAct, demoMode } from "./lounge-client.js";
 
 const $ = (id) => document.getElementById(id);
@@ -689,7 +710,7 @@ const shots = new Map(); let shotR = null;
 function pomShot(pet, co, eid) {
   const key = eid || pet + "/" + co; if (shots.has(key)) return shots.get(key);
   try {
-    if (!shotR) { shotR = new THREE.WebGLRenderer({ antialias: true, alpha: true, preserveDrawingBuffer: true }); shotR.setPixelRatio(1); shotR.setSize(200, 200); shotR.outputColorSpace = THREE.SRGBColorSpace; shotR.setClearColor(0x000000, 0); }
+    if (!shotR) { shotR = new THREE.WebGLRenderer({ antialias: true, alpha: true, preserveDrawingBuffer: true }); shotR.setPixelRatio(1); shotR.setSize(320, 320); shotR.outputColorSpace = THREE.SRGBColorSpace; shotR.setClearColor(0x000000, 0); }
     const s = new THREE.Scene(); s.add(new THREE.HemisphereLight("#DDE6F2", "#2A2C34", 1.1));
     const k = new THREE.DirectionalLight("#FFF6EA", 2.2); k.position.set(-1.4, 2.4, 2.6); s.add(k); const r = new THREE.DirectionalLight("#9FC9FF", 0.9); r.position.set(2, 1.2, -1.2); s.add(r);
     const p = eid ? makeElitePOM(eid) : makePOM(pet, { co }); p.userData.tick?.(0.5); s.add(p);
@@ -698,16 +719,31 @@ function pomShot(pet, co, eid) {
     shotR.clear(); shotR.render(s, c); const url = shotR.domElement.toDataURL("image/png"); shots.set(key, url); return url;
   } catch (e) { shots.set(key, null); return null; }
 }
+// バフ・デバフの 札：デバフが 先（敵には 自分が 付けた 物、味方には 危ない 物が 先に 見える）。量で 重なる 物は 量、ターンで 切れる 物は 残りの ターン。
+// 色は battle.html の 名札と 同じ 分け方（止まる 黄・毒 紫・冷え 青・盲目 緑・火 赤・ほか 白、バフは 緑）。押すと 説明（title）
+const FX_CLS = { paralysis: "y", stun: "y", poison: "p", venom: "p", sickness: "p", rot: "p", frostbite: "b", freeze: "b", sleep: "b", blind: "g", burn: "r", scald: "r", silence: "w", confusion: "w", daze: "w", fatigue: "w", curse: "p" };
+function fxChips(s, nd = 4, nb = 3) {
+  if (!s || s.hp <= 0 || !s.fx?.length) return `<span class="fxs"></span>`;
+  const db = s.fx.filter((x) => EFFECTS[x.id] && !EFFECTS[x.id].buff), up = s.fx.filter((x) => EFFECTS[x.id]?.buff);
+  const chip = (x) => {
+    const e = EFFECTS[x.id], nm = e.stat ? `${e.stat.toUpperCase()}${e.buff ? "↑" : "↓"}` : e.label;
+    const n = (e.dur === "stack" || e.dur === "value") && x.amt != null ? ` ${x.amt}` : e.dur === "turn" && x.turns != null ? `<small> ${x.turns}T</small>` : "";
+    return `<i class="${e.buff ? "up" : FX_CLS[x.id] || ""}" title="${e.label}：${e.text}">${nm}${n}</i>`;
+  };
+  const more = Math.max(0, db.length - nd) + Math.max(0, up.length - nb);
+  return `<span class="fxs">${[...db.slice(0, nd), ...up.slice(0, nb)].map(chip).join("")}${more ? `<i title="ほかに ${more} こ">+${more}</i>` : ""}</span>`;
+}
 function drawFight() {
   const n = B.party.length, bf = S.battle?.foe;
-  $("foes").innerHTML = B.foes.map((f, j) => {
+  $("foes").className = "n" + Math.max(1, Math.min(4, B.foes.filter((_, j) => !B.now[n + j].hide).length));
+  $("foes").innerHTML = `<div class="frow">${B.foes.map((f, j) => {
     const i = n + j, s = B.now[i], mx = B.fighters[i].maxHp, pet = f.species;
     if (s.hide) return "";   // 大型ボスが まだ 呼んで いない 取り巻き
     const src = pet ? pomShot(pet, bf?.co ?? "indie", bf?.elite ? ELITE_ID[f.name] : null) ?? petImg(pet) : spriteURL(f.sprite ?? S.def.monsters[0].sprite);
-    return `<button class="foe${pet ? " pet" : ""}${s.hp <= 0 ? " down" : ""}${tgt === i ? " tgt" : ""}" data-i="${i}"><img src="${src}" alt=""><span class="nm mono">${f.name}</span><span class="bar"><i style="width:${(100 * Math.max(0, s.hp)) / mx}%;background:var(--alert)"></i></span>${s.warn ? `<span class="warn mono">予告：${s.warn}</span>` : ""}${s.part ? `<span class="part">${s.part.name}<span class="bar"><i style="width:${(100 * s.part.hp) / s.part.max}%;background:#F5B544"></i></span></span>` : ""}</button>`;
-  }).join("");
+    return `<button class="foe${pet ? " pet" : ""}${s.hp <= 0 ? " down" : ""}${tgt === i ? " tgt" : ""}" data-i="${i}"><img src="${src}" alt=""><span class="nm mono">${f.name}</span><span class="bar"><i style="width:${(100 * Math.max(0, s.hp)) / mx}%;background:var(--alert)"></i></span>${fxChips(s)}${s.warn ? `<span class="warn mono">予告：${s.warn}</span>` : ""}${s.part ? `<span class="part">${s.part.name}<span class="bar"><i style="width:${(100 * s.part.hp) / s.part.max}%;background:#F5B544"></i></span></span>` : ""}</button>`;
+  }).join("")}</div>`;
   document.querySelectorAll(".foe").forEach((el) => (el.onclick = () => { const i = +el.dataset.i; if (B.now[i].hp > 0) { tgt = i; drawFight(); } }));
-  $("bMates").innerHTML = B.party.map((c, i) => { const s = B.now[i], f = B.fighters[i]; return `<div class="m" data-i="${i}"><b>${c.name}</b><div class="bar"><i style="width:${(100 * Math.max(0, s.hp)) / f.maxHp}%"></i></div><div class="bar mp"><i style="width:${(100 * s.mp) / f.maxMp}%"></i></div><span class="st mono">${Math.max(0, s.hp)} / ${f.maxHp}　${i === 0 ? ($("auto").checked ? "オート" : "考え中") : "ガンビット"}</span></div>`; }).join("");
+  $("bMates").innerHTML = B.party.map((c, i) => { const s = B.now[i], f = B.fighters[i]; return `<div class="m" data-i="${i}"><b>${c.name}</b><div class="bar"><i style="width:${(100 * Math.max(0, s.hp)) / f.maxHp}%"></i></div><div class="bar mp"><i style="width:${(100 * s.mp) / f.maxMp}%"></i></div><span class="st mono">${Math.max(0, s.hp)} / ${f.maxHp}　${i === 0 ? ($("auto").checked ? "オート" : "考え中") : "ガンビット"}</span>${fxChips(s, 4, 3)}</div>`; }).join("");
   const C = commandsOf(B, 0), box = $("cmds");
   $("tabB").setAttribute("aria-pressed", String(tab === "b")); $("tabF").setAttribute("aria-pressed", String(tab === "f"));
   if (B.over) { box.innerHTML = `<button id="bEnd">${B.over === "win" ? "勝った — 進む" : "力つきた — 進む"}</button>`; $("bEnd").onclick = closeFight; return; }
