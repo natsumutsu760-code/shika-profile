@@ -6,7 +6,7 @@
 <title>MONO LINK Crawler 先行体験版</title>
 <!-- クローラーの 先行体験版（第 1 章）。ブラウザだけで 1 人で 遊ぶ 見本（門番・3 人協力・保存は あと。2026-11-03 鹿さんの 決め）
      決まりは crawler-game.js（歩く）・crawler-battle.js（コマンドの 戦い）・crawler-ch1.js（15 本の 目的と 台詞）。資料 docs/mono-link-story-ch1.md
-     ブリーフィングの 声は ../../video/public/briefing/ を 指すので、リポジトリの 根から 開く（例：npx serve . → /stream-layouts/lounge-proto/crawler.html）
+     ブリーフィングの 声は ./voice/、ペットの 絵は ./img/brief-pet-*.webp（tools/crawler-ch1.mjs が video/public/briefing/ から 写す。本番の 門番は /lounge/ の 中しか 出さない）
      ?m=<id> で その ミッションから・?reset=1 で 進みを 消す・?all=1 で 解析ツリー 32 本を ぜんぶ 見る（確かめ 用）・?intro=1 で はじまりを もう一度
      報酬・ドロップは crawler-reward.js、解析ツリーの 中身は crawler-analysis-data.js（tools/crawler-analysis.mjs が 資料から 写す） -->
 <style>
@@ -42,6 +42,8 @@
   #brief { max-width: 760px; margin: 0 auto; padding: 28px 16px 60px; }
   #brief .head { color: var(--sub); font-size: 12px; letter-spacing: 0.16em; }
   #brief h2 { margin: 6px 0 18px; font-size: 26px; letter-spacing: 0.12em; }
+  .bvid { display: block; width: 100%; aspect-ratio: 16 / 9; margin: 0 0 14px; border-radius: 10px; background: #000; }   /* ブリーフィングの 動画（Remotion。2026-11-12） */
+  .bvid[hidden] { display: none; }
   .sec { border-top: 1px solid var(--line); padding: 12px 0; opacity: 0.45; transition: opacity 0.3s; }
   .sec.on { opacity: 1; }
   .sec .l { color: var(--sub); font-size: 11px; letter-spacing: 0.2em; }
@@ -224,6 +226,7 @@
 <section id="intro" class="scr" hidden>
   <div id="introRadio" class="radio">
     <div class="rline"><div class="em" aria-hidden="true"></div><div><div class="who mono">UNKNOWN</div><div id="rText"></div></div></div>
+    <button class="btn" id="rPlay" hidden>▶ 声を 聞く</button>
     <button class="btn" id="rNext" hidden>受けとる</button>
   </div>
   <div id="introPledge" class="pledge" hidden>
@@ -258,6 +261,7 @@
   <div class="head mono" id="bHead"></div>
   <h2 id="bTitle"></h2>
   <div class="opt" id="bPay" style="margin:-8px 0 14px"></div>
+  <video class="bvid" id="bVid" playsinline controls preload="metadata" hidden></video>
   <div id="bSecs"></div>
   <div class="bring" id="bring"></div>
   <div class="actions">
@@ -350,7 +354,7 @@ const show = (id) => { for (const s of ["intro", "home", "brief", "play", "resul
 const GROUP_EN = { tcu: "TCU", harmonia: "HARMONIA", sva: "SVA", foundation: "FOUNDATION", linkers: "LINKERS" };
 const KIND_JA = { target: "殲滅", seize: "制圧", delivery: "運搬", recovery: "捜索", nest: "殲滅", hold: "防衛", escort: "護衛", demolish: "破壊", capture: "制圧", tracer: "追跡", vault: "破壊", runner: "追跡" };
 const STAGE_JA = { first: "1 本目", second: "2 本目", A: "段 A", B: "段 B", C: "段 C", D: "段 D", end: "章の 終わり" };
-const petImg = (sp) => `../../video/public/briefing/pets/${sp}/00.webp`;
+const petImg = (sp) => `./img/brief-pet-${sp}.webp`;
 
 // ---- はじめ・掲示板 ----
 function home() {
@@ -378,13 +382,24 @@ function home() {
 
 // ---- はじまり：UNKNOWN の 無線（字幕だけ・エンブレムは 空白）→ 誓約書に 指で サイン → 1-01 が 届く（台本 docs/mono-link-story-ch1.md の「はじまり」。文は 鹿さんの 文の まま）
 const RADIO = "ようこそ。本当のMONOLINKへ…。君は見込みがある。だから、我々から贈り物を送ろう。君を、歓迎する。";
+// 招待の 声（2026-11-12 鹿さん「招待の音声も流れなかったので、治してから既に条件を達成しているプレイヤーにイベントを送り直してください。」）。
+// 前は 字幕だけ（Claude の 案）。声は video/_order_voice.py（VOICEVOX・無線の 音）。ORDER_CALL_V を 上げると、もう サインした 人の ラウンジにも また 届く（lounge-room.html）
+const ORDER_VOICE = "./voice/order-call.mp3", ORDER_CALL_V = "2";
+let radioVoice = null;
 function intro() {
-  show("intro"); $("introRadio").hidden = false; $("introPledge").hidden = true; $("rNext").hidden = true;
-  const el = $("rText"); let i = 0, tm = 0; el.textContent = "";
+  show("intro"); $("introRadio").hidden = false; $("introPledge").hidden = true; $("rNext").hidden = true; $("rPlay").hidden = true;
+  const el = $("rText"), still = matchMedia("(prefers-reduced-motion: reduce)").matches; let i = 0, tm = 0; el.textContent = "";
+  try { localStorage.setItem("ml-order-call", ORDER_CALL_V); } catch {}   // 招待を 受けた（ラウンジの 窓を もう 出さない）
   const done = () => { i = RADIO.length; el.textContent = RADIO; $("rNext").hidden = false; clearInterval(tm); };
-  if (matchMedia("(prefers-reduced-motion: reduce)").matches) done(); else tm = setInterval(() => { el.textContent = RADIO.slice(0, ++i); if (i >= RADIO.length) done(); }, 70);
-  $("introRadio").onclick = (ev) => { if (ev.target.id !== "rNext" && i < RADIO.length) done(); }; // 押すと 字幕を 先に ぜんぶ 出す
-  $("rNext").onclick = () => { $("introRadio").hidden = true; $("introPledge").hidden = false; sigPad(); };
+  const type = (ms) => { clearInterval(tm); i = 0; el.textContent = ""; tm = setInterval(() => { el.textContent = RADIO.slice(0, ++i); if (i >= RADIO.length) done(); }, ms); };
+  radioVoice?.pause(); const va = (radioVoice = new Audio(ORDER_VOICE));
+  // 声に 合わせて 字幕を 打つ。自動で 鳴らない（ブラウザが 止めた）ときは「声を 聞く」を 出す
+  const speak = () => va.play().then(() => { $("rPlay").hidden = true; if (!still) type(va.duration ? Math.max(40, (va.duration * 920) / RADIO.length) : 70); }).catch(() => { $("rPlay").hidden = false; });
+  if (still) done(); else type(70);
+  speak();
+  $("rPlay").onclick = (ev) => { ev.stopPropagation(); va.currentTime = 0; speak(); };
+  $("introRadio").onclick = (ev) => { if (ev.target.id !== "rNext" && ev.target.id !== "rPlay" && i < RADIO.length) done(); }; // 押すと 字幕を 先に ぜんぶ 出す
+  $("rNext").onclick = () => { va.pause(); $("introRadio").hidden = true; $("introPledge").hidden = false; sigPad(); };
 }
 function sigPad() {
   const cv = $("sigPad"), box = cv.parentElement, r = cv.getBoundingClientRect(), dpr = devicePixelRatio || 1;
@@ -471,8 +486,12 @@ function drawInv() {
   $("ilist").innerHTML = h;
 }
 
-// ---- ブリーフィング（声と 字幕。動画は video/ の Remotion で 作って ある） ----
+// ---- ブリーフィング（動画が あれば 動画。なければ 声と 字幕） ----
+// 動画は video/ の Remotion の ブリーフィングを 携帯 向け（960×540）に 書き出した ./brief/<id>.mp4（2026-11-12 鹿さんの カード「Remotion の動画をそのまま」）
+// 読めない（ない・こわれた）ときは 今までの 声と 字幕に もどる
 let audio = null, cur = null;
+const vid = $("bVid");
+const stopBrief = () => { audio?.pause(); vid.pause(); };
 function brief(m) {
   cur = m;
   $("bHead").textContent = `${m.no}　${m.client.en}　/　${m.area.grid}`;
@@ -500,9 +519,14 @@ function brief(m) {
     audio?.pause(); audio = new Audio(l.voice); audio.onended = () => setTimeout(() => play(i + 1), 380);
     audio.play().catch(() => setTimeout(() => play(i + 1), 1800)); // 声が 読めない ときは 文だけ 進める
   };
-  $("replay").onclick = () => { document.querySelectorAll(".sec").forEach((e) => e.classList.remove("on")); play(0); };
+  const voiceOnly = () => { vid.onerror = null; vid.hidden = true; vid.removeAttribute("src"); vid.load(); $("replay").onclick = () => { document.querySelectorAll(".sec").forEach((e) => e.classList.remove("on")); play(0); }; play(0); };
   drawBring();
-  play(0);
+  audio?.pause();
+  vid.hidden = false; document.querySelectorAll(".sec").forEach((e) => e.classList.add("on"));   // 動画の ときは 字幕を ぜんぶ 読める ように
+  vid.onerror = () => { if (cur === m) voiceOnly(); };
+  vid.src = `./brief/${m.id}.mp4`;
+  $("replay").onclick = () => { vid.currentTime = 0; vid.play().catch(() => {}); };
+  vid.play().catch(() => {});   // 自動で 流れない ときは 動画の ▶ を 押す
 }
 // 持ちこみ：薬を 5 こまで（前に えらんだ 物を 覚える。先行体験版は 店の かわりに 無料。値段は まだ 決めて いない）
 const bringOf = () => save.bring ?? { mlv_patch_s: 2, mlv_patch_m: 2, mlv_revive: 1 };
@@ -511,8 +535,8 @@ function drawBring() {
   $("bring").innerHTML = `<div class="hd"><span>持ちこみ</span><span class="mono">${n} / ${BRING_MAX}</span></div><div class="row">${Object.entries(CRAWL_ITEMS).map(([id, it]) => `<span class="itm" title="${it.text}">${it.name.replace("メルヴィル", "")}<button data-id="${id}" data-d="-1" ${b[id] ? "" : "disabled"} aria-label="へらす">−</button><b>${b[id] ?? 0}</b><button data-id="${id}" data-d="1" ${n < BRING_MAX ? "" : "disabled"} aria-label="ふやす">＋</button></span>`).join("")}</div>`;
   document.querySelectorAll("#bring button").forEach((el) => (el.onclick = () => { const x = { ...bringOf() }; x[el.dataset.id] = Math.max(0, (x[el.dataset.id] ?? 0) + +el.dataset.d); save.bring = x; keep(); drawBring(); }));
 }
-$("accept").onclick = () => { audio?.pause(); start(cur); };
-$("back1").onclick = () => { audio?.pause(); home(); };
+$("accept").onclick = () => { stopBrief(); start(cur); };
+$("back1").onclick = () => { stopBrief(); home(); };
 
 // ---- 迷宮（3D） ----
 const renderer = new THREE.WebGLRenderer({ canvas: $("view"), antialias: true });

@@ -124,7 +124,11 @@ if (ME.denied || ME.ok === false) {
 // 島 3 の 夜の 招待（2026-11-11 鹿さん「島3を解放した時点でイントロイベント発生、その際のフラグが立っておりません」）
 //   無線機が 島 3 に 届く 段（Lv2）に なると、部屋で 知らない 周波数からの 通信が 鳴る。聞くと クローラーの はじまり（UNKNOWN の 無線 → 誓約書に サイン → 門番の order.sign）
 //   「あとで」は この タブの あいだだけ しまう（サインするまで 次に 開いた ときも 鳴る）
-if (ME.order && ME.order.ready && !ME.order.signed) {
+// 2026-11-12：招待に 声を 入れた（鹿さん「招待の音声も流れなかったので、治してから既に条件を達成しているプレイヤーにイベントを送り直してください。」）。
+//   もう サインした 人にも、聞くまで もう一度 届ける（ml-order-call が crawler.html の ORDER_CALL_V と ちがう あいだ）。サインし直さなくて よい
+const ORDER_CALL_V = "2";
+let orderHeard = false; try { orderHeard = localStorage.getItem("ml-order-call") === ORDER_CALL_V; } catch (e) {}
+if (ME.order && ME.order.ready && (!ME.order.signed || !orderHeard)) {
   let later = false; try { later = sessionStorage.getItem("ml-order-later") === "1"; } catch (e) {}
   if (!later) {
     const st = document.createElement("style");
@@ -139,7 +143,7 @@ if (ME.order && ME.order.ready && !ME.order.signed) {
 #orderCall button{background:none;color:#B9C0D2;border:1px solid #3A4152}`;
     document.head.appendChild(st);
     const d = document.createElement("div"); d.id = "orderCall";
-    d.innerHTML = `<div class="oc" role="dialog" aria-modal="true" aria-label="通信"><div class="who"><span class="em" aria-hidden="true"></span>UNKNOWN</div><p>無線機が 知らない 周波数を 拾った。</p><div class="row"><button type="button" id="ocLater">あとで</button><a href="crawler.html" id="ocGo">通信を 聞く</a></div></div>`;
+    d.innerHTML = `<div class="oc" role="dialog" aria-modal="true" aria-label="通信"><div class="who"><span class="em" aria-hidden="true"></span>UNKNOWN</div><p>無線機が 知らない 周波数を 拾った。</p><div class="row"><button type="button" id="ocLater">あとで</button><a href="crawler.html${ME.order.signed ? "?intro=1" : ""}" id="ocGo">通信を 聞く</a></div></div>`;
     document.body.appendChild(d);
     d.querySelector("#ocLater").onclick = () => { try { sessionStorage.setItem("ml-order-later", "1"); } catch (e) {} d.remove(); };
   }

@@ -403,11 +403,11 @@ async function page() {
 }
 
 // ラウンジの 画面（lounge-site/ の HTML・JS・絵）を GitHub から取って出す。HTML には本物の印を入れる（見本では同じファイルが ためしの門番で動く）
-const LOUNGE_TYPE = { html: "text/html; charset=utf-8", js: "text/javascript; charset=utf-8", png: "image/png", jpg: "image/jpeg", webp: "image/webp", svg: "image/svg+xml" };
-async function loungePage(p, ver) {
+const LOUNGE_TYPE = { html: "text/html; charset=utf-8", js: "text/javascript; charset=utf-8", png: "image/png", jpg: "image/jpeg", webp: "image/webp", svg: "image/svg+xml", mp3: "audio/mpeg", mp4: "video/mp4" };
+async function loungePage(p, ver, range) {
   if (p === "/lounge" || p === "/lounge/") return new Response(null, { status: 302, headers: { Location: "/lounge/lounge-room.html" } });
   // pixelfx/core/・pixelfx/fx/〇〇/：クローラーの 戦いの エフェクト（前は 返さず 表の ページが 返り、クローラーが 開かなかった。2026-11-11）。_lib.js の ように _ で 始まる 物も
-  const m = /^\/lounge\/((?:img\/|pixelfx\/(?:core|fx\/[a-z]+)\/)?_?[a-z0-9][a-z0-9_-]*\.(html|js|png|jpg|webp|svg))$/.exec(p);
+  const m = /^\/lounge\/((?:img\/|voice\/|brief\/|pixelfx\/(?:core|fx\/[a-z]+)\/)?_?[a-z0-9][a-z0-9_-]*\.(html|js|png|jpg|webp|svg|mp3|mp4))$/.exec(p);
   if (!m) return null;
   // ?v=版 は JS だけ・見た ことの ある 版だけ その 版の まま（中身が かわらないので ずっと ためて よい）。HTML と 絵は いつも いまの 版
   const now = await headSha(), pinned = m[2] === "js" && SHA_RX.test(ver || "") && seenHeads.includes(ver), v = pinned ? ver : now;
@@ -417,6 +417,14 @@ async function loungePage(p, ver) {
   if (m[2] === "html") return new Response(withVer((await r.text()).replace("<head>", "<head><script>window.MONO_LINK_REAL = true;</script>"), v), { headers: { "Content-Type": LOUNGE_TYPE.html, "Cache-Control": "no-cache", ...SEC, "X-Frame-Options": "SAMEORIGIN", "Content-Security-Policy": "frame-ancestors 'self'" } });
   // JS は OBS の 鹿物語（http://absolute）からも 読む（配信の 中継で 派遣を 計算しなおす）。中身は GitHub に 公開して いる 物
   if (m[2] === "js") return new Response(withVer(await r.text(), v), { headers: { "Content-Type": LOUNGE_TYPE.js, "Cache-Control": pinned ? "public, max-age=31536000, immutable" : ver ? "public, max-age=60" : "public, max-age=300", ...SEC, "Access-Control-Allow-Origin": "*" } });
+  // 動画（brief/ の mp4）：携帯の Safari は Range（途中から）で 取るので 206 で 切って 返す（2026-11-12）
+  if (m[2] === "mp4") {
+    const buf = await r.arrayBuffer(), n = buf.byteLength, g = /^bytes=(\d*)-(\d*)$/.exec(range || ""), hd = { "Content-Type": LOUNGE_TYPE.mp4, "Accept-Ranges": "bytes", "Cache-Control": "public, max-age=300", ...SEC };
+    if (!g || (g[1] === "" && g[2] === "")) return new Response(buf, { headers: { ...hd, "Content-Length": String(n) } });
+    const a = g[1] === "" ? Math.max(0, n - +g[2]) : +g[1], b = g[1] === "" || g[2] === "" ? n - 1 : Math.min(+g[2], n - 1);
+    if (a > b || a >= n) return new Response("", { status: 416, headers: { ...hd, "Content-Range": `bytes */${n}` } });
+    return new Response(buf.slice(a, b + 1), { status: 206, headers: { ...hd, "Content-Range": `bytes ${a}-${b}/${n}`, "Content-Length": String(b - a + 1) } });
+  }
   return new Response(r.body, { headers: { "Content-Type": LOUNGE_TYPE[m[2]], "Cache-Control": "public, max-age=300", ...SEC } });
 }
 
@@ -521,7 +529,7 @@ async function route(req, env) {
     if (url.pathname.startsWith("/api/")) return json({ error: "notfound" }, 404);
     if (url.pathname === "/mx-replay.js" && req.method === "GET") return replayJs();
     if (url.pathname === "/cosme-en.json" && req.method === "GET") return cosmeEn();
-    if (url.pathname === "/lounge" || url.pathname.startsWith("/lounge/")) { const lp = await loungePage(url.pathname, url.searchParams.get("v")); if (lp) return lp; }
+    if (url.pathname === "/lounge" || url.pathname.startsWith("/lounge/")) { const lp = await loungePage(url.pathname, url.searchParams.get("v"), req.headers.get("Range")); if (lp) return lp; }
     if (url.pathname === "/card.html" && req.method === "GET") return cardPage();
     if (req.method !== "GET" && req.method !== "HEAD") return json({ error: "method" }, 405);
     return page();
