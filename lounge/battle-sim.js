@@ -88,7 +88,7 @@ export function makeFighter(c, side) {
   const maxHp = Math.round(s.hp * (P.hpMul || 1));
   // startHp・startMp・startFx：ダンジョンで続けて戦うとき、前の戦いの残りから始める
   return { c, name: c.name, P, base, maxHp, hp: Math.min(maxHp, c.startHp ?? maxHp), maxMp: s.mp, mp: Math.min(s.mp, c.startMp ?? s.mp), power: powerOf(c.stats) + bonus,
-    side, fx: structuredClone(c.startFx || {}), boss: !!c.boss, slow: false, pinned: 0, pinning: 0, pinPct: 0, revived: false, hitLast: false, lastKind: null, dot: 0, cnt: {}, onceUsed: {}, actedTurn: 0 };   // cnt：カウント（1 戦ごとに 0 から。鹿さんの 決め、2026-10-31）
+    side, fx: structuredClone(c.startFx || {}), boss: !!c.boss, pool: c.pool ?? null, poolHurt: 0, poolHeal: 0, slow: false, pinned: 0, pinning: 0, pinPct: 0, revived: false, hitLast: false, lastKind: null, dot: 0, cnt: {}, onceUsed: {}, actedTurn: 0 };   // cnt：カウント（1 戦ごとに 0 から。鹿さんの 決め、2026-10-31）
 }
 
 // ---------- 状態 ----------
@@ -234,7 +234,7 @@ export function simulateTeams(SA, SB, seed, opts = {}) {
   const targetOf = (me) => { const c = F.filter((f) => f.side !== me.side && f.hp > 0), open = c.filter((f) => !f.fx.conceal), pool = open.length ? open : c; let t = null; for (const f of pool) if (!t || f.hp < t.hp) t = f; return t; };
   const fxList = (f) => Object.entries(f.fx).map(([id, x]) => ({ id, amt: typeof x.amt === "number" ? x.amt : null, turns: x.turns ?? null }));
   const snap = () => F.map((f) => ({ hp: f.hp, mp: f.mp, fx: fxList(f), up: buffs(f).some((id) => !EFFECTS[id].stance), down: debuffs(f).length > 0,
-    ...(f.bomPart ? { part: { name: f.bomPart.name, hp: f.bomPart.hp, max: f.bomPart.max } } : {}), ...(f.bomWarn ? { warn: f.c.bom.warn.name } : {}), ...(f.dormant ? { hide: true } : {}) }));   // 大型ボスの 部位・予告・まだ 出て いない 取り巻き
+    ...(f.bomPart ? { part: { name: f.bomPart.name, hp: f.bomPart.hp, max: f.bomPart.max } } : {}), ...(f.bomWarn ? { warn: f.c.bom.warn.name } : {}), ...(f.dormant ? { hide: true } : {}), ...(f.pool != null ? { ph: f.poolHurt, pl: f.poolHeal } : {}) }));   // 大型ボスの 部位・予告・まだ 出て いない 取り巻き
 
   // 状態を付ける：抵抗率（装備の 状態異常に強い ＋ 免疫 − 衰弱 ＋ ボスの 抵抗。原案）・相殺と上書き・量とターンの足し方
   function addFx(t, id, o, notes, from) {
@@ -434,6 +434,7 @@ export function simulateTeams(SA, SB, seed, opts = {}) {
     notes.push(`${f.name} の デバフが ${k === list.length ? "" : k + " つ "}消えた`); return k;
   }
   function hurt0(f, d, notes) {
+    if (f.pool != null) { f.poolHurt += d; if (f.hp - d <= 0) { f.hp = 1; return; } }   // ネビュラ（鹿物語）：HP は みんなの 回転数。倒れず、受けた 分を 数える（2026-11-12 鹿さんの カード）
     if (f.hp - d > 0) { f.hp -= d; if (f.fx.freeze) { delete f.fx.freeze; const p = Math.max(1, Math.round(f.maxHp * 0.1)); notes.push(`${f.name} の凍結がとけて ${p}`); hurt(f, p, notes); } return; }
     if (f.fx.reincarnation) { f.fx = {}; f.hp = 1; notes.push(`${f.name} は輪廻で復活した！`); return; }   // 原案：撃破 → 状態が ぜんぶ 消える → HP 1 で 復活
     if (f.P.revive && !f.revived) { f.revived = true; f.hp = Math.round(f.maxHp * f.P.revive); notes.push(`${f.name} はあきらめない！ 立ち上がった`); return; }
@@ -444,6 +445,7 @@ export function simulateTeams(SA, SB, seed, opts = {}) {
   function heal(f, n, notes) {
     n = Math.round(n * (1 + (f.P.healRecv || 0) / 100)); if (n <= 0) return 0;   // 受ける回復（新しい OP）
     if (f.fx.rot) { hurt(f, n, notes); notes.push(`腐敗で ${n} のダメージに変わった`); return -n; }
+    if (f.pool != null) f.poolHeal += n;   // ネビュラ：回復は 回転数に（量は 元の 最大 HP から。鹿さん「回復の参照は回転数ではなく元のHP」）
     const a = Math.min(f.maxHp - f.hp, n); f.hp += a;
     if (n > a && f.fx.overheal) f.fx.overheal.amt = Math.min(f.maxHp, f.fx.overheal.amt + n - a);
     return a;

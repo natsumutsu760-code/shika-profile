@@ -28,6 +28,32 @@ export async function relayList(env) {
   return { now: j.now || Date.now(), list: (j.list || []).filter((e) => !hidden(gate, e.id)).map(({ id, ...e }) => e) };
 }
 
+// ネビュラ（鹿物語）の 帯で 戦う 視聴者の ペット（2026-11-12 鹿さんの カード）：/api/nebpet?id=<Twitch の id>。OBS の 鹿物語が 上げる 鍵（UPLOAD_KEY）で 読む
+// worker.js を 直さずに すむ よう、鍵は ここで 確かめる（worker.js の sameKey と 同じ 比べ方）。いまの ペット（1 匹目）の 戦う 形と 名前だけ。入れない 人・ペットが いない 人は pet: null（鹿物語は 精鋭 POM に）
+const NEB_CORS = { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Methods": "GET, OPTIONS", "Access-Control-Allow-Headers": "Authorization", "Access-Control-Max-Age": "86400" };
+const sha = async (s) => new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(s)));
+async function obsKey(req, env) {
+  const m = /^Bearer\s+(.+)$/i.exec(req.headers.get("Authorization") || ""), a = m ? m[1].trim() : "";
+  if (!a || !env.UPLOAD_KEY) return false;
+  const x = await sha(a), y = await sha(env.UPLOAD_KEY);
+  let d = 0; for (let i = 0; i < x.length; i++) d |= x[i] ^ y[i];
+  return d === 0;
+}
+export async function nebPet(env, id) {
+  id = String(id || ""); if (!/^\d{1,20}$/.test(id)) return { pet: null };
+  const gate = await env.DB.get("gate", "json"); if (hidden(gate, id)) return { pet: null };
+  const r = await viewer(env, id).fetch("https://viewer/fighter"); if (!r.ok) return { pet: null };
+  const j = await r.json().catch(() => null);
+  return { pet: j && j.f && j.f.stats ? { name: (j.card && j.card.pet && j.card.pet.name) || j.f.name || "", f: j.f } : null };
+}
+async function nebApi(req, env, url) {
+  if (req.method === "OPTIONS") return new Response(null, { status: 204, headers: NEB_CORS });
+  const H = { ...NEB_CORS, "Content-Type": "application/json; charset=utf-8", "Cache-Control": "no-store" };
+  if (req.method !== "GET") return new Response(JSON.stringify({ error: "method" }), { status: 405, headers: H });
+  if (!(await obsKey(req, env))) return new Response(JSON.stringify({ error: "key" }), { status: 401, headers: H });
+  return new Response(JSON.stringify(await nebPet(env, url.searchParams.get("id"))), { headers: H });
+}
+
 const staff = (gate, id) => !!gate && (id === gate.owner || !!(gate.mods && gate.mods[id]));   // 配信者と モデレーター
 const market = (env) => env.MARKET.get(env.MARKET.idFromName("market"));
 
@@ -35,6 +61,7 @@ const market = (env) => env.MARKET.get(env.MARKET.idFromName("market"));
 export async function loungeApi(req, env, url, h) {
   if (url.pathname.startsWith("/api/support")) return supportApi(req, env, url, h);
   if (url.pathname === "/api/progress") return progressApi(req, env, url);
+  if (url.pathname === "/api/nebpet") return nebApi(req, env, url);   // ネビュラの 帯（OBS の 鍵）
   if (url.pathname === "/api/me" && req.method === "GET") {
     const e = await h.enter(req, env); if (e.res) return e.res;
     const stub = viewer(env, e.who.id);

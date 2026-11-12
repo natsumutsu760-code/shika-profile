@@ -17,17 +17,20 @@ const CSS = `
 .bv .ui > div { position:absolute; }
 .bv .plate { z-index:21; transform:translateX(-50%); width:230px; background:#fff; border:4px solid var(--ink); border-radius:16px; padding:6px 11px 8px; box-shadow:4px 4px 0 var(--ink); }
 .bv .plate .nm { display:flex; align-items:baseline; gap:8px; white-space:nowrap; overflow:hidden; }
-.bv .plate .nm b { font:400 21px/1 var(--pop); }
-.bv .plate .nm span { font:800 13px/1 var(--body); color:#4A4F86; overflow:hidden; text-overflow:ellipsis; }
-.bv .plate .nm em { margin-left:auto; font:400 14px/1 var(--pop); font-style:normal; color:#1E6BFF; }
+.bv .plate .nm b { font:400 21px/1 var(--pop); min-width:0; overflow:hidden; text-overflow:ellipsis; }
+.bv .plate .nm span { font:800 13px/1 var(--body); color:#4A4F86; overflow:hidden; text-overflow:ellipsis; flex-shrink:60; min-width:0; }   /* 足りない ときは 持ち主から 縮める */
+.bv .plate .nm em { margin-left:auto; flex-shrink:0; font:400 14px/1 var(--pop); font-style:normal; color:#1E6BFF; }
 .bv .gauge { margin-top:6px; display:grid; grid-template-columns:26px 1fr 58px; gap:6px; align-items:center; font:800 12px/1 var(--body); }
 .bv .gauge s { text-decoration:none; text-align:right; font:400 12px/1 var(--pop); }
 .bv .gauge div { height:12px; border:3px solid var(--ink); border-radius:99px; background:#E7EBF7; overflow:hidden; }
 .bv .gauge i { display:block; height:100%; background:#19E3B1; } .bv .gauge.mp i { background:#6FA0FF; } .bv .gauge i.low { background:#FF2E9A; }
+.bv .meryl { z-index:30; left:24px; top:18px; max-width:560px; padding:10px 16px 12px; border-radius:14px; background:rgba(10,14,30,.88); border:3px solid #7FD4FF; box-shadow:0 0 18px rgba(127,212,255,.55); color:#E8F6FF; font:800 20px/1.45 var(--body); }
+.bv .meryl small { display:block; font:800 13px/1.2 var(--body); color:#7FD4FF; letter-spacing:.08em; margin-bottom:3px; }
 .bv .chip { position:absolute; right:10px; top:-14px; padding:3px 8px; border-radius:99px; border:3px solid var(--ink); background:#FFF4B3; font:800 12px/1 var(--body); }
 .bv .ty { display:inline-block; padding:2px 6px; border-radius:6px; font:800 11px/1 var(--body); color:#fff; }
 /* HP の 棒（RoR2 の 形。鹿さん 2026-11-05「シールドはror2のように見せてください」）：棒の 長さ ＝ 最大 HP ＋ オーバーヒール ＋ シールド。HP は 最大 HP の はばの 中で へり、その 右に オーバーヒール（黄緑）・シールド（青い しま）が つながる。バリアは 棒の まわりが 金色に 光る */
 .bv .gauge.hp { grid-template-columns:26px 1fr auto; }
+.bv .gauge.pool { grid-template-columns:30px 1fr auto; }   /* ネビュラ：回転数・盤面の ボスの 体力（4 けた）*/
 .bv .gauge div.hpbar { position:relative; }
 .bv .gauge div.hpbar i { position:absolute; top:0; bottom:0; left:0; }
 .bv .gauge div.hpbar i.oh { background:#B9F26B; box-shadow:inset 2px 0 0 #fff; }
@@ -78,7 +81,9 @@ const heightOf = (o) => { const b = new THREE.Box3().setFromObject(o); return b.
 export function mountBattle(host, { A, B, seed }, o = {}) {
   addCss();
   const W = o.W || 1200, H = o.H || 520, GROUND = o.ground || 440, S = o.S || 150, HOMEPX = o.home || [W * 0.34, W * 0.66], TURN_Y = o.turnY ?? 18, WIN_Y = o.winY ?? GROUND - 250, TOP = o.plates === "top";
-  const EV = simulate(A, B, seed), START = EV[0], END = EV.at(-1);
+  // ネビュラ（鹿物語）の つまみ（渡した ときだけ。2026-11-12）：simOpts（計算に 渡す。until：8 ターンで 止める）・make（[A, B] の 形を 作る 関数。ペット 以外）・
+  //   poolView（[A, B] の 名札の HP の かわり：(s) => { lab, v, max }。s.ph・s.pl は 受けた・回復した 数）・onSeg（1 手 終わる ごとに (番号, 出来事)）・noResult（勝ち負けを 出さない）・overlay（(t, 出来事) => 足す html）
+  const EV = simulate(A, B, seed, o.simOpts || {}), START = EV[0], END = EV.at(-1);
   // 時間割：1 手 1.9 秒（動けない 手は 1.2 秒）・ターンの 終わりの 回復・どくは 0.7 秒
   const T_INTRO = 3.2, T_OUT = 3, SEGS = []; let tt = T_INTRO;
   for (const e of EV) {
@@ -106,7 +111,7 @@ export function mountBattle(host, { A, B, seed }, o = {}) {
   if (!REF) REF = heightOf(makePet3("shika"));
   const pets = [A, B].map((f, i) => {
     const holder = new THREE.Group(); holder.position.x = HOME[i]; scene.add(holder);
-    const pet = makePet3(f.species); pet.rotation.y = FACE[i]; pet.rotation.x = 0.12; holder.add(pet);
+    const pet = o.make && o.make[i] ? o.make[i](f) : makePet3(f.species); pet.rotation.y = FACE[i]; pet.rotation.x = 0.12; holder.add(pet);
     pet.scale.setScalar(Math.min(1.5, Math.max(0.75, REF / Math.max(0.1, heightOf(pet)))));
     const box = new THREE.Box3().setFromObject(pet), mats = [];
     pet.traverse((m) => { if (m.material && m.material.emissive) mats.push([m.material, m.material.emissive.clone()]); });
@@ -134,14 +139,15 @@ export function mountBattle(host, { A, B, seed }, o = {}) {
   };
   const gauge = (lab, v, max, cls = "") => `<div class="gauge ${cls}"><span>${lab}</span><div><i class="${lab === "HP" && v / max < 0.35 ? "low" : ""}" style="width:${(v / max) * 100}%"></i></div><s>${Math.round(v)}/${max}</s></div>`;
   function stateAt(t) {
-    let snap = START.fighters.map((f) => ({ hp: f.maxHp, mp: f.maxMp, fx: [], up: false, down: false }));
+    let snap = START.fighters.map((f) => ({ hp: f.maxHp, mp: f.maxMp, fx: [], up: false, down: false, ph: 0, pl: 0 }));
     for (const sg of SEGS) {
       if (t < sg.t0) break;
       const u = t - sg.t0, nx = sg.e.after;
       if (u >= sg.d) { snap = nx.map((x) => ({ ...x })); continue; }
       const hitEnd = sg.e.type === "act" && sg.e.hits?.length ? impact(sg.e.hits.length - 1) + 0.3 : 0.6;
       const f = sg.e.type === "sim" ? ease(seg(u, 0.5, 2.3)) : sg.e.type === "tick" ? ease(u / 0.5) : ease((u - 0.55) / Math.max(0.3, hitEnd - 0.55)), g = sg.e.type === "sim" ? f : ease((u - 0.1) / 0.3);
-      snap = snap.map((x, i) => ({ hp: x.hp + (nx[i].hp - x.hp) * f, mp: x.mp + (nx[i].mp - x.mp) * g, fx: u > 0.7 ? nx[i].fx : x.fx, up: u > 0.7 ? nx[i].up : x.up, down: u > 0.7 ? nx[i].down : x.down }));
+      snap = snap.map((x, i) => ({ hp: x.hp + (nx[i].hp - x.hp) * f, mp: x.mp + (nx[i].mp - x.mp) * g, fx: u > 0.7 ? nx[i].fx : x.fx, up: u > 0.7 ? nx[i].up : x.up, down: u > 0.7 ? nx[i].down : x.down,
+        ph: (x.ph || 0) + ((nx[i].ph || 0) - (x.ph || 0)) * f, pl: (x.pl || 0) + ((nx[i].pl || 0) - (x.pl || 0)) * f }));
     }
     return snap;
   }
@@ -206,7 +212,7 @@ export function mountBattle(host, { A, B, seed }, o = {}) {
       if (it.heal) html += el("num heal", `+${it.heal}`, px(HOME[it.who]) + (it.who ? -80 : 80), py(p.top * 0.8) - u * 40 - dy, `font-size:34px;opacity:${1 - seg(u, 0.6, 0.9)}`);
       if (it.dmg) html += el("num", `${it.dmg}<small>${esc(it.why)}</small>`, px(HOME[it.who]) + (it.who ? -80 : 80), py(p.top * 0.8) - u * 40 - dy, `font-size:34px;color:#D9B8FF;opacity:${1 - seg(u, 0.6, 0.9)}`);
     });
-    if (t >= T_END - 0.6) {   // 決着：負けた 子は ぺたん、勝った 子は はねる
+    if (t >= T_END - 0.6 && !o.noResult) {   // 決着：負けた 子は ぺたん、勝った 子は はねる
       const a = t - (T_END - 0.6), L = 1 - END.winner, Wn = END.winner, dirL = L === 0 ? -1 : 1;
       const q = ease(seg(a, 0, 0.35)); pets[L].holder.scale.set(1 + 0.22 * q, 1 - 0.42 * q, 1 + 0.22 * q); pets[L].holder.rotation.z = dirL * -0.18 * q;
       if (a > 0.3) for (let s2 = 0; s2 < 3; s2++) { const ang = (a - 0.3) * 4 + s2 * 2.1; html += el("zzz", "★", px(HOME[L]) + Math.cos(ang) * 46 - 12, py(pets[L].top * 0.58) - 30 + Math.sin(ang) * 12); }
@@ -216,12 +222,14 @@ export function mountBattle(host, { A, B, seed }, o = {}) {
     pets.forEach((p, i) => {
       const f = START.fighters[i], ty = TYPES[f.type] || { color: "#888", label: "" }, x = TOP ? W * (i ? 0.75 : 0.25) : px(HOME[i]) + (i === 0 ? -1 : 1) * (p.half * S + 24 + 115), s = st[i];
       const chips = fxChips(s.fx);   // バフ・デバフは 名前と 数で（前は「▲バフ」と デバフ 3 つだけ）
-      html += el("plate", `<div class="nm"><b>${esc(f.name)}</b><span>${esc(f.owner)}</span><em>Lv${f.lv}</em></div><div style="margin-top:4px"><span class="ty" style="background:${ty.color}">${ty.label}</span></div>${hpBar(s, f.maxHp)}${gauge("MP", s.mp, f.maxMp, "mp")}${chips ? `<div class="fxs">${chips}</div>` : ""}${START.ganbari === i ? `<span class="chip">がんばり</span>` : ""}`, x, TOP ? 46 : GROUND - 16, `opacity:${seg(t, 0.9 + i * 0.25, 1.2 + i * 0.25)};${TOP ? "" : "transform:translate(-50%, -100%);"}`);   // 横の 名札は 下を そろえて 上へ のびる（札が ふえても キャラに かからない）
+      const pv = o.poolView && o.poolView[i] ? o.poolView[i](s) : null;   // ネビュラ：HP の かわりに 回転数・盤面の ボスの 体力
+      html += el("plate", `<div class="nm"><b${String(f.name).length > 8 ? ' style="font-size:17px"' : ""}>${esc(f.name)}</b><span>${esc(f.owner)}</span><em>Lv${f.lv}</em></div><div style="margin-top:4px"><span class="ty" style="background:${ty.color}">${ty.label}</span></div>${pv ? gauge(pv.lab, Math.max(0, pv.v), Math.max(1, Math.round(pv.max || pv.v)), "pool") : hpBar(s, f.maxHp)}${gauge("MP", s.mp, f.maxMp, "mp")}${chips ? `<div class="fxs">${chips}</div>` : ""}${START.ganbari === i ? `<span class="chip">がんばり</span>` : ""}`, x, TOP ? 46 : GROUND - 16, `opacity:${seg(t, 0.9 + i * 0.25, 1.2 + i * 0.25)};${TOP ? "" : "transform:translate(-50%, -100%);"}`);   // 横の 名札は 下を そろえて 上へ のびる（札が ふえても キャラに かからない）
     });
     if (t > 1.1 && t < T_INTRO) html += el("center", `<div class="vs" style="scale:${0.6 + 0.4 * ease(seg(t, 1.1, 1.35))}">VS</div>`, MID, GROUND - 170, `opacity:${1 - seg(t, T_INTRO - 0.4, T_INTRO)}`);
     if (e) html += el("turn", `ターン ${e.turn}`, MID, TURN_Y);
     if (e && e.type === "sim") html += el("center", `<div class="simnote" style="scale:${0.7 + 0.3 * ease(seg(u, 0, 0.3))}">8 ターンで決着せず<small>ターン ${e.turn} は計算で進めた</small></div>`, MID, GROUND - 230, `opacity:${1 - seg(u, 2.4, 2.8)}`);
-    if (t >= T_END + 0.2) {
+    if (o.overlay) html += o.overlay(t, e) || "";
+    if (t >= T_END + 0.2 && !o.noResult) {
       const a = t - T_END - 0.2, w = START.fighters[END.winner].name;
       html += el("center", `<div class="win" style="scale:${0.5 + 0.5 * ease(seg(a, 0, 0.3))}">${END.upset ? "下克上！" : "勝負あり！"}<small>${esc(w)} の勝ち${END.ko ? (END.overtime ? `（${END.turns} ターン目で決着）` : "") : "（30 ターンでも決着せず・HP の割合）"}</small></div>`, MID, WIN_Y);
     }
@@ -232,11 +240,13 @@ export function mountBattle(host, { A, B, seed }, o = {}) {
   let raf = 0, t0 = 0, ended = false;
   const reduce = typeof matchMedia === "function" && matchMedia("(prefers-reduced-motion:reduce)").matches;
   const done = () => { if (!ended) { ended = true; o.onEnd && o.onEnd(END); } };
-  const loop = () => { const t = (performance.now() - t0) / 1000; frame(Math.min(t, DUR)); if (t >= T_END + 1) done(); if (t < DUR) raf = requestAnimationFrame(loop); };
+  let segSent = 0;   // onSeg：1 手（とターンの 終わり）が 終わった ところまで 知らせた 数
+  const sendSegs = (t) => { if (!o.onSeg) return; while (segSent < SEGS.length && t >= SEGS[segSent].t0 + SEGS[segSent].d) { o.onSeg(segSent, SEGS[segSent].e); segSent++; } };
+  const loop = () => { const t = (performance.now() - t0) / 1000; frame(Math.min(t, DUR)); sendSegs(t); if (t >= T_END + 1) done(); if (t < DUR) raf = requestAnimationFrame(loop); };
   const api = {
     duration: DUR, end: END, start: START, frame,
     play() { cancelAnimationFrame(raf); ended = false; if (reduce) return api.skip(); t0 = performance.now(); loop(); },
-    skip() { cancelAnimationFrame(raf); frame(T_END + 1.2); done(); },
+    skip() { cancelAnimationFrame(raf); frame(T_END + 1.2); sendSegs(Infinity); done(); },
     destroy() { cancelAnimationFrame(raf); ro && ro.disconnect(); r.dispose(); stage.remove(); host.style.height = ""; },
   };
   frame(0);
