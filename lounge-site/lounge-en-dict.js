@@ -18,8 +18,10 @@ import * as BZ from "./lounge-en-border.js";   // ボーダーゾーン（2026-1
 import * as STK from "./lounge-en-stock.js";   // 株（2026-11-05）
 import * as AUC from "./lounge-en-auction.js";   // 競り・フリマ（2026-11-07）
 import * as LAB from "./lounge-en-lab.js";   // 研究所の エッセンス（2026-11-11）
+import * as FISH from "./lounge-en-fish.js";   // 釣りの 見本（2026-11-11）
+import * as TD from "./lounge-en-td.js";   // タワーディフェンス（集合住宅）の 見本（2026-11-12）
 
-const pages = [LAB, AUC, STK, BZ, FARM, FX, SRV, UI, TRIP, PET, BASE, DL, ARENA];   // せまい 決まりの 多い 順（効果の 説明は いちばん せまいので 先・闘技場の「X は Y」は いちばん 広いので 最後）
+const pages = [TD, FISH, LAB, AUC, STK, BZ, FARM, FX, SRV, UI, TRIP, PET, BASE, DL, ARENA];   // せまい 決まりの 多い 順（効果の 説明は いちばん せまいので 先・闘技場の「X は Y」は いちばん 広いので 最後）
 export const WORDS = Object.assign({}, nameWords(), ...pages.map((x) => x.WORDS));
 
 // ペットの 名前と しゅるい（「ペリカンのポスケ」→「Posuke the Pelican」）

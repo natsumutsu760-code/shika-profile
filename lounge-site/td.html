@@ -1,0 +1,808 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>集合住宅</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600&family=Zen+Maru+Gothic:wght@700;900&display=swap">
+<style>
+  /* タワーディフェンス（集合住宅）の 画面の 見本（TD 研究ノート 9 章の 2。M-026）。決まりは docs/mono-link-td-reference.md の 8 章
+     14 回目の 2 つの 形：ふだん＝建物だけ・押すと 窓（下に 住人・増築・電波塔、棟は 上の チップ、階は 右上の 切りかえ）
+                       防衛中＝建物に 敵の 道の 赤い 線と 次の 1 歩の 印・右上に 小さな 地図・下に えらんだ 住人の 指示と「ターン おわり」
+     見え方は ラウンジ（lounge-room.html）と 同じ ななめ見下ろしの ローポリ。住人は モンスターの ドット絵（sprites.js。TD の まざった 子も）
+     鹿さんの カード（2026-11-12）「建物をもっと九龍城塞らしく」→「棟で分けると言うより1個の集合住宅を幾何学的に接ぎ木するようなイメージです。」：
+     →「もっと接ぎ木を大胆に」：長い 箱を 縦横 交互に 十字に 重ね、下を またいで 大きく 張り出させた 8 階の ひとつづきの 建物（棟の チップは なし）。外かべの 室外機と 看板・屋上の タンクと 電波塔。階は 6 階まで あるので ▲ いまの 階 ▼。ひっぱると 見る 所が 動く
+     見本の 中だけで 動く（保存しない）。?def で 防衛中から・?bt で 試しの 戦いの 画面から（鹿さんの カード、2026-11-13） */
+  :root { --ink:#1B2340; --soft:#6A7394; --line:#DCE3F0; --space:#F6F8FC; --amber:#FFB547; --sky:#2EA8FF; --leaf:#22CC88; --coral:#FF5A64; --violet:#8E6CFF;
+    --jp:"Zen Maru Gothic", sans-serif; --num:"Fredoka", sans-serif; }
+  * { box-sizing:border-box; }
+  body { margin:0; min-height:100vh; background:radial-gradient(120% 80% at 50% 0%, #FFFFFF 0%, #F6F8FC 55%, #EAF0FA 100%); color:var(--ink); font:500 16px/1.6 var(--jp); }
+  :focus-visible { outline:3px solid var(--sky); outline-offset:3px; border-radius:10px; }
+  button { font:inherit; color:inherit; cursor:pointer; }
+  .top { display:flex; align-items:center; gap:10px; padding:12px clamp(16px, 4vw, 40px); }
+  .top b { font:600 22px/1 var(--num); letter-spacing:.06em; } .top b i { font-style:normal; color:var(--sky); }
+  .top small { font:700 13px/1 var(--jp); color:var(--soft); margin-left:6px; }
+  main { max-width:1280px; margin:0 auto; padding:0 clamp(16px, 4vw, 40px) 24px; display:grid; grid-template-columns:minmax(0, 1fr); gap:16px; align-items:start; }
+  main.side { grid-template-columns:minmax(0, 1fr) 340px; }
+  .bar { display:flex; align-items:center; gap:10px; margin-bottom:10px; min-height:40px; flex-wrap:wrap; }
+  .bar h1 { font:900 20px/1.2 var(--jp); margin:0 auto 0 0; display:flex; align-items:center; gap:10px; }
+  .bar h1 .turn { font:600 15px/1 var(--num); padding:7px 12px; border-radius:999px; background:var(--coral); color:#fff; }
+  .bar h1 .turn[hidden] { display:none; }
+  .chips { display:flex; gap:6px; }
+  .chip { min-height:36px; padding:8px 14px; border-radius:999px; border:1.5px solid var(--line); background:#fff; font:900 13px/1 var(--jp); white-space:nowrap; }
+  .chip.on { background:var(--ink); border-color:var(--ink); color:#fff; }
+  .view { position:relative; border-radius:24px; overflow:hidden; height:clamp(460px, calc(100vh - 150px), 760px); touch-action:none; background:#F6F8FC; }
+  .view canvas { display:block; width:100%; height:100%; }
+  body.def .view { background:#141A33; }
+  /* 右上：ふだんは 階の 切りかえ、防衛中は 小さな 地図 */
+  .floors { position:absolute; top:14px; right:14px; display:grid; gap:6px; }
+  .floors button { width:52px; height:40px; border-radius:12px; border:1.5px solid var(--line); background:rgba(255,255,255,.92); font:600 15px/1 var(--num); }
+  .floors button:disabled { opacity:.35; cursor:default; }
+  .floors b { display:block; text-align:center; padding:6px 0; border-radius:12px; background:var(--ink); color:#fff; font:600 16px/1 var(--num); }
+  .mini { position:absolute; top:14px; right:14px; padding:10px; border-radius:16px; background:rgba(20,26,51,.88); color:#E8ECFF; }
+  .mini svg { display:block; width:150px; height:auto; }
+  .mini[hidden], .floors[hidden] { display:none; }
+  /* 下：ふだんの ボタン 3 つ */
+  .dock { position:absolute; left:50%; bottom:16px; transform:translateX(-50%); display:flex; gap:10px; }
+  .dock button { position:relative; min-width:110px; min-height:52px; padding:10px 18px; border-radius:18px; border:1.5px solid var(--line); background:#fff; font:900 15px/1 var(--jp); box-shadow:0 10px 24px -16px rgba(27,35,64,.45); display:flex; align-items:center; justify-content:center; gap:8px; }
+  .dock button.on { background:var(--ink); border-color:var(--ink); color:#fff; }
+  .dock svg { width:20px; height:20px; flex:none; }
+  .dot { position:absolute; top:-7px; right:-7px; min-width:24px; height:24px; padding:0 6px; border-radius:999px; background:var(--coral); color:#fff; font:600 13px/24px var(--num); }
+  .dock[hidden] { display:none; }
+  /* 下：防衛中の 指示 */
+  .cmd { position:absolute; left:14px; right:14px; bottom:14px; display:flex; align-items:center; gap:12px; padding:12px; border-radius:20px; background:rgba(255,255,255,.96); box-shadow:0 14px 30px -18px rgba(0,0,0,.6); }
+  .cmd[hidden] { display:none; }
+  .cmd .who { display:flex; align-items:center; gap:10px; min-width:0; flex:1; }
+  .cmd .who img { width:48px; height:48px; image-rendering:pixelated; flex:none; }
+  .cmd .who b { display:block; font:900 15px/1.2 var(--jp); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .cmd .who span { font:700 12px/1.3 var(--jp); color:var(--soft); }
+  .cmd .hint { font:900 14px/1.3 var(--jp); color:var(--soft); }
+  .cmd .acts { display:flex; gap:6px; }
+  .cmd .acts button { min-height:44px; padding:8px 12px; border-radius:12px; border:1.5px solid var(--line); background:#fff; font:900 13px/1 var(--jp); white-space:nowrap; }
+  .cmd .acts button.on { border-color:var(--amber); background:#FFF3D6; }
+  .cmd .acts button:disabled { opacity:.4; cursor:default; }
+  .cmd .acts button.sp { border-style:dashed; border-color:var(--violet); color:#5B3FD0; }
+  .cmd .end { min-height:52px; padding:10px 18px; border-radius:16px; border:0; background:var(--coral); color:#fff; font:900 15px/1 var(--jp); white-space:nowrap; flex:none; }
+  /* 押すと 出る 小さな 窓 */
+  .pop { position:absolute; z-index:5; width:236px; padding:12px; border-radius:18px; background:#fff; box-shadow:0 18px 40px -18px rgba(27,35,64,.55); display:grid; gap:8px; }
+  .pop[hidden] { display:none; }
+  .pop .hd { display:flex; align-items:center; gap:10px; }
+  .pop .hd img { width:44px; height:44px; image-rendering:pixelated; flex:none; }
+  .pop .hd b { display:block; font:900 15px/1.25 var(--jp); }
+  .pop .hd span { font:700 12px/1.3 var(--jp); color:var(--soft); }
+  .pop .x { margin-left:auto; align-self:flex-start; width:32px; height:32px; border-radius:10px; border:0; background:var(--space); font:700 16px/1 var(--num); }
+  .meter { display:grid; grid-template-columns:auto 1fr auto; align-items:center; gap:8px; font:700 12px/1 var(--jp); color:var(--soft); }
+  .meter i { display:block; height:8px; border-radius:99px; background:var(--line); overflow:hidden; } .meter i em { display:block; height:100%; border-radius:99px; }
+  .meter b { font:600 13px/1 var(--num); color:var(--ink); }
+  .st { display:inline-block; padding:3px 8px; border-radius:999px; font:900 12px/1.2 var(--jp); background:var(--space); color:var(--soft); }
+  .st.sick { background:#FFE3E5; color:#D8323C; } .st.out { background:#E8F1FF; color:#2E6FD8; } .st.kid { background:#FFF3D6; color:#B07800; } .st.mine { background:#EFE8FF; color:#6A4AD8; }
+  .go { min-height:40px; border-radius:12px; border:0; background:var(--ink); color:#fff; font:900 13px/1 var(--jp); text-decoration:none; display:flex; align-items:center; justify-content:center; }
+  .go:disabled { background:var(--line); color:var(--soft); cursor:default; }
+  .why { margin:0; font:700 12px/1.4 var(--jp); color:var(--coral); }
+  .toast { position:absolute; left:50%; top:16px; transform:translateX(-50%); padding:9px 14px; border-radius:14px; background:var(--ink); color:#fff; font:700 13px/1.4 var(--jp); opacity:0; transition:opacity .2s; pointer-events:none; white-space:nowrap; z-index:6; }
+  .toast.on { opacity:1; }
+  /* 右の パネル（スマホは 下から 出る 引き出し） */
+  .panel { background:#fff; color:var(--ink); border-radius:24px; box-shadow:0 18px 40px -22px rgba(27,35,64,.35); padding:16px; display:flex; flex-direction:column; gap:12px; position:sticky; top:12px; max-height:calc(100vh - 24px); overflow:auto; }
+  .panel[hidden] { display:none; }
+  .panel h2 { margin:0; font:900 16px/1.2 var(--jp); display:flex; align-items:center; gap:8px; }
+  .panel h2 .x { margin-left:auto; width:32px; height:32px; border-radius:10px; border:0; background:var(--space); font:700 16px/1 var(--num); }
+  .seg { display:flex; gap:6px; }
+  .seg button { flex:1; min-height:36px; border-radius:12px; border:1.5px solid var(--line); background:#fff; font:900 13px/1 var(--jp); }
+  .seg button.on { background:var(--ink); border-color:var(--ink); color:#fff; }
+  .seg button b { font:600 13px/1 var(--num); margin-left:4px; }
+  .filters { display:grid; gap:6px; padding:10px; border-radius:16px; background:var(--space); }
+  .filters .row { display:flex; align-items:center; gap:6px; flex-wrap:wrap; }
+  .filters .row > span { font:900 12px/1 var(--jp); color:var(--soft); min-width:44px; }
+  .filters button { min-height:32px; padding:6px 10px; border-radius:999px; border:1.5px solid var(--line); background:#fff; font:900 12px/1 var(--jp); }
+  .filters button.on { border-color:var(--ink); background:var(--ink); color:#fff; }
+  .filters button b { font:600 12px/1 var(--num); margin-left:3px; }
+  .list { display:grid; gap:8px; }
+  .item { display:grid; grid-template-columns:44px 1fr; gap:10px; align-items:center; padding:10px; border-radius:16px; border:1.5px solid var(--line); background:#fff; text-align:left; width:100%; }
+  .item.on { border-color:var(--amber); background:#FFF8EA; }
+  .item img { width:44px; height:44px; image-rendering:pixelated; }
+  .item .nm { display:flex; align-items:center; gap:6px; flex-wrap:wrap; } .item .nm b { font:900 14px/1.25 var(--jp); } .item .nm small { font:600 13px/1 var(--num); color:var(--soft); }
+  .item .sub { font:700 12px/1.3 var(--jp); color:var(--soft); }
+  .card { display:grid; gap:8px; padding:12px; border-radius:16px; border:1.5px solid var(--line); background:#fff; }
+  .card .t { display:flex; align-items:center; gap:8px; } .card .t b { font:900 14px/1.3 var(--jp); }
+  .card .t .stars { margin-left:auto; color:#E0A21C; letter-spacing:-1px; font-size:13px; }
+  .card .from { font:700 12px/1.3 var(--jp); color:var(--soft); }
+  .card .foes { display:flex; gap:2px; align-items:center; } .card .foes img { width:32px; height:32px; image-rendering:pixelated; }
+  .card .foes span { font:700 12px/1.2 var(--jp); color:var(--soft); margin-left:6px; }
+  .card .rw { display:flex; gap:12px; font:700 12px/1.2 var(--jp); color:var(--soft); } .card .rw b { font:600 13px/1 var(--num); color:var(--ink); } .card .rw .lose b { color:var(--coral); }
+  .card .cost { font:700 12px/1.2 var(--jp); color:var(--soft); } .card .cost b { font:600 14px/1 var(--num); color:var(--ink); }
+  .card .mk { width:40px; height:40px; border-radius:12px; display:grid; place-items:center; background:var(--space); flex:none; }
+  .card .mk svg { width:24px; height:24px; }
+  .sm { min-height:32px; padding:6px 10px; border-radius:10px; border:1.5px solid var(--line); background:#fff; font:900 12px/1 var(--jp); justify-self:start; }
+  /* 守りきった */
+  .result { position:absolute; inset:0; z-index:7; display:grid; place-items:center; background:rgba(20,26,51,.6); }
+  .result[hidden] { display:none; }
+  /* 戦いの 画面（研究ノート 21 回目：横から・ターンごとに 切りかわって 1 手を 見せ、建物に もどる。並べ方は カード「A 全身を大きく」） */
+  .bt { position:absolute; inset:0; z-index:8; display:grid; grid-template-rows:auto 1fr auto; overflow:hidden; border-radius:inherit; background:#141A33; color:#fff; }
+  .bt[hidden] { display:none; }
+  /* 戦いの あいだは 画面（本番の ラウンジの 枠）いっぱいに（クローラー M-031 と 同じ 形）。見出し・お金・下の ボタンを かくす */
+  body.td-bt { overflow:hidden; } body.td-bt .bt { position:fixed; z-index:1000; border-radius:0; }
+  .bt .bh { display:flex; justify-content:space-between; align-items:center; gap:10px; padding:12px 16px; }
+  .bt .bh b { font:900 16px/1.2 var(--jp); } .bt .bh span { font:700 13px/1.2 var(--jp); color:#B8C4FF; }
+  .bt .field { position:relative; overflow:hidden; background:linear-gradient(#2A3358 0 38%, #232B4E 38% 39%, #1E2648 39% 100%);
+    container-type:size; display:grid; grid-template-columns:1fr 1fr; gap:0 6px; padding:6px 6px 10px; }
+  .bt .field.one { background:linear-gradient(#2A3358 0 52%, #232B4E 52% 53%, #1E2648 53% 100%); }
+  .bt .door { position:absolute; top:9%; width:9%; height:29%; border-radius:6px 6px 0 0; background:#3A4570; box-shadow:inset 0 0 0 3px #4A5684; }
+  .bt .door i { position:absolute; left:50%; top:-14%; transform:translateX(-50%); padding:2px 6px; border-radius:6px; background:#FFB547; color:#1B2340; font:900 12px/1 var(--num); font-style:normal; white-space:nowrap; }
+  .bt .lamp { position:absolute; top:3%; width:46px; height:6px; border-radius:3px; background:#FFE3A3; box-shadow:0 0 18px 6px rgba(255,227,163,.35); }
+  .bt .field.one .door { top:14%; height:38%; }
+  .bt .tile { position:absolute; left:0; right:0; height:1px; background:rgba(255,255,255,.06); }
+  /* 片側 ＝ 前・うしろ の 2 列 × 上下 2 段（M-028 の 直し）。1 マスに 1 体なので 名札が となりに 重ならない。
+     絵の 大きさは 場の 高さ（2 段なら 半分）と 幅（4 列）から 名札・HP の ぶんを 引いて 決める */
+  .bt .side { position:relative; z-index:1; display:grid; grid-template-columns:1fr 1fr; grid-template-rows:auto auto; align-content:end; align-items:end; justify-items:center; gap:6px 4px; min-width:0; }
+  .bt .field.one .side { grid-template-rows:auto; }
+  .fighter { position:relative; display:grid; justify-items:center; align-content:end; gap:3px; max-width:100%; min-width:0; transition:transform .25s ease;
+    --sz:clamp(40px, min(50cqh - 84px, 25cqw - 14px), 150px); }
+  .fighter.boss { --sz:clamp(48px, min(50cqh - 52px, 25cqw - 4px), 180px); }
+  .field.one .fighter { --sz:clamp(48px, min(100cqh - 84px, 25cqw - 14px), 190px); }
+  .field.one .fighter.solo { --sz:clamp(48px, min(100cqh - 84px, 50cqw - 20px), 190px); }
+  .field.one .fighter.boss { --sz:clamp(56px, min(100cqh - 56px, 25cqw - 4px), 230px); }
+  .fighter img { width:var(--sz); height:var(--sz); image-rendering:pixelated; transition:filter .3s, opacity .3s; }
+  .fighter .nm { max-width:100%; overflow:hidden; text-overflow:ellipsis; font:900 12px/1.2 var(--jp); white-space:nowrap; text-shadow:0 1px 2px #000; }
+  .fighter .hp { width:min(84px, 100%); height:8px; border-radius:4px; background:rgba(255,255,255,.18); overflow:hidden; }
+  .fighter .hp i { display:block; height:100%; background:#22CC88; transition:width .45s ease; }
+  .fighter .tg { display:flex; gap:3px; flex-wrap:wrap; justify-content:center; max-width:100%; }
+  .fighter .tg em { padding:3px 7px; border-radius:999px; background:rgba(255,255,255,.14); font:700 12px/1 var(--jp); font-style:normal; white-space:nowrap; }
+  .fighter .tg em.ch { background:#FFB547; color:#1B2340; }
+  .fighter.l.act { transform:translateX(min(30px, 12cqw)); z-index:2; } .fighter.r.act { transform:translateX(max(-30px, -12cqw)); z-index:2; }
+  .fighter.out img { filter:grayscale(1) brightness(.55); opacity:.5; }
+  .dmg { position:absolute; z-index:5; left:50%; top:0; transform:translate(-50%, 0); font:600 28px/1 var(--num); color:#FFE066; text-shadow:0 2px 0 #000; pointer-events:none; animation:dmgup 1s ease forwards; }
+  @keyframes dmgup { from { opacity:1; transform:translate(-50%, 0); } to { opacity:0; transform:translate(-50%, -44px); } }
+  .bt .bf { display:flex; align-items:center; gap:12px; padding:12px 14px; background:rgba(255,255,255,.97); color:var(--ink); }
+  .bt .bf p { flex:1; min-width:0; margin:0; display:flex; flex-wrap:wrap; align-items:baseline; gap:4px 6px; font:700 14px/1.4 var(--jp); }
+  .bt .bf p b { font:900 14px/1.4 var(--jp); } .bt .bf p em { font:600 18px/1 var(--num); font-style:normal; color:var(--coral); }
+  .bt .bf button { min-height:48px; padding:10px 18px; border-radius:14px; border:0; background:var(--coral); color:#fff; font:900 15px/1 var(--jp); white-space:nowrap; flex:none; }
+  @media (max-height:520px) {   /* 本番の ラウンジの 枠（約 358×380）：見出しと 記録の 帯を つめて 場を 広く */
+    .bt .bh { padding:8px 14px; } .bt .bh b { font-size:14px; }
+    .bt .bf { gap:8px; padding:6px 10px; } .bt .bf p, .bt .bf p b { font-size:13px; line-height:1.3; } .bt .bf p em { font-size:16px; }
+    .bt .bf button { min-height:40px; padding:8px 14px; font-size:14px; border-radius:12px; }
+  }
+  .result div { width:min(300px, 86%); padding:20px; border-radius:22px; background:#fff; display:grid; gap:10px; text-align:center; }
+  .result b { font:900 20px/1.2 var(--jp); } .result p { margin:0; font:700 14px/1.6 var(--jp); color:var(--soft); } .result p em { font:600 16px/1 var(--num); font-style:normal; color:var(--ink); }
+
+  @media (max-width:760px) {
+    main, main.side { grid-template-columns:minmax(0, 1fr); padding-bottom:96px; }
+    .view { height:calc(100vh - 210px); min-height:420px; }
+    .dock { position:fixed; left:0; right:0; bottom:0; transform:none; z-index:31; justify-content:space-around; gap:0; padding:8px 8px calc(8px + env(safe-area-inset-bottom)); background:#fff; border-top:1.5px solid var(--line); box-shadow:0 -10px 24px -16px rgba(27,35,64,.45); }
+    .dock button { min-width:0; flex:1; margin:0 4px; box-shadow:none; flex-direction:column; gap:4px; min-height:56px; padding:6px 4px; font-size:13px; white-space:nowrap; }
+    .dock .dot { top:-4px; right:6px; }
+    .panel { position:fixed; left:0; right:0; bottom:calc(68px + env(safe-area-inset-bottom)); top:auto; z-index:30; max-height:62vh; border-radius:20px 20px 0 0; }
+    .cmd { flex-wrap:wrap; gap:8px; }
+    .cmd .who { flex-basis:100%; }
+    .cmd .acts { flex:1 1 0; min-width:0; display:grid; grid-template-columns:repeat(3, minmax(0, 1fr)); } .cmd .acts button { padding:8px 2px; font-size:12px; }
+    .cmd .end { padding:10px 12px; }
+    .fighter .tg em { padding:2px 5px; }
+    .dmg { font-size:22px; }
+    .floors button { width:48px; height:38px; }
+    .mini svg { width:116px; }
+    .bar h1 { font-size:18px; }
+  }
+</style>
+</head>
+<body>
+<header class="top"><b>MONO <i>LINK</i></b><small>集合住宅</small></header>
+<main id="main">
+  <section>
+    <div class="bar">
+      <h1><span id="ttl">集合住宅</span><span class="turn" id="turn" hidden></span></h1>
+      <div class="chips" id="wings"></div>
+    </div>
+    <div class="view" id="view">
+      <div class="floors" id="floors"></div>
+      <div class="mini" id="mini" hidden></div>
+      <div class="pop" id="pop" hidden></div>
+      <nav class="dock" id="dock"></nav>
+      <section class="cmd" id="cmd" hidden></section>
+      <div class="result" id="result" hidden></div>
+      <div class="bt" id="bt" hidden></div>
+      <div class="toast" id="toast"></div>
+    </div>
+  </section>
+  <aside class="panel" id="panel" hidden></aside>
+</main>
+<script type="importmap">{ "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.169.0/build/three.module.js", "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.169.0/examples/jsm/" } }</script>
+<script type="module">
+import "./lounge-en.js";   // 英語の 画面（ほかの 画面と 同じ。辞書は lounge-en-td.js）
+import { t } from "./lounge-en.js";
+import * as THREE from "three";
+import { kit, F } from "./lounge-furniture.js";
+import { makePet3 } from "./pets.js";
+import { spriteURL } from "./sprites.js";
+import { mountWallet } from "./wallet-bar.js"; mountWallet();
+
+// ---------- 建物（見本の 形）----------
+// 鹿さんの カード（2026-11-12）：「棟で分けると言うより1個の集合住宅を幾何学的に接ぎ木するようなイメージです。」→「もっと接ぎ木を大胆に」
+// → 長い 箱（ブロック）を 縦横 交互に 十字に 重ね、下の 箱を またいで 前後・左右へ 大きく 張り出させた ひとつづきの 建物（8 階）。棟の チップは なし
+//   ブロックの 中は 廊下の 列と 2 マス × 3 マスの 部屋。上の 段へは、箱どうしが 交わる 所の 外階段と、まんなかの 階段の 塔（1〜4 階）
+const FH = 1.6;
+// ax："x"＝廊下が 前の 列・部屋は うしろ・階段は 右はし。"z"＝廊下が 左（side "r" なら 右）の 列・部屋は 反対がわ・階段は 前の 列
+const BLOCKS = [
+  { id: "A", x0: -9, z0: 1, w: 11, d: 4, f0: 0, h: 2, ax: "x", wall: "#E8D8C0", trim: "#C8B08A" },              // 土台（よこ）
+  { id: "B", x0: 2, z0: -9, w: 4, d: 11, f0: 0, h: 2, ax: "z", wall: "#CFE3DA", trim: "#98BCAC" },              // 土台（たて）
+  { id: "I", x0: -9, z0: 1, w: 3, d: 4, f0: 2, h: 1, ax: "x", wall: "#D9D2EA", trim: "#A89CC8" },               // 土台の 屋上の 小屋
+  { id: "C", x0: -6, z0: -7, w: 4, d: 13, f0: 2, h: 2, ax: "z", side: "r", wall: "#E6C9C2", trim: "#C29A90" },   // 土台を またいで うしろへ 8 マス 張り出す（たて）
+  { id: "D", x0: 2, z0: -6, w: 11, d: 4, f0: 2, h: 2, ax: "x", wall: "#E2DCC8", trim: "#B8AE90" },              // B を またいで 右へ 7 マス 張り出す（よこ）
+  { id: "E", x0: -11, z0: -5, w: 11, d: 4, f0: 4, h: 2, ax: "x", wall: "#C8DCEC", trim: "#90AECB" },            // C を またいで 左右へ（よこ）
+  { id: "F", x0: 8, z0: -10, w: 4, d: 13, f0: 4, h: 2, ax: "z", wall: "#E8CFE0", trim: "#C29AB4" },             // D の はしに のって 前後へ（たて）
+  { id: "G", x0: -11, z0: -9, w: 4, d: 9, f0: 6, h: 2, ax: "z", side: "r", wall: "#D5D9E6", trim: "#9EA6C0", top: true },   // てっぺん：左うしろへ はみ出す（プライベートラウンジ・電波塔）
+];
+const TOWER = { x: 1, z: -1, f0: 0, f1: 3 };   // 階段の 塔（1×2 マス。土台の 階段の うしろから 4 階まで）
+const WALKS = [   // 接ぎ木の すき間を つなぐ 通路（f は 0 ＝ 1 階）
+  { f: 2, cells: [[1, -2], [1, -3]] },                    // 塔 ⇄ D（3 階）
+  { f: 3, cells: [[0, -1], [-1, -1], [-2, -1]] },         // 塔 ⇄ C（4 階）
+];
+const EXST = [   // 外階段（箱どうしが 交わる 廊下の マスで、下の 階から 上の 階へ）
+  { x: -3, z: -2, f: 3 },   // C の 4 階 → E の 5 階
+  { x: 8, z: -3, f: 3 },    // D の 4 階 → F の 5 階
+  { x: -8, z: -2, f: 5 },   // E の 6 階 → G の 7 階
+];
+const TOP = Math.max(...BLOCKS.map((b) => b.f0 + b.h)) - 1;
+const blk = (id) => BLOCKS.find((b) => b.id === id);
+const inBlk = (b, x, z, f) => x >= b.x0 && x < b.x0 + b.w && z >= b.z0 && z < b.z0 + b.d && f >= b.f0 && f < b.f0 + b.h;
+const solidAt = (x, z, f) => BLOCKS.some((b) => inBlk(b, x, z, f)) || (x === TOWER.x && (z === TOWER.z || z === TOWER.z + 1) && f >= TOWER.f0 && f <= TOWER.f1);
+const corrX = (b) => (b.side === "r" ? b.x0 + b.w - 1 : b.x0), roomX = (b) => (b.side === "r" ? b.x0 : b.x0 + 1);
+// 住人に なる モンスター（同じ 種類が 何人 いても よい。NPC は 入居希望の 掲示板から 来る）
+const POOL = [["e_trapper", "ミミック", 12], ["e_bat", "ケイブバット", 30], ["e_pirate", "海賊の下っぱ", 38], ["e_shisa", "シーサー像", 42], ["e_eel", "洞窟ウナギ", 49],
+  ["e_thunderbird", "雷鳥", 56], ["e_priest", "半魚人の神官", 60], ["e_squid", "ダイオウイカ", 70], ["e3_jackal", "ジャッカル", 67], ["e3_mirafox", "蜃気楼ギツネ", 69],
+  ["e3_bonewisp", "竜骨の亡霊", 73], ["e3_sandguard", "砂岩の衛兵", 77], ["e3_bandit", "砂賊の下っぱ", 79], ["e3_leopard", "峡谷ヒョウ", 82], ["e3_gatespider", "大門グモ", 86],
+  ["e3_lightsprite", "光の精", 88], ["e3_sandcatfish", "流砂ナマズ", 80], ["e3_stormsprite", "嵐の精", 100], ["e_dolphin", "白いイルカ", 44], ["e_clownfish", "虹色クマノミ", 36],
+  ["e3_moonrabbit", "月うさぎ", 50], ["e3_scribe", "古代の書記", 48]];
+const TYPES = ["アタッカー", "ディフェンダー", "テクニシャン", "キャスター", "ヒーラー"];   // モンスターの ツリーの 型（enemy-trees の type）
+// 決まった 住人（となりの 部屋どうしの 親子：ホーンラビット × コボルト → ツノミハリ、迷子の船猫 × 墓守ネコ → 墓守の船猫）
+const FIXED = {
+  "A-0-0": { id: "e_hare", name: "ホーンラビット", lv: 12, st: "在宅", type: "アタッカー", sat: 82 },
+  "A-0-1": { id: "e_watch", name: "コボルト", lv: 14, st: "仕事中", type: "ディフェンダー", sat: 64 },
+  "A-0-4": null,   // 空き部屋（入居希望を 入れる）
+  "A-1-0": { id: "t_hare_watch", name: "ツノミハリ", lv: 7, st: "在宅", type: "ディフェンダー", sat: 91, kid: true },
+  "B-1-0": { id: "e_shipcat", name: "迷子の船猫", lv: 38, st: "在宅", type: "テクニシャン", sat: 55, mine: true },
+  "B-1-1": { id: "e3_tombcat", name: "墓守ネコ", lv: 52, st: "ねている", type: "キャスター", sat: 73 },
+  "D-2-0": { id: "t_shipcat_tombcat", name: "墓守の船猫", lv: 22, st: "在宅", type: "アタッカー", sat: 88, kid: true },
+  "C-2-0": { id: "e_clownfish", name: "虹色クマノミ", lv: 36, st: "病気", type: "テクニシャン", sat: 38 },
+};
+// 部屋（rx・rz・rw・rd ＝ 床の 範囲。door ＝ ドアの 前の 廊下の マス）
+const ROOMS = [], RES = {};
+let seed = 11; const rnd = () => ((seed = (seed * 9301 + 49297) % 233280) / 233280);
+const count = {};
+for (const b of BLOCKS) for (let f = b.f0; f < b.f0 + b.h; f++) {
+  const n = b.ax === "x" ? Math.floor((b.w - 1) / 2) : Math.floor((b.d - 1) / 2);
+  for (let k = 0; k < n; k++) {
+    const r = b.ax === "x" ? { rx: b.x0 + k * 2, rz: b.z0, rw: 2, rd: 3, door: [b.x0 + k * 2 + 1, b.z0 + 3] } : { rx: roomX(b), rz: b.z0 + k * 2, rw: 3, rd: 2, door: [corrX(b), b.z0 + k * 2 + 1] };
+    Object.assign(r, { blk: b.id, f });
+    if (b.top && f === b.f0 + b.h - 1 && k <= 1) {   // てっぺんの 階の 左 2 部屋ぶんは プライベートラウンジ（MONO ペットが いる。7 回目）
+      if (k === 0) ROOMS.push(b.ax === "x" ? { ...r, rw: 4, door: [r.rx + 3, r.door[1]], no: "ラウンジ", lounge: true } : { ...r, rd: 4, door: [r.door[0], r.rz + 3], no: "ラウンジ", lounge: true });
+      continue;
+    }
+    count[f] = (count[f] || 0) + 1;
+    r.no = `${f + 1}${String(count[f]).padStart(2, "0")}`;
+    const key = `${b.id}-${f}-${k}`;
+    let who = null;
+    if (key in FIXED) { const v = FIXED[key]; if (v) { who = v.id + "@" + r.no; RES[who] = { ...v, rent: 30 + v.lv * 2 }; } }
+    else if (rnd() > 0.12) {
+      const [id, name, lv0] = POOL[Math.floor(rnd() * POOL.length)], q = rnd(), lv = Math.max(5, Math.round(lv0 * (0.6 + rnd() * 0.5)));
+      who = id + "@" + r.no;
+      RES[who] = { id, name, lv, sat: Math.round(40 + rnd() * 58), rent: 30 + lv * 2, st: q < 0.22 ? "仕事中" : q < 0.32 ? "ねている" : "在宅", type: TYPES[Math.floor(rnd() * TYPES.length)] };
+    }
+    r.who = who; ROOMS.push(r);
+  }
+}
+const WANT = [   // 入居希望の 掲示板（1 時間ごとに かわる）
+  { id: "e_gull", name: "ウミネコ", lv: 35, rent: 60 }, { id: "e_parrot", name: "おしゃべりオウム", lv: 38, rent: 70 }, { id: "e_glimmer", name: "迷い光", lv: 42, rent: 90 },
+];
+const NOTES = [   // 電波塔に とどいた 通知（えらぶ ときに 決めるのは 強さ。敵の 数と Lv が 先に 見える）
+  { t: "流れて きた モンスター", from: "ガマの隠れ港の 海賊", star: 2, foes: ["e_boss_redbeard", "e_pirate", "e_pirate", "e_parrot"], lv: "Lv38〜41", win: 1800, sg: 12, lose: 900 },
+  { t: "流れて きた モンスター", from: "アトゥイ号の 沈没船", star: 3, foes: ["e_boss_octopus", "e_skelsailor", "e_jelly", "e_jelly"], lv: "Lv45〜48", win: 3200, sg: 20, lose: 1600 },
+  { t: "脅迫", from: "ほかの 会社の POM 部隊", star: 4, pom: 5, lv: "Lv55", win: 6000, sg: 36, lose: 3000 },
+];
+const BUILD = [
+  { t: "部屋を 足す", cost: 1200, icon: "room" }, { t: "階を 足す", cost: 4800, icon: "floor" }, { t: "渡り廊下を かける", cost: 3000, icon: "bridge" },
+];
+const roomOf = (who) => ROOMS.find((r) => r.who === who);
+const fmt = (n) => n.toLocaleString("en-US");
+const satColor = (v) => (v >= 70 ? "#22CC88" : v >= 40 ? "#FFB547" : "#FF5A64");
+const STS = ["在宅", "仕事中", "ねている", "病気"];
+
+const S = { mode: new URLSearchParams(location.search).has("def") ? "def" : "home", floor: 7, tab: null, sub: "res", filt: "all", sort: "sat", sel: null, turn: 1, foes: [], cmd: {}, picked: null, pan: { x: 0, z: 0 } };
+
+// ---------- 3D ----------
+const view = document.getElementById("view");
+const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
+renderer.setPixelRatio(Math.min(2, devicePixelRatio)); renderer.shadowMap.enabled = true; renderer.shadowMap.type = THREE.PCFSoftShadowMap; renderer.outputColorSpace = THREE.SRGBColorSpace;
+view.prepend(renderer.domElement);
+const scene = new THREE.Scene();
+const cam = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.1, 300);
+const K = kit(false);
+const texCache = {};
+function tex(id) {
+  if (texCache[id]) return texCache[id];
+  const tx = new THREE.TextureLoader().load(spriteURL(id)); tx.magFilter = THREE.NearestFilter; tx.minFilter = THREE.NearestFilter; tx.colorSpace = THREE.SRGBColorSpace;
+  return (texCache[id] = tx);
+}
+const picks = [], bobs = [], blinks = [];
+let world;
+const hash = (a, b, c = 0) => { const v = Math.sin(a * 127.1 + b * 311.7 + c * 74.7) * 43758.5453; return v - Math.floor(v); };
+const NEON = ["#FF5A8A", "#2EE8FF", "#FFE066", "#8E6CFF", "#22CC88"];
+const ghostM = () => new THREE.MeshBasicMaterial({ color: "#8EA0C8", transparent: true, opacity: S.mode === "def" ? 0.07 : 0.09, depthWrite: false });
+const edgeM = () => new THREE.LineBasicMaterial({ color: S.mode === "def" ? "#2E3A6A" : "#B8C4DE" });
+function ghostBox(g, w, h, d, x, y, z) {
+  const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), ghostM()); m.position.set(x, y + h / 2, z); g.add(m);
+  const e = new THREE.LineSegments(new THREE.EdgesGeometry(m.geometry), edgeM()); e.position.copy(m.position); g.add(e);
+}
+
+// 1 つの ブロック：いま 見る 階より 下は 外かべ、いま 見る 階は 中が 見える、上は うすい わく
+function buildBlock(b, g) {
+  const cut = S.floor;
+  for (let f = b.f0; f < b.f0 + b.h; f++) {
+    if (f < cut) exterior(b, f, g);
+    else if (f === cut) cutFloor(b, f, g);
+    else ghostBox(g, b.w, FH, b.d, b.x0 + b.w / 2, f * FH, b.z0 + b.d / 2);
+  }
+  const topF = b.f0 + b.h - 1;
+  if (topF < cut) roof(b, g, false); else if (topF === cut) roof(b, g, true); else if (b.top) radioTower(b, g, (topF + 1) * FH);   // 電波塔は いつも 見せる（目じるし・押すと パネル）
+  // 張り出した ブロックの 下の 支え（下に 何も ない すみに 柱）
+  if (b.f0 > 0 && b.f0 <= cut) for (const [x, z] of [[b.x0 + 0.15, b.z0 + b.d - 0.15], [b.x0 + b.w - 0.15, b.z0 + b.d - 0.15], [b.x0 + 0.15, b.z0 + 0.15], [b.x0 + b.w - 0.15, b.z0 + 0.15]]) {
+    let f = b.f0 - 1; while (f >= 0 && !solidAt(Math.floor(x), Math.floor(z), f)) f--;
+    if (f === b.f0 - 1) continue;
+    const y0 = (f + 1) * FH, len = b.f0 * FH - y0;
+    K.box(g, 0.14, len, 0.14, K.mat("#7A8090"), x, y0, z);
+    const br = K.box(g, 0.08, Math.min(len, 1.6) * 1.2, 0.08, K.mat("#7A8090"), x + (x < b.x0 + 1 ? 0.4 : -0.4), b.f0 * FH - Math.min(len, 1.6) * 0.9, z); br.rotation.z = x < b.x0 + 1 ? 0.6 : -0.6;
+  }
+}
+function exterior(b, f, g) {
+  const y = f * FH, X1 = b.x0 + b.w, Z1 = b.z0 + b.d;
+  K.box(g, b.w, FH, b.d, K.mat(b.wall), b.x0 + b.w / 2, y, b.z0 + b.d / 2);
+  K.box(g, b.w + 0.14, 0.1, b.d + 0.14, K.mat(b.trim), b.x0 + b.w / 2, y + FH - 0.1, b.z0 + b.d / 2);
+  for (let i = 0; i < b.w; i++) {   // 前の 面：窓・室外機・洗たく物（前に 別の ブロックが くっついて いる 所は つけない）
+    if (solidAt(b.x0 + i, Z1, f)) continue;
+    const on = hash(b.x0 + i, f, 1) > 0.25, x = b.x0 + i + 0.5;
+    K.box(g, 0.5, 0.46, 0.04, on ? K.glow(hash(i, f, 2) > 0.5 ? "#FFE3A3" : "#FFD08A", 0.6) : K.mat("#5A6478"), x, y + 0.6, Z1 + 0.02);
+    K.box(g, 0.62, 0.05, 0.12, K.mat(b.trim), x, y + 0.55, Z1 + 0.06);
+    if (hash(i, f, 3 + b.z0) > 0.6) K.box(g, 0.34, 0.24, 0.2, K.mat("#B8BCC8"), x + 0.12, y + 0.18, Z1 + 0.1);
+    if (hash(i, f, 4 + b.x0) > 0.75) for (let k = 0; k < 3; k++) K.box(g, 0.1, 0.18, 0.02, K.mat(NEON[(i + k + f) % 5]), x - 0.2 + k * 0.18, y + 1.1, Z1 + 0.16);
+  }
+  for (let j = 0; j < b.d; j++) {   // 右の 面
+    if (solidAt(X1, b.z0 + j, f)) continue;
+    const z = b.z0 + j + 0.5;
+    K.box(g, 0.04, 0.46, 0.5, hash(b.x0, f, j + 5) > 0.3 ? K.glow("#FFE3A3", 0.6) : K.mat("#5A6478"), X1 + 0.02, y + 0.6, z);
+    if (hash(j, f, 6 + b.x0) > 0.55) K.box(g, 0.2, 0.24, 0.34, K.mat("#B8BCC8"), X1 + 0.1, y + 0.18, z + 0.1);
+  }
+  if (hash(b.x0 + b.z0, f, 9) > 0.4 && !solidAt(X1, b.z0, f)) {   // 縦の 看板
+    const c = NEON[Math.floor(hash(f, b.x0, 10) * 5)];
+    K.box(g, 0.12, 1.1, 0.5, K.mat("#2A3050"), X1 + 0.12, y + 0.25, b.z0 + 0.9); K.box(g, 0.04, 0.9, 0.36, K.glow(c, 1.4), X1 + 0.2, y + 0.35, b.z0 + 0.9);
+  }
+}
+function roof(b, g, open) {
+  const topF = b.f0 + b.h - 1, y = open ? topF * FH + 0.9 : (topF + 1) * FH, zb = b.z0 + 0.4;
+  if (!open) K.box(g, b.w + 0.14, 0.12, b.d + 0.14, K.mat(b.trim), b.x0 + b.w / 2, (topF + 1) * FH - 0.02, b.z0 + b.d / 2);
+  if (b.w >= 5) {
+    K.cyl(g, 0.38, 0.38, 0.7, K.mat("#7A9CC8"), b.x0 + 0.6, y, zb + (open ? -0.1 : 0.3), 10); K.cyl(g, 0.42, 0.42, 0.06, K.mat("#5A7AA8"), b.x0 + 0.6, y + 0.7, zb + (open ? -0.1 : 0.3), 10);
+    K.cyl(g, 0.03, 0.03, 1.4, K.mat("#8A90A0"), b.x0 + b.w - 1.3, y, zb); K.box(g, 0.7, 0.03, 0.03, K.mat("#8A90A0"), b.x0 + b.w - 1.3, y + 1.1, zb);
+  }
+  if (!open && b.w >= 5) {
+    K.box(g, 1.4, 0.8, 1.2, K.mat(b.wall), b.x0 + b.w / 2, y, b.z0 + 1.2);
+    const c = NEON[BLOCKS.indexOf(b) % 5]; K.box(g, 1.8, 0.5, 0.08, K.mat("#2A3050"), b.x0 + b.w / 2 + 0.4, y + 0.9, b.z0 + 1.9); K.box(g, 1.6, 0.34, 0.04, K.glow(c, 1.5), b.x0 + b.w / 2 + 0.4, y + 0.98, b.z0 + 1.96);
+  }
+  if (b.top) radioTower(b, g, y);
+}
+function radioTower(b, g, y) {   // 電波塔（建物に 建てる 設備。襲撃の 通知や 脅迫が とどく・9 回目）。押すと 電波塔の パネル
+  {
+    const tx = b.x0 + b.w - 1.4, tz = b.z0 + 1.2, H = 4.2, tg = new THREE.Group();
+    for (const [dx, dz] of [[-0.35, -0.35], [0.35, -0.35], [-0.35, 0.35], [0.35, 0.35]]) K.box(tg, 0.06, H, 0.06, K.mat("#C83A4A"), dx * 0.5, 0, dz * 0.5);
+    for (let k = 0; k < 6; k++) K.box(tg, 0.44 - k * 0.04, 0.04, 0.44 - k * 0.04, K.mat(k % 2 ? "#F4F6FF" : "#C83A4A"), 0, 0.3 + k * 0.65, 0);
+    blinks.push(K.box(tg, 0.16, 0.16, 0.16, K.glow("#FF3A4A", 2), 0, H, 0));
+    K.cyl(tg, 0.3, 0.3, 0.05, K.mat("#F4F6FF"), 0.22, H - 0.9, 0, 12).rotation.z = Math.PI / 2;
+    tg.position.set(tx, y, tz); g.add(tg);
+    const pk = new THREE.Mesh(new THREE.BoxGeometry(0.9, H, 0.9), new THREE.MeshBasicMaterial({ visible: false })); pk.position.set(tx, y + H / 2, tz); pk.userData.tower = true; g.add(pk); picks.push(pk);
+  }
+}
+const isCorr = (b, x, z) => (b.ax === "x" ? z === b.z0 + b.d - 1 : x === corrX(b));
+const isStair = (b, x, z) => !isCorr(b, x, z) && (b.ax === "x" ? x === b.x0 + b.w - 1 : z === b.z0 + b.d - 1);
+function cutFloor(b, f, g) {
+  const y = f * FH;
+  for (let i = 0; i < b.w; i++) for (let j = 0; j < b.d; j++) {
+    const x = b.x0 + i, z = b.z0 + j, corr = isCorr(b, x, z), st = isStair(b, x, z);
+    K.box(g, 1, 0.2, 1, K.mat(corr ? ((i + j) % 2 ? "#D4DCEC" : "#DCE3F0") : st ? "#C9D3EA" : (i + j) % 2 ? "#F0E6D8" : "#F6EEE2"), x + 0.5, y - 0.2, z + 0.5);
+  }
+  const wallM = K.mat(b.wall, { emissive: b.wall, emissiveIntensity: 0.15 }), lowM = K.mat("#EEF2FA");
+  K.box(g, b.w + 0.2, 0.9, 0.2, wallM, b.x0 + b.w / 2, y, b.z0 - 0.1); K.box(g, 0.2, 0.9, b.d, wallM, b.x0 - 0.1, y, b.z0 + b.d / 2);   // うしろと 左の かべ
+  // 階段
+  if (b.ax === "x") { const sx = b.x0 + b.w - 1; for (let k = 0; k < 4; k++) K.box(g, 0.9, 0.16 + k * 0.16, 0.5, K.mat("#B8C4DE"), sx + 0.5, y, b.z0 + 0.4 + k * 0.6); K.box(g, 0.1, 0.55, 3, lowM, sx, y, b.z0 + 1.5); }
+  else { const sz = b.z0 + b.d - 1, rx = roomX(b); for (let k = 0; k < 4; k++) K.box(g, 0.5, 0.16 + k * 0.16, 0.9, K.mat("#B8C4DE"), rx + 0.4 + k * 0.6, y, sz + 0.5); K.box(g, 3, 0.55, 0.1, lowM, rx + 1.5, y, sz); }
+  for (const r of ROOMS.filter((r) => r.blk === b.id && r.f === f)) {
+    if (b.ax === "x") {
+      if (r.rx > b.x0) K.box(g, 0.1, 0.55, 3, lowM, r.rx, y, b.z0 + 1.5);
+      K.box(g, r.rw - 0.8, 0.55, 0.1, lowM, r.rx + (r.rw - 0.8) / 2, y, b.z0 + 3);
+      K.box(g, 0.8, 0.06, 0.12, K.glow(r.lounge ? "#2EA8FF" : "#FFB547", 1), r.rx + r.rw - 0.4, y + 0.6, b.z0 + 3);
+    } else {
+      const wx = b.side === "r" ? b.x0 + b.w - 1 : b.x0 + 1;   // 廊下との さかいの かべ
+      if (r.rz > b.z0) K.box(g, 3, 0.55, 0.1, lowM, r.rx + 1.5, y, r.rz);
+      K.box(g, 0.1, 0.55, r.rd - 0.8, lowM, wx, y, r.rz + (r.rd - 0.8) / 2);
+      K.box(g, 0.12, 0.06, 0.8, K.glow(r.lounge ? "#2EA8FF" : "#FFB547", 1), wx, y + 0.6, r.rz + r.rd - 0.4);
+    }
+    const cx = r.rx + r.rw / 2, cz = r.rz + r.rd / 2;
+    if (r.lounge) {
+      K.box(g, r.rw - 0.3, 0.03, r.rd - 0.4, K.glow("#BFE4FF", 0.4), cx, y, cz);
+      const pg = makePet3("shika"); pg.scale.setScalar(0.62); pg.position.set(r.rx + 1.4, y, r.rz + 1.4); pg.rotation.y = 0.6; pg.traverse((m) => { if (m.isMesh) m.castShadow = true; }); g.add(pg);
+      addFurn(g, "sofa", r.rx + 2.9, y, r.rz + 0.8, 0.5); addFurn(g, "plant", r.rx + 0.5, y, r.rz + 0.5, 0.5);
+    } else if (r.who) {
+      if (b.ax === "x") { addFurn(g, "bed", r.rx + 0.6, y, r.rz + 0.9, 0.42, Math.PI / 2); addFurn(g, "lamp", r.rx + 1.6, y, r.rz + 0.45, 0.45); }
+      else { const fx = b.side === "r" ? r.rx + 0.9 : r.rx + 2.1; addFurn(g, "bed", fx, y, r.rz + 0.6, 0.42); addFurn(g, "lamp", fx + 0.5, y, r.rz + 1.6, 0.45); }
+      const R = RES[r.who];
+      if (R.st !== "仕事中") {
+        const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex(R.id), transparent: true, alphaTest: 0.5, opacity: R.st === "ねている" ? 0.75 : 1 }));
+        sp.scale.set(1.15, 1.15, 1); sp.position.set(cx + (b.ax === "x" ? 0.25 : b.side === "r" ? 0.4 : -0.4), y + 0.6, cz + (b.ax === "x" ? 0.5 : 0.2)); sp.userData.res = r.who; g.add(sp); picks.push(sp);
+        bobs.push({ o: sp, y: y + 0.6, ph: hash(r.rx, r.rz) * 6, sleep: R.st === "ねている" });
+      } else if (b.ax === "x") K.box(g, 0.5, 0.36, 0.05, K.mat("#2E6FD8"), cx, y + 0.62, b.z0 + 3.06); else K.box(g, 0.05, 0.36, 0.5, K.mat("#2E6FD8"), (b.side === "r" ? b.x0 + b.w - 1.06 : b.x0 + 0.94), y + 0.62, cz);   // 留守の 札
+    } else addFurn(g, "cushion", cx, y, cz, 0.5);
+    const pk = new THREE.Mesh(new THREE.PlaneGeometry(r.rw, r.rd), new THREE.MeshBasicMaterial({ visible: false })); pk.rotation.x = -Math.PI / 2; pk.position.set(cx, y + 0.02, cz); pk.userData.room = r.no; g.add(pk); picks.push(pk);
+  }
+}
+function addFurn(g, id, x, y, z, s, ry = 0) {
+  const f = F(id); if (!f) return; const fg = new THREE.Group(); f.build(K, fg); fg.scale.setScalar(s); fg.position.set(x, y, z); fg.rotation.y = ry; g.add(fg);
+}
+// 階段の 塔と 通路
+function buildTower(g) {
+  for (let f = TOWER.f0; f <= TOWER.f1; f++) {
+    if (f > S.floor) { ghostBox(g, 1, FH, 2, TOWER.x + 0.5, f * FH, TOWER.z + 1); continue; }
+    const y = f * FH;
+    if (f < S.floor) { K.box(g, 1, FH, 2, K.mat("#B8BCC8"), TOWER.x + 0.5, y, TOWER.z + 1); K.box(g, 0.04, 1.2, 0.2, K.glow("#FFE3A3", 0.5), TOWER.x + 1.02, y + 0.2, TOWER.z + 1); }
+    else { for (let k = 0; k < 4; k++) K.box(g, 0.9, 0.16 + k * 0.16, 0.45, K.mat("#B8C4DE"), TOWER.x + 0.5, y, TOWER.z + 0.3 + k * 0.45); K.box(g, 1, 0.2, 2, K.mat("#C9D3EA"), TOWER.x + 0.5, y - 0.2, TOWER.z + 1); }
+  }
+  for (const w of WALKS) {
+    if (w.f > S.floor) continue;
+    const y = w.f * FH, op = w.f === S.floor;
+    for (const [x, z] of w.cells) { if (solidAt(x, z, w.f) && !(x === TOWER.x)) continue; K.box(g, 1, 0.2, 1, K.mat(op ? "#D4DCEC" : "#C9D3EA"), x + 0.5, y - 0.2, z + 0.5); if (op) K.box(g, 1, 0.36, 0.06, K.mat("#9EA6C0"), x + 0.5, y, z + 0.97); }
+  }
+  for (const e of EXST) {   // 外階段（下の 階に 段、上の 階に 出口の わく）
+    if (e.f === S.floor) { for (let k = 0; k < 4; k++) K.box(g, 0.8, 0.12 + k * 0.32, 0.22, K.mat("#7A8090"), e.x + 0.5, e.f * FH, e.z + 0.15 + k * 0.22); K.box(g, 0.06, 1.6, 0.06, K.mat("#7A8090"), e.x + 0.1, e.f * FH, e.z + 0.9); }
+    if (e.f + 1 === S.floor) { const m = K.box(g, 0.9, 0.04, 0.9, K.glow("#FFB547", 0.8), e.x + 0.5, (e.f + 1) * FH + 0.02, e.z + 0.5); m.castShadow = false; }
+  }
+  const pipe = K.mat("#8A90A0");   // はう 配管
+  for (const [x, z, y, lx, lz] of [[-1.5, 5.1, 2.4, 3, 0.1], [6.1, -1.5, 1.2, 0.1, 3], [-2.6, -4, 5.0, 0.1, 3], [12.1, -1, 7.0, 0.1, 2], [-7, -0.9, 8.4, 3, 0.1]]) if (y < (S.floor + 1) * FH) K.box(g, lx, 0.1, lz, pipe, x, y, z).castShadow = false;
+}
+
+// 防衛中：敵の 道（入口 → いちばん 近い 道で プライベートラウンジへ・6 回目）と 次の 1 歩
+const seg = (f, pts) => pts.map(([x, z]) => ({ f, x, z }));
+const line = (f, x0, x1, z) => { const a = []; for (let x = x0; x0 <= x1 ? x <= x1 : x >= x1; x += x0 <= x1 ? 1 : -1) a.push([x, z]); return seg(f, a); };
+const PATH = [
+  { f: 0, x: -10, z: 4 }, ...line(0, -9, 1, 4), ...seg(0, [[1, 3], [1, 2], [1, 1], [1, 0], [1, -1]]),   // 土台の 廊下 → 階段 → 塔
+  { f: 1, x: 1, z: -1 }, { f: 2, x: 1, z: -1 }, { f: 3, x: 1, z: -1 },                                 // 塔を 4 階へ
+  ...seg(3, [[0, -1], [-1, -1], [-2, -1], [-3, -1], [-3, -2]]),                                        // 通路で C の 廊下 → 交わる 所の 外階段
+  ...seg(4, [[-3, -2], [-2, -2], [-1, -2], [-1, -3]]),                                                 // E の 5 階 → 右はしの 階段
+  ...seg(5, [[-1, -3], [-1, -2]]), ...line(5, -2, -8, -2),                                             // E の 6 階を 左へ → 外階段
+  ...seg(6, [[-8, -2], [-8, -1], [-9, -1]]),                                                           // G の 7 階 → 前の 階段
+  ...seg(7, [[-9, -1], [-8, -1], [-8, -2], [-8, -3], [-8, -4], [-8, -5], [-8, -6], [-9, -6]]),         // てっぺんの プライベートラウンジ
+];
+const LOUNGE_STEP = PATH.length - 1;
+function startDef(note) {
+  Object.assign(S, { mode: "def", tab: null, turn: 1, sel: null, cmd: {}, picked: null, floor: 0, note, pan: { x: 0, z: 0 } }); hidePop();
+  const pos = [0, 5, 27, 40];   // 赤ひげ船長は 入口、下っぱは 1 階の 廊下と 5 階、オウムは 7 階
+  S.foes = note.foes.map((id, i) => ({ id, step: pos[i] ?? i * 2, alive: true }));
+  render();
+}
+function buildDef(g) {
+  for (let i = 0; i < PATH.length - 1; i++) {
+    const a = PATH[i], b = PATH[i + 1]; if (a.f !== b.f || a.f !== S.floor) continue;
+    const ax = a.x + 0.5, az = a.z + 0.5, bx = b.x + 0.5, bz = b.z + 0.5, y = a.f * FH + 0.03;
+    const len = Math.hypot(bx - ax, bz - az), m = K.box(g, 0.14, 0.03, len, K.glow("#FF3A4A", 1.5), (ax + bx) / 2, y, (az + bz) / 2); m.rotation.y = Math.atan2(bx - ax, bz - az); m.castShadow = false;
+  }
+  for (const fo of S.foes.filter((f) => f.alive)) {
+    const c = PATH[fo.step], n = PATH[Math.min(fo.step + 1, LOUNGE_STEP)];
+    if (c.f === S.floor) {
+      const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex(fo.id), transparent: true, alphaTest: 0.5 }));
+      const big = /boss/.test(fo.id) ? 1.5 : 1.15; sp.scale.set(big, big, 1); sp.position.set(c.x + 0.5, c.f * FH + 0.65, c.z + 0.5); g.add(sp);
+      const ring = new THREE.Mesh(new THREE.RingGeometry(0.32, 0.44, 20), new THREE.MeshBasicMaterial({ color: "#FF3A4A" })); ring.rotation.x = -Math.PI / 2; ring.position.set(c.x + 0.5, c.f * FH + 0.04, c.z + 0.5); g.add(ring);
+    }
+    if (n.f === S.floor && n !== c) {
+      const mk = new THREE.Mesh(new THREE.PlaneGeometry(0.86, 0.86), new THREE.MeshBasicMaterial({ color: "#FF3A4A", transparent: true, opacity: 0.32, depthWrite: false })); mk.rotation.x = -Math.PI / 2; mk.position.set(n.x + 0.5, n.f * FH + 0.05, n.z + 0.5); g.add(mk);
+      if (n.f === c.f) { const ar = new THREE.Mesh(new THREE.ConeGeometry(0.16, 0.34, 3), K.glow("#FF3A4A", 1.4)); ar.rotation.x = Math.PI / 2; ar.rotation.z = -Math.atan2(n.x - c.x, n.z - c.z); ar.position.set(n.x + 0.5, n.f * FH + 0.2, n.z + 0.5); g.add(ar); }
+    }
+  }
+  for (const [who, c] of Object.entries(S.cmd)) {   // 待ち伏せ・出撃の 印（ドアの 前の 廊下）
+    const r = roomOf(who); if (!r || r.f !== S.floor || c === "待機") continue;
+    const mk = new THREE.Mesh(new THREE.PlaneGeometry(0.86, 0.86), new THREE.MeshBasicMaterial({ color: c === "待ち伏せ" ? "#FFB547" : "#22CC88", transparent: true, opacity: 0.6, depthWrite: false }));
+    mk.rotation.x = -Math.PI / 2; mk.position.set(r.door[0] + 0.5, r.f * FH + 0.05, r.door[1] + 0.5); g.add(mk);
+  }
+}
+
+function buildWorld() {
+  if (world) scene.remove(world); picks.length = 0; bobs.length = 0; blinks.length = 0;
+  world = new THREE.Group(); scene.add(world);
+  const def = S.mode === "def";
+  scene.background = new THREE.Color(def ? "#141A33" : "#F6F8FC");
+  scene.children.filter((o) => o.isLight).forEach((l) => scene.remove(l));
+  scene.add(new THREE.HemisphereLight(def ? "#8EA0FF" : "#FFFFFF", def ? "#1B2340" : "#C9D3EA", def ? 1.0 : 1.5));
+  const sun = new THREE.DirectionalLight(def ? "#B8C4FF" : "#FFF4E0", def ? 0.9 : 1.3); sun.position.set(8, 20, 10); sun.castShadow = true;
+  sun.shadow.mapSize.set(2048, 2048); Object.assign(sun.shadow.camera, { left: -20, right: 20, top: 20, bottom: -20, far: 80 }); sun.shadow.bias = -0.0005; scene.add(sun);
+  K.box(world, 36, 0.3, 22, K.mat(def ? "#1E2648" : "#D8DEEA"), 0, -0.5, -2);   // 地面（ヘイヴンの 区画）
+  for (const [x, z] of [[-10.5, 5.5], [3.5, 5.5], [-13, 3.5], [14, 1.5], [7, -7], [-13, -8]]) { K.box(world, 0.08, 1.4, 0.08, K.mat("#5A6478"), x, -0.2, z); K.box(world, 0.24, 0.12, 0.24, K.glow("#FFE3A3", 1.2), x, 1.2, z); }
+  K.box(world, 1.2, 0.04, 1.2, K.glow("#FFB547", 0.6), -9.6, -0.22, 4.5);   // 入口の しるし
+  for (const b of BLOCKS) buildBlock(b, world);
+  buildTower(world);
+  if (def) buildDef(world);
+  fit();
+}
+function fit() {
+  const w = view.clientWidth, h = view.clientHeight, asp = w / h, phone = asp < 1;
+  // 防衛中は いま 見て いる 階の 敵の 道の まんなかへ（道の ない 階は 建物の まんなか）
+  const onF = S.mode === "def" ? PATH.filter((c) => c.f === S.floor) : [], fx = onF.length ? onF.reduce((a, c) => a + c.x, 0) / onF.length + 0.5 : 0, fz = onF.length ? onF.reduce((a, c) => a + c.z, 0) / onF.length + 0.5 : -2;
+  const tgt = new THREE.Vector3(fx + S.pan.x, S.mode === "def" ? S.floor * FH + 0.4 : S.floor * FH * 0.6 + 3.0, fz + S.pan.z);
+  cam.position.set(tgt.x + 20, tgt.y + 17, tgt.z + 20); cam.lookAt(tgt);
+  const s = S.mode === "def" ? Math.max(6, 6.8 / asp) : phone ? Math.max(9.6, 6.8 / asp) : Math.max(12.8, 14 / asp), off = S.mode === "def" ? (phone ? 0.34 : 0.2) : 0.1;
+  Object.assign(cam, { left: -s * asp, right: s * asp, top: s * (1 - off), bottom: -s * (1 + off) }); cam.updateProjectionMatrix(); cam.updateMatrixWorld();
+  renderer.setSize(w, h, false);
+}
+addEventListener("resize", () => { fit(); });
+const clock = new THREE.Clock();
+renderer.setAnimationLoop(() => {
+  const tm = clock.getElapsedTime();
+  for (const b of bobs) b.o.position.y = b.y + (b.sleep ? 0 : Math.abs(Math.sin(tm * 2 + b.ph)) * 0.08);
+  for (const l of blinks) l.visible = Math.sin(tm * 3) > -0.3;
+  renderer.render(scene, cam);
+});
+
+// 押す・ひっぱって 動かす（大きな 建物なので 見る 所を ずらせる）
+const ray = new THREE.Raycaster();
+let drag = null;
+view.addEventListener("pointerdown", (e) => { if (e.target === renderer.domElement) drag = { x: e.clientX, y: e.clientY, px: S.pan.x, pz: S.pan.z, moved: false }; });
+view.addEventListener("pointermove", (e) => {
+  if (!drag) return; const dx = e.clientX - drag.x, dy = e.clientY - drag.y; if (Math.hypot(dx, dy) > 6) drag.moved = true; if (!drag.moved) return;
+  const k = (cam.right - cam.left) / view.clientWidth;   // 画面の 1 px ＝ 世界の k
+  S.pan.x = drag.px - (dx * 0.707 + dy * 0.82) * k; S.pan.z = drag.pz - (-dx * 0.707 + dy * 0.82) * k; fit();
+});
+view.addEventListener("pointerup", (e) => {
+  const d = drag; drag = null;
+  if (e.target !== renderer.domElement || (d && d.moved)) return;
+  const r = renderer.domElement.getBoundingClientRect(), p = new THREE.Vector2(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1);
+  ray.setFromCamera(p, cam);
+  const hit = ray.intersectObjects(picks, false)[0];
+  if (!hit) { hidePop(); return; }
+  if (hit.object.userData.tower) { if (S.mode === "home") { S.tab = "tower"; hidePop(); renderDock(); renderPanel(); } return; }
+  const who = hit.object.userData.res || ROOMS.find((x) => x.no === hit.object.userData.room)?.who;
+  if (S.mode === "def") { if (who && RES[who].st !== "仕事中") { S.sel = who; renderCmd(); } return; }
+  showPop(hit.object.userData.res ? roomOf(who) : ROOMS.find((x) => x.no === hit.object.userData.room), e.clientX - r.left, e.clientY - r.top);
+});
+
+// ---------- 画面 ----------
+const $ = (id) => document.getElementById(id);
+const IC = {
+  res: `<svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="7" r="3.6" fill="currentColor"/><path d="M3.5 17.5c.8-3.6 3.4-5.4 6.5-5.4s5.7 1.8 6.5 5.4Z" fill="currentColor"/></svg>`,
+  build: `<svg viewBox="0 0 20 20" aria-hidden="true"><path d="M3 17V8l7-5 7 5v9h-5v-5H8v5Z" fill="currentColor"/></svg>`,
+  tower: `<svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 7 6.5 18h1.8l.8-2.6h1.8l.8 2.6h1.8Zm-.4 6.6.4-1.4.4 1.4Z" fill="currentColor"/><circle cx="10" cy="5.4" r="1.6" fill="currentColor"/><path d="M5.6 2.6a6.4 6.4 0 0 0 0 5.6M14.4 2.6a6.4 6.4 0 0 1 0 5.6" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>`,
+  room: `<svg viewBox="0 0 24 24"><path d="M4 9h16v11H4Z" fill="#DCE3F0"/><path d="M4 9h16v3H4Z" fill="#8E6CFF"/><path d="M14 14h3v6h-3Z" fill="#FFB547"/></svg>`,
+  floor: `<svg viewBox="0 0 24 24"><path d="M5 13h14v8H5Z" fill="#DCE3F0"/><path d="M5 4h14v8H5Z" fill="#B9A6FF"/><path d="M11 7h2v3h-2Z" fill="#fff"/></svg>`,
+  bridge: `<svg viewBox="0 0 24 24"><path d="M2 8h5v13H2ZM17 8h5v13h-5Z" fill="#DCE3F0"/><path d="M7 11h10v3H7Z" fill="#2EA8FF"/></svg>`,
+  pom: `<svg viewBox="0 0 24 24"><path d="M5 6h14l2 8-3 6H6l-3-6Z" fill="#5A6478"/><path d="M7 9h10v3H7Z" fill="#FF3A4A"/></svg>`,
+};
+function toast(s) { const el = $("toast"); el.textContent = t(s); el.classList.add("on"); clearTimeout(toast.t); toast.t = setTimeout(() => el.classList.remove("on"), 1800); }
+function hidePop() { $("pop").hidden = true; }
+function stChip(R) { const c = R.st === "病気" ? "sick" : R.st === "仕事中" ? "out" : ""; return `<span class="st ${c}">${R.st}</span>${R.kid ? `<span class="st kid">子</span>` : ""}${R.mine ? `<span class="st mine">自分の 子</span>` : ""}`; }
+function meter(v) { return `<div class="meter">満足度<i><em style="width:${v}%;background:${satColor(v)}"></em></i><b>${v}%</b></div>`; }
+function showPop(r, x, y) {
+  if (!r) return hidePop();
+  const el = $("pop"); let h;
+  if (r.lounge) h = `<div class="hd"><b>プライベートラウンジ</b><button class="x" aria-label="閉じる">×</button></div><div class="sub">MONO ペットが いる</div><a class="go" href="lounge-room.html">ラウンジへ</a>`;
+  else if (!r.who) h = `<div class="hd"><div><b>${r.no}号室</b><span>空き部屋</span></div><button class="x" aria-label="閉じる">×</button></div><button class="go" data-act="want">入居希望を 見る</button>`;
+  else {
+    const R = RES[r.who], away = R.st === "仕事中";
+    h = `<div class="hd"><img src="${spriteURL(R.id)}" alt=""><div><b>${R.name}</b><span>Lv${R.lv}・${r.no}号室</span></div><button class="x" aria-label="閉じる">×</button></div>
+      <div>${stChip(R)}</div>${meter(R.sat)}<div class="meter">家賃<span></span><b>${R.rent}／日</b></div>
+      <button class="go" data-act="care" ${away ? "disabled" : ""}>${R.st === "病気" ? "看病する" : "世話する"}</button>${away ? `<p class="why">夜に 帰る</p>` : ""}`;
+  }
+  el.innerHTML = h; el.hidden = false; S.picked = r;
+  const W = view.clientWidth, H = view.clientHeight, pw = el.offsetWidth, ph = el.offsetHeight;
+  el.style.left = `${Math.max(10, Math.min(W - pw - 10, x - pw / 2))}px`; el.style.top = `${Math.max(10, Math.min(H - ph - 84, y - ph - 16))}px`;
+}
+$("pop").addEventListener("click", (e) => {
+  const b = e.target.closest("button"); if (!b) return;
+  if (b.classList.contains("x")) return hidePop();
+  if (b.dataset.act === "want") { hidePop(); S.tab = "res"; S.sub = "want"; renderPanel(); renderDock(); }
+  if (b.dataset.act === "care") { const R = RES[S.picked.who]; R.sat = Math.min(100, R.sat + 5); if (R.st === "病気" && R.sat >= 40) R.st = "在宅"; toast("世話した（満足度 +5）"); showPop(S.picked, parseFloat($("pop").style.left) + 118, parseFloat($("pop").style.top) + $("pop").offsetHeight + 16); }
+});
+
+function renderTop() {
+  const def = S.mode === "def";
+  document.body.classList.toggle("def", def);
+  $("ttl").textContent = def ? "防衛中" : "集合住宅";
+  const alive = S.foes.filter((f) => f.alive).length;
+  $("turn").hidden = !def; $("turn").textContent = def ? `${t("ターン")} ${S.turn}・${t("敵")} ${alive}` : "";
+  $("wings").hidden = true;   // 1 つの 建物なので 棟の チップは ない（2026-11-12 鹿さんの カード「1個の集合住宅を幾何学的に接ぎ木」）
+  $("floors").hidden = def;   // 階は 6 階まで あるので ▲ いまの 階 ▼
+  $("floors").innerHTML = `<button data-f="${Math.min(TOP, S.floor + 1)}" ${S.floor >= TOP ? "disabled" : ""} aria-label="上の 階">▲</button><b>${S.floor + 1}F</b><button data-f="${Math.max(0, S.floor - 1)}" ${S.floor <= 0 ? "disabled" : ""} aria-label="下の 階">▼</button>`;
+}
+$("floors").addEventListener("click", (e) => { const b = e.target.closest("[data-f]"); if (!b || b.disabled) return; S.floor = +b.dataset.f; hidePop(); render(); });
+
+function renderDock() {
+  const def = S.mode === "def"; $("dock").hidden = def;
+  if (def) return;
+  const items = [["res", "住人", IC.res, WANT.length], ["build", "増築", IC.build, 0], ["tower", "電波塔", IC.tower, NOTES.length]];
+  $("dock").innerHTML = items.map(([k, n, ic, c]) => `<button data-tab="${k}" class="${S.tab === k ? "on" : ""}" aria-expanded="${S.tab === k}">${ic}${n}${c ? `<span class="dot">${c}</span>` : ""}</button>`).join("");
+}
+$("dock").addEventListener("click", (e) => { const b = e.target.closest("[data-tab]"); if (!b) return; S.tab = S.tab === b.dataset.tab ? null : b.dataset.tab; if (S.tab === "res") S.sub = "res"; hidePop(); renderDock(); renderPanel(); });
+
+function renderPanel() {
+  const el = $("panel"), on = S.mode === "home" && !!S.tab;
+  el.hidden = !on; $("main").classList.toggle("side", on && innerWidth > 760);
+  if (!on) { fit(); return; }
+  const close = `<button class="x" data-close aria-label="閉じる">×</button>`;
+  if (S.tab === "res") {
+    const all = Object.keys(RES).filter((k) => roomOf(k));
+    const head = `<h2>住人${close}</h2><div class="seg"><button class="${S.sub === "res" ? "on" : ""}" data-sub="res">住人<b>${all.length}</b></button><button class="${S.sub === "want" ? "on" : ""}" data-sub="want">入居希望<b>${WANT.length}</b></button></div>`;
+    if (S.sub === "res") {
+      const cnt = (st) => all.filter((k) => st === "all" || RES[k].st === st).length;
+      let ks = all.filter((k) => S.filt === "all" || RES[k].st === S.filt);
+      ks.sort((a, b) => (S.sort === "sat" ? RES[a].sat - RES[b].sat : RES[b].lv - RES[a].lv));
+      el.innerHTML = head + `<div class="filters"><div class="row"><span>状態</span>${[["all", "ぜんぶ"], ...STS.map((s) => [s, s])].filter(([k]) => cnt(k) > 0).map(([k, n]) => `<button class="${S.filt === k ? "on" : ""}" data-filt="${k}">${n}<b>${cnt(k)}</b></button>`).join("")}</div>
+        <div class="row"><span>ならべる</span>${[["sat", "満足度が 低い"], ["lv", "Lv"]].map(([k, n]) => `<button class="${S.sort === k ? "on" : ""}" data-sort="${k}">${n}</button>`).join("")}</div></div>
+        <div class="list">${ks.map((k) => { const R = RES[k], r = roomOf(k); return `<button class="item ${S.picked?.who === k ? "on" : ""}" data-who="${k}"><img src="${spriteURL(R.id)}" alt=""><div><div class="nm"><b>${R.name}</b><small>Lv${R.lv}</small>${R.st !== "在宅" ? stChip({ st: R.st }) : ""}</div><div class="sub">${r.no}号室</div>${meter(R.sat)}</div></button>`; }).join("")}</div>`;
+    } else {
+      const free = ROOMS.find((r) => !r.who && !r.lounge);
+      el.innerHTML = head + `<div class="list">${WANT.map((w, i) => `<div class="card"><div class="t"><img src="${spriteURL(w.id)}" alt="" style="width:40px;height:40px;image-rendering:pixelated"><div><b>${w.name}</b><div class="from">Lv${w.lv}</div></div></div>
+        <div class="cost">希望の 家賃 <b>${w.rent}／日</b></div><button class="go" data-in="${i}" ${free ? "" : "disabled"}>${free ? `${free.no}号室に 入れる` : "空き部屋が ない"}</button></div>`).join("")}</div>
+        <button class="sm" data-reroll>掲示板を かえる・アメジスト 1</button>`;
+    }
+  } else if (S.tab === "build") {
+    el.innerHTML = `<h2>増築${close}</h2><div class="list">${BUILD.map((b, i) => `<div class="card"><div class="t"><span class="mk">${IC[b.icon]}</span><b>${b.t}</b></div><div class="cost">クレジット <b>${fmt(b.cost)}</b></div><button class="go" data-build="${i}">置く 場所を えらぶ</button></div>`).join("")}</div>`;
+  } else {
+    el.innerHTML = `<h2>電波塔${close}</h2><div class="list">${NOTES.map((n, i) => `<div class="card"><div class="t"><b>${n.t}</b><span class="stars" aria-label="強さ ${n.star}">${"★".repeat(n.star)}${"☆".repeat(5 - n.star)}</span></div><div class="from">${n.from}</div>
+      <div class="foes">${n.foes ? n.foes.map((id) => `<img src="${spriteURL(id)}" alt="">`).join("") : IC.pom.replace("<svg", '<svg width="32" height="32"')}<span>${n.foes ? `${n.foes.length} 体` : `POM ${n.pom} 機`}・${n.lv}</span></div>
+      <div class="rw"><span>勝ち <b>+${fmt(n.win)}</b>・シグナル <b>${n.sg}</b></span><span class="lose">負け <b>−${fmt(n.lose)}</b></span></div>
+      <button class="go" data-note="${i}">迎え撃つ</button></div>`).join("")}</div>`;
+  }
+  fit();
+}
+$("panel").addEventListener("click", (e) => {
+  const b = e.target.closest("button"); if (!b) return;
+  if ("close" in b.dataset) { S.tab = null; renderDock(); renderPanel(); return; }
+  if (b.dataset.sub) { S.sub = b.dataset.sub; renderPanel(); return; }
+  if (b.dataset.filt) { S.filt = b.dataset.filt; renderPanel(); return; }
+  if (b.dataset.sort) { S.sort = b.dataset.sort; renderPanel(); return; }
+  if (b.dataset.who) {   // えらんだ 住人の 棟と 階へ 動いて 窓を 出す
+    const r = roomOf(b.dataset.who); S.floor = r.f; S.pan = { x: r.rx + r.rw / 2, z: r.rz + r.rd / 2 + 2 }; if (innerWidth <= 760) S.tab = null;
+    render();
+    const v = new THREE.Vector3(r.rx + r.rw / 2, r.f * FH + 0.8, r.rz + r.rd / 2).project(cam);
+    showPop(r, ((v.x + 1) / 2) * view.clientWidth, ((1 - v.y) / 2) * view.clientHeight); renderPanel(); return;
+  }
+  if (b.dataset.in) { const w = WANT[+b.dataset.in], free = ROOMS.find((r) => !r.who && !r.lounge); if (!free) return;
+    const who = w.id + "@" + free.no; RES[who] = { id: w.id, name: w.name, lv: w.lv, sat: 60, rent: w.rent, st: "在宅", type: "アタッカー" }; free.who = who; WANT.splice(+b.dataset.in, 1); S.sub = "res"; S.floor = free.f; toast(`${w.name}が 入居した`); render(); return; }
+  if ("reroll" in b.dataset) { toast("掲示板を かえた（見本）"); return; }
+  if (b.dataset.build) { toast("置く 場所を えらぶ（見本）"); return; }
+  if (b.dataset.note) { startDef(NOTES[+b.dataset.note].foes ? NOTES[+b.dataset.note] : NOTES[0]); return; }
+});
+
+// 防衛中の 指示（出撃・待機・移動・待ち伏せ。役割で できる ことが かわる・5 回目）
+// 指示（研究ノート 21 回目）：出撃・待機・移動・待ち伏せは みんな できて、型ごとに 得意な 動きを 1 つ。戦いの 途中は 部屋へ 退避できる（AGI の くらべっこ）
+const SPECIAL = { アタッカー: ["突撃", "1 ターンに 2 マス 進む（見本）"], ディフェンダー: ["ふさぐ", "廊下を ふさいで 敵を 止める（見本）"], テクニシャン: ["足止め", "となりの マスの 敵に デバフ（見本）"],
+  キャスター: ["遠くから", "2 マス 先の 敵とも 戦える（見本）"], ヒーラー: ["回復", "となりの 部屋の 住人を 回復（見本）"] };
+function renderCmd() {
+  const el = $("cmd"), def = S.mode === "def"; el.hidden = !def; $("mini").hidden = !def;
+  if (!def) return;
+  const end = `<button class="end" data-end>ターン おわり</button>`;
+  if (!S.sel) { el.innerHTML = `<div class="who"><span class="hint">住人を えらぶ</span></div>${end}`; }
+  else {
+    const R = RES[S.sel], r = roomOf(S.sel), sp = SPECIAL[R.type] || ["", ""];
+    el.innerHTML = `<div class="who"><img src="${spriteURL(R.id)}" alt=""><div style="min-width:0"><b>${R.name}</b><span>${R.type}・${r.no}号室</span></div></div>
+      <div class="acts">${["出撃", "待機", "移動", "待ち伏せ", sp[0], "退避"].map((c, i) => `<button data-c="${c}" class="${S.cmd[S.sel] === c ? "on" : ""}${i === 4 ? " sp" : ""}">${c}</button>`).join("")}</div>${end}`;
+  }
+  renderMini();
+}
+$("cmd").addEventListener("click", (e) => {
+  const b = e.target.closest("button"); if (!b) return;
+  if (b.dataset.c) {
+    const c = b.dataset.c, sp = SPECIAL[RES[S.sel].type];
+    S.cmd[S.sel] = c;
+    if (c === "移動") toast("移動する マスを えらぶ（見本）");
+    else if (sp && c === sp[0]) toast(sp[1]);
+    else if (c === "退避") toast("部屋へ 退避（AGI の くらべっこ・見本）");
+    buildWorld(); renderCmd(); return;
+  }
+  if ("end" in b.dataset) endTurn();
+});
+function endTurn() {
+  // 敵は みんな 1 歩（6 回目）。待ち伏せ・出撃の 住人の ドアの 前を 通ると ぶつかって いつもの ガンビットで 戦う（見本は 住人が 勝つ）
+  const guards = Object.entries(S.cmd).filter(([, c]) => c === "待ち伏せ" || c === "出撃").map(([who, c]) => { const r = roomOf(who); return { f: r.f, x: r.door[0], z: r.door[1], c }; });
+  let msg = null;
+  for (const fo of S.foes.filter((f) => f.alive)) {
+    fo.step = Math.min(fo.step + 1, LOUNGE_STEP);
+    const c = PATH[fo.step];
+    const g = guards.find((g) => g.f === c.f && Math.abs(g.x - c.x) + Math.abs(g.z - c.z) <= (g.c === "出撃" ? 1 : 0));
+    if (g) { fo.alive = false; msg = g.c === "待ち伏せ" ? "待ち伏せ！ チャージで 戦う" : "出撃した 住人が 戦う"; }
+    else if (fo.step === LOUNGE_STEP) { fo.alive = false; msg = "MONO ペットが 戦う"; }
+  }
+  S.turn++;
+  if (msg && !S.shownBattle && msg.startsWith("待ち伏せ")) { S.shownBattle = true; render(); showBattles(DEMO); return; }
+  if (msg) toast(msg);
+  if (!S.foes.some((f) => f.alive)) { win(); return; }
+  render();
+}
+// ---------- 戦いの 画面（研究ノート 21 回目）----------
+// 敵の 次の 1 歩に 住人が いると 戦い。マス目の 1 ターンで 1 手ずつ（AGI の 順・ガンビット）。敵の 上下左右の 子は すぐ 加勢（片方 4 体まで・敵も）。
+// 待ち伏せからは チャージ。見本は 決まった 台本（数は 仮）
+const DEMO = [
+  { f: 0, res: [
+      { id: "e_hare", name: "ホーンラビット", hp: 60, max: 60, tg: ["左の部屋", "チャージ"] },
+      { id: "e_watch", name: "コボルト", hp: 70, max: 70, tg: ["前", "加勢"] },
+      { id: "t_hare_watch", name: "ツノミハリ", hp: 40, max: 52, tg: ["右の部屋", "加勢"] }],
+    foes: [
+      { id: "e_boss_redbeard", name: "赤ひげ船長", hp: 320, max: 320, boss: true, tg: [] },
+      { id: "e_pirate", name: "海賊の下っぱ", hp: 90, max: 90, tg: ["うしろ", "加勢"] }],
+    steps: [["r0", "f0", "ホップキック", 84], ["f1", "r2", "カトラス斬り", 22], ["r2", "f1", "足払い", 30], ["f0", "r1", "船長のサーベル", 26], ["r1", "f0", "盾で殴る", 21]] },
+  { f: 4, res: [{ id: "e3_tombcat", name: "墓守ネコ", hp: 80, max: 80, tg: ["2 マス 先"] }],
+    foes: [{ id: "e_pirate", name: "海賊の下っぱ", hp: 18, max: 90, tg: [] }],
+    steps: [["r0", "f0", "こうげき", 22]] },
+];
+// 格子の マス [列, 段]（列 1 ＝ 前〈まん中より〉・2 ＝ うしろ、段 1 ＝ 奥・2 ＝ 手前）。前・うしろ・うしろ の 順で ずらして 並べる
+const SLOT = [[1, 2], [2, 1], [2, 2], [1, 1]], SLOT1 = [[1, 1], [2, 1]];   // SLOT1 は 片側 2 体まで（1 段で 大きく）
+let BQ = [], BI = 0, btTimer = null, btStep = 0;
+function showBattles(list) { BQ = list.map((b) => JSON.parse(JSON.stringify(b))); BI = 0; hidePop(); openBattle(); }
+function fighterHTML(u, side, i, one, solo) {
+  const [c, r] = (one ? SLOT1 : SLOT)[i], col = side === "l" ? 3 - c : c, area = solo ? "1 / 1 / 2 / 3" : `${r} / ${col}`;   // 片側 1 体なら 2 列ぶん 使って 大きく
+  return `<div class="fighter ${side}${u.boss ? " boss" : ""}${solo ? " solo" : ""}" id="ft-${side === "l" ? "r" : "f"}${i}" style="grid-area:${area}">
+    <div class="tg">${u.tg.map((t) => `<em class="${t === "チャージ" ? "ch" : ""}">${t}</em>`).join("")}</div>
+    <span class="nm">${u.name}</span><div class="hp"><i style="width:${Math.round((u.hp / u.max) * 100)}%"></i></div>
+    <img src="${spriteURL(u.id)}" alt=""></div>`;
+}
+function openBattle() {
+  const B = BQ[BI], el = $("bt"), one = B.res.length <= 2 && B.foes.length <= 2; clearTimeout(btTimer); btStep = 0;
+  el.innerHTML = `<div class="bh"><b>戦い ${BI + 1}/${BQ.length}</b><span>${B.f + 1}F 廊下</span></div>
+    <div class="field${one ? " one" : ""}"><span class="lamp" style="left:20%"></span><span class="lamp" style="left:62%"></span>
+      <span class="door" style="left:14%"><i>${B.f + 1}01</i></span><span class="door" style="left:44%"><i>${B.f + 1}02</i></span><span class="door" style="left:76%"><i>${B.f + 1}03</i></span>
+      <span class="tile" style="top:72%"></span><span class="tile" style="top:86%"></span>
+      <div class="side">${B.res.map((u, i) => fighterHTML(u, "l", i, one, B.res.length === 1)).join("")}</div><div class="side">${B.foes.map((u, i) => fighterHTML(u, "r", i, one, B.foes.length === 1)).join("")}</div></div>
+    <div class="bf"><p id="btlog"><span>ターン ${S.turn}</span></p><button data-bt>${BI + 1 < BQ.length ? "次の 戦い" : "建物へ もどる"}</button></div>`;
+  el.hidden = false; document.body.classList.add("td-bt");
+  btTimer = setTimeout(playStep, 650);
+}
+const unit = (B, k) => (k[0] === "r" ? B.res : B.foes)[+k.slice(1)];
+function playStep(instant) {
+  const B = BQ[BI]; if (btStep >= B.steps.length) return;
+  const [a, tg, sk, dmg] = B.steps[btStep++], A = unit(B, a), T = unit(B, tg), aEl = $("ft-" + a), tEl = $("ft-" + tg);
+  T.hp = Math.max(0, T.hp - dmg);
+  if (!instant) { aEl.classList.add("act"); setTimeout(() => aEl.classList.remove("act"), 420); }
+  tEl.querySelector(".hp i").style.width = Math.round((T.hp / T.max) * 100) + "%";
+  if (!instant) { const d = document.createElement("span"); d.className = "dmg"; d.textContent = dmg; tEl.appendChild(d); setTimeout(() => d.remove(), 1000); }
+  const down = T.hp === 0, tag = a === "r0" && A.tg.includes("チャージ") && btStep === 1;
+  if (down) { tEl.classList.add("out"); tEl.querySelector(".tg").innerHTML = `<em>${tg[0] === "r" ? "力つきた" : "たおした"}</em>`; }
+  if (tag) { aEl.querySelector(".tg em.ch")?.remove(); }
+  $("btlog").innerHTML = `<b>${A.name}</b><span>${sk}${tag ? "（チャージ）" : ""}</span><span>→</span><b>${T.name}</b><em>${dmg}</em>${down ? `<span>${tg[0] === "r" ? "力つきた" : "たおした"}</span>` : ""}`;
+
+  if (!instant && btStep < B.steps.length) btTimer = setTimeout(() => playStep(), 1100);
+}
+$("bt").addEventListener("click", (e) => {
+  if (!e.target.closest("[data-bt]")) return;
+  const B = BQ[BI];
+  if (btStep < B.steps.length) { clearTimeout(btTimer); while (btStep < B.steps.length) playStep(true); return; }   // 再生中なら この 戦いの 1 手を 先に 終える
+  if (BI + 1 < BQ.length) { BI++; openBattle(); } else { $("bt").hidden = true; document.body.classList.remove("td-bt"); render(); }
+});
+function win() {
+  const n = S.note; render();
+  $("result").innerHTML = `<div><b>守りきった</b><p>クレジット <em>+${fmt(n.win)}</em><br>シグナル <em>+${n.sg}</em></p><button class="go" data-back>もどる</button></div>`; $("result").hidden = false;
+}
+$("result").addEventListener("click", (e) => { if (e.target.closest("[data-back]")) { $("result").hidden = true; Object.assign(S, { mode: "home", floor: 7, sel: null, cmd: {}, foes: [], pan: { x: 0, z: 0 } }); render(); } });
+// 右上の 小さな 地図（どの 階に 敵が いるか。押すと その 階へ）。1 つの 建物なので 階の 列だけ
+function renderMini() {
+  const W = 120, ch = 16, base = 4 + (TOP + 1) * (ch + 3);
+  let svg = `<svg viewBox="0 0 ${W} ${base + 2}" role="img" aria-label="小さな 地図">`;
+  for (let f = 0; f <= TOP; f++) {
+    const y = base - (f + 1) * (ch + 3), on = S.floor === f, n = S.foes.filter((fo) => fo.alive && PATH[fo.step].f === f).length;
+    const wpx = 40 + (BLOCKS.filter((b) => f >= b.f0 && f < b.f0 + b.h).reduce((a, b) => a + b.w * b.d, 0) / 3.2);   // 階の 広さで 横の 長さ
+    svg += `<g data-mf="${f}" style="cursor:pointer"><rect x="${(W - wpx) / 2}" y="${y}" width="${wpx}" height="${ch}" rx="4" fill="${on ? "#3A4A8A" : "#232C55"}" stroke="${on ? "#8EA0FF" : "#3A4478"}" stroke-width="1.2"/>`;
+    svg += `<text x="${(W - wpx) / 2 + 6}" y="${y + ch - 4}" fill="#B8C4FF" font-size="10" font-weight="700">${f + 1}F</text>`;
+    for (let k = 0; k < n; k++) svg += `<circle cx="${(W - wpx) / 2 + 30 + k * 8}" cy="${y + ch / 2}" r="3" fill="#FF3A4A"/>`;
+    if (f === TOP) svg += `<path d="M${(W + wpx) / 2 - 10} ${y + 3}l1.8 3.6 3.9.4-2.9 2.6.9 3.8-3.7-2.1-3.7 2.1.9-3.8-2.9-2.6 3.9-.4Z" fill="#7CC8FF"/>`;
+    svg += `</g>`;
+  }
+  $("mini").innerHTML = svg + `</svg>`;
+}
+$("mini").addEventListener("click", (e) => { const g = e.target.closest("[data-mf]"); if (!g) return; S.floor = +g.dataset.mf; render(); });
+
+function render() { renderTop(); renderDock(); renderPanel(); renderCmd(); buildWorld(); }
+if (S.mode === "def") startDef(NOTES[0]); else render();
+if (new URLSearchParams(location.search).has("bt")) showBattles(DEMO);   // ?bt：試しの 2 戦から 始める（最後の「建物へ もどる」で 建物へ）
+window.__td = { showBattles, DEMO, S, render, startDef, NOTES, RES, keyOf: (id) => Object.keys(RES).find((k) => RES[k].id === id) };
+</script>
+</body>
+</html>
