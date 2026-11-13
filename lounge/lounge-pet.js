@@ -107,9 +107,20 @@ export function petGrow(rec, b) {
 }
 // サブツリー（研究した 敵の ツリー）を 付ける・はずす。はずした ツリーの SP は もどる
 // クローラーの 精鋭の ツリー：解析 100%（その 精鋭の 解析コード CODE_NEED こ）で サブの 枠に 付けられる（2026-11-13 鹿さんの カード「③ 精鋭の ツリー」。決め「コードだけで サブツリーに できる（ペット みんな）」）
-// 解析の 数は クローラーの 進み（rec.crawl.save.codes。精鋭の 名前 → 数）
-export const eliteOpen = (rec, id) => has(ELITE_TREES, id) && ((((rec.crawl || {}).save || {}).codes || {})[ELITE_TREES[id].enemy] || 0) >= CODE_NEED;
+// 解析の 数は 門番が 数えた rec.crawl.cc（精鋭の 名前 → 数。lounge-crawl.js。ブラウザの save.codes は 使わない）
+export const eliteOpen = (rec, id) => has(ELITE_TREES, id) && ((((rec.crawl || {}).cc) || {})[ELITE_TREES[id].enemy] || 0) >= CODE_NEED;
 export const eliteSubs = (rec) => Object.keys(ELITE_TREES).filter((id) => eliteOpen(rec, id));
+// 開いて いない 精鋭の サブは 外す（その SP は もどる）。記録を 読む たびに（viewer の load）。2026-11-13：門番で 数える 前に 付けた 物を 外す
+export function eliteTidy(rec) {
+  let n = 0;
+  for (const p of rec.pets || []) {
+    const shut = (p.subs || []).filter((id) => has(ELITE_TREES, id) && !eliteOpen(rec, id));
+    if (!shut.length) continue;
+    for (const id of shut) if (p.taken) delete p.taken[id];
+    p.subs = p.subs.filter((id) => !shut.includes(id)); n += shut.length;
+  }
+  return n > 0;   // 外した 物が あれば true（init で しまう）
+}
 export function petSub(rec, b) {
   const pet = petOf(rec);
   if (!pet || !pet.type) return { ok: false, why: "さきに 職業を えらんで" };

@@ -13,7 +13,7 @@ import { crawlSave, crawlView, bandOf } from "./lounge-crawl.js";   // クロー
 import { orderSign, orderView } from "./lounge-order.js";   // 島 3 の 夜の 招待（誓約書に サイン → クローラーと ボーダーゾーンが 開く。2026-11-11）
 import { essExtract, essMake, essSell, essView } from "./lounge-essence.js";   // モンスターの エッセンス（抽出・つくる・売る。2026-11-11）
 import { reqPostPlan, takeFor, items } from "./lounge-req.js";
-import { petTake, petGrow, petSub, petStat, petGambits, petPassives, petStyle, equipSet, equipBest, respecPlan, fighterOf, spTotal, spUsed, freeTotal, RESET_PRICE, eliteSubs } from "./lounge-pet.js";   // eliteSubs：クローラーで 解析 100% の 精鋭の サブツリー（2026-11-13 M-031。帯の 補正 bandOf は lounge-crawl.js）
+import { petTake, petGrow, petSub, petStat, petGambits, petPassives, petStyle, equipSet, equipBest, respecPlan, fighterOf, spTotal, spUsed, freeTotal, RESET_PRICE, eliteSubs, eliteTidy } from "./lounge-pet.js";   // eliteSubs：クローラーで 解析 100% の 精鋭の サブツリー（2026-11-13 M-031。帯の 補正 bandOf は lounge-crawl.js）
 import { freeIsAuto } from "./trees.js";   // 手で 振る ポイントが 自動か
 import "./warm.js";   // 派遣の 計算を 温めて おく（はじめの 1 回が おそく ならない ように）
 import { relayEntry, mythicNote } from "./lounge-relay.js";   // 配信の 中継（鹿物語の ランキングの 窓）に あずける 派遣の 材料
@@ -76,7 +76,7 @@ export class Viewer {
       rec.ledger ||= emptyLedger();
       // 大工事の あとの リセット（lounge-reset.js）：消す 前に 記録を まるごと 写す（bak:reset番号。いちど 写したら 上書きしない＝リセット前の 形を 残す）
       if (resetDue(rec)) { const k = "bak:reset" + RESET_GEN; if (!(await this.state.storage.get(k))) await this.state.storage.put(k, { at: Date.now(), rec: JSON.parse(JSON.stringify(rec)) }); resetOld(rec); await this.save(rec); }
-      ensure(rec);
+      ensure(rec); this.tidied = eliteTidy(rec);   // 開いて いない 精鋭の サブを 外す（解析は 門番が 数える。2026-11-13）。外したら init で しまう
     }
     return rec;
   }
@@ -95,7 +95,7 @@ export class Viewer {
     const had = await this.load(), now = Date.now();
     const rec = had || { v: 1, id: who.id, login: who.login, name: who.login, nameAt: 0, names: [], at: now, resetGen: RESET_GEN,
       room: { size: N, light: "day", items: STARTER_ROOM.map((x) => ({ ...x })) }, own: { furniture: { ...STARTER_OWN } }, ops: [], ledger: emptyLedger() };
-    let changed = !had;
+    let changed = !had || !!this.tidied;
     if (who.login && who.login !== rec.login) { rec.login = who.login; changed = true; }
     if (who.name) { if (who.name !== rec.name && rec.name && !rec.names.includes(rec.name)) rec.names = [...rec.names, rec.name].slice(-10); rec.name = who.name; rec.nameAt = now; changed = true; }
     if (who.wallet) { const n = rec.ledger.sent.length; trimSent(rec.ledger, who.wallet); if (n !== rec.ledger.sent.length) changed = true; }
