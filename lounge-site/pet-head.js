@@ -16,13 +16,14 @@ export function fillPet(ME) {
 }
 
 // ペットの 画面の タブ：押すと その 画面へ（えらんで いる タブは そのまま）
-const TAB_URL = { ステータス: "status.html", スキルツリー: "skilltree.html", ガンビット: "gambit.html", 装備: "equip.html", 冒険: "dungeon.html", なかま: "tame.html", "Orbit Arena": "arena.html", ボーダーゾーン: "border.html" };
+const TAB_URL = { ステータス: "status.html", スキルツリー: "skilltree.html", ガンビット: "gambit.html", 装備: "equip.html", 冒険: "dungeon.html", なかま: "tame.html", "Orbit Arena": "arena.html", ボーダーゾーン: "border.html", クローラー: "crawler.html" };
 // 2 段の タブ（2026-11-05：7 こは 多い → 鹿さんの カード「おすすめで」で 案A）。上の 段は 3 つの 組、下の 段は えらんだ 組の 中身
-const TAB_GROUPS = [["育てる", ["ステータス", "スキルツリー", "装備", "ガンビット"]], ["出かける", ["冒険", "Orbit Arena", "ボーダーゾーン"]], ["なかま", ["なかま"]]];
+const TAB_GROUPS = [["育てる", ["ステータス", "スキルツリー", "装備", "ガンビット"]], ["出かける", ["冒険", "Orbit Arena", "ボーダーゾーン", "クローラー"]], ["なかま", ["なかま"]]];
 const GROUP_CSS = `.tabs.grp { margin-bottom:6px; } .tabs.sub { margin-top:0; gap:6px; }
 .tabs.sub button { padding:7px 14px; font-size:13px; min-height:32px; }
 .tabs.sub button[aria-selected="true"] { background:#fff; color:var(--ink, #1B2340); border-color:var(--ink, #1B2340); box-shadow:none; }
-@media (max-width:420px) { .tabs.sub button { padding:7px 10px; } }`;
+@media (max-width:420px) { .tabs.sub button { padding:7px 10px; } }
+@media (max-width:380px) { .tabs.sub { gap:4px; } .tabs.sub button { padding:7px 8px; font-size:12px; } }`;   // 出かける が 4 つ（クローラー）でも 本番の 小さな 枠（358）に 入る
 function groupTabs(nav) {
   if (nav.dataset.grp) return;
   const btns = [...nav.querySelectorAll('[role="tab"]')], by = Object.fromEntries(btns.map((b) => [b.textContent.trim(), b]));
@@ -45,6 +46,7 @@ export function linkTabs(root = document) {
     const names = [...nav.querySelectorAll('[role="tab"]')].map((b) => b.textContent.trim());
     if (names.includes("ステータス") && !names.includes("Orbit Arena")) { const b = document.createElement("button"); b.setAttribute("role", "tab"); b.setAttribute("aria-selected", "false"); b.textContent = "Orbit Arena"; nav.appendChild(b); }
     if (names.includes("ステータス") && !names.includes("ボーダーゾーン")) { const b = document.createElement("button"); b.setAttribute("role", "tab"); b.setAttribute("aria-selected", "false"); b.textContent = "ボーダーゾーン"; nav.appendChild(b); }   // ボーダーゾーン（2026-11-05）：出かける の 組に
+    if (names.includes("ステータス") && !names.includes("クローラー")) { const b = document.createElement("button"); b.setAttribute("role", "tab"); b.setAttribute("aria-selected", "false"); b.textContent = "クローラー"; nav.appendChild(b); }   // 2026-11-14 鹿さん「トップからクローラーにアクセスできるようにし」→ 出かける の 4 つ目
   });
   root.querySelectorAll('.tabs[role="tablist"]').forEach(groupTabs);
   root.querySelectorAll('.tabs [role="tab"]').forEach((b) => {

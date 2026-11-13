@@ -19,7 +19,7 @@ export const WORDS = {
   "入れません": "Can't enter", "門番に つながりません。もう 1 回 押して ください": "Can't reach the server. Please tap again",
   "たしかめて います…": "Checking…", "配信の 画面の 返事を 待って います。つぎに 開いた ときに 決まります": "Waiting for the stream to reply. It'll be settled next time you open this",
   // ---- ペットの 見出し（pet-head.js） ----
-  "ペット": "Pet", "ステータス": "Stats", "スキルツリー": "Skill Tree", "ガンビット": "Gambits", "装備": "Gear", "冒険": "Adventure", "なかま": "Companions", "闘技場": "Orbit Arena",
+  "ペット": "Pet", "ステータス": "Stats", "スキルツリー": "Skill Tree", "ガンビット": "Gambits", "装備": "Gear", "冒険": "Adventure", "クローラー": "Crawler", "なかま": "Companions", "闘技場": "Orbit Arena",
   "もう 1 回 開いて ください": "Please open it again", "MONO LINK で ログイン": "Log in to MONO LINK", "まず 1 匹目を むかえる": "Welcome your first pet",
   "9 つの 質問で、いっしょに 冒険する 子が 決まります": "9 questions decide who will adventure with you", "得意なツリー": "Best tree", "ドロウジー": "Drowsy", "パンクチュアル": "Punctual", "スウィフト": "Swift", "スタティック": "Static", "タフ": "Tough", "トランスルーセント": "Translucent", "スパイキー": "Spiky", "グリーディ": "Greedy", "マリアージュ": "Mariage", "スプーキー": "Spooky", "シャープ": "Sharp", "フレキシブル": "Flexible", "職業（どれも 同じくらい 合う）": "Jobs (all suit it about the same)", "性格診断へ": "Take the personality quiz",
   "冒険の 画面で えらべます": "You can choose it on the Adventure screen", "職業を えらぶ": "Choose a job",

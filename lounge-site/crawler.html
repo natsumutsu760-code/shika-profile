@@ -9,242 +9,359 @@
      ブリーフィングの 声は ./voice/、ペットの 絵は ./img/brief-pet-*.webp（tools/crawler-ch1.mjs が video/public/briefing/ から 写す。本番の 門番は /lounge/ の 中しか 出さない）
      ?m=<id> で その ミッションから・?reset=1 で 進みを 消す・?all=1 で 解析ツリー 32 本を ぜんぶ 見る（確かめ 用）・?intro=1 で はじまりを もう一度
      報酬・ドロップは crawler-reward.js、解析ツリーの 中身は crawler-analysis-data.js（tools/crawler-analysis.mjs が 資料から 写す） -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=BIZ+UDGothic:wght@400;700&family=JetBrains+Mono:wght@400;700;800&display=swap" rel="stylesheet">
 <style>
-  :root { --bg: #0E0F12; --panel: #16181D; --line: #ffffff1c; --ink: #E8E6E0; --sub: #9C9BA4; --amber: #E8C25A; --alert: #E5484D; --ok: #5BCB7E; --blue: #7FB6E8; }
+  /* 見た目：LINKER の 業務端末（2026-11-14 鹿さん「UIを全体的にクローラー仕様に変えて、UIデザインをもっとどうにかしてください。ダサいので。」→ カード「案A LINKER の業務端末」）。
+     第 1 章の ブリーフィング（REGISTRY：明るい 灰 × 黒の 1 色・強調は 白黒 反転・字は 等幅）と 同じ 決め。色は 筐体・紙・墨・鉛・罫 の 5 つ。差し色は 依頼主の 会社の 帯だけ
+     迷宮の 3D の 窓は 暗い まま、まわりを 端末の 筐体に する。前の 黄色（--amber）は やめた */
+  :root {
+    --case: #C4C6C0; --paper: #E4E5E0; --well: #CDCFC9; --ink: #121412; --lead: #565B56; --rule: #9DA19A;
+    --alert: #B23A2E;   /* 敵の HP・危ない 知らせ だけ */
+    --scene-ink: #E4E5E0; --scene-sub: #B9BCB5;   /* 3D の 上の 字 */
+    --sub: var(--lead); --line: var(--rule); --panel: var(--paper); --bg: var(--case); --ok: var(--ink); --amber: var(--ink); --blue: var(--lead);   /* 前の 名前（JS の 文の 中で 使って いる） */
+    --mono: "JetBrains Mono", "BIZ UDGothic", ui-monospace, monospace;
+    --jp: "BIZ UDGothic", "JetBrains Mono", "Hiragino Sans", sans-serif;
+  }
   * { box-sizing: border-box; }
-  html, body { margin: 0; background: var(--bg); color: var(--ink); font-family: "Hiragino Sans", "Noto Sans JP", system-ui, sans-serif; }
+  html, body { margin: 0; background: var(--case); color: var(--ink); font-family: var(--jp); }
   button { font: inherit; color: inherit; cursor: pointer; }
-  button:focus-visible { outline: 2px solid var(--amber); outline-offset: 2px; }
+  button:focus-visible, a:focus-visible, summary:focus-visible, input:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
   [hidden] { display: none !important; }
-  .mono { font-family: ui-monospace, "JetBrains Mono", Menlo, monospace; letter-spacing: 0.06em; }
+  .mono { font-family: var(--mono); letter-spacing: 0.04em; font-variant-numeric: tabular-nums; }
   .scr { min-height: 100vh; }
-  /* はじめ・掲示板 */
-  #home { max-width: 980px; margin: 0 auto; padding: 28px 16px 60px; }
-  #home h1 { font-size: 22px; letter-spacing: 0.14em; margin: 0 0 4px; }
-  #home .lead { color: var(--sub); font-size: 13px; margin: 0 0 22px; }
-  .row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
-  .chip { padding: 7px 12px; border-radius: 999px; border: 1px solid var(--line); background: var(--panel); font-size: 13px; }
-  .chip[aria-pressed="true"] { background: var(--ink); color: var(--bg); border-color: var(--ink); }
-  .prog { margin: 22px 0 10px; display: flex; justify-content: space-between; align-items: baseline; gap: 12px; flex-wrap: wrap; }
-  .prog b { font-size: 15px; }
-  .prog span { color: var(--sub); font-size: 12px; }
-  .board { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px; }
-  .stage { grid-column: 1 / -1; color: var(--sub); font-size: 12px; letter-spacing: 0.2em; margin-top: 12px; }
-  .card { text-align: left; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; display: grid; gap: 6px; }
-  .card:hover { border-color: #ffffff44; }
-  .card .no { color: var(--sub); font-size: 12px; }
-  .card .t { font-size: 17px; font-weight: 700; letter-spacing: 0.08em; }
-  .card .c { font-size: 12px; color: var(--sub); }
-  .card .k { font-size: 12px; color: var(--amber); }
-  .card.done { opacity: 0.6; }
-  .card.done .no::after { content: "  ✓ 済み"; color: var(--ok); }
-  /* ブリーフィング */
-  #brief { max-width: 760px; margin: 0 auto; padding: 28px 16px 60px; }
-  #brief .head { color: var(--sub); font-size: 12px; letter-spacing: 0.16em; }
-  #brief h2 { margin: 6px 0 18px; font-size: 26px; letter-spacing: 0.12em; }
-  .bvid { display: block; width: 100%; aspect-ratio: 16 / 9; margin: 0 0 14px; border-radius: 10px; background: #000; }   /* ブリーフィングの 動画（Remotion。2026-11-12） */
-  .bvid[hidden] { display: none; }
-  .sec { border-top: 1px solid var(--line); padding: 12px 0; opacity: 0.45; transition: opacity 0.3s; }
-  .sec.on { opacity: 1; }
-  .sec .l { color: var(--sub); font-size: 11px; letter-spacing: 0.2em; }
-  .sec .tt { font-size: 16px; font-weight: 700; letter-spacing: 0.08em; margin: 2px 0 6px; }
-  .sec p { margin: 4px 0; font-size: 15px; line-height: 1.7; white-space: pre-line; }
-  .sec p.on { color: var(--amber); }
-  .actions { display: flex; gap: 10px; margin-top: 22px; flex-wrap: wrap; }
-  .btn { padding: 11px 20px; border-radius: 8px; border: 1px solid var(--line); background: var(--panel); font-size: 15px; }
-  .btn.main { background: var(--amber); color: #1A1508; border-color: var(--amber); font-weight: 700; }
-  /* 歩く・戦う */
-  #play { display: grid; grid-template-columns: 1fr 300px; height: 100vh; }
-  #stage { position: relative; overflow: hidden; display: flex; flex-direction: column; }
-  #viewbox { position: relative; flex: 1; min-height: 0; }
-  #view { width: 100%; height: 100%; display: block; }
-  #obj { position: absolute; left: 14px; top: 12px; right: 14px; display: flex; justify-content: space-between; gap: 10px; pointer-events: none; }
-  #obj .o { background: #0E0F12C8; border-left: 3px solid var(--amber); padding: 6px 10px; font-size: 13px; line-height: 1.5; }
-  #obj .o .b { color: var(--sub); font-size: 12px; }
-  #obj .turn { background: #0E0F12C8; padding: 6px 10px; font-size: 13px; height: fit-content; }
-  #talk { position: absolute; left: 50%; bottom: 14px; transform: translateX(-50%); width: min(720px, calc(100% - 28px)); background: #0E0F12E0; border: 1px solid var(--line); border-radius: 8px; padding: 9px 14px; display: flex; gap: 12px; align-items: center; font-size: 15px; }
-  #talk .em { width: 26px; height: 26px; border-radius: 6px; flex-shrink: 0; display: grid; place-items: center; font-size: 11px; font-weight: 700; color: #111; }
-  #talk .who { color: var(--sub); font-size: 11px; letter-spacing: 0.12em; }
-  #note { position: absolute; left: 14px; bottom: 70px; font-size: 13px; color: var(--sub); background: #0E0F12B0; padding: 4px 8px; border-radius: 4px; }
-  #pad { display: flex; align-items: center; justify-content: center; gap: 18px; padding: 12px; border-top: 1px solid var(--line); background: var(--panel); flex-wrap: wrap; }
-  .dpad { display: grid; grid-template-columns: 56px 56px 56px; grid-template-rows: 48px 48px; gap: 6px; }
-  .dpad button, .side button { border: 1px solid var(--line); background: #1E2128; border-radius: 8px; font-size: 18px; }
-  .dpad button[aria-pressed="true"] { background: var(--amber); color: #1A1508; }
-  .side { display: grid; gap: 6px; }
-  .side button { padding: 8px 14px; font-size: 14px; }
-  #done { padding: 14px 26px; border-radius: 10px; background: var(--amber); color: #1A1508; border: 0; font-weight: 700; font-size: 16px; }
-  #done:disabled { opacity: 0.35; cursor: default; }
-  .opt { font-size: 12px; color: var(--sub); display: flex; gap: 6px; align-items: center; }
-  #rail { border-left: 1px solid var(--line); background: var(--panel); padding: 12px; overflow: auto; display: grid; gap: 14px; align-content: start; }
-  #rail h3 { margin: 0 0 6px; font-size: 11px; color: var(--sub); letter-spacing: 0.2em; font-weight: 400; }
-  #map { width: 100%; image-rendering: pixelated; display: block; border-radius: 6px; }
-  .mate { display: grid; grid-template-columns: 1fr auto; gap: 2px 8px; padding: 8px 0; border-top: 1px solid var(--line); font-size: 13px; }
-  .bar { grid-column: 1 / -1; height: 5px; background: #ffffff14; border-radius: 3px; overflow: hidden; }
-  .bar i { display: block; height: 100%; background: var(--ok); }
-  .bar.mp i { background: var(--blue); }
-  .items { display: flex; gap: 6px; flex-wrap: wrap; }
-  .items button { font-size: 12px; padding: 5px 8px; border-radius: 6px; border: 1px solid var(--line); background: #1E2128; }
-  /* 戦い（正面に 敵）。案A（2026-11-13 鹿さんの カード）：敵が 主役・味方は 上に 細く・記録は 字幕・コマンドは いつも 4 つ（攻撃・技▸・道具▸・防御）。
-     鹿さん「接敵した時に行動一覧だけ表示されて臨場感を損なうと考えなかったのですか？」→ 配信の 下の 小さな 枠（スマホで 約 358×380）では ボタン 11 こで 高さを 使い切り、敵が 枠の 外に 出て いた。
-     敵の 絵は 残った 高さに 合わせて のびちぢみ する（決まった px に しない）。迷宮の 3D は 戦いの あいだも 敵の 後ろに 見せる */
-  #fight { position: absolute; inset: 0; background: linear-gradient(#0E0F1200 35%, #0E0F12B0 80%); display: flex; flex-direction: column; }
-  body.fighting #obj, body.fighting #note, body.fighting #talk { visibility: hidden; }
-  body.fighting #pad { display: none; }   /* 戦いの あいだは 移動の 板を しまい、その 高さも 迷宮の 窓に 回す */
-  /* 味方：上に 細く（名前・HP・MP・状態の 札） */
-  #fight .mates { display: flex; gap: 6px; padding: 8px 8px 0; flex-shrink: 0; }
-  #fight .mates .m { flex: 1; min-width: 0; max-width: 300px; background: #0E0F12C8; border: 1px solid #ffffff14; border-radius: 8px; padding: 5px 8px; display: grid; gap: 3px; font-size: 12px; }
-  #fight .mates .m .hd { display: flex; justify-content: space-between; gap: 6px; white-space: nowrap; }
-  #fight .mates .m .hd b { overflow: hidden; text-overflow: ellipsis; }
-  #fight .mates .m .st { color: var(--sub); }
-  #fight .mates .m .bar { height: 4px; }
-  /* 敵：残った 高さ いっぱいに。横は 数で 上限（1 体ほど 大きい） */
-  #foes { --fs: 220px; flex: 1; min-height: 0; display: flex; flex-direction: column; justify-content: flex-end; padding: 4px 12px 2px; }
-  #foes.n1 { --fs: 320px; } #foes.n2 { --fs: 270px; } #foes.n3 { --fs: 220px; } #foes.n4 { --fs: 180px; }
-  .frow { flex: 1; min-height: 0; max-height: calc(var(--fs) + 70px); display: flex; justify-content: center; align-items: stretch; gap: 16px; }
-  .foe { flex: 0 1 var(--fs); min-width: 0; min-height: 0; display: flex; flex-direction: column; align-items: center; gap: 3px; background: none; border: 0; padding: 2px; }
-  .foe .pic { position: relative; flex: 1; width: 100%; min-height: 48px; }
-  .foe .pic img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; image-rendering: pixelated; filter: drop-shadow(0 6px 10px #0008); }
-  .foe.pet .pic img { image-rendering: auto; }
-  .foe .nm { font-size: 14px; letter-spacing: 0.08em; white-space: nowrap; max-width: 100%; overflow: hidden; text-overflow: ellipsis; text-shadow: 0 1px 3px #000; }
-  .foe .bar { width: 80%; max-width: calc(var(--fs) * 0.8); height: 6px; flex-shrink: 0; }
-  /* バフ・デバフの 札（2026-11-12 鹿さん「デバフバフが可視化されているかも確認してください。」→ 前は 出て いなかった）。デバフが 先・色は battle.html の 名札と 同じ 分け方 */
-  .fxs { display: flex; flex-wrap: wrap; justify-content: center; gap: 4px; max-width: 100%; }
-  .fxs i { font-style: normal; font-size: 12px; line-height: 1; padding: 4px 7px; border-radius: 999px; white-space: nowrap; color: #D5D8E6; background: #0E0F12B0; border: 1px solid #ffffff2E; }
-  .fxs i small { font-size: 12px; opacity: 0.75; }
-  .fxs i.y { color: #FFE45C; background: #2A2610D0; border-color: #FFE45C66; }
-  .fxs i.p { color: #D2B4FF; background: #221A30D0; border-color: #C9A5FF66; }
-  .fxs i.b { color: #9FD6FF; background: #142230D0; border-color: #8FD0FF66; }
-  .fxs i.g { color: #C3E27A; background: #1C2414D0; border-color: #B5D66A66; }
-  .fxs i.r { color: #FF9A80; background: #301A14D0; border-color: #FF8C7366; }
-  .fxs i.up { color: #6FE7AE; background: #12261CD0; border-color: #5EE0A066; }
-  .foe .fxs { min-height: 22px; flex-shrink: 0; }
-  #foes.n3 .foe .fxs, #foes.n4 .foe .fxs { flex-wrap: nowrap; }   /* 札が なくても 1 行ぶん 取って おく（札が 付いた ターンに 絵が 跳ねない） */
-  #fight .mates .m .fxs { justify-content: flex-start; }
-  .foe .warn { font-size: 12px; color: #FF6B6B; letter-spacing: 0.06em; animation: warnb 0.8s steps(2) infinite; flex-shrink: 0; }
-  @keyframes warnb { 50% { opacity: 0.35; } }
-  @media (prefers-reduced-motion: reduce) { .foe .warn { animation: none; } }
-  .foe .part { display: grid; justify-items: center; gap: 2px; font-size: 12px; color: #F5B544; flex-shrink: 0; }
-  .foe .part .bar { width: 90px; }
-  .foe.tgt .nm::before { content: "▶ "; color: var(--amber); }
-  .foe.down { opacity: 0.25; }
-  /* 字幕（精鋭の 台詞と 記録）。記録は 高さを 決めて おき（小さな 枠で 2 行・大きな 画面で 4 行）、最後の 行が 見える */
-  #elite { flex-shrink: 0; text-align: center; font-size: 14px; padding: 0 12px; color: var(--amber); text-shadow: 0 1px 3px #000; }
-  #elite:empty { display: none; }
-  #blog { flex-shrink: 0; height: clamp(38px, 10vh, 78px); overflow: auto; font-size: 13px; line-height: 1.4; color: #D5D8E6; text-shadow: 0 1px 3px #000; padding: 2px 12px 4px; text-align: center; }
-  /* コマンド：いつも 4 つ ＋ オート。技・道具は 押すと 上に 一覧が 出て、えらぶと しまう */
-  #cmd { position: relative; flex-shrink: 0; background: var(--panel); border-top: 1px solid var(--line); padding: 8px; display: flex; gap: 6px; justify-content: center; }
-  .cmds { flex: 1; max-width: 720px; display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
-  .cmds button { min-height: 48px; padding: 4px; border-radius: 8px; border: 1px solid var(--line); background: #1E2128; font-size: 15px; white-space: nowrap; }
-  .cmds button[aria-expanded="true"] { border-color: var(--amber); color: var(--amber); }
-  .cmds button:disabled { opacity: 0.35; cursor: default; }
-  .cmds #bEnd { grid-column: 1 / -1; background: var(--amber); color: #1A1508; border: 0; font-weight: 700; }
-  .autot { display: flex; align-items: center; gap: 4px; padding: 0 10px; min-height: 48px; border-radius: 8px; border: 1px solid var(--line); font-size: 12px; color: var(--sub); cursor: pointer; white-space: nowrap; }
-  .autot:has(input:checked) { color: var(--ok); border-color: var(--ok); }
-  #sub { position: absolute; left: 0; right: 0; bottom: 100%; max-height: calc(100vh - 140px); overflow: auto; background: #15171CF4; border-top: 1px solid var(--line); padding: 8px; display: grid; grid-template-columns: minmax(0, 1fr); gap: 6px; z-index: 3; }
-  #sub[hidden] { display: none; }
-  #sub .hd { display: flex; justify-content: space-between; align-items: center; font-size: 12px; color: var(--sub); letter-spacing: 0.16em; }
-  #sub .hd button { min-width: 36px; min-height: 32px; border-radius: 8px; border: 1px solid var(--line); background: none; font-size: 14px; }
-  #sub .list { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(140px, 100%), 1fr)); gap: 6px; max-width: 720px; width: 100%; margin: 0 auto; }
-  #sub .list button { min-height: 48px; text-align: left; padding: 6px 10px; border-radius: 8px; border: 1px solid var(--line); background: #1E2128; font-size: 14px; }
-  #sub .list button small { display: block; font-size: 12px; color: var(--sub); }
-  #sub .list button:disabled { opacity: 0.35; cursor: default; }
-  #sub .none { font-size: 13px; color: var(--sub); }
-  /* 結果 */
-  #result { max-width: 640px; margin: 0 auto; padding: 60px 16px; text-align: center; }
-  #result h2 { font-size: 30px; letter-spacing: 0.2em; margin: 0 0 10px; }
-  #result .why { color: var(--sub); }
-  #result .order { margin: 26px auto 0; max-width: 520px; text-align: left; border-left: 3px solid #ffffff55; padding: 6px 14px; color: var(--ink); }
-  .rlist { margin: 22px auto 0; max-width: 520px; text-align: left; }
-  .rlist .r { display: flex; justify-content: space-between; gap: 14px; padding: 9px 0; border-top: 1px solid var(--line); font-size: 14px; }
-  .rlist .r > span:first-child { color: var(--sub); flex-shrink: 0; }
-  .rlist .r > span:last-child { text-align: right; }
-  .rlist .pbar { width: 120px; display: inline-block; vertical-align: middle; margin-left: 8px; }
-  /* ホームの タブ（掲示板・解析・持ち物。鹿さんの 決め、2026-11-04 案A） */
-  .top { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; flex-wrap: wrap; }
-  .wallet { font-size: 16px; }
-  .htabs { display: flex; gap: 4px; margin: 4px 0 18px; border-bottom: 1px solid var(--line); }
-  .htabs button { padding: 9px 14px; background: none; border: 0; border-bottom: 2px solid transparent; font-size: 14px; color: var(--sub); display: flex; gap: 6px; align-items: center; }
-  .htabs button[aria-selected="true"] { color: var(--ink); border-bottom-color: var(--amber); }
-  .badge { min-width: 18px; height: 18px; border-radius: 9px; background: var(--amber); color: #1A1508; font-size: 11px; font-weight: 700; display: inline-grid; place-items: center; padding: 0 5px; }
-  .split { display: grid; grid-template-columns: 290px 1fr; gap: 16px; align-items: start; }
-  .alist { display: grid; gap: 8px; }
-  .acard { text-align: left; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; display: grid; gap: 5px; }
-  .acard[aria-pressed="true"] { border-color: var(--amber); }
-  .acard .t { font-weight: 700; letter-spacing: 0.06em; }
-  .s { font-size: 12px; color: var(--sub); }
-  .pbar { height: 6px; background: #ffffff14; border-radius: 3px; overflow: hidden; display: block; }
-  .pbar i { display: block; height: 100%; background: var(--amber); }
-  .adet { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 16px 18px; }
-  .adet h3 { margin: 0; font-size: 22px; letter-spacing: 0.08em; }
-  .adet .desc { font-size: 14px; line-height: 1.7; margin: 10px 0 0; }
-  .adet .state { margin-top: 10px; font-size: 13px; color: var(--amber); }
-  .adet table { width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 12px; }
-  .adet td { padding: 6px 4px; border-top: 1px solid var(--line); vertical-align: top; line-height: 1.5; }
-  .adet td.sl { color: var(--sub); width: 30px; }
-  .adet td.nm { width: 30%; }
-  .adet td.mp { color: var(--blue); width: 52px; text-align: right; white-space: nowrap; }
-  .adet tr.sep td { color: var(--sub); font-size: 11px; letter-spacing: 0.2em; padding-top: 12px; }
-  .adet details { margin-top: 10px; font-size: 13px; color: var(--sub); }
-  details.locked { margin-top: 10px; }
-  details.locked summary { cursor: pointer; color: var(--sub); font-size: 13px; padding: 6px 0; }
-  details.locked div { font-size: 12px; color: var(--sub); line-height: 1.8; }
-  .empty { color: var(--sub); font-size: 14px; line-height: 1.7; padding: 8px 0; }
-  .filt { background: #ffffff08; border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; display: grid; gap: 8px; margin-bottom: 12px; }
-  .filt .row .lab { font-size: 12px; color: var(--sub); min-width: 48px; }
+  .row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+  .s { font-size: 12px; color: var(--lead); }
+  .opt { font-size: 12px; color: var(--lead); display: flex; gap: 6px; align-items: center; }
+  .opt input { accent-color: var(--ink); }
+
+  /* 上の 帯（白黒 反転） */
+  .topbar { background: var(--ink); color: var(--case); display: flex; align-items: center; gap: 10px; padding: 0 12px 0 4px; min-height: 42px; }
+  .topbar > b { font-family: var(--mono); font-weight: 800; letter-spacing: 0.08em; font-size: 15px; flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .topbar .back { width: 36px; height: 36px; border: 0; background: none; color: var(--case); font-size: 22px; line-height: 1; display: grid; place-items: center; }
+  .topbar .tr { display: flex; align-items: center; gap: 10px; }
+  .topbar .wallet { font-family: var(--mono); font-size: 13px; font-weight: 700; }
+  .topbar .term { font-family: var(--mono); font-size: 12px; opacity: 0.7; white-space: nowrap; }
+  .topbar .wallet:not([hidden]) ~ .term { display: none; }
+  @media (max-width: 420px) { .topbar .term { display: none; } }
+
+  /* ボタン：押しこむ キー */
+  .btn { min-height: 44px; padding: 10px 18px; border: 1.5px solid var(--ink); border-radius: 2px; background: var(--paper); font-size: 15px; box-shadow: 0 2px 0 var(--ink); }
+  .btn:active { transform: translateY(2px); box-shadow: none; }
+  .btn.main { background: var(--ink); color: var(--paper); font-weight: 700; }
+  .btn:disabled { opacity: 0.4; cursor: default; transform: none; box-shadow: none; }
+  .chip { min-height: 32px; padding: 5px 12px; border: 1.5px solid var(--ink); border-radius: 2px; background: var(--paper); font-size: 13px; }
+  .chip[aria-pressed="true"] { background: var(--ink); color: var(--paper); }
   .chip:disabled { opacity: 0.35; cursor: default; }
+
+  /* ---- ホーム：左に LINKER の 札、右に フォルダの タブ ---- */
+  #home { padding-bottom: 48px; }
+  .hwrap { max-width: 1120px; margin: 0 auto; padding: 14px 16px 0; display: grid; gap: 14px; }
+  .hwrap > main { min-width: 0; }
+  .idc { display: grid; grid-template-columns: auto 1fr; gap: 3px 12px; align-items: center; }
+  .idc .ph { width: 48px; height: 48px; background: var(--paper); border: 1px solid var(--rule); grid-row: span 2; overflow: hidden; }
+  .idc .ph img { width: 100%; height: 100%; object-fit: contain; display: block; }
+  .idc .nm { font-weight: 700; font-size: 15px; align-self: end; }
+  .idc .lv { font-size: 12px; color: var(--lead); align-self: start; line-height: 1.5; }
+  .idc .nw { white-space: nowrap; }
+  .idc .job { grid-column: 1 / -1; font-size: 12px; }
+  .idc .job summary { cursor: pointer; min-height: 32px; display: flex; align-items: center; color: var(--lead); list-style: none; }
+  .idc .job summary::before { content: "＋"; font-family: var(--mono); font-weight: 700; margin-right: 6px; color: var(--ink); }
+  .idc .job[open] summary::before { content: "－"; }
+  .idc .job .row { gap: 6px; padding-bottom: 6px; }
+  .gauge { grid-column: 1 / -1; display: flex; align-items: center; gap: 10px; margin-top: 4px; font-size: 12px; color: var(--lead); flex-wrap: wrap; }
+  .cells { display: flex; gap: 3px; }
+  .cells i { width: 14px; height: 14px; border: 1.5px solid var(--ink); display: block; }
+  .cells i.on { background: var(--ink); }
+  .gauge .n { color: var(--ink); font-weight: 700; font-size: 13px; }
+  .gauge .st { font-family: var(--mono); font-size: 12px; font-style: normal; border: 1.5px dashed var(--ink); padding: 0 5px; color: var(--ink); }
+  .gauge .st.on { background: var(--ink); color: var(--paper); border-style: solid; }
+  @media (max-width: 420px) { .cells { gap: 2px; } .cells i { width: 11px; height: 11px; } .gauge { gap: 8px; } }
+  @media (min-width: 900px) {
+    .hwrap { grid-template-columns: 280px minmax(0, 1fr); align-items: start; gap: 24px; padding-top: 24px; }
+    .idc { background: var(--paper); border: 1px solid var(--rule); padding: 18px; grid-template-columns: 1fr; position: sticky; top: 16px; }
+    .idc .ph { width: 100%; height: 180px; grid-row: auto; border: 0; background: var(--well); }
+    .idc .nm { font-size: 18px; margin-top: 8px; }
+    .gauge { border-top: 1px dashed var(--rule); padding-top: 12px; margin-top: 10px; }
+    .cells i { width: 18px; height: 18px; }
+  }
+  @media (max-height: 460px) and (max-width: 560px) { .idc .ph { display: none; } .idc { grid-template-columns: 1fr; } .gauge { margin-top: 0; } .hwrap { padding-top: 10px; gap: 10px; } }
+
+  /* フォルダの 見出し（タブ） */
+  .htabs { display: flex; gap: 2px; border-bottom: 2px solid var(--ink); margin-bottom: 12px; }
+  .htabs button { background: transparent; border: 1.5px solid var(--rule); border-bottom: 0; padding: 6px 14px; min-height: 36px; color: var(--lead); font-size: 14px; display: flex; gap: 6px; align-items: center; border-radius: 2px 2px 0 0; }
+  .htabs button[aria-selected="true"] { background: var(--ink); color: var(--case); border-color: var(--ink); font-weight: 700; }
+  .badge { font-family: var(--mono); font-size: 12px; font-weight: 700; border: 1.5px solid currentColor; padding: 0 5px; line-height: 1.4; }
+
+  /* 掲示板：受付中の 段の 依頼票 */
+  .stagehead { display: flex; align-items: baseline; gap: 4px 12px; margin: 0 0 10px; flex-wrap: wrap; }
+  .stagehead h2 { margin: 0; font-size: 15px; background: var(--ink); color: var(--case); padding: 2px 8px; font-weight: 700; }
+  .stagehead span { font-size: 12px; color: var(--lead); }
+  .tickets { display: grid; gap: 10px; }
+  @media (min-width: 900px) { .tickets { grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 14px; } }
+  .tk { --co: var(--ink); display: grid; grid-template-columns: 64px minmax(0, 1fr); text-align: left; background: var(--paper); border: 1px solid var(--rule); padding: 0; position: relative; box-shadow: 0 2px 0 var(--rule); border-radius: 0; }
+  .tk::before { content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 6px; background: var(--co); }
+  .tk > span { display: grid; }
+  .tk .stub { padding: 10px 6px 10px 14px; align-content: space-between; gap: 6px; border-right: 1.5px dashed var(--rule); position: relative; }
+  .tk .stub::before, .tk .stub::after { content: ""; position: absolute; right: -7px; width: 12px; height: 12px; border-radius: 50%; background: var(--case); border: 1px solid var(--rule); }
+  .tk .stub::before { top: -7px; } .tk .stub::after { bottom: -7px; }
+  .tk .no { font-family: var(--mono); font-weight: 800; font-size: 15px; white-space: nowrap; }
+  .tk .kind { font-size: 12px; font-weight: 700; border: 1.5px solid var(--ink); text-align: center; padding: 1px 0; }
+  .tk .body { padding: 10px 12px; gap: 3px; min-width: 0; }
+  .tk .ttl { font-family: var(--mono); font-weight: 800; font-size: 16px; letter-spacing: 0.04em; }
+  .tk .ttl .star { font-style: normal; margin-left: 6px; }
+  .tk .who { font-size: 12px; }
+  .tk .where { font-size: 12px; color: var(--lead); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .tk .pay { font-family: var(--mono); font-weight: 700; font-size: 13px; justify-self: end; margin-top: 2px; }
+  .tk .pay small { font-size: 12px; font-weight: 400; color: var(--lead); margin: 0 3px; }
+  .tk:hover { outline: 2px solid var(--ink); outline-offset: -1px; }
+  .tk:active { transform: translateY(2px); box-shadow: none; }
+  .tk.done { background: var(--well); }
+  .tk .seal { position: absolute; right: 12px; top: 8px; width: 40px; height: 40px; border: 2px solid var(--ink); border-radius: 50%; display: grid; place-items: center; font-weight: 700; font-size: 15px; transform: rotate(-14deg); opacity: 0.75; }
+  @media (min-width: 900px) {
+    .tk { grid-template-columns: 1fr; }
+    .tk .stub { border-right: 0; border-bottom: 1.5px dashed var(--rule); grid-auto-flow: column; justify-content: space-between; align-items: center; padding: 12px 14px 10px 18px; }
+    .tk .stub::before { top: auto; bottom: -7px; left: -7px; right: auto; } .tk .stub::after { bottom: -7px; right: -7px; }
+    .tk .kind { padding: 1px 10px; } .tk .body { padding: 14px 16px 16px 18px; gap: 6px; } .tk .ttl { font-size: 19px; }
+    .tk .seal { top: auto; bottom: 12px; right: auto; left: 18px; }
+  }
+  details.more { margin-top: 12px; border-top: 1px dashed var(--rule); padding-top: 6px; }
+  details.more summary { cursor: pointer; font-size: 13px; min-height: 36px; display: flex; align-items: center; gap: 8px; list-style: none; }
+  details.more summary::before { content: "＋"; font-family: var(--mono); font-weight: 700; }
+  details.more[open] summary::before { content: "－"; }
+  details.more summary b { font-family: var(--mono); }
+  details.more .tickets { margin: 6px 0 4px; }
+
+  /* 解析 */
+  .split { display: grid; grid-template-columns: 290px minmax(0, 1fr); gap: 16px; align-items: start; }
+  .alist { display: grid; gap: 8px; }
+  .acard { text-align: left; background: var(--paper); border: 1px solid var(--rule); border-radius: 0; padding: 10px 12px; display: grid; gap: 5px; box-shadow: 0 2px 0 var(--rule); }
+  .acard[aria-pressed="true"] { border: 2px solid var(--ink); box-shadow: 3px 3px 0 var(--ink); }
+  .acard .t { font-family: var(--mono); font-weight: 800; letter-spacing: 0.04em; }
+  .pbar { height: 8px; background: var(--well); border: 1px solid var(--ink); overflow: hidden; display: block; }
+  .pbar i { display: block; height: 100%; background: var(--ink); }
+  .adet { background: var(--paper); border: 1px solid var(--rule); padding: 16px 18px; }
+  .adet h3 { margin: 0; font-family: var(--mono); font-size: 22px; letter-spacing: 0.04em; }
+  .adet .desc { font-size: 14px; line-height: 1.8; margin: 12px 0 0; }
+  .adet .state { margin-top: 10px; font-size: 13px; display: inline-block; background: var(--ink); color: var(--paper); padding: 2px 8px; }
+  .adet table { width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 12px; }
+  .adet td { padding: 7px 4px; border-top: 1px dashed var(--rule); vertical-align: top; line-height: 1.6; }
+  .adet td.sl { color: var(--lead); width: 30px; font-family: var(--mono); }
+  .adet td.nm { width: 30%; font-weight: 700; }
+  .adet td.mp { color: var(--lead); width: 56px; text-align: right; white-space: nowrap; font-family: var(--mono); }
+  .adet tr.sep td { color: var(--lead); font-size: 12px; padding-top: 14px; border-top: 1.5px solid var(--ink); }
+  .adet details { margin-top: 10px; font-size: 13px; color: var(--lead); }
+  details.locked { margin-top: 10px; }
+  details.locked summary { cursor: pointer; color: var(--lead); font-size: 13px; min-height: 32px; display: flex; align-items: center; }
+  details.locked div { font-size: 12px; color: var(--lead); line-height: 1.8; }
+  .empty { color: var(--lead); font-size: 14px; line-height: 1.8; padding: 8px 0; }
+
+  /* 持ち物 */
+  .filt { background: var(--paper); border: 1px solid var(--rule); padding: 10px 12px; display: grid; gap: 8px; margin-bottom: 12px; }
+  .filt:empty { display: none; }
+  .filt .row .lab { font-size: 12px; color: var(--lead); min-width: 48px; }
   .inv { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 8px; }
-  .inv .it { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; display: grid; gap: 3px; }
+  .inv .it { background: var(--paper); border: 1px solid var(--rule); padding: 10px 12px; display: grid; gap: 3px; }
   .inv .it .h { display: flex; justify-content: space-between; gap: 8px; font-size: 14px; }
   .inv .rec { grid-column: 1 / -1; }
   .inv .rec summary { cursor: pointer; list-style: none; display: grid; gap: 3px; }
   .inv .rec[open] .s { display: none; }
-  .inv .rec p { margin: 6px 0 0; font-size: 14px; line-height: 1.7; }
-  .inv .rec p:first-of-type { color: var(--sub); font-size: 12px; }
+  .inv .rec p { margin: 6px 0 0; font-size: 14px; line-height: 1.8; }
+  .inv .rec p:first-of-type { color: var(--lead); font-size: 12px; }
+  .ghead { grid-column: 1 / -1; font-size: 12px; margin-top: 6px; border-bottom: 1.5px solid var(--ink); padding-bottom: 2px; font-weight: 700; }
+
+  /* ---- ブリーフィング：依頼票を 広げた 書類 ---- */
+  .bwrap { max-width: 760px; margin: 0 auto; padding: 14px 16px 0; }
+  .doc { --co: var(--ink); background: var(--paper); border: 1px solid var(--rule); border-left: 6px solid var(--co); padding: 16px 18px 18px; }
+  #brief .head { color: var(--lead); font-size: 12px; }
+  #brief h2 { margin: 4px 0 6px; font-family: var(--mono); font-weight: 800; font-size: 26px; letter-spacing: 0.04em; }
+  #bPay { margin: 0 0 14px; font-size: 13px; color: var(--ink); border-top: 1px dashed var(--rule); border-bottom: 1px dashed var(--rule); padding: 6px 0; }
+  .bvid { display: block; width: 100%; aspect-ratio: 16 / 9; margin: 0 0 14px; background: #000; border: 2px solid var(--ink); }   /* ブリーフィングの 動画（Remotion。2026-11-12） */
+  .bvid[hidden] { display: none; }
+  .sec { border-top: 1px dashed var(--rule); padding: 12px 0; opacity: 0.45; transition: opacity 0.3s; }
+  .sec.on { opacity: 1; }
+  .sec .l { color: var(--lead); font-size: 12px; }
+  .sec .tt { font-family: var(--mono); font-size: 16px; font-weight: 800; margin: 2px 0 6px; }
+  .sec p { margin: 4px 0; font-size: 15px; line-height: 1.8; white-space: pre-line; }
+  .sec p.on { background: var(--ink); color: var(--paper); box-shadow: -4px 0 0 var(--ink), 4px 0 0 var(--ink); }
+  @media (prefers-reduced-motion: reduce) { .sec { transition: none; } }
+  .actions { display: flex; gap: 8px; flex-wrap: wrap; }
+  #brief .actions { position: sticky; bottom: 0; z-index: 2; background: var(--case); border-top: 2px solid var(--ink); margin-top: 14px; padding: 10px 0 12px; }
+  #brief .actions #accept { flex: 1 1 140px; }
+  @media (max-height: 520px) { #brief .actions { padding: 6px 0 8px; margin-top: 10px; } #brief .actions .btn { min-height: 40px; padding: 6px 14px; } }
+  @media (max-width: 560px) { #back1 { display: none; } }   /* 上の 帯の ‹ と 同じ */
   /* 持ちこみ（出発の 前に 1 人 5 こまで。鹿さんの 決め） */
-  .bring { margin-top: 18px; border-top: 1px solid var(--line); padding-top: 12px; display: grid; gap: 8px; }
-  .bring .hd { display: flex; justify-content: space-between; font-size: 13px; color: var(--sub); }
+  .bring { margin-top: 14px; border-top: 1.5px solid var(--ink); padding-top: 10px; display: grid; gap: 8px; }
+  .bring .hd { display: flex; justify-content: space-between; font-size: 13px; font-weight: 700; }
   .bring .row { gap: 8px; }
-  .bring .itm { display: flex; align-items: center; gap: 6px; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 4px 6px 4px 10px; font-size: 13px; }
-  .bring .itm button { width: 28px; height: 28px; border-radius: 6px; border: 1px solid var(--line); background: #1E2128; }
-  .bring .itm button:disabled { opacity: 0.3; cursor: default; }
-  .bring .itm b { min-width: 14px; text-align: center; font-family: ui-monospace, monospace; }
-  .ghead { grid-column: 1 / -1; color: var(--sub); font-size: 12px; letter-spacing: 0.2em; margin-top: 6px; }
-  /* はじまり（第 1 章の 前：UNKNOWN の 無線 → 誓約書に サイン。鹿さんの 決め、2026-11-04 カードで 案A） */
-  #intro { display: grid; place-items: center; padding: 24px 16px; }
-  /* 本番で 入れない とき（ログインが 切れて いる など） */
-  #gate { min-height: 100vh; display: grid; place-content: center; justify-items: center; gap: 14px; padding: 24px 16px; text-align: center; }
-  #gate h2 { margin: 0; font-size: 22px; } #gate p { margin: 0; color: var(--sub); max-width: 420px; line-height: 1.7; }
-  #gate a { text-decoration: none; } #gate a.btn:not(.main) { color: var(--ink); }   /* ラウンジへ もどる（前は 暗い 地に 青い 字） */
+  .bring .itm { display: flex; align-items: center; gap: 6px; background: var(--case); border: 1px solid var(--rule); padding: 4px 6px 4px 10px; font-size: 13px; }
+  .bring .itm button { width: 32px; height: 32px; border: 1.5px solid var(--ink); border-radius: 2px; background: var(--paper); box-shadow: 0 2px 0 var(--ink); }
+  .bring .itm button:active { transform: translateY(2px); box-shadow: none; }
+  .bring .itm button:disabled { opacity: 0.3; cursor: default; box-shadow: none; }
+  .bring .itm b { min-width: 14px; text-align: center; font-family: var(--mono); }
+
+  /* ---- 歩く・戦う：3D の 窓を 端末の 筐体で かこむ ---- */
+  #play { display: grid; grid-template-columns: minmax(0, 1fr) 300px; height: 100vh; background: var(--case); }
+  #stage { position: relative; overflow: hidden; display: flex; flex-direction: column; }
+  #viewbox { position: relative; flex: 1; min-height: 0; background: #0B0C0B; }
+  #viewbox::after { content: ""; position: absolute; inset: 0; border: 3px solid var(--ink); pointer-events: none; z-index: 4; }
+  #view { width: 100%; height: 100%; display: block; }
+  #obj { position: absolute; left: 12px; top: 12px; right: 12px; display: flex; justify-content: space-between; gap: 10px; pointer-events: none; }
+  #obj .o { background: var(--paper); color: var(--ink); border-left: 4px solid var(--ink); padding: 6px 10px; font-size: 13px; line-height: 1.5; box-shadow: 0 2px 0 #0006; }
+  #obj .o .b { color: var(--lead); font-size: 12px; }
+  #obj .turn { background: var(--ink); color: var(--paper); padding: 6px 10px; font-size: 13px; height: fit-content; white-space: nowrap; }
+  #talk { position: absolute; left: 50%; bottom: 12px; transform: translateX(-50%); width: min(720px, calc(100% - 24px)); background: var(--paper); color: var(--ink); border: 1.5px solid var(--ink); padding: 8px 12px; display: flex; gap: 10px; align-items: center; font-size: 15px; line-height: 1.6; box-shadow: 0 3px 0 #0008; }
+  #talk .em { width: 26px; height: 26px; flex-shrink: 0; display: grid; place-items: center; font-size: 12px; font-weight: 700; color: var(--ink); border: 1.5px solid var(--ink); }
+  #talk .who { color: var(--lead); font-size: 12px; }
+  #note { position: absolute; left: 12px; bottom: 70px; font-size: 13px; color: var(--ink); background: var(--paper); padding: 3px 8px; border-left: 3px solid var(--ink); }
+  #pad { display: flex; align-items: center; justify-content: center; gap: 18px; padding: 12px; border-top: 2px solid var(--ink); background: var(--case); flex-wrap: wrap; }
+  .dpad { display: grid; grid-template-columns: 56px 56px 56px; grid-template-rows: 48px 48px; gap: 6px; }
+  .dpad button, .side button { border: 1.5px solid var(--ink); background: var(--paper); border-radius: 3px; font-size: 18px; box-shadow: 0 3px 0 var(--ink); }
+  .dpad button:active, .side button:active { transform: translateY(3px); box-shadow: none; }
+  .dpad button[aria-pressed="true"] { background: var(--ink); color: var(--paper); }
+  .side { display: grid; gap: 6px; }
+  .side button { padding: 8px 14px; font-size: 14px; min-height: 44px; }
+  #done { min-height: 48px; padding: 12px 24px; border-radius: 2px; background: var(--ink); color: var(--paper); border: 1.5px solid var(--ink); font-weight: 700; font-size: 16px; box-shadow: 0 3px 0 #0007; }
+  #done:active { transform: translateY(3px); box-shadow: none; }
+  #done:disabled { background: transparent; color: var(--lead); border: 1.5px dashed var(--rule); box-shadow: none; cursor: default; transform: none; }
+  #rail { border-left: 2px solid var(--ink); background: var(--case); padding: 12px; overflow: auto; display: grid; gap: 10px; align-content: start; }
+  #rail > div { background: var(--paper); border: 1px solid var(--rule); padding: 10px; }
+  #rail h3 { margin: 0 0 8px; font-size: 12px; font-weight: 700; display: inline-block; background: var(--ink); color: var(--paper); padding: 1px 8px; }
+  #map { width: 100%; image-rendering: pixelated; display: block; border: 2px solid var(--ink); }
+  .mate { display: grid; grid-template-columns: 1fr auto; gap: 3px 8px; padding: 8px 0; border-top: 1px dashed var(--rule); font-size: 13px; }
+  .mate:first-child { border-top: 0; padding-top: 0; }
+  .bar { grid-column: 1 / -1; height: 6px; background: var(--well); border: 1px solid var(--ink); overflow: hidden; }
+  .bar i { display: block; height: 100%; background: var(--ink); }
+  .bar.mp i { background: repeating-linear-gradient(90deg, var(--lead) 0 3px, transparent 3px 5px); }
+  .items { display: flex; gap: 6px; flex-wrap: wrap; }
+  .items button { font-size: 12px; min-height: 32px; padding: 4px 9px; border-radius: 2px; border: 1.5px solid var(--ink); background: var(--case); box-shadow: 0 2px 0 var(--ink); }
+  .items button:active { transform: translateY(2px); box-shadow: none; }
+  #log { color: var(--lead); }
+  #giveup { justify-self: start; }
+
+  /* 戦い（正面に 敵）。案A（2026-11-13 鹿さんの カード）：敵が 主役・味方は 上に 細く・記録は 字幕・コマンドは いつも 4 つ（攻撃・技▸・道具▸・防御）。
+     鹿さん「接敵した時に行動一覧だけ表示されて臨場感を損なうと考えなかったのですか？」→ 配信の 下の 小さな 枠（スマホで 約 358×380）では ボタン 11 こで 高さを 使い切り、敵が 枠の 外に 出て いた。
+     敵の 絵は 残った 高さに 合わせて のびちぢみ する（決まった px に しない）。迷宮の 3D は 戦いの あいだも 敵の 後ろに 見せる */
+  #fight { position: absolute; inset: 0; background: linear-gradient(#0B0C0B00 35%, #0B0C0BB8 80%); display: flex; flex-direction: column; }
+  body.fighting #obj, body.fighting #note, body.fighting #talk { visibility: hidden; }
+  body.fighting #pad { display: none; }   /* 戦いの あいだは 移動の 板を しまい、その 高さも 迷宮の 窓に 回す */
+  /* 味方：上に 細く（名前・HP・MP・状態の 札）。紙の 札 */
+  #fight .mates { display: flex; gap: 6px; padding: 8px 8px 0; flex-shrink: 0; }
+  #fight .mates .m { flex: 1; min-width: 0; max-width: 300px; background: var(--paper); color: var(--ink); border: 1.5px solid var(--ink); padding: 5px 8px; display: grid; gap: 3px; font-size: 12px; }
+  #fight .mates .m .hd { display: flex; justify-content: space-between; gap: 6px; white-space: nowrap; }
+  #fight .mates .m .hd b { overflow: hidden; text-overflow: ellipsis; }
+  #fight .mates .m .st { color: var(--lead); }
+  #fight .mates .m .bar { height: 5px; }
+  /* 敵：残った 高さ いっぱいに。横は 数で 上限（1 体ほど 大きい） */
+  #foes { --fs: 220px; flex: 1; min-height: 0; display: flex; flex-direction: column; justify-content: flex-end; padding: 4px 12px 2px; }
+  #foes.n1 { --fs: 320px; } #foes.n2 { --fs: 270px; } #foes.n3 { --fs: 220px; } #foes.n4 { --fs: 180px; }
+  .frow { flex: 1; min-height: 0; max-height: calc(var(--fs) + 70px); display: flex; justify-content: center; align-items: stretch; gap: 16px; }
+  .foe { flex: 0 1 var(--fs); min-width: 0; min-height: 0; display: flex; flex-direction: column; align-items: center; gap: 3px; background: none; border: 0; padding: 2px; color: var(--scene-ink); }
+  .foe .pic { position: relative; flex: 1; width: 100%; min-height: 48px; }
+  .foe .pic img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; image-rendering: pixelated; filter: drop-shadow(0 6px 10px #0008); }
+  .foe.pet .pic img { image-rendering: auto; }
+  .foe .nm { font-family: var(--mono); font-size: 14px; font-weight: 700; letter-spacing: 0.04em; white-space: nowrap; max-width: 100%; overflow: hidden; text-overflow: ellipsis; text-shadow: 0 1px 3px #000; }
+  .foe .bar { width: 80%; max-width: calc(var(--fs) * 0.8); height: 7px; flex-shrink: 0; background: #0B0C0BB0; border-color: var(--scene-ink); }
+  /* バフ・デバフの 札（2026-11-12 鹿さん「デバフバフが可視化されているかも確認してください。」→ 前は 出て いなかった）。デバフが 先・色は battle.html の 名札と 同じ 分け方 */
+  .fxs { display: flex; flex-wrap: wrap; justify-content: center; gap: 4px; max-width: 100%; }
+  .fxs i { font-style: normal; font-size: 12px; line-height: 1; padding: 4px 6px; border-radius: 2px; white-space: nowrap; color: #D5D8E6; background: #0B0C0BC8; border: 1px solid #ffffff3A; font-family: var(--mono); }
+  .fxs i small { font-size: 12px; opacity: 0.75; }
+  .fxs i.y { color: #FFE45C; background: #2A2610D8; border-color: #FFE45C77; }
+  .fxs i.p { color: #D2B4FF; background: #221A30D8; border-color: #C9A5FF77; }
+  .fxs i.b { color: #9FD6FF; background: #142230D8; border-color: #8FD0FF77; }
+  .fxs i.g { color: #C3E27A; background: #1C2414D8; border-color: #B5D66A77; }
+  .fxs i.r { color: #FF9A80; background: #301A14D8; border-color: #FF8C7377; }
+  .fxs i.up { color: #6FE7AE; background: #12261CD8; border-color: #5EE0A077; }
+  .foe .fxs { min-height: 22px; flex-shrink: 0; }
+  #foes.n3 .foe .fxs, #foes.n4 .foe .fxs { flex-wrap: nowrap; }   /* 札が なくても 1 行ぶん 取って おく（札が 付いた ターンに 絵が 跳ねない） */
+  #fight .mates .m .fxs { justify-content: flex-start; }
+  /* 戦いの エフェクト（crawler-fx.js が あとから 足す 決め）の 上書き：技の 名前の 帯は 紙の 札・受けた 味方の 札は うすい 赤（暗い 赤だと 墨の 字が 読めない） */
+  body #fight .fx-banner { color: var(--ink); background: var(--paper); border: 1.5px solid var(--ink); box-shadow: 0 2px 0 var(--ink); font-weight: 700; }
+  body #fight .mates .m.fx-hit { background: #E7C7C1; }
+  .foe .warn { font-size: 12px; font-weight: 700; color: var(--paper); background: var(--alert); padding: 1px 6px; animation: warnb 0.8s steps(2) infinite; flex-shrink: 0; }
+  @keyframes warnb { 50% { opacity: 0.35; } }
+  @media (prefers-reduced-motion: reduce) { .foe .warn { animation: none; } }
+  .foe .part { display: grid; justify-items: center; gap: 2px; font-size: 12px; color: #F5B544; flex-shrink: 0; }
+  .foe .part .bar { width: 90px; }
+  .foe.tgt .nm { background: var(--paper); color: var(--ink); text-shadow: none; padding: 0 6px; }
+  .foe.tgt .nm::before { content: "▶ "; }
+  .foe.down { opacity: 0.25; }
+  /* 字幕（精鋭の 台詞と 記録）。記録は 高さを 決めて おき（小さな 枠で 2 行・大きな 画面で 4 行）、最後の 行が 見える */
+  #elite { flex-shrink: 0; text-align: center; font-size: 14px; font-weight: 700; padding: 0 12px; color: var(--scene-ink); text-shadow: 0 1px 3px #000; }
+  #elite:empty { display: none; }
+  #blog { flex-shrink: 0; height: clamp(38px, 10vh, 78px); overflow: auto; font-size: 13px; line-height: 1.45; color: var(--scene-sub); text-shadow: 0 1px 3px #000; padding: 2px 12px 4px; text-align: center; }
+  /* コマンド：いつも 4 つ ＋ オート。技・道具は 押すと 上に 一覧が 出て、えらぶと しまう */
+  #cmd { position: relative; flex-shrink: 0; background: var(--case); border-top: 2px solid var(--ink); padding: 8px; display: flex; gap: 6px; justify-content: center; }
+  .cmds { flex: 1; max-width: 720px; display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+  .cmds button { min-height: 48px; padding: 4px; border-radius: 3px; border: 1.5px solid var(--ink); background: var(--paper); color: var(--ink); font-size: 15px; font-weight: 700; white-space: nowrap; box-shadow: 0 3px 0 var(--ink); }
+  .cmds button:active { transform: translateY(3px); box-shadow: none; }
+  .cmds button[aria-expanded="true"] { background: var(--ink); color: var(--paper); }
+  .cmds button:disabled { opacity: 0.35; cursor: default; transform: none; box-shadow: none; }
+  .cmds #bEnd { grid-column: 1 / -1; background: var(--ink); color: var(--paper); }
+  .autot { display: flex; align-items: center; gap: 4px; padding: 0 10px; min-height: 48px; border-radius: 3px; border: 1.5px solid var(--ink); background: var(--case); font-size: 12px; color: var(--ink); cursor: pointer; white-space: nowrap; }
+  .autot input { accent-color: var(--ink); }
+  .autot:has(input:checked) { background: var(--ink); color: var(--paper); }
+  #sub { position: absolute; left: 0; right: 0; bottom: 100%; max-height: calc(100vh - 140px); overflow: auto; background: var(--case); border-top: 2px solid var(--ink); padding: 8px; display: grid; grid-template-columns: minmax(0, 1fr); gap: 6px; z-index: 3; }
+  #sub[hidden] { display: none; }
+  #sub .hd { display: flex; justify-content: space-between; align-items: center; font-size: 12px; color: var(--lead); }
+  #sub .hd button { min-width: 36px; min-height: 32px; border-radius: 2px; border: 1.5px solid var(--ink); background: var(--paper); font-size: 14px; }
+  #sub .list { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(140px, 100%), 1fr)); gap: 6px; max-width: 720px; width: 100%; margin: 0 auto; }
+  #sub .list button { min-height: 48px; text-align: left; padding: 6px 10px; border-radius: 2px; border: 1.5px solid var(--ink); background: var(--paper); font-size: 14px; font-weight: 700; box-shadow: 0 2px 0 var(--ink); }
+  #sub .list button small { display: block; font-size: 12px; color: var(--lead); font-weight: 400; }
+  #sub .list button:disabled { opacity: 0.35; cursor: default; box-shadow: none; }
+  #sub .none { font-size: 13px; color: var(--lead); }
+
+  /* ---- 結果：審査の 記録の 紙 ---- */
+  #result { padding: 24px 16px 48px; }
+  .rsheet { max-width: 640px; margin: 0 auto; background: var(--paper); border: 1px solid var(--rule); border-top: 6px solid var(--ink); padding: 24px 20px 20px; text-align: center; }
+  #result h2 { display: inline-block; font-family: var(--mono); font-size: 26px; font-weight: 800; letter-spacing: 0.12em; margin: 0 0 10px; background: var(--ink); color: var(--paper); padding: 4px 16px; }
+  #result h2.ng { background: var(--alert); }
+  #result .why { color: var(--lead); line-height: 1.7; }
+  #result .order { margin: 22px auto 0; max-width: 520px; text-align: left; border-left: 4px solid var(--ink); padding: 6px 14px; color: var(--ink); background: var(--case); }
+  .rlist { margin: 20px auto 0; max-width: 520px; text-align: left; }
+  .rlist .r { display: flex; justify-content: space-between; gap: 14px; padding: 9px 0; border-top: 1px dashed var(--rule); font-size: 14px; }
+  .rlist .r > span:first-child { color: var(--lead); flex-shrink: 0; }
+  .rlist .r > span:last-child { text-align: right; }
+  .rlist .pbar { width: 120px; display: inline-block; vertical-align: middle; margin-left: 8px; }
+  #result .actions { margin-top: 22px; }
+
+  /* ---- はじまり（第 1 章の 前：UNKNOWN の 無線 → 誓約書に サイン。鹿さんの 決め、2026-11-04 カードで 案A）。知らない 周波数の 無線は 黒い 地 ---- */
+  #intro { display: grid; place-items: center; padding: 24px 16px; background: var(--ink); }
   .radio { width: min(640px, 100%); display: grid; gap: 22px; justify-items: center; cursor: pointer; }
-  .radio .rline { display: flex; gap: 14px; align-items: flex-start; width: 100%; background: #0E0F12E0; border: 1px solid var(--line); border-radius: 8px; padding: 14px 16px; }
-  .radio .em { width: 30px; height: 30px; border-radius: 6px; border: 1px dashed #ffffff44; flex-shrink: 0; }
-  .radio .who { color: var(--sub); font-size: 11px; letter-spacing: 0.16em; }
+  .radio .rline { display: flex; gap: 14px; align-items: flex-start; width: 100%; background: #1B1E1B; color: var(--paper); border: 1px solid #3A3E3A; padding: 14px 16px; }
+  .radio .em { width: 30px; height: 30px; border: 1.5px dashed #6B706B; flex-shrink: 0; }
+  .radio .who { color: #8D928C; font-size: 12px; }
   #rText { font-size: 17px; line-height: 1.8; min-height: 3.6em; }
   .pledge { width: min(560px, 100%); }
-  .paper { background: #ECE7DC; color: #1B2333; border-radius: 4px; padding: 26px 26px 20px; box-shadow: 0 18px 40px #0008; }
-  .paper .ph { font-size: 11px; letter-spacing: 0.24em; color: #5A6172; }
+  .paper { background: var(--paper); color: var(--ink); padding: 26px 26px 20px; border-top: 6px solid var(--case); box-shadow: 0 18px 40px #0009; }
+  .paper .ph { font-size: 12px; color: var(--lead); }
   .paper h2 { margin: 6px 0 16px; font-size: 24px; letter-spacing: 0.3em; }
-  .paper p { margin: 8px 0; font-size: 15px; line-height: 1.7; }
-  .paper .rec { margin-top: 14px; padding-top: 10px; border-top: 1px solid #1B233333; font-size: 15px; }
-  .sig { position: relative; margin: 14px 0 12px; border: 1px solid #1B233355; border-radius: 4px; background: #F6F2E9; }
+  .paper p { margin: 8px 0; font-size: 15px; line-height: 1.8; }
+  .paper .rec { margin-top: 14px; padding-top: 10px; border-top: 1px dashed var(--rule); font-size: 15px; }
+  .sig { position: relative; margin: 14px 0 12px; border: 1.5px solid var(--ink); background: #EEEFEA; }
   .sig canvas { display: block; width: 100%; height: 140px; touch-action: none; cursor: crosshair; }
-  .sig span { position: absolute; left: 12px; bottom: 8px; font-size: 12px; color: #5A6172; pointer-events: none; }
+  .sig span { position: absolute; left: 12px; bottom: 8px; font-size: 12px; color: var(--lead); pointer-events: none; }
   .sig.inked span { display: none; }
   .paper .row { justify-content: space-between; }
-  .paper .link { background: none; border: 0; color: #5A6172; font-size: 13px; text-decoration: underline; padding: 6px 0; }
-  .paper .btn.main:disabled { opacity: 0.4; cursor: default; }
-  .paper .sigwhy { margin: 8px 0 0; font-size: 13px; color: #A3262A; }
+  .paper .link { background: none; border: 0; color: var(--lead); font-size: 13px; text-decoration: underline; min-height: 32px; padding: 6px 0; }
+  .paper .sigwhy { margin: 8px 0 0; font-size: 13px; color: var(--alert); }
+  /* 本番で 入れない とき（ログインが 切れて いる・招待が まだ など） */
+  #gate { min-height: 100vh; display: grid; place-content: center; justify-items: center; gap: 14px; padding: 24px 16px; text-align: center; }
+  #gate h2 { margin: 0; font-size: 20px; background: var(--ink); color: var(--paper); padding: 4px 14px; } #gate p { margin: 0; color: var(--lead); max-width: 420px; line-height: 1.8; }
+  #gate a { text-decoration: none; color: var(--ink); } #gate a.btn.main { color: var(--paper); }
+
   #mtabs { display: none; }
   @media (max-width: 860px) {
     .split { grid-template-columns: 1fr; }
     #play { grid-template-columns: 1fr; height: auto; }
     #stage { height: auto; }
     #viewbox { height: 58vh; flex: none; }
-    /* スマホ：地図と 仲間は 上の タブで 開く（鹿さんの 決め、2026-10-30） */
-    #mtabs { display: flex; gap: 6px; padding: 8px 12px; background: var(--panel); border-bottom: 1px solid var(--line); }
-    #mtabs button { padding: 6px 14px; border-radius: 999px; border: 1px solid var(--line); background: none; font-size: 13px; }
-    #mtabs button[aria-pressed="true"] { background: var(--ink); color: var(--bg); }
-    #rail { display: none; border-left: 0; border-bottom: 1px solid var(--line); }
+    /* スマホ：地図と 仲間は 上の タブで 開く（鹿さんの 決め、2026-10-30）。フォルダの 見出しの 形 */
+    #mtabs { display: flex; gap: 2px; padding: 6px 8px 0; background: var(--case); border-bottom: 2px solid var(--ink); }
+    #mtabs button { min-height: 34px; padding: 4px 14px; border: 1.5px solid var(--rule); border-bottom: 0; border-radius: 2px 2px 0 0; background: none; font-size: 13px; color: var(--lead); }
+    #mtabs button[aria-pressed="true"] { background: var(--ink); color: var(--case); border-color: var(--ink); }
+    #rail { display: none; border-left: 0; border-bottom: 2px solid var(--ink); }
     #rail.open { display: grid; }
     #rail.open > div { display: none; } #rail.open > div.on { display: block; } #rail.open #giveup { display: none; }
     #rail.open.k-map > div:nth-child(1), #rail.open.k-party > div:nth-child(2), #rail.open.k-party > div:nth-child(3), #rail.open.k-log > div:nth-child(4) { display: block; }
@@ -253,13 +370,24 @@
     /* 戦いの あいだは 迷宮の 窓を 画面（枠）いっぱいに して、3D の 通路の 前に 敵を 出す（前は 暗い 板で 3D を かくして いた） */
     body.fighting #viewbox { position: fixed; inset: 0; height: auto; z-index: 20; }
     body.fighting #mtabs { visibility: hidden; }
-    #fight { background: linear-gradient(#0E0F1200 30%, #0E0F12C0 78%); }
+    #fight { background: linear-gradient(#0B0C0B00 30%, #0B0C0BC4 78%); }
     /* スマホ：横 358〜390 に 3 体 ならぶ 上限 */
     #foes { padding: 2px 4px; } .frow { gap: 4px; }
     #foes.n1 { --fs: 240px; } #foes.n2 { --fs: 170px; } #foes.n3 { --fs: 118px; } #foes.n4 { --fs: 88px; }
     #foes.n3 .foe .nm, #foes.n4 .foe .nm { font-size: 12px; letter-spacing: 0; }
     .cmds button { font-size: 14px; }
     #note { bottom: 64px; }
+    #talk { font-size: 14px; }
+  }
+  /* 背の 低い 画面（配信の 下の 小さな 枠）：移動の キーを 小さく して 迷宮の 窓を 広く */
+  @media (max-height: 520px) and (max-width: 860px) {
+    #pad { gap: 10px; padding: 6px 8px; }
+    .dpad { grid-template-columns: 44px 44px 44px; grid-template-rows: 38px 38px; gap: 5px; }
+    .side button { min-height: 38px; padding: 4px 10px; }
+    #done { min-height: 40px; padding: 6px 16px; font-size: 15px; }
+    #pad > div:last-child { max-width: 112px; } #pad > div:last-child .opt { text-align: center; }
+    #talk { font-size: 13px; padding: 6px 10px; bottom: 8px; }
+    #obj { top: 8px; left: 8px; right: 8px; } #obj .o { font-size: 12px; padding: 4px 8px; }
   }
 </style>
 <script type="importmap">{ "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.169.0/build/three.module.js", "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.169.0/examples/jsm/" } }</script>
@@ -288,29 +416,45 @@
 </section>
 
 <section id="home" class="scr">
-  <div class="top"><h1 class="mono">MONO LINK // CRAWLER</h1><b class="wallet mono" id="wallet"></b></div>
-  <p class="lead">第 1 章 REGISTRY 先行体験版。依頼を えらんで、ブリーフィングを 聞いて、迷宮へ。</p>
-  <div class="htabs" role="tablist"><button role="tab" data-t="board">掲示板</button><button role="tab" data-t="ana">解析<span class="badge" id="bAna" hidden></span></button><button role="tab" data-t="inv">持ち物<span class="badge" id="bInv" hidden></span></button></div>
-  <div id="tBoard">
-    <div><div class="opt" style="margin-bottom:6px" id="petLv">あなたの ペット</div><div class="row" id="pets"></div></div>
-    <div class="prog"><b id="progT"></b><span id="progS"></span></div>
-    <div class="board" id="board"></div>
+  <header class="topbar"><button class="back" id="hBack" aria-label="もどる" title="もどる">‹</button><b>MONO LINK // CRAWLER</b><span class="tr"><b class="wallet" id="wallet"></b><span class="term">LINKERS REGISTRY</span></span></header>
+  <div class="hwrap">
+    <aside class="idc" aria-label="あなたの ペット">
+      <div class="ph"><img id="petPic" alt=""></div>
+      <div class="nm" id="petNm"></div>
+      <div class="lv" id="petLv"></div>
+      <details class="job" id="jobBox"><summary>職業を かえる</summary><div class="row" id="pets"></div></details>
+      <div class="gauge"><span>審査まで</span><span class="cells" id="cells"></span><b class="n mono" id="progT"></b><i class="st" id="progS">★ 1-14</i></div>
+    </aside>
+    <main>
+      <div class="htabs" role="tablist"><button role="tab" data-t="board">掲示板</button><button role="tab" data-t="ana">解析<span class="badge" id="bAna" hidden></span></button><button role="tab" data-t="inv">持ち物<span class="badge" id="bInv" hidden></span></button></div>
+      <div id="tBoard">
+        <div class="stagehead"><h2 id="stH"></h2><span id="stS"></span></div>
+        <div class="tickets" id="board"></div>
+        <details class="more" id="mPrev"><summary>まだ 受けて いない 前の 依頼 <b id="nPrev"></b></summary><div class="tickets" id="bPrev"></div></details>
+        <details class="more" id="mDone"><summary>済んだ 依頼 <b id="nDone"></b></summary><div class="tickets" id="bDone"></div></details>
+      </div>
+      <div id="tAna" hidden><div class="split"><div><div class="alist" id="alist"></div><details class="locked" id="alock"></details></div><div class="adet" id="adet"></div></div></div>
+      <div id="tInv" hidden><div class="filt" id="ifilt"></div><div class="inv" id="ilist"></div></div>
+    </main>
   </div>
-  <div id="tAna" hidden><div class="split"><div><div class="alist" id="alist"></div><details class="locked" id="alock"></details></div><div class="adet" id="adet"></div></div></div>
-  <div id="tInv" hidden><div class="filt" id="ifilt"></div><div class="inv" id="ilist"></div></div>
 </section>
 
 <section id="brief" class="scr" hidden>
+  <header class="topbar"><button class="back" id="bBack" aria-label="掲示板へ もどる" title="掲示板へ">‹</button><b>MONO LINK // CRAWLER</b><span class="term">LINKERS REGISTRY</span></header>
+  <div class="bwrap">
+  <div class="doc" id="bDoc">
   <div class="head mono" id="bHead"></div>
   <h2 id="bTitle"></h2>
-  <div class="opt" id="bPay" style="margin:-8px 0 14px"></div>
+  <div id="bPay"></div>
   <video class="bvid" id="bVid" playsinline controls preload="metadata" hidden></video>
   <div id="bSecs"></div>
   <div class="bring" id="bring"></div>
+  </div>
   <div class="actions">
     <button class="btn main" id="accept">受諾して 出発</button>
     <button class="btn" id="replay">もう一度 聞く</button>
     <button class="btn" id="back1">掲示板へ</button>
+  </div>
   </div>
 </section>
 
@@ -344,26 +488,28 @@
     </div>
   </div>
   <aside id="rail">
-    <div><h3>MAP</h3><canvas id="map"></canvas></div>
-    <div><h3>PARTY</h3><div id="mates"></div></div>
-    <div><h3>ITEMS</h3><div class="items" id="items"></div><div class="opt" id="loot" style="margin-top:8px"></div></div>
-    <div><h3>LOG</h3><div id="log" style="font-size:12px;color:var(--sub);display:grid;gap:3px"></div></div>
+    <div><h3>地図</h3><canvas id="map"></canvas></div>
+    <div><h3>仲間</h3><div id="mates"></div></div>
+    <div><h3>道具</h3><div class="items" id="items"></div><div class="opt" id="loot" style="margin-top:8px"></div></div>
+    <div><h3>記録</h3><div id="log" style="font-size:12px;color:var(--sub);display:grid;gap:3px"></div></div>
     <button class="btn" id="giveup" style="font-size:13px">撤収する（失敗）</button>
   </aside>
 </section>
 
 <section id="result" class="scr" hidden>
+  <div class="rsheet">
   <h2 id="rTitle"></h2>
   <div class="why" id="rWhy"></div>
   <div class="rlist" id="rList"></div>
   <div class="order" id="rOrder" hidden></div>
   <div class="actions" style="justify-content:center"><button class="btn main" id="back2">掲示板へ</button></div>
+  </div>
 </section>
 
 <script type="module">
 import * as THREE from "three";
 import { makeMaze, CELL } from "./crawler3d.js";
-import { drawMap, COMPANY } from "./crawler-map.js";
+import { drawMap, COMPANY, SUBSIDIARY } from "./crawler-map.js";
 import { spriteURL } from "./sprites.js";
 import { makePOM, makeElitePOM, ELITES } from "./pom3d.js";
 const ELITE_ID = Object.fromEntries(Object.entries(ELITES).map(([id, e]) => [e.name, id]));   // 精鋭の 名前 → 塗り分けの id（モデリングの M-014。2026-11-05 に つないだ：前は ふつうの POM の 色の まま だった）
@@ -380,6 +526,7 @@ import { SP_PER_LV } from "./trees.js";
 import { SCRAP } from "./materials.js";
 import { EFFECTS } from "./effects.js";   // バフ・デバフの 名前（戦いの 札。2026-11-12）
 import { me, act as gateAct, demoMode } from "./lounge-client.js";
+import { PETS } from "./quiz.js";   // 本編の ペットの 絵（ホームの LINKER の 札）
 
 const $ = (id) => document.getElementById(id);
 const q = new URLSearchParams(location.search);
@@ -398,7 +545,7 @@ const keep = () => {
 const show = (id) => { for (const s of ["intro", "home", "brief", "play", "result"]) $(s).hidden = s !== id; window.scrollTo(0, 0); };
 const GROUP_EN = { tcu: "TCU", harmonia: "HARMONIA", sva: "SVA", foundation: "FOUNDATION", linkers: "LINKERS" };
 const KIND_JA = { target: "殲滅", seize: "制圧", delivery: "運搬", recovery: "捜索", nest: "殲滅", hold: "防衛", escort: "護衛", demolish: "破壊", capture: "制圧", tracer: "追跡", vault: "破壊", runner: "追跡" };
-const STAGE_JA = { first: "1 本目", second: "2 本目", A: "段 A", B: "段 B", C: "段 C", D: "段 D", end: "章の 終わり" };
+const STAGE_JA = { first: "1 本目", second: "2 本目", A: "段 A", B: "段 B", C: "段 C", D: "段 D", end: "審査" };
 const petImg = (sp) => `./img/brief-pet-${sp}.webp`;
 
 // ---- はじめ・掲示板 ----
@@ -406,30 +553,56 @@ const petImg = (sp) => `./img/brief-pet-${sp}.webp`;
 // 2026-11-13 鹿さん「アビリティとパッシブは本編にてガンビットでセットされているものって言いましたよね？ステータスの努力値とか反映されているんですか？」
 // → 前は クローラーの Lv（50 から）で 職業の お手本を 作って いて、本編の ペットが 何も 入って いなかった。見本（ログイン なし）と 職業を まだ えらんで いない ときだけ お手本
 const realPet = () => { const p = gate?.pets?.[0]; return p && p.type && p.build ? p : null; };
+// 依頼票（2026-11-14 案A「LINKER の 業務端末」）：左の 帯は 依頼主の 会社の 色（傘下の 差し色 → グループの 色）。ファウンデーションの 帯は 白に 近いので 紺
+const coOf = (m) => SUBSIDIARY[(m.client?.code ?? "").toLowerCase()]?.color ?? ({ foundation: "#1D3A6E", linkers: "#121412" })[m.group] ?? COMPANY[m.group]?.band ?? "#121412";
+const whereOf = (m) => m.area.ja.replace(/^ボーダーゾーン\s*/, "");
+function ticket(m) {
+  const done = save.done.includes(m.id), pay = payOf(m), bonus = Math.round(pay * BONUS_PAY);
+  const payT = !done ? `${pay.toLocaleString()}<small>cr</small>` : save.full?.includes(m.id) ? `<small>2 回目は 経験値だけ</small>` : `<small>完全成功で</small>+${bonus.toLocaleString()}<small>cr</small>`;
+  return `<button class="tk${done ? " done" : ""}" data-id="${m.id}" style="--co:${coOf(m)}"><span class="stub"><span class="no">${m.no}</span><span class="kind">${KIND_JA[m.kindName] ?? ""}</span></span><span class="body"><span class="ttl">${m.title}${m.star ? `<i class="star" title="審査に いる 依頼">★</i>` : ""}</span><span class="who">${m.client.ja}</span><span class="where">${whereOf(m)}</span><span class="pay">${payT}</span></span>${done ? `<span class="seal" aria-label="済み">済</span>` : ""}</button>`;
+}
+const NEXT_JA = { first: "2 本目", second: "段 A", A: "段 B", B: "段 C", C: "段 D" };
+// ホーム：受付中の 段の 依頼票だけ 大きく。前の 段の 残りと 済んだ 依頼は しまう（mono-link-ui「次に やる ことだけ 大きく」）
 function home() {
-  const pets = $("pets"); pets.innerHTML = "";
-  const R = realPet();
-  if (R) { pets.hidden = true; $("petLv").textContent = `あなたの ペット：${R.name || MAIN_TREES[R.type]?.name}（${MAIN_TREES[R.type]?.name ?? R.type} Lv ${R.build.lv}${R.band ? `・クローラーでは Lv ${R.band.lv}` : ""}）`; }   // 帯の 補正（門番の band。2026-11-13 M-031 ①）
-  else for (const [t, T] of Object.entries(MAIN_TREES)) {
-    const b = document.createElement("button"); b.className = "chip"; b.textContent = `${T.name}（${SPECIES3[T.pet]?.label ?? T.pet}）`; b.setAttribute("aria-pressed", String(save.pet === t));
-    b.onclick = () => { save.pet = t; keep(); home(); }; pets.append(b);
+  const R = realPet(), pic = $("petPic");
+  pic.parentElement.hidden = false; pic.onerror = () => { pic.parentElement.hidden = true; };
+  if (R) {
+    const T = MAIN_TREES[R.type];
+    $("petNm").textContent = R.name || T?.name || "";
+    $("petLv").innerHTML = `${T?.name ?? R.type} Lv ${R.build.lv}${R.band ? `　<span class="nw">クローラーでは Lv ${R.band.lv}</span>` : ""}`;   // 帯の 補正（門番の band。2026-11-13 M-031 ①）
+    $("jobBox").hidden = true;
+    pic.src = (PETS[R.qid] ?? PETS.nemu).img;
+  } else {   // 見本（ログイン なし）と 職業を まだ えらんで いない とき：職業の お手本
+    const T = MAIN_TREES[save.pet] ?? Object.values(MAIN_TREES)[0], lv = lvOf(save);
+    $("petNm").textContent = T.name;
+    $("petLv").innerHTML = `${SPECIES3[T.pet]?.label ?? T.pet}　Lv ${lv}　<span class="nw">次の Lv まで ${(expNeed(lv) - (save.xp ?? 0)).toLocaleString()}</span>${save.sub && ELITE_TREES[save.sub] ? `　<span class="nw">サブ：${ELITE_TREES[save.sub].name}</span>` : ""}`;
+    $("jobBox").hidden = false;
+    pic.src = petImg(T.pet);
+    const pets = $("pets"); pets.innerHTML = "";
+    for (const [t, P] of Object.entries(MAIN_TREES)) {
+      const b = document.createElement("button"); b.className = "chip"; b.textContent = `${P.name}（${SPECIES3[P.pet]?.label ?? P.pet}）`; b.setAttribute("aria-pressed", String(save.pet === t));
+      b.onclick = () => { save.pet = t; keep(); home(); }; pets.append(b);
+    }
   }
   $("wallet").textContent = `${(save.credits ?? 0).toLocaleString()} cr`; $("wallet").hidden = toGate;   // 本番は クレジットが 本編の 財布へ 入るので、クローラーだけの 財布は しまう（2026-11-13）
-  if (!R) { const lv = lvOf(save); $("petLv").textContent = `あなたの ペット（Lv ${lv}　次の Lv まで ${(expNeed(lv) - (save.xp ?? 0)).toLocaleString()}${save.sub && ELITE_TREES[save.sub] ? `　サブ：${ELITE_TREES[save.sub].name}` : ""}）`; }
   drawTab();
   const done = save.done, n = countDone(done);
-  $("progT").textContent = `${n} / ${NEED} 本　${done.includes("c1m14") ? "★ 1-14 済み" : "★ 1-14 まだ"}`;
-  $("progS").textContent = done.includes("c1m15") ? "第 1 章 完了" : "1-14 を ふくめて 9 本で 1-15 が 開く";
-  const bd = $("board"); bd.innerHTML = "";
-  let st = null;
-  for (const m of offered(done)) {
-    if (m.stage !== st) { st = m.stage; const h = document.createElement("div"); h.className = "stage mono"; h.textContent = STAGE_JA[st]; bd.append(h); }
-    const c = document.createElement("button"); c.className = "card" + (done.includes(m.id) ? " done" : "");
-    c.innerHTML = `<div class="no mono">${m.no}${m.star ? " ★" : ""}</div><div class="t mono">${m.title}</div><div class="c">${m.client.ja}（${GROUP_EN[m.group] ?? ""}）　${m.area.ja}</div><div class="k">${KIND_JA[m.kindName]}　${m.briefing.sections[0].sub}</div>`;
-    c.onclick = () => brief(m); bd.append(c);
-  }
+  $("cells").innerHTML = Array.from({ length: NEED }, (_, i) => `<i class="${i < n ? "on" : ""}"></i>`).join("");
+  $("progT").textContent = `${Math.min(n, NEED)} / ${NEED}`;
+  $("progS").classList.toggle("on", done.includes("c1m14")); $("progS").title = done.includes("c1m14") ? "1-14 済み" : "審査には 1-14 が いる";
+  const off = offered(done), front = off.at(-1)?.stage ?? "first";
+  const cur = off.filter((m) => m.stage === front), rest = off.filter((m) => m.stage !== front);
+  const prev = rest.filter((m) => !done.includes(m.id)), past = rest.filter((m) => done.includes(m.id)), clear = done.includes("c1m15");
+  $("stH").textContent = clear ? "第 1 章 完了" : `${STAGE_JA[front]}${cur.every((m) => done.includes(m.id)) ? "" : " 受付中"}`;
+  $("stS").textContent = clear ? "" : front === "end" ? "第 1 章の 最後" : front === "D" ? `1-14 を ふくめて ${NEED} 本で 審査が 開く` : front === "first" || front === "second" ? `終えると ${NEXT_JA[front]} が 開く` : `どれか 1 本で ${NEXT_JA[front]} が 開く`;
+  $("board").innerHTML = cur.map(ticket).join("");
+  $("bPrev").innerHTML = prev.map(ticket).join(""); $("nPrev").textContent = prev.length; $("mPrev").hidden = !prev.length;
+  $("bDone").innerHTML = past.map(ticket).join(""); $("nDone").textContent = past.length; $("mDone").hidden = !past.length;
+  document.querySelectorAll("#tBoard .tk").forEach((b) => (b.onclick = () => brief(MISSIONS.find((m) => m.id === b.dataset.id))));
   show("home");
 }
+// 上の 帯の ‹：来た ページへ（ペットの「出かける」・ラウンジの 招待 など）。わからない ときは 出かける の 先頭（冒険）
+$("hBack").onclick = () => { let u = "dungeon.html"; try { const r = document.referrer; if (r && new URL(r).origin === location.origin && !/crawler\.html/.test(r)) u = r; } catch {} location.href = u; };
 
 // ---- はじまり：UNKNOWN の 無線（字幕だけ・エンブレムは 空白）→ 誓約書に 指で サイン → 1-01 が 届く（台本 docs/mono-link-story-ch1.md の「はじまり」。文は 鹿さんの 文の まま）
 const RADIO = "ようこそ。本当のMONOLINKへ…。君は見込みがある。だから、我々から贈り物を送ろう。君を、歓迎する。";
@@ -531,7 +704,7 @@ function drawInv() {
     <div class="row"><span class="lab">ならべる</span>${[["n", "多い 順"], ["name", "名前"]].map(([k, l]) => `<button class="chip" data-s="${k}" aria-pressed="${iSort === k}">${l}</button>`).join("")}</div>`;
   document.querySelectorAll("#ifilt [data-k]").forEach((b) => (b.onclick = () => { iKind = b.dataset.k; drawInv(); }));
   document.querySelectorAll("#ifilt [data-s]").forEach((b) => (b.onclick = () => { iSort = b.dataset.s; drawInv(); }));
-  if (!all.length) { $("ilist").innerHTML = `<div class="empty">ミッションで 手に 入れた 物が ここに たまる。敵の 素材・漁った スクラップ・貴重サンプル・完全成功の 記録</div>`; return; }
+  if (!all.length) { $("ifilt").innerHTML = ""; $("ilist").innerHTML = `<div class="empty">まだ 何も ない。迷宮で 拾った 素材・スクラップ・貴重サンプル・完全成功の 記録が ここに たまる</div>`; return; }
   const sub = (x) => x.k === "enemy" ? Object.entries(x.qs).sort((a, b) => b[0] - a[0]).map(([q, n]) => `品質${q} ×${n}`).join("・") : x.k === "scrap" ? SCRAP_FROM[x.id] ?? "漁る" : x.k === "sample" ? `${x.fam}・★ 未鑑定（${BUYER[x.fam]} が 高く 買う）` : "押すと 読める";
   let h = toGate ? `<p class="s" style="margin:0 0 8px">ここは 拾った 物の 記録。素材・貴重サンプル・クレジットは 本編の 倉庫・財布へ 送って いる</p>` : "";   // 2026-11-13 鹿さんの カード「ぜんぶ入れる」
   for (const k of Object.keys(K)) {
@@ -551,7 +724,7 @@ let audio = null, cur = null;
 const vid = $("bVid");
 const stopBrief = () => { audio?.pause(); vid.pause(); };
 function brief(m) {
-  cur = m;
+  cur = m; $("bDoc").style.setProperty("--co", coOf(m));
   $("bHead").textContent = `${m.no}　${m.client.en}　/　${m.area.grid}`;
   $("bTitle").textContent = m.title;
   const pay = payOf(m), first = !save.done.includes(m.id);
@@ -595,6 +768,7 @@ function drawBring() {
 }
 $("accept").onclick = () => { stopBrief(); start(cur); };
 $("back1").onclick = () => { stopBrief(); home(); };
+$("bBack").onclick = () => { stopBrief(); home(); };
 
 // ---- 迷宮（3D） ----
 const renderer = new THREE.WebGLRenderer({ canvas: $("view"), antialias: true });
@@ -671,7 +845,7 @@ function refresh() {
   for (const p of S.obj.trail ?? []) if (S.seen.has(`${p.x},${p.y}`) && inF(p.y)) { g.fillStyle = "#E5484D88"; g.fillRect(p.x * 14 + 5, (p.y - off) * 14 + 5, 4, 4); }
   for (const f of S.foes) if (f.alive && vis.has(`${f.x},${f.y}`) && inF(f.y)) { g.fillStyle = f.elite ? "#E8C25A" : "#E5484D"; g.beginPath(); g.arc(f.x * 14 + 7, (f.y - off) * 14 + 7, 4.5, 0, 7); g.fill(); }
   // 仲間
-  $("mates").innerHTML = S.party.map((p) => `<div class="mate"><b>${p.c.name}</b><span class="mono">${p.hp} / ${p.maxHp}</span><div class="bar"><i style="width:${(100 * p.hp) / p.maxHp}%"></i></div><div class="bar mp"><i style="width:${(100 * p.mp) / p.maxMp}%"></i></div><span style="grid-column:1/-1;color:var(--sub);font-size:11px">${p.merc ? "傭兵（ガンビットで 自動）" : `Lv ${p.c.lv}　${SPECIES3[p.c.species]?.label ?? ""}`}</span></div>`).join("");
+  $("mates").innerHTML = S.party.map((p) => `<div class="mate"><b>${p.c.name}</b><span class="mono">${p.hp} / ${p.maxHp}</span><div class="bar"><i style="width:${(100 * p.hp) / p.maxHp}%"></i></div><div class="bar mp"><i style="width:${(100 * p.mp) / p.maxMp}%"></i></div><span style="grid-column:1/-1;color:var(--sub);font-size:12px">${p.merc ? "傭兵（ガンビットで 自動）" : `Lv ${p.c.lv}　${SPECIES3[p.c.species]?.label ?? ""}`}</span></div>`).join("");
   $("items").innerHTML = Object.entries(S.items).filter(([, n]) => n > 0).map(([id, n]) => `<button data-it="${id}" title="${CRAWL_ITEMS[id]?.text ?? ""}">${CRAWL_ITEMS[id]?.name.replace("メルヴィル", "") ?? id} ×${n}</button>`).join("") || `<span style="color:var(--sub);font-size:12px">なし</span>`;
   document.querySelectorAll("#items button").forEach((b) => (b.onclick = () => { const who = b.dataset.it === "mlv_revive" ? Math.max(0, S.party.findIndex((p) => p.hp <= 0)) : S.party.reduce((a, p, i) => (p.hp > 0 && p.hp / p.maxHp < S.party[a].hp / S.party[a].maxHp ? i : a), 0); if (useItem(S, b.dataset.it, who)) refresh(); }));
   const L = S.loot, nm = L.mats.reduce((s, x) => s + x.n, 0), nc = Object.values(L.codes).reduce((s, x) => s + x, 0);
@@ -859,7 +1033,7 @@ function result() {
   if ($("result").hidden === false) return;
   const r = S.result, m = S.def;
   $("rTitle").textContent = r.ok ? (r.bonus ? "完全成功" : "成功") : "失敗";
-  $("rTitle").style.color = r.ok ? "var(--ok)" : "var(--alert)";
+  $("rTitle").classList.toggle("ng", !r.ok);   // 成功は 黒の 帯・失敗は 赤の 帯（字は 紙の 色）
   $("rWhy").textContent = `${m.no} ${m.title}　${r.why}　（${S.turn} ターン）`;
   const o = settle(S, save); // 財布へ（はじめての 成功なら done にも 入る）
   if (r.ok && m.id === "c1m06") save.metSplint = true;
@@ -884,7 +1058,7 @@ function result() {
   h += row("経験値", `+${o.exp}${realPet() ? "（本編の ペットへ）" : o.lvUp ? `　Lv ${o.lv} に 上がった` : ""}`);   // 本編の ペットの ときは 経験値が 本編の ペットへ 入る（門番の crawl.save。2026-11-13 M-031 ②）。クローラーだけの Lv は 出さない
   $("rList").innerHTML = h;
   const order = r.ok && AFTER[m.id];
-  $("rOrder").hidden = !order; if (order) $("rOrder").innerHTML = `<div class="mono" style="color:var(--sub);font-size:11px;letter-spacing:.2em">ORDER</div>${order}`;
+  $("rOrder").hidden = !order; if (order) $("rOrder").innerHTML = `<div class="mono" style="color:var(--sub);font-size:12px;letter-spacing:.2em">ORDER</div>${order}`;
   show("result");
 }
 $("back2").onclick = () => { S = null; home(); };
