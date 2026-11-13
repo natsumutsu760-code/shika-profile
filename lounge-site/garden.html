@@ -127,7 +127,7 @@
 import "./lounge-en.js";   // 英語の 画面（ラウンジの ページ ぜんぶ 英語に する 決め〈2026-10-25〉。農園は つながって いなかった：2026-11-05）
 import * as THREE from "three";
 import { makeFarm, SKINS } from "./farm3d.js";
-import { CROPS as CROPS_ALL, CROP, KIND, afterOf } from "./crops.js";
+import { CROPS as CROPS_ALL, CROP, KIND, afterOf, CROP_MATS } from "./crops.js";
 import { ISLAND_OPEN } from "./dungeons.js";
 const CROPS = CROPS_ALL.filter((c) => c.isle <= ISLAND_OPEN);   // ゲームに 出て いる 島の 作物だけ（ミカネル島は 鹿さんの OK まで 出さない）
 import { newField, fieldSize, inField, W, stageAt, plant, harvest, advance, setSoil, addXp, xpNext, SOILS, growMs, FIELD, FERT, SPRINKLERS, sprTier, SPR_Q, SOIL_LOCK_H, GROW_H, growPlan, growPrice, graceMs } from "./farm-core.js";
@@ -135,6 +135,11 @@ import { wsIcon } from "./ws-icons.js";
 import { cropPic } from "./crop-art.js";
 import { matPic } from "./mat-icons.js";
 import { MAT_NAME, sellPrice } from "./materials.js";   // かわった 物（麦わら など）の 名前・時間の 肥料の 値段（CLR の 買い取り）
+// とれた 物の 名前と 絵（窓口 #15、2026-11-13：夢幻樹の苗・世界樹の 葉や 種が ぜんぶ「苗」と 出て いた。植えた 作物では なく、とれた 物の id から 出す。木の 原木も）
+const CROP_MAT = Object.fromEntries(CROP_MATS.map((m) => [m.id, m]));
+const itemOf = (id) => CROP_MAT[id] || CROP[id] || CROPS_ALL.find((c) => c.mat === id) || null;
+const itemName = (id) => MAT_NAME[id] || (itemOf(id) || {}).name || id;
+const seedTxt = (by) => { const l = Object.entries(by).filter(([, n]) => n > 0).map(([id, n]) => `${CROP[id] ? CROP[id].name : id} ×${n}`); return l.length ? `・種：${l.slice(0, 2).join("・")}${l.length > 2 ? ` ほか ${l.length - 2}` : ""}` : ""; };
 import { me, act } from "./lounge-client.js";   // 記録は 門番（見本では ブラウザの 中の ためしの 門番）
 
 // ---------- 記録（門番） ----------
@@ -245,10 +250,12 @@ function side() {
       + (sprs.length ? `<div class="frow"><span>置く</span>${sprs.map((k) => `<button class="chip" data-spr="${k}">${TOOLN[k]}<i>${T[k]}</i></button>`).join("")}</div>` : "");
   }
   else if (c.spr) { pic = "svg"; name = TOOLN[c.spr]; sub = `${SPRINKLERS[c.spr].reach === 4 ? "上下左右 4 マス" : "まわり 8 マス"}の 作物が ${qRange(SPRINKLERS[c.spr].tier)}`; act = `<button class="jelly" data-do="unspr">はずす</button>`; }
-  else if (c.obj) { pic = matPic(c.obj); name = "かわった 物"; sub = `あと ${c.taps} 回 たたくと とれる`; act = `<button class="jelly tap" data-do="tap">たたく（あと ${c.taps} 回）</button>`; }
+  else if (c.obj) { pic = matPic(c.obj); name = itemName(c.obj);   // かわった 物の 名前（窓口 #15。前は「かわった 物」）
+    sub = `あと ${c.taps} 回 たたくと とれる`; act = `<button class="jelly tap" data-do="tap">たたく（あと ${c.taps} 回）</button>`; }
   else {
-    const crop = CROP[c.id], st = stageAt(c, t, f.soil); pic = cropPic(crop, st.stage === "over" ? "over" : st.stage, { scale: 4 }); name = crop.name;
-    if (st.stage === "ripe") { sub = `実り・のこり ${fmt(st.left)}で ${afterOf(crop).kind === "turn" ? "かわる" : afterOf(crop).kind === "flee" ? "逃げる" : "枯れる"}`; act = `<button class="jelly go" data-do="harvest">とる</button>`; }
+    const crop = CROP[c.id], st = stageAt(c, t, f.soil); pic = cropPic(crop, st.stage === "over" ? "over" : st.stage, { scale: 4 });
+    name = st.stage === "over" && afterOf(crop).kind === "turn" ? itemName(afterOf(crop).into) : crop.name;   // かわった あとは かわった 物の 名前（窓口 #15：夢幻樹の苗 → 夢幻樹の葉）
+    if (st.stage === "ripe") { sub = `実り・のこり ${fmt(st.left)}で ${afterOf(crop).kind === "turn" ? "かわる" : afterOf(crop).kind === "flee" ? "逃げる" : "枯れる"}${crop.mat !== crop.id ? `・とると ${itemName(crop.mat)}` : ""}`; act = `<button class="jelly go" data-do="harvest">とる</button>`; }
     else if (st.stage === "over") { const a = afterOf(crop); sub = a.kind === "turn" ? "かわった。たたいて とる" : a.kind === "flee" ? "逃げて しまった" : "枯れて しまった"; act = `<button class="jelly ${a.kind === "turn" ? "tap" : ""}" data-do="harvest">${a.kind === "turn" ? "たたく" : "片づける"}</button>`; }
     else { sub = `${ST[st.stage]}・実るまで あと ${fmt(growMs(crop, f.soil, c.fert) - (t - c.at))}`; bar = Math.round(st.p * 100); }
     const qt = sprTier(f, SEL) + ((FERT[c.fert] || {}).q || 0); if (qt && st.stage !== "over") sub += `・${qRange(qt)}`;
@@ -311,9 +318,10 @@ document.getElementById("side").addEventListener("click", async (e) => {
         if (j.left) toast(`あと ${j.left} 回`);
         else if (j.gone) toast(j.gone === "flee" ? "逃げて しまった……" : "枯れて しまった");
         else if (j.items && j.items.length) {
-          if (crop) farm.pop(SEL, crop, j.color, clockS);
-          const n = j.items.reduce((a, x) => a + x.n, 0);
-          toast(`${j.color === "rainbow" ? "LEGENDARY! " : j.color === "gold" ? "金色！ " : ""}${crop ? crop.name : "とれた"} ×${n}（倉庫へ）${j.seeds ? `・種 ×${j.seeds}` : ""}${j.isNew ? "・図鑑に のった！" : ""}${j.ups ? `・農業 Lv${j.lv}！` : ""}`);
+          const it = itemOf(j.items[0].id); if (it) farm.pop(SEL, it, j.color, clockS);
+          const by = {}; for (const x of j.items) by[x.id] = (by[x.id] || 0) + x.n;
+          const names = Object.entries(by).map(([id, n]) => `${itemName(id)} ×${n}`).join("・");
+          toast(`${j.color === "rainbow" ? "LEGENDARY! " : j.color === "gold" ? "金色！ " : ""}${names}（倉庫へ）${j.seeds ? seedTxt({ [j.crop]: j.seeds }) : ""}${j.isNew ? "・図鑑に のった！" : ""}${j.ups ? `・農業 Lv${j.lv}！` : ""}`);
         }
       }
     }
@@ -328,11 +336,12 @@ document.getElementById("allget").addEventListener("click", async (e) => {
     if (!j.ok) toast(j.why);
     else {
       take(j.farmv, j);
-      for (const g of j.got) if (CROP[g.crop]) farm.pop(g.i, CROP[g.crop], g.color, clockS);
-      const by = {}; for (const g of j.got) { const k = g.crop || g.mat; by[k] = (by[k] || 0) + g.n; }
-      const names = Object.entries(by).sort((a, x) => x[1] - a[1]).map(([id, n]) => `${CROP[id] ? CROP[id].name : MAT_NAME[id] || id} ×${n}`);
+      const matOf = (g) => g.mat || (CROP[g.crop] ? CROP[g.crop].mat : g.crop);   // とれた 物（作物の とき 門番は crop だけ 返す）
+      for (const g of j.got) { const it = itemOf(matOf(g)); if (it) farm.pop(g.i, it, g.color, clockS); }
+      const by = {}; for (const g of j.got) { const k = matOf(g); by[k] = (by[k] || 0) + g.n; }
+      const names = Object.entries(by).sort((a, x) => x[1] - a[1]).map(([id, n]) => `${itemName(id)} ×${n}`);
       const gold = j.got.filter((g) => g.color === "gold").length, rain = j.got.filter((g) => g.color === "rainbow").length;
-      toast(`${rain ? "LEGENDARY! " : gold ? "金色！ " : ""}${names.length ? `${names.slice(0, 3).join("・")}${names.length > 3 ? ` ほか ${names.length - 3}` : ""}（倉庫へ）` : ""}${j.cleared ? `${names.length ? "・" : ""}枯れた 物 ${j.cleared} こを 片づけた` : ""}${j.seeds ? `・種 ×${j.seeds}` : ""}${j.news.length ? "・図鑑に のった！" : ""}${j.ups ? `・農業 Lv${j.lv}` : ""}`);
+      toast(`${rain ? "LEGENDARY! " : gold ? "金色！ " : ""}${names.length ? `${names.slice(0, 3).join("・")}${names.length > 3 ? ` ほか ${names.length - 3}` : ""}（倉庫へ）` : ""}${j.cleared ? `${names.length ? "・" : ""}枯れた 物 ${j.cleared} こを 片づけた` : ""}${j.seeds ? (j.seedBy ? seedTxt(j.seedBy) : `・種 ×${j.seeds}`) : ""}${j.news.length ? "・図鑑に のった！" : ""}${j.ups ? `・農業 Lv${j.lv}` : ""}`);
     }
   } finally { busyF = false; }
   farm.show(S.field, now()); side(); head();

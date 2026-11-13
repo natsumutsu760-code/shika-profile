@@ -64,6 +64,9 @@ export const RULES = [
   [/^(.+)に した(?:（([\d,]+) クレジット）)?$/, (m, p) => p(m[1]) && `Switched to ${p(m[1])}${m[2] ? ` (${m[2]} Credits)` : ""}`],
   [/^(LEGENDARY! |金色！ )?(.+?) ×(\d+)(?: ほか (\d+))?（倉庫へ）$/, (m, p) => p(m[2]) && `${m[1] ? (m[1].startsWith("L") ? "LEGENDARY! " : "Gold! ") : ""}${p(m[2])} ×${m[3]}${m[4] ? ` + ${m[4]} more` : ""} (to Storage)`],
   [/^種から・農業 Lv(\d+)$/, (m) => `From seed · Farming Lv${m[1]}`],
+  // とった ときの 種の 内わけ（窓口 #15、2026-11-13）：「種：夢幻樹の苗 ×2」「ニライカナイの世界樹 ×1 ほか 2」
+  [/^とると (.+)$/, (m, p) => p(m[1]) && `Yields ${p(m[1])}`],   // 木の 実り（とると カシの原木）
+  [/^種：(.+?) ×(\d+)(?: ほか (\d+))?$/, (m, p) => p(m[1]) && `Seeds: ${p(m[1])} ×${m[2]}${m[3] ? ` + ${m[3]} more` : ""}`], [/^(.+?) ×(\d+) ほか (\d+)$/, (m, p) => p(m[1]) && `${p(m[1])} ×${m[2]} + ${m[3]} more`],
   [/^かえて (\d+) 時間は かえられない$/, (m) => `You can't change it again for ${m[1]} hours`],
   // 時間の 肥料（2026-11-08）
   [/^(?:芽と 若葉の 作物 (\d+) マスが 育つ（実る 所で 止まる）|育って いる 作物が ない（植えると まける）)・持って いる ([\d,]+) クレジット$/, (m) => `${m[1] ? `${m[1]} growing plots advance (they stop once ripe)` : "Nothing is growing (plant something first)"} · You have ${m[2]} Credits`],

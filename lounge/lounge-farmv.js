@@ -81,17 +81,17 @@ export function farmvHarvestAll(rec, b, now, R) {
   const F = tick(rec, now, R), f = F.field;
   const idx = f.cells.map((c, i) => (takeable(f, c, i, now) ? i : -1)).filter((i) => i >= 0);
   if (!idx.length) return { ok: false, why: "とれる 物が ない" };
-  const got = [], news = []; let seeds = 0, ups = 0, cleared = 0;
+  const got = [], news = [], seedBy = {}; let seeds = 0, ups = 0, cleared = 0;   // seedBy：作物ごとの 種の 数（画面で「種：夢幻樹の苗 ×2」と 出す。窓口 #15）
   for (const i of idx) {
     for (let k = 0; k < 50 && f.cells[i]; k++) {   // かわった 物は たたく 回数 ぶん くり返す
       const r = farmvHarvest(rec, { i }, now, R); if (!r.ok) break;
       if (r.gone) { cleared++; break; }
       if (!r.items.length) continue;
       got.push({ i, crop: r.crop || null, mat: r.crop ? null : r.items[0].id, color: r.color, n: r.items.reduce((a, x) => a + x.n, 0) });
-      seeds += r.seeds; ups += r.ups; if (r.isNew) news.push(r.crop);
+      seeds += r.seeds; ups += r.ups; if (r.isNew) news.push(r.crop); if (r.seeds) seedBy[r.crop] = (seedBy[r.crop] || 0) + r.seeds;
     }
   }
-  return { ok: true, got, n: got.reduce((a, x) => a + x.n, 0), seeds, ups, news, cleared, lv: f.lv };
+  return { ok: true, got, n: got.reduce((a, x) => a + x.n, 0), seeds, seedBy, ups, news, cleared, lv: f.lv };
 }
 // とれる マス（画面の「まとめて とる N」と 同じ 数え方）
 export const takeable = (f, c, i, now) => !!c && !c.spr && inField(f.lv, i) && (!!c.obj || (!!CROP[c.id] && ["ripe", "over"].includes(stageAt(c, now, f.soil).stage)));
