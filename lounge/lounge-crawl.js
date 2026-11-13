@@ -5,7 +5,7 @@
 // 受付：crawl.save {save, replace?}。記録：rec.crawl = { at, save, paid〈本編の ペットに 入れた 経験値の 合計〉, bucket〈ふえ方の 上限の ため〉 }。me の 返事の crawl
 import { levelUp, putMats } from "./lounge-game.js";
 import { clampTo, ensureBz, SAMPLE_MAX } from "./lounge-border.js";
-import { VALUE, SCRAP, ENEMY_MAT } from "./materials.js";
+import { matValue, SCRAP, ENEMY_MAT } from "./materials.js";
 import { SAMPLES as BZ_SAMPLES, SAMPLE_STAR, SAMPLE_PRICE } from "./border.js";
 import { ELITE_TREES, CODE_NEED } from "./game.js";
 // 帯の 補正（2026-11-13 鹿さんの カード「① 帯の 補正」。M-031。資料 mono-link-crawler-missions.md「適正レベルへの 補正は 強い 方だけ 下げる」・第 1 章は Lv 50〜）
@@ -33,7 +33,7 @@ const ELITE_NAMES = new Set(Object.values(ELITE_TREES).map((t) => t.enemy));
 // クローラーで 拾った 物を 本編へ（2026-11-13 鹿さんの カード「ぜんぶ入れる」「これまでの 分も 上限の 中で 入れる」）
 //   クレジット → rec.credits・素材 → 倉庫（rec.own.mats。いっぱいなら 一時の 箱）・貴重サンプル → ボーダーゾーンの サンプル（rec.bz.samples。★は 門番が 決めて 鑑定まで ふせる）
 //   ブラウザの 進みの 合計（save.credits・save.mats・save.samples。クローラーの 中では へらない）の ふえた 分を、価値の 上限の 中で 渡す。渡した 分は rec.crawl.gv
-//   上限：1 分 CRAWL_LOOT.rate（価値：クレジット 1・素材は 値段の 表 VALUE〈品質 4・5 は 2・4 倍〉・サンプルは 門番が 決めた ★の 値段）・ためて おけるのは cap まで〔C〕。こえた 分は 次の 保存で
+//   上限：1 分 CRAWL_LOOT.rate（価値：クレジット 1・素材は 本編の 値段 matValue〈品質ごと〉・サンプルは 門番が 決めた ★の 値段）・ためて おけるのは cap まで〔C〕。こえた 分は 次の 保存で
 //   （報酬金は 1 分 約 62。素材と サンプルを 足しても ふつうに 遊ぶ 分は 入る）
 //   はじめて 会った ときは 0 から 数える（これまでの 分も 入る）。ためは cap から（すぐ 1 時間 ぶん 入る）〔C〕。進みを 消した（replace）ときは 数え なおす
 //   合計が 渡した 分より 小さい（2 台を 同時に 開いて 古い 方が 送った）ときは 何も しない
@@ -41,10 +41,9 @@ export const CRAWL_LOOT = { rate: 150, cap: 9000 };
 const SMP_ID = Object.fromEntries(Object.entries(BZ_SAMPLES).map(([id, x]) => [x.name, id]));   // クローラーの 名前は 字の 間に 空白が ある（「歪んだ 鉱脈の 核」）
 const own = (o, k) => Object.prototype.hasOwnProperty.call(o, k);   // 表に 本当に ある 名前だけ（constructor など もとから ある 名前を 通さない。2026-11-13 自動の 安全確認の 指摘）
 const sampleId = (x) => { if (!x || typeof x.name !== "string") return null; const k = x.name.replace(/\s+/g, ""); return own(SMP_ID, k) ? SMP_ID[k] : null; };
-// 受けとる 素材は クローラーで 出る 物だけ（スクラップ・敵の 素材）。スクラップは 品質 0 だけ。敵の 素材は 品質 4 で 2 倍・5 で 4 倍の 価値で 数える〔C〕（2026-11-13 自動の 安全確認の 指摘）
+// 受けとる 素材は クローラーで 出る 物だけ（スクラップ・敵の 素材）。スクラップは 品質 0 だけ。価値は 本編の 値段と 同じ matValue（敵の 素材は 品質で QMULT 倍）で 数える（2026-11-13 自動の 安全確認の 指摘）
 const SCRAP_IDS = new Set(Object.values(SCRAP).flat().map((x) => x[0]));
 const LOOT_IDS = new Set([...SCRAP_IDS, ...Object.values(ENEMY_MAT).map((v) => (Array.isArray(v) ? v[0] : v))]);
-const qMul = (q) => 2 ** Math.max(0, q - 3);
 const STAR_W = SAMPLE_STAR[0];   // ★の 出方：ボーダーゾーンの 浅い 所と 同じ〔C〕
 const rollStar = () => { let r = Math.random() * STAR_W.reduce((a, w) => a + w, 0); for (let i = 0; i < STAR_W.length; i++) { r -= STAR_W[i]; if (r < 0) return i + 1; } return 1; };
 const ID = /^[a-z0-9]{1,16}$/;
@@ -115,7 +114,7 @@ function lootIn(rec, prev, save, now, replace) {
   }
   for (const [k, total] of Object.entries(mats)) {   // 素材（倉庫が いっぱいなら 一時の 箱：putMats）
     const left = total - (gv.mats[k] || 0); if (left <= 0) continue;
-    const [id, q] = k.split(":"), v = Math.max(1, own(VALUE, id) && Number.isFinite(VALUE[id]) ? VALUE[id] : 0) * qMul(+q), take = Math.min(left, Math.floor(n / v));
+    const [id, q] = k.split(":"), mv = matValue({ id, q: +q }), v = Math.max(1, Number.isFinite(mv) ? mv : 0), take = Math.min(left, Math.floor(n / v));
     if (!(take > 0)) continue;
     put.push({ id, q: +q, n: take }); gv.mats[k] = (gv.mats[k] || 0) + take; n -= take * v; got.mats += take;
   }
