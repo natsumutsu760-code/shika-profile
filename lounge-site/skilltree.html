@@ -130,7 +130,8 @@
   .subpick h2 { margin:0; font:900 18px/1.3 var(--jp); }
   .subpick ul { list-style:none; margin:0; padding:0; display:grid; grid-template-columns:repeat(auto-fill, minmax(220px, 1fr)); gap:8px; }
   .subpick li button { width:100%; display:grid; grid-template-columns:44px minmax(0, 1fr); gap:10px; align-items:center; text-align:left; border:1.5px solid var(--line); background:#fff; border-radius:16px; padding:8px 10px; }
-  .subpick li img { width:44px; height:44px; image-rendering:pixelated; border-radius:12px; background:color-mix(in srgb, var(--c) 14%, #fff); }
+  .subpick li img, .subpick li .ph { width:44px; height:44px; image-rendering:pixelated; border-radius:12px; background:color-mix(in srgb, var(--c) 14%, #fff); }
+  .subpick li .ph { display:grid; place-items:center; color:var(--c); font:900 15px/1 var(--jp); font-style:normal; }   /* 絵の ない 精鋭（クローラーの 解析） */
   .subpick li b { display:block; font:900 14px/1.25 var(--jp); } .subpick li small { font:700 12px/1.3 var(--jp); color:var(--soft); }
   .subpick p { margin:0; font:700 13px/1.6 var(--jp); color:var(--soft); } .subpick a { color:var(--ink); font-weight:900; }
   .subpick li button:disabled { opacity:.5; cursor:not-allowed; }
@@ -239,6 +240,7 @@ import "./lounge-en.js";   // 英語の 画面（MONO LINK の サイトの EN�
 import { nodesOf, stateOf, learned, JOB_TREES, SP_PER_LV, statValue, treeOf, SHAPE } from "./trees.js";
 import { SKILL, TYPES, TREES, TREE_IDS } from "./skills.js";
 import { ENEMY_TREES } from "./enemy-trees.js";
+import { ELITE_TREES } from "./crawler-elite-trees.js";   // クローラーで 解析 100% に した 精鋭の ツリーも サブに 付けられる（2026-11-13 M-031 ③。読むと ENEMY_TREES・SKILL に 入る）
 import { DUNGEONS, RESEARCH, CAPTURE, ISLAND_OPEN, canGo } from "./dungeons.js";
 import { researchLeaf } from "./fusion.js"; import { MAT_NAME } from "./materials.js";   // 研究の 葉（大工事の 畑が つながってから）
 import { EFFECTS } from "./effects.js";
@@ -282,12 +284,13 @@ const CLS = { "取得済み": "got", "取れる": "can", "SP が足りない": "
 const freeReset = () => !MP.reset || MP.reset.day !== jstDay() || MP.reset.n < 1;   // 振り直しと 職業を かえるは 1 日 1 回 無料
 const priceText = () => (freeReset() ? "きょうは 無料" : `クレジット ${MP.resetPrice.toLocaleString("ja-JP")}`);   // 前は 玉（2026-10-28 の 決め「同じ 数の クレジット」）
 
-// サブツリーを 付ける：研究ずみの 敵の ツリーから（付けて いる 物は のぞく）
+// サブツリーを 付ける：研究ずみの 敵の ツリーと、クローラーで 解析 100% に した 精鋭の ツリーから（付けて いる 物は のぞく）
+const subCands = () => [...new Set([...(ME.lab || []).filter((id) => !ELITE_TREES[id]), ...(ME.eliteSubs || [])])].filter((id) => ENEMY_TREES[id] && !(MP.subs || []).includes(id));
 function subPickHtml(k) {
-  const can = (ME.lab || []).filter((id) => ENEMY_TREES[id] && !(MP.subs || []).includes(id));
+  const can = subCands();
   const away = (ME.trips || []).some((t) => !t.done && t.party.includes(MP.uid));   // 出かけて いても 付けかえられる（つぎの 派遣から。鹿さん 2026-11-07）
   return `<div class="subpick"><h2>サブツリー ${k} に 付ける</h2>${can.length ? `${away ? "<p>出かけて いる あいだに かえた 物は、つぎの 派遣から（周回は つぎの 回から）</p>" : ""}<ul>${can.map((id) => { const t = ENEMY_TREES[id];
-    return `<li><button data-sub="${id}" style="--c:${TYPES[t.type].color}"><img src="${spriteURL(id)}" alt=""><span><b>${esc(t.name)}</b><small>${esc(t.enemy)}・${TYPES[t.type].label}・テーマ ${EFFECTS[t.theme].label}</small></span></button></li>`; }).join("")}</ul>`
+    return `<li><button data-sub="${id}" style="--c:${TYPES[t.type].color}">${spriteURL(id) ? `<img src="${spriteURL(id)}" alt="">` : `<i class="ph" aria-hidden="true">精</i>`}<span><b>${esc(t.name)}</b><small>${esc(t.enemy)}${ELITE_TREES[id] ? "（精鋭）" : ""}・${TYPES[t.type].label}${t.theme ? `・テーマ ${EFFECTS[t.theme].label}` : ""}</small></span></button></li>`; }).join("")}</ul>`
     : `<p>研究ずみの 敵が まだ いない。派遣で 捕まえた 子を <a href="tame.html">なかまの 画面</a>で 研究すると 付けられる</p>`}</div>`;
 }
 // 職業を かえる：前の 職業で 覚えた 技から 1 つ 持ちこせる
@@ -303,10 +306,10 @@ function rejobHtml() {
 
 function renderTree() {
   const gate = gateHtml(ME, esc); if (gate) return gate;
-  const ty = TYPES[MP.type], info = petInfo(MP), researched = (ME.lab || []).length;
+  const ty = TYPES[MP.type], info = petInfo(MP);
   let firstEmpty = true;   // 空きの 説明は 1 つ目の 空きだけ（2026-11-05：3 つの 枠に 同じ 文が 出て いた）
   const slot = (x, k) => {
-    if (!x) { const say = firstEmpty ? `あき・えらべる 敵 ${researched} 体` : "あき"; firstEmpty = false;
+    if (!x) { const say = firstEmpty ? `あき・えらべる ${subCands().length} 本` : "あき"; firstEmpty = false;
       return `<button class="slot empty" data-slot="${k}" aria-pressed="${k === UI.slot}"><i>${k}</i><small>サブツリー ${k}</small><b>${say}</b></button>`; }
     const t = treeOf(x.tree), c = t.job ? ty.color : TYPES[t.type].color;
     return `<button class="slot ${t.job ? "" : "subt"}" data-slot="${k}" aria-pressed="${k === UI.slot}" style="--c:${c}"><i>${t.job ? "職" : k}</i><small>${t.job ? "職業ツリー" : `サブツリー ${k}`}</small><b>${esc(t.name)}<s>${x.taken.size}/${SHAPE.length}</s>${t.job ? "" : `<s class="e">${esc(t.enemy)}</s>`}</b></button>`;
@@ -334,7 +337,7 @@ function renderTree() {
       ${job ? `<span class="auto">自動で振る<button class="tg" data-do="auto" aria-pressed="${!!auto}" aria-label="自動で振る"></button></span>` : `<button class="linkish" data-do="unsub" style="margin-left:auto">このツリーを はずす（SP は もどる）</button>`}
       ${job ? `<button class="linkish" data-do="rejob-open">職業を かえる</button>` : ""}<button class="linkish" data-do="respec-ask">振り直す（${priceText()}）</button></div>
     ${sure}${job ? rejobHtml() : ""}
-    ${E ? `<p class="origin">${D ? `${esc(D.name)}の ` : "配合で 生まれた "}<span class="chip" style="--c:${TYPES[E.type].color}"><i></i>${esc(E.enemy)}</span> を${D ? "捕まえて" : " "}研究した ${E.rank === "通常" ? "" : `<span class="rk ${E.rank === "希少" ? "r" : ""}">${E.rank}</span>`}・テーマ <span class="chip" style="--c:${EFFECTS[E.theme].buff ? "var(--leaf)" : "var(--coral)"}"><i></i>${EFFECTS[E.theme].label}</span>・SP は職業ツリーと同じ入れ物から使う</p>` : ""}
+    ${E ? `<p class="origin">${ELITE_TREES[TID] ? "クローラーで " : D ? `${esc(D.name)}の ` : "配合で 生まれた "}<span class="chip" style="--c:${TYPES[E.type].color}"><i></i>${esc(E.enemy)}</span> を${ELITE_TREES[TID] ? "解析した" : D ? "捕まえて研究した" : " 研究した"} ${E.rank === "通常" ? "" : `<span class="rk ${E.rank === "希少" ? "r" : ""}">${E.rank}</span>`}${E.theme ? `・テーマ <span class="chip" style="--c:${EFFECTS[E.theme].buff ? "var(--leaf)" : "var(--coral)"}"><i></i>${EFFECTS[E.theme].label}</span>` : ""}・SP は職業ツリーと同じ入れ物から使う</p>` : ""}
     <div class="tlay" style="--tc:${tc}">
       <div>
         <div class="legend2" aria-hidden="true"><span class="g"><i></i>取った</span><span class="c"><i></i>取れる</span><span><i></i>まだ</span></div>

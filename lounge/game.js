@@ -30,3 +30,6 @@ export { RANKS, FAMILIES, SPECIES, speciesOf, famOf, candidates, skillOptions, m
 export { BITEMS, isBItem, bagOf } from "./battle-items.js";   // 戦いで 使う アイテム
 export { detailOpen, DETAIL, NUT_SNACKS, nutSnack, NUT_CROP_N, NUT_CRAFT_MAX, NUT, nutOf, nutTotal, nutCap, nutSettle, nutAway, isSweet, eatWait, mysteryRoll } from "./nutrition.js";   // 詳細ステータス・栄養   // モンスターの 配合
 export { SUB_MAX, TREE_FULL, PLUS_RATE, FUSE_LV, treesOf, spTotal, spSplit, sexOf, sexByUid, sexOk } from "./monster.js";   // なかまの スキルポイント・性別
+// クローラーの 精鋭の 解析ツリー 32 本（2026-11-13 M-031 の お願い ③：解析 100% で 本編の サブツリーの 枠に 付けられる）。読みこむと ENEMY_TREES・SKILL に 入る（rank「精鋭」・行き先 なし なので 研究・図鑑・ボーダーゾーンの 一覧には 出ない）
+export { ELITE_TREES, eliteTreeOf } from "./crawler-elite-trees.js";
+export { CODE_NEED } from "./crawler-reward.js";

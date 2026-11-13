@@ -9,11 +9,11 @@ import { locked, lockedAct, lockWhy, lockKind, bzLocked, BZ_WHY, stockLocked, ST
 import { emptyLedger, balanceOf, trimSent, toObs, settle } from "./ledger.js";
 import { buyPlan, sellAct, boxSell, tradeAct, taskDone, useItem, deeplinkView, actEvents, dlVisit, bump } from "./lounge-trade.js";
 import { facMigrate, facDue, facStart, facPut, facRush, facFuel, facScaffold, facKnob, facView } from "./lounge-facility.js";   // 施設の 建設と つまみ（施設の 作り直し、2026-11-03）
-import { crawlSave, crawlView } from "./lounge-crawl.js";   // クローラーの 進み（M-018。2026-11-05）
+import { crawlSave, crawlView, bandOf } from "./lounge-crawl.js";   // クローラーの 進み（M-018。2026-11-05）
 import { orderSign, orderView } from "./lounge-order.js";   // 島 3 の 夜の 招待（誓約書に サイン → クローラーと ボーダーゾーンが 開く。2026-11-11）
 import { essExtract, essMake, essSell, essView } from "./lounge-essence.js";   // モンスターの エッセンス（抽出・つくる・売る。2026-11-11）
 import { reqPostPlan, takeFor, items } from "./lounge-req.js";
-import { petTake, petGrow, petSub, petStat, petGambits, petPassives, petStyle, equipSet, equipBest, respecPlan, fighterOf, spTotal, spUsed, freeTotal, RESET_PRICE } from "./lounge-pet.js";
+import { petTake, petGrow, petSub, petStat, petGambits, petPassives, petStyle, equipSet, equipBest, respecPlan, fighterOf, spTotal, spUsed, freeTotal, RESET_PRICE, eliteSubs } from "./lounge-pet.js";   // eliteSubs：クローラーで 解析 100% の 精鋭の サブツリー（2026-11-13 M-031。帯の 補正 bandOf は lounge-crawl.js）
 import { freeIsAuto } from "./trees.js";   // 手で 振る ポイントが 自動か
 import "./warm.js";   // 派遣の 計算を 温めて おく（はじめの 1 回が おそく ならない ように）
 import { relayEntry, mythicNote } from "./lounge-relay.js";   // 配信の 中継（鹿物語の ランキングの 窓）に あずける 派遣の 材料
@@ -479,8 +479,9 @@ export class Viewer {
   mine(rec, w) {
     const now = Date.now(); dropOld(rec, now); facMigrate(rec); facDue(rec, now); insDue(rec, now);   // 時間が 来た 保険の 支払いも 届けて 見せる（なにか 操作するまで タスクが 0 の ままに 見えた。2026-11-07）
     return { id: rec.id, lock: locked(rec, this.env), lockKind: lockKind(), login: rec.login, name: rec.name, nameAt: rec.nameAt, names: rec.names, room: rec.room, own: ownView(rec.own), wallet: this.purse(rec, w), waiting: rec.ledger.unknown.length,
-      pets: rec.pets.map((p) => ({ ...p, ...(p.type ? { sp: { all: spTotal(p.lv), left: spTotal(p.lv) - spUsed(p) }, freeLeft: freeIsAuto(p) ? 0 : freeTotal(p.lv) - Object.values(p.free || {}).reduce((a, v) => a + v, 0), build: fighterOf(p, rec), resetPrice: RESET_PRICE(p.lv) } : {}) })),
-      tamed: rec.tamed, party: rec.party, mine: mineView(rec, now), farmv: farmvView(rec, now), crawl: crawlView(rec), order: orderView(rec), ess: essView(rec), bz: { ...bzMe(rec, now), open: !bzLocked(rec, this.env) }, stock: { open: !stockLocked(rec, this.env), h: (rec.stock && rec.stock.h) || {} }, smelt: rec.smelt || [], saw: rec.saw || [], loop: rec.loop || null, lab: rec.lab, labQ: rec.labQ || [], hideout: rec.hideout, knob: rec.knob || {}, fac: facView(rec, now), credits: rec.credits, snacks: rec.snacks, tools: rec.tools, explore: rec.explore, seen: rec.seen, met: rec.met,
+      pets: rec.pets.map((p, i) => { if (!p.type) return { ...p }; const build = fighterOf(p, rec);   // band：クローラーの 帯の 形（先頭の ペットだけ。M-031 ①）
+        return { ...p, sp: { all: spTotal(p.lv), left: spTotal(p.lv) - spUsed(p) }, freeLeft: freeIsAuto(p) ? 0 : freeTotal(p.lv) - Object.values(p.free || {}).reduce((a, v) => a + v, 0), build, band: i ? null : bandOf(build), resetPrice: RESET_PRICE(p.lv) }; }),
+      tamed: rec.tamed, party: rec.party, mine: mineView(rec, now), farmv: farmvView(rec, now), crawl: crawlView(rec), eliteSubs: eliteSubs(rec), order: orderView(rec), ess: essView(rec), bz: { ...bzMe(rec, now), open: !bzLocked(rec, this.env) }, stock: { open: !stockLocked(rec, this.env), h: (rec.stock && rec.stock.h) || {} }, smelt: rec.smelt || [], saw: rec.saw || [], loop: rec.loop || null, lab: rec.lab, labQ: rec.labQ || [], hideout: rec.hideout, knob: rec.knob || {}, fac: facView(rec, now), credits: rec.credits, snacks: rec.snacks, tools: rec.tools, explore: rec.explore, seen: rec.seen, met: rec.met,
       stash: { cap: stashCap(rec) }, equipCap: equipCap(rec), autoSell: rec.autoSell || null, trips: rec.trips.map((t) => tripView(t, now)), deeplink: deeplinkView(rec, jstDay(now)), desk: deskView(rec, now), req: { mine: rec.req.mine, sending: rec.req.out.length } };
   }
 

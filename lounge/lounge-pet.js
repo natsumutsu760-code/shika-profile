@@ -5,6 +5,7 @@
 // - 職業を かえると 前の 職業の 技から 1 つだけ 持ちこせる。振り直しと 職業を かえるのは 1 日 1 回 無料、2 回目から 玉（鹿さんの決め、2026-10-24。値段は 案）
 // - 装備は あたま・くび・うで・あし・武器・オフハンド・アクセサリー ×3 の 9 枠（鹿さんの決め、2026-10-25。前の「おまけ」は 武器）。なかまも 付けられる。付けて いる 装備は 合成・納める・依頼の お礼に 使えない
 import { COUNTS } from "./main-trees.js";
+import { ELITE_TREES, CODE_NEED } from "./game.js";   // クローラーの 精鋭の ツリー（解析 100% で サブの 枠に。2026-11-13 M-031 ③）
 import { sale } from "./lounge-stock.js";
 import { UNIQUE_MAX } from "./unique-equip.js";   // ユニーク装備は 1 匹に 2 つまで（鹿さんの 決め、2026-10-26。2026-11-05 に 門番で 守る ように した）
 import { detailOpen, detailPct, nutOf } from "./nutrition.js";   // 栄養の 詳細ステータスを 戦いへ（A15）
@@ -72,7 +73,7 @@ export function fighterOf(pet, rec) {
   for (const k in stats) stats[k] = Math.round(stats[k]);
   if (pet.carry && !skills.includes(pet.carry)) skills.push(pet.carry);   // 前の 職業から 持ちこした 技
   const can = (g) => skills.includes(g.do) || (SKILL[g.do] && SKILL[g.do].type === null);
-  const fromSubs = pet.subs.flatMap((id) => (ENEMY_TREES[id].petPlan || ENEMY_TREES[id].plan).filter((g) => g.if[0] !== "always" && skills.includes(g.do)));
+  const fromSubs = pet.subs.flatMap((id) => { const t = ENEMY_TREES[id] || ELITE_TREES[id]; return t ? (t.petPlan || t.plan).filter((g) => g.if[0] !== "always" && skills.includes(g.do)) : []; });
   const gambits = (pet.gambits || [...fromSubs, ...PLANS[pet.type].gambits]).filter(can).slice(0, gambitSlots(pet.lv, keywords));
   const used = [...new Set(gambits.map((g) => g.do).filter((id) => skills.includes(id)))], set = [...used, ...skills.filter((s) => !used.includes(s))].slice(0, SET_SLOTS);
   return { type: pet.type, lv: pet.lv, stats, set, passives: passiveSet(passives, pet.passives), gambits, auto: pet.style || PLANS[pet.type].auto || "balance", trees, name: pet.name, species: pet.species, equip: rec ? equippedOf(pet, rec) : [], detail: detailOf(pet) };
@@ -105,12 +106,16 @@ export function petGrow(rec, b) {
   return { ok: true };
 }
 // サブツリー（研究した 敵の ツリー）を 付ける・はずす。はずした ツリーの SP は もどる
+// クローラーの 精鋭の ツリー：解析 100%（その 精鋭の 解析コード CODE_NEED こ）で サブの 枠に 付けられる（2026-11-13 鹿さんの カード「③ 精鋭の ツリー」。決め「コードだけで サブツリーに できる（ペット みんな）」）
+// 解析の 数は クローラーの 進み（rec.crawl.save.codes。精鋭の 名前 → 数）
+export const eliteOpen = (rec, id) => has(ELITE_TREES, id) && ((((rec.crawl || {}).save || {}).codes || {})[ELITE_TREES[id].enemy] || 0) >= CODE_NEED;
+export const eliteSubs = (rec) => Object.keys(ELITE_TREES).filter((id) => eliteOpen(rec, id));
 export function petSub(rec, b) {
   const pet = petOf(rec);
   if (!pet || !pet.type) return { ok: false, why: "さきに 職業を えらんで" };
   const i = Number.isInteger(b.slot) && b.slot >= 0 && b.slot < TREE_SLOTS - 1 ? b.slot : -1;
   if (i < 0) return { ok: false, why: "枠を えらんで" };
-  if (b.tree != null && !(rec.lab.includes(b.tree) && has(ENEMY_TREES, b.tree))) return { ok: false, why: "研究した ツリーだけ 付けられる" };
+  if (b.tree != null && !((rec.lab.includes(b.tree) && has(ENEMY_TREES, b.tree) && !has(ELITE_TREES, b.tree)) || eliteOpen(rec, b.tree))) return { ok: false, why: has(ELITE_TREES, b.tree) ? "クローラーで 解析 100% に した 精鋭の ツリーだけ 付けられる" : "研究した ツリーだけ 付けられる" };
   if (b.tree != null && pet.subs.includes(b.tree)) return { ok: false, why: "もう 付けて いる" };
   const subs = [...pet.subs], old = subs[i];
   if (old) delete pet.taken[old];

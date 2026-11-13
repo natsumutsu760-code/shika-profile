@@ -3,6 +3,9 @@
 const P = (p, s) => p(s) || s;
 
 export const WORDS = {
+  // クローラーで 解析 100% の 精鋭の ツリーを サブに（2026-11-13 M-031 ③）。ツリーの 名前は 解析の データの 英語（crawler-analysis-data.js の en）
+  "あき・えらべる # 本": "Empty · # to choose from", "精鋭": "Elite", "クローラーで": "From the Crawler:", "を解析した": "analyzed", "精": "E",
+  "ストイック": "Stoic", "アップライト": "Upright", "ハーティ": "Hearty", "メロウ": "Mellow", "ウェザード": "Weathered", "チャーミング": "Charming", "ウォッチフル": "Watchful", "ウィムジカル": "Whimsical", "マーセナリー": "Mercenary", "ディペンダブル": "Dependable", "メティキュラス": "Meticulous", "ボラタイル": "Volatile", "チアフル": "Cheerful", "アーネスト": "Earnest", "アンフリンチング": "Unflinching", "ワンダリング": "Wandering", "グラウンデッド": "Grounded", "コーシャス": "Cautious", "アノニマス": "Anonymous", "タース": "Terse", "イーガー": "Eager", "ディボーテッド": "Devoted", "ファミリア": "Familiar", "タイディ": "Tidy", "ステッドファスト": "Steadfast", "ストリクト": "Strict", "デアリング": "Daring", "ミューテッド": "Muted", "レストレス": "Restless", "ステューディアス": "Studious", "キュリアス": "Curious", "コンペティティブ": "Competitive",
   // 2026-11-05 使いやすく した ときの 文
   "育てる": "Raise", "出かける": "Go out", "ペットの 画面": "Pet screens",   // 2 段の タブの 組
   "ほかの 職業 #": "Other jobs (#)", "相手：練習用の かかし（Lv#）": "Opponent: Training Dummy (Lv#)", "あき・えらべる 敵 # 体": "Empty · # enemies to choose from",
@@ -127,6 +130,7 @@ export const WORDS = {
 };
 
 export const RULES = [
+  [/^(.+)（精鋭）$/, (m, p) => `${p(m[1]) || m[1]} (Elite)`],   // サブの 候補の「ONE SHOE（精鋭）」（2026-11-13）
   // 栄養の 画面（名前が 入る 文）
   [/^(.+)を あげる$/, (m, p) => `Feed ${P(p, m[1])}`], [/^(.+)を 作る$/, (m, p) => `Make ${P(p, m[1])}`],
   [/^(.+)を (\d+) こ あげた：(.+) ＋([\d.]+)%(?:（腹八分目で ＋(\d+)）)?$/, (m, p) => `Fed ${P(p, m[1])} ×${m[2]}: ${P(p, m[3])} +${m[4]}%${m[5] ? ` (+${m[5]} from “just right”)` : ""}`],

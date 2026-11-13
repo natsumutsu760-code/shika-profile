@@ -409,7 +409,7 @@ const realPet = () => { const p = gate?.pets?.[0]; return p && p.type && p.build
 function home() {
   const pets = $("pets"); pets.innerHTML = "";
   const R = realPet();
-  if (R) { pets.hidden = true; $("petLv").textContent = `あなたの ペット：${R.name || MAIN_TREES[R.type]?.name}（${MAIN_TREES[R.type]?.name ?? R.type} Lv ${R.build.lv}）`; }
+  if (R) { pets.hidden = true; $("petLv").textContent = `あなたの ペット：${R.name || MAIN_TREES[R.type]?.name}（${MAIN_TREES[R.type]?.name ?? R.type} Lv ${R.build.lv}${R.band ? `・クローラーでは Lv ${R.band.lv}` : ""}）`; }   // 帯の 補正（門番の band。2026-11-13 M-031 ①）
   else for (const [t, T] of Object.entries(MAIN_TREES)) {
     const b = document.createElement("button"); b.className = "chip"; b.textContent = `${T.name}（${SPECIES3[T.pet]?.label ?? T.pet}）`; b.setAttribute("aria-pressed", String(save.pet === t));
     b.onclick = () => { save.pet = t; keep(); home(); }; pets.append(b);
@@ -516,7 +516,8 @@ function drawAna() {
   box.hidden = !t; if (!t) return;
   const n = save.codes?.[t.name] ?? 0, tr = (r) => `<tr><td class="sl mono">${r.slot}</td><td class="nm">${r.name}</td><td>${r.text}</td><td class="mp mono">${r.mp != null ? `MP ${r.mp}` : ""}</td></tr>`;
   box.innerHTML = `<h3>${t.tree}</h3><div class="s mono">${t.en.toUpperCase()}　${t.meaning}</div><div class="s">${t.name}（${t.petJa}／${t.role}）　主 ${t.main}・副 ${t.sub}</div>
-    <div class="state">${n >= CODE_NEED ? "解析 100%：サブツリーに 付けられる" : `解析 ${(n * 100) / CODE_NEED}%：あと ${CODE_NEED - n} こで サブツリーに 付けられる`}</div>
+    <div class="state">${n >= CODE_NEED ? (realPet() ? "解析 100%" : "解析 100%：サブツリーに 付けられる") : `解析 ${(n * 100) / CODE_NEED}%：あと ${CODE_NEED - n} こで サブツリーに 付けられる`}</div>
+    ${n >= CODE_NEED && realPet() ? `<a class="btn main" href="skilltree.html" style="margin-top:10px;display:inline-block;text-decoration:none">本編の スキルツリーで サブに 付ける ›</a>` : ""}
     ${(n >= CODE_NEED || ALL) && !realPet() ? `<button class="btn${save.sub === eliteTreeOf(t.name) ? "" : " main"}" id="subBtn" style="margin-top:10px">${save.sub === eliteTreeOf(t.name) ? "サブツリーから 外す" : "サブツリーに 付ける"}</button>` : ""}
     <p class="desc">${t.desc}</p>
     <table>${t.rows.filter((r) => r.slot[0] === "S").map(tr).join("")}<tr class="sep"><td colspan="4">パッシブ</td></tr>${t.rows.filter((r) => r.slot[0] === "P").map(tr).join("")}</table>
@@ -644,8 +645,9 @@ renderer.setAnimationLoop((ms) => {
 
 // ---- 走る ----
 function start(m) {
-  const R = realPet(), lv = R ? R.build.lv : lvOf(save);   // 傭兵の Lv（9 割）も 本編の ペットの Lv から
-  const me = R ? { ...R.build, name: R.name || R.build.name || MAIN_TREES[R.type]?.name, lv, owner: "あなた" }
+  // 帯の 補正（2026-11-13 M-031 ①・資料「強い 方だけ 下げる」・第 1 章は Lv 50〜）：帯より 強い ペットは 門番が 帯の Lv で 作った 形（band）で 戦う。傭兵の Lv（9 割）も その Lv から
+  const R = realPet(), B = R ? R.band || R.build : null, lv = B ? B.lv : lvOf(save);
+  const me = R ? { ...B, name: R.name || B.name || MAIN_TREES[R.type]?.name, lv, owner: "あなた" }
     : playerPet(save.pet, lv, `${MAIN_TREES[save.pet].name}`, save.sub && ELITE_TREES[save.sub] ? [[save.sub, subSp(lv)]] : []);
   const party = [me, ...(m.allies ?? []).map((n) => linkerOf(n, mercLv(lv)))].map((c, i) => ({ c, hp: null, mp: null, merc: i > 0 }));
   S = newRun(m, { party, items: { ...bringOf() }, seed: (Date.now() % 100000) | 0, kind: kindOf(m), first: !save.done.includes(m.id) });
@@ -879,7 +881,7 @@ function result() {
     if (o.record) h += row("記録", `「${o.record}」`);
   } else h += row("2 回目", "報酬は なし（経験値だけ）");
   if (o.ok && o.mats.length) h += row("素材", mats(o.mats));
-  h += row("経験値", `+${o.exp}${o.lvUp && !realPet() ? `　Lv ${o.lv} に 上がった` : ""}`);   // 本編の ペットの ときは クローラーだけの Lv を 出さない（経験値を 本編の ペットに 入れるのは システム側へ お願い。M-031）
+  h += row("経験値", `+${o.exp}${realPet() ? "（本編の ペットへ）" : o.lvUp ? `　Lv ${o.lv} に 上がった` : ""}`);   // 本編の ペットの ときは 経験値が 本編の ペットへ 入る（門番の crawl.save。2026-11-13 M-031 ②）。クローラーだけの Lv は 出さない
   $("rList").innerHTML = h;
   const order = r.ok && AFTER[m.id];
   $("rOrder").hidden = !order; if (order) $("rOrder").innerHTML = `<div class="mono" style="color:var(--sub);font-size:11px;letter-spacing:.2em">ORDER</div>${order}`;
