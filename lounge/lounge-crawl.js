@@ -1,10 +1,12 @@
 // クローラー（先行体験版）の 進みを 門番に しまう。モデリングの M-018 → 鹿さんの カード「システム側に頼む」（2026-11-05）：
 //   はじまりの サイン・クリアした ミッションが ブラウザの 中だけで、機械を 持ちかえると はじまりから やり直しに なって いた。どの 機械でも 同じ 進みに する
 // 進みの 計算は ブラウザ（crawler.html の save）。門番は 形と 大きさを たしかめて しまう だけ
-// （クローラーの クレジット・素材は クローラーの 中だけの 物で、ラウンジの 帳簿〈rec.credits・rec.own〉には さわらない）
+// クローラーで 拾った 物（クレジット・素材・貴重サンプル）は 本編へ 渡す（2026-11-13 鹿さんの カード。下の lootIn。前は クローラーの 中だけ だった）
 // 受付：crawl.save {save, replace?}。記録：rec.crawl = { at, save, paid〈本編の ペットに 入れた 経験値の 合計〉, bucket〈ふえ方の 上限の ため〉 }。me の 返事の crawl
-import { levelUp } from "./lounge-game.js";
-import { clampTo } from "./lounge-border.js";
+import { levelUp, putMats } from "./lounge-game.js";
+import { clampTo, ensureBz, SAMPLE_MAX } from "./lounge-border.js";
+import { VALUE, MAT_NAME } from "./materials.js";
+import { SAMPLES as BZ_SAMPLES, SAMPLE_STAR, SAMPLE_PRICE } from "./border.js";
 import { ELITE_TREES, CODE_NEED } from "./game.js";
 // 帯の 補正（2026-11-13 鹿さんの カード「① 帯の 補正」。M-031。資料 mono-link-crawler-missions.md「適正レベルへの 補正は 強い 方だけ 下げる」・第 1 章は Lv 50〜）
 //   帯より Lv の 高い 本編の ペットは、ボーダーゾーンと 同じ そろえ方（clampTo：ステータスを 帯の Lv の 強さに。装備と スキルツリーは そのまま。鹿さんの 決め）
@@ -28,6 +30,19 @@ export const CRAWL_EXP = { rate: 60, cap: 3600 };
 //   進みを 消しても（replace）門番の 数は 消さない（取った 物は 取った まま。ブラウザが 0 から 数えなおしても 2 回 足さない）
 export const CRAWL_CODE = { every: 10, cap: 2, seed: 1 };
 const ELITE_NAMES = new Set(Object.values(ELITE_TREES).map((t) => t.enemy));
+// クローラーで 拾った 物を 本編へ（2026-11-13 鹿さんの カード「ぜんぶ入れる」「これまでの 分も 上限の 中で 入れる」）
+//   クレジット → rec.credits・素材 → 倉庫（rec.own.mats。いっぱいなら 一時の 箱）・貴重サンプル → ボーダーゾーンの サンプル（rec.bz.samples。★は 門番が 決めて 鑑定まで ふせる）
+//   ブラウザの 進みの 合計（save.credits・save.mats・save.samples。クローラーの 中では へらない）の ふえた 分を、価値の 上限の 中で 渡す。渡した 分は rec.crawl.gv
+//   上限：1 分 CRAWL_LOOT.rate（価値：クレジット 1・素材は 値段の 表 VALUE・サンプルは ★1 の 値段）・ためて おけるのは cap まで〔C〕。こえた 分は 次の 保存で
+//   （報酬金は 1 分 約 62。素材と サンプルを 足しても ふつうに 遊ぶ 分は 入る）
+//   はじめて 会った ときは 0 から 数える（これまでの 分も 入る）。ためは cap から（すぐ 1 時間 ぶん 入る）〔C〕。進みを 消した（replace）ときは 数え なおす
+//   合計が 渡した 分より 小さい（2 台を 同時に 開いて 古い 方が 送った）ときは 何も しない
+export const CRAWL_LOOT = { rate: 150, cap: 9000 };
+const SMP_ID = Object.fromEntries(Object.entries(BZ_SAMPLES).map(([id, x]) => [x.name, id]));   // クローラーの 名前は 字の 間に 空白が ある（「歪んだ 鉱脈の 核」）
+const own = (o, k) => Object.prototype.hasOwnProperty.call(o, k);   // 表に 本当に ある 名前だけ（constructor など もとから ある 名前を 通さない。2026-11-13 自動の 安全確認の 指摘）
+const sampleId = (x) => { if (!x || typeof x.name !== "string") return null; const k = x.name.replace(/\s+/g, ""); return own(SMP_ID, k) ? SMP_ID[k] : null; };
+const STAR_W = SAMPLE_STAR[0];   // ★の 出方：ボーダーゾーンの 浅い 所と 同じ〔C〕
+const rollStar = () => { let r = Math.random() * STAR_W.reduce((a, w) => a + w, 0); for (let i = 0; i < STAR_W.length; i++) { r -= STAR_W[i]; if (r < 0) return i + 1; } return 1; };
 const ID = /^[a-z0-9]{1,16}$/;
 export function crawlSave(rec, b, now = Date.now()) {
   const s = b && b.save;
@@ -39,12 +54,12 @@ export function crawlSave(rec, b, now = Date.now()) {
   // 別の 機械で 進めた 分を 消さない：クリアと サインは 門番に ある 物と まぜる（replace は「進みを 消す」〈?reset=1〉の とき だけ）
   const old = rec.crawl && rec.crawl.save;
   if (old && !b.replace) { save.done = [...new Set([...(old.done || []), ...save.done])]; if (old.signed && !save.signed) save.signed = old.signed; }
-  const prev = rec.crawl || {}, got = expToPet(rec, prev, save, now, !!b.replace), c = codesIn(prev, save, now);
-  rec.crawl = { at: now, save, paid: got.paid, bucket: got.bucket, cc: c.cc, cb: c.cb };
-  return { ok: true, at: now, done: save.done.length, ...(got.exp ? { exp: got.exp, lv: got.lv, up: got.up } : {}) };
+  const prev = rec.crawl || {}, got = expToPet(rec, prev, save, now, !!b.replace), c = codesIn(prev, save, now), L = lootIn(rec, prev, save, now, !!b.replace);
+  rec.crawl = { at: now, save, paid: got.paid, bucket: got.bucket, cc: c.cc, cb: c.cb, gv: L.gv, vb: L.vb };
+  return { ok: true, at: now, done: save.done.length, ...(got.exp ? { exp: got.exp, lv: got.lv, up: got.up } : {}), ...(L.got ? { loot: L.got } : {}) };
 }
 function expToPet(rec, prev, save, now, replace) {
-  const total = Math.max(0, Math.floor(+save.exp || 0)), pet = (rec.pets || [])[0];
+  const total = Math.max(0, Math.min(1e12, Math.floor(+save.exp || 0))), pet = (rec.pets || [])[0];
   if (prev.paid == null || replace || !(pet && pet.type)) return { paid: total, bucket: prev.bucket || { n: 0, at: now }, exp: 0 };   // 数え はじめ・進みを 消した・ペットが いない
   const b = prev.bucket || { n: 0, at: now }, n = Math.min(CRAWL_EXP.cap, b.n + (Math.max(0, now - b.at) / 60000) * CRAWL_EXP.rate);
   const give = Math.floor(Math.min(Math.max(0, total - prev.paid), n));
@@ -61,11 +76,46 @@ function codesIn(prev, save, now) {
   Object.assign(cc, prev.cc);
   const b = prev.cb || { n: 0, at: now };
   let n = Math.min(CRAWL_CODE.cap, b.n + Math.max(0, now - b.at) / (CRAWL_CODE.every * 60000));
+  if (!Number.isFinite(n)) n = 0;
   for (const [k, v] of Object.entries(save.codes && typeof save.codes === "object" ? save.codes : {})) {
     if (!ELITE_NAMES.has(k)) continue;
     const give = Math.floor(Math.min(num(v) - (cc[k] || 0), n));
     if (give > 0) { cc[k] = (cc[k] || 0) + give; n -= give; }
   }
   return { cc, cb: { n, at: now } };
+}
+function lootIn(rec, prev, save, now, replace) {
+  const int = (v, hi = 1e9) => Math.max(0, Math.min(hi, Math.floor(+v || 0)));
+  const cr = int(save.credits), mats = {}, smp = Array.isArray(save.samples) ? save.samples.map(sampleId) : [];
+  for (const x of Object.values(save.mats && typeof save.mats === "object" ? save.mats : {})) {
+    if (!x || typeof x.id !== "string" || !own(MAT_NAME, x.id)) continue;
+    const k = x.id + ":" + int(x.q, 5), n = int(x.n);
+    if (n) mats[k] = (mats[k] || 0) + n;
+  }
+  if (replace) return { gv: { cr, mats, smp: smp.length }, vb: prev.vb || { n: CRAWL_LOOT.cap, at: now }, got: null };   // 進みを 消した：いまの 合計から 数え なおす
+  const gv = prev.gv ? { cr: prev.gv.cr || 0, mats: { ...(prev.gv.mats || {}) }, smp: prev.gv.smp || 0 } : { cr: 0, mats: {}, smp: 0 };
+  const b = prev.vb || { n: CRAWL_LOOT.cap, at: now };
+  let n = Math.min(CRAWL_LOOT.cap, b.n + (Math.max(0, now - b.at) / 60000) * CRAWL_LOOT.rate);
+  if (!Number.isFinite(n)) n = 0;   // 数で ない 値に こわれて いたら 0 から
+  if (!rec.own) return { gv, vb: { n, at: now }, got: null };
+  const got = { cr: 0, mats: 0, smp: 0 }, put = [];
+  const Z = ensureBz(rec);   // 貴重サンプル（めずらしい 物から 先に）。持てる 数（SAMPLE_MAX）を こえる 分は 待つ
+  for (let i = gv.smp; i < smp.length; i++) {
+    if (!smp[i]) { gv.smp = i + 1; continue; }   // 表に ない 名前は とばす
+    if (Z.samples.length >= SAMPLE_MAX || n < SAMPLE_PRICE[0]) break;
+    rec.uidN = (rec.uidN || 0) + 1;
+    Z.samples.push({ uid: "x" + rec.uidN.toString(36), id: smp[i], star: rollStar(), known: false });
+    n -= SAMPLE_PRICE[0]; gv.smp = i + 1; got.smp++;
+  }
+  for (const [k, total] of Object.entries(mats)) {   // 素材（倉庫が いっぱいなら 一時の 箱：putMats）
+    const left = total - (gv.mats[k] || 0); if (left <= 0) continue;
+    const [id, q] = k.split(":"), v = Math.max(1, own(VALUE, id) && Number.isFinite(VALUE[id]) ? VALUE[id] : 0), take = Math.min(left, Math.floor(n / v));
+    if (!(take > 0)) continue;
+    put.push({ id, q: +q, n: take }); gv.mats[k] = (gv.mats[k] || 0) + take; n -= take * v; got.mats += take;
+  }
+  if (put.length) putMats(rec, put, now);
+  const give = Math.min(Math.max(0, cr - gv.cr), Math.floor(n));   // クレジット
+  if (give > 0 && Number.isFinite(give)) { rec.credits = (rec.credits || 0) + give; gv.cr += give; n -= give; got.cr = give; }
+  return { gv, vb: { n, at: now }, got: got.cr || got.mats || got.smp ? got : null };
 }
 export const crawlView = (rec) => (rec.crawl ? { at: rec.crawl.at, save: rec.crawl.save } : null);

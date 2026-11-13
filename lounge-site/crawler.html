@@ -414,7 +414,7 @@ function home() {
     const b = document.createElement("button"); b.className = "chip"; b.textContent = `${T.name}（${SPECIES3[T.pet]?.label ?? T.pet}）`; b.setAttribute("aria-pressed", String(save.pet === t));
     b.onclick = () => { save.pet = t; keep(); home(); }; pets.append(b);
   }
-  $("wallet").textContent = `${(save.credits ?? 0).toLocaleString()} cr`;
+  $("wallet").textContent = `${(save.credits ?? 0).toLocaleString()} cr`; $("wallet").hidden = toGate;   // 本番は クレジットが 本編の 財布へ 入るので、クローラーだけの 財布は しまう（2026-11-13）
   if (!R) { const lv = lvOf(save); $("petLv").textContent = `あなたの ペット（Lv ${lv}　次の Lv まで ${(expNeed(lv) - (save.xp ?? 0)).toLocaleString()}${save.sub && ELITE_TREES[save.sub] ? `　サブ：${ELITE_TREES[save.sub].name}` : ""}）`; }
   drawTab();
   const done = save.done, n = countDone(done);
@@ -533,7 +533,7 @@ function drawInv() {
   document.querySelectorAll("#ifilt [data-s]").forEach((b) => (b.onclick = () => { iSort = b.dataset.s; drawInv(); }));
   if (!all.length) { $("ilist").innerHTML = `<div class="empty">ミッションで 手に 入れた 物が ここに たまる。敵の 素材・漁った スクラップ・貴重サンプル・完全成功の 記録</div>`; return; }
   const sub = (x) => x.k === "enemy" ? Object.entries(x.qs).sort((a, b) => b[0] - a[0]).map(([q, n]) => `品質${q} ×${n}`).join("・") : x.k === "scrap" ? SCRAP_FROM[x.id] ?? "漁る" : x.k === "sample" ? `${x.fam}・★ 未鑑定（${BUYER[x.fam]} が 高く 買う）` : "押すと 読める";
-  let h = "";
+  let h = toGate ? `<p class="s" style="margin:0 0 8px">ここは 拾った 物の 記録。素材・貴重サンプル・クレジットは 本編の 倉庫・財布へ 送って いる</p>` : "";   // 2026-11-13 鹿さんの カード「ぜんぶ入れる」
   for (const k of Object.keys(K)) {
     if (iKind !== "all" && iKind !== k) continue;
     const g = all.filter((x) => x.k === k).sort((a, b) => (iSort === "n" ? b.n - a.n : a.name.localeCompare(b.name, "ja")));
@@ -864,23 +864,23 @@ function result() {
   const o = settle(S, save); // 財布へ（はじめての 成功なら done にも 入る）
   if (r.ok && m.id === "c1m06") save.metSplint = true;
   keep();
-  const row = (k, v) => `<div class="r"><span>${k}</span><span>${v}</span></div>`;
+  const row = (k, v) => `<div class="r"><span>${k}</span><span>${v}</span></div>`, toMain = toGate ? "（本編へ）" : "";   // 本番は 本編の 財布・倉庫・サンプルへ 入る（門番の crawl.save。2026-11-13 鹿さんの カード）
   const mats = (list) => list.map((x) => `${x.name}${x.q ? `（品質 ${x.q}）` : ""} ×${x.n}`).join("、");
   let h = "";
   if (!o.ok) {
     const L = o.lost, any = L.mats || L.samples || L.codes;
     h += row("失った 物", any ? [L.mats && `素材 ${L.mats}`, L.samples && `貴重サンプル ${L.samples}`, L.codes && `解析コード ${L.codes}`].filter(Boolean).join("・") : "なし");
   } else if (o.first) {
-    h += row("報酬金", `${o.pay.toLocaleString()} cr`);
-    if (o.bonusPay) h += row("完全成功", `+${o.bonusPay.toLocaleString()} cr`);
+    h += row("報酬金", `${o.pay.toLocaleString()} cr${toMain}`);
+    if (o.bonusPay) h += row("完全成功", `+${o.bonusPay.toLocaleString()} cr${toMain}`);
     if (o.record) h += row("記録", `「${o.record}」`);
     for (const [k, n] of Object.entries(o.codes)) { const c = save.codes[k]; h += row("解析コード", `${ANALYSIS[k].tree} +${n}　${c} / ${CODE_NEED}<span class="pbar"><i style="width:${(c * 100) / CODE_NEED}%"></i></span>`); }
-    for (const s of o.samples) h += row("貴重サンプル", `${s.name}（${s.fam}・★ 未鑑定）`);
+    for (const s of o.samples) h += row("貴重サンプル", `${s.name}（${s.fam}・★ 未鑑定）${toMain}`);
   } else if (o.late) {
-    h += row("完全成功", `+${o.bonusPay.toLocaleString()} cr`);
+    h += row("完全成功", `+${o.bonusPay.toLocaleString()} cr${toMain}`);
     if (o.record) h += row("記録", `「${o.record}」`);
   } else h += row("2 回目", "報酬は なし（経験値だけ）");
-  if (o.ok && o.mats.length) h += row("素材", mats(o.mats));
+  if (o.ok && o.mats.length) h += row("素材", mats(o.mats) + toMain);
   h += row("経験値", `+${o.exp}${realPet() ? "（本編の ペットへ）" : o.lvUp ? `　Lv ${o.lv} に 上がった` : ""}`);   // 本編の ペットの ときは 経験値が 本編の ペットへ 入る（門番の crawl.save。2026-11-13 M-031 ②）。クローラーだけの Lv は 出さない
   $("rList").innerHTML = h;
   const order = r.ok && AFTER[m.id];
