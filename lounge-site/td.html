@@ -56,6 +56,8 @@
   .cmd .who img { width:48px; height:48px; image-rendering:pixelated; flex:none; }
   .cmd .who b { display:block; font:900 15px/1.2 var(--jp); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
   .cmd .who span { font:700 12px/1.3 var(--jp); color:var(--soft); }
+  .cmd .who .nx { margin:2px 0 0; display:flex; flex-wrap:wrap; gap:0 6px; font:700 12px/1.35 var(--jp); color:var(--ink); } .cmd .who .nx b { display:inline; font:900 12px/1.35 var(--jp); } .cmd .who .nx span { color:inherit; }
+  .cmd .who .nx.bad { color:var(--coral); }
   .cmd .hint { font:900 14px/1.3 var(--jp); color:var(--soft); }
   .cmd .acts { display:flex; gap:6px; }
   .cmd .acts button { min-height:44px; padding:8px 12px; border-radius:12px; border:1.5px solid var(--line); background:#fff; font:900 13px/1 var(--jp); white-space:nowrap; }
@@ -174,6 +176,12 @@
     .bt .bf button { min-height:40px; padding:8px 14px; font-size:14px; border-radius:12px; }
   }
   .result div { width:min(300px, 86%); padding:20px; border-radius:22px; background:#fff; display:grid; gap:10px; text-align:center; }
+  .result .lose > b { color:var(--coral); }
+  .result .dead { list-style:none; margin:0; padding:0; display:grid; gap:6px; text-align:left; }
+  .result .dead li { display:flex; align-items:center; gap:10px; padding:6px 8px; border-radius:12px; background:var(--space); }
+  .result .dead img { width:40px; height:40px; image-rendering:pixelated; flex:none; filter:grayscale(1); opacity:.7; }
+  .result .dead span { display:grid; gap:2px; min-width:0; } .result .dead b { font:900 14px/1.2 var(--jp); color:var(--ink); } .result .dead small { font:700 12px/1.2 var(--jp); color:var(--soft); }
+  .result .pet { font-size:12px; }
   .result b { font:900 20px/1.2 var(--jp); } .result p { margin:0; font:700 14px/1.6 var(--jp); color:var(--soft); } .result p em { font:600 16px/1 var(--num); font-style:normal; color:var(--ink); }
 
   @media (max-width:760px) {
@@ -198,6 +206,16 @@
     body:not(.def) .bar { display:none; }
     .view { height:max(180px, calc(100vh - 186px)); min-height:0; }
     body.td-place .view { position:fixed; inset:0; z-index:900; height:auto; border-radius:0; }
+    /* 防衛中（M-036）：上の 帯を かくして 建物を 広く・指示の 帯は 絵と 型の 行を かくして つめる・結果は 枠いっぱい */
+    body.def header.top { display:none; }
+    body.def .bar { margin:6px 0; }
+    body.def .view { height:calc(100vh - 62px); }
+    body.def .cmd { left:6px; right:6px; bottom:6px; padding:8px; gap:6px; }
+    body.def .cmd .who img, body.def .cmd .who > div > span { display:none; }
+    body.def .cmd .acts button { min-height:36px; padding:6px 2px; }
+    body.def .cmd .end { min-height:40px; }
+    .result { position:fixed; z-index:1000; overflow:auto; padding:8px; }
+    .result div { padding:14px; gap:8px; } .result .dead img { width:32px; height:32px; }
   }
 </style>
 </head>
@@ -282,6 +300,9 @@ const FIXED = {
   "B-1-1": { id: "e3_tombcat", name: "墓守ネコ", lv: 52, st: "ねている", type: "キャスター", sat: 73 },
   "D-2-0": { id: "t_shipcat_tombcat", name: "墓守の船猫", lv: 22, st: "在宅", type: "アタッカー", sat: 88, kid: true },
   "C-2-0": { id: "e_clownfish", name: "虹色クマノミ", lv: 36, st: "病気", type: "テクニシャン", sat: 38 },
+  // てっぺんの プライベートラウンジの となり（最後の 戦いで 加勢する。負けの 見本で 自分の 子と NPC の ちがいを 見せる・M-036）
+  "G-7-2": { id: "e3_moonrabbit", name: "月うさぎ", lv: 44, st: "在宅", type: "キャスター", sat: 76, mine: true },
+  "G-7-3": { id: "e3_sandguard", name: "砂岩の衛兵", lv: 58, st: "在宅", type: "ディフェンダー", sat: 62 },
 };
 // 部屋（rx・rz・rw・rd ＝ 床の 範囲。door ＝ ドアの 前の 廊下の マス）
 const ROOMS = [], RES = {}, OCC = {}, NOS = {}, count = {};   // OCC：部屋（箱-階-何番目）→ 住人・NOS：部屋番号（はじめて できた 順）
@@ -584,11 +605,24 @@ const PATH = [
   ...seg(7, [[-9, -1], [-8, -1], [-8, -2], [-8, -3], [-8, -4], [-8, -5], [-8, -6], [-9, -6]]),         // てっぺんの プライベートラウンジ
 ];
 const LOUNGE_STEP = PATH.length - 1;
+// 見本の 敵の 名前（迷宮の データ dungeons.js と 同じ）と、退避の くらべっこの AGI（数は 仮）
+const FOE_NAME = { e_boss_redbeard: "赤ひげ船長", e_pirate: "海賊の下っぱ", e_parrot: "おしゃべりオウム", e_boss_octopus: "大ダコ", e_skelsailor: "ドクロ水夫", e_jelly: "電気クラゲ" };
+const agiRes = (R) => Math.round(10 + R.lv * 0.9 + (R.type === "テクニシャン" ? 12 : R.type === "アタッカー" ? 6 : R.type === "ディフェンダー" ? -6 : 0));
+const agiFoe = (fo) => Math.round(10 + fo.lv * 0.9 + (/boss/.test(fo.id) ? -6 : 4));
+function nextFoe(r) {   // この 部屋の ドアの 前に いちばん 早く 来る 敵（あと 何 ターン）
+  const at = PATH.findIndex((c) => c.f === r.f && c.x === r.door[0] && c.z === r.door[1]);
+  if (at < 0) return null;
+  return S.foes.filter((fo) => fo.alive && fo.step <= at).map((fo) => ({ fo, n: at - fo.step })).sort((a, b) => a.n - b.n)[0] || null;
+}
 function startDef(note) {
   if (!isFull()) { setBuilt(SLOTS.map((x) => x.id)); toast("防衛の 見本は 九龍城塞の 形で"); }   // 敵の 道（PATH）は 完成形の 道
   Object.assign(S, { mode: "def", tab: null, turn: 1, sel: null, cmd: {}, picked: null, floor: 0, note, pan: { x: 0, z: 0 } }); hidePop();
-  const pos = [0, 5, 27, 40];   // 赤ひげ船長は 入口、下っぱは 1 階の 廊下と 5 階、オウムは 7 階
-  S.foes = note.foes.map((id, i) => ({ id, step: pos[i] ?? i * 2, alive: true }));
+  const last = new URLSearchParams(location.search).has("last");   // ?last：オウムが ラウンジの 1 歩 手前から（最後の 戦いを すぐ 見る）
+  const pos = last ? [0, 5, 27, LOUNGE_STEP - 1] : [0, 5, 27, 40];   // 赤ひげ船長は 入口、下っぱは 1 階の 廊下と 5 階、オウムは 7 階
+  const [l0, l1 = l0] = (note.lv.match(/\d+/g) || [40]).map(Number);
+  S.foes = note.foes.map((id, i) => ({ id, step: pos[i] ?? i * 2, alive: true, lv: /boss/.test(id) ? l1 : Math.min(l1, l0 + (i % (l1 - l0 + 1))) }));
+  S.rest = new Set(); S.dead = [];
+  if (last) S.floor = PATH[LOUNGE_STEP - 1].f;
   render();
 }
 function buildDef(g) {
@@ -844,8 +878,13 @@ function renderCmd() {
   if (!S.sel) { el.innerHTML = `<div class="who"><span class="hint">住人を えらぶ</span></div>${end}`; }
   else {
     const R = RES[S.sel], r = roomOf(S.sel), sp = SPECIAL[R.type] || ["", ""];
-    el.innerHTML = `<div class="who"><img src="${spriteURL(R.id)}" alt=""><div style="min-width:0"><b>${R.name}</b><span>${R.type}・${r.no}号室</span></div></div>
-      <div class="acts">${["出撃", "待機", "移動", "待ち伏せ", sp[0], "退避"].map((c, i) => `<button data-c="${c}" class="${S.cmd[S.sel] === c ? "on" : ""}${i === 4 ? " sp" : ""}">${c}</button>`).join("")}</div>${end}`;
+    // 退避の 材料（鹿さんの カード「A 指示の帯に出す」2026-11-14）：次に 来る 敵・Lv・あと 何 ターン と 逃げやすさ（AGI の くらべっこ）
+    const nf = nextFoe(r), d = nf ? agiRes(R) - agiFoe(nf.fo) : 0, ease = d >= 5 ? "逃げやすい" : d <= -5 ? "逃げにくい" : "五分五分";
+    const info = S.rest.has(S.sel) ? `<p class="nx">休み（この 防衛の あいだ）</p>`
+      : nf ? `<p class="nx ${nf.fo.lv > R.lv ? "bad" : ""}"><b>${FOE_NAME[nf.fo.id] || "敵"}</b><span>${nf.n ? `Lv${nf.fo.lv}・あと ${nf.n} ターン` : `Lv${nf.fo.lv}・いま ドアの 前`}</span></p><p class="nx">退避：${ease}（AGI ${agiRes(R)}・敵 ${agiFoe(nf.fo)}）</p>`
+      : `<p class="nx">この 部屋の 前は 敵が 通らない</p>`;
+    el.innerHTML = `<div class="who"><img src="${spriteURL(R.id)}" alt=""><div style="min-width:0"><b>${R.name}</b><span>${R.type}・${r.no}号室</span>${info}</div></div>
+      ${S.rest.has(S.sel) ? "" : `<div class="acts">${["出撃", "待機", "移動", "待ち伏せ", sp[0], "退避"].map((c, i) => `<button data-c="${c}" class="${S.cmd[S.sel] === c ? "on" : ""}${i === 4 ? " sp" : ""}">${c}</button>`).join("")}</div>`}${end}`;
   }
   renderMini();
 }
@@ -856,23 +895,31 @@ $("cmd").addEventListener("click", (e) => {
     S.cmd[S.sel] = c;
     if (c === "移動") toast("移動する マスを えらぶ（見本）");
     else if (sp && c === sp[0]) toast(sp[1]);
-    else if (c === "退避") toast("部屋へ 退避（AGI の くらべっこ・見本）");
+    else if (c === "退避") toast("ターン おわりで 部屋へ 退避（AGI の くらべっこ）");
     buildWorld(); renderCmd(); return;
   }
   if ("end" in b.dataset) endTurn();
 });
 function endTurn() {
   // 敵は みんな 1 歩（6 回目）。待ち伏せ・出撃の 住人の ドアの 前を 通ると ぶつかって いつもの ガンビットで 戦う（見本は 住人が 勝つ）
+  // 退避（21 回目）：成否は AGI の くらべっこ（いちばん 早く 来る 敵と）。もどった 子は その 防衛の あいだ 休み
+  for (const [who, c] of Object.entries(S.cmd)) {
+    if (c !== "退避") continue;
+    const R = RES[who], nf = nextFoe(roomOf(who)); delete S.cmd[who];
+    if (!nf || agiRes(R) - agiFoe(nf.fo) > -5) { S.rest.add(who); toast("部屋へ 退避した（この 防衛は 休み）"); }
+    else { S.cmd[who] = "待機"; toast("逃げられなかった（待機に もどす）"); }
+  }
   const guards = Object.entries(S.cmd).filter(([, c]) => c === "待ち伏せ" || c === "出撃").map(([who, c]) => { const r = roomOf(who); return { f: r.f, x: r.door[0], z: r.door[1], c }; });
-  let msg = null;
+  let msg = null; const arrived = [];
   for (const fo of S.foes.filter((f) => f.alive)) {
     fo.step = Math.min(fo.step + 1, LOUNGE_STEP);
     const c = PATH[fo.step];
     const g = guards.find((g) => g.f === c.f && Math.abs(g.x - c.x) + Math.abs(g.z - c.z) <= (g.c === "出撃" ? 1 : 0));
     if (g) { fo.alive = false; msg = g.c === "待ち伏せ" ? "待ち伏せ！ チャージで 戦う" : "出撃した 住人が 戦う"; }
-    else if (fo.step === LOUNGE_STEP) { fo.alive = false; msg = "MONO ペットが 戦う"; }
+    else if (fo.step === LOUNGE_STEP) { fo.alive = false; arrived.push(fo); }
   }
   S.turn++;
+  if (arrived.length) { S.sel = null; render(); showBattles([loungeBattle(arrived)], lose); return; }   // 最後の 戦い（負けたら 防衛は 負け）
   if (msg && !S.shownBattle && msg.startsWith("待ち伏せ")) { S.shownBattle = true; render(); showBattles(DEMO); return; }
   if (msg) toast(msg);
   if (!S.foes.some((f) => f.alive)) { win(); return; }
@@ -897,22 +944,23 @@ const DEMO = [
 // 格子の マス [列, 段]（列 1 ＝ 前〈まん中より〉・2 ＝ うしろ、段 1 ＝ 奥・2 ＝ 手前）。前・うしろ・うしろ の 順で ずらして 並べる
 const SLOT = [[1, 2], [2, 1], [2, 2], [1, 1]], SLOT1 = [[1, 1], [2, 1]];   // SLOT1 は 片側 2 体まで（1 段で 大きく）
 let BQ = [], BI = 0, btTimer = null, btStep = 0;
-function showBattles(list) { BQ = list.map((b) => JSON.parse(JSON.stringify(b))); BI = 0; hidePop(); openBattle(); }
+let btDone = null;   // 戦いの 画面を 閉じた あとの つづき（最後の 戦い → 負けの 画面）
+function showBattles(list, done) { BQ = list.map((b) => JSON.parse(JSON.stringify(b))); BI = 0; btDone = done || null; hidePop(); openBattle(); }
 function fighterHTML(u, side, i, one, solo) {
   const [c, r] = (one ? SLOT1 : SLOT)[i], col = side === "l" ? 3 - c : c, area = solo ? "1 / 1 / 2 / 3" : `${r} / ${col}`;   // 片側 1 体なら 2 列ぶん 使って 大きく
   return `<div class="fighter ${side}${u.boss ? " boss" : ""}${solo ? " solo" : ""}" id="ft-${side === "l" ? "r" : "f"}${i}" style="grid-area:${area}">
     <div class="tg">${u.tg.map((t) => `<em class="${t === "チャージ" ? "ch" : ""}">${t}</em>`).join("")}</div>
     <span class="nm">${u.name}</span><div class="hp"><i style="width:${Math.round((u.hp / u.max) * 100)}%"></i></div>
-    <img src="${spriteURL(u.id)}" alt=""></div>`;
+    <img src="${u.img || spriteURL(u.id)}" alt=""></div>`;
 }
 function openBattle() {
   const B = BQ[BI], el = $("bt"), one = B.res.length <= 2 && B.foes.length <= 2; clearTimeout(btTimer); btStep = 0;
-  el.innerHTML = `<div class="bh"><b>戦い ${BI + 1}/${BQ.length}</b><span>${B.f + 1}F 廊下</span></div>
+  el.innerHTML = `<div class="bh"><b>戦い ${BI + 1}/${BQ.length}</b><span>${B.place || `${B.f + 1}F 廊下`}</span></div>
     <div class="field${one ? " one" : ""}"><span class="lamp" style="left:20%"></span><span class="lamp" style="left:62%"></span>
       <span class="door" style="left:14%"><i>${B.f + 1}01</i></span><span class="door" style="left:44%"><i>${B.f + 1}02</i></span><span class="door" style="left:76%"><i>${B.f + 1}03</i></span>
       <span class="tile" style="top:72%"></span><span class="tile" style="top:86%"></span>
       <div class="side">${B.res.map((u, i) => fighterHTML(u, "l", i, one, B.res.length === 1)).join("")}</div><div class="side">${B.foes.map((u, i) => fighterHTML(u, "r", i, one, B.foes.length === 1)).join("")}</div></div>
-    <div class="bf"><p id="btlog"><span>ターン ${S.turn}</span></p><button data-bt>${BI + 1 < BQ.length ? "次の 戦い" : "建物へ もどる"}</button></div>`;
+    <div class="bf"><p id="btlog"><span>ターン ${S.turn}</span></p><button data-bt>${BI + 1 < BQ.length ? "次の 戦い" : btDone ? "結果を 見る" : "建物へ もどる"}</button></div>`;
   el.hidden = false; document.body.classList.add("td-bt");
   btTimer = setTimeout(playStep, 650);
 }
@@ -925,9 +973,10 @@ function playStep(instant) {
   tEl.querySelector(".hp i").style.width = Math.round((T.hp / T.max) * 100) + "%";
   if (!instant) { const d = document.createElement("span"); d.className = "dmg"; d.textContent = dmg; tEl.appendChild(d); setTimeout(() => d.remove(), 1000); }
   const down = T.hp === 0, tag = a === "r0" && A.tg.includes("チャージ") && btStep === 1;
-  if (down) { tEl.classList.add("out"); tEl.querySelector(".tg").innerHTML = `<em>${tg[0] === "r" ? "力つきた" : "たおした"}</em>`; }
+  const dw = T.pet ? "倒れた" : tg[0] === "r" ? "力つきた" : "たおした";
+  if (down) { tEl.classList.add("out"); tEl.querySelector(".tg").innerHTML = `<em>${dw}</em>`; }
   if (tag) { aEl.querySelector(".tg em.ch")?.remove(); }
-  $("btlog").innerHTML = `<b>${A.name}</b><span>${sk}${tag ? "（チャージ）" : ""}</span><span>→</span><b>${T.name}</b><em>${dmg}</em>${down ? `<span>${tg[0] === "r" ? "力つきた" : "たおした"}</span>` : ""}`;
+  $("btlog").innerHTML = `<b>${A.name}</b><span>${sk}${tag ? "（チャージ）" : ""}</span><span>→</span><b>${T.name}</b><em>${dmg}</em>${down ? `<span>${dw}</span>` : ""}`;
 
   if (!instant && btStep < B.steps.length) btTimer = setTimeout(() => playStep(), 1100);
 }
@@ -935,8 +984,29 @@ $("bt").addEventListener("click", (e) => {
   if (!e.target.closest("[data-bt]")) return;
   const B = BQ[BI];
   if (btStep < B.steps.length) { clearTimeout(btTimer); while (btStep < B.steps.length) playStep(true); return; }   // 再生中なら この 戦いの 1 手を 先に 終える
-  if (BI + 1 < BQ.length) { BI++; openBattle(); } else { $("bt").hidden = true; document.body.classList.remove("td-bt"); render(); }
+  if (BI + 1 < BQ.length) { BI++; openBattle(); } else { $("bt").hidden = true; document.body.classList.remove("td-bt"); const d = btDone; btDone = null; if (d) d(); else render(); }
 });
+// 最後の 戦い（7 回目「MONO ペットが 最後に 戦う」）：プライベートラウンジで MONO ペットと、となりの 部屋の 住人が 加勢（上下左右・片方 4 体まで）。
+// 見本は 負ける 台本（負けの 画面を 見せる）。MONO ペットは 殺されず 倒れる だけ。力つきた 住人は 起こされない まま 終わると 殺される
+function loungeBattle(foes) {
+  const lr = ROOMS.find((r) => r.lounge), helpers = ROOMS.filter((r) => r.f === lr.f && r.blk === lr.blk && r.who && !S.rest.has(r.who) && RES[r.who].st !== "仕事中").slice(0, 3).map((r) => RES[r.who] && { who: r.who, ...RES[r.who] });
+  const res = [{ id: "pet_shika", img: "./img/brief-pet-shika.webp", name: "MONO ペット", hp: 240, max: 240, pet: true, tg: ["最後の 戦い"] },
+    ...helpers.map((R) => ({ id: R.id, who: R.who, name: R.name, hp: 40 + R.lv * 2, max: 40 + R.lv * 2, mine: !!R.mine, tg: ["となりの 部屋", "加勢"] }))];
+  const fz = foes.map((fo) => ({ id: fo.id, name: FOE_NAME[fo.id] || "敵", hp: fo.lv * 6, max: fo.lv * 6, boss: /boss/.test(fo.id), tg: ["ラウンジに 来た"] }));
+  const steps = [];
+  res.slice(1).forEach((u, i) => { steps.push(["f0", "r" + (i + 1), "強い 一撃", u.hp]); });   // となりの 子が 先に 力つきる（見本）
+  steps.push(["r0", "f0", "つのの 突進", Math.round(fz[0].max * 0.4)], ["f0", "r0", "とどめの 一撃", 240]);
+  return { f: lr.f, place: "プライベートラウンジ", res, foes: fz, steps };
+}
+function lose() {   // 負け：クレジットを 取られ、報酬も 減る。殺された 子は 帰って こない（自分の 子は アメジストで 復活・NPC は 部屋が 空く）
+  const n = S.note, B = BQ[BQ.length - 1], dead = B.res.filter((u) => !u.pet && u.hp === 0);
+  for (const u of dead) { const r = roomOf(u.who); if (r) { r.who = null; OCC[r.key] = null; } delete RES[u.who]; }
+  S.foes.forEach((fo) => (fo.alive = false)); render();
+  $("result").innerHTML = `<div class="lose"><b>守れなかった</b><p>クレジット <em>−${fmt(n.lose)}</em></p>
+    ${dead.length ? `<ul class="dead">${dead.map((u) => `<li><img src="${spriteURL(u.id)}" alt=""><span><b>${u.name}</b><small>${u.mine ? "アメジストで 復活できる" : "部屋が 空いた"}</small></span></li>`).join("")}</ul>` : ""}
+    <p class="pet">MONO ペットは 倒れた だけ</p><button class="go" data-back>もどる</button></div>`;
+  $("result").hidden = false;
+}
 function win() {
   const n = S.note; render();
   $("result").innerHTML = `<div><b>守りきった</b><p>クレジット <em>+${fmt(n.win)}</em><br>シグナル <em>+${n.sg}</em></p><button class="go" data-back>もどる</button></div>`; $("result").hidden = false;
@@ -950,7 +1020,7 @@ function renderMini() {
     const y = base - (f + 1) * (ch + 3), on = S.floor === f, n = S.foes.filter((fo) => fo.alive && PATH[fo.step].f === f).length;
     const wpx = 40 + (BLOCKS.filter((b) => f >= b.f0 && f < b.f0 + b.h).reduce((a, b) => a + b.w * b.d, 0) / 3.2);   // 階の 広さで 横の 長さ
     svg += `<g data-mf="${f}" style="cursor:pointer"><rect x="${(W - wpx) / 2}" y="${y}" width="${wpx}" height="${ch}" rx="4" fill="${on ? "#3A4A8A" : "#232C55"}" stroke="${on ? "#8EA0FF" : "#3A4478"}" stroke-width="1.2"/>`;
-    svg += `<text x="${(W - wpx) / 2 + 6}" y="${y + ch - 4}" fill="#B8C4FF" font-size="10" font-weight="700">${f + 1}F</text>`;
+    svg += `<text x="${(W - wpx) / 2 + 6}" y="${y + ch - 4}" fill="#B8C4FF" font-size="12" font-weight="700">${f + 1}F</text>`;
     for (let k = 0; k < n; k++) svg += `<circle cx="${(W - wpx) / 2 + 30 + k * 8}" cy="${y + ch / 2}" r="3" fill="#FF3A4A"/>`;
     if (f === TOP) svg += `<path d="M${(W + wpx) / 2 - 10} ${y + 3}l1.8 3.6 3.9.4-2.9 2.6.9 3.8-3.7-2.1-3.7 2.1.9-3.8-2.9-2.6 3.9-.4Z" fill="#7CC8FF"/>`;
     svg += `</g>`;
