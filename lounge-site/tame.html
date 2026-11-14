@@ -263,6 +263,7 @@ function load(m) {
   const tamed = (m.tamed || []).map((c) => ({ ...c, from: fromOf(c.tree), lab: (m.lab || []).includes(c.tree), eq: Object.values(c.equip || {}).filter(Boolean).length, away: away.has(c.uid), inParty: (m.party || []).includes(c.uid) }));
   S.labs = m.lab || []; S.labLv = facLv(m, "lab"); S.labOff = labOff(S.labLv); S.labQ = m.labQ || []; S.snacks = m.snacks || 0; S.s3 = ((m.deeplink && m.deeplink.items) || {}).snack3 || 0; S.known = !!(m.wallet && m.wallet.known); S.balls = S.known ? m.wallet.balls : 0; S.res = S.known ? m.wallet.res : 0;
   S.party = [0, 1].map((i) => tamed.find((c) => c.uid === (m.party || [])[i]) || null);
+  S.tripOn = (m.trips || []).some((t) => !t.done);
   S.all = tamed; S.room = tamed.filter((c) => !c.inParty);
   if (!S.all.some((c) => c.uid === S.sel)) S.sel = S.room[0] ? S.room[0].uid : null;   // パーティの 子も えらべる（スキルを 見る）
   for (const k of ["pa", "pb"]) if (S.fz[k] && !tamed.some((c) => c.uid === S.fz[k])) S.fz[k] = null;
@@ -330,9 +331,9 @@ function feedHtml() {
     return `<i class="pip ${on ? "on" : nx ? "next" : ""} ${pop ? "pop" : ""}" style="--k:${k - S.popFrom}"></i>`; }).join("");
   const slot = S.party.indexOf(null);
   const action = c.inParty   // パーティの 子（スキルを 見に 来た とき）：もどすだけ
-    ? `<button class="jelly light go" data-act="back" data-u="${c.uid}" ${c.away ? "disabled" : ""}>部屋に もどす</button>${c.away ? `<p class="cost">出かけて いる あいだは もどせない</p>` : ""}`
+    ? `<button class="jelly light go" data-act="back" data-u="${c.uid}">部屋に もどす</button>${S.tripOn ? `<p class="cost">出かけて いる あいだに 入れかえた 分は、つぎの 派遣から（周回は つぎの 回から）</p>` : ""}`
     : full
-    ? `<button class="jelly go" data-act="join" ${slot < 0 ? "disabled" : ""}>パーティに 入れる</button>${slot < 0 ? `<p class="cost">パーティが いっぱい。だれかを 部屋に もどすと 入れられる</p>` : ""}`
+    ? `<button class="jelly go" data-act="join" ${slot < 0 ? "disabled" : ""}>パーティに 入れる</button>${slot < 0 ? `<p class="cost">パーティが いっぱい。だれかを 部屋に もどすと 入れられる</p>` : S.tripOn ? `<p class="cost">出かけて いる あいだに 入れかえた 分は、つぎの 派遣から（周回は つぎの 回から）</p>` : ""}`
     : `<div class="give"><div class="have"><span>持っている おやつ<b>${S.snacks}</b> こ</span><span>クレジット<b>${fmt(ME.credits || 0)}</b></span></div>
         <div class="stepper"><button class="sq" data-act="dec" aria-label="1 こ へらす" ${S.give <= 1 ? "disabled" : ""}>−</button><output aria-live="polite">${S.give}<small>こ</small></output><button class="sq" data-act="inc" aria-label="1 こ ふやす" ${S.give >= left(c) ? "disabled" : ""}>＋</button><button class="all" data-act="all">いっぱいまで（${left(c)} こ）</button></div>
         <p class="cost ${poor ? "short" : ""}">${buy ? `足りない ${buy} こは クレジットで 買う（<b>${fmt(cost)}</b>）${poor ? "。クレジットが 足りない" : ""}` : "おやつは 派遣で 拾える（足りない分は クレジットで 買う）"}</p>

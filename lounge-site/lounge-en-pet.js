@@ -28,7 +28,7 @@ export const WORDS = {
   // ---- なかま（tame.html） ----
   "（すっかり なかよし。いっしょに 行きたそうに こっちを 見ている）": "(Best friends now. Looking at you like it wants to come along)",
   "もぐもぐ！（すこし 近くに すわった）": "Munch munch! (sat a little closer)", "……もぐ。（まだ 少し はなれて 見ている）": "……munch. (still watching from a little way off)",
-  "（部屋の すみで じっと している）": "(sitting still in the corner of the room)", "部屋に もどす": "Send back to room", "もどす": "Remove", "あいている": "Empty",
+  "（部屋の すみで じっと している）": "(sitting still in the corner of the room)", "部屋に もどす": "Send back to room", "出かけて いる あいだに 入れかえた 分は、つぎの 派遣から（周回は つぎの 回から）": "Swaps made while away apply from the next trip (the next run when looping)", "もどす": "Remove", "あいている": "Empty",
   "なかよし いっぱいの子を 入れる": "Add a companion with a full friendship gauge", "ペット＋# 体": "Pet + #", "相棒（いつも いっしょ）": "Partner (always with you)",
   "しぼりこみと ならべかた": "Filter and sort", "ならべかた：Lv の 高い順（押すと なかよし順）": "Sort: highest Lv (tap for friendship)", "ならべかた：なかよし順（押すと Lv の 高い順）": "Sort: friendship (tap for highest Lv)",
   "Lv順": "By Lv", "なかよし順": "By friendship", "⇅ Lv順": "⇅ By Lv", "⇅ なかよし順": "⇅ By friendship", "となりの部屋": "Next room", "捕まえた子 # 体": "Captured: #",

@@ -240,9 +240,11 @@ export function tameJoin(rec, b) {
   rec.party.push(c.uid);
   return { ok: true };
 }
+// 部屋に もどす。出かけて いる あいだも 入れかえられる（鹿さん 2026-11-14「装備とスキル同様に仲間の付け替えも派遣中に設定できるようにしたい」）。
+// いまの 派遣は 出かけた ときの 組（t.party・team）の まま つづき、入れかえた パーティは つぎの 派遣（周回は つぎの 回の 出発 loopAfter → tripStart）から。
+// 出かけて いる 子は 部屋に もどしても 帰るまで 坑道・配合・取り出しには 使えない（そちらは t.party で 見て いる）
 export function tameBack(rec, b) {
   if (!rec.party.includes(b.uid)) return { ok: false, why: "パーティに いない" };
-  if (rec.trips.some((t) => !t.done && t.party.includes(b.uid))) return { ok: false, why: "いまは 出かけて いる" };
   rec.party = rec.party.filter((u) => u !== b.uid);
   return { ok: true };
 }
