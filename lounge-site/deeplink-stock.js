@@ -21,9 +21,11 @@ export function newsText(n) {
   if (n.k === "up" || n.k === "down") return `${c.name}、24 時間で ${Math.abs(n.d)}% ${n.k === "up" ? "上昇" : "下落"}（${WHY[n.co][n.k === "up" ? 0 : 1]}）`;
   if (n.k === "high") return `${c.name}、値が 上限の ${ST.max} に`;
   if (n.k === "low") return `${c.name}、値が 下限の ${ST.min} に`;
-  if (n.k === "div") return `きょうの 配当 1 位：${c.name}（1 トークン ${n.d}）`;
+  if (n.k === "div") return `きょうの 配当 1 位：${c.name}（1 トークン ${n.d} クレジット）`;
   return "";
 }
+// 配当は クレジットで 入る。数だけ だと トークンで もらえる ように 見えた ので「クレジット」を 付ける（2026-11-15 鹿さんの カード「クレジットと わからない」）
+const divMine = (v) => (v >= 1 ? `${fmt(Math.floor(v))} クレジット` : "1 クレジット 未満（もちこし）");
 const when = (at) => { const d = new Date(at + 9 * 3600e3); return `${d.getUTCMonth() + 1}/${d.getUTCDate()} ${String(d.getUTCHours()).padStart(2, "0")}:00`; };
 export const newsNew = (K) => (K && K.news ? K.news.filter((n) => K.now - n.at < 864e5).length : 0);
 export const heldN = (K) => (K && K.mine ? Object.values(K.mine.h).filter((n) => n > 0).length : 0);
@@ -62,7 +64,7 @@ function detail(K, S, credits = S.credits || 0) {
     <p class="big"><b>${p1(x.p)}</b>${chg(x)}<small>24 時間</small></p>
     <div class="cw">${spark(x.hist, 300, 90, true)}<span class="lo">7 日の 値　${p1(Math.min(...(x.hist.length ? x.hist : [x.p])))}〜${p1(Math.max(...(x.hist.length ? x.hist : [x.p])))}</span></div>
     <ul class="kv">${n ? `<li><span>保有</span><b>${fmt(n)}</b></li><li><span>売ると</span><b>${fmt(n * x.p * (1 - ST.fee))}<em class="${gain > 0 ? "up" : gain < 0 ? "dn" : ""}">${sign(gain)}</em></b></li>` : ""}
-      <li><span>1 トークンの 配当</span><b>${x.div ? x.div : "─"}${n && x.div ? `<em>保有分で ${fmt(Math.floor(n * x.div))}</em>` : ""}</b></li></ul>
+      <li><span>1 トークンの 配当</span><b>${x.div ? `${x.div} クレジット` : "─"}${n && x.div ? `<em>保有分で ${divMine(n * x.div)}</em>` : ""}</b></li></ul>
     <div class="trade"><label>数 <input id="sk-n" type="number" min="1" max="${ST.cap}" step="1" value="${k}" inputmode="numeric"></label><button class="chip" data-sset="${mn}">最小 ${fmt(mn)}</button>${[100, 500].filter((v) => v > mn).map((v) => `<button class="chip" data-sset="${v}">${v}</button>`).join("")}${n ? `<button class="chip" data-sset="${n}">ぜんぶ</button>` : ""}</div>
     <p class="est" id="sk-est">${est(x, n, k, credits)}</p>
     <div class="go"><button class="btn" data-sbuy="${x.co}" ${buyWhy(x, n, k, credits) ? "disabled" : ""}>買う</button><button class="btn ghost" data-ssell="${x.co}" ${n >= k ? "" : "disabled"}>売る</button></div>
@@ -87,7 +89,7 @@ export function stockInput(K, S, credits) {
 
 function mineTab(K, S) {
   const L = K.list.filter((x) => (K.mine.h[x.co] || 0) > 0);
-  const last = K.mine.last ? `<p class="note">前の 配当 <span class="c">${fmt(K.mine.last.cr)}</span>（${K.mine.last.day.slice(5).replace("-", "/")} ${ST.divHour}:00）・これまで <span class="c">${fmt(K.mine.got)}</span></p>` : "";
+  const last = K.mine.last ? `<p class="note">前の 配当 <span class="c">${fmt(K.mine.last.cr)} クレジット</span>（${K.mine.last.day.slice(5).replace("-", "/")} ${ST.divHour}:00）・これまで <span class="c">${fmt(K.mine.got)} クレジット</span></p>` : "";
   if (!L.length) return `<p class="say">まだ トークンを 持って いない。「一覧」で えらんで 買える</p>${last}`;
   let tot = 0, tc = 0;
   const rows = L.map((x) => { const n = K.mine.h[x.co], v = Math.floor(n * x.p * (1 - ST.fee)), g = v - (K.mine.c[x.co] || 0); tot += v; tc += K.mine.c[x.co] || 0;

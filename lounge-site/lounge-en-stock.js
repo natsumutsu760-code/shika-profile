@@ -16,9 +16,9 @@ export const WORDS = {
   "トークン": "Tokens", "# 社の 取引所": "Exchange · # companies", "つぎの 配当まで #": "Next dividend in #", "つぎの 配当まで": "Next dividend in",
   "一覧 #": "List #", "保有 #": "Held #", "ニュース": "News", "グループ": "Group", "ぜんぶ #": "All #", "ハルモニア #": "Harmonia #", "中立 #": "Neutral #", "中立": "Neutral",
   "ならべる": "Sort", "グループ順": "By group", "動いた順": "Biggest moves", "配当": "Dividend", "保有": "Held", "24 時間": "24h", "# 日の 値": "#-day range",
-  "売ると": "If sold", "# トークンの 配当": "Dividend / token", "保有分で #": "Yours: #", "数": "Qty", "ぜんぶ": "All", "買う": "Buy", "売る": "Sell",
+  "売ると": "If sold", "# トークンの 配当": "Dividend / token", "保有分で #": "Yours: #", "# クレジット": "# credits", "保有分で # クレジット": "Yours: # credits", "保有分で # クレジット 未満（もちこし）": "Yours: under # credit (carried over)", "数": "Qty", "ぜんぶ": "All", "買う": "Buy", "売る": "Sell",
   "買う：およそ #": "Buy ≈ #", "買う：およそ #　売る：およそ #": "Buy ≈ #   Sell ≈ #", "手数料 #% こみ": "incl. #% fee",
-  "前の 配当 #（#/# #:#）・これまで #": "Last dividend # (#/# #:#) · Total #",
+  "前の 配当": "Last dividend", "（#/# #:#）・これまで": "(#/# #:#) · Total",   // 英語は かけらごとに 引く（まとめ引きの 前に「前の 配当」が 1 語ずつ 訳されて Front's Dividend に なって いた）
   "まだ トークンを 持って いない。「一覧」で えらんで 買える": "No tokens yet. Pick one under List to buy.", "まだ ニュースは ない": "No news yet",
   "取引所に つないで います …": "Connecting to the exchange…", "取引所に つながらない": "Can't reach the exchange", "準備中（トークンは、公開まで もう 少し お待ちください）": "Coming soon (tokens open shortly)",
   "会社を えらんで": "Pick a company", "トークンの 数は 1〜1000": "Tokens: 1–1000", "取引所が こたえませんでした。つぎに 開いた ときに 決まります": "The exchange didn't answer. It will settle next time you open it.",
@@ -27,7 +27,7 @@ export const WORDS = {
 export const RULES = [
   [/^(.+)、24 時間で (\d+)% (上昇|下落)（(.+)）$/, (m, p) => { const a = p(m[1]), b = p(m[4]); return a && b ? `${a} ${m[3] === "上昇" ? "up" : "down"} ${m[2]}% in 24h (${b})` : null; }],
   [/^(.+)、値が (上限|下限)の (\d+) に$/, (m, p) => { const a = p(m[1]); return a ? `${a} hits the ${m[2] === "上限" ? "ceiling" : "floor"} of ${m[3]}` : null; }],
-  [/^きょうの 配当 1 位：(.+)（1 トークン ([\d.]+)）$/, (m, p) => { const a = p(m[1]); return a ? `Today's top dividend: ${a} (${m[2]} / token)` : null; }],
+  [/^きょうの 配当 1 位：(.+)（1 トークン ([\d.]+) クレジット）$/, (m, p) => { const a = p(m[1]); return a ? `Today's top dividend: ${a} (${m[2]} credits / token)` : null; }],
   [/^(買った|売った)：([A-Z]{3}) ([\d,]+) トークン（1 トークン ([\d.]+)・(払った|もらった) ([\d,]+)）(?:　損益 ([＋−])([\d,]+))?$/, (m) => `${m[1] === "買った" ? "Bought" : "Sold"}: ${m[2]} ${m[3]} tokens (${m[4]} each · ${m[5] === "払った" ? "paid" : "got"} ${m[6]})${m[7] ? `  P/L ${m[7] === "＋" ? "+" : "−"}${m[8]}` : ""}`],
   [/^([\d,]+) クレジットから（いまの 値で ([\d,]+) トークン〜）$/, (m) => `From ${m[1]} credits (${m[2]}+ tokens at today's price)`],
   [/^1 社 ([\d,]+) トークンまで（いま ([\d,]+)）$/, (m) => `Up to ${m[1]} tokens per company (you have ${m[2]})`],
