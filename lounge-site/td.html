@@ -80,6 +80,14 @@
   /* 押すと 出る 小さな 窓 */
   .pop { position:absolute; z-index:5; width:236px; padding:12px; border-radius:18px; background:#fff; box-shadow:0 18px 40px -18px rgba(27,35,64,.55); display:grid; gap:8px; }
   .pop[hidden] { display:none; }
+  /* 暮らし（M-037）：となりとの なかよし・日記・子 */
+  .pop .sec { font:900 12px/1.2 var(--jp); color:var(--soft); margin-top:2px; }
+  .pop .nb { grid-template-columns:auto 1fr auto; } .pop .nb img { width:28px; height:28px; image-rendering:pixelated; }
+  .pop .diary { list-style:none; margin:0; padding:0; display:grid; gap:3px; font:700 12px/1.35 var(--jp); color:var(--ink); }
+  .pop .diary li { display:flex; gap:6px; align-items:baseline; } .pop .diary time { flex:none; font:600 12px/1 var(--num); color:var(--soft); } .pop .diary b { font:900 12px/1.35 var(--jp); }
+  .pop .kids { display:flex; align-items:center; gap:6px; font:700 12px/1.3 var(--jp); color:var(--soft); } .pop .kids img { width:28px; height:28px; image-rendering:pixelated; } .pop .kids b { font:900 13px/1.2 var(--jp); color:var(--ink); }
+  .clock { position:absolute; left:14px; top:14px; z-index:4; display:flex; align-items:baseline; gap:6px; padding:8px 12px; border-radius:999px; background:rgba(255,255,255,.92); box-shadow:0 8px 20px -14px rgba(27,35,64,.6); font:700 12px/1 var(--jp); color:var(--soft); }
+  .clock[hidden] { display:none; } .clock time { font:600 16px/1 var(--num); color:var(--ink); }
   .pop .hd { display:flex; align-items:center; gap:10px; }
   .pop .hd img { width:44px; height:44px; image-rendering:pixelated; flex:none; }
   .pop .hd b { display:block; font:900 15px/1.25 var(--jp); }
@@ -216,6 +224,7 @@
     body.def .cmd .end { min-height:40px; }
     .result { position:fixed; z-index:1000; overflow:auto; padding:8px; }
     .result div { padding:14px; gap:8px; } .result .dead img { width:32px; height:32px; }
+    .pop { position:fixed; left:8px !important; right:8px; width:auto; top:auto !important; bottom:8px; max-height:calc(100vh - 16px); overflow:auto; z-index:950; }
   }
 </style>
 </head>
@@ -229,6 +238,7 @@
     </div>
     <div class="view" id="view">
       <div class="floors" id="floors"></div>
+      <div class="clock" id="clock" hidden></div>
       <div class="mini" id="mini" hidden></div>
       <div class="pop" id="pop" hidden></div>
       <nav class="dock" id="dock"></nav>
@@ -250,6 +260,7 @@ import { kit, F } from "./lounge-furniture.js";
 import { makePet3 } from "./pets.js";
 import { spriteURL } from "./sprites.js";
 import { mountWallet } from "./wallet-bar.js"; mountWallet();
+import { rentOf, partPrice } from "./td-numbers.js";   // 集合住宅の 数の 表（鹿さんの カードで 決まった 家賃・パーツの 値段。docs/mono-link-td-numbers.md）
 
 // ---------- 建物（見本の 形）----------
 // 鹿さんの カード（2026-11-12）：「棟で分けると言うより1個の集合住宅を幾何学的に接ぎ木するようなイメージです。」→「もっと接ぎ木を大胆に」
@@ -325,11 +336,11 @@ for (const b of BLOCKS) for (let f = b.f0; f < b.f0 + b.h; f++) {
     if (!(key in OCC)) {
       let who = null;
       if (!firstCompose) {}
-      else if (key in FIXED) { const v = FIXED[key]; if (v) { who = v.id + "@" + r.no; RES[who] = { ...v, rent: 30 + v.lv * 2 }; } }
+      else if (key in FIXED) { const v = FIXED[key]; if (v) { who = v.id + "@" + r.no; RES[who] = { ...v, rent: rentOf(v.lv, v.sat) }; } }
       else if (rnd() > 0.12) {
         const [id, name, lv0] = POOL[Math.floor(rnd() * POOL.length)], q = rnd(), lv = Math.max(5, Math.round(lv0 * (0.6 + rnd() * 0.5)));
         who = id + "@" + r.no;
-        RES[who] = { id, name, lv, sat: Math.round(40 + rnd() * 58), rent: 30 + lv * 2, st: q < 0.22 ? "仕事中" : q < 0.32 ? "ねている" : "在宅", type: TYPES[Math.floor(rnd() * TYPES.length)] };
+        const sat = Math.round(40 + rnd() * 58); RES[who] = { id, name, lv, sat, rent: rentOf(lv, sat), st: q < 0.22 ? "仕事中" : q < 0.32 ? "ねている" : "在宅", type: TYPES[Math.floor(rnd() * TYPES.length)] };
       }
       OCC[key] = who;
     }
@@ -339,8 +350,8 @@ for (const b of BLOCKS) for (let f = b.f0; f < b.f0 + b.h; f++) {
 firstCompose = false;
 }
 const WANT = [   // 入居希望の 掲示板（1 時間ごとに かわる）
-  { id: "e_gull", name: "ウミネコ", lv: 35, rent: 60 }, { id: "e_parrot", name: "おしゃべりオウム", lv: 38, rent: 70 }, { id: "e_glimmer", name: "迷い光", lv: 42, rent: 90 },
-];
+  { id: "e_gull", name: "ウミネコ", lv: 35 }, { id: "e_parrot", name: "おしゃべりオウム", lv: 38 }, { id: "e_glimmer", name: "迷い光", lv: 42 },
+].map((w) => ({ ...w, rent: rentOf(w.lv, 60) }));   // 希望の 家賃：入居の ときの 満足度 60 で
 const NOTES = [   // 電波塔に とどいた 通知（えらぶ ときに 決めるのは 強さ。敵の 数と Lv が 先に 見える）
   { t: "流れて きた モンスター", from: "ガマの隠れ港の 海賊", star: 2, foes: ["e_boss_redbeard", "e_pirate", "e_pirate", "e_parrot"], lv: "Lv38〜41", win: 1800, sg: 12, lose: 900 },
   { t: "流れて きた モンスター", from: "アトゥイ号の 沈没船", star: 3, foes: ["e_boss_octopus", "e_skelsailor", "e_jelly", "e_jelly"], lv: "Lv45〜48", win: 3200, sg: 20, lose: 1600 },
@@ -352,7 +363,7 @@ const satColor = (v) => (v >= 70 ? "#22CC88" : v >= 40 ? "#FFB547" : "#FF5A64");
 const STS = ["在宅", "仕事中", "ねている", "病気"];
 
 const S = { mode: new URLSearchParams(location.search).has("def") ? "def" : "home", floor: 7, tab: null, sub: "res", filt: "all", sort: "sat", sel: null, turn: 1, foes: [], cmd: {}, picked: null, pan: { x: 0, z: 0 },
-  built: new Set(), order: [], place: null, flash: null };
+  built: new Set(), order: [], place: null, flash: null, clock: 360, bond: {} };
 
 // ---------- 増築（M-032。鹿さんの カード「増築で建物が育つ」「A 置き場所をえらぶ」2026-11-13）----------
 // 最初の アパート（A の 2 階・部屋 8。区画パーツ M-027 の「最初」）から、区画パーツを 買って 置く。置ける 所は、OK を もらった 完成形へ 向かう 候補だけ（見本）。
@@ -412,12 +423,17 @@ function slotBox(x) {   // 候補の 形（マス・階）
   if (x.part === "walk") { const w = FULL_WALKS[x.w], xs = w.cells.map((c) => c[0]), zs = w.cells.map((c) => c[1]); return { x: Math.min(...xs), z: Math.min(...zs), w: Math.max(...xs) - Math.min(...xs) + 1, d: Math.max(...zs) - Math.min(...zs) + 1, f: w.f, h: 0, cells: w.cells.length }; }
   const e = FULL_EXST[x.e]; return { x: e.x, z: e.z, w: 1, d: 1, f: e.f, h: 1 };
 }
-function slotCost(x) {   // 値段の 形（区画パーツ M-027）：部屋の 数 × 1 部屋 × 高さの 倍率・つなぎは 安く・塔は 階の 数だけ。数は 仮
-  const b = slotBox(x), hk = 1 + 0.25 * b.f;
-  if (x.part === "box" || x.part === "floor") return Math.round((b.rooms * 400 * hk) / 100) * 100;
-  if (x.part === "tower") return b.h * 900;
-  if (x.part === "walk") return b.cells * 500;
-  return 1200;
+function slotCost(x) {   // 値段（数の 表 td-numbers.js の partPrice。鹿さんの カード 4 回目「この案でよい」2026-11-14）
+  const b = slotBox(x);
+  if (x.part === "box") {   // 部屋の 箱：部屋の 数 × 5,000 × 高さの 倍率。下に 何も ない マスが あれば 張り出し（箱の 1.5 倍・支えは 無料）
+    const p0 = partPrice("box", b.rooms, b.f + 1);
+    let over = false; if (b.f > 0) for (let i = 0; i < b.w && !over; i++) for (let j = 0; j < b.d; j++) if (!solidAt(b.x + i, b.z + j, b.f - 1)) { over = true; break; }
+    return over ? partPrice("overhang", 1, b.f + 1, p0) : p0;
+  }
+  if (x.part === "floor") return partPrice("addFloor", b.rooms, b.f + 1);
+  if (x.part === "tower") return partPrice("tower", b.h);
+  if (x.part === "walk") return partPrice("bridge", b.cells);
+  return partPrice("stair", 1);
 }
 function slotText(x) {   // 候補の 中身（1 行）
   const b = slotBox(x);
@@ -562,6 +578,12 @@ function cutFloor(b, f, g) {
       if (R.st !== "仕事中") {
         const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex(R.id), transparent: true, alphaTest: 0.5, opacity: R.st === "ねている" ? 0.75 : 1 }));
         sp.scale.set(1.15, 1.15, 1); sp.position.set(cx + (b.ax === "x" ? 0.25 : b.side === "r" ? 0.4 : -0.4), y + 0.6, cz + (b.ax === "x" ? 0.5 : 0.2)); sp.userData.res = r.who; g.add(sp); picks.push(sp);
+        if (R.st === "ねている") { const z = new THREE.Sprite(new THREE.SpriteMaterial({ map: labelTex("Zz", "#6A7394", "#FFFFFF"), transparent: true, depthTest: false })); z.scale.set(0.9, 0.45, 1); z.position.set(sp.position.x + 0.35, y + 1.35, sp.position.z); z.renderOrder = 7; g.add(z); }
+        for (const [i, kd] of (R.kids || []).slice(0, 2).entries()) {   // 親の 部屋で 育つ 子（13 回目「子は 親の 部屋で 育ち」）
+          const ks = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex(kd.id), transparent: true, alphaTest: 0.5 })); ks.scale.set(0.72, 0.72, 1);
+          ks.position.set(sp.position.x + (b.ax === "x" ? -0.55 - i * 0.45 : 0), y + 0.4, sp.position.z + (b.ax === "x" ? 0 : -0.55 - i * 0.45)); ks.userData.res = r.who; g.add(ks); picks.push(ks);
+          bobs.push({ o: ks, y: y + 0.4, ph: hash(i, r.rx) * 6, sleep: R.st === "ねている" });
+        }
         bobs.push({ o: sp, y: y + 0.6, ph: hash(r.rx, r.rz) * 6, sleep: R.st === "ねている" });
       } else if (b.ax === "x") K.box(g, 0.5, 0.36, 0.05, K.mat("#2E6FD8"), cx, y + 0.62, b.z0 + 3.06); else K.box(g, 0.05, 0.36, 0.5, K.mat("#2E6FD8"), (b.side === "r" ? b.x0 + b.w - 1.06 : b.x0 + 0.94), y + 0.62, cz);   // 留守の 札
     } else addFurn(g, "cushion", cx, y, cz, 0.5);
@@ -590,6 +612,84 @@ function buildTower(g) {
   }
   const pipe = K.mat("#8A90A0");   // はう 配管（完成形の 外かべに 合わせた 場所なので 完成形だけ）
   if (isFull()) for (const [x, z, y, lx, lz] of [[-1.5, 5.1, 2.4, 3, 0.1], [6.1, -1.5, 1.2, 0.1, 3], [-2.6, -4, 5.0, 0.1, 3], [12.1, -1, 7.0, 0.1, 2], [-7, -0.9, 8.4, 3, 0.1]]) if (y < (S.floor + 1) * FH) K.box(g, lx, 0.1, lz, pipe, x, y, z).castShadow = false;
+}
+
+// ---------- 暮らし（M-037。鹿さんの カード「住人の暮らし」「A 住人の小さな窓に」「自動で進む」2026-11-14）----------
+// 7 回目「住人が 動く（仕事・帰宅・寝る・話す）＋日記」・8 回目「住人は 自分で 仕事に 出かける」「となりの 部屋どうしで 仲よく なると 子が 生まれる」
+// 見本の 1 日は 2 分（0.5 秒で 6 分）。予定は 住人ごとに 決まった ゆらぎ。数は 仮
+const MIX = { "e_hare|e_watch": ["t_hare_watch", "ツノミハリ"], "e3_tombcat|e_shipcat": ["t_shipcat_tombcat", "墓守の船猫"] };   // まざる 組（docs/mono-link-td-mix-names.md。見本に 出る 2 組）
+const sh = (str, n) => { let v = 7 + n * 131; for (const c of str) v = (v * 31 + c.charCodeAt(0)) % 100003; return hash(v * 0.017, n * 1.7, 3); };
+function plan(who) {   // 1 日の 予定（分）：起きる 6:00〜7:30・仕事 8:00〜9:00 に 出て 17:00〜19:00 に 帰る・寝る 21:30〜23:00
+  const R = RES[who]; if (R.job == null) R.job = R.st === "仕事中" || sh(who, 3) > 0.45;
+  return { wake: 360 + Math.floor(sh(who, 1) * 90), sleep: 1290 + Math.floor(sh(who, 2) * 90), job: R.job, go: 480 + Math.floor(sh(who, 4) * 60), back: 1020 + Math.floor(sh(who, 5) * 120) };
+}
+function stateAt(who, m) { const p = plan(who); return m < p.wake || m >= p.sleep ? "ねている" : p.job && m >= p.go && m < p.back ? "仕事中" : "在宅"; }
+const hhmm = (m) => `${String(Math.floor(m / 60)).padStart(2, "0")}:${String(Math.floor(m % 60 / 10) * 10).padStart(2, "0")}`;
+const phase = (m) => (m >= 300 && m < 600 ? "朝" : m >= 600 && m < 960 ? "昼" : m >= 960 && m < 1140 ? "夕方" : "夜");
+function note(R, s, n) { (R.diary ||= []).unshift({ t: hhmm(S.clock), s, n }); R.diary.length = Math.min(R.diary.length, 8); }
+const bondKey = (a, b) => [a.key, b.key].sort().join("|");
+function bondOf(a, b) { const k = bondKey(a, b); if (S.bond[k] == null) S.bond[k] = MIX[[RES[a.who].id, RES[b.who].id].sort().join("|")] ? 88 : 20 + Math.floor(sh(k, 6) * 50); return S.bond[k]; }
+function neighbors(r) {   // 同じ 箱・同じ 階の となりの 部屋（左右）
+  const [bl, f, k] = r.key.split("-"); return [+k - 1, +k + 1].map((x) => ROOMS.find((q) => q.key === `${bl}-${f}-${x}` && q.who && !q.lounge)).filter(Boolean);
+}
+const labelCache = {};
+function labelTex(txt, fg, bg) {
+  const key = txt + fg + bg; if (labelCache[key]) return labelCache[key];
+  const c = document.createElement("canvas"); c.width = 128; c.height = 64; const g = c.getContext("2d");
+  if (bg) { g.fillStyle = bg; g.beginPath(); g.roundRect(8, 6, 112, 46, 20); g.fill(); g.beginPath(); g.moveTo(52, 50); g.lineTo(64, 62); g.lineTo(70, 50); g.fill(); }
+  g.font = "900 34px sans-serif"; g.fillStyle = fg; g.textAlign = "center"; g.textBaseline = "middle"; g.fillText(txt, 64, 30);
+  const tx = new THREE.CanvasTexture(c); tx.colorSpace = THREE.SRGBColorSpace; return (labelCache[key] = tx);
+}
+const fxs = [];
+const roomSpot = (r) => { const b = BLOCKS.find((x) => x.id === r.blk); return { x: r.rx + r.rw / 2 + (b.ax === "x" ? 0.25 : b.side === "r" ? 0.4 : -0.4), y: r.f * FH, z: r.rz + r.rd / 2 + (b.ax === "x" ? 0.5 : 0.2) }; };
+function walkFx(r, id, out) {   // 仕事に 出る（ドア → 箱の 階段）・帰る（階段 → ドア）
+  const b = BLOCKS.find((x) => x.id === r.blk); if (!b) return;
+  const door = { x: r.door[0] + 0.5, y: r.f * FH + 0.6, z: r.door[1] + 0.5 }, st = b.ax === "x" ? { x: b.x0 + b.w - 0.5, y: door.y, z: door.z } : { x: corrX(b) + 0.5, y: door.y, z: b.z0 + b.d - 0.5 };
+  const o = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex(id), transparent: true, alphaTest: 0.5 })); o.scale.set(1, 1, 1); scene.add(o);
+  const from = out ? door : st, to = out ? st : door; o.position.set(from.x, from.y, from.z);
+  fxs.push({ o, from, to, t0: clock.getElapsedTime(), dur: 2.6 });
+}
+function bubbleFx(r) { const p = roomSpot(r), o = new THREE.Sprite(new THREE.SpriteMaterial({ map: labelTex("♥", "#FF5A8A", "#FFFFFF"), transparent: true, depthTest: false })); o.scale.set(0.9, 0.45, 1); o.renderOrder = 8; o.position.set(p.x, p.y + 1.5, p.z); scene.add(o); fxs.push({ o, from: { x: p.x, y: p.y + 1.5, z: p.z }, t0: clock.getElapsedTime(), dur: 2.4 }); }
+function setDayLight() {   // 朝・昼は 明るく、夕方・夜は 少し 暗く（ふだんの 画面だけ）
+  if (!hemi || S.mode !== "home") return;
+  const m = S.clock, k = m >= 420 && m < 1020 ? 1 : (m >= 300 && m < 420) || (m >= 1020 && m < 1140) ? 0.82 : 0.62;
+  hemi.intensity = 1.5 * k; sunL.intensity = 1.3 * k; scene.background = new THREE.Color("#F6F8FC").lerp(new THREE.Color("#C9D1E4"), (1 - k) / 0.38);
+}
+function renderClock() { const el = $("clock"); el.hidden = S.mode !== "home" || !!S.place; if (!el.hidden) el.innerHTML = `<time>${hhmm(S.clock)}</time><span>${phase(S.clock)}</span>`; }
+function birth(a, b) {   // なかよしが いっぱい → 子（決まった 組は まざった 子・ほかは 親の どちらかの 種類。Lv は 親 2 匹の 平均の 半分）
+  const A = RES[a.who], B = RES[b.who], mx = MIX[[A.id, B.id].sort().join("|")];
+  const kid = mx ? { id: mx[0], name: mx[1] } : Math.random() < 0.5 ? { id: A.id, name: A.name } : { id: B.id, name: B.name };
+  kid.lv = Math.max(1, Math.round((A.lv + B.lv) / 4)); (A.kids ||= []).push(kid);
+  note(A, "子が 生まれた：", kid.name); note(B, "子が 生まれた：", kid.name); S.bond[bondKey(a, b)] = 30;
+  toast("となりどうしに 子が 生まれた");
+  if (S.mode === "home" && !S.place && !S.tab && $("pop").hidden) { S.floor = a.f; render(); const p = roomSpot(a), v = new THREE.Vector3(p.x, p.y + 0.8, p.z).project(cam); showPop(a, ((v.x + 1) / 2) * view.clientWidth, ((1 - v.y) / 2) * view.clientHeight); }
+}
+function lifeTick() {
+  if (S.mode !== "home" || document.hidden) return;
+  const prev = S.clock; S.clock = (S.clock + 6) % 1440;
+  let vis = false; const walks = [];
+  for (const r of ROOMS) {
+    if (!r.who || r.lounge) continue; const R = RES[r.who]; if (!R || R.st === "病気") continue;
+    const st = stateAt(r.who, S.clock); if (st === R.st) continue;
+    const ev = st === "ねている" ? "ねた" : R.st === "ねている" ? "起きた" : st === "仕事中" ? "仕事に 出かけた" : "仕事から 帰った";
+    note(R, ev);
+    if (r.f === S.floor && (st === "仕事中" || R.st === "仕事中")) walks.push([r, R.id, st === "仕事中"]);
+    R.st = st; if (r.f === S.floor) vis = true;
+  }
+  if (Math.floor(S.clock / 30) !== Math.floor(prev / 30)) {   // :00 と :30 に となりどうしが 話す
+    const done = new Set();
+    for (const a of ROOMS) for (const b of a.who && !a.lounge ? neighbors(a) : []) {
+      const k = bondKey(a, b); if (done.has(k)) continue; done.add(k);
+      if (RES[a.who].st !== "在宅" || RES[b.who].st !== "在宅") continue;
+      const v = bondOf(a, b); if (Math.random() > (v >= 80 ? 1 : 0.3)) continue;
+      S.bond[k] = Math.min(100, v + 12); note(RES[a.who], "と 話した", RES[b.who].name); note(RES[b.who], "と 話した", RES[a.who].name);
+      if (a.f === S.floor) { bubbleFx(a); bubbleFx(b); }
+      if (S.bond[k] >= 100) birth(a, b);
+    }
+  }
+  renderClock(); setDayLight();
+  if (vis) { buildWorld(); for (const w of walks) walkFx(...w); }
+  if (S.picked && !$("pop").hidden && S.picked.who) refreshPop();
 }
 
 // 防衛中：敵の 道（入口 → いちばん 近い 道で プライベートラウンジへ・6 回目）と 次の 1 歩
@@ -650,14 +750,15 @@ function buildDef(g) {
   }
 }
 
+let hemi = null, sunL = null;
 function buildWorld() {
   if (world) scene.remove(world); picks.length = 0; bobs.length = 0; blinks.length = 0;
   world = new THREE.Group(); scene.add(world);
   const def = S.mode === "def";
   scene.background = new THREE.Color(def ? "#141A33" : "#F6F8FC");
   scene.children.filter((o) => o.isLight).forEach((l) => scene.remove(l));
-  scene.add(new THREE.HemisphereLight(def ? "#8EA0FF" : "#FFFFFF", def ? "#1B2340" : "#C9D3EA", def ? 1.0 : 1.5));
-  const sun = new THREE.DirectionalLight(def ? "#B8C4FF" : "#FFF4E0", def ? 0.9 : 1.3); sun.position.set(8, 20, 10); sun.castShadow = true;
+  hemi = new THREE.HemisphereLight(def ? "#8EA0FF" : "#FFFFFF", def ? "#1B2340" : "#C9D3EA", def ? 1.0 : 1.5); scene.add(hemi);
+  const sun = new THREE.DirectionalLight(def ? "#B8C4FF" : "#FFF4E0", def ? 0.9 : 1.3); sun.position.set(8, 20, 10); sun.castShadow = true; sunL = sun;
   sun.shadow.mapSize.set(2048, 2048); Object.assign(sun.shadow.camera, { left: -20, right: 20, top: 20, bottom: -20, far: 80 }); sun.shadow.bias = -0.0005; scene.add(sun);
   K.box(world, 36, 0.3, 22, K.mat(def ? "#1E2648" : "#D8DEEA"), 0, -0.5, -2);   // 地面（ヘイヴンの 区画）
   for (const [x, z] of [[-10.5, 5.5], [3.5, 5.5], [-13, 3.5], [14, 1.5], [7, -7], [-13, -8]]) { K.box(world, 0.08, 1.4, 0.08, K.mat("#5A6478"), x, -0.2, z); K.box(world, 0.24, 0.12, 0.24, K.glow("#FFE3A3", 1.2), x, 1.2, z); }
@@ -666,6 +767,7 @@ function buildWorld() {
   buildTower(world);
   if (def) buildDef(world);
   if (S.place) buildSlots(world);
+  setDayLight();
   if (S.flash) {   // 建てた 所が 一瞬 光る
     const b = S.flash, m = new THREE.Mesh(new THREE.BoxGeometry(b.w, Math.max(0.2, b.h * FH), b.d), new THREE.MeshBasicMaterial({ color: "#FFE066", transparent: true, opacity: 0.6, depthWrite: false }));
     m.position.set(b.x + b.w / 2, b.f * FH + Math.max(0.2, b.h * FH) / 2 - 0.2, b.z + b.d / 2); world.add(m); flashFx = { m, t: clock.getElapsedTime() }; S.flash = null;
@@ -705,6 +807,12 @@ renderer.setAnimationLoop(() => {
   const tm = clock.getElapsedTime();
   for (const b of bobs) b.o.position.y = b.y + (b.sleep ? 0 : Math.abs(Math.sin(tm * 2 + b.ph)) * 0.08);
   for (const l of blinks) l.visible = Math.sin(tm * 3) > -0.3;
+  for (const w of fxs.slice()) {   // 廊下を 歩く 住人・話す ふきだし（scene に 置く。時間が 来たら 消す）
+    const a = (tm - w.t0) / w.dur;
+    if (a >= 1) { scene.remove(w.o); fxs.splice(fxs.indexOf(w), 1); continue; }
+    if (w.to) w.o.position.set(w.from.x + (w.to.x - w.from.x) * a, w.from.y + Math.abs(Math.sin(a * 18)) * 0.06, w.from.z + (w.to.z - w.from.z) * a);
+    else { w.o.position.y = w.from.y + a * 0.5; w.o.material.opacity = a < 0.8 ? 1 : (1 - a) * 5; }
+  }
   if (flashFx) { const a = (tm - flashFx.t) / 1.2; if (a >= 1 || !flashFx.m.parent) { flashFx.m.parent?.remove(flashFx.m); flashFx = null; } else flashFx.m.material.opacity = 0.6 * (1 - a); }
   renderer.render(scene, cam);
 });
@@ -749,6 +857,13 @@ function toast(s) { const el = $("toast"); el.textContent = t(s); el.classList.a
 function hidePop() { $("pop").hidden = true; }
 function stChip(R) { const c = R.st === "病気" ? "sick" : R.st === "仕事中" ? "out" : ""; return `<span class="st ${c}">${R.st}</span>${R.kid ? `<span class="st kid">子</span>` : ""}${R.mine ? `<span class="st mine">自分の 子</span>` : ""}`; }
 function meter(v) { return `<div class="meter">満足度<i><em style="width:${v}%;background:${satColor(v)}"></em></i><b>${v}%</b></div>`; }
+function lifeHTML(r, R) {   // となりとの なかよし（2 まで）・子・日記 3 行（鹿さんの カード「A 住人の小さな窓に」）
+  const nb = neighbors(r).slice(0, 2), d = (R.diary || []).slice(0, 3);
+  return `${nb.length ? `<div class="sec">となりと なかよし</div>${nb.map((q) => { const v = bondOf(r, q); return `<div class="meter nb"><img src="${spriteURL(RES[q.who].id)}" alt="${RES[q.who].name}"><i><em style="width:${v}%;background:#FF7AA8"></em></i><b>${v}%</b></div>`; }).join("")}` : ""}
+    ${(R.kids || []).length ? `<div class="kids">${R.kids.slice(0, 2).map((k) => `<img src="${spriteURL(k.id)}" alt=""><span>子</span><b>${k.name}</b>`).join("")}</div>` : ""}
+    <div class="sec">日記</div>${d.length ? `<ol class="diary">${d.map((x) => `<li><time>${x.t}</time>${x.s.startsWith("と ") ? `<span><b>${x.n}</b>${x.s}</span>` : `<span>${x.s}${x.n ? `<b>${x.n}</b>` : ""}</span>`}</li>`).join("")}</ol>` : `<ol class="diary"><li><span>まだ ない</span></li></ol>`}`;
+}
+function refreshPop() { const el = $("pop"), l = el.style.left, tp = el.style.top; showPop(S.picked, 0, 0); el.style.left = l; el.style.top = tp; }
 function showPop(r, x, y) {
   if (!r) return hidePop();
   const el = $("pop"); let h;
@@ -757,7 +872,7 @@ function showPop(r, x, y) {
   else {
     const R = RES[r.who], away = R.st === "仕事中";
     h = `<div class="hd"><img src="${spriteURL(R.id)}" alt=""><div><b>${R.name}</b><span>Lv${R.lv}・${r.no}号室</span></div><button class="x" aria-label="閉じる">×</button></div>
-      <div>${stChip(R)}</div>${meter(R.sat)}<div class="meter">家賃<span></span><b>${R.rent}／日</b></div>
+      <div>${stChip(R)}</div>${meter(R.sat)}<div class="meter">家賃<span></span><b>${rentOf(R.lv, R.sat)}／日</b></div>${lifeHTML(r, R)}
       <button class="go" data-act="care" ${away ? "disabled" : ""}>${R.st === "病気" ? "看病する" : "世話する"}</button>${away ? `<p class="why">夜に 帰る</p>` : ""}`;
   }
   el.innerHTML = h; el.hidden = false; S.picked = r;
@@ -1029,10 +1144,12 @@ function renderMini() {
 }
 $("mini").addEventListener("click", (e) => { const g = e.target.closest("[data-mf]"); if (!g) return; S.floor = +g.dataset.mf; render(); });
 
-function render() { renderTop(); renderDock(); renderPanel(); renderCmd(); renderPlace(); buildWorld(); }
+function render() { renderTop(); renderDock(); renderPanel(); renderCmd(); renderPlace(); renderClock(); buildWorld(); }
+if (S.mode === "home") for (const r of ROOMS) { const R = r.who && RES[r.who]; if (R && R.st !== "病気") { R.st = stateAt(r.who, S.clock); note(R, R.st === "ねている" ? "ねた" : "起きた"); R.diary[0].t = R.st === "ねている" ? "前の 夜" : hhmm(S.clock); } }
+setInterval(lifeTick, 500);
 if (S.mode === "def") startDef(NOTES[0]); else render();
 if (new URLSearchParams(location.search).has("bt")) showBattles(DEMO);   // ?bt：試しの 2 戦から 始める（最後の「建物へ もどる」で 建物へ）
-window.__td = { showBattles, DEMO, S, render, startDef, NOTES, RES, SLOTS, avail, setBuilt, ROOMS: () => ROOMS, TOP: () => TOP, keyOf: (id) => Object.keys(RES).find((k) => RES[k].id === id) };
+window.__td = { showBattles, DEMO, S, render, startDef, NOTES, RES, SLOTS, lifeTick, neighbors, bondOf, fxs, avail, setBuilt, ROOMS: () => ROOMS, TOP: () => TOP, keyOf: (id) => Object.keys(RES).find((k) => RES[k].id === id) };
 </script>
 </body>
 </html>
