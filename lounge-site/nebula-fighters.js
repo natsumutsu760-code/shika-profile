@@ -8,7 +8,7 @@ import { foeOf } from "./dungeon-sim.js";
 import { ENEMY_TREES } from "./enemy-trees.js";
 import { SKILL } from "./skills.js";
 import { ELITE_TREES } from "./crawler-elite-trees.js";
-import { D, F, M, S, P, G } from "./tree-kit.js";
+import { D, F, M, S, P, G, H } from "./tree-kit.js";
 
 // 盤面の ボス → 借りる 敵ツリー（形と 妨害に 近い 物）
 export const NEB_BOSS_TREE = {
@@ -51,15 +51,20 @@ ENEMY_TREES[PT] ??= { name: "PEREGRINE", enemy: "PEREGRINE", rank: "精鋭", typ
     S(4, "pg_zanzo", "残像", "waza", 4, [M("mirage", 45)]),   // 幻影 +30 × 幻影上手 1.5
     S(5, "pg_stoop", "急降下（ストゥープ）", "waza", 8, [D(40, { stat: "agi", ignore: 0.3 })]),   // 予告の 大技（帯で 予告の 台詞）
     S(6, "pg_burst", "プロテクトバースト", "waza", 10, [D(24, { stat: "agi", aoe: true }), F("sickness", 3)]),   // シールドを ぜんぶ 使う 大技（帯で 予告の 台詞）
+    // 2026-11-15 鹿さん「鹿物語、ネビュラに出現するPEREGRINEが回復スキルを使うようにしてください。」：最大 HP の 15% 回復（ネビュラでは 回復した 分が みんなの 回転数に 入る）。名前・量・3 ターンごと・MP 2（ラウンド 1 でも 7 ターン目の プロテクトバーストの MP を 残す）は〔C〕
+    S(7, "pg_preen", "羽づくろい", "itazura", 2, [H(0.15)]),
     P(1, "pg_coat", "フェザーコート", "戦いの はじめから シールド ＝ 最大 HP", { startFx: [["shield", 99999]] }),
     P(2, "pg_repair", "フェザーリペア", "毎ターン シールド ＋ 最大 HP の 1 割", { turnFx: [{ shield: 0.1 }] }),
     P(3, "pg_mirage", "幻影上手", "付ける 幻影 ＋50%（残像の 数に 入れて ある）", {}),
   ],
-  plan: [G("first", undefined, "pg_zanzo"), G("every", 7, "pg_burst"), G("every", 4, "pg_stoop"), G("foeNotHas", "blind", "pg_kazekiri"), G("foeHas", "blind", "pg_yusaburi"), G("foeNotHas", "paralysis", "pg_kagizume"), G("always", undefined, "pg_kazekiri")] };
+  plan: [G("first", undefined, "pg_zanzo"), G("every", 7, "pg_burst"), G("every", 4, "pg_stoop"), G("every", 3, "pg_preen"), G("foeNotHas", "blind", "pg_kazekiri"), G("foeHas", "blind", "pg_yusaburi"), G("foeNotHas", "paralysis", "pg_kagizume"), G("always", undefined, "pg_kazekiri")] };
 for (const s of ENEMY_TREES[PT].list) SKILL[s.id] ??= { ...s, type: "technician", tree: PT };
 export function nebPeregrineFighter(round) {
   const f = foeOf({ tree: PT, type: "technician", lv: NEB_LV(round) + 8, name: "PEREGRINE" });
-  return { ...f, owner: "PEREGRINE", peregrine: true, tree: PT };
+  // 敵の 木は ふつう 分かれ道の 左だけ 覚える ので、右の 急降下（S5）・羽づくろい（S7）が 作戦に あっても 出なかった（2026-11-15 に 気づいた）。
+  // PEREGRINE は 決めた 技を ぜんぶ 使う（技の 枠・作戦の 枠の 数は ペットの 決まりなので、味方の 精鋭には かけない）
+  const T = ENEMY_TREES[PT], set = T.list.filter((n) => n.kind !== "passive").map((n) => n.id);
+  return { ...f, set, gambits: T.plan.filter((g) => set.includes(g.do)), owner: "PEREGRINE", peregrine: true, tree: PT };
 }
 // オペレーター（メリル）の 台詞（鹿さんの 決め。mono-link-crawler-elites.md。PEREGRINE は 話さない）
 export const MERYL = {
