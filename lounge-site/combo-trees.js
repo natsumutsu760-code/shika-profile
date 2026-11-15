@@ -74,17 +74,12 @@ function second(Q, th) {
   const best = Object.entries(n).sort((x, y) => y[1] - x[1] || (x[0] < y[0] ? -1 : 1))[0];
   return best ? best[0] : TY[Q.type].up;
 }
-// 名前の 前半（主の ツリーの 名前の「〇〇の」）と 後半（もう 一方の「△△」）。同じ 前半・後半が ほかの 種族に あれば 名前 まるごと（その 組だけの 名前に する）
+// 名前：主の ツリーの 名前の 前半（「〇〇の」）＋ もう 一方の 後半（「△△」）だけ。ほかの 組と 同じ 名前でも まるごと つなげない
+// （前は 重なると ツリー名を まるごと つなげて「水晶の冷気の見張りの盾」の ように 長く なった〈ふつう 10 字・最長 26 字〉。
+//   鹿さん 2026-11-15「〇〇の〇〇の〇〇と長いしダサいし。」→ カード「C いまの 前半＋後半だけ」。同じ 名前の 組は 2 匹の 絵で 見分ける）
 const headOf = (n) => (n.includes("の") ? n.slice(0, n.lastIndexOf("の") + 1) : n + "の");
 const tailOf = (n) => (n.includes("の") ? n.slice(n.lastIndexOf("の") + 1) : n);
-let HEADS = null, TAILS = null;
-function index(TR) {
-  if (HEADS) return; HEADS = {}; TAILS = {};
-  for (const [id, t] of Object.entries(TR)) if (isSpeciesTree(t)) { const n = t.name; HEADS[headOf(n)] = (HEADS[headOf(n)] || 0) + 1; TAILS[tailOf(n)] = (TAILS[tailOf(n)] || 0) + 1; }
-}
-const headU = (n) => (HEADS[headOf(n)] > 1 ? n + "の" : headOf(n));
-const tailU = (n) => (TAILS[tailOf(n)] > 1 ? n : tailOf(n));
-export const comboName = (TR, p, q) => { index(TR); return headU(TR[p].name) + tailU(TR[q].name); };
+export const comboName = (TR, p, q) => headOf(TR[p].name) + tailOf(TR[q].name);
 
 // 強さを 割合 k で そろえる（島 3 の ボスの そろえ方〈isle3-kit.js の BOSS_TUNE〉を 技・パッシブ ぜんぶに）
 // 技：威力・回復・相手に 付ける 量と 確率・自分に 付ける 量・シールド ×k。ターン数と MP は そのまま
@@ -186,7 +181,7 @@ export function buildCombo(TR, id, o = {}) {
     dth ? G("foeHas", dth, s("s4")) : G("every", 4, s("s4")), G("always", undefined, s("s1"))];
   const rank = CAT[Math.max(CAT.indexOf(A.rank), CAT.indexOf(B.rank), 0)];
   const name = comboName(TR, p, q);
-  enSet(name, { a: A.enemy, b: B.enemy });
+  enSet(name, { h: A.name, t: B.name });   // 英語も 同じ 決まり（主の ツリーの 英語の 前の 語 ＋ もう 一方の 最後の 語。lounge-en-lab.js）。同じ 日本語には 同じ 英語
   const k = o.k ?? comboK(A.type, thP, thQ), tuned = tuneList(list, k);
   for (const x of tuned) if (x.kind !== "passive") enSet(x.text, { fx: x.fx });   // 技の 説明文（数が 半端な ので 英語は 効果から 作る）
   enTrim();

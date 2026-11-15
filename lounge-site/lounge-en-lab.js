@@ -41,8 +41,16 @@ export const WORDS = {
 const nm = (p, x) => p(x) || x;
 // 特殊複合スキル（combo-trees.js が 組み立てた ときに 日本語 → 英語を 入れる）：ツリーの 名前は 2 種族の 英語、技・パッシブの 名前は 言葉の 表の 英語
 const COMBO_EN = (globalThis.__ML_COMBO_EN ||= new Map());
+// 特殊複合スキルの ツリーの 名前（2026-11-15。日本語は 主の ツリーの 前半「〇〇の」＋ もう 一方の 後半「△△」）：
+// 英語も 同じ 形で、主の ツリーの 英語から 最後の 語を 除いた 所 ＋ もう 一方の 英語の 最後の 語（Crystal Chill ＋ Sentry Shield → Crystal Shield）。
+// 日本語に「の」が ない ツリー（前半・後半が 名前 まるごと）は 英語も まるごと
+const lastW = (s) => s.slice(s.lastIndexOf(" ") + 1), headW = (s) => (s.includes(" ") ? s.slice(0, s.lastIndexOf(" ")) : s);
+function comboEn(p, h, t) {
+  const a = p(h), b = p(t); if (!a || !b) return null;
+  return `${h.includes("の") ? headW(a) : a} ${t.includes("の") ? lastW(b) : b}`;
+}
 export const RULES = [
-  [/^[^]+$/, (m, p) => { const e = COMBO_EN.get(m[0]); return e == null ? null : typeof e === "string" ? e : e.fx ? describeEn(e.fx) : `${nm(p, e.a)} × ${nm(p, e.b)}`; }],
+  [/^[^]+$/, (m, p) => { const e = COMBO_EN.get(m[0]); return e == null ? null : typeof e === "string" ? e : e.fx ? describeEn(e.fx) : e.h ? comboEn(p, e.h, e.t) : `${nm(p, e.a)} × ${nm(p, e.b)}`; }],
   [/^ならべかた：(.+)$/, (m, p) => { const x = p(m[1]); return x == null ? null : `Sort: ${x}`; }],
   [/^(.+)の エッセンス$/, (m, p) => `${nm(p, m[1])} Essence`],
   [/^([A-Z]{1,2})・(.+)を 抽出$/, (m, p) => `${m[1]} · extract ${nm(p, m[2])}`],
