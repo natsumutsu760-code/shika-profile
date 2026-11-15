@@ -46,12 +46,15 @@ const cells = (S, ch) => S.rows.flatMap((r, y) => [...r].map((c, x) => (c === ch
 const target = (S, ch, a) => (a.ch === ch ? [a.x, a.y] : a.here === ch ? [S.me.x, S.me.y] : null); // 前か 足もとの その 文字
 const pick = (S, a) => a[Math.floor(S.R() * a.length)];
 const adj = (S, ch) => [[0, -1], [1, 0], [0, 1], [-1, 0], [0, 0]].map(([dx, dy]) => [S.me.x + dx, S.me.y + dy]).filter(([x, y]) => cellAt(S, x, y) === ch); // となりか 足もとの その 文字
-const squadOf = (S, n = 1) => Array.from({ length: n }, () => { const m = pick(S, S.def.monsters); return unitOf(m.sprite, LV.unit, m.name); });
+const squadOf = (S, n = 1) => Array.from({ length: n }, () => { const m = pick(S, S.def.monsters); return unitOf(m.sprite, S.def.lv?.unit ?? LV.unit, m.name); });   // S.def.lv：章ごとの Lv（第 2 章。なければ 第 1 章の LV）
 const wave = (S, list, n, opts = {}) => list.map((p) => addFoe(S, { kind: "unit", x: p[0], y: p[1], name: "WAVE", sprite: S.def.monsters[0]?.sprite, squad: squadOf(S, n), move: "goto", to: S.def.map.goal, ...opts }));
 // 精鋭の 戦う 形：機体は ペット（LINKERS の pet）、技は 専用の 物。foe：プレイヤーの 敵の とき（味方の 傭兵は false）
 export const linkerOf = (name, lv, foe = false) => eliteUnit(name, linkerPet(LINKERS[name].pet, lv, name, name), { foe });
 const linker = (name, lv = LV.elite) => linkerOf(name, lv, true);
 const T = (S, who, text) => say(S, who, text, LINKERS[who]?.co ?? null);
+
+// 第 2 章（crawler-ch2.js）が 同じ 道具で 種類ごとの 決まりを 書く ための 入口（2026-11-14 M-035）
+export const H = { at, near1, cells, target, pick, adj, squadOf, wave, T };
 
 // ---- 種類ごとの 決まり（目的・失敗・ボーナス） ----
 // 共通：squad（見えない 雑魚の 部隊）・status（画面の 目的の 行）
@@ -347,12 +350,9 @@ const ROWS = [
   ["c1m14", "1-14", "RUNNER", "D", true, "runner", { allies: ["ONE SHOE"], limit: 170 }], // 2 区画に した ので 時間を のばした（仮）
   ["c1m15", "1-15", "REVIEW", "end", true, "hold", { allies: ["STOPWATCH", "NEW MOON"], bom: true, lines: { end: [["STOPWATCH", "合格。次はもっと上で会いましょう"], ["STOPWATCH", "……この件は、上に報告します"], ["NEW MOON", "……次は、僕が勝つ"]] } }],
 ];
-// 終わった あとの ORDER の 通信（字幕だけ・名前は ORDER）
-export const AFTER = {
-  c1m01: "悪くない初陣だ。だが、君が倒した相手が何者だったのか、いずれ知ることになる",
-  c1m14: "君の記録を探している者がいる。気にすることはない。記録など、いくらでも書きかえられる",
-  c1m15: "見たかね。あれが、グラウンドの今だ",
-};
+// 終わった あとの ORDER の 通信：**出さない**（2026-11-15 鹿さん「ミッション終了後も踏まえて、ORDERがしゃしゃり出てくるのやめてください。秘匿された存在なのにやかましいです。」）
+//   前は 1-01・1-14・1-15 の 結果の 画面に 字幕を 出して いた。ORDER は 秘匿された 存在なので、ミッションの 前後に 口を はさまない（招待の 無線〈鹿さんの 文〉だけ）
+export const AFTER = {};
 export const MISSIONS = ROWS.map(([id, no, title, stage, star, kind, extra]) => {
   const d = CH1_DATA[id], enemy = d.briefing.sections.find((s) => s.view === "enemy");
   return { ...d, no, title, stage, star, kindName: kind, monsters: (enemy?.monsters ?? []).length ? enemy.monsters : [{ sprite: "e_guard", name: "GUARD" }], ...extra };
