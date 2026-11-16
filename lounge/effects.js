@@ -23,7 +23,7 @@ export const EFFECTS = {
   conceal: { label: "隠蔽", buff: true, dur: "turn", base: 1, stance: true, solo: "barrier", text: "ねらわれない（全体を 巻きこむ 攻撃は 受ける）。ターンは 技で 決める。ソロの ときは バリア" },
   immunity: { label: "免疫", buff: true, dur: "stack", base: [2, 3], ext: true, cap: 100, text: "状態異常の 抵抗率 ＋量%（100 で かからない）。衰弱と 相殺" },
   activation: { label: "活性化", buff: true, dur: "turn", base: 5, text: "技の MP が半分（切り上げ）" },
-  counter: { label: "カウンター", buff: true, dur: "turn", base: 1, stance: true, text: "直接攻撃を受けると、受けたダメージの 50% を返す" },
+  counter: { label: "カウンター", buff: true, dur: "turn", base: 1, stance: true, text: "直接攻撃を受けると、守り（防御・バリア・装甲・障壁・シールドなど）で減る前のダメージの 50% を返す" },
   mirage: { label: "幻影", buff: true, dur: "stack", base: null, cap: 70, text: "直接攻撃を 量% でかわし（回避は全部で最大 75%）、かわすと量が半分" },
   pierce: { label: "貫通", buff: true, dur: "stack", base: null, text: "直接攻撃のダメージに 量 をそのまま足し、量が半分" },
   frenzy: { label: "狂乱", buff: true, dur: "turn", base: 5, text: "与えるダメージ × 2、受けるダメージ × 1.5。でたらめな技を使う" },

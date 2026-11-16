@@ -280,7 +280,7 @@ export const FX_EN = {
   conceal: ["Conceal", "Can't be targeted (unused in 1-on-1)"],
   immunity: ["Immunity", "Blocks debuffs (amount − Weakness)% of the time (up to 95%)"],
   activation: ["Activation", "Move MP cost halved (rounded up)"],
-  counter: ["Counter", "When hit directly, return 50% of the damage taken"],
+  counter: ["Counter", "When hit directly, return 50% of the damage before defenses (Guard, Barrier, Armor, Ward, Shield, etc.)"],
   mirage: ["Mirage", "Dodge direct attacks amount% of the time (total evasion up to 75%); dodging halves the amount"],
   pierce: ["Pierce", "Adds the amount to direct attack damage as-is, then the amount halves"],
   frenzy: ["Frenzy", "Damage dealt ×2, damage taken ×1.5. Uses random moves"],
