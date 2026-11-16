@@ -4,6 +4,9 @@ export const WORDS = {
   "ボーダーゾーン": "Border Zone", "出撃": "Deploy", "記録": "Log", "サンプル": "Samples", "出撃する": "Deploy", "出撃の 準備": "Prepare", "出撃中": "Deployed",
   "ハルモニアの 領地": "Harmonia Territory", "SVA の 領地": "SVA Territory", "TCU の 領地": "TCU Territory", "境界": "The Border",
   "外縁": "Outer", "中": "Middle", "奥": "Deep", "ハルモニア": "Harmonia",
+  "ほかの プレイヤーと 出会ったら": "If you meet another player", "ほかの プレイヤーと 出会って いる ところ：少し 待って": "Meeting another player — wait a moment", "避ける": "Avoid", "戦う": "Fight",   // ばったり（2026-11-16）
+  "相手も 戦う なら 戦う。勝つと 相手の 持ち物の 2 割を 奪う／負けると 2 割を 奪われ、HP 3 割で 続ける": "You fight only if they choose Fight too. Win to take 20% of what they carry; lose and they take 20% of yours, and you go on at 30% HP",
+  "すれちがう だけ（相手が 戦う でも 戦わない）": "You just pass each other (no fight, even if they choose Fight)",
   "時間": "Time", "探す 物": "Search for", "帰る 条件": "Return when", "保険": "Insurance", "バランス": "Balanced", "素材": "Materials", "クレート": "Crates",
   "なし": "None", "HP が 半分": "HP at half", "ふつう": "Basic", "手厚い": "Full", "持って いかない": "Leave", "持って いく": "Bring",
   "枚 持って いく": "to bring", "こ 見つけたら 帰る": "found, then return", "変える": "Change", "しまう": "Close",
@@ -59,6 +62,10 @@ export const RULES = [
   [/^(.+) を 拾った$/, (m, p) => { const a = p(m[1]); return a ? `Picked up ${a}` : null; }],
   [/^(.+) を 見つけた(（(クレート|研究棟|古い 区画)）)?$/, (m, p) => { const a = p(m[1]); return a ? `Found ${a}${m[3] ? ` (${m[3] === "クレート" ? "crate" : m[3] === "研究棟" ? "research wing" : "old block"})` : ""}` : null; }],
   [/^(?:(ハルモニア|SVA|TCU) の )?(ユニット|POM|精鋭の LINKER|侵入者)(?: ×(\d+))? と 戦って (勝った|負けた|引いた（長引いた）)$/, (m, p) => `${m[4] === "勝った" ? "Beat" : m[4] === "負けた" ? "Lost to" : "Broke off from"} ${m[1] ? (p(m[1]) || m[1]) + " " : ""}${{ ユニット: "units", POM: "POM", "精鋭の LINKER": "an elite LINKER", 侵入者: "an invader" }[m[2]]}${m[3] ? ` ×${m[3]}` : ""}`],
+  // ばったり（ほかの プレイヤー。2026-11-16）
+  [/^(.+) の (.+) と すれちがった（(避けた|相手が 避けた)）$/, (m) => `Passed ${m[1]}'s ${m[2]} (${m[3] === "避けた" ? "you avoided" : "they avoided"})`],
+  [/^(.+) の (.+) と ばったり → 勝った(?:（(.+) を 奪った）)?$/, (m) => `Ran into ${m[1]}'s ${m[2]} → won${m[3] ? ` (took ${m[3].replace(/サンプル (\d+)/, "$1 samples").replace(/素材 (\d+)/, "$1 materials").replace(/・/g, " · ")})` : ""}`],
+  [/^(.+) の (.+) と ばったり → 負けた（(?:(.+) を 奪われた・)?HP 3 割で 続ける）$/, (m) => `Ran into ${m[1]}'s ${m[2]} → lost (${m[3] ? `they took ${m[3].replace(/サンプル (\d+)/, "$1 samples").replace(/素材 (\d+)/, "$1 materials").replace(/・/g, " · ")}; ` : ""}going on at 30% HP)`],
   [/^(ハルモニア|SVA|TCU) の POM が 見逃して くれた$/, (m, p) => `${p(m[1]) || m[1]} POM let you pass`],
   [/^(.+) を 開けた（キーカード）$/, (m, p) => { const a = p(m[1]); return a ? `Opened the ${a} (keycard)` : null; }],
   [/^封鎖された 所の キーカードは (\d+) 枚まで$/, (m) => `Up to ${m[1]} sealed-area keycards`],

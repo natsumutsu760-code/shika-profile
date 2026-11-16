@@ -4,9 +4,12 @@
 // - Lounge：relayFetch（Viewer からの 3 つと、門番の /api/relay からの /relay。帰った 物は 消す）
 // - 門番：lounge-api.js の relayList（入れない 人の 分は 出さない。Twitch の id は 出さない）
 // - relay-pvp：帯の 戦い（派遣先で 出会った・大会の ベスト 8 から）を OBS へ（lounge-arena.js・viewer.js から）
+// - relay-pvp の kind "bz"：ボーダーゾーンの ばったり（zone：ゾーンの 名前・took：勝った 側が 奪った 数。2026-11-16 鹿さんの カード「派遣と同じく見せる」）
+// - bz-put・bz-del・bz-pick：ボーダーゾーンの 出撃中の 名簿（lounge-bzmeet.js）
 // - relay-mythic：ミシックの お知らせ（配信の チャット・MONO LINK の コメント欄。viewer.js が うけとった ときに）
 import { fighterOf, mateOf } from "./lounge-game.js";
 import { baseOf, DUNGEONS_ALL, SLOT_MARK } from "./game.js";
+import { bzRosterFetch } from "./lounge-bzmeet.js";   // ボーダーゾーンの ばったりの 名簿（bz-put・bz-del・bz-pick。2026-11-16）
 
 const KEEP_MS = 60 * 1000, MAX_BYTES = 48 * 1024, MAX_LIST = 30, MAX_PVP = 192 * 1024;   // MAX_PVP：帯の 戦い（大会は ペット 8 匹まで まとめて 来る）
 const J = (o, status = 200) => new Response(JSON.stringify(o), { status, headers: { "Content-Type": "application/json" } });
@@ -37,6 +40,7 @@ export const mythicText = (n) => `★ミシック★ ${n.name} の ${n.pet} が 
 // Lounge の fetch() で：const rr = await relayFetch(this, url, req); if (rr) return rr;
 export async function relayFetch(lounge, url, req) {
   const st = lounge.state.storage, now = Date.now();
+  const bz = await bzRosterFetch(lounge, url, req, now); if (bz) return bz;   // ボーダーゾーンの ばったりの 名簿
   // 帯の 戦い（⑤ 派遣先で 出会った・④ 大会の ベスト 8 から）：配信中の OBS（オーバーレイ）へ そのまま 送る。OBS が いなければ 何も しない
   if (req.method === "POST" && url.pathname === "/relay-pvp") {
     const text = await req.text(); if (text.length > MAX_PVP) return J({ error: "big" }, 413);
@@ -51,7 +55,8 @@ export async function relayFetch(lounge, url, req) {
     } else {
       if (!b || !b.A || !b.B || !Number.isFinite(+b.seed)) return J({ error: "pvp" }, 400);
       const pay = b.pay && typeof b.pay === "object" ? { credits: Math.max(0, Math.floor(+b.pay.credits || 0)), res: Math.max(0, Math.floor(+b.pay.res || 0)) } : null;   // 帯に 出す ごほうびの 数
-      m = JSON.stringify({ t: "pvp", kind: b.kind === "final" ? "final" : b.kind === "inv" ? "inv" : "enc", A: b.A, B: b.B, seed: +b.seed, did: String(b.did || ""), day: String(b.day || ""), pay, caught: !!b.caught });   // inv：探索中の 侵入
+      const bzx = b.kind === "bz" ? { zone: clean(b.zone, 20), took: { s: Math.max(0, Math.floor(+(b.took && b.took.s) || 0)), m: Math.max(0, Math.floor(+(b.took && b.took.m) || 0)) } } : {};   // ボーダーゾーンの ばったり
+      m = JSON.stringify({ t: "pvp", kind: b.kind === "final" ? "final" : b.kind === "inv" ? "inv" : b.kind === "bz" ? "bz" : "enc", A: b.A, B: b.B, seed: +b.seed, did: String(b.did || ""), day: String(b.day || ""), pay, caught: !!b.caught, ...bzx });   // inv：探索中の 侵入
     }
     let sent = 0; for (const ws of lounge.obsSockets()) { try { ws.send(m); sent++; } catch (e) {} }
     return J({ ok: true, sent });

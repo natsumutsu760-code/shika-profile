@@ -1,8 +1,9 @@
 // ボーダーゾーン（docs/mono-link-border-zone.md）の 門番：出撃・帰還・うけとり・鑑定・納める
 // 記録：rec.bz = { run：いま 出て いる 出撃（か null）, log：帰った 出撃（新しい 順に 5 つ。記録の タブ）, samples：持って いる 貴重サンプル [{ uid, id, star, known }] }
 // 計算は viewer.js が アラームで 1 歩ずつ（storage の bzsim。帰還の ために うけとるまで 残す）。終わったら bzDone で got と 本当の 帰る 時間を 決める
-// まだ ない 物：ほかの プレイヤーとの「ばったり」（2 段め）・運び屋（CRV）・グループの 好感度（いまは「ふつう」の あつかい）
-import { BZ_AREAS, BZ_RUNS, BZ_STEP_S, PRIORITY, RETURN, KEY_MAX, SAMPLES, APPRAISE_FEE, GROUP_NAME, samplePrice, capLv, bzInit, bzRecall as bzRecallSim, bzResult, matValue, bzInsPrice, bzLow, bzLowWhy, bzIsleOk, BZ_ISLE_WHY } from "./border.js";
+// ばったり（ほかの プレイヤーと 出会う）：下の「ばったり」と viewer.js の bzTick・/bzmeet（2026-11-16 鹿さんの カード）
+// まだ ない 物：運び屋（CRV）
+import { BZ_AREAS, BZ_RUNS, BZ_STEP_S, PRIORITY, RETURN, KEY_MAX, SAMPLES, APPRAISE_FEE, GROUP_NAME, samplePrice, capLv, bzInit, bzRecall as bzRecallSim, bzResult, matValue, bzInsPrice, bzLow, bzLowWhy, bzIsleOk, BZ_ISLE_WHY, BZ_MEET, bzAt, bzDuelist, bzDuel, bzLoot, bzMeetApply } from "./border.js";
 import { growthStats } from "./trees.js";
 import { orderSigned, ORDER_SIGN_WHY } from "./lounge-order.js";   // 島 3 の 夜の 招待（2026-11-11）
 import { fighterOf, mateOf, putMats, insLose, levelUp } from "./lounge-game.js";
@@ -114,6 +115,58 @@ export function bzCollect(rec, now) {
   Z.run = null;
   return { ok: true, wipe, ups, got, ...(lost ? { lost } : {}), exp: g.exp };
 }
+// ---------- ばったり（2026-11-16 鹿さんの カード。決まりは border.js の BZ_MEET の 上・docs/mono-link-border-zone.md の「ばったり」）----------
+// 流れ：見回り（viewer.js の bzTick・1 分ごと）が Lounge の 出撃中の 名簿（lounge-bzmeet.js）から 同じ ゾーンの 人を 引く
+//   → 見つけた 側（A）が 自分の 戦う 形と「負けたら 渡す 物」を 相手の Viewer（/bzmeet）へ → 相手（B）が 戦いを 決めて 自分の 側を 入れて 返す → A が 自分の 側を 入れる
+//   両方とも、その 歩の 控えに もどして 結果を 入れ、そこから 計算しなおす（帰還と 同じ 作り。前の 出来事は かわらない）
+const name40 = (v) => String(v || "").replace(/[\u0000-\u001f\u007f\u200b-\u200f\u202a-\u202e\u2066-\u2069]/g, " ").replace(/\s+/g, " ").trim().slice(0, 40);
+// 名簿に 出す 形（終わりは 予定の 時間。帰還で 早く 出ても、相手の 側で いま 出て いるかを 確かめる）
+export const bzRosterEntry = (rec, r) => ({ id: rec.id, uid: r.uid, name: name40(rec.name), area: r.area, start: r.start, end: r.start + BZ_RUNS[r.run].steps * STEP_MS });
+// いま ゾーンに いて ばったりできるか（el：いまの 歩・at：戦う 子と HP）。計算中で まだ その 歩に 届いて いない・出た・全滅なら null
+export function bzMeetReady(rec, sim, now) {
+  const r = rec && rec.bz && rec.bz.run;
+  if (!r || !sim || sim.uid !== r.uid || now < r.start) return null;
+  const el = Math.floor((now - r.start) / STEP_MS), at = bzAt(sim.S, el);
+  return at ? { r, el, at } : null;
+}
+// 計算しなおしへ（帰る 時間は 計算が 終わると 決まる）
+function resume(r, sim, now) { sim.done = false; r.calc = true; delete r.got; r.end = Math.max(r.end, now + STEP_MS); }
+// 見つけた 側（A）が 送る 物：戦う 形・指示（避ける／戦う）・負けたら 渡す 物
+export function bzMeetAsk(rec, sim, ready, R) {
+  const { r, el, at } = ready;
+  return { id: rec.id, name: name40(rec.name), uid: r.uid, meet: r.cfg.meet === "fight" ? "fight" : "avoid", f: bzDuelist(sim.S, at, name40(rec.name)), lose: bzLoot(sim.S, el, R) };
+}
+// 見つかった 側（B）：to は 名簿で 引いた 自分の 出撃の uid。返す 物を A が 自分の 側に 入れる
+export function bzMeetIn(rec, sim, now, A, to, R, seed) {
+  const ready = bzMeetReady(rec, sim, now);
+  if (!ready || ready.r.uid !== to || !A || !A.f || A.id === rec.id) return { ok: false };
+  const { r, el, at } = ready, mine = r.cfg.meet === "fight" ? "fight" : "avoid", base = { with: name40(A.name), pet: name40(A.f.name) };
+  if (A.meet !== "fight" || mine !== "fight") {   // どちらかが 避ける：すれちがう だけ（鹿さんの 決め）
+    if (!bzMeetApply(sim.S, el, { ev: { ...base, fight: false, avoid: mine !== "fight" ? "me" : "them" } })) return { ok: false };
+    resume(r, sim, now);
+    return { ok: true, fight: false, name: name40(rec.name), pet: name40(sim.S.team[at.k].name), avoid: mine !== "fight" ? "them" : "me" };   // avoid は A から 見て
+  }
+  const B = bzDuelist(sim.S, at, name40(rec.name)), d = bzDuel(A.f, B, seed), win = d.winner === 1, mineLose = win ? null : bzLoot(sim.S, el, R);
+  const fx = win ? { k: at.k, hp: d.hp[1], mp: d.mp[1], gain: A.lose } : { k: at.k, hp: BZ_MEET.loseHp, mp: d.mp[1], lose: mineLose };   // 負けた 側は HP 3 割で 続ける（鹿さんの 決め）
+  if (!bzMeetApply(sim.S, el, { ...fx, ev: { ...base, fight: true, win, seed } })) return { ok: false };
+  resume(r, sim, now);
+  return { ok: true, fight: true, name: name40(rec.name), winner: d.winner, upset: d.upset, seed, B, hpA: d.hp[0], mpA: d.mp[0], give: mineLose };
+}
+// 見つけた 側（A）：返事を 自分の 側に 入れる
+export function bzMeetDone(rec, sim, ready, ask, res, now) {
+  const { r, el, at } = ready, base = { with: name40(res.name), pet: name40(res.fight ? res.B && res.B.name : res.pet) };
+  let fx;
+  if (!res.fight) fx = { ev: { ...base, fight: false, avoid: res.avoid === "me" ? "me" : "them" } };
+  else {
+    const win = res.winner === 0;
+    fx = win ? { k: at.k, hp: res.hpA, mp: res.mpA, gain: res.give || null, ev: { ...base, fight: true, win, seed: res.seed } }
+      : { k: at.k, hp: BZ_MEET.loseHp, mp: res.mpA, lose: ask.lose, ev: { ...base, fight: true, win, seed: res.seed } };
+  }
+  if (!bzMeetApply(sim.S, el, fx)) return false;
+  resume(r, sim, now);
+  return true;
+}
+
 // 鑑定（ガラク。1 こ 20）：★が わかる
 export function bzAppraise(rec, b) {
   const Z = ensureBz(rec), uids = Array.isArray(b.uids) ? [...new Set(b.uids)] : [];

@@ -33,8 +33,8 @@ import { statPut } from "./lounge-stats.js";   // 記録の まとめ（OBS の 
 import { ensure, give, insDue, FURN_MAX, petFirst, petJob, petUnlockPlan, petSwitch, tripStart, tripCalc, tripDone, invadeRelay, tripCollect, payWaiting, tripView, craftPlan, synthPlan, boxTake, dropOld, stashCap, tameFeedPlan, tameJoin, tameBack, researchPlan, extractPlan, snackCraft, autoSellSet, equipCap, loopNew, loopSet, loopSeen, loopAfter, loopStep, equipScrap } from "./lounge-game.js";
 import { arenaFighter, ensureArena, duelCheck, duelDone, arenaMine, encReady, encPick, encDone } from "./lounge-arena.js";   // 闘技場・派遣先の 戦い
 import { hidden } from "./lounge-gate.js";
-import { bzStart, bzRecall, bzCollect, bzAppraise, bzSell, bzDone, bzMe } from "./lounge-border.js";   // ボーダーゾーン（2026-11-05 作りはじめ）
-import { bzStep } from "./border.js";
+import { bzStart, bzRecall, bzCollect, bzAppraise, bzSell, bzDone, bzMe, bzRosterEntry, bzMeetReady, bzMeetAsk, bzMeetIn, bzMeetDone } from "./lounge-border.js";   // ボーダーゾーン（2026-11-05 作りはじめ）
+import { bzStep, BZ_MEET, BZ_AREAS } from "./border.js";   // BZ_MEET：ばったりの 見回り（2026-11-16）
 import { stockAct, stockFlush, sale, refundSale } from "./lounge-stock.js";
 import { auAct, auSettle } from "./lounge-auction.js";   // 競り（ガラク）・フリマ（アンビル・ピーコ）：Market の 競り場へ   // 株（トークン）：売り買い・売り上げを 取引所（Market）へ
 import { resetOld, resetDue, RESET_GEN } from "./lounge-reset.js";
@@ -42,6 +42,8 @@ import { prizeView, prizePlan } from "./lounge-prize.js";   // パチンコの �
 
 const OPS_KEEP = 200;            // おぼえて おく op（2 回 来たら 1 回目の 答えを 返す）
 const RATE = { n: 5, ms: 1000 }; // 1 人 1 秒に 5 回まで
+const BZ_HOLD_MS = 60 * 1000;     // ボーダーゾーンの ばったり：相手の Viewer を 呼ぶ あいだの 予約（ふつうは すぐ とける。Viewer が 止まった ときの ための 期限）
+const BZ_BUSY = "ほかの プレイヤーと 出会って いる ところ：少し 待って";
 const LABEL = { balls: "玉", res: "アメジスト" };
 // オーバーレイが 景品の コスメを 渡せなかった わけ（obs-ledger.js の canGive の why）
 const GIVE_WHY = { gone: "お店の 品物が 入れ替わりました", price: "値段が 合いませんでした", own: "その コスメは もう 持って いる", max: "その コスメは もう Ⅲ まで 進化して いる", give: "配信の 画面が 景品を 渡せませんでした" };
@@ -83,6 +85,7 @@ export class Viewer {
   async save(rec) { await this.state.storage.put("rec", rec); await statPut(this, rec); }
   lounge() { return this.env.LOUNGE.get(this.env.LOUNGE.idFromName("lounge")); }
   // 配信の 中継：出かけた 派遣を Lounge に あずける（put）・本当の 帰る 時間（end）・うけとった（del）。つながらなくても 派遣は そのまま
+  async bzRoster(kind, body) { try { await this.lounge().fetch("https://lounge/bz-" + kind, { method: "POST", body: JSON.stringify(body) }); } catch (e) {} }   // ボーダーゾーンの 出撃中の 名簿（ばったり）
   async relay(kind, body) { try { await this.lounge().fetch("https://lounge/relay-" + kind, { method: "POST", body: JSON.stringify(body) }); } catch (e) {} }
   // ミシックの お知らせ（うけとった とき。入れない 人の 分は 出さない）：配信の チャット・MONO LINK の コメント欄（lounge-relay.js）
   async mythic(rec, t) { const n = mythicNote(rec, t); if (n && !hidden(await this.env.DB.get("gate", "json"), rec.id)) await this.relay("mythic", n); }
@@ -112,9 +115,11 @@ export class Viewer {
 
   // アラーム：派遣の 計算を 戦い 1 回 ぶん 進める。終わって いなければ すぐ つぎの アラーム
   //   とちゅうで 止められても（上限を こえた など）、しまって ある sim から やりなおす（同じ 種なので 同じ 結果。Cloudflare が アラームを くり返す）
-  alarm() { return this.run(() => this.calc()); }
+  // ボーダーゾーンの ばったり：相手の Viewer を 呼ぶ あいだは 順番待ちの 鍵を 持たない（3 人が 同時に 呼び合って 止まらない ように）。返事が 来たら もう 1 回 鍵を とって 入れる
+  async alarm() { const job = await this.run(() => this.calc()); if (job && job.bzMeet) await this.bzMeetRemote(job.bzMeet); }
   async calc() {
     const bz = await this.state.storage.get("bzsim"); if (bz && !bz.done) return this.bzCalc(bz);   // ボーダーゾーン（派遣とは 同時に 出られない）
+    if (bz && bz.tick) return this.bzTick(bz);   // 出撃中の 見回り（ばったり。1 分ごと）
     const sim = await this.state.storage.get("sim"); if (!sim) return this.loopTick();
     if (!tripCalc(sim, 1)) { await this.state.storage.put("sim", sim); await this.state.storage.setAlarm(Date.now()); return; }
     const rec = await this.load();   // 記録を 読むのは 終わった ときだけ
@@ -132,7 +137,39 @@ export class Viewer {
     if (!bzStep(bz.S, 1)) { await this.state.storage.put("bzsim", bz); await this.state.storage.setAlarm(Date.now()); return; }
     const rec = await this.load();
     if (rec && bzDone(rec, bz)) await this.save(rec);
-    bz.done = true; await this.state.storage.put("bzsim", bz);
+    bz.done = true; bz.tick = true; await this.state.storage.put("bzsim", bz);
+    await this.state.storage.setAlarm(Date.now() + BZ_MEET.every * 1000);   // 出撃中は 1 分ごとに 見回る（ばったり。終わって いれば 見回りが 止める）
+  }
+  // 見回り（鍵の 中）：同じ ゾーンに いま いる 人を 名簿から 引く。出会えば 相手へ 送る 物を 返す（呼ぶのは alarm の 鍵の 外）
+  async bzTick(bz) {
+    const now = Date.now(), rec = await this.load(), r = rec && rec.bz && rec.bz.run;
+    if (!r || r.uid !== bz.uid || now >= r.end) { bz.tick = false; await this.state.storage.put("bzsim", bz); return; }
+    await this.state.storage.setAlarm(Math.min(r.end, now + BZ_MEET.every * 1000));
+    if (bz.meeting > now) return;   // 前の 呼び出しが まだ 終わって いない
+    const ready = bzMeetReady(rec, bz, now); if (!ready || !this.env.LOUNGE) return;
+    const gate = await this.env.DB.get("gate", "json"); if (hidden(gate, rec.id)) return;
+    let foe = null;
+    try { foe = (await (await this.lounge().fetch("https://lounge/bz-pick", { method: "POST", body: JSON.stringify({ id: rec.id, uid: r.uid }) })).json()).foe; } catch (e) {}
+    if (!foe || foe.id === rec.id || hidden(gate, foe.id)) return;
+    bz.meeting = now + BZ_HOLD_MS; await this.state.storage.put("bzsim", bz);   // 予約：返事を 入れるまで 帰還・うけとり・ほかの 人との ばったりを 断る（片方だけ 物が 動かない ように）
+    return { bzMeet: { foe, uid: r.uid, ver: bz.ver || 0, now, hold: bz.meeting, ask: bzMeetAsk(rec, bz, ready, rand) } };
+  }
+  // 相手の Viewer へ（鍵の 外）→ 返事を 自分の 側に 入れる（鍵の 中。あいだに 帰還などで 変わって いたら 入れない）
+  async bzMeetRemote(job) {
+    let res = null;
+    try { res = await (await this.env.VIEWER.get(this.env.VIEWER.idFromName("v:" + job.foe.id)).fetch("https://viewer/bzmeet", { method: "POST", body: JSON.stringify({ to: job.foe.uid, from: job.ask }) })).json(); } catch (e) {}
+    await this.run(async () => {
+      const rec = await this.load(), bz = await this.state.storage.get("bzsim"); if (!bz) return;
+      if (bz.meeting === job.hold) delete bz.meeting;   // 予約を とく（返事が 来なくても）
+      const ready = res && res.ok && (bz.ver || 0) === job.ver && bzMeetReady(rec, bz, job.now);
+      if (!ready || ready.r.uid !== job.uid || !bzMeetDone(rec, bz, ready, job.ask, res, Date.now())) { await this.state.storage.put("bzsim", bz); return; }
+      bz.ver = (bz.ver || 0) + 1;
+      await this.state.storage.put("bzsim", bz); await this.save(rec); await this.state.storage.setAlarm(Date.now());   // その 歩から 計算しなおす（終わったら 見回りへ）
+      if (res.fight) {   // 配信の 帯（派遣の ばったりと 同じ。鹿さんの カード）：同じ 種で 同じ 戦いを 再生する
+        const L = res.winner === 0 ? res.give : job.ask.lose, took = { s: ((L && L.samples) || []).length, m: Object.values((L && L.mats) || {}).reduce((a, v) => a + v, 0) };
+        await this.relay("pvp", { kind: "bz", A: job.ask.f, B: res.B, seed: res.seed, did: ready.r.area, zone: BZ_AREAS[ready.r.area].name, took });
+      }
+    });
   }
   // 周回の アラーム：帰って きた 派遣を うけとって、同じ ように また 出発（画面を とじて いても）
   async loopTick() {
@@ -391,9 +428,9 @@ export class Viewer {
     else if (body.a === "fac.rush") r = facRush(rec, body, now);
     else if (body.a === "fac.fuel") r = facFuel(rec, body, now);
     else if (body.a === "fac.scaffold") r = facScaffold(rec, body, now);   // 足場（工房で 作った 物）
-    else if (body.a === "bz.start") { r = bzStart(rec, body, now, Math.floor(rand() * 2 ** 31)); if (r.sim) { await this.state.storage.put("bzsim", r.sim); await this.state.storage.setAlarm(Date.now()); delete r.sim; } }   // ボーダーゾーン：出撃（計算は アラームで）
-    else if (body.a === "bz.recall") { const sim = await this.state.storage.get("bzsim"); r = bzRecall(rec, sim, now); if (r.ok) { await this.state.storage.put("bzsim", sim); await this.state.storage.setAlarm(Date.now()); } }   // 帰還：いまの 歩から 出口へ
-    else if (body.a === "bz.collect") { r = bzCollect(rec, now); if (r.ok) await this.state.storage.delete("bzsim"); }
+    else if (body.a === "bz.start") { r = bzStart(rec, body, now, Math.floor(rand() * 2 ** 31)); if (r.sim) { await this.state.storage.put("bzsim", r.sim); await this.state.storage.setAlarm(Date.now()); delete r.sim; await this.bzRoster("put", bzRosterEntry(rec, rec.bz.run)); } }   // 名簿：ばったり   // ボーダーゾーン：出撃（計算は アラームで）
+    else if (body.a === "bz.recall") { const sim = await this.state.storage.get("bzsim"); r = sim && sim.meeting > now ? { ok: false, why: BZ_BUSY } : bzRecall(rec, sim, now); if (r.ok) { sim.ver = (sim.ver || 0) + 1; await this.state.storage.put("bzsim", sim); await this.state.storage.setAlarm(Date.now()); } }   // 帰還：いまの 歩から 出口へ
+    else if (body.a === "bz.collect") { const ru = rec.bz && rec.bz.run && rec.bz.run.uid, sim = await this.state.storage.get("bzsim"); r = sim && sim.meeting > now ? { ok: false, why: BZ_BUSY } : bzCollect(rec, now); if (r.ok) { await this.state.storage.delete("bzsim"); if (ru) await this.bzRoster("del", { id: rec.id, uid: ru }); } }
     else if (body.a === "bz.appraise") r = bzAppraise(rec, body);   // 鑑定（ガラク）
     else if (body.a === "bz.sell") r = bzSell(rec, body);           // 会社に 納める
     else if (body.a === "ess.extract") r = essExtract(rec, body, (rec.ledger && rec.ledger.unknown) || []);   // あまった 子から エッセンス
@@ -492,6 +529,20 @@ export class Viewer {
       if (url.pathname === "/public") { const rec = await this.load(); return rec ? res(this.view(rec)) : res({ error: "none" }, 404); }
       // 闘技場から：いまの ペットの 戦う 形（読むだけ。順番待ちを 通らない ので、デュエルの 相手どうしで 待ちあわない）
       if (url.pathname === "/fighter") { const rec = await this.load(), f = rec && !locked(rec, this.env) && arenaFighter(rec); return f ? res({ ...f, rk: fxOf(rec, "rank") }) : res({ error: "none" }, 404); }   // rk：大会の 格付けの 点の 上乗せ（家具）
+      // ほかの Viewer から：ボーダーゾーンの ばったり（見つかった 側。lounge-border.js の bzMeetIn）。ほかの Viewer は 呼ばない ので 鍵の 中で 決める
+      if (url.pathname === "/bzmeet" && req.method === "POST") {
+        const b = await req.json().catch(() => ({}));
+        return res(await this.run(async () => {
+          const rec = await this.load(), sim = await this.state.storage.get("bzsim"), now2 = Date.now();
+          if (!rec || !sim || !b || !b.from || typeof b.to !== "string" || locked(rec, this.env) || bzLocked(rec, this.env) || sim.meeting > now2) return { ok: false };   // meeting：自分も 相手を 呼んで いる ところ
+          const gate = await this.env.DB.get("gate", "json"); if (hidden(gate, rec.id) || hidden(gate, b.from.id)) return { ok: false };
+          const r = bzMeetIn(rec, sim, now2, b.from, b.to, rand, Math.floor(rand() * 2 ** 31));
+          if (!r.ok) return { ok: false };
+          sim.ver = (sim.ver || 0) + 1;
+          await this.state.storage.put("bzsim", sim); await this.save(rec); await this.state.storage.setAlarm(Date.now());   // その 歩から 計算しなおす
+          return r;
+        }));
+      }
       if (url.pathname === "/act" && req.method === "POST") {
         this.hits = this.hits.filter((t) => now - t < RATE.ms);
         if (this.hits.length >= RATE.n) return res({ ok: false, why: "1 秒に 5 回まで" }, 429);

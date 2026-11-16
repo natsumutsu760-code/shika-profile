@@ -4,7 +4,7 @@
 // 計算は 門番が 1 歩ずつ（Cloudflare の 1 回 10 ミリ秒に 収まる ように、戦いは 1 歩に 1 回まで）。同じ 種なら 同じ 結果
 // 「帰還」を 押したら、その 歩の 控え（snaps）から 帰り道に 切りかえて 計算しなおす
 import { BORDER, VALUE } from "./materials.js";
-import { simulateTeams, vitalsOf } from "./battle-sim.js";
+import { simulate, simulateTeams, vitalsOf } from "./battle-sim.js";
 import { foeOf } from "./dungeon-sim.js";
 import { petAt } from "./builds.js";
 import { ENEMY_TREES } from "./enemy-trees.js";
@@ -261,6 +261,67 @@ export function bzRecall(S, i) {
   toExit(S, "recall");
   return true;
 }
+// ---------- ばったり（ほかの プレイヤーと 出会う。2026-11-16 鹿さんの カード 4 枚。docs/mono-link-border-zone.md の「ばったり」）----------
+// 鹿さんの 決め：同じ ゾーンに 同じ 時間 出て いる 人と・両方が「戦う」の ときだけ 戦い（どちらかが「避ける」なら すれちがう だけ）・負けた 側は HP 3 割で 探索を 続ける・配信の 帯で 見せる
+// 前の 決め（2026-10-30）：勝つと 相手の 集めた 物の 2 割を 奪う（貴重サンプルが あれば 1 こを 先に）・負けても 力つきた あつかいに しない・10 分で 2〜3 回
+// Claude の 案：見回りは 1 分ごと・同じ ゾーンに 人が いる 見回りで 25%（10 分で 2〜3 回）・同じ 相手とは 1 回の 出撃で 1 回まで（Lounge の 名簿が 組を 覚える）
+//   戦いは 先頭の 生きて いる 子どうしの 1 対 1（それぞれ 自分の ゾーンの 帯に そろえた 形・いまの HP から）。配信の 帯は 同じ 種で 同じ 戦いを 再生する（派遣の ばったりと 同じ）
+//   奪われた 物は 保険の 外（保険は 力つきた ときだけ）。奪った 物は 自分の 持ち物に 入る（あとで 力つきれば いっしょに 失う）。精鋭の 解析コードは 奪わない（ツリーの 進み）
+export const BZ_MEET = { every: 60, chance: 0.25, loseHp: 0.3, take: 0.2 };
+// i 歩め（いま）の はじめの 状態：戦う 子（生きて いる 先頭）と その HP・持ち物の 数。まだ 計算して いない・もう 出口を 出た・全滅なら null
+export function bzAt(S, i) {
+  const s = S.snaps.find((x) => x.i === i); if (!s) return null;
+  if (S.fin && i >= S.i) return null;   // その 歩で 終わって いる（出た・力つきた）
+  const k = s.hp.findIndex((h) => h > 0); if (k < 0) return null;
+  return { k, hp: s.hp[k], mp: s.mp[k], n: s.haul.samples.length + Object.values(s.haul.mats).reduce((a, n) => a + n, 0) };
+}
+// 戦う 形（いまの HP・MP から 始める。帯の 再生も この 形で 同じ 戦いに なる）
+export function bzDuelist(S, at, owner) {
+  const c = S.team[at.k], v = vitalsOf(c);
+  return { ...c, owner: owner || c.owner || "", startHp: Math.max(1, Math.round(at.hp * v.maxHp)), startMp: Math.round(at.mp * v.maxMp) };
+}
+// 1 対 1（A ＝ 見回りで 見つけた 側・B ＝ 見つかった 側）。winner：0 なら A。hp：戦いの あとの HP の 割合 [A, B]
+export function bzDuel(A, B, seed) {
+  const end = simulate(A, B, seed, { quiet: true }).at(-1), va = vitalsOf(A), vb = vitalsOf(B);
+  return { winner: end.winner, upset: !!end.upset, hp: [end.final[0].hp / va.maxHp, end.final[1].hp / vb.maxHp], mp: [end.final[0].mp / va.maxMp, end.final[1].mp / vb.maxMp] };
+}
+// 負けたら 奪われる 物：持ち物の 数の 2 割（1 こ 以上）。貴重サンプルが あれば 1 こを 先に、のこりは 持ち物から（くじは R：0〜1 を 返す 関数）
+export function bzLoot(S, i, R) {
+  const s = S.snaps.find((x) => x.i === i); if (!s) return { samples: [], mats: {} };
+  const samples = s.haul.samples.map((x, j) => ({ ...x, j })), units = [];
+  for (const [key, n] of Object.entries(s.haul.mats)) for (let j = 0; j < n; j++) units.push(key);
+  const total = samples.length + units.length, n = total ? Math.max(1, Math.round(total * BZ_MEET.take)) : 0, out = { samples: [], mats: {} };
+  const takeSample = () => { const x = samples.splice(Math.floor(R() * samples.length), 1)[0]; out.samples.push({ id: x.id, star: x.star }); };
+  if (n && samples.length) takeSample();
+  while (out.samples.length + Object.values(out.mats).reduce((a, v) => a + v, 0) < n && samples.length + units.length) {
+    const j = Math.floor(R() * (samples.length + units.length));
+    if (j < samples.length) takeSample(); else { const key = units.splice(j - samples.length, 1)[0]; out.mats[key] = (out.mats[key] || 0) + 1; }
+  }
+  return out;
+}
+const lootN = (L) => ({ s: (L.samples || []).length, m: Object.values(L.mats || {}).reduce((a, v) => a + v, 0) });
+// i 歩めの はじめの 控えに もどして、ばったりの 結果を 入れ、その 歩から 計算しなおす（帰還と 同じ 作り。前の 出来事は かわらない）
+// fx：{ ev：記録の 印の 中身, k：戦った 子, hp・mp：戦いの あとの 割合, lose：奪われた 物, gain：奪った 物 }
+export function bzMeetApply(S, i, fx) {
+  const k = S.snaps.findIndex((x) => x.i === i); if (k < 0) return false;
+  const s = S.snaps[k];
+  Object.assign(S, { i: s.i, R: s.R, hp: [...s.hp], mp: [...s.mp], mode: s.mode, left: s.left, depth: s.depth, keys: s.keys, crate: s.crate, sealed: s.sealed, safe: s.safe, exp: s.exp,
+    haul: { mats: { ...s.haul.mats }, samples: s.haul.samples.map((x) => ({ ...x })), codes: { ...(s.haul.codes || {}) } }, fin: false, reason: null });   // codes：精鋭の 解析コード（奪わない）
+  S.ev.length = s.ev; S.pos.length = s.pos; S.snaps.length = k;
+  if (fx.k != null && fx.hp != null) { S.hp[fx.k] = Math.max(0, Math.min(1, fx.hp)); if (fx.mp != null) S.mp[fx.k] = Math.max(0, Math.min(1, fx.mp)); }
+  const L = fx.lose, G = fx.gain;
+  if (L) {
+    for (const x of L.samples || []) { const j = S.haul.samples.findIndex((y) => y.id === x.id && y.star === x.star); if (j >= 0) S.haul.samples.splice(j, 1); }
+    for (const [key, n] of Object.entries(L.mats || {})) { const v = (S.haul.mats[key] || 0) - n; if (v > 0) S.haul.mats[key] = v; else delete S.haul.mats[key]; }
+  }
+  if (G) {
+    for (const x of G.samples || []) if (SAMPLES[x.id] && Number.isInteger(x.star) && x.star >= 1 && x.star <= 5) S.haul.samples.push({ id: x.id, star: x.star });
+    for (const [key, n] of Object.entries(G.mats || {})) { const id = key.split("@")[0]; if (VALUE[id] != null && Number.isInteger(n) && n > 0 && n <= 999) S.haul.mats[key] = (S.haul.mats[key] || 0) + n; }
+  }
+  S.ev.push({ i: s.i, k: "meet", ...fx.ev, ...(L ? { lost: lootN(L) } : {}), ...(G ? { took: lootN(G) } : {}) });
+  return true;
+}
+
 // 結果（帰り または 力つきた）
 export function bzResult(S) {
   const mats = Object.entries(S.haul.mats).map(([key, n]) => { const [id, q] = key.split("@"); return { id, q: +(q || 0), n }; });
