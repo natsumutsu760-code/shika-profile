@@ -45,12 +45,13 @@ const COMBO_EN = (globalThis.__ML_COMBO_EN ||= new Map());
 // 英語も 同じ 形で、主の ツリーの 英語から 最後の 語を 除いた 所 ＋ もう 一方の 英語の 最後の 語（Crystal Chill ＋ Sentry Shield → Crystal Shield）。
 // 日本語に「の」が ない ツリー（前半・後半が 名前 まるごと）は 英語も まるごと
 const lastW = (s) => s.slice(s.lastIndexOf(" ") + 1), headW = (s) => (s.includes(" ") ? s.slice(0, s.lastIndexOf(" ")) : s);
-function comboEn(p, h, t) {
+// 2026-11-16 名前の 重なりを なくした（日本語で 言葉を 替えた 種族 ha・ta）：英語は 1 匹目の 最後の 語（Crystal Scale → Scale）・2 匹目の 英語 まるごと
+function comboEn(p, h, t, ha, ta) {
   const a = p(h), b = p(t); if (!a || !b) return null;
-  return `${h.includes("の") ? headW(a) : a} ${t.includes("の") ? lastW(b) : b}`;
+  return `${ha ? lastW(a) : h.includes("の") ? headW(a) : a} ${ta ? b : t.includes("の") ? lastW(b) : b}`;
 }
 export const RULES = [
-  [/^[^]+$/, (m, p) => { const e = COMBO_EN.get(m[0]); return e == null ? null : typeof e === "string" ? e : e.fx ? describeEn(e.fx) : e.h ? comboEn(p, e.h, e.t) : `${nm(p, e.a)} × ${nm(p, e.b)}`; }],
+  [/^[^]+$/, (m, p) => { const e = COMBO_EN.get(m[0]); return e == null ? null : typeof e === "string" ? e : e.fx ? describeEn(e.fx) : e.h ? comboEn(p, e.h, e.t, e.ha, e.ta) : `${nm(p, e.a)} × ${nm(p, e.b)}`; }],
   [/^ならべかた：(.+)$/, (m, p) => { const x = p(m[1]); return x == null ? null : `Sort: ${x}`; }],
   [/^(.+)の エッセンス$/, (m, p) => `${nm(p, m[1])} Essence`],
   [/^([A-Z]{1,2})・(.+)を 抽出$/, (m, p) => `${m[1]} · extract ${nm(p, m[2])}`],
