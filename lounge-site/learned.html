@@ -1,0 +1,163 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pet Skills</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Zen+Maru+Gothic:wght@500;700;900&display=swap">
+<style>
+  /* MONO LINK のラウンジ：ペットの 覚えた スキル（技・パッシブ）を ぜんぶ 見る 画面。
+     2026-11-16 鹿さん「スキルが全部セットされているとほかの覚えているスキルを確認できない問題を修正してください。スキルを確認できるタブが必要です。」
+     セットして いても いなくても、覚えた 物は ここで 効果の 文まで 見られる。セットを かえるのは ガンビットの 画面 */
+  :root {
+    --space:#F6F8FC; --ink:#1B2340; --soft:#6A7394; --line:#DCE3F0;
+    --sky:#2EA8FF; --coral:#FF5A64; --sun:#FFC21A; --leaf:#22CC88; --violet:#8E6CFF;
+    --jp:"Zen Maru Gothic", "Hiragino Maru Gothic ProN", sans-serif; --num:"Fredoka", "Zen Maru Gothic", sans-serif;
+    --lift:0 18px 40px -18px rgba(27,35,64,.35), 0 2px 0 rgba(27,35,64,.06);
+  }
+  * { box-sizing:border-box; }
+  body { margin:0; min-height:100vh; background:radial-gradient(120% 80% at 50% 0%, #FFFFFF 0%, var(--space) 55%, #EAF0FA 100%); color:var(--ink); font:500 16px/1.65 var(--jp); }
+  button, a { font:inherit; color:inherit; cursor:pointer; }
+  :focus-visible { outline:3px solid var(--sky); outline-offset:3px; border-radius:12px; }
+  .top { display:flex; align-items:center; gap:10px; padding:12px clamp(16px, 4vw, 40px); }
+  .top b { font:700 22px/1 var(--num); letter-spacing:.06em; } .top b i { font-style:normal; color:var(--sky); }
+  .top small { font:700 13px/1 var(--jp); color:var(--soft); margin-left:6px; }
+  main { max-width:1100px; margin:0 auto; padding:0 clamp(16px, 4vw, 40px) 40px; }
+  .panel { background:rgba(255,255,255,.9); border-radius:26px; box-shadow:var(--lift); padding:clamp(14px, 2.4vw, 20px); }
+
+  /* ---- ペットの頭（ガンビットの 画面と 同じ） ---- */
+  .pet { display:grid; grid-template-columns:60px 1fr; gap:14px; align-items:center; padding:8px 20px 8px 8px; border-radius:22px; }
+  .pet .pic { width:60px; height:60px; border-radius:16px; background:radial-gradient(circle at 50% 38%, #fff 0, #E4F7EE 80%); display:flex; justify-content:center; overflow:hidden; }
+  .pet .pic img { height:150%; margin-top:-4%; }
+  .pet h1 { margin:0; font:900 24px/1.1 var(--jp); display:flex; align-items:baseline; gap:10px; white-space:nowrap; }
+  .pet h1 small { font:700 13px/1 var(--jp); color:var(--soft); }
+  .pet .meta { margin-top:6px; display:flex; gap:8px; align-items:center; }
+  .badge { display:inline-flex; align-items:center; gap:5px; border-radius:999px; padding:4px 10px 4px 5px; font:700 12px/1 var(--jp); color:#fff; background:var(--c); }
+  .badge::before { content:""; width:11px; height:11px; border-radius:50%; background:#fff; opacity:.85; }
+  .lv { font:600 16px/1 var(--num); } .lv small { font:700 12px/1 var(--jp); color:var(--soft); margin-right:3px; }
+
+  /* ---- タブ ---- */
+  .tabs { display:flex; gap:8px; margin:12px 0 10px; overflow-x:auto; padding-bottom:4px; }
+  .tabs button { flex:none; border:1.5px solid var(--line); background:rgba(255,255,255,.9); border-radius:999px; padding:8px 16px; font:700 14px/1 var(--jp); }
+  .tabs button[aria-selected="true"] { background:var(--ink); color:#fff; border-color:var(--ink); box-shadow:0 5px 0 rgba(27,35,64,.22); }
+
+  /* ツリー｜覚えたスキル（スキルツリーの 画面と 同じ） */
+  .vtabs { display:flex; gap:6px; margin:0 0 4px; }
+  .vtabs > * { display:inline-flex; align-items:center; min-height:36px; border:1.5px solid var(--line); background:#fff; border-radius:999px; padding:7px 16px; font:700 14px/1 var(--jp); color:var(--ink); text-decoration:none; }
+  .vtabs [aria-selected="true"] { background:var(--ink); border-color:var(--ink); color:#fff; box-shadow:0 4px 0 rgba(27,35,64,.2); }
+  /* 技・パッシブの タブ（なかまの 画面の 職業の タブと 同じ 形） */
+  .ktabs { display:grid; grid-template-columns:1fr 1fr; gap:6px; margin:10px 0 8px; }
+  .ktabs button { min-height:40px; border:1.5px solid var(--line); background:#fff; border-radius:12px; padding:8px 10px; font:700 14px/1 var(--jp); color:var(--ink); white-space:nowrap; }
+  .ktabs button[aria-selected="true"] { background:var(--ink); border-color:var(--ink); color:#fff; box-shadow:0 4px 0 rgba(27,35,64,.2); }
+  /* しぼりこみと ならべかた（なかまの 画面の チップと 同じ 形） */
+  .fline { display:flex; align-items:center; gap:5px; flex-wrap:wrap; margin:0 0 12px; } .fline .gap { flex:1; }
+  .chip { border:1.5px solid var(--line); background:#fff; border-radius:999px; min-height:32px; padding:5px 10px; font:700 12px/1 var(--jp); display:inline-flex; align-items:center; gap:5px; }
+  .chip small { font:600 12px/1 var(--num); color:var(--soft); }
+  .chip[aria-pressed="true"] { background:var(--ink); border-color:var(--ink); color:#fff; } .chip[aria-pressed="true"] small { color:rgba(255,255,255,.7); }
+  .chip:disabled { opacity:.4; }
+  .chip i { width:9px; height:9px; border-radius:3px; background:var(--c); flex:none; }
+
+  /* スキル 1 つ ＝ 1 まい：名前・セットの 札・ツリーと MP・効果の 文 */
+  ul.cards { list-style:none; margin:0; padding:0; display:grid; grid-template-columns:repeat(auto-fill, minmax(min(300px, 100%), 1fr)); gap:8px; }
+  .card { border:1.5px solid var(--line); border-radius:16px; background:#fff; padding:10px 12px; box-shadow:inset 4px 0 0 var(--c, var(--line)); min-width:0; }
+  .card.on { border-color:#BFE3FF; background:#F5FBFF; }
+  .card .t { display:flex; align-items:baseline; gap:8px; flex-wrap:wrap; }
+  .card b { font:900 15px/1.35 var(--jp); }
+  .card .set { margin-left:auto; flex:none; font:700 12px/1 var(--jp); color:#fff; background:var(--sky); border-radius:999px; padding:4px 9px; white-space:nowrap; }
+  .card .sub { margin-top:2px; display:flex; gap:8px; flex-wrap:wrap; font:700 12px/1.4 var(--jp); color:var(--soft); }
+  .card .sub .mp b { font:600 13px/1 var(--num); color:var(--violet); }
+  .card p { margin:4px 0 0; font:500 13px/1.6 var(--jp); color:var(--ink); overflow-wrap:anywhere; }
+  .lead { margin:8px 0; color:var(--soft); font:700 13px/1.6 var(--jp); }
+  .go { margin-top:14px; display:flex; justify-content:flex-end; }
+  .jelly { border:0; border-radius:999px; padding:12px 20px; font:900 15px/1 var(--jp); background:var(--sky); color:#fff; box-shadow:0 6px 0 rgba(46,168,255,.3); text-decoration:none; display:inline-block; }
+
+  @media (max-width:820px) {
+    .pet { grid-template-columns:48px 1fr; padding:6px 12px 6px 6px; gap:10px; border-radius:18px; }
+    .pet .pic { width:48px; height:48px; border-radius:12px; } .pet h1 { font-size:20px; } .pet h1 small { font-size:12px; }
+    .go { justify-content:stretch; } .go .jelly { flex:1; text-align:center; }
+  }
+</style>
+</head>
+<body>
+<header class="top"><a href="/" style="color:inherit;text-decoration:none" aria-label="MONO LINK の サイトへ"><b>MONO LINK<i>://</i></b></a><small><a href="lounge-room.html" style="color:inherit">ラウンジ</a> ／ ペット</small></header>
+<main id="app"></main>
+<script type="module">
+import "./lounge-en.js";   // 英語の 画面（英語の ときだけ 辞書を 読む）
+import { me } from "./lounge-client.js";   // ペットの 記録は 門番（見本では ブラウザの 中の ためしの 門番）
+import { mountWallet } from "./wallet-bar.js"; mountWallet();   // 上の 通貨の 札
+import { petInfo, linkTabs, gateHtml, addGateCss } from "./pet-head.js";
+import { SKILL, TYPES } from "./skills.js";
+import { learned, treeOf } from "./trees.js";
+import { ENEMY_TREES } from "./enemy-trees.js";
+import "./crawler-elite-trees.js";   // クローラーで 解析した 精鋭の ツリーも サブに 付く（読むと ENEMY_TREES・SKILL に 入る）
+
+const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
+const ME = await me(), MP = ME.pets && ME.pets[0];
+const UI = { kind: new URLSearchParams(location.search).get("k") === "p" ? "passive" : "skill", tree: "all", sort: "tree" };
+
+// ツリーごとに 覚えた 物（職業ツリー → サブツリー → 持ちこし）。同じ 技を 2 つの ツリーで 覚えても 1 まい
+function rows() {
+  if (!MP || !MP.type) return [];
+  const trees = [MP.type, ...(MP.subs || [])], out = [], seen = new Set();
+  const name = (id) => { try { return treeOf(id).name; } catch (e) { return (ENEMY_TREES[id] && ENEMY_TREES[id].name) || id; } };
+  const color = (id, k) => (k === 0 ? TYPES[MP.type].color : (TYPES[(ENEMY_TREES[id] || {}).type] || TYPES[MP.type]).color);
+  trees.forEach((id, k) => {
+    const L = learned(id, new Set((MP.taken || {})[id] || []), MP.seed);
+    for (const [kind, list] of [["skill", L.skills], ["passive", L.passives]]) for (const s of list) {
+      if (!SKILL[s] || seen.has(s)) continue; seen.add(s);
+      out.push({ id: s, kind, tree: id, tn: name(id), tk: k, c: color(id, k) });
+    }
+  });
+  if (MP.carry && SKILL[MP.carry] && !seen.has(MP.carry)) out.push({ id: MP.carry, kind: "skill", tree: "carry", tn: "持ちこし", tk: 99, c: "var(--violet)" });
+  return out;
+}
+// セットして いる 物：技は ガンビットで 使う 行（つかう に して いる 行）の 番号、パッシブは 効いて いる 8 つ（自動の ときは 覚えた 順の 8 つ）
+function setOf() {
+  const g = {}, list = (MP.gambits || (MP.build && MP.build.gambits) || []);
+  list.forEach((r, i) => { if (r.on !== false) (g[r.do] ||= []).push(i + 1); });
+  return { gam: g, pas: new Set((MP.build && MP.build.passives) || []) };
+}
+
+function render() {
+  const gate = gateHtml(ME, esc); if (gate) return gate;
+  const info = petInfo(MP), ty = TYPES[MP.type], all = rows(), S = setOf();
+  const isSet = (r) => (r.kind === "skill" ? !!S.gam[r.id] : S.pas.has(r.id));
+  const nK = (k) => all.filter((r) => r.kind === k).length, mine = all.filter((r) => r.kind === UI.kind);
+  const trees = [...new Map(mine.map((r) => [r.tree, r])).values()].sort((a, b) => a.tk - b.tk);
+  if (UI.tree !== "all" && !trees.some((r) => r.tree === UI.tree)) UI.tree = "all";
+  const shown = mine.filter((r) => UI.tree === "all" || r.tree === UI.tree).map((r, i) => ({ ...r, i, on: isSet(r) }))
+    .sort((a, b) => (UI.sort === "set" ? b.on - a.on : 0) || a.tk - b.tk || a.i - b.i);
+  const chip = (v, label, n, c) => `<button class="chip" data-tree="${esc(v)}" aria-pressed="${UI.tree === v}" ${n === 0 ? "disabled" : ""}>${c ? `<i style="--c:${c}"></i>` : ""}${esc(label)}<small>${n}</small></button>`;
+  const fline = trees.length > 1 || mine.length > 1 ? `<div class="fline" role="group" aria-label="しぼりこみと ならべかた">${trees.length > 1 ? chip("all", "すべて", mine.length) + trees.map((r) => chip(r.tree, r.tn, mine.filter((x) => x.tree === r.tree).length, r.c)).join("") : ""}<span class="gap"></span>
+    <button class="chip" data-do="sort" aria-label="ならべかた：${UI.sort === "tree" ? "ツリー順（押すと セット中が 上）" : "セット中が 上（押すと ツリー順）"}">⇅ ${UI.sort === "tree" ? "ツリー順" : "セット中が 上"}</button></div>` : "";
+  const tag = (r) => { if (!r.on) return ""; if (r.kind === "passive") return `<span class="set">セット中</span>`; const g = S.gam[r.id]; return `<span class="set">${g.length > 1 ? `ガンビット ${g[0]} 番 ほか` : `ガンビット ${g[0]} 番`}</span>`; };
+  const card = (r) => { const s = SKILL[r.id];
+    return `<li class="card ${r.on ? "on" : ""}" style="--c:${r.c}"><div class="t"><b>${esc(s.name)}</b>${tag(r)}</div>
+      <div class="sub"><span>${esc(r.tn)}</span>${r.kind === "skill" ? `<span class="mp">MP <b>${s.mp}</b></span>` : ""}</div>${s.text ? `<p>${esc(s.text)}</p>` : ""}</li>`; };
+  return `
+  <section class="panel pet" aria-label="ペット">
+    <div class="pic"><img src="${info.img}" alt="${esc(info.label)}の${esc(MP.name)}"></div>
+    <div><h1>${esc(MP.name)}<small>${esc(info.label)} ／ ${esc(ME.name)} の相棒</small></h1><div class="meta"><span class="badge" style="--c:${ty.color}">${ty.label}</span><span class="lv"><small>Lv</small>${MP.lv}</span></div></div>
+  </section>
+  <nav class="tabs" role="tablist"><button role="tab" aria-selected="false">ステータス</button><button role="tab" aria-selected="true">スキルツリー</button><button role="tab" aria-selected="false">ガンビット</button><button role="tab" aria-selected="false">装備</button><button role="tab" aria-selected="false">冒険</button><button role="tab" aria-selected="false">なかま</button></nav>
+  <section class="panel" aria-label="覚えたスキル">
+    <div class="vtabs" role="tablist" aria-label="スキルツリーの 見かた"><a role="tab" aria-selected="false" href="skilltree.html">ツリー</a><button role="tab" aria-selected="true">覚えたスキル</button></div>
+    <div class="ktabs" role="tablist" aria-label="スキルの しゅるい"><button role="tab" data-kind="skill" aria-selected="${UI.kind === "skill"}">技 ${nK("skill")}</button><button role="tab" data-kind="passive" aria-selected="${UI.kind === "passive"}">パッシブ ${nK("passive")}</button></div>
+    ${mine.length ? `${fline}<ul class="cards">${shown.map(card).join("")}</ul>` : `<p class="lead">まだ ない。スキルツリーで 取ると ここに 出る</p>`}
+    <div class="go">${mine.length ? `<a class="jelly" href="gambit.html">ガンビットの 画面で セットする</a>` : `<a class="jelly" href="skilltree.html">スキルツリーへ</a>`}</div>
+  </section>`;
+}
+addGateCss();
+function paint() { document.getElementById("app").innerHTML = render(); linkTabs(); }
+document.getElementById("app").addEventListener("click", (e) => {
+  const b = e.target.closest("button"); if (!b || b.disabled || !b.dataset || (!b.dataset.kind && !b.dataset.tree && !b.dataset.do)) return;
+  const d = b.dataset;
+  if (d.kind) { UI.kind = d.kind; UI.tree = "all"; return paint(); }
+  if (d.tree) { UI.tree = d.tree; return paint(); }
+  if (d.do === "sort") { UI.sort = UI.sort === "tree" ? "set" : "tree"; return paint(); }
+});
+paint();
+window.ready = true;
+</script>
+</body>
+</html>

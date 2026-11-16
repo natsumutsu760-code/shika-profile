@@ -93,6 +93,12 @@ export const WORDS = {
   "自動で 振る（Lv が 上がる たびに 取る）": "Auto-assign (learn every time you level up)", "自動を やめた（自分で 取る）": "Auto off (you choose)",
   "振り直した（自動で 取りなおした）": "Reset (auto-assigned again)", "振り直した（SP と ポイントが もどった）": "Reset (SP and points returned)", "その 子が いない": "That companion isn't here",
   "主": "Main", "副": "Sub",
+  // ---- 覚えたスキル（learned.html。2026-11-16） ----
+  "覚えたスキル": "Learned", "ツリー": "Trees", "スキルツリーの 見かた": "Skill tree view", "技 #": "Active #", "パッシブ #": "Passive #", "スキルの しゅるい": "Skill type", "セット中": "Set",
+  "ガンビット # 番": "Gambit #", "ガンビット # 番 ほか": "Gambit # +", "⇅ ツリー順": "⇅ By tree", "⇅ セット中が 上": "⇅ Set first", "ツリー順": "By tree", "セット中が 上": "Set first", "ツリー順（押すと セット中が 上）": "By tree (tap: set first)", "セット中が 上（押すと ツリー順）": "Set first (tap: by tree)",
+  "ならべかた：ツリー順（押すと セット中が 上）": "Order: by tree (tap: set first)", "ならべかた：セット中が 上（押すと ツリー順）": "Order: set first (tap: by tree)",
+  "まだ ない。スキルツリーで 取ると ここに 出る": "None yet. Learn them in the skill tree.", "ガンビットの 画面で セットする": "Set them in Gambits", "スキルツリーへ": "To Skill Tree",
+  "セットは # つまで。どれかを はずすと 入れられる": "Up to # can be set. Remove one to add this.",
   // ---- ガンビット（gambit.html） ----
   "えらぶ": "Choose", "HP が # より少ない": "HP below #", "HP が # より多い": "HP above #", "MP が # 以上": "MP # or more", "MP が # より少ない": "MP below #",
   "デバフがある": "Has a debuff", "バフがない": "Has no buffs", "になっている": "is active", "になっていない": "is not active", "バフがある": "Has a buff", "デバフが # つ以上": "# or more debuffs",

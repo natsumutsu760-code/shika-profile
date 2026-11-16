@@ -42,6 +42,10 @@
 
   /* 4 本のツリー：職業 1 ＋ サブ 3 */
   .slots { display:grid; grid-template-columns:repeat(4, minmax(0, 1fr)); gap:8px; margin-bottom:12px; }
+  /* ツリー｜覚えたスキル（2026-11-16 鹿さん「スキルを確認できるタブが必要です。」。覚えた スキルは learned.html） */
+  .vtabs { display:flex; gap:6px; margin:0 0 12px; }
+  .vtabs > * { display:inline-flex; align-items:center; min-height:36px; border:1.5px solid var(--line); background:#fff; border-radius:999px; padding:7px 16px; font:700 14px/1 var(--jp); color:var(--ink); text-decoration:none; }
+  .vtabs [aria-selected="true"] { background:var(--ink); border-color:var(--ink); color:#fff; box-shadow:0 4px 0 rgba(27,35,64,.2); }
   .slot { text-align:left; border:1.5px solid var(--line); background:#fff; border-radius:16px; padding:8px 10px; display:grid; grid-template-columns:auto 1fr; gap:2px 8px; align-items:center; }
   .slot i { grid-row:span 2; width:30px; height:30px; border-radius:10px; background:var(--c); display:grid; place-items:center; color:#fff; font:900 12px/1 var(--jp); font-style:normal; }
   .slot small { font:700 12px/1.2 var(--jp); color:var(--soft); }
@@ -322,7 +326,8 @@ function renderTree() {
   </section>
   <nav class="tabs" role="tablist"><button role="tab" aria-selected="false">ステータス</button><button role="tab" aria-selected="true">スキルツリー</button><button role="tab" aria-selected="false">ガンビット</button><button role="tab" aria-selected="false">装備</button><button role="tab" aria-selected="false">冒険</button><button role="tab" aria-selected="false">なかま</button></nav>`;
   const slots = `<div class="slots" role="group" aria-label="ツリー">${SLOTS.map(slot).join("")}</div>`;
-  if (!CUR) return `${head}<section class="panel" aria-label="スキルツリー">${slots}${subPickHtml(UI.slot)}</section>`;
+  const vt = `<div class="vtabs" role="tablist" aria-label="スキルツリーの 見かた"><button role="tab" aria-selected="true">ツリー</button><a role="tab" aria-selected="false" href="learned.html">覚えたスキル</a></div>`;   // セットして いない 物も ふくめて 覚えた スキルを 見る（2026-11-16）
+  if (!CUR) return `${head}<section class="panel" aria-label="スキルツリー">${vt}${slots}${subPickHtml(UI.slot)}</section>`;
   const T = treeOf(TID), L = learned(TID, TAKEN, MP.seed), sn = nodes.find((n) => n.id === sel), ss = stateOf(TAKEN, sel, spLeft);
   const E = T.job ? null : T, D = E && DUNGEONS.find((d) => d.id === E.dungeon), job = !!T.job, auto = job && MP.grow && MP.grow.auto, br = (MP.grow && MP.grow.branch) || {};
   const sk = sn.kind === "skill" ? SKILL[sn.skill] : sn.kind === "passive" ? SKILL[sn.passive] : null;
@@ -332,7 +337,7 @@ function renderTree() {
   const tc = job ? ty.color : TYPES[T.type].color;
   return `${head}
   <section class="panel" aria-label="スキルツリー">
-    ${slots}
+    ${vt}${slots}
     <div class="bar"><h2>${esc(T.name)}のツリー<span>主 ${SL[T.main]}・副 ${SL[T.sub]}</span></h2>
       ${job ? `<span class="auto">自動で振る<button class="tg" data-do="auto" aria-pressed="${!!auto}" aria-label="自動で振る"></button></span>` : `<button class="linkish" data-do="unsub" style="margin-left:auto">このツリーを はずす（SP は もどる）</button>`}
       ${job ? `<button class="linkish" data-do="rejob-open">職業を かえる</button>` : ""}<button class="linkish" data-do="respec-ask">振り直す（${priceText()}）</button></div>
