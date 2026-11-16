@@ -99,6 +99,16 @@ export const WORDS = {
   "ならべかた：ツリー順（押すと セット中が 上）": "Order: by tree (tap: set first)", "ならべかた：セット中が 上（押すと ツリー順）": "Order: set first (tap: by tree)",
   "まだ ない。スキルツリーで 取ると ここに 出る": "None yet. Learn them in the skill tree.", "ガンビットの 画面で セットする": "Set them in Gambits", "スキルツリーへ": "To Skill Tree",
   "セットは # つまで。どれかを はずすと 入れられる": "Up to # can be set. Remove one to add this.",
+  // ---- バフ・デバフの 一覧（effects.html。2026-11-16） ----
+  "バフ・デバフ": "Buffs & Debuffs", "バフ と デバフ": "Buffs and debuffs", "バフ #": "Buffs #", "デバフ #": "Debuffs #",
+  "名前や 効果で さがす": "Search by name or effect", "量で 効く": "By amount", "ターンの あいだ": "For turns", "ダメージを 吸収": "Absorbs damage", "1 回だけ": "Once", "能力の 上下": "Stat changes",
+  "⇅ ふつうの 順": "⇅ Default", "⇅ 効き方で まとめる": "⇅ By type", "ふつうの 順": "Default", "効き方で まとめる": "By type",
+  "ふつうの 順（押すと 効き方で まとめる）": "Default (tap: by type)", "効き方で まとめる（押すと ふつうの 順）": "By type (tap: default)",
+  "ならべかた：ふつうの 順（押すと 効き方で まとめる）": "Order: default (tap: by type)", "ならべかた：効き方で まとめる（押すと ふつうの 順）": "Order: by type (tap: default)",
+  "量：重ねるほど 強く なる 数（効くと 半分に なる 物が 多い）。ターン：技で 決めて いない ときの 長さ": "Amount: a number that grows as you stack it (many halve when they trigger). Turns: the length when the move doesn't set one.",
+  "#〜# ターン": "#–# turns", "# ターン": "# turns", "技で 決めた ターン": "Turns set by the move", "量が なくなるまで": "Until the amount runs out", "吸収しきるまで": "Until fully absorbed", "1 回 効くまで": "Until it triggers once",
+  "重ねると +1 ターン": "Stacking adds +1 turn", "上限 #": "Max #", "上限 最大 HP": "Max: max HP", "ボスは #% で 防ぐ": "Bosses resist #%",
+  "打ち消し合う：": "Cancels out with: ", "後から 付けた 方が 残る：": "Later one overrides: ", "当てはまる 物が ない": "Nothing matches",
   // ---- ガンビット（gambit.html） ----
   "えらぶ": "Choose", "HP が # より少ない": "HP below #", "HP が # より多い": "HP above #", "MP が # 以上": "MP # or more", "MP が # より少ない": "MP below #",
   "デバフがある": "Has a debuff", "バフがない": "Has no buffs", "になっている": "is active", "になっていない": "is not active", "バフがある": "Has a buff", "デバフが # つ以上": "# or more debuffs",

@@ -42,8 +42,8 @@
   .tabs button[aria-selected="true"] { background:var(--ink); color:#fff; border-color:var(--ink); box-shadow:0 5px 0 rgba(27,35,64,.22); }
 
   /* ツリー｜覚えたスキル（スキルツリーの 画面と 同じ） */
-  .vtabs { display:flex; gap:6px; margin:0 0 4px; }
-  .vtabs > * { display:inline-flex; align-items:center; min-height:36px; border:1.5px solid var(--line); background:#fff; border-radius:999px; padding:7px 16px; font:700 14px/1 var(--jp); color:var(--ink); text-decoration:none; }
+  .vtabs { display:flex; gap:6px; margin:0 0 4px; flex-wrap:wrap; }
+  .vtabs > * { display:inline-flex; align-items:center; min-height:36px; border:1.5px solid var(--line); background:#fff; border-radius:999px; padding:7px 14px; font:700 14px/1 var(--jp); color:var(--ink); text-decoration:none; }
   .vtabs [aria-selected="true"] { background:var(--ink); border-color:var(--ink); color:#fff; box-shadow:0 4px 0 rgba(27,35,64,.2); }
   /* 技・パッシブの タブ（なかまの 画面の 職業の タブと 同じ 形） */
   .ktabs { display:grid; grid-template-columns:1fr 1fr; gap:6px; margin:10px 0 8px; }
@@ -141,7 +141,7 @@ function render() {
   </section>
   <nav class="tabs" role="tablist"><button role="tab" aria-selected="false">ステータス</button><button role="tab" aria-selected="true">スキルツリー</button><button role="tab" aria-selected="false">ガンビット</button><button role="tab" aria-selected="false">装備</button><button role="tab" aria-selected="false">冒険</button><button role="tab" aria-selected="false">なかま</button></nav>
   <section class="panel" aria-label="覚えたスキル">
-    <div class="vtabs" role="tablist" aria-label="スキルツリーの 見かた"><a role="tab" aria-selected="false" href="skilltree.html">ツリー</a><button role="tab" aria-selected="true">覚えたスキル</button></div>
+    <div class="vtabs" role="tablist" aria-label="スキルツリーの 見かた"><a role="tab" aria-selected="false" href="skilltree.html">ツリー</a><button role="tab" aria-selected="true">覚えたスキル</button><a role="tab" aria-selected="false" href="effects.html">バフ・デバフ</a></div>
     <div class="ktabs" role="tablist" aria-label="スキルの しゅるい"><button role="tab" data-kind="skill" aria-selected="${UI.kind === "skill"}">技 ${nK("skill")}</button><button role="tab" data-kind="passive" aria-selected="${UI.kind === "passive"}">パッシブ ${nK("passive")}</button></div>
     ${mine.length ? `${fline}<ul class="cards">${shown.map(card).join("")}</ul>` : `<p class="lead">まだ ない。スキルツリーで 取ると ここに 出る</p>`}
     <div class="go">${mine.length ? `<a class="jelly" href="gambit.html">ガンビットの 画面で セットする</a>` : `<a class="jelly" href="skilltree.html">スキルツリーへ</a>`}</div>
