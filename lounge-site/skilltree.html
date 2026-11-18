@@ -46,6 +46,22 @@
   .vtabs { display:flex; gap:6px; margin:0 0 12px; flex-wrap:wrap; }
   .vtabs > * { display:inline-flex; align-items:center; min-height:36px; border:1.5px solid var(--line); background:#fff; border-radius:999px; padding:7px 14px; font:700 14px/1 var(--jp); color:var(--ink); text-decoration:none; }
   .vtabs [aria-selected="true"] { background:var(--ink); border-color:var(--ink); color:#fff; box-shadow:0 4px 0 rgba(27,35,64,.2); }
+  /* 覚えたツリー（2026-11-18 鹿さん「覚えたスキルではなく、覚えたスキルツリーを確認したいんですよね。」。サブの 枠が 埋まって いても 覚えた ツリーを 見る：一覧 → 押すと 見るだけの 木） */
+  .mt-f { display:flex; align-items:center; gap:5px; flex-wrap:wrap; margin:0 0 12px; } .mt-f .gap { flex:1; }
+  .mt-c { border:1.5px solid var(--line); background:#fff; border-radius:999px; min-height:32px; padding:5px 10px; font:700 12px/1 var(--jp); display:inline-flex; align-items:center; gap:5px; color:var(--ink); }
+  .mt-c small { font:600 12px/1 var(--num); color:var(--soft); }
+  .mt-c[aria-pressed="true"] { background:var(--ink); border-color:var(--ink); color:#fff; } .mt-c[aria-pressed="true"] small { color:rgba(255,255,255,.7); }
+  ul.mt-l { list-style:none; margin:0; padding:0; display:grid; grid-template-columns:repeat(auto-fill, minmax(min(250px, 100%), 1fr)); gap:8px; }
+  .mt-i { display:grid; grid-template-columns:44px minmax(0, 1fr) auto; gap:10px; align-items:center; min-height:62px; border:1.5px solid var(--line); background:#fff; border-radius:16px; padding:8px 10px; color:var(--ink); text-decoration:none; }
+  .mt-i.on { border-color:#BFE3FF; background:#F5FBFF; }
+  .mt-i img, .mt-i .ph { width:44px; height:44px; image-rendering:pixelated; border-radius:12px; background:color-mix(in srgb, var(--c) 14%, #fff); }
+  .mt-i .ph { display:grid; place-items:center; color:var(--c); font:900 15px/1 var(--jp); font-style:normal; }
+  .mt-i b { display:block; font:900 14px/1.25 var(--jp); overflow-wrap:anywhere; } .mt-i small { display:block; font:700 12px/1.35 var(--jp); color:var(--soft); overflow-wrap:anywhere; }
+  .mt-set { font:700 12px/1 var(--jp); font-style:normal; color:#fff; background:var(--sky); border-radius:999px; padding:4px 9px; white-space:nowrap; }
+  .mt-lead { margin:10px 0 0; color:var(--soft); font:700 13px/1.6 var(--jp); } .mt-lead a { color:var(--ink); font-weight:900; }
+  .peekgo { display:flex; align-items:center; gap:8px 12px; flex-wrap:wrap; margin:0 0 12px; padding:10px 12px; border-radius:14px; background:#F5FBFF; border:1.5px solid #BFE3FF; font:700 13px/1.5 var(--jp); color:var(--ink); }
+  .peekgo .take { margin-left:auto; }
+  @media (max-width:480px) { .vtabs { display:grid; grid-template-columns:1fr 1fr; } .vtabs > * { justify-content:center; padding:7px 8px; } }   /* タブ 4 つは スマホで 2 × 2（字を 折らない） */
   .slot { text-align:left; border:1.5px solid var(--line); background:#fff; border-radius:16px; padding:8px 10px; display:grid; grid-template-columns:auto 1fr; gap:2px 8px; align-items:center; }
   .slot i { grid-row:span 2; width:30px; height:30px; border-radius:10px; background:var(--c); display:grid; place-items:center; color:#fff; font:900 12px/1 var(--jp); font-style:normal; }
   .slot small { font:700 12px/1.2 var(--jp); color:var(--soft); }
@@ -260,7 +276,8 @@ const SL = { hp: "HP", mp: "MP", atk: "ATK", def: "DEF", int: "INT", res: "RES",
 const KIC = { stat: "能", skill: "技", passive: "常", keyword: "鍵" };
 // ペットと ツリーは 門番の 記録。枠 0 は 職業ツリー、1〜3 は サブツリー（研究した 敵の ツリー）
 let ME = await me(), MP = ME.pets && ME.pets[0];
-const UI = { slot: Math.max(0, Math.min(3, +(q.get("slot") || 0))), sel: null, sure: false, rejob: null, carry: null, scrollTo: true };
+const UI = { slot: Math.max(0, Math.min(3, +(q.get("slot") || 0))), sel: null, sure: false, rejob: null, carry: null, scrollTo: true, peek: null, kind: "all", sort: "set" };
+if (MP && MP.type && myTrees().includes(q.get("peek"))) UI.peek = q.get("peek");   // 覚えたツリーから 押した ツリー（見るだけ）
 // 島（ビサイ諸島が 出たら、敵の ツリーと 図鑑を 島で 分ける。呼び名は 冒険の 画面と 同じ）。かくしの 行き先は その 人に 開くまで 出さない（canGo）
 const ISLE_NAME = Object.fromEntries(Object.entries({ 1: "マッサラ島", 2: "ビサイ諸島", 3: "ミカネル島" }).filter(([n]) => +n <= ISLAND_OPEN));   // 最初の 島の 名前は「マッサラ島」（鹿さんの決め、2026-10-25。冒険の 画面と 同じ）
 const chainN = (did) => ((ME.deeplink && ME.deeplink.keys) || []).includes(did);   // かくしダンジョンの 鍵（門番の hasKey）
@@ -275,7 +292,8 @@ function reload() {
   if (!MP || !MP.type) return;
   const t = MP.taken || {};
   SLOTS = [MP.type, ...(MP.subs || [])].map((id) => ({ tree: id, taken: new Set(t[id] || []) })).concat([null, null, null]).slice(0, 4);
-  CUR = SLOTS[UI.slot]; TID = CUR ? CUR.tree : null; TAKEN = CUR ? CUR.taken : new Set(); nodes = TID ? nodesOf(TID) : [];
+  if (UI.peek) { const k = SLOTS.findIndex((x) => x && x.tree === UI.peek); if (k >= 0) { UI.slot = k; UI.peek = null; } }   // 付けて いる ツリーは ふつうの 画面で
+  CUR = UI.peek ? { tree: UI.peek, taken: new Set() } : SLOTS[UI.slot]; TID = CUR ? CUR.tree : null; TAKEN = CUR ? CUR.taken : new Set(); nodes = TID ? nodesOf(TID) : [];
   spLeft = SP_PER_LV * (MP.lv - 1) - SLOTS.filter(Boolean).reduce((a, x) => a + spOf(x), 0);
   if (!nodes.some((n) => n.id === UI.sel)) UI.sel = (nodes.find((n) => stateOf(TAKEN, n.id, spLeft) === "取れる") || nodes.find((n) => !TAKEN.has(n.id)) || nodes[0] || {}).id || null;
   sel = UI.sel;
@@ -308,25 +326,60 @@ function rejobHtml() {
     <div class="go2"><span class="sp"></span><button class="btn2" data-do="rejob-no">やめる</button><button class="take" data-do="rejob" ${UI.rejob ? "" : "disabled"}>${UI.rejob ? `${TYPES[UI.rejob].label}に かえる` : "職業を えらんで"}</button></div></div>`;
 }
 
-function renderTree() {
-  const gate = gateHtml(ME, esc); if (gate) return gate;
+// ---------- 覚えたツリー（2026-11-18 鹿さんの カード：タブを 足す・覚えたスキルは 残す） ----------
+const KIND = { enemy: "敵", fusion: "配合", evo: "上位", combo: "特殊複合", elite: "精鋭" };
+function kindOf(id) { const t = ENEMY_TREES[id]; return ELITE_TREES[id] ? "elite" : t.combo ? "combo" : t.evo ? "evo" : t.dungeon ? "enemy" : "fusion"; }
+// 覚えた ツリー：付けて いる サブ・研究や エッセンスで 覚えた ツリー（rec.lab）・解析 100% の 精鋭（サブに 付けられる 物と 同じ）
+function myTrees() { return [...new Set([...(MP.subs || []), ...(ME.lab || []).filter((id) => !ELITE_TREES[id]), ...(ME.eliteSubs || [])])].filter((id) => ENEMY_TREES[id]); }
+function vtabs(on) {
+  const T4 = [["tree", "ツリー", "skilltree.html"], ["mine", "覚えたツリー", "skilltree.html?view=mine"], ["learned", "覚えたスキル", "learned.html"], ["fx", "バフ・デバフ", "effects.html"]];
+  return `<div class="vtabs" role="tablist" aria-label="スキルツリーの 見かた">${T4.map(([k, n, h]) => k === on && !(k === "mine" && UI.peek) ? `<button role="tab" aria-selected="true">${n}</button>` : `<a role="tab" aria-selected="${k === on}" href="${h}">${n}</a>`).join("")}</div>`;
+}
+function petHead() {
   const ty = TYPES[MP.type], info = petInfo(MP);
-  let firstEmpty = true;   // 空きの 説明は 1 つ目の 空きだけ（2026-11-05：3 つの 枠に 同じ 文が 出て いた）
-  const slot = (x, k) => {
-    if (!x) { const say = firstEmpty ? `あき・えらべる ${subCands().length} 本` : "あき"; firstEmpty = false;
-      return `<button class="slot empty" data-slot="${k}" aria-pressed="${k === UI.slot}"><i>${k}</i><small>サブツリー ${k}</small><b>${say}</b></button>`; }
-    const t = treeOf(x.tree), c = t.job ? ty.color : TYPES[t.type].color;
-    return `<button class="slot ${t.job ? "" : "subt"}" data-slot="${k}" aria-pressed="${k === UI.slot}" style="--c:${c}"><i>${t.job ? "職" : k}</i><small>${t.job ? "職業ツリー" : `サブツリー ${k}`}</small><b>${esc(t.name)}<s>${x.taken.size}/${SHAPE.length}</s>${t.job ? "" : `<s class="e">${esc(t.enemy)}</s>`}</b></button>`;
-  };
-  const head = `
+  return `
   <section class="panel pet" aria-label="ペット">
     <div class="pic"><img src="${info.img}" alt="${esc(info.label)}の${esc(MP.name)}"></div>
     <div><h1>${esc(MP.name)}<small>${esc(info.label)} ／ ${esc(ME.name)} の相棒</small></h1><div class="meta"><span class="badge" style="--c:${ty.color}">${ty.label}</span><span class="lv"><small>Lv</small>${MP.lv}</span></div></div>
     <div class="sp">のこりの SP<b>${spLeft}</b></div>
   </section>
   <nav class="tabs" role="tablist"><button role="tab" aria-selected="false">ステータス</button><button role="tab" aria-selected="true">スキルツリー</button><button role="tab" aria-selected="false">ガンビット</button><button role="tab" aria-selected="false">装備</button><button role="tab" aria-selected="false">冒険</button><button role="tab" aria-selected="false">なかま</button></nav>`;
+}
+// 見るだけの 木の 上：空いた 枠が あれば そこへ 付ける（なければ 1 行で わけ）
+function peekGo() {
+  const k = SLOTS.findIndex((x, j) => j > 0 && !x), ok = k > 0 && subCands().includes(UI.peek);
+  return `<div class="peekgo"><span>見るだけ（まだ 付けて いない）</span>${ok ? `<button class="take" data-do="peek-sub" data-k="${k}">サブツリー ${k} に 付ける</button>` : `<span>サブツリーの 枠が いっぱい（付けて いる ツリーを はずすと 付けられる）</span>`}</div>`;
+}
+const peekList = () => [...nodes.filter((n) => n.kind === "skill").map((n) => `<li class="k-skill"><i></i>${esc(SKILL[n.skill].name)}</li>`), ...nodes.filter((n) => n.kind === "passive").map((n) => `<li class="k-passive"><i></i>${esc(SKILL[n.passive].name)}</li>`)];
+function renderMine() {
+  const gate = gateHtml(ME, esc); if (gate) return gate;
+  const ty = TYPES[MP.type], all = myTrees().map((id, i) => ({ id, i, t: ENEMY_TREES[id], k: kindOf(id), at: SLOTS.findIndex((x, j) => j > 0 && x && x.tree === id) }));
+  if (UI.kind !== "all" && !all.some((x) => x.k === UI.kind)) UI.kind = "all";
+  const shown = all.filter((x) => UI.kind === "all" || x.k === UI.kind)
+    .sort((a, b) => (UI.sort === "name" ? a.t.name.localeCompare(b.t.name, "ja") : ((b.at > 0) - (a.at > 0)) || (a.at - b.at) || (a.i - b.i)));
+  const n = (k) => all.filter((x) => x.k === k).length, kinds = Object.keys(KIND).filter((k) => n(k) > 0);
+  const chip = (v, label, c) => `<button class="mt-c" data-mk="${v}" aria-pressed="${UI.kind === v}">${esc(label)}<small>${c}</small></button>`;
+  const fline = all.length > 1 ? `<div class="mt-f" role="group" aria-label="しぼりこみと ならべかた">${kinds.length > 1 ? chip("all", "すべて", all.length + 1) + kinds.map((k) => chip(k, KIND[k], n(k))).join("") : ""}<span class="gap"></span><button class="mt-c" data-do="mt-sort" aria-label="ならべかた：${UI.sort === "name" ? "名前順（押すと セット中が 上）" : "セット中が 上（押すと 名前順）"}">⇅ ${UI.sort === "name" ? "名前順" : "セット中が 上"}</button></div>` : "";
+  const pic = (x) => { const img = spriteURL(x.id) || (x.k === "evo" && spriteURL(x.id.replace(/_ev$/, ""))); return img ? `<img src="${img}" alt="">` : `<i class="ph" aria-hidden="true">${KIND[x.k].slice(0, 1)}</i>`; };
+  const row = (x) => { const set = x.at > 0;
+    return `<li><a class="mt-i ${set ? "on" : ""}" href="skilltree.html?${set ? `slot=${x.at}` : `peek=${encodeURIComponent(x.id)}`}" style="--c:${TYPES[x.t.type].color}">${pic(x)}<span><b>${esc(x.t.name)}</b><small>${esc(x.t.enemy || "")}・${KIND[x.k]}</small></span>${set ? `<em class="mt-set">サブ ${x.at}・${SLOTS[x.at].taken.size}/${SHAPE.length}</em>` : ""}</a></li>`; };
+  const job = `<li><a class="mt-i on" href="skilltree.html?slot=0" style="--c:${ty.color}"><i class="ph" aria-hidden="true">職</i><span><b>${esc(treeOf(MP.type).name)}</b><small>職業ツリー</small></span><em class="mt-set">職業・${SLOTS[0].taken.size}/${SHAPE.length}</em></a></li>`;
+  return `${petHead()}<section class="panel" aria-label="覚えたツリー">${vtabs("mine")}${fline}<ul class="mt-l">${UI.kind === "all" ? job : ""}${shown.map(row).join("")}</ul>${all.length ? "" : `<p class="mt-lead">ほかに 覚えた ツリーは まだ ない。派遣で 捕まえた 子を <a href="tame.html">なかまの 画面</a>で 研究すると ふえる</p>`}</section>`;
+}
+
+function renderTree() {
+  const gate = gateHtml(ME, esc); if (gate) return gate;
+  const ty = TYPES[MP.type], info = petInfo(MP);
+  let firstEmpty = true;   // 空きの 説明は 1 つ目の 空きだけ（2026-11-05：3 つの 枠に 同じ 文が 出て いた）
+  const slot = (x, k) => {
+    if (!x) { const say = firstEmpty ? `あき・えらべる ${subCands().length} 本` : "あき"; firstEmpty = false;
+      return `<button class="slot empty" data-slot="${k}" aria-pressed="${k === UI.slot && !UI.peek}"><i>${k}</i><small>サブツリー ${k}</small><b>${say}</b></button>`; }
+    const t = treeOf(x.tree), c = t.job ? ty.color : TYPES[t.type].color;
+    return `<button class="slot ${t.job ? "" : "subt"}" data-slot="${k}" aria-pressed="${k === UI.slot && !UI.peek}" style="--c:${c}"><i>${t.job ? "職" : k}</i><small>${t.job ? "職業ツリー" : `サブツリー ${k}`}</small><b>${esc(t.name)}<s>${x.taken.size}/${SHAPE.length}</s>${t.job ? "" : `<s class="e">${esc(t.enemy)}</s>`}</b></button>`;
+  };
+  const head = petHead();
   const slots = `<div class="slots" role="group" aria-label="ツリー">${SLOTS.map(slot).join("")}</div>`;
-  const vt = `<div class="vtabs" role="tablist" aria-label="スキルツリーの 見かた"><button role="tab" aria-selected="true">ツリー</button><a role="tab" aria-selected="false" href="learned.html">覚えたスキル</a><a role="tab" aria-selected="false" href="effects.html">バフ・デバフ</a></div>`;   // セットして いない 物も ふくめて 覚えた スキルを 見る（2026-11-16）
+  const vt = vtabs(UI.peek ? "mine" : "tree");   // セットして いない 物も ふくめて 覚えた スキルを 見る（2026-11-16）
   if (!CUR) return `${head}<section class="panel" aria-label="スキルツリー">${vt}${slots}${subPickHtml(UI.slot)}</section>`;
   const T = treeOf(TID), L = learned(TID, TAKEN, MP.seed), sn = nodes.find((n) => n.id === sel), ss = stateOf(TAKEN, sel, spLeft);
   const E = T.job ? null : T, D = E && DUNGEONS.find((d) => d.id === E.dungeon), job = !!T.job, auto = job && MP.grow && MP.grow.auto, br = (MP.grow && MP.grow.branch) || {};
@@ -339,13 +392,13 @@ function renderTree() {
   <section class="panel" aria-label="スキルツリー">
     ${vt}${slots}
     <div class="bar"><h2>${esc(T.name)}のツリー<span>主 ${SL[T.main]}・副 ${SL[T.sub]}</span></h2>
-      ${job ? `<span class="auto">自動で振る<button class="tg" data-do="auto" aria-pressed="${!!auto}" aria-label="自動で振る"></button></span>` : `<button class="linkish" data-do="unsub" style="margin-left:auto">このツリーを はずす（SP は もどる）</button>`}
-      ${job ? `<button class="linkish" data-do="rejob-open">職業を かえる</button>` : ""}<button class="linkish" data-do="respec-ask">振り直す（${priceText()}）</button></div>
+      ${UI.peek ? "" : `${job ? `<span class="auto">自動で振る<button class="tg" data-do="auto" aria-pressed="${!!auto}" aria-label="自動で振る"></button></span>` : `<button class="linkish" data-do="unsub" style="margin-left:auto">このツリーを はずす（SP は もどる）</button>`}
+      ${job ? `<button class="linkish" data-do="rejob-open">職業を かえる</button>` : ""}<button class="linkish" data-do="respec-ask">振り直す（${priceText()}）</button>`}</div>${UI.peek ? peekGo() : ""}
     ${sure}${job ? rejobHtml() : ""}
     ${E ? `<p class="origin">${ELITE_TREES[TID] ? "クローラーで " : D ? `${esc(D.name)}の ` : "配合で 生まれた "}<span class="chip" style="--c:${TYPES[E.type].color}"><i></i>${esc(E.enemy)}</span> を${ELITE_TREES[TID] ? "解析した" : D ? "捕まえて研究した" : " 研究した"} ${E.rank === "通常" ? "" : `<span class="rk ${E.rank === "希少" ? "r" : ""}">${E.rank}</span>`}${E.theme ? `・テーマ <span class="chip" style="--c:${EFFECTS[E.theme].buff ? "var(--leaf)" : "var(--coral)"}"><i></i>${EFFECTS[E.theme].label}</span>` : ""}・SP は職業ツリーと同じ入れ物から使う</p>` : ""}
     <div class="tlay" style="--tc:${tc}">
       <div>
-        <div class="legend2" aria-hidden="true"><span class="g"><i></i>取った</span><span class="c"><i></i>取れる</span><span><i></i>まだ</span></div>
+        ${UI.peek ? "" : `<div class="legend2" aria-hidden="true"><span class="g"><i></i>取った</span><span class="c"><i></i>取れる</span><span><i></i>まだ</span></div>`}
         <div class="tree2" role="group" aria-label="${esc(T.name)}のツリー"><svg aria-hidden="true"></svg>${treeRows(auto, br)}</div>
       </div>
       <div class="side">
@@ -353,12 +406,12 @@ function renderTree() {
           <h3><span class="ic">${sn.master ? "★" : KIC[sn.kind]}</span>${esc(label(sn))}</h3>
           <p class="where">${sn.zone}・${sn.kind === "skill" ? `技 ${"①②③④⑤⑥⑦⑧"[sn.n - 1]}・MP ${sk.mp}` : sn.kind === "passive" ? `パッシブ ${"①②③④⑤⑥⑦"[sn.n - 1]}` : sn.kind === "stat" ? "能力上昇" : "キーワード"}${sn.master ? "・取りきると マスター" : ""}</p>
           <p>${esc(text)}</p>
-          <div class="row"><span>${ss === "ロック" ? "上の ノードを 取ると 取れる" : ss === "封鎖" ? "反対の 道を 取ったので 取れない（振り直すと えらびなおせる）" : ss === "SP が足りない" ? `SP が 足りない（あと ${sn.sp - spLeft}）` : ss}</span>${ss === "取れる" ? `<button class="take" data-do="take">取る（<b>${sn.sp}</b> SP）</button>` : ""}</div>
+          ${UI.peek ? `<div class="row"><span>付けると 取れる</span></div>` : `<div class="row"><span>${ss === "ロック" ? "上の ノードを 取ると 取れる" : ss === "封鎖" ? "反対の 道を 取ったので 取れない（振り直すと えらびなおせる）" : ss === "SP が足りない" ? `SP が 足りない（あと ${sn.sp - spLeft}）` : ss}</span>${ss === "取れる" ? `<button class="take" data-do="take">取る（<b>${sn.sp}</b> SP）</button>` : ""}</div>`}
         </div>
         <div class="sum">
-          <h3>このツリーで覚えたもの</h3>
-          <ul>${[...L.skills.map((id) => `<li class="k-skill"><i></i>${esc(SKILL[id].name)}</li>`), ...L.passives.map((id) => `<li class="k-passive"><i></i>${esc(SKILL[id].name)}</li>`)].join("") || `<li>まだ ない</li>`}</ul>
-          <p class="st">能力の足し分　${statLine || "まだ ない"}</p>
+          <h3>${UI.peek ? "このツリーで覚えられるもの" : "このツリーで覚えたもの"}</h3>
+          <ul>${(UI.peek ? peekList() : [...L.skills.map((id) => `<li class="k-skill"><i></i>${esc(SKILL[id].name)}</li>`), ...L.passives.map((id) => `<li class="k-passive"><i></i>${esc(SKILL[id].name)}</li>`)]).join("") || `<li>まだ ない</li>`}</ul>
+          ${UI.peek ? "" : `<p class="st">能力の足し分　${statLine || "まだ ない"}</p>`}
         </div>
       </div>
     </div>
@@ -376,9 +429,9 @@ function treeRows(auto, br) {
     return `<div class="zcap"><span>分岐${k === 1 ? "①" : "②"}<small>${way}</small></span>${ways}</div>`;
   };
   const cell = (id, lane, two) => {
-    const n = nodes.find((x) => x.id === id), s = stateOf(TAKEN, id, spLeft), c = CLS[s];
+    const n = nodes.find((x) => x.id === id), s = stateOf(TAKEN, id, spLeft), c = UI.peek && s === "取れる" ? "" : CLS[s];   // 見るだけの ときは「取れる」の 輪を 出さない
     const way = two && (FORK[1][0] === id || FORK[2][0] === id) ? `<span class="way">左の道</span>` : two && (FORK_R[1][0] === id || FORK_R[2][0] === id) ? `<span class="way">右の道</span>` : "";
-    const spc = s === "取れる" || s === "SP が足りない" ? `<span class="spc">${n.sp} SP</span>` : "";
+    const spc = !UI.peek && (s === "取れる" || s === "SP が足りない") ? `<span class="spc">${n.sp} SP</span>` : "";
     const info = [way, sub(n) ? `<span>${sub(n)}</span>` : "", n.master ? `<span class="ms">★ マスター</span>` : "", spc].join("");
     return `<button class="tn l${lane} k-${n.kind} ${c} ${n.master ? "master" : ""} ${id === sel ? "sel" : ""}" data-n="${id}" aria-pressed="${id === sel}" aria-label="${esc(label(n))}（${esc(s)}）"><span class="dot">${s === "封鎖" ? "✕" : n.master ? "★" : KIC[n.kind]}</span><span class="lbl"><b>${esc(label(n))}</b>${info ? `<small>${info}</small>` : ""}</span></button>`;
   };
@@ -465,7 +518,7 @@ function renderLab() {
 addGateCss();
 function paint() {
   reload();
-  document.getElementById("app").innerHTML = view === "all" ? renderAll() : view === "enemies" ? renderEnemies() : view === "lab" ? renderLab() : renderTree();
+  document.getElementById("app").innerHTML = view === "all" ? renderAll() : view === "enemies" ? renderEnemies() : view === "lab" ? renderLab() : view === "mine" ? renderMine() : renderTree();
   linkTabs();
   const tree = !!document.querySelector(".tree2"), phone = matchMedia("(max-width:820px)").matches;
   document.body.classList.toggle("tree-on", tree); document.body.classList.toggle("sheet-on", tree && phone);   // スマホ：下の 札の ぶん あける・トーストは 上に
@@ -499,6 +552,7 @@ document.getElementById("app").addEventListener("click", async (e) => {
   if (d.n) { UI.sel = d.n; UI.reveal = true; return paint(); }
   if (d.slot) { UI.slot = +d.slot; UI.sel = null; UI.sure = false; UI.rejob = null; UI.scrollTo = true; return paint(); }
   if (d.e) { UI.e = d.e; return paint(); }
+  if (d.mk) { UI.kind = d.mk; return paint(); }   // 覚えたツリー：種類で しぼる
   if (d.isle) { UI.isle = +d.isle; if (ENEMY_TREES[UI.e] && isleOfTree(UI.e) !== UI.isle) UI.e = null; return paint(); }
   if (d.job) { UI.rejob = d.job; return paint(); }
   if (d.carry !== undefined) { UI.carry = d.carry || null; return paint(); }
@@ -506,6 +560,8 @@ document.getElementById("app").addEventListener("click", async (e) => {
   if (d.branch) return ask(b, "pet.grow", { auto: true, branch: { ...((MP.grow && MP.grow.branch) || {}), [d.branch]: d.v } }, () => `分岐${d.branch === "1" ? "①" : "②"}は ${d.v === "L" ? "左" : "右"}の 道で 自動に 取る${stateOf(TAKEN, d.branch === "1" ? (d.v === "L" ? "A2" : "A5") : d.v === "L" ? "A9" : "A12", spLeft) === "封鎖" ? "（もう 反対の 道を 取って いるので、振り直すと かわる）" : ""}`);
   const x = d.do;
   if (x === "take") { const n = nodes.find((y) => y.id === sel); return ask(b, "pet.take", { tree: TID, node: sel }, () => `取った：${label(n)}`).then((r) => { if (r && r.ok) { UI.sel = null; UI.reveal = true; paint(); } }); }   // 取ったら 次に 取れる ノードを えらぶ
+  if (x === "mt-sort") { UI.sort = UI.sort === "name" ? "set" : "name"; return paint(); }
+  if (x === "peek-sub") { const id = UI.peek, k = +d.k, name = ENEMY_TREES[id].name; return ask(b, "pet.sub", { slot: k - 1, tree: id }, () => `サブツリー ${k} に「${name}」を 付けた`).then((r) => { if (r && r.ok) history.replaceState(null, "", "skilltree.html?slot=" + k); }); }   // 見るだけの 木から 空いた 枠へ
   if (x === "auto") return ask(b, "pet.grow", { auto: !(MP.grow && MP.grow.auto), branch: (MP.grow && MP.grow.branch) || {} }, () => (MP.grow.auto ? "自動で 振る（Lv が 上がる たびに 取る）" : "自動を やめた（自分で 取る）"));
   if (x === "unsub") { const name = treeOf(TID).name; UI.sel = null; return ask(b, "pet.sub", { slot: UI.slot - 1, tree: null }, () => `「${name}」を はずした（SP が もどった）`).then(() => { UI.slot = Math.min(UI.slot, (MP.subs || []).length + 1); paint(); }); }
   if (x === "respec-ask") { UI.sure = true; UI.rejob = null; return paint(); }

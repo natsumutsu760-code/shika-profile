@@ -44,6 +44,7 @@
   .vtabs { display:flex; gap:6px; margin:0 0 4px; flex-wrap:wrap; }
   .vtabs > * { display:inline-flex; align-items:center; min-height:36px; border:1.5px solid var(--line); background:#fff; border-radius:999px; padding:7px 14px; font:700 14px/1 var(--jp); color:var(--ink); text-decoration:none; }
   .vtabs [aria-selected="true"] { background:var(--ink); border-color:var(--ink); color:#fff; box-shadow:0 4px 0 rgba(27,35,64,.2); }
+  @media (max-width:480px) { .vtabs { display:grid; grid-template-columns:1fr 1fr; } .vtabs > * { justify-content:center; padding:7px 8px; } }   /* タブ 4 つ（覚えたツリーを 足した。2026-11-18）は スマホで 2 × 2 */
   /* バフ・デバフの タブ */
   .ktabs { display:grid; grid-template-columns:1fr 1fr; gap:6px; margin:10px 0 8px; }
   .ktabs button { min-height:40px; border:1.5px solid var(--line); background:#fff; border-radius:12px; padding:8px 10px; font:700 14px/1 var(--jp); color:var(--ink); white-space:nowrap; }
@@ -130,7 +131,7 @@ function render() {
   return `${head}
   <nav class="tabs" role="tablist"><button role="tab" aria-selected="false">ステータス</button><button role="tab" aria-selected="true">スキルツリー</button><button role="tab" aria-selected="false">ガンビット</button><button role="tab" aria-selected="false">装備</button><button role="tab" aria-selected="false">冒険</button><button role="tab" aria-selected="false">なかま</button></nav>
   <section class="panel" aria-label="バフ・デバフ">
-    <div class="vtabs" role="tablist" aria-label="スキルツリーの 見かた"><a role="tab" aria-selected="false" href="skilltree.html">ツリー</a><a role="tab" aria-selected="false" href="learned.html">覚えたスキル</a><button role="tab" aria-selected="true">バフ・デバフ</button></div>
+    <div class="vtabs" role="tablist" aria-label="スキルツリーの 見かた"><a role="tab" aria-selected="false" href="skilltree.html">ツリー</a><a role="tab" aria-selected="false" href="skilltree.html?view=mine">覚えたツリー</a><a role="tab" aria-selected="false" href="learned.html">覚えたスキル</a><button role="tab" aria-selected="true">バフ・デバフ</button></div>
     <div class="ktabs" role="tablist" aria-label="バフ と デバフ"><button role="tab" data-side="buff" aria-selected="${UI.side === "buff"}">バフ ${ALL.filter((x) => x.side === "buff").length}</button><button role="tab" data-side="debuff" aria-selected="${UI.side === "debuff"}">デバフ ${ALL.filter((x) => x.side === "debuff").length}</button></div>
     <div class="find"><input id="q" type="search" placeholder="名前や 効果で さがす" aria-label="名前や 効果で さがす" value="${esc(UI.q)}"></div>
     <div class="fline" role="group" aria-label="しぼりこみと ならべかた">${chip("all", "すべて")}${kinds.map(([k, l]) => chip(k, l)).join("")}<span class="gap"></span>

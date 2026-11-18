@@ -94,7 +94,7 @@ export const WORDS = {
   "振り直した（自動で 取りなおした）": "Reset (auto-assigned again)", "振り直した（SP と ポイントが もどった）": "Reset (SP and points returned)", "その 子が いない": "That companion isn't here",
   "主": "Main", "副": "Sub",
   // ---- 覚えたスキル（learned.html。2026-11-16） ----
-  "覚えたスキル": "Learned", "ツリー": "Trees", "スキルツリーの 見かた": "Skill tree view", "技 #": "Active #", "パッシブ #": "Passive #", "スキルの しゅるい": "Skill type", "セット中": "Set",
+  "覚えたスキル": "Learned skills", "覚えたツリー": "Learned trees", "上位": "Advanced", "特殊複合": "Special combo", "⇅ 名前順": "⇅ By name", "名前順（押すと セット中が 上）": "By name (tap: set first)", "セット中が 上（押すと 名前順）": "Set first (tap: by name)", "名前順": "By name", "ならべかた：名前順（押すと セット中が 上）": "Sort: by name (tap for set first)", "ならべかた：セット中が 上（押すと 名前順）": "Sort: set first (tap for by name)", "このツリーで覚えられるもの": "What this tree teaches", "付けると 取れる": "Attach it to take nodes", "見るだけ（まだ 付けて いない）": "Preview (not attached yet)", "サブツリーの 枠が いっぱい（付けて いる ツリーを はずすと 付けられる）": "All subtree slots are full (detach one to attach this)", "サブ #・#/#": "Sub # · #/#", "職業・#/#": "Job · #/#", "ほかに 覚えた ツリーは まだ ない。派遣で 捕まえた 子を": "No other trees learned yet. Research a companion you captured on an expedition on the", "で 研究すると ふえる": "to learn more", "ツリー": "Trees", "スキルツリーの 見かた": "Skill tree view", "技 #": "Active #", "パッシブ #": "Passive #", "スキルの しゅるい": "Skill type", "セット中": "Set",
   "ガンビット # 番": "Gambit #", "ガンビット # 番 ほか": "Gambit # +", "⇅ ツリー順": "⇅ By tree", "⇅ セット中が 上": "⇅ Set first", "ツリー順": "By tree", "セット中が 上": "Set first", "ツリー順（押すと セット中が 上）": "By tree (tap: set first)", "セット中が 上（押すと ツリー順）": "Set first (tap: by tree)",
   "ならべかた：ツリー順（押すと セット中が 上）": "Order: by tree (tap: set first)", "ならべかた：セット中が 上（押すと ツリー順）": "Order: set first (tap: by tree)",
   "まだ ない。スキルツリーで 取ると ここに 出る": "None yet. Learn them in the skill tree.", "ガンビットの 画面で セットする": "Set them in Gambits", "スキルツリーへ": "To Skill Tree",
@@ -181,6 +181,7 @@ export const RULES = [
   [/^(.+)に かえる$/, (m, p) => p(m[1]) && `Change to ${p(m[1])}`], [/^(.+)に なった$/, (m, p) => p(m[1]) && `Became a ${p(m[1])}`],
   [/^SP が 足りない（あと (\d+)）$/, (m) => `Not enough SP (${m[1]} more)`], [/^能力の足し分　(.+)$/, (m, p) => `Stat bonus: ${P(p, m[1])}`],
   [/^分岐(①|②)$/, (m) => `Branch ${m[1]}`], [/^分岐(①|②)は (左|右)の 道で 自動に 取る(.*)$/, (m, p) => `Branch ${m[1]}: auto takes the ${m[2] === "左" ? "left" : "right"} path${m[3] ? " " + P(p, m[3]) : ""}`],
+  [/^(.+)・(敵|配合|上位|特殊複合|精鋭)$/, (m, p) => `${P(p, m[1])} · ${{ 敵: "Enemy", 配合: "Fusion", 上位: "Advanced", 特殊複合: "Special combo", 精鋭: "Elite" }[m[2]]}`],   // 覚えたツリーの 一覧（2026-11-18）
   [/^サブツリー (\d) に「(.+)」を 付けた$/, (m, p) => `Added “${P(p, m[2])}” as subtree ${m[1]}`], [/^「(.+)」を はずした（SP が もどった）$/, (m, p) => `Removed “${P(p, m[1])}” (SP returned)`],
   [/^「(.+)」を 取り出した。(.+)は 旅立った（アメジスト (\d+)）$/, (m, p) => `Extracted “${P(p, m[1])}”. ${P(p, m[2])} has left to travel (${m[3]} Amethyst)`],
   [/^取った：(.+)$/, (m, p) => `Learned: ${P(p, m[1])}`], [/^研究した：「(.+)」（アメジスト (\d+)）$/, (m, p) => `Researched: “${P(p, m[1])}” (${m[2]} Amethyst)`],
