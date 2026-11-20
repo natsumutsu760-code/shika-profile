@@ -36,3 +36,5 @@ new_sqlite_classes = ["Viewer", "Market"]
 # トークンは Cloudflare の 秘密 GH_INBOX_TOKEN（鹿さんが 入れる。ここには 書かない）。どちらか ない ときは 何も しない
 [vars]
 GH_INBOX = "natsumutsu760-code/mono-link-inbox#1"
+# FX の 窓口（Discord の /fx）の 受付の PR。ボットの 鍵・アプリの 番号・公開鍵・使える 人は Cloudflare の 秘密 FX_DESK_*（鹿さんが 入れる。ここには 書かない）
+FX_INBOX = "natsumutsu760-code/mono-link-inbox#2"
