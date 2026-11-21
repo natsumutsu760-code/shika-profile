@@ -21,9 +21,17 @@ import { EFFECTS, PAIR } from "./effects.js";
 const rng = (seed) => { let a = seed >>> 0 || 1; return () => { a = (a + 0x6d2b79f5) >>> 0; let t = a; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; };
 
 // ---- 道（マスの つながりの 歩数）----
-function bfs(map, from, pass = () => true) {
+// ふさがりを 見ない 道は 地図ごとに 覚える（地図は 戦いの あいだ 変わらない。返す 表は 読むだけ）。2026-11-21 2 代目：門番で 戦いを 回し直す ため 速く した（歩数・順番は 前と 同じ。鹿さんの カード「門番でもう一度回す」）
+const BFS_MEMO = new WeakMap();
+function bfsRun(map, from, pass) {
   const d = { [from]: 0 }, q = [from];
-  while (q.length) { const x = q.shift(); for (const y of map.cells[x].nb) if (d[y] == null && pass(y)) { d[y] = d[x] + 1; q.push(y); } }
+  for (let i = 0; i < q.length; i++) { const x = q[i]; for (const y of map.cells[x].nb) if (d[y] == null && (!pass || pass(y))) { d[y] = d[x] + 1; q.push(y); } }
+  return d;
+}
+function bfs(map, from, pass) {
+  if (pass) return bfsRun(map, from, pass);
+  let m = BFS_MEMO.get(map); if (!m) BFS_MEMO.set(map, (m = new Map()));
+  let d = m.get(from); if (!d) { d = bfsRun(map, from, null); m.set(from, d); }
   return d;
 }
 export const distOf = (map, a, b) => bfs(map, a)[b] ?? Infinity;

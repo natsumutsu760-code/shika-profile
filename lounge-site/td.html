@@ -344,6 +344,7 @@ import { mountWallet } from "./wallet-bar.js"; mountWallet();
 import { rentOf, rewardOf, retreatOdds, RENT_STEP, RENT_MID, GRUDGE, gradeOf, marketOf, stepOf, TD_FURN, TD_LIKES, GEAR, FURN_MAX, SAT, satOf, SCOUT_SIG, WORK, WORK_OF, WORK_HOURS, SKILL, skillOf, PAY, PROP, FIRST_FLOORS, BLOCK_LV, blockSlotsOf, FURN_LV, BLUEPRINT, BP_SCRAP, AUTO, MODULES, modAmt, LIFE } from "./td-numbers.js";
 import { speciesOf, RANKS, famOf } from "./fusion.js";   // スカウトの 値段（ランク）。見本の とき だけ 使う（つなぐ ときは 門番の td.res の scout）
 import { tdInit, tdOrder, tdTurn, tdAuto, distOf } from "./td-battle.js";
+import { defMap, defSetup, defInit, resSnap } from "./td-def.js";   // 防衛の 準備（門番と 同じ 式。門番は 指示の 記録で 回し直して 勝ち負けを 決める。2026-11-21 カード「門番でもう一度回す」）
 import { EFFECTS } from "./effects.js";   // モジュールの 効果の 名前（M-047）
 import { planOf, stateAt as lifeState, dayEvents, jstMin, sh, treeOfRes } from "./td-life.js";   // 住人の 暮らし（門番と 同じ 式。M-050）   // 防衛の 計算（システム担当。門番と 同じ 決まり）
 import { foeOf, tamedOf } from "./dungeon-sim.js";
@@ -860,13 +861,7 @@ function nextFoe(r) {   // この 部屋の ドアの 前に いちばん 早く
 const cid = (f, x, z) => `${f}:${x}:${z}`;
 const cpos = (id) => { if (!id || id.startsWith("room:") || id === "in") return id === "in" ? { f: 0, x: -10, z: 4 } : null; const [f, x, z] = id.split(":").map(Number); return { f, x, z }; };
 const TYPE_EN = { アタッカー: "attacker", ディフェンダー: "defender", テクニシャン: "technician", キャスター: "caster", ヒーラー: "healer" };
-function mapOf() {   // 歩ける マス（形の 道具 td-core.js の walkCells。門番と 同じ）＋ 入口 ＋ 部屋（ドアの マスに だけ つながる）。入口は 土台の 廊下の 左
-  const cells = walkCells(SHAPE), link = (a, b) => { if (!cells[a] || !cells[b] || a === b) return; if (!cells[a].nb.includes(b)) cells[a].nb.push(b); if (!cells[b].nb.includes(a)) cells[b].nb.push(a); };
-  cells.in = { nb: [] }; link("in", cid(0, -9, 4));
-  for (const [id, c] of Object.entries(cells)) { if (id === "in") continue; const [f, x, z] = id.split(":").map(Number), b = BLOCKS.find((q) => x >= q.x0 && x < q.x0 + q.w && z >= q.z0 && z < q.z0 + q.d && f >= q.f0 && f < q.f0 + q.h); if (b) c.blk = b.id; }   // 区画の モジュールが 敵の 入った 箱を 知る（M-047）
-  for (const r of ROOMS) { if (r.cut) continue; const id = r.lounge ? "room:lounge" : "room:" + r.key, d = cid(r.f, r.door[0], r.door[1]); cells[id] = { nb: [], room: true }; link(id, d); }
-  return { cells, entrance: "in", lounge: "room:lounge" };
-}
+function mapOf() { return defMap(SHAPE); }   // 歩ける マス ＋ 入口 ＋ 部屋（td-def.js。門番と 同じ 式）
 function distTo(map, to) { const d = { [to]: 0 }, q = [to]; while (q.length) { const x = q.shift(); for (const y of map.cells[x].nb) if (d[y] == null) { d[y] = d[x] + 1; q.push(y); } } return d; }
 function pathFrom(map, toL, from) { const out = [from]; let c = from; for (let k = 0; k < 400 && c !== map.lounge; k++) { const nx = map.cells[c].nb.filter((y) => (toL[y] ?? 1e9) < (toL[c] ?? 1e9)).sort((a, b) => toL[a] - toL[b])[0]; if (!nx) break; out.push(nx); c = nx; } return out; }
 let LD = null;   // 門番に つないだ 防衛中の 記録
@@ -875,7 +870,7 @@ const outRoom = (key) => { if (!LD) return false; const U = LD.st.units[key]; re
 async function startLiveDef(i) {
   const N = NOTES[i]; if (!N) return;
   if (N.stale) {   // 前の 防衛を おえる（負け あつかい）
-    const r = await act("td.def.end", { id: N.id, won: false, kills: 0, fought: [], dead: [] });
+    const r = await act("td.def.end", { id: N.id, turns: [] });   // 記録が ない ＝ 負け あつかい
     if (!r || !r.ok) { toast(r && /途中/.test(r.why || "") ? "始めて 3 分 たつと おえられます" : (r && r.why) || "できませんでした"); return; }
     toast("防衛を おえた"); await refresh(); return;
   }
@@ -883,16 +878,11 @@ async function startLiveDef(i) {
   if (toL.in == null) { toast("入口から ラウンジまで 道が つながって いない"); return; }
   const r = await act("td.def.start", { i: NOTES.filter((n) => !n.stale).indexOf(N) });
   if (!r || !r.ok) { toast((r && r.why) || "できませんでした"); return; }
-  const D = r.def, residents = [];
-  for (const q of ROOMS) { const R = q.who && RES[q.who]; if (!R || R.st === "仕事中") continue;   // 仕事に 出て いる 子は 守れない（メゾンと 同じ）
-    const type = TYPE_EN[R.type] || "attacker"; residents.push({ uid: q.key, home: "room:" + q.key, cell: "room:" + q.key, type, c: { ...(R.kin ? tamedOf({ ...R.kin, tree: treeOfRes(R), type, lv: R.lv, name: R.name }) : foeOf({ tree: treeOfRes(R), type, lv: R.lv, name: R.name })), owner: "あなた" } }); }   // 受けついだ 物が ある 子は 配合と 同じ 強さ（2026-11-18 カード「配合と同じ」）
-  const foes = D.foes.map((f, k) => { const type = TYPE_EN[ENEMY_TREES[f.id]?.type] || "attacker"; return { uid: "f" + k, type, c: foeOf({ tree: f.id, type, lv: f.lv, name: foeName(f.id) }) }; });
-  const TY = ["attacker", "defender", "technician", "caster", "healer"];   // 手伝いの 子（M-042）：送られた 写しから。自動で 動く
-  const helpers = (D.help || []).map((h, k) => { const type = TYPE_EN[h.c.type] || (TY.includes(h.c.type) ? h.c.type : TYPE_EN[ENEMY_TREES[h.c.tree]?.type] || "attacker");
-    return { uid: "h" + k, type, c: { ...foeOf({ tree: h.c.tree, type, lv: h.c.lv, name: h.c.name || foeName(h.c.tree) }), owner: h.name } }; });
-  const P = LASTME?.pets?.[0], pet = { uid: "pet", type: "defender", c: P && P.build ? { ...P.build, name: "MONO ペット", owner: "あなた" } : { ...foeOf({ tree: "e_watch", type: "defender", lv: 40, name: "MONO ペット" }), owner: "あなた" } };
-  let seed = 7; for (const ch of D.id) seed = (seed * 31 + ch.charCodeAt(0)) >>> 0;
-  LD = { id: D.id, t0: Date.now(), strength: D.strength, st: tdInit({ map, residents, foes, pet, seed, helpers, mods: D.mods || {} }), help: Object.fromEntries((D.help || []).map((h, k) => ["h" + k, { id: h.c.tree, name: h.c.name, by: h.name }])), map, toL, path: pathFrom(map, toL, "in"), fought: new Set(), hp: {}, ids: Object.fromEntries(D.foes.map((f, k) => ["f" + k, f])), note: N };
+  // 〔決〕門番の 写し（建物の 形・戦う 住人・MONO ペット）から 門番と 同じ 式で 戦いを 作る。写しの ない 古い 門番の ときだけ この 画面で 写しを 作る
+  const D0 = r.def, P = LASTME?.pets?.[0];
+  const D = { ...D0, shape: D0.shape || { order: [...S.order], fl: S.fl, stars: { ...starsNow() } }, res: D0.res || ROOMS.filter((q) => q.who && RES[q.who] && RES[q.who].st !== "仕事中").map((q) => resSnap(q.key, RES[q.who])), pet: "pet" in D0 ? D0.pet : (P && P.build) || null };
+  const setup = defSetup(D), dmap = setup.map, dtoL = distTo(dmap, dmap.lounge);
+  LD = { id: D.id, t0: Date.now(), strength: D.strength, st: defInit(setup), turns: [], help: Object.fromEntries((D.help || []).map((h, k) => ["h" + k, { id: h.c.tree, name: h.c.name, by: h.name }])), map: dmap, toL: dtoL, path: pathFrom(dmap, dtoL, "in"), fought: new Set(), hp: {}, ids: Object.fromEntries(D.foes.map((f, k) => ["f" + k, f])), note: N };
   Object.assign(S, { mode: "def", tab: null, turn: 1, sel: null, cmd: {}, tgt: {}, picked: null, floor: 0, note: N, pan: { x: 0, z: 0 }, rest: new Set(), dead: [], auto: autoPref() }); hidePop(); syncFoes(); render(); autoGo();
 }
 // 自動／マニュアル（M-046。鹿さんの カード「自動とマニュアルを切り替えできるようにして体感時間を減らす」→ 戦いは システム担当の tdAuto）
@@ -946,8 +936,8 @@ function liveOrder(c, key) {   // 画面の 指示 → td-battle の 指示
 }
 function liveTurn() {
   clearTimeout(LD.autoT); LD.tT = performance.now();
-  if (S.auto) tdAuto(LD.st);   // 自動：型ごとの 得意な 動き（システム担当）
-  else for (const [who, c] of Object.entries(S.cmd)) { const key = who.slice(2); if (LD.st.units[key]) tdOrder(LD.st, key, liveOrder(c, key)); }
+  if (S.auto) { tdAuto(LD.st); LD.turns.push("a"); }   // 自動：型ごとの 得意な 動き（システム担当）。記録は「a」
+  else { const rec = []; for (const [who, c] of Object.entries(S.cmd)) { const key = who.slice(2); if (LD.st.units[key]) { const o = liveOrder(c, key); tdOrder(LD.st, key, o); rec.push([key, o]); } } LD.turns.push(rec); }   // マニュアル：出した 指示を その 順で 記録
   const ev = tdTurn(LD.st); S.turn++;
   const tags = {};
   for (const e of ev) {
@@ -992,13 +982,13 @@ function endHTML(r, won, deadV) {   // 結果の 窓の 中身（守りきって
         ${won ? "" : `<p class="pet">MONO ペットは 倒れた だけ</p>`}${r.offer && r.offer.length ? `<div class="moff"><b>モジュールを 1 つ えらぶ</b>${r.offer.map((m, i) => `<button data-rpick="${i}"><span class="nm">${modName(m)}</span>${mfxHTML(m)}</button>`).join("")}</div>` : ""}<button class="go" data-back>もどる</button>`;
 }
 function liveFinish(won) {   // 結果を 門番へ（始めて 3 分 たって から。早い ときは 待って 送る）
-  const st = LD.st, body = { id: LD.id, won, kills: st.beaten.length, fought: [...LD.fought].filter((k) => k !== "pet" && !LD.help[k]), dead: st.dead.filter((k) => k !== "pet") };
-  const deadV = body.dead.map((k) => RES["r:" + k]).filter(Boolean).map((R) => ({ id: R.id, name: R.name, mine: R.mine }));
-  const show = (inner) => { $("result").innerHTML = `<div class="${won ? "" : "lose"}"><b>${won ? "守りきった" : "守れなかった"}</b>${inner}</div>`; $("result").hidden = false; };
+  const st = LD.st, body = { id: LD.id, turns: LD.turns };   // 〔決〕送るのは ターンごとの 指示の 記録だけ。勝ち負け・倒した 数・殺された 住人は 門番が 回し直して 決める
+  const deadV = st.dead.filter((k) => k !== "pet").map((k) => RES["r:" + k]).filter(Boolean).map((R) => ({ id: R.id, name: R.name, mine: R.mine }));
+  const show = (inner, w = won) => { $("result").innerHTML = `<div class="${w ? "" : "lose"}"><b>${w ? "守りきった" : "守れなかった"}</b>${inner}</div>`; $("result").hidden = false; };
   const send = async () => {
     const r = await act("td.def.end", body);
     if (r && r.ok) {
-      show(endHTML(r, won, deadV));
+      show(endHTML(r, !!r.won, deadV), !!r.won);   // 門番の 勝ち負けで 出す
       return;
     }
     if (r && /途中/.test(r.why || "")) {   // 門番の 決まり：始めて 3 分 たって から の 結果だけ

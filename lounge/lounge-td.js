@@ -2,7 +2,7 @@
 // 数は ぜんぶ lounge-proto/td-numbers.js（鹿さんの カードで 決まった 〔決〕）・建物の 形と 増築の 候補は lounge-proto/td-core.js（2 代目の 見本 td.html から 写した）
 // 記録 rec.td = { order:[建てた 候補], res:{ 部屋の 鍵: 住人 }, day:家賃を 払った 日（日本時間）, board:{ h, n, taken }, sig:シグナル, notes:{ at, list }, def:防衛中, dead:[殺された 持って いる 子の uid], mods:モジュールの 数（持ち物）, modInv:[{id, star}], modAt:{ "cell:マス"|"blk:箱"|"room:鍵": {id, star} }, modOffer:{ id, list }, log }
 //   住人 { id（絵＝敵の ツリー）, name, lv, sat（満足度）, type（型）, uid?（持って いる 子なら なかまの uid）, at }
-// 受付：td.build {slot}・td.rent・td.movein {i, key}・td.out {key}・td.furn {key, id}・td.gear {key, id}・td.price {key, step}・td.scout {key}・td.def.start {i}・td.def.end {id, won, kills, fought, dead}
+// 受付：td.build {slot}・td.rent・td.movein {i, key}・td.out {key}・td.furn {key, id}・td.gear {key, id}・td.price {key, step}・td.scout {key}・td.def.start {i}・td.def.end {id, turns}（turns：ターンごとの 指示の 記録。門番が 回し直して 勝ち負けを 決める）
 //       アメジスト（計画）：td.revive {uid}・td.board（掲示板を すぐ かえる）
 // 〔決〕の 決め：家賃（（15 ＋ Lv）× 満足度の 倍率・1 日 1 回）・増築の 値段（パーツ 1 つずつ）・経験値は 戦いと 仕事（持って いる 子だけ）・素材は 本編と 共有（倉庫）・
 //   防衛の 報酬（強さ 1〜5）と 負け・アメジストの 復活（ランク）と 掲示板・敵の 数と Lv・入口は ペットを むかえてから
@@ -32,7 +32,9 @@ import { foeOf } from "./dungeon-sim.js";
 import { SNACK_NEED } from "./dungeons.js";
 import { sexOf } from "./monster.js";
 import { jstDay } from "./lounge-rules.js";
-import { planOf, stateAt, slotTimes, pairsOf, bondKeyOf, kidOf, jstMin, kidInherit, kinOf, parentOf, treeOfRes } from "./td-life.js";   // 住人の 暮らし（2026-11-18 2 代目。画面と 同じ 式）
+import { planOf, stateAt, slotTimes, pairsOf, bondKeyOf, kidOf, jstMin, kidInherit, kinOf, parentOf, treeOfRes } from "./td-life.js";
+import { roomDoors, resSnap, defReplay } from "./td-def.js";   // 防衛の 準備と 門番で もう 一度 回す（2026-11-21 鹿さんの カード「門番でもう一度回す」・M-054）
+import { fighterOf } from "./lounge-pet.js";   // 最後に 戦う MONO ペットの 強さ（me の pets[0].build と 同じ）   // 住人の 暮らし（2026-11-18 2 代目。画面と 同じ 式）
 
 export const TD_C = { rentKeep: 3, board: 3, ownP: 0.3, satIn: 60, noteRooms: 16, notesMax: 4, noteEvery: 3 * 3600000, defMin: 3 * 60000, killsMax: 16, logMax: 20 };
 const HOUR = 3600000;
@@ -399,15 +401,23 @@ function defStart(rec, T, b, now) {
   const N = T.notes, i = b && b.i | 0, note = N.list[i];
   if (!note) return { ok: false, why: "その 通知は もう ない" };
   N.list.splice(i, 1); T.notes = N;
-  T.def = { id: `d${now.toString(36)}${note.k}`, strength: note.strength, foes: note.foes, at: now, mods: { ...T.modAt } };   // 画面は この mods で td-battle を 回す
+  // 〔決〕戦いの 写し（2026-11-21 カード「門番でもう一度回す」）：建物の 形・戦う 住人（仕事に 出て いる 子は 守れない。病気の 子は 戦う）・MONO ペットの 強さ。画面も 門番も この 写しから 同じ 戦いを 作る（td-def.js の defSetup）
+  const shape = { order: [...T.order], fl: T.fl, stars: { ...T.bpAt } }, m = jstMin(now);
+  const res = roomDoors(shapeOf(shape.order, shape.fl, shape.stars)).filter((r) => !r.lounge && T.res[r.key]).filter((r) => { const v = T.res[r.key]; return v.sick || stateAt(planOf("r:" + r.key, v.wk), m) !== "仕事中"; }).map((r) => resSnap(r.key, T.res[r.key]));
+  const P = (rec.pets || [])[0], pet = P && P.type ? JSON.parse(JSON.stringify(fighterOf(P, rec))) : null;   // JSON に して おく（画面に わたる 形と そろえる）
+  T.def = { id: `d${now.toString(36)}${note.k}`, strength: note.strength, foes: note.foes, at: now, mods: { ...T.modAt }, shape, res: JSON.parse(JSON.stringify(res)), pet };   // 画面は この 写しで td-battle を 回す
   return { ok: true, def: T.def };
 }
 function defEnd(rec, T, b, now) {
   const D = T.def;
   if (!D || !b || b.id !== D.id) return { ok: false, why: "防衛の 記録が ない" };
   if (now - D.at < TD_C.defMin) return { ok: false, why: "まだ 戦いの 途中" };
-  const won = !!b.won, keys = Object.keys(T.res);
-  const kills = won ? D.foes.length : Math.max(0, Math.min(D.foes.length, TD_C.killsMax, Math.floor(+b.kills || 0)));
+  // 〔決〕勝ち負け・倒した 数・殺された 住人・戦った 子は 門番が 決める（2026-11-21 鹿さんの カード「門番でもう一度回す」）：画面が 送る ターンごとの 指示の 記録（b.turns）で 同じ 戦いを 回し直す。
+  //   最後まで 行かない 記録（途中で ぬけた・おかしな 記録）は 負け あつかいで、それまでに 殺された 住人だけ。写しの ない 前の 防衛も 負け あつかい
+  let rp = { over: null, kills: 0, dead: [], fought: [] };
+  if (D.shape) { try { rp = defReplay(D, b.turns); } catch (x) { console.log("td.def.end 回し直し", String(x && x.message || x).slice(0, 200)); } }
+  const won = rp.over === "win", keys = Object.keys(T.res);
+  const kills = won ? D.foes.length : Math.max(0, Math.min(D.foes.length, TD_C.killsMax, rp.kills | 0));
   const R = rewardOf(D.strength, { won }), rnd = rngOf(hash(`tdr:${D.id}`));
   rec.credits = Math.max(0, (rec.credits || 0) + R.cr - R.take);
   T.sig += R.sig;
@@ -431,14 +441,14 @@ function defEnd(rec, T, b, now) {
   }
   // 経験値：倒した 敵の Lv × 0.3 を 戦いに 出た 持って いる 子 みんなに〔決〕
   const killed = [...D.foes].sort((x, y) => y.lv - x.lv).slice(0, kills).map((f) => f.lv), exp = battleExp(killed), up = [];
-  const fought = (Array.isArray(b.fought) ? b.fought : []).filter((k) => keys.includes(k)).slice(0, FIGHT.side * 4);
+  const fought = rp.fought.filter((k) => keys.includes(k)).slice(0, FIGHT.side * 4);
   for (const k of fought) { const r = T.res[k]; if (!r || !r.uid) continue; const c = (rec.tamed || []).find((x) => x.uid === r.uid); if (c && exp) { if (levelUp(c, exp)) up.push(c.uid); r.lv = c.lv; } }
   // 殺された 住人：NPC は 出て いく・持って いる 子は 復活待ち
   const dead = [];
-  for (const k of (Array.isArray(b.dead) ? b.dead : []).filter((k) => keys.includes(k))) { const r = T.res[k]; if (r.uid && !T.dead.includes(r.uid)) T.dead.push(r.uid); dead.push(r.name); delete T.res[k]; }
+  for (const k of rp.dead.filter((k) => keys.includes(k))) { const r = T.res[k]; if (r.uid && !T.dead.includes(r.uid)) T.dead.push(r.uid); dead.push(r.name); delete T.res[k]; }
   T.def = null;
   log(T, `${won ? "守りきった" : "守れなかった"}（強さ ${D.strength}・${R.cr.toLocaleString("ja-JP")} cr${R.take ? `・取られた ${R.take.toLocaleString("ja-JP")}` : ""}）`, now);
-  return { ok: true, won, cr: R.cr, take: R.take, sig: R.sig, mats: mats.length, mod, offer: mod ? T.modOffer.list : null, furn, bp, exp, up, dead };
+  return { ok: true, won, kills, fought, cr: R.cr, take: R.take, sig: R.sig, mats: mats.length, mod, offer: mod ? T.modOffer.list : null, furn, bp, exp, up, dead };
 }
 
 // ---- アメジスト（門番の 計画。viewer.js の PLANS）----
