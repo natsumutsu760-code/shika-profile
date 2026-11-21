@@ -313,7 +313,7 @@ function render() {
   ${whoHtml()}
   <div class="cols equip-view">
     <section class="panel wear" aria-label="着ているもの">
-      <div class="doll"><div class="me">${isPet() ? `<img src="${info.img}" alt="${esc(MP.name)}">` : `<img class="px" src="${spriteURL(holder().tree)}" alt="${esc(holder().name)}">`}</div>${DOLL.map(tile).join("")}</div>
+      <div class="doll"><div class="me">${isPet() ? `<img src="${info.img}" alt="${esc(MP.name)}">` : `<img class="px" src="${spriteURL(holder().tdMix || holder().tree)}" alt="${esc(holder().name)}">`}</div>${DOLL.map(tile).join("")}</div>
       <div class="side">
         <div class="accs"><small>アクセサリー</small>${ACCS.map(tile).join("")}</div>
         ${sum ? `<div class="sum">装備でふえる分　${sum}</div>` : ""}
@@ -482,7 +482,7 @@ async function doScrap(b, uids, how) {
 function whoHtml() {
   const ms = mates(); if (!ms.length) return "";
   const b = (w, img, name, px, note) => `<button data-who="${w}" aria-pressed="${(isPet() ? "pet" : holder().uid) === w}"><img class="${px ? "px" : ""}" src="${img}" alt="">${esc(name)}${note ? `<small>${note}</small>` : ""}</button>`;
-  return `<div class="whos" role="group" aria-label="だれの 装備">${b("pet", petInfo(MP).img, MP.name, false, "")}${ms.map((c) => b(c.uid, spriteURL(c.tree), c.name, true, (ME.party || []).includes(c.uid) ? "" : "部屋")).join("")}</div>`;
+  return `<div class="whos" role="group" aria-label="だれの 装備">${b("pet", petInfo(MP).img, MP.name, false, "")}${ms.map((c) => b(c.uid, spriteURL(c.tdMix || c.tree), c.name, true, (ME.party || []).includes(c.uid) ? "" : "部屋")).join("")}</div>`;
 }
 function paint() { document.getElementById("app").innerHTML = render(); linkTabs(); const tk = document.querySelector("#list .tk"); if (tk) padGrids(tk); }
 addGateCss(); addTkCss(); watchPad(() => document.querySelector("#list .tk"));

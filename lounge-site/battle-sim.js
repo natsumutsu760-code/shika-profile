@@ -596,12 +596,14 @@ export function simulateTeams(SA, SB, seed, opts = {}) {
   if (!quiet) ev.push({ type: "start", ganbari: gIdx, gap, fighters: F.map((f) => ({ name: f.name, owner: f.c.owner, lv: f.c.lv, type: f.c.type, maxHp: f.maxHp, maxMp: f.maxMp, ...(duel ? {} : { side: f.side }) })) });
   // はじめの バリアは 1 つまで。パッシブ・装備・OP で 2 つ 以上に なったら、こえた 分は 装甲 +20 ずつ（複数バリアの 廃止、鹿さんの 決め 2026-11-07）
   const startList = (f) => { const L = f.P.startFx || [], nb = L.filter(([id]) => id === "barrier").reduce((a, [, n]) => a + (n ?? 1), 0); if (nb <= 1) return L; return [...L.filter(([id]) => id !== "barrier"), ["barrier", 1], ["armor", 20 * (nb - 1)]]; };
-  F.forEach((f) => { for (const [id, n, tu] of startList(f)) { addFx(f, id, { amt: n, turns: tu }, [], f); if (f.fx[id]) f.fx[id].perm = true; } });   // パッシブ・装備の「戦いのはじめに」
-  F.forEach((f) => { for (const [id, n, tu] of f.P.startFoeFx || []) for (const t of F.filter((g) => g.side !== f.side)) addFx(t, id, { amt: n, turns: tu }, [], f); });
+  // c.cont：前の ターンから 続く 戦いの 子（集合住宅の 戦い。1 ターンずつ 区切って 持ちこす。2026-11-14）は「戦いのはじめに」を もう かけない
+  F.forEach((f) => { if (f.c.cont) return; for (const [id, n, tu] of startList(f)) { addFx(f, id, { amt: n, turns: tu }, [], f); if (f.fx[id]) f.fx[id].perm = true; } });   // パッシブ・装備の「戦いのはじめに」
+  F.forEach((f) => { if (f.c.cont) return; for (const [id, n, tu] of f.P.startFoeFx || []) for (const t of F.filter((g) => g.side !== f.side)) addFx(t, id, { amt: n, turns: tu }, [], f); });
   // 精鋭の 解析ツリー（2026-11-04）：teamMul（味方 全員の 能力。ソロは solo）・startDispel・onceFx の start・rollFx の start
   F.forEach((f) => {
     const alone = !F.some((g) => g !== f && g.side === f.side && g.hp > 0);
     if (f.P.teamMul) { const m = alone ? f.P.teamMul.solo || {} : f.P.teamMul; for (const g of alone ? [f] : F.filter((h) => h.side === f.side)) for (const [k, v] of Object.entries(m)) if (k !== "solo" && g.base[k] != null) g.base[k] *= v; }
+    if (f.c.cont) return;   // 続きの 子は ここから 下（はじめの 解除・onceFx・rollFx）を かけない
     if (f.P.startDispel) { const t = targetOf(f); let n = f.P.startDispel; if (t) for (const id of buffs(t)) if (n > 0 && !EFFECTS[id].stance) { delete t.fx[id]; n--; } }
     for (const en0 of f.P.onceFx || []) { const en = alone && en0.solo ? en0.solo : en0; if (en.on === "start") applyOnce(f, en, []); }
     for (const en of f.P.rollFx || []) if (en.at === "start") applyList(f, !en.chance || R() < en.chance ? en.fx : en.miss, []);
@@ -897,7 +899,7 @@ export function simulateTeams(SA, SB, seed, opts = {}) {
   const ko = !alive(0).length || !alive(1).length;
   const upset = winner === weak && gap >= 1.2, reward = !upset ? 3 : gap >= 1.5 ? 9 : 6;
   // 持ちこし（ダンジョン）：その場の構え（防御・カウンター）と、パッシブ・装備の「戦いのはじめに」の効果は解ける
-  const carry = F.map((f) => Object.fromEntries(Object.entries(f.fx).filter(([id, x]) => !EFFECTS[id].stance && !x.perm).map(([id, x]) => [id, { ...x, fresh: false }])));
+  const carry = F.map((f) => Object.fromEntries(Object.entries(f.fx).filter(([id, x]) => !EFFECTS[id].stance && (opts.keepPerm || !x.perm)).map(([id, x]) => [id, { ...x, fresh: false }])));   // keepPerm：はじめに かかった 状態も 持ちこす（集合住宅の 続く 戦い）
   ev.push({ type: "end", winner, upset, reward, ko: !alive(1 - winner).length, timeout: !ko, turns: lastTurn, overtime: lastTurn > MAX_TURN, carry, final: snap(), ...(used.cure || used.revive ? { used } : {}), ...(Object.keys(itemsUsed).length ? { items: itemsUsed } : {}) });
   return ev;
 }

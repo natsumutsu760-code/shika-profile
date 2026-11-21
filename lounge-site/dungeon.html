@@ -754,7 +754,7 @@ const STASH = { have: stashHave(ME.own && ME.own.mats), cap: (ME.stash && ME.sta
 const fullHtml = (d) => { const ids = [...GATHER[d.id].mats.map(([id]) => id), GATHER[d.id].hidden[0], ...[...d.foes, d.rare, d.boss].map((f) => ENEMY_MAT[f.tree][0])];
   const full = [...new Set(ids)].filter((id) => (STASH.have[id] || 0) >= STASH.cap);
   return full.length ? `<p class="full">倉庫が いっぱい：${full.slice(0, 2).map((id) => esc(MAT_NAME[id])).join("・")}${full.length > 2 ? ` ほか ${full.length - 2}` : ""}。入らない分は あずかり箱へ</p>` : ""; };
-const face = (c) => (c.species ? `<img class="pf" src="${GO_IMG}" alt="">` : `<img class="ps" src="${spriteURL(c.tree)}" alt="">`);
+const face = (c) => (c.species ? `<img class="pf" src="${GO_IMG}" alt="">` : `<img class="ps" src="${spriteURL(c.tdMix || c.tree)}" alt="">`);
 
 // これまでの冒険（門番に のこる 新しい 10 回）
 const whenOf = (t) => { const d = new Date(t), today = new Date(); return `${d.toDateString() === today.toDateString() ? "きょう" : `${d.getMonth() + 1}/${d.getDate()}`} ${d.getHours()}:${String(d.getMinutes()).padStart(2, "0")}`; };

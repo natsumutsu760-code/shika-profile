@@ -10,6 +10,8 @@ import { emptyLedger, balanceOf, trimSent, toObs, settle } from "./ledger.js";
 import { buyPlan, sellAct, boxSell, tradeAct, taskDone, useItem, deeplinkView, actEvents, dlVisit, bump } from "./lounge-trade.js";
 import { facMigrate, facDue, facStart, facPut, facRush, facFuel, facScaffold, facKnob, facView } from "./lounge-facility.js";   // 施設の 建設と つまみ（施設の 作り直し、2026-11-03）
 import { crawlSave, crawlView, bandOf } from "./lounge-crawl.js";   // クローラーの 進み（M-018。2026-11-05）
+import { tdAct, tdView, tdRevivePlan, tdBoardPlan } from "./lounge-td.js";   // 集合住宅（2026-11-15 鹿さんの カード「集合住宅を 門番に つなぐ」）
+import { tdhAct, tdhInbox } from "./lounge-tdhelp.js";   // 集合住宅の 助けを よぶ 掲示板（Market。2026-11-16）
 import { orderSign, orderView } from "./lounge-order.js";   // 島 3 の 夜の 招待（誓約書に サイン → クローラーと ボーダーゾーンが 開く。2026-11-11）
 import { essExtract, essMake, essSell, essView } from "./lounge-essence.js";   // モンスターの エッセンス（抽出・つくる・売る。2026-11-11）
 import { reqPostPlan, takeFor, items } from "./lounge-req.js";
@@ -47,7 +49,7 @@ const BZ_BUSY = "ほかの プレイヤーと 出会って いる ところ：�
 const LABEL = { balls: "玉", res: "アメジスト" };
 // オーバーレイが 景品の コスメを 渡せなかった わけ（obs-ledger.js の canGive の why）
 const GIVE_WHY = { gone: "お店の 品物が 入れ替わりました", price: "値段が 合いませんでした", own: "その コスメは もう 持って いる", max: "その コスメは もう Ⅲ まで 進化して いる", give: "配信の 画面が 景品を 渡せませんでした" };
-export const MONEY = /^(shop\.|hideout\.up$|bench\.|trip\.collect$|trip\.start$|tame\.feed$|tame\.research$|tame\.extract$|trader\.|task\.|req\.|pet\.respec$|pet\.rejob$|pet\.unlock$|money\.|arena\.duel$|prize\.)/;   // 玉か アメジストが うごく やること（答えに いまの 数を つける）
+export const MONEY = /^(shop\.|hideout\.up$|bench\.|trip\.collect$|trip\.start$|tame\.feed$|tame\.research$|tame\.extract$|trader\.|task\.|req\.|pet\.respec$|pet\.rejob$|pet\.unlock$|td\.revive$|td\.board$|money\.|arena\.duel$|prize\.)/;   // 玉か アメジストが うごく やること（答えに いまの 数を つける）
 // 画面へ 送る 持ち物：鑑定して いない スフィアは 中身（OP・★）を 送らない（ガラクの 鑑定で 見える）
 const ownView = (own) => (own && Array.isArray(own.spheres) && own.spheres.some((x) => !x.known) ? { ...own, spheres: own.spheres.map((x) => (x.known ? x : { uid: x.uid, did: x.did, known: false })) } : own);
 const PLANS = {
@@ -60,6 +62,8 @@ const PLANS = {
   "tame.extract": (rec, b) => extractPlan(rec, b, rec.ledger.unknown),   // 進化した スキルを 取り出す（なかまと おわかれ）
   "trader.buy": (rec, b) => buyPlan(rec, b, jstDay(), rand),
   "money.swap": (rec, b) => swapPlan(rec, b),
+  "td.revive": (rec, b) => tdRevivePlan(rec, b),   // 集合住宅：殺された 持って いる 子の 復活（アメジスト・ランク）
+  "td.board": (rec) => tdBoardPlan(rec),           // 集合住宅：入居希望の 掲示板を すぐ かえる（アメジスト 1）
   "pet.respec": (rec, b) => respecPlan(rec, b, jstDay()),
   "pet.rejob": (rec, b) => respecPlan(rec, b, jstDay()),
   "pet.unlock": (rec, b) => petUnlockPlan(rec, b, rec.ledger.unknown, rand),   // 2 匹目は 無料（計画を 作らずに その場で むかえる）、3 匹目から アメジスト
@@ -438,6 +442,8 @@ export class Viewer {
     else if (body.a === "ess.sell") r = essSell(rec, body);   // エッセンスを クレジットで 売る
     else if (body.a === "order.sign") r = orderSign(rec, now);   // 島 3 の 夜の 招待の 誓約書に サイン
     else if (body.a === "crawl.save") r = crawlSave(rec, body, now);   // クローラーの 進み（どの 機械でも 同じ に）
+    else if (/^td\.(help\.(post|list|send|view)|def\.start|def\.end)$/.test(body.a)) r = await tdhAct(this, rec, body, now);   // 集合住宅：助けを よぶ 掲示板と 防衛の 始め・終わり（募集を 締める・結果を 板へ）
+    else if (/^td\.(build|rent|movein|out|furn|gear|price|scout|life|bp\.scrap|mod\.pick|mod\.set|mod\.off|mod\.scrap|def\.start|def\.end)$/.test(body.a)) r = tdAct(rec, body, now);   // 集合住宅（増築・家賃・入居・防衛）
     else if (body.a === "fac.knob") r = facKnob(rec, body, now);
     else if (body.a === "ws.att") r = wsAtt(rec, body, rand, now);
     else if (body.a === "ws.proc") r = wsProc(rec, body, now);           // 加工：作物 → 布・建材
@@ -518,7 +524,7 @@ export class Viewer {
     return { id: rec.id, lock: locked(rec, this.env), lockKind: lockKind(), login: rec.login, name: rec.name, nameAt: rec.nameAt, names: rec.names, room: rec.room, own: ownView(rec.own), wallet: this.purse(rec, w), waiting: rec.ledger.unknown.length,
       pets: rec.pets.map((p, i) => { if (!p.type) return { ...p }; const build = fighterOf(p, rec);   // band：クローラーの 帯の 形（先頭の ペットだけ。M-031 ①）
         return { ...p, sp: { all: spTotal(p.lv), left: spTotal(p.lv) - spUsed(p) }, freeLeft: freeIsAuto(p) ? 0 : freeTotal(p.lv) - Object.values(p.free || {}).reduce((a, v) => a + v, 0), build, band: i ? null : bandOf(build), resetPrice: RESET_PRICE(p.lv) }; }),
-      tamed: rec.tamed, party: rec.party, mine: mineView(rec, now), farmv: farmvView(rec, now), crawl: crawlView(rec), eliteSubs: eliteSubs(rec), order: orderView(rec), ess: essView(rec), bz: { ...bzMe(rec, now), open: !bzLocked(rec, this.env) }, stock: { open: !stockLocked(rec, this.env), h: (rec.stock && rec.stock.h) || {} }, smelt: rec.smelt || [], saw: rec.saw || [], loop: rec.loop || null, lab: rec.lab, labQ: rec.labQ || [], hideout: rec.hideout, knob: rec.knob || {}, fac: facView(rec, now), credits: rec.credits, snacks: rec.snacks, tools: rec.tools, explore: rec.explore, seen: rec.seen, met: rec.met,
+      tamed: rec.tamed, party: rec.party, mine: mineView(rec, now), farmv: farmvView(rec, now), crawl: crawlView(rec), td: tdView(rec, now), eliteSubs: eliteSubs(rec), order: orderView(rec), ess: essView(rec), bz: { ...bzMe(rec, now), open: !bzLocked(rec, this.env) }, stock: { open: !stockLocked(rec, this.env), h: (rec.stock && rec.stock.h) || {} }, smelt: rec.smelt || [], saw: rec.saw || [], loop: rec.loop || null, lab: rec.lab, labQ: rec.labQ || [], hideout: rec.hideout, knob: rec.knob || {}, fac: facView(rec, now), credits: rec.credits, snacks: rec.snacks, tools: rec.tools, explore: rec.explore, seen: rec.seen, met: rec.met,
       stash: { cap: stashCap(rec) }, equipCap: equipCap(rec), autoSell: rec.autoSell || null, trips: rec.trips.map((t) => tripView(t, now)), deeplink: deeplinkView(rec, jstDay(now)), desk: deskView(rec, now), req: { mine: rec.req.mine, sending: rec.req.out.length } };
   }
 
@@ -569,6 +575,7 @@ export class Viewer {
           const arena = typeof m.why === "string" && m.why.startsWith("arena:"), now = Date.now();   // 大会の 賞金：ファイトマネーの 上乗せ・LINKERS の 契約の 払い（2026-11-11）
           this.give(rec, arena && m.give && m.give.credits > 0 ? { ...m.give, credits: Math.round(m.give.credits * (1 + fightBonus(rec, now))) } : m.give);
           if (arena && Number.isInteger(m.wins) && m.wins > 0) linkWin(rec, Math.min(m.wins, 5), now);
+          if (m.td && typeof m.td === "object") tdhInbox(rec, m);   // 集合住宅の 手伝いの ごほうび（シグナル）と 送った 子の 引き上げ
           for (const e of Array.isArray(m.earn) ? m.earn : []) if ((e.kind === "balls" || e.kind === "res") && Number.isInteger(e.d) && e.d > 0) await this.earn(rec, e.kind, e.d, typeof m.why === "string" ? m.why : "req:" + m.mid);   // why：闘技場の 大会は "arena:日"
           if (m.clear && rec.req.mine === m.clear) rec.req.mine = null;
           if (m.clear) rec.req.out = rec.req.out.filter((x) => !(x.k === "post" && x.rid === m.clear));   // 板に 出て 終わった 依頼を もう 1 回 出さない

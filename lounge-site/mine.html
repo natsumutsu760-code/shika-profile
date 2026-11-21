@@ -135,7 +135,7 @@ const mineH = (w) => Math.max(0, Math.min(MINE_CAP_H, Math.floor((now() - w.at) 
 const mineW = (w) => mineCount(mineH(w), w.rate, w.at, FV.mine.pickaxe, w.fr);   // つるはしの 分も・前の 端数も（門番と 同じ 計算）
 const mineN = () => FV.mine.on.reduce((a, w) => a + mineW(w), 0);
 const tamedOf = (uid) => (ME.tamed || []).find((c) => c.uid === uid);
-const orb = (c) => `<span class="orb" style="--c:${(TYPES[c.type] || {}).color || "#DCE3F0"}33" aria-hidden="true"><img src="${spriteURL(c.tree)}" alt=""></span>`;
+const orb = (c) => `<span class="orb" style="--c:${(TYPES[c.type] || {}).color || "#DCE3F0"}33" aria-hidden="true"><img src="${spriteURL(c.tdMix || c.tree)}" alt=""></span>`;
 
 // ---------- 坑道 ----------
 function mineLeft() {

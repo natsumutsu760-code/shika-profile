@@ -12,7 +12,7 @@
      見え方は ラウンジ（lounge-room.html）と 同じ ななめ見下ろしの ローポリ。住人は モンスターの ドット絵（sprites.js。TD の まざった 子も）
      鹿さんの カード（2026-11-12）「建物をもっと九龍城塞らしく」→「棟で分けると言うより1個の集合住宅を幾何学的に接ぎ木するようなイメージです。」：
      →「もっと接ぎ木を大胆に」：長い 箱を 縦横 交互に 十字に 重ね、下を またいで 大きく 張り出させた 8 階の ひとつづきの 建物（棟の チップは なし）。外かべの 室外機と 看板・屋上の タンクと 電波塔。階は 6 階まで あるので ▲ いまの 階 ▼。ひっぱると 見る 所が 動く
-     見本の 中だけで 動く（保存しない）。?def で 防衛中から・?bt で 試しの 戦いの 画面から（鹿さんの カード、2026-11-13） */
+     ふだんは 門番に つなぐ（M-038。建物・住人・家賃・防衛が 保存される。ペットを むかえてから）。保存しない 見本：?sample（最初の アパートから）・?full（完成形）・?def で 防衛中から・?def&last で 最後の 戦い・?bt で 試しの 戦いの 画面から */
   :root { --ink:#1B2340; --soft:#6A7394; --line:#DCE3F0; --space:#F6F8FC; --amber:#FFB547; --sky:#2EA8FF; --leaf:#22CC88; --coral:#FF5A64; --violet:#8E6CFF;
     --jp:"Zen Maru Gothic", sans-serif; --num:"Fredoka", sans-serif; }
   * { box-sizing:border-box; }
@@ -72,10 +72,25 @@
   .bsel .no { width:40px; height:40px; border-radius:12px; border:0; background:var(--space); font:700 16px/1 var(--num); flex:none; }
   .bsum { font:900 14px/1.3 var(--jp); color:var(--ink); }
   .card .why { font:700 12px/1.3 var(--jp); color:var(--soft); }
-  .card .t .n { margin-left:auto; padding:3px 8px; border-radius:999px; background:#E3F8EF; color:#0E9A62; font:900 12px/1 var(--jp); }
+  .card .t .n { margin-left:auto; padding:3px 8px; border-radius:999px; background:#E3F8EF; color:#0E9A62; font:900 12px/1 var(--jp); white-space:nowrap; flex:none; }
   .done { margin:0; font:900 14px/1.4 var(--jp); color:#0E9A62; }
   .cmd .acts button:disabled { opacity:.4; cursor:default; }
   .cmd .acts button.sp { border-style:dashed; border-color:var(--violet); color:#5B3FD0; }
+  /* 自動／マニュアル（M-046）：指示の 帯の 右上に 浮かべる 札・自動の あいだは 帯に 進み と 出来事 */
+  .cmd .sw { position:absolute; right:0; bottom:calc(100% + 8px); display:flex; gap:2px; padding:3px; border-radius:14px; background:rgba(255,255,255,.96); box-shadow:0 10px 24px -16px rgba(0,0,0,.6); }
+  .cmd .sw button { min-height:40px; padding:8px 14px; border-radius:11px; border:0; background:transparent; font:900 13px/1 var(--jp); color:var(--soft); white-space:nowrap; }
+  .cmd .sw button.on { background:var(--ink); color:#fff; }
+  .cmd .sw[hidden] { display:none; } .cmd .cb { display:contents; }   /* 札は 描き直さない（自動で 0.5 秒ごとに 帯が かわっても 押しそこねない） */
+  .cmd .ast { flex:1; min-width:0; display:flex; flex-direction:column; gap:2px; }
+  .cmd .ast b { font:900 14px/1.3 var(--jp); }
+  .cmd .ast .sr { margin:0; display:flex; flex-wrap:wrap; gap:0 10px; font:700 12px/1.4 var(--jp); color:var(--ink); } .cmd .ast .sr i { font-style:normal; } .cmd .ast .sr i.bad { color:var(--coral); }
+  .cmd .ast .lg { font:700 12px/1.35 var(--jp); color:var(--soft); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .cmd.wrap { flex-wrap:wrap; }
+  .cmd .htg { flex-basis:100%; display:flex; flex-wrap:wrap; align-items:center; gap:6px; }
+  .cmd .htg > span { font:700 12px/1.3 var(--jp); color:var(--soft); }
+  .cmd .htg button { min-height:36px; display:flex; align-items:center; gap:6px; padding:6px 10px; border-radius:12px; border:1.5px solid var(--line); background:#fff; font:700 12px/1 var(--jp); color:var(--ink); }
+  .cmd .htg button b { font:900 12px/1 var(--jp); color:var(--leaf); } .cmd .htg button.down b { color:var(--coral); }
+  .cmd .htg button.on { border-color:var(--leaf); background:#E6FAF1; }
   .cmd .end { min-height:52px; padding:10px 18px; border-radius:16px; border:0; background:var(--coral); color:#fff; font:900 15px/1 var(--jp); white-space:nowrap; flex:none; }
   /* 押すと 出る 小さな 窓 */
   .pop { position:absolute; z-index:5; width:236px; padding:12px; border-radius:18px; background:#fff; box-shadow:0 18px 40px -18px rgba(27,35,64,.55); display:grid; gap:8px; }
@@ -85,9 +100,53 @@
   .pop .nb { grid-template-columns:auto 1fr auto; } .pop .nb img { width:28px; height:28px; image-rendering:pixelated; }
   .pop .diary { list-style:none; margin:0; padding:0; display:grid; gap:3px; font:700 12px/1.35 var(--jp); color:var(--ink); }
   .pop .diary li { display:flex; gap:6px; align-items:baseline; } .pop .diary time { flex:none; font:600 12px/1 var(--num); color:var(--soft); } .pop .diary b { font:900 12px/1.35 var(--jp); }
-  .pop .kids { display:flex; align-items:center; gap:6px; font:700 12px/1.3 var(--jp); color:var(--soft); } .pop .kids img { width:28px; height:28px; image-rendering:pixelated; } .pop .kids b { font:900 13px/1.2 var(--jp); color:var(--ink); }
+  .pop .kin { display:flex; flex-wrap:wrap; align-items:baseline; gap:2px 6px; margin-top:4px; font:700 12px/1.35 var(--jp); color:var(--soft); } .pop .kin b { font:600 13px/1 var(--num); color:#E39A00; } .pop .kin em { font-style:normal; padding:2px 6px; border-radius:999px; background:#EFE8FF; color:#5B3FD0; font:900 12px/1.2 var(--jp); }   /* 受けついだ 物（M-050） */
+  .pop .kids .want { font:700 12px/1.3 var(--jp); font-style:normal; color:var(--coral); }   /* 大きく なって 空き部屋を 待つ 子（M-050） */
+  .pop .kids { display:flex; flex-wrap:wrap; align-items:center; gap:6px; font:700 12px/1.3 var(--jp); color:var(--soft); } .pop .kids img { width:28px; height:28px; image-rendering:pixelated; } .pop .kids b { font:900 13px/1.2 var(--jp); color:var(--ink); }
   .clock { position:absolute; left:14px; top:14px; z-index:4; display:flex; align-items:baseline; gap:6px; padding:8px 12px; border-radius:999px; background:rgba(255,255,255,.92); box-shadow:0 8px 20px -14px rgba(27,35,64,.6); font:700 12px/1 var(--jp); color:var(--soft); }
-  .clock[hidden] { display:none; } .clock time { font:600 16px/1 var(--num); color:var(--ink); }
+  .clock[hidden] { display:none; }
+  body.td-gate .dock, body.td-gate .floors, body.td-gate .clock, body.td-gate .panel { display:none !important; }   /* 入れない ときは ことわりの 1 まいだけ */
+  .rentbar { display:flex; align-items:center; gap:10px; padding:10px 12px; border-radius:14px; background:#E3F8EF; font:700 13px/1.3 var(--jp); color:#0E7A4E; }
+  .rentbar b { font:600 16px/1 var(--num); color:#0E7A4E; margin-right:auto; } .rentbar .go { min-height:40px; padding:0 14px; }
+  /* 部屋と 家賃（M-039）：部屋の 格と 相場・家賃の 高さ 5 段・家具と 設備を 買う */
+  .rsum { display:flex; gap:8px; } .rsum div { flex:1; padding:8px 10px; border-radius:12px; background:var(--space); font:700 12px/1.3 var(--jp); color:var(--soft); }
+  .rsum b { display:block; margin-top:2px; font:900 15px/1.2 var(--jp); color:var(--ink); } .rsum b.n { font:600 18px/1.1 var(--num); }
+  .rnext { margin-top:-4px; font:700 12px/1.3 var(--jp); color:var(--soft); }
+  .steps { display:grid; grid-template-columns:repeat(5, minmax(0, 1fr)); gap:4px; }
+  .steps button { min-height:52px; padding:4px 2px; border-radius:12px; border:1.5px solid var(--line); background:#fff; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:4px; font:900 12px/1.15 var(--jp); color:var(--ink); word-break:keep-all; overflow-wrap:anywhere; }
+  .steps button small { font:600 12px/1 var(--num); color:var(--soft); }
+  .steps button.mk { border:2px solid #22CC88; }
+  .steps button.over { border-style:dashed; border-color:#FFB4B8; color:#D8323C; }
+  .steps button.on { background:var(--ink); border-color:var(--ink); border-style:solid; color:#fff; } .steps button.on small { color:#fff; }
+  .steps button.on.over { background:#D8323C; border-color:#D8323C; }
+  .rnow { display:flex; align-items:baseline; gap:6px; font:700 13px/1.2 var(--jp); color:var(--soft); } .rnow b { font:600 20px/1 var(--num); color:var(--ink); }
+  .rnote { padding:10px 12px; border-radius:12px; background:#E3F8EF; font:700 12px/1.45 var(--jp); color:#0E7A4E; }
+  .rnote.warn { background:#FFEDEE; color:#C02631; }
+  .shop { display:grid; gap:6px; }
+  .shop .row { display:flex; align-items:center; gap:6px; padding:6px 6px 6px 12px; border-radius:12px; border:1.5px solid var(--line); }
+  .shop .row b { font:900 13px/1.25 var(--jp); flex:1; min-width:0; }
+  .shop .row .p { font:600 13px/1 var(--num); color:#0E9A62; white-space:nowrap; }
+  .shop .row .tag { padding:3px 6px; border-radius:999px; background:#FFE9F1; font:900 12px/1 var(--jp); color:#D63A72; white-space:nowrap; } .shop .row .tag.c { background:#E6F2FF; color:#2A6FD0; }
+  .shop .row button { flex:none; min-width:92px; min-height:36px; padding:0 8px; }
+  .shop .row.have { background:var(--space); }
+  .owned { display:flex; flex-wrap:wrap; gap:6px; } .owned span { padding:7px 10px; border-radius:999px; background:var(--space); font:700 12px/1 var(--jp); }
+  .full { font:700 12px/1.4 var(--jp); color:var(--soft); }
+  .st.job { background:#EEF0FF; color:#4B4FC4; }
+  .plv { display:flex; align-items:baseline; gap:10px; } .plv span { font:900 13px/1 var(--jp); color:var(--soft); } .plv b { font:600 30px/1 var(--num); color:var(--ink); }
+  .pbar { height:10px; border-radius:999px; background:var(--space); overflow:hidden; } .pbar i { display:block; height:100%; border-radius:999px; background:linear-gradient(90deg,#22CC88,#2A9DF4); }
+  .sec2 { font:900 12px/1.2 var(--jp); color:var(--soft); margin-top:2px; }
+  .ptab { display:grid; gap:4px; } .ptab > div { display:flex; align-items:baseline; gap:8px; padding:7px 10px; border-radius:10px; background:var(--space); font:700 12px/1.3 var(--jp); color:var(--ink); }
+  .ptab small { font:600 12px/1 var(--num); color:var(--soft); margin-right:auto; } .ptab b { font:600 13px/1 var(--num); color:#0E9A62; }
+  .ptab.next > div { background:#fff; border:1.5px solid var(--line); } .ptab .lv { flex:none; min-width:44px; font:600 13px/1 var(--num); color:#4B4FC4; }
+  .shop .row b small { display:block; margin-top:2px; font:700 12px/1.3 var(--jp); color:var(--soft); }
+  .bsel .pick.bp button { min-width:48px; font:600 14px/1 var(--num); color:#B07A00; }
+  .helpers { display:flex; align-items:center; gap:4px; padding:6px 10px; border-radius:12px; background:#E3F8EF; font:700 12px/1.2 var(--jp); color:#0E7A4E; } .helpers span { margin-right:6px; } .helpers img { width:32px; height:32px; image-rendering:pixelated; }
+  .kids { display:grid; gap:6px; } .kid { display:flex; align-items:center; gap:8px; min-height:44px; padding:4px 10px 4px 4px; border-radius:12px; border:1.5px solid var(--line); background:#fff; text-align:left; }
+  .kid img { width:36px; height:36px; image-rendering:pixelated; } .kid b { display:block; font:900 13px/1.2 var(--jp); } .kid small { font:600 12px/1 var(--num); color:var(--soft); }
+  .rpay { display:grid; gap:3px; padding:10px 12px; border-radius:12px; background:var(--space); font:700 12px/1.45 var(--jp); color:var(--soft); } .rpay b { font:900 13px/1.3 var(--jp); color:var(--ink); }
+  .rpay.warn { background:#FFF4E0; color:#A0640A; } .rpay small { font:700 12px/1.3 var(--jp); }
+  .pop .rline { margin-top:-4px; font:700 12px/1.35 var(--jp); color:#D8323C; } .pop .rline.soft { color:var(--soft); }
+  .pop .sm { justify-self:stretch; } .pop .sm.warn { border-color:#FFB4B8; color:#D8323C; } .clock time { font:600 16px/1 var(--num); color:var(--ink); }
   .pop .hd { display:flex; align-items:center; gap:10px; }
   .pop .hd img { width:44px; height:44px; image-rendering:pixelated; flex:none; }
   .pop .hd b { display:block; font:900 15px/1.25 var(--jp); }
@@ -105,13 +164,29 @@
   .toast.on { opacity:1; }
   /* 右の パネル（スマホは 下から 出る 引き出し） */
   .panel { background:#fff; color:var(--ink); border-radius:24px; box-shadow:0 18px 40px -22px rgba(27,35,64,.35); padding:16px; display:flex; flex-direction:column; gap:12px; position:sticky; top:12px; max-height:calc(100vh - 24px); overflow:auto; }
-  .panel[hidden] { display:none; }
+  .panel[hidden] { display:none; } .panel > * { flex-shrink:0; }   /* あふれた ときに 高さだけの 物（進みの 棒）が 0 に 縮まない ように。窓 ぜんたいが すべる */
   .panel h2 { margin:0; font:900 16px/1.2 var(--jp); display:flex; align-items:center; gap:8px; }
   .panel h2 .x { margin-left:auto; width:32px; height:32px; border-radius:10px; border:0; background:var(--space); font:700 16px/1 var(--num); }
   .seg { display:flex; gap:6px; }
   .seg button { flex:1; min-height:36px; border-radius:12px; border:1.5px solid var(--line); background:#fff; font:900 13px/1 var(--jp); }
   .seg button.on { background:var(--ink); border-color:var(--ink); color:#fff; }
+  .seg.four { display:grid; grid-template-columns:1fr 1fr; }   /* 増築の 窓の タブ 4 つ（M-047）は 2 × 2 で 字を 折らない */
   .seg button b { font:600 13px/1 var(--num); margin-left:4px; }
+  /* モジュール（M-047。鹿さんの カード「案 A 持ち物から置く」）：置き場所の しゅるいの チップ・効果の 行・置いて いる 物 */
+  .mkind { display:flex; flex-wrap:wrap; gap:6px; }
+  .mkind button { min-height:36px; padding:6px 12px; border-radius:999px; border:1.5px solid var(--line); background:#fff; font:900 13px/1 var(--jp); color:var(--ink); }
+  .mkind button b { font:600 13px/1 var(--num); margin-left:4px; } .mkind button.on { background:var(--ink); border-color:var(--ink); color:#fff; } .mkind button:disabled { opacity:.4; }
+  .mfx { display:flex; flex-wrap:wrap; align-items:baseline; gap:0 4px; margin-top:2px; font:700 12px/1.35 var(--jp); color:var(--soft); }
+  .shop .row .mfx b { flex:none; font:900 12px/1.35 var(--jp); color:#5B3FD0; } .mfx em { font:600 12px/1.35 var(--num); font-style:normal; color:var(--ink); }
+  .shop .row .mbtn { display:flex; flex-direction:column; gap:4px; flex:none; } .shop .row .mbtn button { min-width:96px; }
+  .mstar { color:#E39A00; margin-right:4px; }
+  .mput summary { min-height:36px; display:flex; align-items:center; padding:0 4px; font:900 13px/1 var(--jp); color:var(--soft); cursor:pointer; }
+  .mput .shop { margin-top:6px; }
+  .moff { display:grid; gap:6px; margin-top:6px; text-align:left; } .moff > b { font:900 14px/1.3 var(--jp); color:var(--ink); }
+  .moff button { display:flex; flex-direction:column; align-items:flex-start; gap:2px; min-height:44px; padding:8px 12px; border-radius:12px; border:1.5px solid var(--line); background:#fff; font:900 13px/1.3 var(--jp); color:var(--ink); }
+  .moff button:disabled { opacity:.5; }
+  .result .moff { justify-self:stretch; width:100%; } .result .moff > b { font:900 15px/1.3 var(--jp); text-align:center; }
+  .result .moff .nm { font:900 13px/1.3 var(--jp); color:var(--ink); } .result .moff .mfx b { font:900 12px/1.35 var(--jp); color:#5B3FD0; }
   .filters { display:grid; gap:6px; padding:10px; border-radius:16px; background:var(--space); }
   .filters .row { display:flex; align-items:center; gap:6px; flex-wrap:wrap; }
   .filters .row > span { font:900 12px/1 var(--jp); color:var(--soft); min-width:44px; }
@@ -222,9 +297,14 @@
     body.def .cmd .who img, body.def .cmd .who > div > span { display:none; }
     body.def .cmd .acts button { min-height:36px; padding:6px 2px; }
     body.def .cmd .end { min-height:40px; }
+    body.def .cmd .sw button { min-height:36px; padding:6px 12px; }
     .result { position:fixed; z-index:1000; overflow:auto; padding:8px; }
     .result div { padding:14px; gap:8px; } .result .dead img { width:32px; height:32px; }
     .pop { position:fixed; left:8px !important; right:8px; width:auto; top:auto !important; bottom:8px; max-height:calc(100vh - 16px); overflow:auto; z-index:950; }
+    /* 部屋と 家賃（M-039）：開いて いる 間は 下の 帯を かくして 窓を 下まで・格と 相場は 1 行に */
+    body.td-room .dock { display:none; }
+    body.td-room .panel { bottom:0; max-height:calc(100vh - 92px); padding:12px; gap:8px; }
+    .rsum div { display:flex; align-items:baseline; gap:6px; padding:6px 10px; } .rsum b { margin:0; }
   }
 </style>
 </head>
@@ -239,6 +319,7 @@
     <div class="view" id="view">
       <div class="floors" id="floors"></div>
       <div class="clock" id="clock" hidden></div>
+      <div class="result gate" id="gate" hidden></div>
       <div class="mini" id="mini" hidden></div>
       <div class="pop" id="pop" hidden></div>
       <nav class="dock" id="dock"></nav>
@@ -254,13 +335,22 @@
 <script type="importmap">{ "imports": { "three": "https://cdn.jsdelivr.net/npm/three@0.169.0/build/three.module.js", "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.169.0/examples/jsm/" } }</script>
 <script type="module">
 import "./lounge-en.js";   // 英語の 画面（ほかの 画面と 同じ。辞書は lounge-en-td.js）
-import { t } from "./lounge-en.js";
+import { t, tr, LANG } from "./lounge-en.js";
 import * as THREE from "three";
 import { kit, F } from "./lounge-furniture.js";
 import { makePet3 } from "./pets.js";
 import { spriteURL } from "./sprites.js";
 import { mountWallet } from "./wallet-bar.js"; mountWallet();
-import { rentOf, partPrice } from "./td-numbers.js";   // 集合住宅の 数の 表（鹿さんの カードで 決まった 家賃・パーツの 値段。docs/mono-link-td-numbers.md）
+import { rentOf, rewardOf, retreatOdds, RENT_STEP, RENT_MID, GRUDGE, gradeOf, marketOf, stepOf, TD_FURN, TD_LIKES, GEAR, FURN_MAX, SAT, satOf, SCOUT_SIG, WORK, WORK_OF, WORK_HOURS, SKILL, skillOf, PAY, PROP, FIRST_FLOORS, BLOCK_LV, blockSlotsOf, FURN_LV, BLUEPRINT, BP_SCRAP, AUTO, MODULES, modAmt, LIFE } from "./td-numbers.js";
+import { speciesOf, RANKS, famOf } from "./fusion.js";   // スカウトの 値段（ランク）。見本の とき だけ 使う（つなぐ ときは 門番の td.res の scout）
+import { tdInit, tdOrder, tdTurn, tdAuto, distOf } from "./td-battle.js";
+import { EFFECTS } from "./effects.js";   // モジュールの 効果の 名前（M-047）
+import { planOf, stateAt as lifeState, dayEvents, jstMin, sh, treeOfRes } from "./td-life.js";   // 住人の 暮らし（門番と 同じ 式。M-050）   // 防衛の 計算（システム担当。門番と 同じ 決まり）
+import { foeOf, tamedOf } from "./dungeon-sim.js";
+import { ENEMY_TREES } from "./enemy-trees.js";   // 集合住宅の 数の 表（鹿さんの カードで 決まった 家賃。docs/mono-link-td-numbers.md）
+// 建物の 完成形・増築の 候補・形の 組み方・値段は 門番と 同じ ファイル（td-core.js。システム担当が 写した。2026-11-15）を 読む
+import { me, act, startLogin, demoMode, waitText } from "./lounge-client.js";   // 門番（M-038。鹿さんの カード「見本を門番につなぐ」2026-11-15）
+import { FULL_BLOCKS, FULL_TOWER, FULL_WALKS, FULL_EXST, SLOTS, PARTS, shapeOf, availOf, walkCells, hallOk, corrX, roomX, isCorr, isStair, hallOf, A_FULL, slotBox as coreSlotBox, slotCost as coreSlotCost } from "./td-core.js";   // 置き場所は 動く 候補（M-044。鹿さんの カード「案 1 十字に重ねる」2026-11-16）
 
 // ---------- 建物（見本の 形）----------
 // 鹿さんの カード（2026-11-12）：「棟で分けると言うより1個の集合住宅を幾何学的に接ぎ木するようなイメージです。」→「もっと接ぎ木を大胆に」
@@ -268,32 +358,12 @@ import { rentOf, partPrice } from "./td-numbers.js";   // 集合住宅の 数の
 //   ブロックの 中は 廊下の 列と 2 マス × 3 マスの 部屋。上の 段へは、箱どうしが 交わる 所の 外階段と、まんなかの 階段の 塔（1〜4 階）
 const FH = 1.6;
 // ax："x"＝廊下が 前の 列・部屋は うしろ・階段は 右はし。"z"＝廊下が 左（side "r" なら 右）の 列・部屋は 反対がわ・階段は 前の 列
-const FULL_BLOCKS = [   // OK を もらった 完成形（九龍城塞の 形）。増築の 見本は ここへ 向かって 育つ
-  { id: "A", x0: -9, z0: 1, w: 11, d: 4, f0: 0, h: 2, ax: "x", wall: "#E8D8C0", trim: "#C8B08A" },              // 土台（よこ）
-  { id: "B", x0: 2, z0: -9, w: 4, d: 11, f0: 0, h: 2, ax: "z", wall: "#CFE3DA", trim: "#98BCAC" },              // 土台（たて）
-  { id: "I", x0: -9, z0: 1, w: 3, d: 4, f0: 2, h: 1, ax: "x", wall: "#D9D2EA", trim: "#A89CC8" },               // 土台の 屋上の 小屋
-  { id: "C", x0: -6, z0: -7, w: 4, d: 13, f0: 2, h: 2, ax: "z", side: "r", wall: "#E6C9C2", trim: "#C29A90" },   // 土台を またいで うしろへ 8 マス 張り出す（たて）
-  { id: "D", x0: 2, z0: -6, w: 11, d: 4, f0: 2, h: 2, ax: "x", wall: "#E2DCC8", trim: "#B8AE90" },              // B を またいで 右へ 7 マス 張り出す（よこ）
-  { id: "E", x0: -11, z0: -5, w: 11, d: 4, f0: 4, h: 2, ax: "x", wall: "#C8DCEC", trim: "#90AECB" },            // C を またいで 左右へ（よこ）
-  { id: "F", x0: 8, z0: -10, w: 4, d: 13, f0: 4, h: 2, ax: "z", wall: "#E8CFE0", trim: "#C29AB4" },             // D の はしに のって 前後へ（たて）
-  { id: "G", x0: -11, z0: -9, w: 4, d: 9, f0: 6, h: 2, ax: "z", side: "r", wall: "#D5D9E6", trim: "#9EA6C0", top: true },   // てっぺん：左うしろへ はみ出す（プライベートラウンジ・電波塔）
-];
-const FULL_TOWER = { x: 1, z: -1, f0: 0, f1: 3 };   // 階段の 塔（1×2 マス。土台の 階段の うしろから 4 階まで）
-const FULL_WALKS = [   // 接ぎ木の すき間を つなぐ 通路（f は 0 ＝ 1 階）
-  { f: 2, cells: [[1, -2], [1, -3]] },                    // 塔 ⇄ D（3 階）
-  { f: 3, cells: [[0, -1], [-1, -1], [-2, -1]] },         // 塔 ⇄ C（4 階）
-];
-const FULL_EXST = [   // 外階段（箱どうしが 交わる 廊下の マスで、下の 階から 上の 階へ）
-  { x: -3, z: -2, f: 3 },   // C の 4 階 → E の 5 階
-  { x: 8, z: -3, f: 3 },    // D の 4 階 → F の 5 階
-  { x: -8, z: -2, f: 5 },   // E の 6 階 → G の 7 階
-];
 // いまの 建物（増築で かわる。composeShape() が FULL_* と 建てた 候補 S.built から 組む）
 let BLOCKS = [], TOWER = null, WALKS = [], EXST = [], TOP = 1;
 const blk = (id) => BLOCKS.find((b) => b.id === id);
 const inBlk = (b, x, z, f) => x >= b.x0 && x < b.x0 + b.w && z >= b.z0 && z < b.z0 + b.d && f >= b.f0 && f < b.f0 + b.h;
 const solidAt = (x, z, f) => BLOCKS.some((b) => inBlk(b, x, z, f)) || (!!TOWER && x === TOWER.x && (z === TOWER.z || z === TOWER.z + 1) && f >= TOWER.f0 && f <= TOWER.f1);
-const corrX = (b) => (b.side === "r" ? b.x0 + b.w - 1 : b.x0), roomX = (b) => (b.side === "r" ? b.x0 : b.x0 + 1);
+// 廊下の 列・部屋の 左はし・廊下と 階段の マスは 形の 道具（td-core.js の corrX・roomX・isCorr・isStair。廊下 2 マスの 区画も 同じ 式）
 // 住人に なる モンスター（同じ 種類が 何人 いても よい。NPC は 入居希望の 掲示板から 来る）
 const POOL = [["e_trapper", "ミミック", 12], ["e_bat", "ケイブバット", 30], ["e_pirate", "海賊の下っぱ", 38], ["e_shisa", "シーサー像", 42], ["e_eel", "洞窟ウナギ", 49],
   ["e_thunderbird", "雷鳥", 56], ["e_priest", "半魚人の神官", 60], ["e_squid", "ダイオウイカ", 70], ["e3_jackal", "ジャッカル", 67], ["e3_mirafox", "蜃気楼ギツネ", 69],
@@ -325,7 +395,7 @@ for (const b of BLOCKS) for (let f = b.f0; f < b.f0 + b.h; f++) {
   const n = b.ax === "x" ? Math.floor((b.w - 1) / 2) : Math.floor((b.d - 1) / 2);
   for (let k = 0; k < n; k++) {
     const r = b.ax === "x" ? { rx: b.x0 + k * 2, rz: b.z0, rw: 2, rd: 3, door: [b.x0 + k * 2 + 1, b.z0 + 3] } : { rx: roomX(b), rz: b.z0 + k * 2, rw: 3, rd: 2, door: [corrX(b), b.z0 + k * 2 + 1] };
-    Object.assign(r, { blk: b.id, f });
+    Object.assign(r, { blk: b.id, f, ...(b.cut ? { cut: true } : {}) });   // cut：入口から 歩いて 行けない 区画（外階段・渡り廊下で つなぐまで 住めない）
     if (b.top && f === b.f0 + b.h - 1 && k <= 1) {   // てっぺんの 階の 左 2 部屋ぶんは プライベートラウンジ（MONO ペットが いる。7 回目）
       if (k === 0) ROOMS.push(b.ax === "x" ? { ...r, rw: 4, door: [r.rx + 3, r.door[1]], no: "ラウンジ", lounge: true } : { ...r, rd: 4, door: [r.door[0], r.rz + 3], no: "ラウンジ", lounge: true });
       continue;
@@ -353,88 +423,120 @@ const WANT = [   // 入居希望の 掲示板（1 時間ごとに かわる）
   { id: "e_gull", name: "ウミネコ", lv: 35 }, { id: "e_parrot", name: "おしゃべりオウム", lv: 38 }, { id: "e_glimmer", name: "迷い光", lv: 42 },
 ].map((w) => ({ ...w, rent: rentOf(w.lv, 60) }));   // 希望の 家賃：入居の ときの 満足度 60 で
 const NOTES = [   // 電波塔に とどいた 通知（えらぶ ときに 決めるのは 強さ。敵の 数と Lv が 先に 見える）
-  { t: "流れて きた モンスター", from: "ガマの隠れ港の 海賊", star: 2, foes: ["e_boss_redbeard", "e_pirate", "e_pirate", "e_parrot"], lv: "Lv38〜41", win: 1800, sg: 12, lose: 900 },
-  { t: "流れて きた モンスター", from: "アトゥイ号の 沈没船", star: 3, foes: ["e_boss_octopus", "e_skelsailor", "e_jelly", "e_jelly"], lv: "Lv45〜48", win: 3200, sg: 20, lose: 1600 },
-  { t: "脅迫", from: "ほかの 会社の POM 部隊", star: 4, pom: 5, lv: "Lv55", win: 6000, sg: 36, lose: 3000 },
+  { k: 1, t: "流れて きた モンスター", from: "ガマの隠れ港の 海賊", star: 2, foes: ["e_boss_redbeard", "e_pirate", "e_pirate", "e_parrot"], lv: "Lv38〜41", win: 1800, sg: 12, lose: 900 },
+  { k: 2, t: "流れて きた モンスター", from: "アトゥイ号の 沈没船", star: 3, foes: ["e_boss_octopus", "e_skelsailor", "e_jelly", "e_jelly"], lv: "Lv45〜48", win: 3200, sg: 20, lose: 1600 },
+  { k: 3, t: "脅迫", from: "ほかの 会社の POM 部隊", star: 4, pom: 5, lv: "Lv55", win: 6000, sg: 36, lose: 3000 },
 ];
 const roomOf = (who) => ROOMS.find((r) => r.who === who);
 const fmt = (n) => n.toLocaleString("en-US");
+const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]);   // ほかの 人の 名前・子の 名前を 画面に 出す ときは 置きかえる（自動の 安全確認の 指摘 2026-11-16）
 const satColor = (v) => (v >= 70 ? "#22CC88" : v >= 40 ? "#FFB547" : "#FF5A64");
 const STS = ["在宅", "仕事中", "ねている", "病気"];
 
 const S = { mode: new URLSearchParams(location.search).has("def") ? "def" : "home", floor: 7, tab: null, sub: "res", filt: "all", sort: "sat", sel: null, turn: 1, foes: [], cmd: {}, picked: null, pan: { x: 0, z: 0 },
-  built: new Set(), order: [], place: null, flash: null, clock: 360, bond: {} };
+  built: new Set(), order: [], place: null, flash: null, clock: 360, bond: {}, sig: 120 };   // sig：見本の シグナル
+const LIVE = !["def", "bt", "full", "last", "sample"].some((k) => new URLSearchParams(location.search).has(k));   // 門番に つなぐ（保存される）。?sample（最初の アパートから）・?def ?bt ?full ?last は 保存しない 見本
+if (LIVE) firstCompose = false;   // 住人は 門番の 記録から（見本の 住人は 入れない）
+let TD = null;   // 門番の 返事の td（tdView）
+// ---------- 部屋と 家賃（M-039。鹿さんの カード 2026-11-15：上限 5 倍・相場を 超えた 1 段ごとに 毎日 −3・このセッションで ぜんぶ）----------
+// 家賃の 高さ（5 段）は 部屋ごと。相場（部屋に 見合う 段）は 家具・設備・広さの「部屋の 格」で 決まる（数は td-numbers.js・門番は td.price）
+const ROOMIN = {};   // 見本の 部屋の 家具・設備・家賃の 高さ（つなぐ ときは 門番の roomsIn）
+const roomIn = (key) => (LIVE ? (TD && TD.roomsIn && TD.roomsIn[key]) || {} : (ROOMIN[key] ||= {}));
+const marketIn = (key) => marketOf(gradeOf(roomIn(key)));
+const overIn = (key) => stepOf(roomIn(key)) - marketIn(key);   // ＋ なら 相場を 超えた 段の 数
+const stepTxt = (i) => (LANG === "en" && tr(`家賃の 段：${RENT_STEP[i].name}`)) || RENT_STEP[i].name;   // 段の 名前（英語は ほかの 画面の「安い」「ふつう」と ぶつかるので 専用の 見出しから。画面では data-notr で 包む）
+const stepTag = (i) => `<span data-notr>${stepTxt(i)}</span>`;
+const rentNow = (R, key) => rentOf(R.lv, R.sat, stepOf(roomIn(key)));
+// スカウト（M-040。鹿さんの カード「スカウトの画面」2026-11-15）：満足度 100 の NPC の 住人を シグナル（ランクごと）で なかまに
+const rankOf = (id) => { const rk = speciesOf(id)?.rank; return typeof rk === "number" ? RANKS[rk] ?? "F" : rk ?? "F"; };
+const scoutOf = (R, key) => (LIVE ? TD && TD.res[key] && TD.res[key].scout : SCOUT_SIG[rankOf(R.id)] ?? SCOUT_SIG.F);
+const sigNow = () => (LIVE ? (TD && TD.sig) || 0 : S.sig);
+function scoutHTML(r, R) {
+  if (R.mine) return "";
+  const cost = scoutOf(R, r.key), have = sigNow(); if (!cost) return "";
+  if (R.sat < SAT.scout) return `<div class="rline soft">満足度 100 で スカウトできる（シグナル ${cost}）</div>`;
+  return `<button class="go" data-act="scout" ${have < cost ? "disabled" : ""}>${S.scoutAsk === r.key ? "もう 1 回 押すと なかまに" : `スカウト・シグナル ${cost}`}</button>${have < cost ? `<div class="rline">シグナルが あと ${cost - have} たりない</div>` : ""}`;
+}
+const freeRoom = () => ROOMS.find((r) => !r.who && !r.lounge && !r.cut && (!LIVE || (TD && TD.empty.includes(r.key))) && overIn(r.key) <= 0);   // 入居できる 空き部屋（相場を 超えた 部屋には 入らない）
+const anyEmpty = () => ROOMS.some((r) => !r.who && !r.lounge && !r.cut && (!LIVE || (TD && TD.empty.includes(r.key))));
 
 // ---------- 増築（M-032。鹿さんの カード「増築で建物が育つ」「A 置き場所をえらぶ」2026-11-13）----------
 // 最初の アパート（A の 2 階・部屋 8。区画パーツ M-027 の「最初」）から、区画パーツを 買って 置く。置ける 所は、OK を もらった 完成形へ 向かう 候補だけ（見本）。
 // req ＝ 先に 建って いる 物（支え〈張り出しは 下の 箱に のる〉と、廊下が つながる 所）。値段は 仮（数の 表は システム側）
-const SLOTS = [
-  { id: "B1", part: "box", blk: "B", f: 0, req: [] },              // 土台の 右へ たての 箱（1 階）
-  { id: "B2", part: "floor", blk: "B", f: 1, req: ["B1"] },
-  { id: "T2", part: "tower", f1: 2, req: [] },                     // 階段の 塔（1〜3 階）
-  { id: "W0", part: "walk", w: 0, req: ["T2"] },                   // 塔 ⇄ D（3 階）
-  { id: "D1", part: "box", blk: "D", f: 2, req: ["B2", "W0"] },    // B を またいで 右へ 張り出す（3 階）
-  { id: "D2", part: "floor", blk: "D", f: 3, req: ["D1"] },
-  { id: "T3", part: "tower", f1: 3, req: ["T2"] },                 // 塔を 4 階へ
-  { id: "C1", part: "box", blk: "C", f: 2, req: ["T3"] },          // 土台を またいで うしろへ（3 階）
-  { id: "C2", part: "floor", blk: "C", f: 3, req: ["C1"] },
-  { id: "W1", part: "walk", w: 1, req: ["T3", "C2"] },             // 塔 ⇄ C（4 階）
-  { id: "I1", part: "box", blk: "I", f: 2, req: ["C1"] },          // 土台の 屋上の 小屋
-  { id: "X0", part: "exst", e: 0, req: ["C2"] },                   // C の 4 階 → 5 階
-  { id: "E1", part: "box", blk: "E", f: 4, req: ["X0"] },
-  { id: "E2", part: "floor", blk: "E", f: 5, req: ["E1"] },
-  { id: "X1", part: "exst", e: 1, req: ["D2"] },                   // D の 4 階 → 5 階
-  { id: "F1", part: "box", blk: "F", f: 4, req: ["X1"] },
-  { id: "F2", part: "floor", blk: "F", f: 5, req: ["F1"] },
-  { id: "X2", part: "exst", e: 2, req: ["E2"] },                   // E の 6 階 → 7 階
-  { id: "G1", part: "box", blk: "G", f: 6, req: ["X2"] },
-  { id: "G2", part: "floor", blk: "G", f: 7, req: ["G1"] },
-];
-const PARTS = [["box", "部屋の 箱", "room"], ["floor", "階を 足す", "floor"], ["exst", "外階段", "exst"], ["walk", "渡り廊下", "bridge"], ["tower", "階段の 塔", "stair"]];
 const partName = (k) => PARTS.find((p) => p[0] === k)[1];
-const isFull = () => S.built.size === SLOTS.length;
-function composeShape() {
-  BLOCKS = [];
-  for (const fb of FULL_BLOCKS) {
-    if (fb.id === "A") { BLOCKS.push({ ...fb }); continue; }   // 最初の アパート（2 階）
-    const fl = SLOTS.filter((x) => x.blk === fb.id && S.built.has(x.id)).map((x) => x.f);
-    if (fl.length) BLOCKS.push({ ...fb, f0: Math.min(...fl), h: Math.max(...fl) - Math.min(...fl) + 1 });
-  }
-  // プライベートラウンジと 電波塔は いつも いちばん 上の 箱へ 引っこす（区画パーツ ⑦）。同じ 高さなら 先に その 高さに なった 箱の まま
-  const reached = (b) => b.id === "A" ? -1 : S.order.indexOf(SLOTS.find((x) => x.blk === b.id && x.f === b.f0 + b.h - 1)?.id);
-  let tb = BLOCKS[0];
-  for (const b of BLOCKS) { const d = (b.f0 + b.h) - (tb.f0 + tb.h); if (d > 0 || (d === 0 && reached(b) < reached(tb))) tb = b; }
-  BLOCKS.forEach((b) => (b.top = b === tb));
-  const tw = SLOTS.filter((x) => x.part === "tower" && S.built.has(x.id)).map((x) => x.f1);
-  TOWER = tw.length ? { ...FULL_TOWER, f1: Math.max(...tw) } : null;
-  WALKS = SLOTS.filter((x) => x.part === "walk" && S.built.has(x.id)).map((x) => FULL_WALKS[x.w]);
-  EXST = SLOTS.filter((x) => x.part === "exst" && S.built.has(x.id)).map((x) => FULL_EXST[x.e]);
-  TOP = Math.max(...BLOCKS.map((b) => b.f0 + b.h)) - 1;
+const isFull = () => SLOTS.every((x) => S.built.has(x.id));   // 九龍城塞の 見本（?full・?def・?bt）だけ。動く 置き場所は 上限なし
+const starsNow = () => (LIVE ? (TD && TD.bpAt) || {} : (S.stars ||= {}));   // 区画 → 設計図の ★（区画の 階の 上限）
+let SHAPE = null;
+function composeShape() {   // 形は td-core.js の shapeOf（門番と 同じ）。部屋と 住人は この 画面で
+  const sh = (SHAPE = shapeOf(S.order, S.fl, starsNow())); BLOCKS = sh.blocks; TOWER = sh.tower; WALKS = sh.walks; EXST = sh.exst; TOP = sh.top;   // S.fl：1 つ目の 建物（A）の 階（門番の first.fl。渡さないと 部屋の 鍵が 門番と ずれる）
   composeRooms();
 }
 function setBuilt(ids) { S.built = new Set(ids); S.order = [...ids]; composeShape(); }
+// ---------- 門番に つなぐ（M-038）----------
+// me の td（lounge-server/lounge-td.js の tdView）から 建物・住人・入居希望・電波塔の 通知を 組む。建てる・入居・家賃・退去は 門番の 受付へ
+function applyTd(td) {
+  TD = td; S.built = new Set(td.order); S.order = [...td.order]; S.fl = td.first ? td.first.fl : undefined; composeShape();
+  for (const r of ROOMS) {
+    if (r.lounge) continue;
+    const v = td.res[r.key], who = v ? "r:" + r.key : null;
+    if (v) {
+      const old = RES[who] && RES[who].id === v.id ? RES[who] : null;
+      RES[who] = { ...(old || {}), id: v.id, name: v.name, lv: v.lv, sat: v.sat, type: v.type, mine: !!v.uid, sick: !!v.sick, fam: v.fam || null, grudge: v.grudge || 0, rent: rentOf(v.lv, v.sat, v.step), wk: v.wk, job: v.job, skill: v.skill || 0, wdays: v.wdays || 0, tol: v.tol || 0, cap: v.cap ?? 1 };
+      if (!old || v.sick || RES[who].st === "病気") RES[who].st = v.sick ? "病気" : stateAt(who, S.clock);
+      RES[who].kin = v.kin || null; RES[who].par = v.par || null;   // 受けついだ 物（配合と 同じ）・親（まざった 子の 戦いの ツリー。M-050）
+      RES[who].kids = v.kid ? [{ id: v.kid.id, name: v.kid.name, lv: v.kid.lv, want: !!v.kid.want, mine: !!v.kid.uid }] : [];   // 親の 部屋で 育つ 子（門番。M-050）
+      RES[who].diary = liveDiary(who, v);
+    } else if (RES[who]) delete RES[who];
+    OCC[r.key] = who; r.who = who;
+  }
+  WANT.length = 0; for (const w of td.board.list) if (!w.taken) WANT.push(w);
+  NOTES.length = 0;
+  if (td.def && !LD) NOTES.push({ stale: true, id: td.def.id, t: "防衛の 途中で ぬけた", star: td.def.strength || 1, foes: (td.def.foes || []).map((f) => f.id), lv: "", win: 0, sg: 0, lose: 0 });
+  for (const n of td.notes || []) { const W = rewardOf(n.strength, { won: true }), L = rewardOf(n.strength, { won: false });
+    NOTES.push({ k: n.k, t: n.from, from: "", star: n.strength, foes: n.foes.map((f) => f.id), lvs: n.foes.map((f) => f.lv), lv: `Lv${n.lv}`, win: W.cr, sg: W.sig, lose: L.take, live: n }); }
+  S.floor = Math.min(S.floor, TOP);
+}
+// 日記（M-050）：門番の できごと（話した・子が 生まれた・移った）と、きょうの 予定の できごと（起きた・出かけた・帰った・ねた）を 新しい 順に
+function liveDiary(who, v) {
+  const now = Date.now(), m0 = jstMin(now), day0 = now - m0 * 60000, out = (v.diary || []).map((x) => ({ at: x.at, t: hhmm(jstMin(x.at)), s: x.s, n: x.n }));
+  if (!v.sick) for (const [m, s] of dayEvents(plan(who))) if (m <= m0 && day0 + m * 60000 >= (v.at || 0)) out.push({ at: day0 + m * 60000, t: hhmm(m), s });
+  return out.sort((a, b) => b.at - a.at).slice(0, 8);
+}
+async function liveLife(talk) {   // 門番で 暮らしを 進めて 読みなおす（開いた とき・話す 時刻を またいだ とき）
+  const before = { ...((TD && TD.bonds) || {}) }, r = await act("td.life", {}); if (!r || !r.ok) return;
+  await refresh();
+  if (r.born && r.born.length) toast("となりどうしに 子が 生まれた");
+  else if (r.moved && r.moved.length) toast(`${r.moved[0]} が 大きく なって 部屋に 移った`);
+  if (talk) for (const [k, v] of Object.entries((TD && TD.bonds) || {})) if (v !== (before[k] ?? 0)) { const [a, b] = k.split("|").map((x) => ROOMS.find((q) => q.key === x)); if (a && b && a.f === S.floor) { bubbleFx(a); bubbleFx(b); } }
+}
+let LASTME = null;
+async function refresh() {
+  const j = await me(); LASTME = j;
+  if (!j || j.denied) return gate(j && j.login ? "login" : "net", j && j.why);
+  if (!j.td || !j.td.open) return gate("closed");
+  $("gate").hidden = true; document.body.classList.remove("td-gate"); applyTd(j.td); render();
+}
+function gate(kind, why) {   // 入れない ときの 1 まい（ペットが まだ・ログイン・つながらない）
+  const el = $("gate");
+  el.innerHTML = kind === "closed" ? `<div><b>集合住宅</b><p>ペットを むかえると 集合住宅に 入れます</p><a class="go" href="lounge-room.html">部屋へ</a></div>`
+    : kind === "login" ? `<div><b>集合住宅</b><p>Twitch で ログインすると 入れます</p><button class="go" data-login>ログイン</button></div>`
+    : `<div><b>集合住宅</b><p>${why || "門番に つながりません"}</p><button class="go" data-retry>もう 1 回</button></div>`;
+  el.hidden = false; document.body.classList.add("td-gate");
+}
+async function doAct(a, body, okMsg) {   // 受付に 送って、よければ 返事を 読みなおす
+  const r = await act(a, body);
+  if (!r || !r.ok) { toast(r && r.wait ? waitText : (r && r.why) || "できませんでした"); return null; }
+  await refresh(); if (okMsg) toast(okMsg(r)); return r;
+}
 // ?def（防衛）・?bt（戦い）・?full は 完成形から。ふだんは 最初の アパートから
 { const q = new URLSearchParams(location.search); setBuilt(S.mode === "def" || q.has("bt") || q.has("full") ? SLOTS.map((x) => x.id) : []); S.floor = TOP; }
-const avail = (part) => SLOTS.filter((x) => x.part === part && !S.built.has(x.id) && x.req.every((r) => S.built.has(r)));
-const roomsPer = (b) => (b.ax === "x" ? Math.floor((b.w - 1) / 2) : Math.floor((b.d - 1) / 2));
-function slotBox(x) {   // 候補の 形（マス・階）
-  if (x.part === "box" || x.part === "floor") { const b = FULL_BLOCKS.find((y) => y.id === x.blk); return { x: b.x0, z: b.z0, w: b.w, d: b.d, f: x.f, h: 1, rooms: roomsPer(b), ax: b.ax }; }
-  if (x.part === "tower") { const f0 = TOWER ? TOWER.f1 + 1 : 0; return { x: FULL_TOWER.x, z: FULL_TOWER.z, w: 1, d: 2, f: f0, h: x.f1 - f0 + 1 }; }
-  if (x.part === "walk") { const w = FULL_WALKS[x.w], xs = w.cells.map((c) => c[0]), zs = w.cells.map((c) => c[1]); return { x: Math.min(...xs), z: Math.min(...zs), w: Math.max(...xs) - Math.min(...xs) + 1, d: Math.max(...zs) - Math.min(...zs) + 1, f: w.f, h: 0, cells: w.cells.length }; }
-  const e = FULL_EXST[x.e]; return { x: e.x, z: e.z, w: 1, d: 1, f: e.f, h: 1 };
-}
-function slotCost(x) {   // 値段（数の 表 td-numbers.js の partPrice。鹿さんの カード 4 回目「この案でよい」2026-11-14）
-  const b = slotBox(x);
-  if (x.part === "box") {   // 部屋の 箱：部屋の 数 × 5,000 × 高さの 倍率。下に 何も ない マスが あれば 張り出し（箱の 1.5 倍・支えは 無料）
-    const p0 = partPrice("box", b.rooms, b.f + 1);
-    let over = false; if (b.f > 0) for (let i = 0; i < b.w && !over; i++) for (let j = 0; j < b.d; j++) if (!solidAt(b.x + i, b.z + j, b.f - 1)) { over = true; break; }
-    return over ? partPrice("overhang", 1, b.f + 1, p0) : p0;
-  }
-  if (x.part === "floor") return partPrice("addFloor", b.rooms, b.f + 1);
-  if (x.part === "tower") return partPrice("tower", b.h);
-  if (x.part === "walk") return partPrice("bridge", b.cells);
-  return partPrice("stair", 1);
-}
+// 候補（td-core.js の availOf。A の 階で ぶつかる 所は 出ない）。つなぐ ときの 区画の 階は 設計図の ★の 階まで（門番と 同じ）
+// 候補（td-core.js の availOf：屋根の 両はしに 十字〈階が そろった 建物だけ〉・地面の 建物の 両はし・区画の 階は 設計図の ★まで・重なった 廊下に 外階段・つながって いない 区画への 渡り廊下）
+const nextK = () => "K" + (S.order.filter((o) => String(o).startsWith("b:")).length + 1);
+const placeStars = (part) => { const st = (TDX().bp || [])[S.place && S.place.bp != null ? S.place.bp : 0]; return part === "box" && st ? { ...starsNow(), [nextK()]: st } : starsNow(); };   // 部屋の 箱は えらんだ 設計図の ★で 太さが きまる（廊下 2 マスは 1 マス 太い）
+const avail = (part) => (isFull() ? [] : availOf(S.order, part, S.fl, placeStars(part)));
+const slotBox = (x) => coreSlotBox(S.order, x, S.fl, placeStars(x && x.part));   // 候補の 形（マス・階）
+const slotCost = (x) => coreSlotCost(S.order, x.id, S.fl, placeStars(x && x.part));   // 値段（td-core.js・数の 表の partPrice）
 function slotText(x) {   // 候補の 中身（1 行）
   const b = slotBox(x);
   // 太字の 数字に はさむと 途中の 字だけで 英語に 訳されて しまう（「たて」→ 盾）ので、太字なしの 1 つの 文
@@ -445,10 +547,12 @@ function slotText(x) {   // 候補の 中身（1 行）
   return `${b.f + 1} 階 → ${b.f + 2} 階`;
 }
 function whyNot(part) {   // 置ける 所が ない わけ（押せない ボタンの 下に 出す）
-  const left = SLOTS.filter((x) => x.part === part && !S.built.has(x.id));
-  if (!left.length) return "ぜんぶ 建てた";
-  const miss = left[0].req.find((r) => !S.built.has(r));
-  return `先に ${partName(SLOTS.find((x) => x.id === miss).part)}`;
+  const K = BLOCKS.filter((b) => b.id[0] === "K");
+  if (part === "box") return (S.fl || 2) < A_FULL ? "屋根に 重ねるのは 1 つ目の 建物が 5 階に なってから" : "区画の 階を そろえると 屋根に 置ける";
+  if (part === "floor") return K.length ? "区画の 階は 設計図の ★まで" : "先に 部屋の 箱";
+  if (part === "exst") return "屋根に 重ねた 区画と 下の 廊下が 交わる 所に 置ける";
+  if (part === "walk") return "つながって いない 区画が ない";
+  return "いまの 形では 置く 所が ない";
 }
 
 // ---------- 3D ----------
@@ -542,8 +646,6 @@ function radioTower(b, g, y) {   // 電波塔（建物に 建てる 設備。襲
     const pk = new THREE.Mesh(new THREE.BoxGeometry(0.9, H, 0.9), new THREE.MeshBasicMaterial({ visible: false })); pk.position.set(tx, y + H / 2, tz); pk.userData.tower = true; g.add(pk); picks.push(pk);
   }
 }
-const isCorr = (b, x, z) => (b.ax === "x" ? z === b.z0 + b.d - 1 : x === corrX(b));
-const isStair = (b, x, z) => !isCorr(b, x, z) && (b.ax === "x" ? x === b.x0 + b.w - 1 : z === b.z0 + b.d - 1);
 function cutFloor(b, f, g) {
   const y = f * FH;
   for (let i = 0; i < b.w; i++) for (let j = 0; j < b.d; j++) {
@@ -561,7 +663,7 @@ function cutFloor(b, f, g) {
       K.box(g, r.rw - 0.8, 0.55, 0.1, lowM, r.rx + (r.rw - 0.8) / 2, y, b.z0 + 3);
       K.box(g, 0.8, 0.06, 0.12, K.glow(r.lounge ? "#2EA8FF" : "#FFB547", 1), r.rx + r.rw - 0.4, y + 0.6, b.z0 + 3);
     } else {
-      const wx = b.side === "r" ? b.x0 + b.w - 1 : b.x0 + 1;   // 廊下との さかいの かべ
+      const wx = b.side === "r" ? b.x0 + b.w - hallOf(b) : b.x0 + hallOf(b);   // 廊下との さかいの かべ（廊下 2 マスの 区画は 1 マス 内がわ）
       if (r.rz > b.z0) K.box(g, 3, 0.55, 0.1, lowM, r.rx + 1.5, y, r.rz);
       K.box(g, 0.1, 0.55, r.rd - 0.8, lowM, wx, y, r.rz + (r.rd - 0.8) / 2);
       K.box(g, 0.12, 0.06, 0.8, K.glow(r.lounge ? "#2EA8FF" : "#FFB547", 1), wx, y + 0.6, r.rz + r.rd - 0.4);
@@ -574,8 +676,12 @@ function cutFloor(b, f, g) {
     } else if (r.who) {
       if (b.ax === "x") { addFurn(g, "bed", r.rx + 0.6, y, r.rz + 0.9, 0.42, Math.PI / 2); addFurn(g, "lamp", r.rx + 1.6, y, r.rz + 0.45, 0.45); }
       else { const fx = b.side === "r" ? r.rx + 0.9 : r.rx + 2.1; addFurn(g, "bed", fx, y, r.rz + 0.6, 0.42); addFurn(g, "lamp", fx + 0.5, y, r.rz + 1.6, 0.45); }
+      const sz = (BLUEPRINT[starsNow()[b.id]] || {}).size;   // 広い・とても 広い 部屋（設計図 ★3〜★5。2026-11-16 カード「案 1」：家具の 置き方で 広く 見せる）
+      if (sz) { const [ux, uz] = b.ax === "x" ? [r.rx + 1.3, r.rz + 2.2] : [b.side === "r" ? r.rx + 2.2 : r.rx + 0.8, r.rz + 1.3];
+        K.box(g, b.ax === "x" ? 1.2 : 0.9, 0.02, b.ax === "x" ? 0.9 : 1.2, K.mat(sz === "huge" ? "#E9D8FF" : "#FFE9C7"), ux, y, uz);   // じゅうたん
+        addFurn(g, "sofa", ux, y, uz, 0.36, b.ax === "x" ? 0 : Math.PI / 2); if (sz === "huge") addFurn(g, "plant", b.ax === "x" ? r.rx + 0.3 : ux, y, b.ax === "x" ? r.rz + 2.6 : r.rz + 0.3, 0.42); }
       const R = RES[r.who];
-      if (R.st !== "仕事中") {
+      if (R.st !== "仕事中" && !outRoom(r.key)) {
         const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex(R.id), transparent: true, alphaTest: 0.5, opacity: R.st === "ねている" ? 0.75 : 1 }));
         sp.scale.set(1.15, 1.15, 1); sp.position.set(cx + (b.ax === "x" ? 0.25 : b.side === "r" ? 0.4 : -0.4), y + 0.6, cz + (b.ax === "x" ? 0.5 : 0.2)); sp.userData.res = r.who; g.add(sp); picks.push(sp);
         if (R.st === "ねている") { const z = new THREE.Sprite(new THREE.SpriteMaterial({ map: labelTex("Zz", "#6A7394", "#FFFFFF"), transparent: true, depthTest: false })); z.scale.set(0.9, 0.45, 1); z.position.set(sp.position.x + 0.35, y + 1.35, sp.position.z); z.renderOrder = 7; g.add(z); }
@@ -588,6 +694,35 @@ function cutFloor(b, f, g) {
       } else if (b.ax === "x") K.box(g, 0.5, 0.36, 0.05, K.mat("#2E6FD8"), cx, y + 0.62, b.z0 + 3.06); else K.box(g, 0.05, 0.36, 0.5, K.mat("#2E6FD8"), (b.side === "r" ? b.x0 + b.w - 1.06 : b.x0 + 0.94), y + 0.62, cz);   // 留守の 札
     } else addFurn(g, "cushion", cx, y, cz, 0.5);
     const pk = new THREE.Mesh(new THREE.PlaneGeometry(r.rw, r.rd), new THREE.MeshBasicMaterial({ visible: false })); pk.rotation.x = -Math.PI / 2; pk.position.set(cx, y + 0.02, cz); pk.userData.room = r.no; g.add(pk); picks.push(pk);
+  }
+}
+// モジュール（M-047）：置いた 物の 印（廊下 黄・区画 青・部屋 紫。押すと 外せる）と、置き場所えらびの 光る 所
+const MCOL = { cell: "#E39A00", block: "#2E8FE0", room: "#8E6CFF" };
+function buildMods(g) {
+  const sel = S.mp, pickM = (mesh, at) => { mesh.userData.mat = at; picks.push(mesh); };
+  if (sel && sel.place === "cell") for (const id of Object.keys(walkCells(SHAPE))) {
+    const [f, x, z] = id.split(":").map(Number); if (f !== S.floor || !hallOk(SHAPE, id)) continue;
+    const at = "cell:" + id, on = sel.at === at, mk = new THREE.Mesh(new THREE.PlaneGeometry(0.8, 0.8), new THREE.MeshBasicMaterial({ color: on ? "#22CC88" : "#2EA8FF", transparent: true, opacity: on ? 0.9 : 0.6, depthWrite: false }));
+    mk.rotation.x = -Math.PI / 2; mk.position.set(x + 0.5, f * FH + 0.06, z + 0.5); g.add(mk); pickM(mk, at);   // 置ける マスは 水色・えらんだ マスは 緑
+  }
+  if (sel && sel.place === "room") for (const r of ROOMS) {
+    if (r.f !== S.floor || r.lounge || r.cut) continue;
+    const at = "room:" + r.key, on = sel.at === at, mk = new THREE.Mesh(new THREE.PlaneGeometry(r.rw - 0.3, r.rd - 0.3), new THREE.MeshBasicMaterial({ color: on ? "#22CC88" : "#8E6CFF", transparent: true, opacity: on ? 0.75 : 0.45, depthWrite: false }));
+    mk.rotation.x = -Math.PI / 2; mk.position.set(r.rx + r.rw / 2, r.f * FH + 0.07, r.rz + r.rd / 2); g.add(mk); pickM(mk, at);
+  }
+  if (sel && sel.place === "block") for (const b of BLOCKS) {
+    const at = "blk:" + b.id, on = sel.at === at, top = Math.min(S.floor, b.f0 + b.h - 1); if (top < b.f0) continue;
+    const H = (top - b.f0 + 1) * FH, mk = K.box(g, b.w + 0.2, H, b.d + 0.2, new THREE.MeshBasicMaterial({ color: on ? "#22CC88" : "#7CC8FF", transparent: true, opacity: on ? 0.32 : 0.14, depthWrite: false }), b.x0 + b.w / 2, b.f0 * FH, b.z0 + b.d / 2);   // K.box の 高さは 下の 面
+    mk.castShadow = false; pickM(mk, at);
+  }
+  for (const [k, m] of Object.entries(TDX().modAt || {})) {   // 置いた 物の 印
+    const i = k.indexOf(":"), kind = k.slice(0, i), v = k.slice(i + 1); let p = null, col = MCOL.cell;
+    if (kind === "cell") { const [f, x, z] = v.split(":").map(Number); if (f === S.floor) p = [x + 0.5, f * FH + 0.95, z + 0.5]; }
+    else if (kind === "room") { const r = ROOMS.find((q) => q.key === v); col = MCOL.room; if (r && r.f === S.floor) p = [r.rx + r.rw / 2, r.f * FH + 1.5, r.rz + r.rd / 2]; }
+    else { const b = BLOCKS.find((q) => q.id === v); col = MCOL.block; if (b && S.floor >= b.f0) { const top = Math.min(S.floor, b.f0 + b.h - 1); p = [b.x0 + b.w / 2, (top + 1) * FH + 0.5, b.z0 + b.d / 2]; } }
+    if (!p) continue;
+    const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: labelTex("★" + m.star, "#FFFFFF", col), transparent: true, depthTest: false })); sp.scale.set(0.9, 0.45, 1); sp.position.set(...p); sp.renderOrder = 7; sp.userData.mod = k; g.add(sp);
+    if (!S.mp) picks.push(sp);
   }
 }
 function addFurn(g, id, x, y, z, s, ry = 0) {
@@ -618,17 +753,22 @@ function buildTower(g) {
 // 7 回目「住人が 動く（仕事・帰宅・寝る・話す）＋日記」・8 回目「住人は 自分で 仕事に 出かける」「となりの 部屋どうしで 仲よく なると 子が 生まれる」
 // 見本の 1 日は 2 分（0.5 秒で 6 分）。予定は 住人ごとに 決まった ゆらぎ。数は 仮
 const MIX = { "e_hare|e_watch": ["t_hare_watch", "ツノミハリ"], "e3_tombcat|e_shipcat": ["t_shipcat_tombcat", "墓守の船猫"] };   // まざる 組（docs/mono-link-td-mix-names.md。見本に 出る 2 組）
-const sh = (str, n) => { let v = 7 + n * 131; for (const c of str) v = (v * 31 + c.charCodeAt(0)) % 100003; return hash(v * 0.017, n * 1.7, 3); };
-function plan(who) {   // 1 日の 予定（分）：起きる 6:00〜7:30・仕事 8:00〜9:00 に 出て 17:00〜19:00 に 帰る・寝る 21:30〜23:00
-  const R = RES[who]; if (R.job == null) R.job = R.st === "仕事中" || sh(who, 3) > 0.45;
-  return { wake: 360 + Math.floor(sh(who, 1) * 90), sleep: 1290 + Math.floor(sh(who, 2) * 90), job: R.job, go: 480 + Math.floor(sh(who, 4) * 60), back: 1020 + Math.floor(sh(who, 5) * 120) };
+// 仕事（M-041。鹿さんの カード 2026-11-16）：種類は 系統で 4 つ・職種は くじ・腕は 働いた 日数。つなぐ ときは 門番の td.res の wk・job・skill・cap、見本は ここで くじ
+function wkFill(who) {
+  const R = RES[who]; if (R.wk) return R;
+  const wk = WORK_OF[famOf(R.id)] || Object.keys(WORK)[Math.floor(sh(R.id, 6) * 4)], days = [0, 0, 0, 3, 8, 12, 35, 95][Math.floor(sh(who, 7) * 8)];
+  return Object.assign(R, { wk, job: WORK[wk][Math.floor(sh(who, 8) * 4)], wdays: days, skill: skillOf(days), tol: Math.floor(sh(who, 9) * (PAY.tolMax + 1)), cap: SKILL[skillOf(days)].pay + Math.floor(sh(who, 9) * (PAY.tolMax + 1)) });
 }
-function stateAt(who, m) { const p = plan(who); return m < p.wake || m >= p.sleep ? "ねている" : p.job && m >= p.go && m < p.back ? "仕事中" : "在宅"; }
+const wkWant = (w) => w.wk ? w : Object.assign(w, (() => { const wk = WORK_OF[famOf(w.id)] || "力仕事"; return { wk, job: WORK[wk][Math.floor(sh(w.id + w.name, 8) * 4)], skill: 0 }; })());   // 見本の 入居希望
+const jobTxt = (R) => `${SKILL[R.skill ?? 0].name} ${R.job}`;   // 「一人前 大工」
+const plan = (who) => planOf(who, wkFill(who).wk);   // 1 日の 予定（分）：td-life.js（門番と 同じ 式。出かける 時間は 仕事の 種類で・見回りは 夜に 出て 朝 帰り、昼に 寝る）
+const stateAt = (who, m) => lifeState(plan(who), m);
 const hhmm = (m) => `${String(Math.floor(m / 60)).padStart(2, "0")}:${String(Math.floor(m % 60 / 10) * 10).padStart(2, "0")}`;
 const phase = (m) => (m >= 300 && m < 600 ? "朝" : m >= 600 && m < 960 ? "昼" : m >= 960 && m < 1140 ? "夕方" : "夜");
 function note(R, s, n) { (R.diary ||= []).unshift({ t: hhmm(S.clock), s, n }); R.diary.length = Math.min(R.diary.length, 8); }
 const bondKey = (a, b) => [a.key, b.key].sort().join("|");
-function bondOf(a, b) { const k = bondKey(a, b); if (S.bond[k] == null) S.bond[k] = MIX[[RES[a.who].id, RES[b.who].id].sort().join("|")] ? 88 : 20 + Math.floor(sh(k, 6) * 50); return S.bond[k]; }
+function bondOf(a, b) { const k = bondKey(a, b); if (LIVE) return (TD && TD.bonds && TD.bonds[k]) || 0;   // つなぐ ときは 門番の なかよし（M-050）
+  if (S.bond[k] == null) S.bond[k] = MIX[[RES[a.who].id, RES[b.who].id].sort().join("|")] ? 88 : 20 + Math.floor(sh(k, 6) * 50); return S.bond[k]; }
 function neighbors(r) {   // 同じ 箱・同じ 階の となりの 部屋（左右）
   const [bl, f, k] = r.key.split("-"); return [+k - 1, +k + 1].map((x) => ROOMS.find((q) => q.key === `${bl}-${f}-${x}` && q.who && !q.lounge)).filter(Boolean);
 }
@@ -655,7 +795,7 @@ function setDayLight() {   // 朝・昼は 明るく、夕方・夜は 少し �
   const m = S.clock, k = m >= 420 && m < 1020 ? 1 : (m >= 300 && m < 420) || (m >= 1020 && m < 1140) ? 0.82 : 0.62;
   hemi.intensity = 1.5 * k; sunL.intensity = 1.3 * k; scene.background = new THREE.Color("#F6F8FC").lerp(new THREE.Color("#C9D1E4"), (1 - k) / 0.38);
 }
-function renderClock() { const el = $("clock"); el.hidden = S.mode !== "home" || !!S.place; if (!el.hidden) el.innerHTML = `<time>${hhmm(S.clock)}</time><span>${phase(S.clock)}</span>`; }
+function renderClock() { const el = $("clock"); el.hidden = S.mode !== "home" || !!S.place || !!S.mp; if (!el.hidden) el.innerHTML = `<time>${hhmm(S.clock)}</time><span>${phase(S.clock)}</span>`; }
 function birth(a, b) {   // なかよしが いっぱい → 子（決まった 組は まざった 子・ほかは 親の どちらかの 種類。Lv は 親 2 匹の 平均の 半分）
   const A = RES[a.who], B = RES[b.who], mx = MIX[[A.id, B.id].sort().join("|")];
   const kid = mx ? { id: mx[0], name: mx[1] } : Math.random() < 0.5 ? { id: A.id, name: A.name } : { id: B.id, name: B.name };
@@ -666,7 +806,8 @@ function birth(a, b) {   // なかよしが いっぱい → 子（決まった 
 }
 function lifeTick() {
   if (S.mode !== "home" || document.hidden) return;
-  const prev = S.clock; S.clock = (S.clock + 6) % 1440;
+  const prev = S.clock; S.clock = LIVE ? jstMin(Date.now()) : (S.clock + 6) % 1440;   // つなぐ ときは 日本時間の 本物の 時刻（鹿さんの カード「本物の時刻」。M-050）
+  if (LIVE && LIFE.slots.some((x) => prev < x && S.clock >= x)) liveLife(true);   // 話す 時刻（7:30・20:30）を またいだ
   let vis = false; const walks = [];
   for (const r of ROOMS) {
     if (!r.who || r.lounge) continue; const R = RES[r.who]; if (!R || R.st === "病気") continue;
@@ -676,7 +817,7 @@ function lifeTick() {
     if (r.f === S.floor && (st === "仕事中" || R.st === "仕事中")) walks.push([r, R.id, st === "仕事中"]);
     R.st = st; if (r.f === S.floor) vis = true;
   }
-  if (Math.floor(S.clock / 30) !== Math.floor(prev / 30)) {   // :00 と :30 に となりどうしが 話す
+  if (!LIVE && Math.floor(S.clock / 30) !== Math.floor(prev / 30)) {   // 見本：:00 と :30 に となりどうしが 話す（つなぐ ときは 門番が 7:30・20:30 に 数える）
     const done = new Set();
     for (const a of ROOMS) for (const b of a.who && !a.lounge ? neighbors(a) : []) {
       const k = bondKey(a, b); if (done.has(k)) continue; done.add(k);
@@ -684,7 +825,7 @@ function lifeTick() {
       const v = bondOf(a, b); if (Math.random() > (v >= 80 ? 1 : 0.3)) continue;
       S.bond[k] = Math.min(100, v + 12); note(RES[a.who], "と 話した", RES[b.who].name); note(RES[b.who], "と 話した", RES[a.who].name);
       if (a.f === S.floor) { bubbleFx(a); bubbleFx(b); }
-      if (S.bond[k] >= 100) birth(a, b);
+      if (S.bond[k] >= 100 && !LIVE) birth(a, b);   // つないだ ときは 子を 作らない（門番に まだ 子の 記録が ない・あとで システム側）
     }
   }
   renderClock(); setDayLight();
@@ -714,6 +855,162 @@ function nextFoe(r) {   // この 部屋の ドアの 前に いちばん 早く
   if (at < 0) return null;
   return S.foes.filter((fo) => fo.alive && fo.step <= at).map((fo) => ({ fo, n: at - fo.step })).sort((a, b) => a.n - b.n)[0] || null;
 }
+// ---------- 防衛を 門番に つなぐ（M-038 の 2 段目）----------
+// 建物の 形から マスの 表（td-battle.js の map）を 作り、td-battle.js で 1 ターンずつ 回す。結果は td.def.end（始めて 3 分 たって から）
+const cid = (f, x, z) => `${f}:${x}:${z}`;
+const cpos = (id) => { if (!id || id.startsWith("room:") || id === "in") return id === "in" ? { f: 0, x: -10, z: 4 } : null; const [f, x, z] = id.split(":").map(Number); return { f, x, z }; };
+const TYPE_EN = { アタッカー: "attacker", ディフェンダー: "defender", テクニシャン: "technician", キャスター: "caster", ヒーラー: "healer" };
+function mapOf() {   // 歩ける マス（形の 道具 td-core.js の walkCells。門番と 同じ）＋ 入口 ＋ 部屋（ドアの マスに だけ つながる）。入口は 土台の 廊下の 左
+  const cells = walkCells(SHAPE), link = (a, b) => { if (!cells[a] || !cells[b] || a === b) return; if (!cells[a].nb.includes(b)) cells[a].nb.push(b); if (!cells[b].nb.includes(a)) cells[b].nb.push(a); };
+  cells.in = { nb: [] }; link("in", cid(0, -9, 4));
+  for (const [id, c] of Object.entries(cells)) { if (id === "in") continue; const [f, x, z] = id.split(":").map(Number), b = BLOCKS.find((q) => x >= q.x0 && x < q.x0 + q.w && z >= q.z0 && z < q.z0 + q.d && f >= q.f0 && f < q.f0 + q.h); if (b) c.blk = b.id; }   // 区画の モジュールが 敵の 入った 箱を 知る（M-047）
+  for (const r of ROOMS) { if (r.cut) continue; const id = r.lounge ? "room:lounge" : "room:" + r.key, d = cid(r.f, r.door[0], r.door[1]); cells[id] = { nb: [], room: true }; link(id, d); }
+  return { cells, entrance: "in", lounge: "room:lounge" };
+}
+function distTo(map, to) { const d = { [to]: 0 }, q = [to]; while (q.length) { const x = q.shift(); for (const y of map.cells[x].nb) if (d[y] == null) { d[y] = d[x] + 1; q.push(y); } } return d; }
+function pathFrom(map, toL, from) { const out = [from]; let c = from; for (let k = 0; k < 400 && c !== map.lounge; k++) { const nx = map.cells[c].nb.filter((y) => (toL[y] ?? 1e9) < (toL[c] ?? 1e9)).sort((a, b) => toL[a] - toL[b])[0]; if (!nx) break; out.push(nx); c = nx; } return out; }
+let LD = null;   // 門番に つないだ 防衛中の 記録
+const foeName = (id) => ENEMY_TREES[id]?.enemy || FOE_NAME[id] || "敵";
+const outRoom = (key) => { if (!LD) return false; const U = LD.st.units[key]; return !!U && (!!U.dead || (!!U.cell && !U.cell.startsWith("room:"))); };
+async function startLiveDef(i) {
+  const N = NOTES[i]; if (!N) return;
+  if (N.stale) {   // 前の 防衛を おえる（負け あつかい）
+    const r = await act("td.def.end", { id: N.id, won: false, kills: 0, fought: [], dead: [] });
+    if (!r || !r.ok) { toast(r && /途中/.test(r.why || "") ? "始めて 3 分 たつと おえられます" : (r && r.why) || "できませんでした"); return; }
+    toast("防衛を おえた"); await refresh(); return;
+  }
+  const map = mapOf(), toL = distTo(map, map.lounge);
+  if (toL.in == null) { toast("入口から ラウンジまで 道が つながって いない"); return; }
+  const r = await act("td.def.start", { i: NOTES.filter((n) => !n.stale).indexOf(N) });
+  if (!r || !r.ok) { toast((r && r.why) || "できませんでした"); return; }
+  const D = r.def, residents = [];
+  for (const q of ROOMS) { const R = q.who && RES[q.who]; if (!R || R.st === "仕事中") continue;   // 仕事に 出て いる 子は 守れない（メゾンと 同じ）
+    const type = TYPE_EN[R.type] || "attacker"; residents.push({ uid: q.key, home: "room:" + q.key, cell: "room:" + q.key, type, c: { ...(R.kin ? tamedOf({ ...R.kin, tree: treeOfRes(R), type, lv: R.lv, name: R.name }) : foeOf({ tree: treeOfRes(R), type, lv: R.lv, name: R.name })), owner: "あなた" } }); }   // 受けついだ 物が ある 子は 配合と 同じ 強さ（2026-11-18 カード「配合と同じ」）
+  const foes = D.foes.map((f, k) => { const type = TYPE_EN[ENEMY_TREES[f.id]?.type] || "attacker"; return { uid: "f" + k, type, c: foeOf({ tree: f.id, type, lv: f.lv, name: foeName(f.id) }) }; });
+  const TY = ["attacker", "defender", "technician", "caster", "healer"];   // 手伝いの 子（M-042）：送られた 写しから。自動で 動く
+  const helpers = (D.help || []).map((h, k) => { const type = TYPE_EN[h.c.type] || (TY.includes(h.c.type) ? h.c.type : TYPE_EN[ENEMY_TREES[h.c.tree]?.type] || "attacker");
+    return { uid: "h" + k, type, c: { ...foeOf({ tree: h.c.tree, type, lv: h.c.lv, name: h.c.name || foeName(h.c.tree) }), owner: h.name } }; });
+  const P = LASTME?.pets?.[0], pet = { uid: "pet", type: "defender", c: P && P.build ? { ...P.build, name: "MONO ペット", owner: "あなた" } : { ...foeOf({ tree: "e_watch", type: "defender", lv: 40, name: "MONO ペット" }), owner: "あなた" } };
+  let seed = 7; for (const ch of D.id) seed = (seed * 31 + ch.charCodeAt(0)) >>> 0;
+  LD = { id: D.id, t0: Date.now(), strength: D.strength, st: tdInit({ map, residents, foes, pet, seed, helpers, mods: D.mods || {} }), help: Object.fromEntries((D.help || []).map((h, k) => ["h" + k, { id: h.c.tree, name: h.c.name, by: h.name }])), map, toL, path: pathFrom(map, toL, "in"), fought: new Set(), hp: {}, ids: Object.fromEntries(D.foes.map((f, k) => ["f" + k, f])), note: N };
+  Object.assign(S, { mode: "def", tab: null, turn: 1, sel: null, cmd: {}, tgt: {}, picked: null, floor: 0, note: N, pan: { x: 0, z: 0 }, rest: new Set(), dead: [], auto: autoPref() }); hidePop(); syncFoes(); render(); autoGo();
+}
+// 自動／マニュアル（M-046。鹿さんの カード「自動とマニュアルを切り替えできるようにして体感時間を減らす」→ 戦いは システム担当の tdAuto）
+// 自動：AUTO.turnMs ごとに tdAuto → tdTurn。戦いの 画面は 開かず、地図の HP の 棒と 帯の 出来事で 見せる。いつでも マニュアルに もどせる
+// 〔C〕前の 防衛で えらんだ ほうで 始まる（はじめは マニュアル）。この 人の ブラウザに だけ おぼえる
+const AUTO_KEY = "td-auto";
+function autoPref() { try { return localStorage.getItem(AUTO_KEY) === "1"; } catch { return false; } }
+const unitName = (uid) => uid === "pet" ? "MONO ペット" : LD.help[uid] ? LD.help[uid].name || foeName(LD.help[uid].id) : LD.ids[uid] ? foeName(LD.ids[uid].id) : RES["r:" + uid]?.name || "住人";
+const logA = (m) => { (LD.log ||= []).unshift(m); LD.log.length = Math.min(LD.log.length, 3); };
+const fxAt = (uid, text, bg) => { LD.fx = (LD.fx || []).filter((x) => S.turn - x.turn <= 1); LD.fx.push({ uid, text, bg, turn: S.turn }); };
+function setAuto(on) {
+  if (!LD) return; S.auto = on; clearTimeout(LD.autoT);
+  try { localStorage.setItem(AUTO_KEY, on ? "1" : "0"); } catch {}
+  if (!on) {   // マニュアルに もどす：いま 自動で 動いて いる 指示を 帯の 指示に うつす（つづきから 指示できる）
+    for (const U of Object.values(LD.st.units)) {
+      if (U.side !== "res" || U.helper || U.dead || U.rest) continue; const R = RES["r:" + U.uid]; if (!R) continue; const o = U.order && U.order.do;
+      S.cmd["r:" + U.uid] = o === "go" ? "出撃" : o === "ambush" ? "待ち伏せ" : o === "retreat" ? "退避" : o === "skill" ? (SPECIAL[R.type] || ["待機"])[0] : "待機";
+    }
+  } else S.sel = null;
+  render(); autoGo();
+}
+function autoGo() {
+  if (!LD) return; clearTimeout(LD.autoT);
+  if (!S.auto || LD.st.over || !$("bt").hidden || !$("result").hidden) return;
+  LD.autoT = setTimeout(() => { if (LD && S.auto && !LD.st.over && $("bt").hidden) liveTurn(); }, Math.max(60, AUTO.turnMs - (performance.now() - (LD.tT || 0))));   // 描く 時間を 引いて 0.5 秒ごとに
+}
+function healCands(key) {   // ヒーラーの 相手（2 マス 以内）：戦いの 中で 倒れた 子（起こす）と、HP の へった 子（回復）。倒れた 子が 先
+  const U = LD && LD.st.units[key]; if (!U || !U.cell) return [];
+  return Object.values(LD.st.units).filter((x) => x.side !== "foe" && x.uid !== key && !x.dead && !x.gone && !x.rest && x.cell && distOf(LD.map, U.cell, x.cell) <= 2)
+    .map((x) => { const mx = x.maxHp || 0, hp = x.hp ?? mx, down = mx > 0 && hp <= 0; return { uid: x.uid, name: unitName(x.uid), down, p: mx ? hp / mx : 1, ok: down ? !!x.battle : mx > 0 && hp < mx }; })
+    .filter((c) => c.ok).sort((a, b) => (b.down - a.down) || a.p - b.p);
+}
+function syncFoes() { S.foes = Object.values(LD.st.units).filter((U) => U.side === "foe").map((U) => ({ uid: U.uid, id: LD.ids[U.uid].id, lv: LD.ids[U.uid].lv, cell: U.cell, alive: !U.gone && !!U.cell && (U.hp == null || U.hp > 0) })); }
+function liveNextFoe(r) {   // この 部屋の ドアの 前に いちばん 早く 来る 敵（あと 何 ターン）
+  const door = cid(r.f, r.door[0], r.door[1]); let best = null;
+  for (const fo of S.foes.filter((x) => x.alive)) { const p = pathFrom(LD.map, LD.toL, fo.cell), n = p.indexOf(door); if (n >= 0 && (!best || n < best.n)) best = { fo, n }; }
+  // 入口の 外で 待って いる 敵：2 ターンに 1 体ずつ 入る（td-numbers の FOE.every）。入って から ドアまでの 歩数を 足す
+  const at = pathFrom(LD.map, LD.toL, "in").indexOf(door);
+  if (at >= 0) LD.st.queue.forEach((U, k) => { const n = at + 1 + k * 2 + ((LD.st.turn) % 2); if (!best || n < best.n) best = { fo: { uid: U.uid, id: LD.ids[U.uid].id, lv: LD.ids[U.uid].lv }, n }; });
+  return best;
+}
+function liveOrder(c, key) {   // 画面の 指示 → td-battle の 指示
+  const U = LD.st.units[key], r = ROOMS.find((q) => q.key === key), door = r && cid(r.f, r.door[0], r.door[1]);
+  if (c === "出撃") return { do: "go" }; if (c === "待ち伏せ") return { do: "ambush" }; if (c === "退避") return { do: "retreat" }; if (c === "移動") return { do: "move", to: door };
+  if (c === "待機") return { do: "wait" };
+  const near = (pred) => Object.values(LD.st.units).filter(pred)[0];
+  if (U.type === "defender") return { do: "skill", to: door };
+  if (U.type === "technician") { const F = near((x) => x.side === "foe" && x.cell && !x.gone && LD.map.cells[U.cell]?.nb.includes(x.cell)); return { do: "skill", tgt: F && F.uid }; }
+  if (U.type === "healer") { const cs = healCands(key), T = cs.find((c) => c.uid === S.tgt["r:" + key]) || cs[0]; return { do: "skill", tgt: T && T.uid }; }   // えらんだ 相手（M-046）。いなければ 倒れた 子 → HP の 低い 子
+  return { do: "skill" };
+}
+function liveTurn() {
+  clearTimeout(LD.autoT); LD.tT = performance.now();
+  if (S.auto) tdAuto(LD.st);   // 自動：型ごとの 得意な 動き（システム担当）
+  else for (const [who, c] of Object.entries(S.cmd)) { const key = who.slice(2); if (LD.st.units[key]) tdOrder(LD.st, key, liveOrder(c, key)); }
+  const ev = tdTurn(LD.st); S.turn++;
+  const tags = {};
+  for (const e of ev) {
+    if (e.t === "start") { if (e.res !== "pet") LD.fought.add(e.res); (tags[e.b] ||= {})[e.res] = e.charge ? ["チャージ"] : [];
+      logA(e.res === "pet" ? "ラウンジで 最後の 戦い" : `${unitName(e.res)} と ${unitName(e.foe)} の 戦い`);
+      if (S.auto && e.res === "pet") { const c = cpos(LD.st.units[e.foe]?.cell); if (c) S.floor = c.f; } }   // 自動：最後の 戦いの 階へ
+    if (e.t === "join") { if (e.uid !== "pet" && !e.uid.startsWith("f")) LD.fought.add(e.uid); (tags[e.b] ||= {})[e.uid] = e.charge ? ["加勢", "チャージ"] : ["加勢"]; }
+    if (e.t === "retreat") { const w = "r:" + e.uid;
+      if (S.auto) { logA(e.ok ? `${unitName(e.uid)} が 部屋へ 退避した` : `${unitName(e.uid)} は 逃げられなかった`); if (e.ok) S.rest.add(w); }
+      else { toast(e.ok ? "部屋へ 退避した（この 防衛は 休み）" : "逃げられなかった（待機に もどす）"); if (e.ok) { S.rest.add(w); delete S.cmd[w]; } else S.cmd[w] = "待機"; } }
+    if (e.t === "dead") { S.dead.push(e.uid); logA(`${unitName(e.uid)} が 殺された`); }
+    if (e.t === "beaten") logA(`${unitName(e.uid)} を たおした`);
+    if (e.t === "mod" && MODULES[e.mod]) logA(`${MODULES[e.mod].name} が 効いた`);   // モジュール（M-047）
+    if (e.t === "revive") { const m = `${unitName(e.uid)} が ${unitName(e.tgt)} を 起こした`; toast(m); logA(m); fxAt(e.tgt, "+" + e.amt, "#22CC88"); }   // 起こす（HP 3 割で 戦いに もどる）
+    if (e.t === "heal" && e.amt > 0) fxAt(e.tgt, "+" + e.amt, null);
+    if (e.t === "helpBack" || e.t === "helpOut") toast(`手伝いの ${LD.help[e.uid]?.name || "子"} が 帰った`);
+  }
+  syncFoes();
+  const rounds = ev.filter((e) => e.t === "round");
+  if (rounds.length && !S.auto) { S.sel = null; render(); showBattles(rounds.map((e) => roundView(e, tags[e.b] || {})), afterLiveTurn); }
+  else { for (const e of rounds) roundView(e, tags[e.b] || {}); afterLiveTurn(); }   // 自動は 戦いの 画面を 開かない（HP は 地図の 棒に）
+}
+function afterLiveTurn() { if (!LD) return; if (LD.st.over) { clearTimeout(LD.autoT); liveFinish(LD.st.over === "win"); } else { render(); autoGo(); } }
+function roundView(e, tg) {   // td-battle の 1 手 → 戦いの 画面（いまの 見せ方の まま）
+  const nR = e.res.length, F = e.fighters, uv = (uid, k, side) => {
+    const U = LD.st.units[uid], before = LD.hp[uid] ?? F[k].maxHp, after = e.now[k].hp; LD.hp[uid] = after;
+    if (uid === "pet") return { id: "pet_shika", img: "./img/brief-pet-shika.webp", name: "MONO ペット", hp: before, max: F[k].maxHp, pet: true, tg: ["最後の 戦い"] };
+    if (side === "r" && LD.help[uid]) return { id: LD.help[uid].id, name: esc(F[k].name),   // 手伝いの 子の 名前は ほかの 人が 付けた もの（戦いの 画面は innerHTML なので 置きかえる）
+ hp: before, max: F[k].maxHp, tg: ["手伝い", ...(tg[uid] || [])] };
+    if (side === "r") { const R = RES["r:" + uid]; return { id: R ? R.id : "e_watch", name: F[k].name, hp: before, max: F[k].maxHp, tg: tg[uid] || [] }; }
+    return { id: LD.ids[uid].id, name: F[k].name, hp: before, max: F[k].maxHp, boss: /boss/.test(LD.ids[uid].id), tg: [] };
+  };
+  const res = e.res.map((u, k) => uv(u, k, "r")), foes = e.foe.map((u, k) => uv(u, nR + k, "f"));
+  const key = (k) => (k < nR ? "r" + k : "f" + (k - nR)), steps = [];
+  for (const a of e.acts) { const dmg = (a.hits || []).reduce((t, h) => t + (h.dmg || 0), 0); if (!dmg) continue; const tgt = a.tgt != null ? a.tgt : a.who < nR ? nR : 0; steps.push([key(a.who), key(tgt), a.name || "こうげき", dmg]); }
+  const fo = LD.st.units[e.foe[0]], p = cpos(fo && fo.cell);
+  return { f: p ? p.f : 0, place: e.res.includes("pet") ? "プライベートラウンジ" : null, res, foes, steps };
+}
+function endHTML(r, won, deadV) {   // 結果の 窓の 中身（守りきって モジュールが 落ちたら 3 つから 1 つ えらぶ。M-047）
+  return `<p>クレジット <em>+${fmt(r.cr)}</em>${r.take ? `<br>取られた <em>−${fmt(r.take)}</em>` : ""}<br>シグナル <em>+${r.sig}</em>${r.mats ? `<br>素材 <em>${r.mats}</em>` : ""}${r.helpers ? `<br>手伝って くれた 子 <em>${r.helpers}</em>` : ""}</p>
+        ${deadV.length ? `<ul class="dead">${deadV.map((u) => `<li><img src="${spriteURL(u.id)}" alt=""><span><b>${u.name}</b><small>${u.mine ? "アメジストで 復活できる" : "部屋が 空いた"}</small></span></li>`).join("")}</ul>` : ""}
+        ${won ? "" : `<p class="pet">MONO ペットは 倒れた だけ</p>`}${r.offer && r.offer.length ? `<div class="moff"><b>モジュールを 1 つ えらぶ</b>${r.offer.map((m, i) => `<button data-rpick="${i}"><span class="nm">${modName(m)}</span>${mfxHTML(m)}</button>`).join("")}</div>` : ""}<button class="go" data-back>もどる</button>`;
+}
+function liveFinish(won) {   // 結果を 門番へ（始めて 3 分 たって から。早い ときは 待って 送る）
+  const st = LD.st, body = { id: LD.id, won, kills: st.beaten.length, fought: [...LD.fought].filter((k) => k !== "pet" && !LD.help[k]), dead: st.dead.filter((k) => k !== "pet") };
+  const deadV = body.dead.map((k) => RES["r:" + k]).filter(Boolean).map((R) => ({ id: R.id, name: R.name, mine: R.mine }));
+  const show = (inner) => { $("result").innerHTML = `<div class="${won ? "" : "lose"}"><b>${won ? "守りきった" : "守れなかった"}</b>${inner}</div>`; $("result").hidden = false; };
+  const send = async () => {
+    const r = await act("td.def.end", body);
+    if (r && r.ok) {
+      show(endHTML(r, won, deadV));
+      return;
+    }
+    if (r && /途中/.test(r.why || "")) {   // 門番の 決まり：始めて 3 分 たって から の 結果だけ
+      const until = LD.t0 + 3 * 60000 + 2000, tick = () => { if (!LD || $("result").hidden) return; const sec = Math.max(0, Math.ceil((until - Date.now()) / 1000)); const el = $("result").querySelector("[data-wait]"); if (el) el.textContent = `記録まで あと ${sec} 秒`; if (sec > 0) setTimeout(tick, 1000); };
+      show(`<p data-wait>記録まで あと … 秒</p>`); tick(); setTimeout(send, Math.max(1000, until - Date.now())); return;
+    }
+    show(`<p>${(r && r.why) || "門番に つながりません"}</p><button class="go" data-resend>もう 1 回</button>`);
+    $("result").querySelector("[data-resend]").onclick = send;
+  };
+  show(`<p>記録して います…</p>`); send();
+}
+function startLiveDefWrap(i) { startLiveDef(i); }
 function startDef(note) {
   if (!isFull()) { setBuilt(SLOTS.map((x) => x.id)); toast("防衛の 見本は 九龍城塞の 形で"); }   // 敵の 道（PATH）は 完成形の 道
   Object.assign(S, { mode: "def", tab: null, turn: 1, sel: null, cmd: {}, picked: null, floor: 0, note, pan: { x: 0, z: 0 } }); hidePop();
@@ -725,7 +1022,48 @@ function startDef(note) {
   if (last) S.floor = PATH[LOUNGE_STEP - 1].f;
   render();
 }
+function liveBuildDef(g) {   // 門番に つないだ 防衛：赤い 道（入口 → ラウンジ）・敵と 次の 1 歩・廊下に 出た 住人・待ち伏せと 出撃の 印
+  for (let i = 0; i < LD.path.length - 1; i++) {
+    const a = cpos(LD.path[i]), b = cpos(LD.path[i + 1]); if (!a || !b || a.f !== b.f || a.f !== S.floor) continue;
+    const ax = a.x + 0.5, az = a.z + 0.5, bx = b.x + 0.5, bz = b.z + 0.5, y = a.f * FH + 0.03, len = Math.hypot(bx - ax, bz - az) || 0.01;
+    const m = K.box(g, 0.14, 0.03, len, K.glow("#FF3A4A", 1.5), (ax + bx) / 2, y, (az + bz) / 2); m.rotation.y = Math.atan2(bx - ax, bz - az); m.castShadow = false;
+  }
+  for (const U of Object.values(LD.st.units)) {
+    if (!U.cell || U.dead || U.gone || U.cell.startsWith("room:")) continue;
+    const c = cpos(U.cell); if (!c || c.f !== S.floor) continue;
+    const id = U.side === "foe" ? LD.ids[U.uid].id : U.helper ? LD.help[U.uid]?.id : RES["r:" + U.uid]?.id; if (!id) continue;
+    const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex(id), transparent: true, alphaTest: 0.5 })), big = /boss/.test(id) ? 1.5 : 1.15;
+    sp.scale.set(big, big, 1); sp.position.set(c.x + 0.5, c.f * FH + 0.65, c.z + 0.5); g.add(sp); unitHud(g, U, c, big, sp);
+    if (U.helper) { const ring = new THREE.Mesh(new THREE.RingGeometry(0.32, 0.44, 20), new THREE.MeshBasicMaterial({ color: "#22CC88" })); ring.rotation.x = -Math.PI / 2; ring.position.set(c.x + 0.5, c.f * FH + 0.04, c.z + 0.5); g.add(ring); continue; }   // 手伝いの 子（緑の 輪・自動）
+    if (U.side !== "foe") { sp.userData.res = "r:" + U.uid; picks.push(sp); continue; }   // 廊下に 出た 住人も 押して えらべる（戦いの 途中の 退避）
+    const ring = new THREE.Mesh(new THREE.RingGeometry(0.32, 0.44, 20), new THREE.MeshBasicMaterial({ color: "#FF3A4A" })); ring.rotation.x = -Math.PI / 2; ring.position.set(c.x + 0.5, c.f * FH + 0.04, c.z + 0.5); g.add(ring);
+    const nx = LD.map.cells[U.cell].nb.filter((y) => (LD.toL[y] ?? 1e9) < (LD.toL[U.cell] ?? 1e9)).sort((a, b) => LD.toL[a] - LD.toL[b])[0], n = cpos(nx);
+    if (n && n.f === S.floor) { const mk = new THREE.Mesh(new THREE.PlaneGeometry(0.86, 0.86), new THREE.MeshBasicMaterial({ color: "#FF3A4A", transparent: true, opacity: 0.32, depthWrite: false })); mk.rotation.x = -Math.PI / 2; mk.position.set(n.x + 0.5, n.f * FH + 0.05, n.z + 0.5); g.add(mk); }
+  }
+  for (const [who, c] of Object.entries(S.cmd)) {
+    const r = roomOf(who); if (!r || r.f !== S.floor || c === "待機" || outRoom(r.key)) continue;
+    const mk = new THREE.Mesh(new THREE.PlaneGeometry(0.86, 0.86), new THREE.MeshBasicMaterial({ color: c === "待ち伏せ" ? "#FFB547" : "#22CC88", transparent: true, opacity: 0.6, depthWrite: false }));
+    mk.rotation.x = -Math.PI / 2; mk.position.set(r.door[0] + 0.5, r.f * FH + 0.05, r.door[1] + 0.5); g.add(mk);
+  }
+}
+// 戦いの 中の HP の 棒・戦いの 中で 倒れた 子は うすく（ヒーラーが 起こせる）・回復と 起こすの 数（M-046。自動では 戦いの 画面を 開かないので 地図で 見せる）
+const HPT = {};
+function hpTex(p, foe) {
+  const q = Math.round(Math.max(0, Math.min(1, p)) * 20), k = (foe ? "f" : "r") + q; if (HPT[k]) return HPT[k];
+  const c = document.createElement("canvas"); c.width = 64; c.height = 10; const x = c.getContext("2d");
+  x.fillStyle = "#1B2340"; x.fillRect(0, 0, 64, 10); x.fillStyle = foe ? "#FF3A4A" : q < 6 ? "#FFB547" : "#22CC88"; x.fillRect(1, 1, Math.round(62 * q / 20), 8);
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.magFilter = THREE.NearestFilter; return (HPT[k] = t);
+}
+function unitHud(g, U, c, big, sp) {
+  const mx = U.maxHp || 0, hp = U.hp ?? mx, top = c.f * FH + 0.65 + big / 2;
+  if (mx && hp <= 0) { sp.material.opacity = 0.4; sp.material.alphaTest = 0.1; }
+  if (U.battle && mx) { const hb = new THREE.Sprite(new THREE.SpriteMaterial({ map: hpTex(hp / mx, U.side === "foe"), transparent: true, depthTest: false })); hb.scale.set(0.8, 0.125, 1); hb.position.set(c.x + 0.5, top + 0.1, c.z + 0.5); hb.renderOrder = 5; g.add(hb); }
+  (LD.fx || []).filter((x) => x.uid === U.uid && S.turn - x.turn <= 1).reverse().forEach((x, i) => {   // 新しい 順に 下から（起こす は 緑の 札・回復は 白い 札）
+    const l = new THREE.Sprite(new THREE.SpriteMaterial({ map: labelTex(x.text, x.bg ? "#FFFFFF" : "#18A870", x.bg || "#FFFFFF"), transparent: true, depthTest: false })); l.scale.set(0.9, 0.45, 1); l.position.set(c.x + 0.5, top + 0.48 + i * 0.44, c.z + 0.5); l.renderOrder = 6; g.add(l);
+  });
+}
 function buildDef(g) {
+  if (LD) return liveBuildDef(g);
   for (let i = 0; i < PATH.length - 1; i++) {
     const a = PATH[i], b = PATH[i + 1]; if (a.f !== b.f || a.f !== S.floor) continue;
     const ax = a.x + 0.5, az = a.z + 0.5, bx = b.x + 0.5, bz = b.z + 0.5, y = a.f * FH + 0.03;
@@ -767,6 +1105,7 @@ function buildWorld() {
   buildTower(world);
   if (def) buildDef(world);
   if (S.place) buildSlots(world);
+  if (S.mode === "home") buildMods(world);
   setDayLight();
   if (S.flash) {   // 建てた 所が 一瞬 光る
     const b = S.flash, m = new THREE.Mesh(new THREE.BoxGeometry(b.w, Math.max(0.2, b.h * FH), b.d), new THREE.MeshBasicMaterial({ color: "#FFE066", transparent: true, opacity: 0.6, depthWrite: false }));
@@ -786,14 +1125,14 @@ function buildSlots(g) {   // 置ける 所：緑の 箱。えらんで いる �
 function fit() {
   const w = view.clientWidth, h = view.clientHeight, asp = w / h, phone = asp < 1;
   // 防衛中は いま 見て いる 階の 敵の 道の まんなかへ（道の ない 階は 建物の まんなか）
-  const onF = S.mode === "def" ? PATH.filter((c) => c.f === S.floor) : [];
+  const onF = S.mode === "def" ? (LD ? LD.path.map(cpos).filter((c) => c && c.f === S.floor) : PATH.filter((c) => c.f === S.floor)) : [];
   let fx = onF.length ? onF.reduce((a, c) => a + c.x, 0) / onF.length + 0.5 : 0, fz = onF.length ? onF.reduce((a, c) => a + c.z, 0) / onF.length + 0.5 : -2, zoom = 1;
   if (S.mode !== "def" && !isFull()) {   // 増築の 途中：建物と 置ける 所の まんなか。小さい ほど 寄る
     const bx = [...BLOCKS.map((b) => [b.x0, b.z0, b.w, b.d]), ...(S.place ? avail(S.place.part).map((x) => { const b = slotBox(x); return [b.x, b.z, b.w, b.d]; }) : [])];
     const x0 = Math.min(...bx.map((b) => b[0])), x1 = Math.max(...bx.map((b) => b[0] + b[2])), z0 = Math.min(...bx.map((b) => b[1])), z1 = Math.max(...bx.map((b) => b[1] + b[3]));
     fx = (x0 + x1) / 2; fz = (z0 + z1) / 2;
     if (S.place) { const c = slotBox(avail(S.place.part)[S.place.i]); fx = (fx + c.x + c.w / 2) / 2; fz = (fz + c.z + c.d / 2) / 2; }   // えらんで いる 候補へ 半分 寄せる
-    zoom = S.place ? 1 : Math.min(1, Math.max(0.7, (x1 - x0 + z1 - z0) / 38));   // 置き場所えらびは 寄らずに 全体
+    const ext = (x1 - x0 + z1 - z0) / 38; zoom = S.place ? Math.min(2.2, Math.max(1, ext)) : Math.min(2.2, Math.max(0.7, ext));   // 置き場所えらびは 寄らずに 全体。区画が ふえて 大きく なったら 引く
   }
   const tgt = new THREE.Vector3(fx + S.pan.x, S.mode === "def" ? S.floor * FH + 0.4 : S.floor * FH * 0.6 + 3.0, fz + S.pan.z);
   cam.position.set(tgt.x + 20, tgt.y + 17, tgt.z + 20); cam.lookAt(tgt);
@@ -833,6 +1172,8 @@ view.addEventListener("pointerup", (e) => {
   ray.setFromCamera(p, cam);
   const hit = ray.intersectObjects(picks, false)[0];
   if (S.place) { if (hit && hit.object.userData.slot != null) { S.place.i = hit.object.userData.slot; render(); } return; }   // 増築の 置き場所えらび中は 候補だけ
+  if (S.mp) { const u = hit && hit.object.userData; if (u && u.mat) { S.mp.at = u.mat; render(); } return; }   // モジュールの 置き場所えらび中は 光る 所だけ
+  if (hit && hit.object.userData.mod) { showModPop(hit.object.userData.mod, e.clientX - r.left, e.clientY - r.top); return; }   // 置いた モジュールの 印
   if (!hit) { hidePop(); return; }
   if (hit.object.userData.tower) { if (S.mode === "home") { S.tab = "tower"; hidePop(); renderDock(); renderPanel(); } return; }
   const who = hit.object.userData.res || ROOMS.find((x) => x.no === hit.object.userData.room)?.who;
@@ -851,16 +1192,24 @@ const IC = {
   bridge: `<svg viewBox="0 0 24 24"><path d="M2 8h5v13H2ZM17 8h5v13h-5Z" fill="#DCE3F0"/><path d="M7 11h10v3H7Z" fill="#2EA8FF"/></svg>`,
   exst: `<svg viewBox="0 0 24 24"><path d="M3 4h9v17H3Z" fill="#DCE3F0"/><path d="M12 19h3v-3h3v-3h3v8h-9Z" fill="#7A8090"/><path d="M13 6h7v3h-7Z" fill="#FFB547"/></svg>`,
   stair: `<svg viewBox="0 0 24 24"><path d="M8 2h8v20H8Z" fill="#B8BCC8"/><path d="M10 18h4v-2h-2v-2h2v-2h-2v-2h2V8h-4Z" fill="#fff"/></svg>`,
+  mod: `<svg viewBox="0 0 24 24"><path d="M12 2 21 7v10l-9 5-9-5V7Z" fill="#8E6CFF"/><path d="M12 7 16.5 9.5v5L12 17l-4.5-2.5v-5Z" fill="#fff"/></svg>`,
   pom: `<svg viewBox="0 0 24 24"><path d="M5 6h14l2 8-3 6H6l-3-6Z" fill="#5A6478"/><path d="M7 9h10v3H7Z" fill="#FF3A4A"/></svg>`,
 };
 function toast(s) { const el = $("toast"); el.textContent = t(s); el.classList.add("on"); clearTimeout(toast.t); toast.t = setTimeout(() => el.classList.remove("on"), 1800); }
 function hidePop() { $("pop").hidden = true; }
+function showModPop(k, x, y) {   // 置いた モジュールの 印を 押した：名前・効果・外す（M-047）
+  const m = (TDX().modAt || {})[k]; if (!m) return;
+  const el = $("pop"), h = `<div class="hd"><div><b>${modName(m)}</b><span>${modWhere(k)}</span></div><button class="x" aria-label="閉じる">×</button></div><div class="rline">${mfxHTML(m)}</div><button class="sm" data-act="moff" data-k="${k}">外す</button>`;
+  el.innerHTML = h; el._h = h; el.hidden = false; S.picked = null;
+  const W = view.clientWidth, H = view.clientHeight, pw = el.offsetWidth, ph = el.offsetHeight;
+  el.style.left = `${Math.max(10, Math.min(W - pw - 10, x - pw / 2))}px`; el.style.top = `${Math.max(10, Math.min(H - ph - 84, y - ph - 16))}px`;
+}
 function stChip(R) { const c = R.st === "病気" ? "sick" : R.st === "仕事中" ? "out" : ""; return `<span class="st ${c}">${R.st}</span>${R.kid ? `<span class="st kid">子</span>` : ""}${R.mine ? `<span class="st mine">自分の 子</span>` : ""}`; }
 function meter(v) { return `<div class="meter">満足度<i><em style="width:${v}%;background:${satColor(v)}"></em></i><b>${v}%</b></div>`; }
 function lifeHTML(r, R) {   // となりとの なかよし（2 まで）・子・日記 3 行（鹿さんの カード「A 住人の小さな窓に」）
   const nb = neighbors(r).slice(0, 2), d = (R.diary || []).slice(0, 3);
   return `${nb.length ? `<div class="sec">となりと なかよし</div>${nb.map((q) => { const v = bondOf(r, q); return `<div class="meter nb"><img src="${spriteURL(RES[q.who].id)}" alt="${RES[q.who].name}"><i><em style="width:${v}%;background:#FF7AA8"></em></i><b>${v}%</b></div>`; }).join("")}` : ""}
-    ${(R.kids || []).length ? `<div class="kids">${R.kids.slice(0, 2).map((k) => `<img src="${spriteURL(k.id)}" alt=""><span>子</span><b>${k.name}</b>`).join("")}</div>` : ""}
+    ${(R.kids || []).length ? `<div class="kids">${R.kids.slice(0, 2).map((k) => `<img src="${spriteURL(k.id)}" alt=""><span>子</span><b>${k.name}</b>${k.want ? `<em class="want">部屋を ほしがって いる</em>` : ""}`).join("")}</div>` : ""}
     <div class="sec">日記</div>${d.length ? `<ol class="diary">${d.map((x) => `<li><time>${x.t}</time>${x.s.startsWith("と ") ? `<span><b>${x.n}</b>${x.s}</span>` : `<span>${x.s}${x.n ? `<b>${x.n}</b>` : ""}</span>`}</li>`).join("")}</ol>` : `<ol class="diary"><li><span>まだ ない</span></li></ol>`}`;
 }
 function refreshPop() { const el = $("pop"), l = el.style.left, tp = el.style.top; showPop(S.picked, 0, 0); el.style.left = l; el.style.top = tp; }
@@ -868,29 +1217,222 @@ function showPop(r, x, y) {
   if (!r) return hidePop();
   const el = $("pop"); let h;
   if (r.lounge) h = `<div class="hd"><b>プライベートラウンジ</b><button class="x" aria-label="閉じる">×</button></div><div class="sub">MONO ペットが いる</div><a class="go" href="lounge-room.html">ラウンジへ</a>`;
-  else if (!r.who) h = `<div class="hd"><div><b>${r.no}号室</b><span>空き部屋</span></div><button class="x" aria-label="閉じる">×</button></div><button class="go" data-act="want">入居希望を 見る</button>`;
+  else if (!r.who && r.cut) h = `<div class="hd"><div><b>${r.no}号室</b><span>まだ つながって いない</span></div><button class="x" aria-label="閉じる">×</button></div><div class="rline">外階段か 渡り廊下で つなぐと 住める</div><button class="go" data-act="joinbuild">つなぎを 建てる</button>`;
+  else if (!r.who) h = `<div class="hd"><div><b>${r.no}号室</b><span>空き部屋</span></div><button class="x" aria-label="閉じる">×</button></div>${overIn(r.key) > 0 ? `<div class="rline">家賃が 相場より 高いので だれも 入らない</div>` : `<button class="go" data-act="want">入居希望を 見る</button>`}<button class="sm" data-act="room">部屋と 家賃</button>`;
   else {
     const R = RES[r.who], away = R.st === "仕事中";
     h = `<div class="hd"><img src="${spriteURL(R.id)}" alt=""><div><b>${R.name}</b><span>Lv${R.lv}・${r.no}号室</span></div><button class="x" aria-label="閉じる">×</button></div>
-      <div>${stChip(R)}</div>${meter(R.sat)}<div class="meter">家賃<span></span><b>${rentOf(R.lv, R.sat)}／日</b></div>${lifeHTML(r, R)}
-      <button class="go" data-act="care" ${away ? "disabled" : ""}>${R.st === "病気" ? "看病する" : "世話する"}</button>${away ? `<p class="why">夜に 帰る</p>` : ""}`;
+      <div>${stChip(R)}<span class="st job">${jobTxt(wkFill(r.who))}</span></div>${R.kin ? `<div class="kin"><span>受けつぎ</span><b>＋${R.kin.plus || 0}</b>${(R.kin.subs || []).map((id) => `<em>${ENEMY_TREES[id]?.name || id}</em>`).join("")}</div>` : ""}${meter(R.sat)}<div class="meter"><span>家賃・${stepTag(stepOf(roomIn(r.key)))}</span><span></span><b>${rentNow(R, r.key)}／日</b></div>${stepOf(roomIn(r.key)) > R.cap ? `<div class="rline">払えるのは ${RENT_STEP[Math.min(R.cap, RENT_STEP.length - 1)].name} まで：払わない 日が ある</div>` : ""}${overIn(r.key) > 0 ? `<div class="rline">相場より ${overIn(r.key)} 段 高い：満足度 毎日 −${GRUDGE.perStep * overIn(r.key)}</div>` : ""}<button class="sm" data-act="room">部屋と 家賃</button>${scoutHTML(r, R)}${lifeHTML(r, R)}
+      ${LIVE ? `<button class="sm warn" data-act="out">${S.outAsk === r.key ? "もう 1 回 押すと 出て いく" : "出て いって もらう"}</button>`
+        : `<button class="go" data-act="care" ${away ? "disabled" : ""}>${R.st === "病気" ? "看病する" : "世話する"}</button>${away ? `<p class="why">夜に 帰る</p>` : ""}`}`;
   }
-  el.innerHTML = h; el.hidden = false; S.picked = r;
+  if (el._h !== h || el.hidden) { el.innerHTML = h; el._h = h; }   // 中身が かわった ときだけ 描きなおす（0.5 秒ごとの 暮らしの 時計で 押して いる ボタンが 消えない ように）
+  el.hidden = false; S.picked = r;
   const W = view.clientWidth, H = view.clientHeight, pw = el.offsetWidth, ph = el.offsetHeight;
   el.style.left = `${Math.max(10, Math.min(W - pw - 10, x - pw / 2))}px`; el.style.top = `${Math.max(10, Math.min(H - ph - 84, y - ph - 16))}px`;
 }
 $("pop").addEventListener("click", (e) => {
   const b = e.target.closest("button"); if (!b) return;
   if (b.classList.contains("x")) return hidePop();
+  if (b.dataset.act === "moff") { const k = b.dataset.k; hidePop(); modDo("td.mod.off", { at: k }, "外した・持ち物へ", () => { SAMPLE_TD.modInv.push(SAMPLE_TD.modAt[k]); delete SAMPLE_TD.modAt[k]; }); return; }
+  if (b.dataset.act === "joinbuild") { hidePop(); const k = avail("exst").length ? "exst" : "walk"; if (avail(k).length) startPlace(k); else { S.tab = "build"; S.bsub = "make"; renderDock(); renderPanel(); } return; }
   if (b.dataset.act === "want") { hidePop(); S.tab = "res"; S.sub = "want"; renderPanel(); renderDock(); }
+  if (b.dataset.act === "scout") {   // スカウト（2 回 押す）
+    const key = S.picked.key, R = RES[S.picked.who], cost = scoutOf(R, key);
+    if (S.scoutAsk !== key) { S.scoutAsk = key; refreshPop(); return; }
+    S.scoutAsk = null;
+    if (LIVE) { doAct("td.scout", { key }, (x) => `なかまに なった（シグナル −${x.cost}）`).then(() => S.picked && refreshPop()); return; }
+    R.mine = true; S.sig -= cost; toast("なかまに なった（見本）"); refreshPop(); return;
+  }
+  if (b.dataset.act === "room") { const key = S.picked.key; hidePop(); S.tab = "room"; S.roomKey = key; S.rsub = "rent"; S.buyAsk = null; renderDock(); renderPanel(); return; }
+  if (b.dataset.act === "out") {   // 退去（2 回 押す）
+    const key = S.picked.key; if (S.outAsk !== key) { S.outAsk = key; refreshPop(); return; }
+    S.outAsk = null; hidePop(); doAct("td.out", { key }, () => "出て いった"); return;
+  }
   if (b.dataset.act === "care") { const R = RES[S.picked.who]; R.sat = Math.min(100, R.sat + 5); if (R.st === "病気" && R.sat >= 40) R.st = "在宅"; toast("世話した（満足度 +5）"); showPop(S.picked, parseFloat($("pop").style.left) + 118, parseFloat($("pop").style.top) + $("pop").offsetHeight + 16); }
 });
+
+// 電波塔の 窓：タブで 通知（迎え撃つ・手伝いを 募集）と 手伝い（みんなの 募集に 子を 送る）。M-042 鹿さんの カード「助けをよぶ掲示板」2026-11-16
+let HV = null, HL = null;   // 自分の 募集（td.help.view）・みんなの 募集（td.help.list）
+const SAMPLE_HL = [{ pid: "s1", name: "momiji", strength: 3, lv: 40, foes: ["e_boss_redbeard", "e_pirate", "e_pirate"], n: 1, max: 3, mine: false }, { pid: "s2", name: "kuro", strength: 2, lv: 28, foes: ["e_jelly", "e_jelly", "e_skelsailor"], n: 2, max: 3, mine: false }];
+async function loadHelp() {
+  if (!LIVE) { HL ||= SAMPLE_HL.map((x) => ({ ...x })); renderPanel(); return; }
+  const [v, l] = await Promise.all([TD && TD.help ? act("td.help.view", {}) : null, act("td.help.list", {})]);
+  HV = v && v.ok ? v.post : null; HL = l && l.ok ? l.list : []; if (S.tab === "tower") renderPanel();
+}
+function towerHTML(close) {
+  const seg = `<div class="seg"><button class="${S.tsub !== "help" ? "on" : ""}" data-tsub="note">通知<b>${NOTES.length}</b></button><button class="${S.tsub === "help" ? "on" : ""}" data-tsub="help">手伝い${HL && HL.length ? `<b>${HL.length}</b>` : ""}</button></div>`;
+  if (S.tsub === "help") {
+    const kids = LIVE ? (LASTME?.tamed || []).filter((c) => c && c.uid && c.tree && !(TD?.lent || {})[c.uid] && !(TD?.dead || []).includes(c.uid)) : [{ uid: "k1", tree: "e_shipcat", name: "迷子の船猫", lv: 38 }, { uid: "k2", tree: "e3_moonrabbit", name: "月うさぎ", lv: 44 }];
+    const list = HL == null ? `<p class="full">読みこんで います…</p>` : !HL.length ? `<p class="full">いまは 募集が ない</p>` : HL.map((h) => `<div class="card"><div class="t"><b>${esc(h.name)} の 防衛</b><span class="stars" aria-label="強さ ${h.strength}">${"★".repeat(h.strength)}${"☆".repeat(5 - h.strength)}</span></div>
+      <div class="foes">${h.foes.slice(0, 6).map((id) => `<img src="${spriteURL(id)}" alt="">`).join("")}<span>Lv${h.lv}</span></div>
+      <div class="from"><span>手伝い ${h.n} / ${h.max}</span>・<span>守りきると 報酬の 4 割</span></div>
+      ${h.mine ? `<p class="full">この 募集に 子を 送った</p>` : S.sendTo === h.pid ? `<div class="kids">${kids.length ? kids.map((c) => `<button class="kid" data-send="${c.uid}"><img src="${spriteURL(c.tdMix || c.tree)}" alt=""><span><b>${esc(c.name)}</b><small>Lv${c.lv | 0}</small></span></button>`).join("") : `<p class="full">送れる 子が いない</p>`}</div>` : `<button class="go" data-sendto="${h.pid}">子を 送る</button>`}</div>`).join("");
+    return `<h2>電波塔${close}</h2>${seg}<p class="rnext">送った 子は 自動で 戦い、殺されない。</p><div class="list">${list}</div>`;
+  }
+  const H = LIVE ? TD && TD.help : S.shelp;
+  const note = (n, i) => {
+    const mine = H && H.k === n.k, hv = mine ? (LIVE ? HV : S.shelp) : null;
+    return `<div class="card"><div class="t"><b>${n.t}</b><span class="stars" aria-label="強さ ${n.star}">${"★".repeat(n.star)}${"☆".repeat(5 - n.star)}</span></div><div class="from">${n.from}</div>
+      <div class="foes">${n.foes ? n.foes.map((id) => `<img src="${spriteURL(id)}" alt="">`).join("") : IC.pom.replace("<svg", '<svg width="32" height="32"')}<span>${n.foes ? `${n.foes.length} 体` : `POM ${n.pom} 機`}・${n.lv}</span></div>
+      <div class="rw"><span>勝ち <b>+${fmt(n.win)}</b>・シグナル <b>${n.sg}</b></span><span class="lose">負け <b>−${fmt(n.lose)}</b></span></div>
+      ${mine ? `<div class="helpers"><span>手伝い ${hv ? hv.n : 0} / 3</span>${(hv?.helpers || []).map((h) => `<img src="${spriteURL(h.c.tdMix || h.c.tree)}" alt="${esc(h.c.name)}" title="${esc(h.name)}">`).join("")}</div>` : ""}
+      <button class="go" data-note="${i}">${mine && hv && hv.n ? `迎え撃つ（手伝い ${hv.n} 体と）` : "迎え撃つ"}</button>
+      ${!H && n.k != null ? `<button class="sm" data-hpost="${i}">手伝いを 募集</button>` : ""}</div>`;
+  };
+  return `<h2>電波塔${close}</h2>${seg}<div class="list">${NOTES.map((n, i) => n.stale ? `<div class="card"><div class="t"><b>${n.t}</b></div><button class="go" data-note="${i}">おえる（負け）</button></div>` : note(n, i)).join("")}</div>`;
+}
+// 増築の 窓（M-043。鹿さんの カード「不動産価値の画面」2026-11-16・システム担当の お願い 1）：タブで 建てる・不動産価値・設計図
+const SAMPLE_TD = { prop: { lv: 7, pts: 2430, cur: 2100, next: 2800, rent: 410000, wins: 9 }, first: { fl: 2, max: 3, cost: 30000, nextLv: 8 }, blocks: { used: 0, max: 0, nextLv: 15 }, bp: [2, 4], bpAt: {}, inv: { canopy: 1 },
+  modInv: [{ id: "pipe", star: 3 }, { id: "slip", star: 1 }, { id: "camera", star: 4 }, { id: "capsule", star: 2 }], modAt: {}, modOffer: null };   // モジュールの 見本（M-047）
+const TDX = () => (LIVE ? TD || {} : { ...SAMPLE_TD, first: { fl: S.fl || 2, max: A_FULL, cost: 35000, nextLv: null }, bpAt: starsNow(), blocks: { used: BLOCKS.filter((b) => b.id[0] === "K").length, max: 99, nextLv: 0 } });
+const plv = () => (TDX().prop && TDX().prop.lv) || 1;
+const bpDesc = (st) => { const B = BLUEPRINT[st] || BLUEPRINT[1]; return `${B.floors} 階・${B.size === "huge" ? "とても 広い 部屋" : B.size === "big" ? "広い 部屋" : "ふつうの 部屋"}・廊下 ${B.hall} マス`; };
+function unlocks(L, n = 5) {   // 次に 開く 物（Lv の 上限は ない ので、区画は その 先も 数える）
+  const out = [];
+  FIRST_FLOORS.at.forEach((x, i) => { if (x > L) out.push([x, `1 つ目の 建物に ${FIRST_FLOORS.start + i + 1} 階`]); });
+  for (let k = blockSlotsOf(L) + 1; k <= blockSlotsOf(L) + 2; k++) out.push([BLOCK_LV.from + BLOCK_LV.every * k, `区画を ${k} つ 建てられる`]);
+  const by = {}; for (const [id, lv] of Object.entries(FURN_LV)) if (lv > L) (by[lv] ||= []).push(TD_FURN[id].name);
+  for (const [lv, ns] of Object.entries(by)) out.push([+lv, `家具：${ns.join("・")}`]);
+  const bg = {}; for (const [id, G] of Object.entries(GEAR)) if ((G.lv || 1) > L) (bg[G.lv] ||= []).push(G.name);
+  for (const [lv, ns] of Object.entries(bg)) out.push([+lv, `設備：${ns.join("・")}`]);
+  return out.sort((a, b) => a[0] - b[0]).slice(0, n);
+}
+function propHTML() {
+  const X = TDX(), P = X.prop || { lv: 1, pts: 0, cur: 0, next: 100, rent: 0, wins: 0 }, L = P.lv, pct = Math.max(0, Math.min(100, ((P.pts - P.cur) / Math.max(1, P.next - P.cur)) * 100));
+  const keys = ROOMS.filter((r) => !r.lounge).map((r) => r.key); let furn = 0, gear = 0, sat = 0;
+  for (const k of keys) { const I = roomIn(k); furn += (I.furn || []).length; gear += (I.gear || []).length; }
+  for (const r of ROOMS) if (r.who && RES[r.who]) sat += RES[r.who].sat || 0;
+  const rows = [["部屋", `${keys.length} × ${PROP.room}`, keys.length * PROP.room], ["家具", `${furn} × ${PROP.furn}`, furn * PROP.furn], ["設備", `${gear} × ${PROP.gear}`, gear * PROP.gear],
+    ["住人の 満足度", `${sat} ÷ ${PROP.satDiv}`, Math.floor(sat / PROP.satDiv)], ["集めた 家賃", `${fmt(P.rent || 0)} ÷ ${PROP.rentDiv}`, Math.floor((P.rent || 0) / PROP.rentDiv)], ["守りきった 強さ", `${P.wins || 0} × ${PROP.win}`, (P.wins || 0) * PROP.win]];
+  return `<div class="plv"><span>不動産価値</span><b>Lv${L}</b></div>
+    <div class="pbar"><i style="width:${pct}%"></i></div><p class="rnext">Lv${L + 1} まで あと ${fmt(Math.max(0, P.next - P.pts))} 点（いま ${fmt(P.pts)} 点）</p>
+    <div class="sec2">点の 内わけ</div><div class="ptab">${rows.map(([n, d, v]) => `<div><span>${n}</span><small>${d}</small><b>+${fmt(v)}</b></div>`).join("")}</div>
+    <div class="sec2">次に 開く 物</div><div class="ptab next">${unlocks(L).map(([lv, t]) => `<div><span class="lv">Lv${lv}</span><span>${t}</span></div>`).join("")}</div>`;
+}
+function bpHTML() {
+  const X = TDX(), bp = X.bp || [], B = X.blocks || { used: 0, max: 0, nextLv: BLOCK_LV.from + BLOCK_LV.every }, at = Object.values(X.bpAt || {});
+  return `<p class="rnext">区画 ${B.used} / ${B.max}・${B.used < B.max ? "いま 建てられる" : `次の 区画は 不動産価値 Lv${B.nextLv} で`}</p>
+    ${bp.length ? `<div class="shop">${bp.map((st, i) => `<div class="row"><b>★${st} の 設計図<small>${bpDesc(st)}</small></b><button class="${S.bpAsk === i ? "go" : "sm"}" data-bpscrap="${i}">${S.bpAsk === i ? "もう 1 回で 分解" : `分解・スクラップ ${BP_SCRAP[st]}`}</button></div>`).join("")}</div>` : `<p class="full">設計図は まだ ない。守りきると 落ちる。</p>`}
+    ${at.length ? `<p class="rnext">建てた 区画：${at.map((st) => `★${st}`).join("・")}</p>` : ""}`;
+}
+// ---------- モジュール（M-047。鹿さんの カード「案 A 持ち物から置く」2026-11-16）----------
+// 持ち物を 置き場所の しゅるい（廊下・区画・部屋）で 分けて ★で ならべる →「置く」で 建物の 置ける 所が 光り、押して 置く。印を 押すと「外す」。分解は 2 回 押す
+// 置き場所は 1 つに 1 つ（廊下と 階段の マス・区画〈箱〉・部屋。鹿さんの 決め）。門番 td.mod.pick・set・off・scrap（システム担当）
+const MPLACE = { cell: "廊下", block: "区画", room: "部屋" };
+const blkName = (id) => (id === "A" ? "1 つ目の 建物" : /^K\d+$/.test(id) ? `区画 ${id.slice(1)}` : `区画 ${id}`);
+function modWho(M) {
+  if (M.place === "cell") return M.to === "foe" ? "通る 敵に" : "そばで 戦う 住人に";
+  if (M.place === "block") return M.to === "foe" ? "区画に 入った 敵に" : "区画の 住人 ぜんぶに";
+  return M.when === "ambush" ? "待ち伏せで 出る とき" : M.when === "init" ? "防衛 1 回に 1 度" : "部屋の 住人に";
+}
+function mfxHTML(m) {
+  const M = MODULES[m.id]; if (!M) return "";
+  return `<span class="mfx"><span>${modWho(M)}</span>${M.fx.map(([id, kind]) => { const a = modAmt(kind, m.star), L = EFFECTS[id]?.label || id;
+    return `<b>${L}</b>${kind === "once" ? "" : kind === "turn" ? `<em>${a} ターン</em>` : kind === "shield" ? `<em>最大 HP の ${a}%</em>` : `<em>${a}</em>`}`; }).join("")}</span>`;
+}
+function modWhere(k) {
+  const i = k.indexOf(":"), kind = k.slice(0, i), v = k.slice(i + 1);
+  if (kind === "cell") return `${+v.split(":")[0] + 1}F 廊下`;
+  if (kind === "blk") return blkName(v);
+  const r = ROOMS.find((q) => q.key === v); return r ? `${r.no}号室` : "部屋";
+}
+const modName = (m) => `<span class="mstar">★${m.star}</span><span>${MODULES[m.id]?.name || m.id}</span>`;
+function modHTML() {
+  const X = TDX(), inv = X.modInv || [], at = X.modAt || {}, off = Array.isArray(X.modOffer) ? X.modOffer : null, n = (k) => inv.filter((m) => MODULES[m.id]?.place === k).length;   // 門番の me は えらぶ 3 つの 一覧
+  let kf = S.mkind; if (!kf || !n(kf)) kf = ["cell", "block", "room"].find((k) => n(k)) || "cell";
+  const offer = off && off.length ? `<div class="card"><div class="t"><b>モジュールを 1 つ えらぶ</b></div><div class="shop">${off.map((m, i) => `<div class="row"><b>${modName(m)}${mfxHTML(m)}</b><button class="go" data-mpick="${i}">えらぶ</button></div>`).join("")}</div></div>` : "";
+  const list = inv.map((m, i) => ({ m, i })).filter((x) => MODULES[x.m.id]?.place === kf).sort((a, b) => b.m.star - a.m.star);
+  const placed = Object.entries(at).filter(([, m]) => MODULES[m.id]);
+  return `${offer}${inv.length ? `<div class="mkind" aria-label="置き場所">${["cell", "block", "room"].map((k) => `<button class="${k === kf ? "on" : ""}" data-mkind="${k}" ${n(k) ? "" : "disabled"}>${MPLACE[k]}<b>${n(k)}</b></button>`).join("")}</div>
+    <div class="shop">${list.map(({ m, i }) => `<div class="row"><b>${modName(m)}${mfxHTML(m)}</b><div class="mbtn"><button class="go" data-mset="${i}">置く</button><button class="sm" data-mscrap="${i}">${S.mAsk === i ? "もう 1 回で 分解" : `分解 ${BP_SCRAP[m.star] ?? 3}`}</button></div></div>`).join("")}</div>` : off ? "" : `<p class="rnext">モジュールは 守りきると 落ちる</p>`}
+    ${placed.length ? `<details class="mput"${S.mOpen ? " open" : ""}><summary>置いて いる ${placed.length}</summary><div class="shop">${placed.map(([k, m]) => `<div class="row"><b>${modName(m)}<small>${modWhere(k)}</small></b><button class="sm" data-moff="${k}">外す</button></div>`).join("")}</div></details>` : ""}`;
+}
+// 置く：置き場所えらび（S.mp）。階は ▲▼ で かえられる
+function startModPlace(i) {
+  const m = (TDX().modInv || [])[i], M = m && MODULES[m.id]; if (!M) return;
+  S.mp = { i, m, place: M.place, at: M.place === "block" ? "blk:" + BLOCKS[0].id : null }; S.tab = null; S.pan = { x: 0, z: 0 }; hidePop(); render();
+}
+async function modDo(a, body, ok, local) {   // 門番へ（見本は その 場で）
+  if (!LIVE) { local(); toast(ok + "（見本）"); render(); return true; }
+  const r = await act(a, body); if (!r || !r.ok) { toast((r && r.why) || "できませんでした"); return false; }
+  await refresh(); toast(ok); render(); return true;
+}
+function buildHTML(close) {
+  const X = TDX(), rooms = ROOMS.filter((r) => !r.lounge).length, sub = S.bsub || "make";
+  const seg = `<div class="seg four"><button class="${sub === "make" ? "on" : ""}" data-bsub="make">建てる</button><button class="${sub === "prop" ? "on" : ""}" data-bsub="prop">不動産価値<b>Lv${plv()}</b></button><button class="${sub === "bp" ? "on" : ""}" data-bsub="bp">設計図<b>${(X.bp || []).length}</b></button><button class="${sub === "mod" ? "on" : ""}" data-bsub="mod">モジュール<b>${(X.modInv || []).length}</b></button></div>`;
+  if (sub === "prop") return `<h2>増築${close}</h2>${seg}${propHTML()}`;
+  if (sub === "bp") return `<h2>増築${close}</h2>${seg}${bpHTML()}`;
+  if (sub === "mod") return `<h2>増築${close}</h2>${seg}${modHTML()}`;
+  const F = X.first, B = X.blocks, bps = X.bp || [];
+  const first = F ? `<div class="card"><div class="t"><span class="mk">${IC.floor}</span><b>1 つ目の 建物に 階を 足す</b><span class="n">いま ${F.fl} 階</span></div>${F.fl < F.max
+    ? `<div class="cost">クレジット <b>${fmt(F.cost)}</b></div><button class="go" data-afloor>${S.aAsk ? "もう 1 回 押すと 建てる" : `${F.fl + 1} 階を 足す`}</button>`
+    : `<div class="why">${F.nextLv ? `次の 階は 不動産価値 Lv${F.nextLv} で` : "ここまで（この 先は 区画で 広げる）"}</div>`}</div>` : "";
+  const card = ([k, n, ic]) => {
+    let c = avail(k).length, why = c ? "" : whyNot(k);
+    if (k === "box" && c && LIVE && B && B.used >= B.max) { c = 0; why = `次の 区画は 不動産価値 Lv${B.nextLv} で`; }
+    else if (k === "box" && c && LIVE && !bps.length) { c = 0; why = "区画の 設計図が いる（守りきると 落ちる）"; }
+    return `<div class="card"><div class="t"><span class="mk">${IC[ic]}</span><b>${n}</b>${c ? `<span class="n">置ける 所 ${c}</span>` : ""}</div>${c ? `<button class="go" data-part="${k}">置く 場所を えらぶ</button>` : `<div class="why">${why}</div>`}</div>`;
+  };
+  return `<h2>増築${close}</h2>${seg}<div class="bsum">${TOP + 1}階建て・部屋 ${rooms}</div>${isFull() ? `<p class="done">九龍城塞の 形に なった</p>` : `
+    <div class="list">${first}${PARTS.filter(([k]) => k !== "tower").map(card).join("")}</div>`}
+    ${S.built.size && !LIVE ? `<button class="sm" data-reset>最初の アパートに もどす（見本）</button>` : ""}`;
+}
+// 部屋と 家賃の 窓（M-039）：上に 部屋の 格と 相場、下は タブで 家賃・家具・設備（1 画面 1 つの 仕事）
+function roomHTML(close) {
+  const key = S.roomKey, r = ROOMS.find((x) => x.key === key); if (!r) return `<h2>部屋と 家賃${close}</h2>`;
+  const R = r.who && RES[r.who], I = roomIn(key), g = gradeOf(I), mk = marketOf(g), st = stepOf(I), o = st - mk;
+  const nx = RENT_STEP.find((x, i) => i > mk && i > RENT_MID), furn = I.furn || [], gear = I.gear || [], like = new Set((R && TD_LIKES[R.fam]) || []);
+  const row = (k, id, name, sat, price, have, tags) => {
+    const ask = S.buyAsk === id, short = LIVE && ((LASTME && LASTME.credits) || 0) < price, need = k === "g" ? GEAR[id].lv || 1 : FURN_LV[id] || 1, lock = !have && need > plv();   // 〔決〕不動産価値の Lv で 開く
+    return `<div class="row ${have ? "have" : ""}"><b>${name}</b>${tags}<span class="p">＋${sat}</span><button class="${ask ? "go" : "sm"}" data-buy="${k}:${id}" ${have || short || lock ? "disabled" : ""}>${have ? "ある" : lock ? `Lv${need} で` : ask ? "これを 買う" : `${fmt(price)} cr`}</button></div>`;
+  };
+  const inv = Object.entries(TDX().inv || {}).filter(([id, n]) => n > 0 && TD_FURN[id]);   // ドロップした 家具（ただ・Lv が 足りなくても 置ける）
+  let body;
+  if (S.rsub === "furn") body = `${inv.length && furn.length < FURN_MAX ? `<div class="sec2">持ち物（ただで 置ける）</div><div class="shop">${inv.map(([id, n]) => `<div class="row have"><b>${TD_FURN[id].name}<small>持って いる 数 ${n}</small></b><span class="p">＋${TD_FURN[id].sat}</span><button class="go" data-inv="${id}">置く</button></div>`).join("")}</div>` : ""}<div class="owned">${furn.length ? furn.map((id) => `<span>${TD_FURN[id].name}</span>`).join("") : `<span>家具は まだ ない</span>`}</div>
+    ${furn.length >= FURN_MAX ? `<p class="full">家具は 1 部屋 3 つまで</p>` : `<div class="shop">${Object.entries(TD_FURN).map(([id, F]) => row("f", id, F.name, F.sat, F.price, false, like.has(id) ? `<span class="tag">好き</span>` : "")).join("")}</div>`}`;
+  else if (S.rsub === "gear") body = `<div class="shop">${Object.entries(GEAR).map(([id, G]) => row("g", id, G.name, SAT.gear[id], G.price, gear.includes(id), SAT.clean.includes(id) ? `<span class="tag c">汚れ止め</span>` : "")).join("")}</div>`;
+  else {
+    const note = o > 0 ? `相場より ${o} 段 高い。満足度が 毎日 ${GRUDGE.perStep * o} 下がり、家具と 設備の ＋が 効かない。${R ? "" : "この 家賃では だれも 入らない。"}`
+      : o === 0 ? `部屋に 見合った 家賃。${R && R.grudge > 0 ? "相場より 安く すると 不満が もどる。" : ""}` : `相場より 安い。${R && R.grudge > 0 ? `不満が 毎日 ${GRUDGE.perStep * -o} もどる。` : ""}`;
+    body = `<div class="steps">${RENT_STEP.map((x, i) => `<button data-step="${i}" class="${i === st ? "on" : ""} ${i > mk ? "over" : ""} ${i === mk ? "mk" : ""}" aria-pressed="${i === st}"><span data-notr>${stepTxt(i).replace("とても", "とても ")}</span><small>×${x.mul}</small></button>`).join("")}</div>
+      ${R ? `<div class="rnow">家賃 <b>${rentNow(R, key)}</b>／日</div>` : ""}
+      <div class="rnote ${o > 0 ? "warn" : ""}">${note}${R && R.grudge > 0 ? `いまの 不満 ${R.grudge}（満足度 −${R.grudge}）。` : ""}</div>
+      ${R ? payHTML(wkFill(r.who), st) : ""}`;
+  }
+  return `<h2>${r.no}号室${close}</h2>
+    <div class="rsum"><div>部屋の 格<b class="n">${g}</b></div><div>相場<b>${stepTag(mk)}</b></div></div>
+    ${nx ? `<p class="rnext">格 ${nx.grade} で 相場が ${stepTag(RENT_STEP.indexOf(nx))}</p>` : ""}
+    <div class="seg"><button class="${S.rsub === "rent" ? "on" : ""}" data-rsub="rent">家賃</button><button class="${S.rsub === "furn" ? "on" : ""}" data-rsub="furn">家具<b>${furn.length}/${FURN_MAX}</b></button><button class="${S.rsub === "gear" ? "on" : ""}" data-rsub="gear">設備<b>${gear.length}/${Object.keys(GEAR).length}</b></button></div>
+    ${body}`;
+}
+function payHTML(R, st) {   // 住人の 腕と 払える 段（払える 段 ＋ がまん を 超えると 1 段ごとに 30% の 日は 払わない）
+  const pay = SKILL[R.skill ?? 0].pay, cap = R.cap ?? pay, nm = (i) => RENT_STEP[Math.min(i, RENT_STEP.length - 1)].name, nx = SKILL[(R.skill ?? 0) + 1];
+  return `<div class="rpay ${st > cap ? "warn" : ""}"><b>${jobTxt(R)}</b><span>払えるのは ${nm(pay)} まで。がまん ${R.tol ?? 0} 段で ${nm(cap)} まで。</span>${st > cap ? `<span>それより 高いので、1 段ごとに 3 割の 日は 払わない。</span>` : ""}${nx ? `<small>あと ${Math.max(0, nx.days - (R.wdays ?? 0))} 日 働くと ${nx.name}</small>` : ""}</div>`;
+}
+function setStep(i) {   // 家賃の 高さを かえる（つなぐ ときは 門番の td.price）
+  if (LIVE) { doAct("td.price", { key: S.roomKey, step: i }, () => "家賃を かえた"); return; }
+  roomIn(S.roomKey).step = i; sampleSat(S.roomKey); toast("家賃を かえた"); renderPanel();
+}
+function buyFor(v) {   // 家具・設備を 買う（2 回 押す。つなぐ ときは td.furn・td.gear）
+  const [k, id] = v.split(":"), key = S.roomKey;
+  if (S.buyAsk !== id) { S.buyAsk = id; renderPanel(); return; }
+  S.buyAsk = null;
+  if (LIVE) { doAct(k === "g" ? "td.gear" : "td.furn", { key, id }, () => (k === "g" ? "設備を 付けた" : "家具を 置いた")); return; }
+  const I = roomIn(key); if (k === "g") (I.gear ||= []).push(id); else (I.furn ||= []).push(id);
+  sampleSat(key); toast(k === "g" ? "設備を 付けた（見本）" : "家具を 置いた（見本）"); renderPanel();
+}
+function sampleSat(key) {   // 見本：満足度を 部屋から 数えなおす（もとの 満足度 ＋ 家具と 設備。相場を 超えたら ＋なし。時間で たまる 不満は 門番だけ）
+  const r = ROOMS.find((x) => x.key === key), R = r && r.who && RES[r.who]; if (!R) return;
+  R.sat0 ??= R.sat; const I = roomIn(key), over = stepOf(I) > marketOf(gradeOf(I));
+  R.sat = Math.max(0, Math.min(100, R.sat0 + (over ? 0 : satOf({ furn: I.furn, gear: I.gear }) - SAT.base)));
+}
 
 function renderTop() {
   const def = S.mode === "def";
   document.body.classList.toggle("def", def);
   $("ttl").textContent = def ? "防衛中" : "集合住宅";
-  const alive = S.foes.filter((f) => f.alive).length;
+  const alive = S.foes.filter((f) => f.alive).length + (LD ? LD.st.queue.length : 0);
   $("turn").hidden = !def; $("turn").textContent = def ? `${t("ターン")} ${S.turn}・${t("敵")} ${alive}` : "";
   $("wings").hidden = true;   // 1 つの 建物なので 棟の チップは ない（2026-11-12 鹿さんの カード「1個の集合住宅を幾何学的に接ぎ木」）
   $("floors").hidden = def || !!S.place;   // 階は 6 階まで あるので ▲ いまの 階 ▼
@@ -899,50 +1441,86 @@ function renderTop() {
 $("floors").addEventListener("click", (e) => { const b = e.target.closest("[data-f]"); if (!b || b.disabled) return; S.floor = +b.dataset.f; hidePop(); render(); });
 
 function renderDock() {
-  const def = S.mode === "def"; $("dock").hidden = def || !!S.place;
-  if (def || S.place) return;
-  const items = [["res", "住人", IC.res, WANT.length], ["build", "増築", IC.build, 0], ["tower", "電波塔", IC.tower, NOTES.length]];
+  const def = S.mode === "def"; $("dock").hidden = def || !!S.place || !!S.mp;
+  if (def || S.place || S.mp) return;
+  const items = [["res", "住人", IC.res, WANT.length + (LIVE && TD && TD.rent.days ? 1 : 0)], ["build", "増築", IC.build, TDX().modOffer ? 1 : 0], ["tower", "電波塔", IC.tower, NOTES.length]];   // 増築の 丸：えらんで いない モジュール（M-047）
   $("dock").innerHTML = items.map(([k, n, ic, c]) => `<button data-tab="${k}" class="${S.tab === k ? "on" : ""}" aria-expanded="${S.tab === k}">${ic}${n}${c ? `<span class="dot">${c}</span>` : ""}</button>`).join("");
 }
-$("dock").addEventListener("click", (e) => { const b = e.target.closest("[data-tab]"); if (!b) return; S.tab = S.tab === b.dataset.tab ? null : b.dataset.tab; if (S.tab === "res") S.sub = "res"; hidePop(); renderDock(); renderPanel(); });
+$("dock").addEventListener("click", (e) => { const b = e.target.closest("[data-tab]"); if (!b) return; S.tab = S.tab === b.dataset.tab ? null : b.dataset.tab; if (S.tab === "res") S.sub = "res"; if (S.tab === "tower") loadHelp(); hidePop(); renderDock(); renderPanel(); });
 
 function renderPanel() {
   const el = $("panel"), on = S.mode === "home" && !!S.tab;
-  el.hidden = !on; $("main").classList.toggle("side", on && innerWidth > 760);
+  el.hidden = !on; $("main").classList.toggle("side", on && innerWidth > 760); document.body.classList.toggle("td-room", on && (S.tab === "room" || S.tab === "tower" || S.tab === "build"));   // 本番の 枠：部屋と 家賃・電波塔は 下の 帯を かくして 広く
   if (!on) { fit(); return; }
   const close = `<button class="x" data-close aria-label="閉じる">×</button>`;
   if (S.tab === "res") {
     const all = Object.keys(RES).filter((k) => roomOf(k));
-    const head = `<h2>住人${close}</h2><div class="seg"><button class="${S.sub === "res" ? "on" : ""}" data-sub="res">住人<b>${all.length}</b></button><button class="${S.sub === "want" ? "on" : ""}" data-sub="want">入居希望<b>${WANT.length}</b></button></div>`;
+    const rentBar = LIVE && TD && TD.rent.days ? `<div class="rentbar"><span>たまった 家賃</span><b>+${fmt(TD.rent.cr)}</b><button class="go" data-rent>受けとる</button></div>` : "";
+    const head = `<h2>住人${close}</h2>${rentBar}<div class="seg"><button class="${S.sub === "res" ? "on" : ""}" data-sub="res">住人<b>${all.length}</b></button><button class="${S.sub === "want" ? "on" : ""}" data-sub="want">入居希望<b>${WANT.length}</b></button></div>`;
     if (S.sub === "res") {
       const cnt = (st) => all.filter((k) => st === "all" || RES[k].st === st).length;
       let ks = all.filter((k) => S.filt === "all" || RES[k].st === S.filt);
       ks.sort((a, b) => (S.sort === "sat" ? RES[a].sat - RES[b].sat : RES[b].lv - RES[a].lv));
       el.innerHTML = head + `<div class="filters"><div class="row"><span>状態</span>${[["all", "ぜんぶ"], ...STS.map((s) => [s, s])].filter(([k]) => cnt(k) > 0).map(([k, n]) => `<button class="${S.filt === k ? "on" : ""}" data-filt="${k}">${n}<b>${cnt(k)}</b></button>`).join("")}</div>
         <div class="row"><span>ならべる</span>${[["sat", "満足度が 低い"], ["lv", "Lv"]].map(([k, n]) => `<button class="${S.sort === k ? "on" : ""}" data-sort="${k}">${n}</button>`).join("")}</div></div>
-        <div class="list">${ks.map((k) => { const R = RES[k], r = roomOf(k); return `<button class="item ${S.picked?.who === k ? "on" : ""}" data-who="${k}"><img src="${spriteURL(R.id)}" alt=""><div><div class="nm"><b>${R.name}</b><small>Lv${R.lv}</small>${R.st !== "在宅" ? stChip({ st: R.st }) : ""}</div><div class="sub">${r.no}号室</div>${meter(R.sat)}</div></button>`; }).join("")}</div>`;
+        <div class="list">${ks.map((k) => { const R = RES[k], r = roomOf(k); return `<button class="item ${S.picked?.who === k ? "on" : ""}" data-who="${k}"><img src="${spriteURL(R.id)}" alt=""><div><div class="nm"><b>${R.name}</b><small>Lv${R.lv}</small>${R.st !== "在宅" ? stChip({ st: R.st }) : ""}</div><div class="sub">${r.no}号室・${jobTxt(wkFill(k))}</div>${meter(R.sat)}</div></button>`; }).join("")}</div>`;
     } else {
-      const free = ROOMS.find((r) => !r.who && !r.lounge);
-      el.innerHTML = head + `<div class="list">${WANT.map((w, i) => `<div class="card"><div class="t"><img src="${spriteURL(w.id)}" alt="" style="width:40px;height:40px;image-rendering:pixelated"><div><b>${w.name}</b><div class="from">Lv${w.lv}</div></div></div>
-        <div class="cost">希望の 家賃 <b>${w.rent}／日</b></div><button class="go" data-in="${i}" ${free ? "" : "disabled"}>${free ? `${free.no}号室に 入れる` : "空き部屋が ない"}</button></div>`).join("")}</div>
+      const free = freeRoom(), why = anyEmpty() ? "空き部屋の 家賃が 高すぎる" : "空き部屋が ない";
+      el.innerHTML = head + `<div class="list">${WANT.map((w, i) => `<div class="card"><div class="t"><img src="${spriteURL(w.id)}" alt="" style="width:40px;height:40px;image-rendering:pixelated"><div><b>${w.name}</b><div class="from">Lv${w.lv}・${w.job ? `${SKILL[w.skill ?? 0].name} ${w.job}` : jobTxt(wkWant(w))}${w.mine ? `<span class="st mine">自分の 子</span>` : ""}</div></div></div>
+        <div class="cost">希望の 家賃 <b>${w.rent}／日</b></div><button class="go" data-in="${i}" ${free ? "" : "disabled"}>${free ? `${free.no}号室に 入れる` : why}</button></div>`).join("")}</div>
         <button class="sm" data-reroll>掲示板を かえる・アメジスト 1</button>`;
     }
-  } else if (S.tab === "build") {   // 増築（M-032）：パーツ 5 つ。置ける 所の 数を 丸で。置けない ときは わけを 1 行
-    const rooms = ROOMS.filter((r) => !r.lounge).length;
-    el.innerHTML = `<h2>増築${close}</h2><div class="bsum">${TOP + 1}階建て・部屋 ${rooms}</div>${isFull() ? `<p class="done">九龍城塞の 形に なった</p>` : `
-      <div class="list">${PARTS.map(([k, n, ic]) => { const c = avail(k).length; return `<div class="card"><div class="t"><span class="mk">${IC[ic]}</span><b>${n}</b>${c ? `<span class="n">置ける 所 ${c}</span>` : ""}</div>${c ? `<button class="go" data-part="${k}">置く 場所を えらぶ</button>` : `<div class="why">${whyNot(k)}</div>`}</div>`; }).join("")}</div>`}
-      ${S.built.size ? `<button class="sm" data-reset>最初の アパートに もどす（見本）</button>` : ""}`;
+  } else if (S.tab === "build") {   // 増築（M-032）＋ 不動産価値と 設計図（M-043）：タブで 建てる／不動産価値／設計図
+    el.innerHTML = buildHTML(close);
+  } else if (S.tab === "room") {
+    el.innerHTML = roomHTML(close);
   } else {
-    el.innerHTML = `<h2>電波塔${close}</h2><div class="list">${NOTES.map((n, i) => `<div class="card"><div class="t"><b>${n.t}</b><span class="stars" aria-label="強さ ${n.star}">${"★".repeat(n.star)}${"☆".repeat(5 - n.star)}</span></div><div class="from">${n.from}</div>
-      <div class="foes">${n.foes ? n.foes.map((id) => `<img src="${spriteURL(id)}" alt="">`).join("") : IC.pom.replace("<svg", '<svg width="32" height="32"')}<span>${n.foes ? `${n.foes.length} 体` : `POM ${n.pom} 機`}・${n.lv}</span></div>
-      <div class="rw"><span>勝ち <b>+${fmt(n.win)}</b>・シグナル <b>${n.sg}</b></span><span class="lose">負け <b>−${fmt(n.lose)}</b></span></div>
-      <button class="go" data-note="${i}">迎え撃つ</button></div>`).join("")}</div>`;
+    el.innerHTML = towerHTML(close);
   }
   fit();
 }
 $("panel").addEventListener("click", (e) => {
   const b = e.target.closest("button"); if (!b) return;
   if ("close" in b.dataset) { S.tab = null; renderDock(); renderPanel(); return; }
+  if (b.dataset.bsub) { S.bsub = b.dataset.bsub; S.aAsk = false; S.bpAsk = null; S.mAsk = null; renderPanel(); return; }
+  if ("afloor" in b.dataset) {   // 1 つ目の 建物に 階を 足す（2 回 押す）
+    if (!S.aAsk) { S.aAsk = true; renderPanel(); return; }
+    S.aAsk = false; if (!LIVE) { S.fl = Math.min(A_FULL, (S.fl || 2) + 1); composeShape(); S.floor = TOP; render(); toast(`${S.fl} 階に した（見本）`); return; }
+    doAct("td.build", { slot: "A+" }, (r) => `${r.fl} 階に した・部屋 ${r.rooms}`); return;
+  }
+  if (b.dataset.mkind) { S.mkind = b.dataset.mkind; S.mAsk = null; renderPanel(); return; }
+  if (b.dataset.mset) { startModPlace(+b.dataset.mset); return; }
+  if (b.dataset.mscrap) {   // モジュールを 分解（2 回 押す）
+    const i = +b.dataset.mscrap; if (S.mAsk !== i) { S.mAsk = i; renderPanel(); return; }
+    S.mAsk = null; modDo("td.mod.scrap", { i }, "分解した・スクラップを 倉庫へ", () => SAMPLE_TD.modInv.splice(i, 1)); return;
+  }
+  if (b.dataset.moff) { const k = b.dataset.moff; S.mOpen = true; modDo("td.mod.off", { at: k }, "外した・持ち物へ", () => { SAMPLE_TD.modInv.push(SAMPLE_TD.modAt[k]); delete SAMPLE_TD.modAt[k]; }); return; }
+  if (b.dataset.mpick) { const i = +b.dataset.mpick; modDo("td.mod.pick", { i }, "えらんだ・持ち物へ", () => { SAMPLE_TD.modInv.push(SAMPLE_TD.modOffer[i]); SAMPLE_TD.modOffer = null; }); return; }
+  if (b.dataset.bpscrap) {   // 設計図を 分解（2 回 押す）
+    const i = +b.dataset.bpscrap; if (S.bpAsk !== i) { S.bpAsk = i; renderPanel(); return; }
+    S.bpAsk = null; if (!LIVE) { SAMPLE_TD.bp.splice(i, 1); toast("分解した（見本）"); renderPanel(); return; }
+    doAct("td.bp.scrap", { i }, () => "分解した・スクラップを 倉庫へ"); return;
+  }
+  if (b.dataset.tsub) { S.tsub = b.dataset.tsub; S.sendTo = null; renderPanel(); loadHelp(); return; }
+  if (b.dataset.sendto) { S.sendTo = b.dataset.sendto; renderPanel(); return; }
+  if (b.dataset.send) {   // 子を 送る
+    const pid = S.sendTo; S.sendTo = null;
+    if (!LIVE) { const h = HL.find((x) => x.pid === pid); if (h) { h.n++; h.mine = true; } toast("子を 送った（見本）"); renderPanel(); return; }
+    doAct("td.help.send", { pid, uid: b.dataset.send }, () => "子を 送った").then(loadHelp); return;
+  }
+  if (b.dataset.hpost) {   // 手伝いを 募集
+    const N = NOTES[+b.dataset.hpost];
+    if (!LIVE) { S.shelp = { k: N.k, n: 1, helpers: [{ name: "kuro", c: { tree: "e_hare", name: "ホーンラビット" } }] }; toast("手伝いを 募集した（見本）"); renderPanel(); return; }
+    doAct("td.help.post", { i: NOTES.filter((n) => !n.stale).indexOf(N) }, () => "手伝いを 募集した").then(loadHelp); return;
+  }
+  if (b.dataset.rsub) { S.rsub = b.dataset.rsub; S.buyAsk = null; renderPanel(); return; }
+  if (b.dataset.step) { setStep(+b.dataset.step); return; }
+  if (b.dataset.buy) { buyFor(b.dataset.buy); return; }
+  if (b.dataset.inv) {   // 持ち物の 家具を 置く（ただ）
+    const id = b.dataset.inv, key = S.roomKey;
+    if (!LIVE) { (roomIn(key).furn ||= []).push(id); SAMPLE_TD.inv[id]--; sampleSat(key); toast("家具を 置いた（見本）"); renderPanel(); return; }
+    doAct("td.furn", { key, id, inv: true }, () => "家具を 置いた"); return;
+  }
   if (b.dataset.sub) { S.sub = b.dataset.sub; renderPanel(); return; }
   if (b.dataset.filt) { S.filt = b.dataset.filt; renderPanel(); return; }
   if (b.dataset.sort) { S.sort = b.dataset.sort; renderPanel(); return; }
@@ -952,11 +1530,16 @@ $("panel").addEventListener("click", (e) => {
     const v = new THREE.Vector3(r.rx + r.rw / 2, r.f * FH + 0.8, r.rz + r.rd / 2).project(cam);
     showPop(r, ((v.x + 1) / 2) * view.clientWidth, ((1 - v.y) / 2) * view.clientHeight); renderPanel(); return;
   }
-  if (b.dataset.in) { const w = WANT[+b.dataset.in], free = ROOMS.find((r) => !r.who && !r.lounge); if (!free) return;
+  if ("rent" in b.dataset) { doAct("td.rent", {}, (r) => `家賃 +${fmt(r.cr)}`); return; }
+  if (LIVE && b.dataset.in) { const w = WANT[+b.dataset.in], free = freeRoom(); if (!free) return;
+    S.sub = "res"; S.floor = free.f; doAct("td.movein", { i: w.i, key: free.key }, () => "入居した"); return; }
+  if (LIVE && "reroll" in b.dataset) { doAct("td.board", {}, () => "掲示板を かえた"); return; }
+  if (b.dataset.in) { const w = WANT[+b.dataset.in], free = freeRoom(); if (!free) return;
     const who = w.id + "@" + free.no; RES[who] = { id: w.id, name: w.name, lv: w.lv, sat: 60, rent: w.rent, st: "在宅", type: "アタッカー" }; free.who = who; OCC[free.key] = who; WANT.splice(+b.dataset.in, 1); S.sub = "res"; S.floor = free.f; toast(`${w.name}が 入居した`); render(); return; }
   if ("reroll" in b.dataset) { toast("掲示板を かえた（見本）"); return; }
   if (b.dataset.part) { startPlace(b.dataset.part); return; }
-  if ("reset" in b.dataset) { setBuilt([]); S.floor = TOP; S.pan = { x: 0, z: 0 }; hidePop(); render(); return; }
+  if ("reset" in b.dataset) { S.fl = undefined; S.stars = {}; setBuilt([]); S.floor = TOP; S.pan = { x: 0, z: 0 }; hidePop(); render(); return; }
+  if (LIVE && b.dataset.note) { startLiveDef(+b.dataset.note); return; }
   if (b.dataset.note) { startDef(NOTES[+b.dataset.note].foes ? NOTES[+b.dataset.note] : NOTES[0]); return; }
 });
 
@@ -966,20 +1549,51 @@ const SPECIAL = { アタッカー: ["突撃", "1 ターンに 2 マス 進む（
   キャスター: ["遠くから", "2 マス 先の 敵とも 戦える（見本）"], ヒーラー: ["回復", "となりの 部屋の 住人を 回復（見本）"] };
 function startPlace(part) { S.place = { part, i: 0 }; S.tab = null; S.pan = { x: 0, z: 0 }; hidePop(); placeFloor(); render(); }
 function placeFloor() { const b = slotBox(avail(S.place.part)[S.place.i]); S.floor = b.f + Math.max(0, b.h - 1); }   // えらんだ 候補の 階で 切って 見せる
+const busyOn = (b) => { b.disabled = true; b.dataset.was = b.textContent; b.textContent = "たしかめて います…"; };
+const busyOff = (b) => { if (!b.isConnected) return; b.disabled = false; b.textContent = b.dataset.was || b.textContent; };
 function renderPlace() {
-  const el = $("bsel"); el.hidden = !S.place || S.mode !== "home"; document.body.classList.toggle("td-place", !el.hidden);
+  const el = $("bsel"); el.hidden = !(S.place || S.mp) || S.mode !== "home"; document.body.classList.toggle("td-place", !el.hidden);
   if (el.hidden) return;
-  const list = avail(S.place.part), x = list[S.place.i], ic = PARTS.find((p) => p[0] === S.place.part)[2];
+  if (S.mp) {   // モジュールを 置く 所えらび（M-047）
+    const M = MODULES[S.mp.m.id], k = S.mp.at, cur = k && (TDX().modAt || {})[k];
+    el.innerHTML = `<div class="who"><span class="mk">${IC.mod}</span><div><span class="nm">${modName(S.mp.m)}</span><p>${k ? modWhere(k) : S.mp.place === "cell" ? "廊下か 階段の マスを 押す" : "部屋を 押す"}</p>${cur ? `<p>入れかえ：${MODULES[cur.id]?.name || ""}</p>` : ""}</div></div>
+      ${S.mp.place === "block" ? `<div class="pick" aria-label="区画">${BLOCKS.map((b) => `<button class="${k === "blk:" + b.id ? "on" : ""}" data-mblk="${b.id}">${b.id === "A" ? "1 つ目" : blkName(b.id)}</button>`).join("")}</div>` : ""}
+      <button class="ok" data-mok ${k ? "" : "disabled"}>置く</button><button class="no" data-mno aria-label="やめる">×</button>`;
+    return;
+  }
+  const list = avail(S.place.part); if (S.place.i >= list.length) S.place.i = 0;
+  const x = list[S.place.i], ic = PARTS.find((p) => p[0] === S.place.part)[2];
+  if (!x) { el.innerHTML = `<div class="who"><span class="mk">${IC[ic]}</span><div><span class="nm">${partName(S.place.part)}</span><p>この 設計図では 置ける 所が ない</p></div></div>${S.place.part === "box" ? `<div class="pick bp" aria-label="設計図">${(TDX().bp || []).map((st, i) => `<button class="${i === (S.place.bp ?? 0) ? "on" : ""}" data-bp="${i}" title="${bpDesc(st)}">★${st}</button>`).join("")}</div>` : ""}<button class="no" data-no aria-label="やめる">×</button>`; return; }
   el.innerHTML = `<div class="who"><span class="mk">${IC[ic]}</span><div><span class="nm">${partName(S.place.part)}</span><p>${slotText(x)}</p><p>クレジット <b>${fmt(slotCost(x))}</b></p></div></div>
     ${list.length > 1 ? `<div class="pick" aria-label="置ける 所">${list.map((_, i) => `<button class="${i === S.place.i ? "on" : ""}" data-slot="${i}">${i + 1}</button>`).join("")}</div>` : ""}
+    ${S.place.part === "box" ? `<div class="pick bp" aria-label="設計図">${(TDX().bp || []).map((st, i) => `<button class="${i === (S.place.bp ?? 0) ? "on" : ""}" data-bp="${i}" title="${bpDesc(st)}">★${st}</button>`).join("")}</div>` : ""}
     <button class="ok" data-ok>建てる</button><button class="no" data-no aria-label="やめる">×</button>`;
 }
 $("bsel").addEventListener("click", (e) => {
   const b = e.target.closest("button"); if (!b) return;
+  if (b.dataset.mblk) { S.mp.at = "blk:" + b.dataset.mblk; render(); return; }
+  if ("mno" in b.dataset) { S.mp = null; S.tab = "build"; S.bsub = "mod"; render(); return; }
+  if ("mok" in b.dataset && S.mp && S.mp.at) {
+    const { i, m, at } = S.mp, raw = at.slice(at.indexOf(":") + 1);
+    busyOn(b); modDo("td.mod.set", { i, at: raw }, "置いた", () => { const old = SAMPLE_TD.modAt[at]; SAMPLE_TD.modInv.splice(i, 1); if (old) SAMPLE_TD.modInv.push(old); SAMPLE_TD.modAt[at] = { id: m.id, star: m.star }; })
+      .then((ok) => { busyOff(b); if (ok) { S.mp = null; S.tab = innerWidth > 760 ? "build" : null; S.bsub = "mod"; render(); } });
+    return;
+  }
   if (b.dataset.slot) { S.place.i = +b.dataset.slot; placeFloor(); render(); return; }
+  if (b.dataset.bp) { S.place.bp = +b.dataset.bp; S.place.i = 0; if (avail(S.place.part).length) placeFloor(); render(); return; }   // 設計図で 太さが かわると 置ける 所も かわる
   if ("no" in b.dataset) { S.place = null; S.tab = "build"; S.floor = TOP; render(); return; }
+  if ("ok" in b.dataset && LIVE) {
+    const x = avail(S.place.part)[S.place.i], box = slotBox(x), before = ROOMS.filter((r) => !r.lounge).length;
+    busyOn(b); act("td.build", { slot: x.id, ...(x.part === "box" ? { bp: S.place.bp ?? 0 } : {}) }).then(async (r) => {
+      busyOff(b); if (!r || !r.ok) { toast((r && r.why) || "建てられませんでした"); return; }
+      S.place = null; S.flash = box; S.tab = innerWidth > 760 ? "build" : null; await refresh(); S.floor = Math.min(TOP, box.f + Math.max(0, box.h - 1)); render();
+      const add = ROOMS.filter((q) => !q.lounge).length - before; toast(r.star ? `★${r.star} の 区画を 建てた` : add > 0 ? `建てた・部屋 +${add}` : "建てた");
+    });
+    return;
+  }
   if ("ok" in b.dataset) {
     const x = avail(S.place.part)[S.place.i], box = slotBox(x), before = ROOMS.filter((r) => !r.lounge).length;
+    if (x.part === "box") { const bp = TDX().bp || []; starsNow()[x.blk] = bp[S.place.bp ?? 0] || 3; }   // 見本：えらんだ 設計図の ★（へらさない）
     S.built.add(x.id); S.order.push(x.id); composeShape();
     const add = ROOMS.filter((r) => !r.lounge).length - before;
     S.place = null; S.flash = box; S.floor = Math.min(TOP, box.f + Math.max(0, box.h - 1)); S.tab = innerWidth > 760 ? "build" : null;
@@ -989,33 +1603,54 @@ $("bsel").addEventListener("click", (e) => {
 function renderCmd() {
   const el = $("cmd"), def = S.mode === "def"; el.hidden = !def; $("mini").hidden = !def;
   if (!def) return;
+  if (!el._cb) { el.innerHTML = `<div class="cb"></div><div class="sw" role="group" aria-label="進め方"><button data-auto="0">マニュアル</button><button data-auto="1">自動</button></div>`; el._cb = el.querySelector(".cb"); el._sw = el.querySelector(".sw"); }
+  el._sw.hidden = !LD; el._sw.children[0].classList.toggle("on", !S.auto); el._sw.children[1].classList.toggle("on", !!S.auto);
+  const put = (h) => { if (el._cb._h !== h) { el._cb.innerHTML = h; el._cb._h = h; } };   // 中身が かわった ときだけ 描く
+  el.classList.remove("wrap");
+  if (LD && S.auto) {   // 自動の あいだ：進み（ターン・戦い・たおした・殺された）と 出来事 2 つ
+    const st = LD.st, all = Object.values(st.units).filter((x) => x.side === "foe").length + st.queue.length;
+    put(`<div class="ast"><b>自動で 進めて います</b><p class="sr"><i>ターン ${S.turn}</i><i>戦い ${st.battles.length}</i><i>たおした ${st.beaten.length}/${all}</i>${st.dead.length ? `<i class="bad">殺された ${st.dead.length}</i>` : ""}</p>${(LD.log || []).slice(0, 2).map((m) => `<span class="lg">${esc(m)}</span>`).join("")}</div>`);
+    renderMini(); return;
+  }
   const end = `<button class="end" data-end>ターン おわり</button>`;
-  if (!S.sel) { el.innerHTML = `<div class="who"><span class="hint">住人を えらぶ</span></div>${end}`; }
+  if (!S.sel) { put(`<div class="who"><span class="hint">住人を えらぶ</span></div>${end}`); }
   else {
     const R = RES[S.sel], r = roomOf(S.sel), sp = SPECIAL[R.type] || ["", ""];
     // 退避の 材料（鹿さんの カード「A 指示の帯に出す」2026-11-14）：次に 来る 敵・Lv・あと 何 ターン と 逃げやすさ（AGI の くらべっこ）
-    const nf = nextFoe(r), d = nf ? agiRes(R) - agiFoe(nf.fo) : 0, ease = d >= 5 ? "逃げやすい" : d <= -5 ? "逃げにくい" : "五分五分";
+    const nf = LD ? liveNextFoe(r) : nextFoe(r), aM = LD ? (LD.st.units[r.key]?.c.stats?.agi | 0) : agiRes(R), aF = nf ? (LD ? ((LD.st.units[nf.fo.uid] || LD.st.queue.find((u) => u.uid === nf.fo.uid))?.c.stats?.agi | 0) : agiFoe(nf.fo)) : 0;   // 入口の 外で 待つ 敵は queue に いる
+    const odds = LD && nf ? retreatOdds(aM, aF) : null, d = aM - aF, ease = odds != null ? (odds >= 0.6 ? "逃げやすい" : odds <= 0.4 ? "逃げにくい" : "五分五分") : d >= 5 ? "逃げやすい" : d <= -5 ? "逃げにくい" : "五分五分";
     const info = S.rest.has(S.sel) ? `<p class="nx">休み（この 防衛の あいだ）</p>`
-      : nf ? `<p class="nx ${nf.fo.lv > R.lv ? "bad" : ""}"><b>${FOE_NAME[nf.fo.id] || "敵"}</b><span>${nf.n ? `Lv${nf.fo.lv}・あと ${nf.n} ターン` : `Lv${nf.fo.lv}・いま ドアの 前`}</span></p><p class="nx">退避：${ease}（AGI ${agiRes(R)}・敵 ${agiFoe(nf.fo)}）</p>`
+      : nf ? `<p class="nx ${nf.fo.lv > R.lv ? "bad" : ""}"><b>${foeName(nf.fo.id)}</b><span>${nf.n ? `Lv${nf.fo.lv}・あと ${nf.n} ターン` : `Lv${nf.fo.lv}・いま ドアの 前`}</span></p><p class="nx">退避：${ease}（AGI ${aM}・敵 ${aF}）</p>`
       : `<p class="nx">この 部屋の 前は 敵が 通らない</p>`;
-    el.innerHTML = `<div class="who"><img src="${spriteURL(R.id)}" alt=""><div style="min-width:0"><b>${R.name}</b><span>${R.type}・${r.no}号室</span>${info}</div></div>
-      ${S.rest.has(S.sel) ? "" : `<div class="acts">${["出撃", "待機", "移動", "待ち伏せ", sp[0], "退避"].map((c, i) => `<button data-c="${c}" class="${S.cmd[S.sel] === c ? "on" : ""}${i === 4 ? " sp" : ""}">${c}</button>`).join("")}</div>`}${end}`;
+    // ヒーラーの 相手（M-046。システム担当の お願い 5）：2 マス 以内の 戦いの 中で 倒れた 子（起こす）と HP の へった 子（回復）から えらぶ
+    let htg = "";
+    if (LD && R.type === "ヒーラー" && S.cmd[S.sel] === sp[0] && !S.rest.has(S.sel)) {
+      const cs = healCands(r.key), cur = (cs.find((c) => c.uid === S.tgt[S.sel]) || cs[0])?.uid;
+      htg = `<div class="htg"><span>回復の 相手</span>${cs.length ? cs.map((c) => `<button data-tgt="${c.uid}" class="${c.uid === cur ? "on" : ""}${c.down ? " down" : ""}"><b>${c.down ? "起こす" : "回復"}</b><span>${esc(c.name)}</span>${c.down ? "" : `<span>${Math.round(c.p * 100)}%</span>`}</button>`).join("") : `<span>2 マス 以内に 回復できる 子が いない</span>`}</div>`;
+      el.classList.add("wrap");
+    }
+    put(`<div class="who"><img src="${spriteURL(R.id)}" alt=""><div style="min-width:0"><b>${R.name}</b><span>${R.type}・${r.no}号室</span>${info}</div></div>
+      ${S.rest.has(S.sel) ? "" : `<div class="acts">${["出撃", "待機", "移動", "待ち伏せ", sp[0], "退避"].map((c, i) => `<button data-c="${c}" class="${S.cmd[S.sel] === c ? "on" : ""}${i === 4 ? " sp" : ""}">${c}</button>`).join("")}</div>`}${end}${htg}`);
   }
   renderMini();
 }
 $("cmd").addEventListener("click", (e) => {
   const b = e.target.closest("button"); if (!b) return;
+  if (b.dataset.auto) { setAuto(b.dataset.auto === "1"); return; }
+  if (b.dataset.tgt) { S.tgt[S.sel] = b.dataset.tgt; renderCmd(); return; }
   if (b.dataset.c) {
     const c = b.dataset.c, sp = SPECIAL[RES[S.sel].type];
     S.cmd[S.sel] = c;
     if (c === "移動") toast("移動する マスを えらぶ（見本）");
+    else if (LD && sp && c === sp[0] && RES[S.sel].type === "ヒーラー") toast("回復：2 マス 以内。倒れた 子も 起こせる");
     else if (sp && c === sp[0]) toast(sp[1]);
-    else if (c === "退避") toast("ターン おわりで 部屋へ 退避（AGI の くらべっこ）");
+    else if (c === "退避") toast(LD ? "戦いの 中なら ターン おわりで 退避（AGI の くらべっこ）" : "ターン おわりで 部屋へ 退避（AGI の くらべっこ）");
     buildWorld(); renderCmd(); return;
   }
   if ("end" in b.dataset) endTurn();
 });
 function endTurn() {
+  if (LD) return liveTurn();
   // 敵は みんな 1 歩（6 回目）。待ち伏せ・出撃の 住人の ドアの 前を 通ると ぶつかって いつもの ガンビットで 戦う（見本は 住人が 勝つ）
   // 退避（21 回目）：成否は AGI の くらべっこ（いちばん 早く 来る 敵と）。もどった 子は その 防衛の あいだ 休み
   for (const [who, c] of Object.entries(S.cmd)) {
@@ -1126,13 +1761,21 @@ function win() {
   const n = S.note; render();
   $("result").innerHTML = `<div><b>守りきった</b><p>クレジット <em>+${fmt(n.win)}</em><br>シグナル <em>+${n.sg}</em></p><button class="go" data-back>もどる</button></div>`; $("result").hidden = false;
 }
-$("result").addEventListener("click", (e) => { if (e.target.closest("[data-back]")) { $("result").hidden = true; Object.assign(S, { mode: "home", floor: TOP, sel: null, cmd: {}, foes: [], pan: { x: 0, z: 0 } }); render(); } });
+$("result").addEventListener("click", (e) => {
+  const rp = e.target.closest("[data-rpick]");
+  if (rp) {   // 守りきって 落ちた モジュールを 1 つ えらぶ（M-047。えらばずに もどっても 増築の 窓で えらべる）
+    const box = rp.parentElement; box.querySelectorAll("button").forEach((x) => (x.disabled = true));
+    act("td.mod.pick", { i: +rp.dataset.rpick }).then((r) => { if (!r || !r.ok) { toast((r && r.why) || "できませんでした"); box.querySelectorAll("button").forEach((x) => (x.disabled = false)); return; }
+      box.innerHTML = `<b>えらんだ・持ち物へ</b>`; });
+    return;
+  } if (e.target.closest("[data-back]") && LD) { $("result").hidden = true; LD = null; Object.assign(S, { mode: "home", floor: TOP, sel: null, cmd: {}, foes: [], pan: { x: 0, z: 0 } }); refresh(); return; }
+  if (e.target.closest("[data-back]")) { $("result").hidden = true; Object.assign(S, { mode: "home", floor: TOP, sel: null, cmd: {}, foes: [], pan: { x: 0, z: 0 } }); render(); } });
 // 右上の 小さな 地図（どの 階に 敵が いるか。押すと その 階へ）。1 つの 建物なので 階の 列だけ
 function renderMini() {
   const W = 120, ch = 16, base = 4 + (TOP + 1) * (ch + 3);
   let svg = `<svg viewBox="0 0 ${W} ${base + 2}" role="img" aria-label="小さな 地図">`;
   for (let f = 0; f <= TOP; f++) {
-    const y = base - (f + 1) * (ch + 3), on = S.floor === f, n = S.foes.filter((fo) => fo.alive && PATH[fo.step].f === f).length;
+    const y = base - (f + 1) * (ch + 3), on = S.floor === f, n = S.foes.filter((fo) => fo.alive && (LD ? cpos(fo.cell)?.f === f : PATH[fo.step].f === f)).length;
     const wpx = 40 + (BLOCKS.filter((b) => f >= b.f0 && f < b.f0 + b.h).reduce((a, b) => a + b.w * b.d, 0) / 3.2);   // 階の 広さで 横の 長さ
     svg += `<g data-mf="${f}" style="cursor:pointer"><rect x="${(W - wpx) / 2}" y="${y}" width="${wpx}" height="${ch}" rx="4" fill="${on ? "#3A4A8A" : "#232C55"}" stroke="${on ? "#8EA0FF" : "#3A4478"}" stroke-width="1.2"/>`;
     svg += `<text x="${(W - wpx) / 2 + 6}" y="${y + ch - 4}" fill="#B8C4FF" font-size="12" font-weight="700">${f + 1}F</text>`;
@@ -1147,9 +1790,10 @@ $("mini").addEventListener("click", (e) => { const g = e.target.closest("[data-m
 function render() { renderTop(); renderDock(); renderPanel(); renderCmd(); renderPlace(); renderClock(); buildWorld(); }
 if (S.mode === "home") for (const r of ROOMS) { const R = r.who && RES[r.who]; if (R && R.st !== "病気") { R.st = stateAt(r.who, S.clock); note(R, R.st === "ねている" ? "ねた" : "起きた"); R.diary[0].t = R.st === "ねている" ? "前の 夜" : hhmm(S.clock); } }
 setInterval(lifeTick, 500);
-if (S.mode === "def") startDef(NOTES[0]); else render();
+$("gate").addEventListener("click", (e) => { if (e.target.closest("[data-login]")) startLogin(); if (e.target.closest("[data-retry]")) refresh(); });
+if (S.mode === "def") startDef(NOTES[0]); else if (LIVE) { WANT.length = 0; NOTES.length = 0; S.clock = jstMin(Date.now()); render(); refresh().then(() => liveLife(false)); } else render();   // つなぐ ときは 見本の 入居希望と 通知を 出さない
 if (new URLSearchParams(location.search).has("bt")) showBattles(DEMO);   // ?bt：試しの 2 戦から 始める（最後の「建物へ もどる」で 建物へ）
-window.__td = { showBattles, DEMO, S, render, startDef, NOTES, RES, SLOTS, lifeTick, neighbors, bondOf, fxs, avail, setBuilt, ROOMS: () => ROOMS, TOP: () => TOP, keyOf: (id) => Object.keys(RES).find((k) => RES[k].id === id) };
+window.__td = { LIVE, refresh, showPop, WORLD: () => world, showModPop, startModPlace, endHTML, TD: () => TD, LD: () => LD, mapOf, liveTurn, setAuto, healCands, liveFinish: (w) => liveFinish(w), showBattles, DEMO, S, render, startDef, NOTES, RES, SLOTS, lifeTick, neighbors, bondOf, fxs, avail, startPlace, setBuilt, ROOMS: () => ROOMS, TOP: () => TOP, keyOf: (id) => Object.keys(RES).find((k) => RES[k].id === id) };
 </script>
 </body>
 </html>

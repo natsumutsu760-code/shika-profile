@@ -45,7 +45,7 @@ export const invaderFighter = (v) => ({ ...foeOf({ tree: v.tree, name: v.name, t
 export const tamedOf = (f, lv = f.lv, equip = [], pow = 1) => {
   const g = growOf(f, lv), p = petAt(f.type, lv, g ? { main: f.tree, subs: g.subs, bonusSp: g.bonusSp } : { main: f.tree }), st = { ...p.stats }, mul = pow * (1 + PLUS_RATE * (f.plus || 0));
   for (const k in st) st[k] = Math.round((st[k] + ((f.inh && f.inh[k]) || 0)) * mul * (f.inb && k !== f.inb ? INBRED_LOW : 1));   // 近親配合の 子：いちばん 高い 力の ほかは 8 割
-  return { ...p, name: f.name, owner: "VR", lv, stats: st, species: null, equip, tree: f.tree };
+  return { ...p, name: f.name, owner: "VR", lv, stats: st, species: null, equip, tree: f.tree, ...(f.tdMix ? { tdMix: f.tdMix } : {}) };   // tdMix：集合住宅の まざった 子の 絵（戦いは 親の ツリー。2026-11-18）
 };
 
 const pickW = (R, w) => { const t = Object.values(w).reduce((a, b) => a + b, 0); let x = R() * t; for (const [k, v] of Object.entries(w)) if ((x -= v) < 0) return +k; return +Object.keys(w)[0]; };

@@ -91,6 +91,7 @@
     .panel h2 { display:none; }
     .done { padding:11px; font-size:14px; }
     .bar { flex-wrap:wrap; } .bar h1 { font-size:17px; flex:1 0 100%; }
+    .bar { gap:8px; } .bar .sw, .bar .edit { padding:9px 12px; }   /* 集合住宅の 入口で ボタンが 4 つ。スマホで 1 行に おさめる（2026-11-14） */
   }
 </style>
 </head>
@@ -98,7 +99,7 @@
 <header class="top"><a href="/" style="color:inherit;text-decoration:none" aria-label="MONO LINK の サイトへ"><b>MONO LINK<i>://</i></b></a><small>プライベートラウンジ</small></header>
 <main id="app">
   <section aria-label="部屋">
-    <div class="bar"><h1 id="title">部屋</h1><a class="sw" href="lounge-shop.html">家具の お店</a><button class="sw" id="light" aria-pressed="false">☀ 昼</button><button class="edit" id="edit">もようがえ</button></div>
+    <div class="bar"><h1 id="title">部屋</h1><a class="sw" href="lounge-shop.html">家具の お店</a><a class="sw" id="tdGo" href="td.html" hidden>集合住宅</a><button class="sw" id="light" aria-pressed="false">☀ 昼</button><button class="edit" id="edit">もようがえ</button></div>
     <div class="view" id="view" aria-label="6×6 マスの 部屋。ペットを 押すと なでる"><p class="toast" id="toast" role="status"></p></div>
   </section>
   <aside class="panel" id="panel" aria-label="もようがえ" hidden></aside>
@@ -150,6 +151,7 @@ if (ME.order && ME.order.ready && (!ME.order.signed || !orderHeard)) {
 }
 const GDN = !ME.lock && !!ME.farmv;   // 庭への扉（新しい 農園）：農園が 開いて いて、ロックで とめられて いない 人だけ（いまは 鹿さんと おたこまるさん）
 const MP = ME.pets && ME.pets[0];   // 1 匹目（まだ いなければ 部屋には いない。ふだは「ペットを むかえる」）
+document.getElementById("tdGo").hidden = !MP;   // 集合住宅の 入口（研究ノートの 15 回目「ラウンジの部屋から」・2026-11-14 鹿さんの カード「ペットを むかえてから」。最後に 戦う MONO ペットが いる 人だけ）
 let OWN = (ME.own && ME.own.furniture) || {};   // お店（lounge-shop.html）で 買うと ふえる
 let uidN = 0;
 const withUid = (list) => list.map((it) => ({ uid: ++uidN, ...it }));

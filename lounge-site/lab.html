@@ -192,7 +192,7 @@ function exList() {
     return `<button class="chip" data-act="exf" data-v="${v}" aria-pressed="${F.f === v}" ${n === 0 && F.f !== v ? "disabled" : ""}>${label}<small>${n}</small></button>`; };
   const item = (c) => { const T = TYPES[c.type] || { color: "#8E6CFF" }, on = F.pick.has(c.uid);
     return `<li><button class="dx" data-act="expick" data-u="${esc(c.uid)}" aria-pressed="${on}" ${c.lock ? "disabled" : ""} aria-label="${esc(c.name)} Lv${c.lv}${c.lock ? `（${c.lock}）` : ""}" title="${esc(c.name)}${c.lock ? `：${c.lock}` : ""}">
-      <span class="face" style="--c:${T.color}"><img src="${spriteURL(c.tree)}" alt="">${rkl(c.tree)}</span><b>${esc(c.name)}${c.plus ? `<span class="plus">＋${c.plus}</span>` : ""}</b>${c.lock ? `<small class="lock">${c.lock}</small>` : `<small>Lv${c.lv}</small>`}</button></li>`; };
+      <span class="face" style="--c:${T.color}"><img src="${spriteURL(c.tdMix || c.tree)}" alt="">${rkl(c.tree)}</span><b>${esc(c.name)}${c.plus ? `<span class="plus">＋${c.plus}</span>` : ""}</b>${c.lock ? `<small class="lock">${c.lock}</small>` : `<small>Lv${c.lv}</small>`}</button></li>`; };
   const sel = free.filter((c) => !F.pick.has(c.uid)).length;
   return `<section class="panel list" aria-label="あまった 子"><h2>あまった 子<small>ぜんぶで ${S.all.length} 体</small></h2>
     <div class="fline" role="group" aria-label="しぼりこみと ならべかた">${chip("all", "すべて")}${chip("dup", "かぶり")}${CATS.map((r) => chip(r, r)).join("")}<span class="gap"></span>

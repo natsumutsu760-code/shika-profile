@@ -275,7 +275,7 @@ const left = (c) => Math.max(0, need(c) - c.gauge);
 const fitGive = () => { const c = cur(); S.give = c ? Math.max(1, Math.min(left(c), Math.max(S.snacks, 1))) : 1; };
 
 // ドット絵は 24px の整数倍で出す（にじまないように）
-const orb = (c, s = 52) => `<span class="spr ${c.gauge >= need(c) ? "happy" : ""}" style="--c:${TYPES[c.type].color};--s:${s}px;--px:${Math.max(1, Math.floor((s * 0.96) / 24)) * 24}px" aria-hidden="true"><img src="${spriteURL(c.tree)}" alt=""></span>`;
+const orb = (c, s = 52) => `<span class="spr ${c.gauge >= need(c) ? "happy" : ""}" style="--c:${TYPES[c.type].color};--s:${s}px;--px:${Math.max(1, Math.floor((s * 0.96) / 24)) * 24}px" aria-hidden="true"><img src="${spriteURL(c.tdMix || c.tree)}" alt=""></span>`;
 const RANKS = ["配合", "ボス", "希少", "通常"];   // 配合：配合限定の 子
 const inR = (c, r = S.fr) => r === "all" || rankOf(c) === r, inJ = (c, j = S.job) => c.type === j;
 const byNow = () => (S.sort === "lv" ? (a, b) => b.lv - a.lv : (a, b) => b.gauge / need(b) - a.gauge / need(a) || b.lv - a.lv);
@@ -309,7 +309,7 @@ function partyHtml() {
 function listHtml() {
   const item = (c) => { const n = need(c), p = Math.min(100, Math.round((c.gauge / n) * 100));
     return `<li><button class="dx" data-act="pick" data-u="${c.uid}" aria-pressed="${c.uid === S.sel}" aria-label="${esc(c.name)} Lv${c.lv}・なかよし ${Math.min(c.gauge, n)} / ${n}" title="${esc(c.name)}（${esc(c.from)}）">
-      <span class="ring ${c.gauge >= n ? "full" : ""}" style="--p:${p}"><span class="face" style="--c:${TYPES[c.type].color}"><img src="${spriteURL(c.tree)}" alt=""></span>${rk(c)}</span><b>${esc(c.name)}</b><small>Lv${c.lv} ${sexTag(c)}${plusTag(c)}</small></button></li>`; };
+      <span class="ring ${c.gauge >= n ? "full" : ""}" style="--p:${p}"><span class="face" style="--c:${TYPES[c.type].color}"><img src="${spriteURL(c.tdMix || c.tree)}" alt=""></span>${rk(c)}</span><b>${esc(c.name)}</b><small>Lv${c.lv} ${sexTag(c)}${plusTag(c)}</small></button></li>`; };
   // タブの 数は レア度で しぼった あとの 数（0 の 職業は うすく して 押せない）。チップの 数は いまの 職業の 中で
   const nJ = (t) => S.room.filter((c) => inJ(c, t) && inR(c)).length, nR = (r) => S.room.filter((c) => inJ(c) && inR(c, r)).length;
   const tabs = `<div class="jtabs" role="tablist" aria-label="職業">${Object.entries(TYPES).map(([t, T]) => { const n = nJ(t), on = S.job === t;
@@ -399,7 +399,7 @@ function fuseListHtml() {
   const chip = (x, label) => { const n = ok.filter((c) => inS(c, x)).length; return `<button class="chip" data-act="fsx" data-v="${x}" aria-pressed="${F.sx === x}" ${n === 0 && F.sx !== x ? "disabled" : ""}>${label}<small>${n}</small></button>`; };
   const item = (c) => { const sp = speciesOf(c.tree), on = c.uid === F.pa || c.uid === F.pb, fit = sexOkTo(c);
     return `<li><button class="dx" data-act="fpick" data-u="${c.uid}" aria-pressed="${on}" ${fit ? "" : "disabled"} aria-label="${esc(c.name)} Lv${c.lv} ${SEXES[c.sex] || ""}${on ? "（えらんで いる）" : ""}" title="${fit ? esc(c.name) : "♂ と ♀ で 配合する"}">
-      <span class="ring full" style="--p:100"><span class="face" style="--c:${TYPES[c.type].color}"><img src="${spriteURL(c.tree)}" alt=""></span>${sp ? `<span class="rkl">${FRANK[sp.rank]}</span>` : ""}</span><b>${esc(c.name)}</b><small>Lv${c.lv} ${sexTag(c)}${plusTag(c)}</small></button></li>`; };
+      <span class="ring full" style="--p:100"><span class="face" style="--c:${TYPES[c.type].color}"><img src="${spriteURL(c.tdMix || c.tree)}" alt=""></span>${sp ? `<span class="rkl">${FRANK[sp.rank]}</span>` : ""}</span><b>${esc(c.name)}</b><small>Lv${c.lv} ${sexTag(c)}${plusTag(c)}</small></button></li>`; };
   return `<section class="panel waiting" aria-label="親を えらぶ"><h2>親を えらぶ</h2>
     ${ok.length ? `<div class="fline" role="group" aria-label="しぼりこみと ならべかた">${chip("all", "すべて")}${chip("m", "♂")}${chip("f", "♀")}${chip("b", "両性")}<span class="gap"></span><button class="chip" data-act="fsort" aria-label="ならべかた：${F.sort === "lv" ? "Lv の 高い順（押すと ランク順）" : "ランク順（押すと Lv の 高い順）"}">⇅ ${F.sort === "lv" ? "Lv順" : "ランク順"}</button></div>
       <ul class="dex">${list.map(item).join("")}</ul>` : ""}

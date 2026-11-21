@@ -9,6 +9,7 @@ import { fxdeskFetch } from "./lounge-fxdesk.js";   // FX の 窓口の 記録�
 import { supportFetch } from "./lounge-support.js";   // おたこまるさんの 窓口の 記録も この 箱（KV の おくれで 上書きされない ように）
 import { marketReset } from "./lounge-reset.js";
 import { auFetch, auAlarm } from "./lounge-auction.js";   // 競り（ガラク）・フリマ（アンビル・ピーコ）も この 箱（2026-11-07）
+import { tdhFetch } from "./lounge-tdhelp.js";   // 集合住宅の 助けを よぶ 掲示板も この 箱（2026-11-16）
 import { stockFetch, stockAlarm } from "./lounge-stock.js";   // 株（トークン）の 値・売り買い・配当も この 箱（2026-11-05）   // 大工事の あとの リセット（鹿さんの 決め 2026-11-03）
 
 const res = (o, status = 200) => new Response(JSON.stringify(o), { status, headers: { "Content-Type": "application/json" } });
@@ -38,6 +39,7 @@ export class Market {
     const t = !r && typeof b.rid === "string" ? await this.state.storage.get("t:" + b.rid) : null;   // 終わった 依頼の しるし
     const sk = await stockFetch(this, url, b, now); if (sk) return sk;
     const au = await auFetch(this, url, b, now); if (au) return au;
+    const th = await tdhFetch(this, url, b, now); if (th) return th;
     const ar = await arenaFetch(this, url, b, now); if (ar) return ar;
     const sp = await supportFetch(this, url, b); if (sp) return sp;
     const fx = await fxdeskFetch(this, url, b); if (fx) return fx;
