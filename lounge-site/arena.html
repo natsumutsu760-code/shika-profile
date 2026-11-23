@@ -8,6 +8,7 @@
 <style>
   /* MONO LINK のラウンジ：闘技場（鹿さんの頼み、2026-10-25。プライベートラウンジの PVP）
      タブ：デュエル（相手 3 人を 大きく：格下・同じくらい・格上。鹿さんの決め）・トーナメント（毎日 22:00・6 人から）・記録
+     モンスター（2026-11-23 カード「案 A」）：見出しの 下の「ペット｜モンスター」で 切りかえ。デュエル・大会（毎日 21:00）・試す（自分の なかまの トーナメント）・記録。どれも Lv50 で 戦う
      戦いは 3D の 2 匹（battle-view.js。帯の 試作と 同じ 動き）。決まりは arena.js、記録と くじは 門番 */
   :root {
     --space:#F6F8FC; --ink:#1B2340; --soft:#6A7394; --line:#DCE3F0;
@@ -43,13 +44,13 @@
   .ahead { display:flex; flex-wrap:wrap; gap:8px 14px; align-items:center; margin-bottom:14px; }
   .ahead h2 { font:400 24px/1 var(--pop); margin-right:auto; letter-spacing:.04em; }
   .gtabs { display:flex; flex-wrap:wrap; gap:6px; }
-  .gtabs button { display:inline-flex; align-items:center; gap:6px; border:1.5px solid var(--line); background:#fff; border-radius:999px; padding:8px 16px; font:800 14px/1 var(--jp); color:var(--soft); }
+  .gtabs button { display:inline-flex; align-items:center; gap:6px; border:1.5px solid var(--line); background:#fff; border-radius:999px; min-height:34px; padding:8px 16px; font:800 14px/1 var(--jp); color:var(--soft); }
   .gtabs button[aria-selected="true"] { background:var(--ar); color:#fff; border-color:var(--ar); }
   .gtabs em { font-style:normal; min-width:18px; padding:0 5px; border-radius:99px; background:var(--leaf); color:#fff; font:600 12px/18px var(--num); text-align:center; }
   .jelly { border:0; border-radius:999px; padding:13px 18px; font:900 16px/1 var(--jp); background:var(--ar); color:#fff; box-shadow:0 5px 0 rgba(217,72,59,.28); width:100%; }
   .jelly.light { background:#fff; color:var(--ink); box-shadow:inset 0 0 0 2px var(--ink); }
   .jelly:disabled { background:#C9D1E2; color:#fff; box-shadow:0 5px 0 #E3E8F2; }
-  .mini { border:1.5px solid var(--line); background:#fff; border-radius:999px; padding:8px 14px; font:800 13px/1 var(--jp); white-space:nowrap; }
+  .mini { border:1.5px solid var(--line); background:#fff; border-radius:999px; min-height:34px; padding:8px 14px; font:800 13px/1 var(--jp); white-space:nowrap; }
   .why { font:700 13px/1.5 var(--jp); color:var(--coral); text-align:center; }
   .bar { display:flex; flex-wrap:wrap; gap:6px 16px; align-items:center; margin-bottom:12px; font:700 13px/1.4 var(--jp); color:var(--soft); }
   .bar b { font:600 18px/1 var(--num); color:var(--ink); margin:0 2px; } .bar .mini { margin-left:auto; }
@@ -82,7 +83,7 @@
   .box { padding:16px 18px; border-radius:20px; background:var(--space); display:grid; gap:10px; }
   .box h3 { font:900 16px/1.3 var(--jp); display:flex; align-items:baseline; gap:10px; } .box h3 small { font:700 12px/1 var(--jp); color:var(--soft); }
   .clock { font:600 34px/1 var(--num); } .clock small { font:800 13px/1 var(--jp); color:var(--soft); margin-left:6px; }
-  .count { font:800 14px/1.5 var(--jp); } .count b { font:600 22px/1 var(--num); margin-right:2px; } .count small { color:var(--soft); }
+  .count { font:800 14px/1.5 var(--jp); } .count b { font:600 22px/1 var(--num); margin-right:2px; } .count small { color:var(--soft); font-size:12px; }
   .meter { height:10px; border-radius:99px; background:#E3E8F2; overflow:hidden; } .meter i { display:block; height:100%; background:var(--ar); border-radius:inherit; }
   .prize { display:grid; grid-template-columns:auto 1fr; gap:4px 12px; font:700 13px/1.5 var(--jp); } .prize span:nth-child(odd) { color:var(--soft); font-weight:800; }
   .round { display:grid; gap:6px; } .round + .round { margin-top:8px; }
@@ -123,6 +124,44 @@
     .result { grid-template-columns:minmax(0, 1fr); text-align:center; }
     .rec { grid-template-columns:minmax(0, 1fr) minmax(0, 1fr); }
   }
+  /* モンスターの 闘技場（2026-11-23 鹿さんの カード「案 A ペット｜モンスター」）：見出しの 下で 切りかえ・タブの 上に 代表の 子 */
+  .mode { display:inline-flex; padding:4px; gap:4px; border-radius:999px; background:var(--space); box-shadow:inset 0 0 0 1.5px var(--line); }
+  .mode button { border:0; background:none; border-radius:999px; min-height:34px; padding:6px 18px; font:900 14px/1 var(--jp); color:var(--soft); }
+  .mode button[aria-pressed="true"] { background:var(--ink); color:#fff; box-shadow:0 3px 0 rgba(27,35,64,.2); }
+  .ahead .modew { width:100%; order:3; } .ahead .gtabs { order:4; }
+  .spr { display:inline-flex; align-items:center; justify-content:center; border-radius:16px; background:radial-gradient(circle at 50% 40%, #fff 0, #EEF2FA 80%); overflow:hidden; }
+  .spr img { width:100%; height:100%; object-fit:contain; image-rendering:pixelated; }
+  .rep { display:grid; grid-template-columns:64px minmax(0, 1fr) auto auto; gap:6px 14px; align-items:center; padding:10px 14px 10px 10px; margin:-4px 0 12px; border-radius:20px; background:linear-gradient(135deg, #F4F1FF, #EEF6FF); box-shadow:inset 0 0 0 2px #DCD3FF; }
+  .rep .spr { width:64px; height:64px; } .rep b { font:900 18px/1.25 var(--jp); display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .rep p { display:flex; flex-wrap:wrap; gap:4px 8px; align-items:center; margin-top:4px; font:700 12px/1.3 var(--jp); color:var(--soft); }
+  .rep .lv50 { white-space:nowrap; font:800 12px/1 var(--jp); color:var(--soft); } .rep .lv50 small { font-size:12px; margin-right:2px; }
+  .rep .pw { display:block; text-align:right; margin:0; } .rep .pw b { font:600 24px/1 var(--num); color:var(--ink); }
+  .rep.none { grid-template-columns:minmax(0, 1fr) auto; } .rep.none p { margin:0; font-size:14px; color:var(--ink); }
+  .plus { font-style:normal; font:600 14px/1 var(--num); color:#B57500; margin-left:6px; }
+  .chip { border:1.5px solid var(--line); background:#fff; border-radius:999px; min-height:32px; padding:6px 12px; font:700 12px/1 var(--jp); display:inline-flex; align-items:center; gap:5px; }
+  .chip small { font:600 12px/1 var(--num); color:var(--soft); }
+  .chip[aria-pressed="true"] { background:var(--ink); border-color:var(--ink); color:#fff; } .chip[aria-pressed="true"] small { color:rgba(255,255,255,.7); }
+  .chip:disabled { opacity:.4; }
+  .pk { display:grid; gap:10px; }
+  .pkhead { display:flex; align-items:center; gap:10px; } .pkhead h3 { font:900 16px/1.3 var(--jp); margin-right:auto; }
+  .fline { display:flex; align-items:center; gap:5px; flex-wrap:wrap; padding:8px 10px; border-radius:16px; background:var(--space); } .fline .gap { flex:1; } .fline .chip { padding:5px 8px; }
+  .mons { display:grid; grid-template-columns:repeat(auto-fill, minmax(104px, 1fr)); gap:8px; }
+  .mon { width:100%; display:grid; justify-items:center; gap:2px; padding:8px 6px 9px; border:1.5px solid var(--line); border-radius:18px; background:#fff; text-align:center; position:relative; }
+  .mon .spr { width:56px; height:56px; } .mon b { font:900 13px/1.25 var(--jp); max-width:100%; overflow:hidden; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; word-break:break-all; }
+  .mon small { font:700 12px/1.2 var(--jp); color:var(--soft); } .mon small i { font-style:normal; font:600 13px/1 var(--num); color:var(--ink); margin-left:3px; }
+  .mon[aria-pressed="true"] { border-color:var(--violet); box-shadow:0 0 0 3px #DCD3FF; } .mon .no { position:absolute; top:6px; left:6px; min-width:22px; height:22px; border-radius:99px; background:var(--violet); color:#fff; font:600 12px/22px var(--num); }
+  .mon.cur { background:#F4F1FF; }
+  .sbar { display:flex; flex-wrap:wrap; gap:8px 10px; align-items:center; } .sbar .count { margin-right:auto; } .sbar .szs { display:flex; flex-wrap:wrap; gap:6px; align-items:center; width:100%; } .sbar .szs .mini { margin-left:auto; }
+  .sbar .jelly { width:auto; padding:11px 22px; }
+  .champ { display:flex; align-items:center; gap:12px; } .champ .spr { width:56px; height:56px; }
+  .mt .ms { display:inline-flex; align-items:center; gap:6px; min-width:0; } .mt .ms img { width:24px; height:24px; image-rendering:pixelated; flex:none; }
+  .mt span.ms:nth-child(3) { justify-content:flex-end; }
+  .foe .pic.mspr { background:radial-gradient(circle at 50% 40%, #fff 0, #EEF2FA 80%); align-items:center; } .foe .pic.mspr img { height:82%; width:82%; margin:0; object-fit:contain; image-rendering:pixelated; }
+  @media (max-width:640px) {
+    .rep { grid-template-columns:52px minmax(0, 1fr) auto; } .rep .spr { width:52px; height:52px; } .rep .pw { grid-column:3; grid-row:1; } .rep .mini { grid-column:3; grid-row:2; }
+    .rep.none { grid-template-columns:minmax(0, 1fr); } .rep.none .jelly { width:100%; }
+    .mons { grid-template-columns:repeat(3, minmax(0, 1fr)); } .mode button { padding:6px 14px; }
+  }
   .toast { position:fixed; left:50%; bottom:24px; transform:translateX(-50%) translateY(16px); max-width:calc(100vw - 32px); padding:10px 18px; border-radius:20px; background:var(--ink); color:#fff; font:700 14px/1.4 var(--jp); opacity:0; transition:opacity .2s, transform .2s; pointer-events:none; text-align:center; z-index:5; }
   .toast.on { opacity:1; transform:translateX(-50%); }
   @media (prefers-reduced-motion:reduce) { .toast { transition:none; } }
@@ -138,7 +177,8 @@ import "./lounge-en.js";   // 英語の 画面（MONO LINK の サイトの EN�
 import { PETS } from "./quiz.js";
 import { TYPES } from "./skills.js";
 import { simulate } from "./battle-sim.js";
-import { DUEL, duelPay, tierOf, TIERS, TOUR, TOUR_PAY, roundName, RATE, RATE_RANKS, LINK } from "./arena.js";
+import { DUEL, duelPay, tierOf, TIERS, TOUR, TOUR_PAY, roundName, RATE, RATE_RANKS, LINK, MON, MTOUR, MTOUR_PAY, SELF_SIZES } from "./arena.js";
+import { spriteURL } from "./sprites.js";   // モンスターの 絵（まざった 子は tdMix）
 import { petInfo, linkTabs, gateHtml, addGateCss } from "./pet-head.js";
 import { DUNGEONS } from "./dungeons.js";
 import { me, act, busy } from "./lounge-client.js";   // 名簿・相手・大会・戦いの くじは 門番（相手の いまの 強さも 門番が 組み立てる）
@@ -149,7 +189,9 @@ const q = new URLSearchParams(location.search);
 const fmt = (n) => Number(n || 0).toLocaleString("ja-JP");
 const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
 const TABS = [["duel", "デュエル"], ["tour", "トーナメント"], ["rank", "格付け"], ["log", "記録"]];
-const S = { tab: TABS.some(([k]) => k === q.get("t")) ? q.get("t") : "duel", V: null, fight: null };
+const MTABS = [["duel", "デュエル"], ["tour", "大会"], ["self", "試す"], ["log", "記録"]];   // モンスター（格付けは ペットだけ）
+const MODE0 = q.get("m") === "1" ? "mon" : "pet", TABS0 = MODE0 === "mon" ? MTABS : TABS;
+const S = { mode: MODE0, tab: TABS0.some(([k]) => k === q.get("t")) ? q.get("t") : "duel", V: null, M: null, fight: null, pick: null, list: null, self: null, sel: [], size: 8 };
 const main = document.getElementById("main");
 const imgOf = (qid) => (PETS[qid] || PETS.nemu).img;
 const badge = (type) => { const T = TYPES[type]; return T ? `<span class="badge" style="--c:${T.color}">${T.label}</span>` : ""; };
@@ -198,13 +240,24 @@ function resultHtml() {
   return `<div class="result ${r.win ? "win" : "lose"}"><span class="big">${r.win ? (r.upset ? "下克上！" : "勝ち！") : "負け…"}</span><p>${pay}${extra ? `<br><small>${extra}</small>` : ""}</p><button class="jelly" data-do="back" style="width:auto;padding:12px 22px">つぎの 相手へ</button></div>`;
 }
 // 3D で 見せる（門番と 同じ 種で 計算しなおす。ちがう 結果に なったら 3D は 出さずに 結果だけ）
+// モンスターの 姿（ドット絵の 板。battle-view が 右の 子を 左へ 向けるので、板は カメラへ 向け直す）
+function monBoard(THREE, f, i) {
+  const g = new THREE.Group(), inner = new THREE.Group(); inner.rotation.y = i ? 0.9 : -0.9; inner.rotation.x = -0.12; g.add(inner);
+  const tex = new THREE.TextureLoader().load(monImg(f)); tex.colorSpace = THREE.SRGBColorSpace; tex.magFilter = THREE.NearestFilter; tex.minFilter = THREE.NearestFilter;
+  if (i === 0) { tex.wrapS = THREE.RepeatWrapping; tex.repeat.x = -1; }   // 左の 子は 右を 向く
+  const S2 = 1.35, plane = new THREE.Mesh(new THREE.PlaneGeometry(S2, S2), new THREE.MeshBasicMaterial({ map: tex, transparent: true, alphaTest: 0.1, side: THREE.DoubleSide }));
+  plane.position.y = S2 / 2 + 0.02; inner.add(plane);
+  const sh = new THREE.Mesh(new THREE.CircleGeometry(0.42, 32), new THREE.MeshBasicMaterial({ color: "#000000", transparent: true, opacity: 0.22 })); sh.rotation.x = -Math.PI / 2; sh.position.y = 0.01; g.add(sh);
+  return g;
+}
 async function showFight(A, B, seed, win) {
   const host = document.getElementById("stage");
   if (simulate(A, B, seed).at(-1).winner !== (win ? 0 : 1)) { S.fight.done = true; host.remove(); document.getElementById("fctl").innerHTML = ""; document.getElementById("res").innerHTML = resultHtml(); return; }
   try {
     const { mountBattle } = await import("./battle-view.js");
     const narrow = host.clientWidth < 600, geo = narrow ? { W: 640, H: 520, S: 125, home: [200, 440], plates: "top", turnY: 456, winY: 230 } : {};   // スマホ：名札は 上の 左右（縮みすぎない ように はばを せまく）
-    S.fight.view = mountBattle(host, { A, B, seed }, { ...geo, onEnd: () => { S.fight.done = true; document.getElementById("fctl").innerHTML = ""; document.getElementById("res").innerHTML = resultHtml(); document.getElementById("res").scrollIntoView({ block: "nearest" }); } });
+    const mon = !A.species && !B.species && (A.tree || B.tree), THREE = mon ? await import("three") : null;   // モンスターどうし：ドット絵の 板
+    S.fight.view = mountBattle(host, { A, B, seed }, { ...geo, ...(mon ? { make: [(f) => monBoard(THREE, f, 0), (f) => monBoard(THREE, f, 1)] } : {}), onEnd: () => { S.fight.done = true; document.getElementById("fctl").innerHTML = ""; document.getElementById("res").innerHTML = resultHtml(); document.getElementById("res").scrollIntoView({ block: "nearest" }); } });
     S.fight.view.play();
   } catch (e) { S.fight.done = true; host.remove(); document.getElementById("fctl").innerHTML = ""; document.getElementById("res").innerHTML = resultHtml(); }
 }
@@ -215,21 +268,23 @@ function bracketHtml(T, myId) {
   const rows = [...T.rounds.map((R, r) => ({ R, r }))].reverse().map(({ R, r }) => `<div class="round"><h4>${roundName(R.length * 2)}</h4>${R.map((m, k) => {
     if (m.bye) return "";
     const ca = m.w === 0 ? "w" : m.w === 1 ? "l" : "", cb = m.w === 1 ? "w" : m.w === 0 ? "l" : "";
-    return `<div class="mt"><span class="${ca} ${m.a && m.a.id === myId ? "me" : ""}">${name(m.a)}</span><i>VS</i><span class="${cb} ${m.b && m.b.id === myId ? "me" : ""}">${name(m.b)}</span>${m.w != null ? `<button class="mini" data-match="${r}:${k}">見る</button>` : "<span></span>"}</div>`;
+    return `<div class="mt"><span class="${ca} ${m.a && m.a.id === myId ? "me" : ""}">${name(m.a)}</span><i>VS</i><span class="${cb} ${m.b && m.b.id === myId ? "me" : ""}">${name(m.b)}</span>${m.w != null ? `<button class="mini" ${S.mode === "mon" ? "data-mmatch" : "data-match"}="${r}:${k}">見る</button>` : "<span></span>"}</div>`;
   }).join("")}</div>`);
   return rows.slice(0, 2).join("") + (rows.length > 2 ? `<details class="more"><summary>${roundName(T.rounds[T.rounds.length - 3].length * 2)}から 見る</summary>${rows.slice(2).join("")}</details>` : "");
 }
 const PLACE = { 1: "優勝！", 2: "準優勝！", 4: "ベスト 4！", 0: "参加" };
 function tourHtml() {
-  const V = S.V, T = V.tour, L = V.last, myId = V.me.id;
-  const pay = (k) => { const P = TOUR_PAY[k]; return `${fmt(P.credits)} クレジット${P.res ? `＋アメジスト ${P.res}` : ""}`; };
-  const now = T ? `<div class="box"><h3>きょうの 大会<small>${TOUR.hour}:00 から</small></h3>
+  const mon = S.mode === "mon", V = mon ? S.M : S.V, T = V.tour, L = V.last, myId = V.me && V.me.id, TT = mon ? MTOUR : TOUR, PAY = mon ? MTOUR_PAY : TOUR_PAY, ent = mon ? "data-mentry" : "data-entry";
+  if (mon && S.fight) return fightHtml();
+  if (mon && !V.me) return "";   // 代表を えらぶ 案内は 上の 札
+  const pay = (k) => { const P = PAY[k]; return `${fmt(P.credits)} クレジット${P.res ? `＋アメジスト ${P.res}` : ""}`; };
+  const now = T ? `<div class="box"><h3>きょうの 大会<small>${TT.hour}:00 から</small></h3>
       <p class="clock" id="clock">${left(T.at - Date.now())}<small>あと</small></p>
-      <p class="count"><b>${T.n}</b> 人 <small>／ ${TOUR.min} 人から ひらく（${TOUR.max} 人まで）</small></p><div class="meter"><i style="width:${Math.min(100, (T.n / TOUR.min) * 100)}%"></i></div>
-      ${T.entered ? `<button class="jelly light" data-entry="0">参加を やめる</button>` : `<button class="jelly" data-entry="1" ${T.n >= TOUR.max ? "disabled" : ""}>参加する</button>`}
+      <p class="count"><b>${T.n}</b> 人 <small>／ ${TT.min} 人から ひらく（${TT.max} 人まで）</small></p><div class="meter"><i style="width:${Math.min(100, (T.n / TT.min) * 100)}%"></i></div>
+      ${T.entered ? `<button class="jelly light" ${ent}="0">参加を やめる</button>` : `<button class="jelly" ${ent}="1" ${T.n >= TT.max ? "disabled" : ""}>参加する</button>`}
       <div class="prize"><span>優勝</span><span>${pay(1)}</span><span>準優勝</span><span>${pay(2)}</span><span>ベスト 4</span><span>${pay(4)}</span><span>参加</span><span>${pay("all")}</span></div></div>` : "";
   const last = !L ? `<div class="box"><h3>前の 大会</h3><p class="count"><small>まだ ない</small></p></div>`
-    : L.state === "none" ? `<div class="box"><h3>前の 大会<small>${esc(L.day)}</small></h3><p class="count"><small>${TOUR.min} 人 そろわず 中止</small></p></div>`
+    : L.state === "none" ? `<div class="box"><h3>前の 大会<small>${esc(L.day)}</small></h3><p class="count"><small>${TT.min} 人 そろわず 中止</small></p></div>`
     : L.state !== "done" ? `<div class="box"><h3>前の 大会<small>${esc(L.day)}</small></h3><p class="count"><small>試合中…</small></p></div>`
     : `<div class="box"><h3>前の 大会<small>${esc(L.day)}</small></h3>${L.place != null ? `<p class="place">${PLACE[L.place] || "参加"}　${pay(L.place || "all")}</p>` : ""}${bracketHtml(L, myId)}</div>`;
   return `<div class="tour">${now}${last}</div>`;
@@ -262,16 +317,151 @@ function logHtml() {
     ${rows.length ? `<ul class="log">${rows.map((x) => `<li>${x.html}<small>${ago(x.at)}</small></li>`).join("")}</ul>` : `<div class="empty"><p>まだ 記録が ない</p></div>`}`;
 }
 
+// ---------- モンスター（2026-11-23）----------
+const monImg = (p) => spriteURL((p && (p.tdMix || p.tree)) || "e_hare");
+const plusTag = (n) => (n ? `<i class="plus">＋${n}</i>` : "");
+function repHtml() {
+  const M = S.M, c = M.me && M.me.pet;
+  if (!c) return `<div class="rep none"><p>${M.n ? "代表の 子を えらぶと デュエルと 大会に 出られる" : "なかまが まだ いない（捕まえると 出られる）"}</p>${M.n ? `<button class="jelly" data-do="mpick">代表を えらぶ</button>` : ""}</div>`;
+  return `<div class="rep"><span class="spr"><img src="${monImg(c)}" alt=""></span><div><b>${esc(c.name)}${plusTag(c.plus)}</b><p>${badge(c.type)}<span class="lv50"><small>Lv</small>${MON.lv} で 戦う</span></p></div><p class="pw">強さ<b>${fmt(M.me.power)}</b></p><button class="mini" data-do="mpick">かえる</button></div>`;
+}
+// 一覧（代表を えらぶ・試すの 子を えらぶ）：しゅるいの チップ・ならべる
+const SORTS = [["pow", "強さ順"], ["plus", "＋値順"], ["name", "名前順"]];
+function pickList() {
+  const P = S.pick || (S.spick ||= { type: "all", sort: "pow", for: "self" }), L = S.list || [];
+  const sorter = P.sort === "plus" ? (a, b) => (b.plus || 0) - (a.plus || 0) || b.power - a.power : P.sort === "name" ? (a, b) => a.name.localeCompare(b.name, "ja") : (a, b) => b.power - a.power;
+  return L.filter((c) => P.type === "all" || c.type === P.type).sort(sorter);
+}
+function fline() {
+  const P = S.pick || (S.spick ||= { type: "all", sort: "pow", for: "self" }), L = S.list || [], types = [...new Set(L.map((c) => c.type))].filter((t) => TYPES[t]);
+  const chip = (k, label, n) => `<button class="chip" data-ptype="${k}" aria-pressed="${P.type === k}">${label}<small>${n}</small></button>`;
+  return `<div class="fline">${chip("all", "すべて", L.length)}${types.length > 1 ? types.map((t) => chip(t, TYPES[t].label, L.filter((c) => c.type === t).length)).join("") : ""}<span class="gap"></span>${SORTS.map(([k, l]) => `<button class="chip" data-psort="${k}" aria-pressed="${P.sort === k}">${l}</button>`).join("")}</div>`;
+}
+function monBtn(c, on, no) {
+  return `<li><button class="mon ${S.pick && S.pick.for === "rep" && S.M.rep === c.uid ? "cur" : ""}" data-mon="${esc(c.uid)}" aria-pressed="${on}">${no ? `<span class="no">${no}</span>` : ""}<span class="spr"><img src="${monImg(c)}" alt=""></span><b>${esc(c.name)}${plusTag(c.plus)}</b><small>強さ<i>${fmt(c.power)}</i></small></button></li>`;
+}
+function repPickHtml() {
+  const L = pickList();
+  return `<div class="pk"><div class="pkhead"><h3>代表を えらぶ<small style="color:var(--soft);font-weight:700;font-size:12px;margin-left:8px">Lv${MON.lv} で 戦う</small></h3><button class="mini" data-do="pkclose">とじる</button></div>${fline()}<ul class="mons">${L.map((c) => monBtn(c, false, 0)).join("")}</ul></div>`;
+}
+function selfHtml() {
+  if (S.fight) return fightHtml();
+  if (S.self) return selfResHtml();
+  if (!S.list) return `<div class="empty"><p>よんで います…</p></div>`;
+  if (S.list.length < SELF_SIZES[0]) return `<div class="empty"><p>なかまが ${SELF_SIZES[0]} 体 いると 試せる（いま ${S.list.length} 体）</p></div>`;
+  const L = pickList(), n = S.size, k = S.sel.length;
+  return `<div class="pk"><div class="sbar"><p class="count"><b>${k}</b> / ${n} 体</p><button class="jelly" data-do="sgo" ${k === n ? "" : "disabled"}>始める</button>
+      <div class="szs">${SELF_SIZES.map((x) => `<button class="chip" data-size="${x}" aria-pressed="${n === x}" ${S.list.length < x ? "disabled" : ""}>${x} 体</button>`).join("")}<button class="mini" data-do="sauto">おまかせ</button></div></div>
+    ${fline()}<ul class="mons">${L.map((c) => { const i = S.sel.indexOf(c.uid); return monBtn(c, i >= 0, i >= 0 ? i + 1 : 0); }).join("")}</ul></div>`;
+}
+function selfResHtml() {
+  const R = S.self, C = R.cards, nm = (u) => (u ? `<span class="ms"><img src="${monImg(C[u])}" alt=""><span>${esc(C[u].name)}</span></span>` : "<span>—</span>");
+  const rows = [...R.rounds.map((Rd, r) => ({ Rd, r }))].reverse().map(({ Rd, r }) => `<div class="round"><h4>${roundName(Rd.length * 2)}</h4>${Rd.map((m, k) => `<div class="mt">${nm(m.a).replace('class="ms"', `class="ms ${m.w === 0 ? "w" : "l"}"`)}<i>VS</i>${nm(m.b).replace('class="ms"', `class="ms ${m.w === 1 ? "w" : "l"}"`)}<button class="mini" data-smatch="${r}:${k}">見る</button></div>`).join("")}</div>`);
+  const c = C[R.champ];
+  return `<div class="pk"><div class="sbar"><div class="champ"><span class="spr"><img src="${monImg(c)}" alt=""></span><p class="place">優勝！ ${esc(c.name)}</p></div><button class="mini" data-do="sagain">もう 1 回</button><button class="mini" data-do="snew">えらびなおす</button></div>
+    ${rows.slice(0, 2).join("")}${rows.length > 2 ? `<details class="more"><summary>${roundName(R.rounds[R.rounds.length - 3].length * 2)}から 見る</summary>${rows.slice(2).join("")}</details>` : ""}</div>`;
+}
+function mFoeHtml(c) {
+  const M = S.M, t = tierOf(M.me.power, c.power), label = TIERS.find(([k]) => k === t)[1], over = M.left.duels <= 0;
+  const pay = M.beat.includes(c.id) ? `<p class="pay none">きょうは もらった</p>` : M.left.paid <= 0 ? `<p class="pay none">ごほうび なし</p>` : (() => { const p = duelPay(M.me.power, c.power); return `<p class="pay">+${fmt(p.credits)}<small> クレジット</small>${p.res ? `<small>＋アメジスト ${p.res}</small>` : ""}</p>`; })();
+  return `<article class="foe ${t}"><span class="tier">${label}</span><span class="pic mspr"><img src="${monImg(c.pet)}" alt=""></span>
+    <h3>${esc(c.pet.name)}${plusTag(c.pet.plus)}</h3><p class="own">${esc(c.name)} の 代表</p><div class="meta">${badge(c.pet.type)}</div>
+    <p class="pw">強さ<b>${fmt(c.power)}</b></p>${pay}<button class="jelly" data-mduel="${esc(c.id)}" ${over ? "disabled" : ""}>挑む</button></article>`;
+}
+function mDuelHtml() {
+  const M = S.M;
+  if (S.fight) return fightHtml();
+  if (!M.me) return "";   // 代表を えらぶ 案内は 上の 札（1 か所）
+  const bar = `<div class="bar"><span>ごほうび あと<b>${M.left.paid}</b>回</span><span>きょう あと<b>${M.left.duels}</b>回 戦える</span>${M.foes.length ? `<button class="mini" data-do="mfoes">入れかえ</button>` : ""}</div>`;
+  if (!M.foes.length) return bar + `<div class="empty"><p>まだ 相手が いない（代表を えらんだ 人が 相手に なる）</p></div>`;
+  return bar + `<div class="foes">${M.foes.map(mFoeHtml).join("")}</div>${M.left.duels <= 0 ? `<p class="why" style="margin-top:10px">きょうは もう ${DUEL.perDay} 回 戦った（あした また）</p>` : ""}`;
+}
+function mLogHtml() {
+  const M = S.M, ago = (t) => { const m = Math.floor((Date.now() - t) / 60000); return m < 60 ? `${m} 分前` : m < 1440 ? `${Math.floor(m / 60)} 時間前` : `${Math.floor(m / 1440)} 日前`; };
+  const rows = [...M.log.map((x) => ({ at: x.at, html: `<span class="ic" aria-hidden="true">⚔</span><span>${esc(x.name)} の ${esc(x.pet)}に <span class="${x.win ? "ok" : "ng"}">${x.win ? "勝った" : "負けた"}</span>${x.pay ? `（+${fmt(x.pay.credits)}）` : ""}</span>` })),
+    ...(M.def || []).map((x) => ({ at: x.at, html: `<span class="ic" aria-hidden="true">🛡</span><span>${esc(x.name)} の ${esc(x.pet)}が 来た → <span class="${x.held ? "ok" : "ng"}">${x.held ? "守った" : "やられた"}</span></span>` }))].sort((a, b) => b.at - a.at).slice(0, 20);
+  return `<div class="rec"><div>デュエル<b>${M.w} 勝 ${M.l} 敗</b></div><div>留守の あいだ<b>${(M.hold && M.hold.w) || 0} 勝 ${(M.hold && M.hold.l) || 0} 敗</b></div></div>
+    ${rows.length ? `<ul class="log">${rows.map((x) => `<li>${x.html}<small>${ago(x.at)}</small></li>`).join("")}</ul>` : `<div class="empty"><p>まだ 記録が ない</p></div>`}`;
+}
+const mTabBadge = (k) => { const M = S.M; if (!M || !M.me) return 0; if (k === "duel") return M.left.paid > 0 && M.foes.length ? M.left.paid : 0; if (k === "tour") return M.tour && M.tour.state === "open" && !M.tour.entered ? 1 : 0; return 0; };
+
 function render() {
-  const body = S.tab === "duel" ? duelHtml() : S.tab === "tour" ? tourHtml() : S.tab === "rank" ? rankHtml() : logHtml();
-  main.innerHTML = petHtml() + `<section class="panel"><div class="ahead"><h2>Orbit Arena</h2><div class="gtabs" role="tablist">${TABS.map(([k, label]) => { const n = tabBadge(k); return `<button role="tab" data-tab="${k}" aria-selected="${S.tab === k}">${label}${n ? `<em>${n}</em>` : ""}</button>`; }).join("")}</div></div><div id="body">${body}</div></section>`;
+  const mon = S.mode === "mon" && S.M;
+  const body = mon ? (S.pick && S.pick.for === "rep" ? repPickHtml() : S.tab === "duel" ? mDuelHtml() : S.tab === "tour" ? tourHtml() : S.tab === "self" ? selfHtml() : mLogHtml())
+    : S.tab === "duel" ? duelHtml() : S.tab === "tour" ? tourHtml() : S.tab === "rank" ? rankHtml() : logHtml();
+  const tabs = mon ? MTABS : TABS, badgeOf = mon ? mTabBadge : tabBadge;
+  const modes = `<div class="modew"><div class="mode" role="group" aria-label="戦う 子">${[["pet", "ペット"], ["mon", "モンスター"]].map(([k, l]) => `<button data-mode="${k}" aria-pressed="${S.mode === k}">${l}</button>`).join("")}</div></div>`;
+  main.innerHTML = petHtml() + `<section class="panel"><div class="ahead"><h2>Orbit Arena</h2>${modes}<div class="gtabs" role="tablist">${tabs.map(([k, label]) => { const n = badgeOf(k); return `<button role="tab" data-tab="${k}" aria-selected="${S.tab === k}">${label}${n ? `<em>${n}</em>` : ""}</button>`; }).join("")}</div></div>${mon && !(S.pick && S.pick.for === "rep") ? repHtml() : ""}<div id="body">${body}</div></section>`;
   linkTabs(main);
 }
+const urlNow = () => { const p = new URLSearchParams(); if (S.mode === "mon") p.set("m", "1"); if (S.tab !== "duel") p.set("t", S.tab); const x = p.toString(); history.replaceState(null, "", x ? "?" + x : location.pathname); };
+const mReload = async () => { const v = await act("arena.mview"); if (v.ok) S.M = v; return v; };
+const needList = async () => { if (!S.list) { const r = await act("arena.mlist"); S.list = r.ok ? r.list : []; } };
 const reload = async () => { const v = await act("arena.view"); if (v.ok) S.V = v; };
 main.addEventListener("click", async (e) => {
   const b = e.target.closest("button"); if (!b || b.disabled) return;
   const d = b.dataset;
-  if (d.tab) { if (S.fight && S.fight.view) S.fight.view.destroy(); S.fight = null; S.tab = d.tab; history.replaceState(null, "", d.tab === "duel" ? location.pathname : "?t=" + d.tab); return render(); }
+  if (d.mode) {   // ペット｜モンスター
+    if (d.mode === S.mode) return;
+    if (S.fight && S.fight.view) S.fight.view.destroy(); S.fight = null; S.pick = null;
+    if (d.mode === "mon" && !S.M) { const r = await busy(b, () => act("arena.mview"), "よんで います…"); if (!r.ok) return toast(r.why || "できませんでした"); S.M = r; }
+    S.mode = d.mode; if (!(S.mode === "mon" ? MTABS : TABS).some(([k]) => k === S.tab)) S.tab = "duel";
+    if (S.mode === "mon" && S.tab === "self") { await needList(); S.pick = null; }
+    urlNow(); return render();
+  }
+  if (d.tab) {
+    if (S.fight && S.fight.view) S.fight.view.destroy(); S.fight = null; S.tab = d.tab; S.pick = null;
+    if (S.mode === "mon" && d.tab === "self") await needList();
+    urlNow(); return render();
+  }
+  // ---- モンスター ----
+  if (d.do === "mpick") { await needList(); S.pick = { for: "rep", type: "all", sort: "pow" }; return render(); }
+  if (d.do === "pkclose") { S.pick = null; return render(); }
+  if (d.ptype || d.psort) { S.spick = S.spick || { type: "all", sort: "pow" }; const P = S.pick || S.spick; if (d.ptype) P.type = d.ptype; if (d.psort) P.sort = d.psort; return render(); }
+  if (d.mon) {
+    if (S.pick && S.pick.for === "rep") {
+      const r = await busy(b, () => act("arena.mrep", { uid: d.mon }), "えらんで います…");
+      if (!r.ok) return toast(r.why || "できませんでした");
+      S.pick = null; await mReload(); toast("代表に しました"); return render();
+    }
+    const i = S.sel.indexOf(d.mon); if (i >= 0) S.sel.splice(i, 1); else if (S.sel.length < S.size) S.sel.push(d.mon); else return toast(`${S.size} 体まで（外すか 数を かえる）`);
+    return render();
+  }
+  if (d.size) { S.size = +d.size; S.sel = S.sel.slice(0, S.size); return render(); }
+  if (d.do === "sauto") { S.sel = [...S.list].sort((a, c) => c.power - a.power).slice(0, S.size).map((c) => c.uid); return render(); }
+  if (d.do === "sgo" || d.do === "sagain") {
+    const r = await busy(b, () => act("arena.mself", { uids: d.do === "sagain" ? S.self.uids : S.sel }), "戦って います…");
+    if (!r.ok) return toast(r.why || "できませんでした");
+    S.self = { ...r, uids: d.do === "sagain" ? S.self.uids : [...S.sel] }; return render();
+  }
+  if (d.do === "snew") { S.self = null; return render(); }
+  if (d.smatch) {
+    const [rr, mm] = d.smatch.split(":").map(Number), R = S.self, m = R.rounds[rr][mm];
+    S.fight = { kind: "match", r: {}, done: false, title: `${roundName(R.rounds[rr].length * 2)}：${R.cards[m.a].name} VS ${R.cards[m.b].name} → ${R.cards[m.w === 0 ? m.a : m.b].name} の 勝ち` };
+    document.getElementById("body").innerHTML = fightHtml(); document.getElementById("stage").scrollIntoView({ block: "start", behavior: "smooth" });
+    return showFight(R.fs[m.a], R.fs[m.b], m.seed, m.w === 0);
+  }
+  if (d.do === "mfoes") { const r = await busy(b, () => act("arena.mfoes"), "さがして います…"); if (!r.ok) return toast(r.why || "できませんでした"); S.M = r; return render(); }
+  if (d.mduel) {
+    const r = await busy(b, () => act("arena.mduel", { foe: d.mduel }), "相手を よんで います…");
+    if (!r.ok) return toast(r.why || "できませんでした");
+    S.fight = { kind: "duel", r, done: false }; S.M.left = r.left; if (r.pay) S.M.beat = [...S.M.beat, r.foe.id];
+    render(); document.getElementById("stage").scrollIntoView({ block: "start", behavior: "smooth" });
+    return showFight(r.A, r.B, r.seed, r.win);
+  }
+  if (d.mentry != null) {
+    const r = await busy(b, () => act("arena.mentry", { on: d.mentry === "1" }), d.mentry === "1" ? "申しこんで います…" : "とりけして います…");
+    if (!r.ok) return toast(r.why || "できませんでした");
+    S.M.tour = r.tour; toast(d.mentry === "1" ? `参加しました（きょう ${MTOUR.hour}:00）` : "参加を やめました"); return render();
+  }
+  if (d.mmatch) {
+    const [rr, mm] = d.mmatch.split(":").map(Number), L = S.M.last, m = L.rounds[rr][mm];
+    const r = await busy(b, () => act("arena.mmatch", { day: L.day, r: rr, m: mm }), "よんで います…");
+    if (!r.ok) return toast(r.why || "できませんでした");
+    S.fight = { kind: "match", r, done: false, title: `${roundName(L.rounds[rr].length * 2)}：${m.a.pet}（${m.a.name}）VS ${m.b.pet}（${m.b.name}）→ ${[m.a, m.b][r.w].pet} の 勝ち` };
+    document.getElementById("body").innerHTML = fightHtml(); document.getElementById("stage").scrollIntoView({ block: "start", behavior: "smooth" });
+    return showFight(r.A, r.B, r.seed, r.w === 0);
+  }
   if (d.do === "foes") { const r = await busy(b, () => act("arena.foes"), "さがして います…"); if (!r.ok) return toast(r.why || "できませんでした"); S.V = r; return render(); }
   if (d.duel) {
     const r = await busy(b, () => act("arena.duel", { foe: d.duel }), "相手を よんで います…");
@@ -298,7 +488,7 @@ main.addEventListener("click", async (e) => {
     return showFight(r.A, r.B, r.seed, r.me === 0 ? r.win : !r.win);
   }
   if (d.do === "skip" && S.fight && S.fight.view) return S.fight.view.skip();
-  if (d.do === "back") { if (S.fight && S.fight.view) S.fight.view.destroy(); const was = S.fight && S.fight.kind; S.fight = null; if (was === "duel") await reload(); return render(); }
+  if (d.do === "back") { if (S.fight && S.fight.view) S.fight.view.destroy(); const was = S.fight && S.fight.kind; S.fight = null; if (was === "duel") { if (S.mode === "mon") await mReload(); else await reload(); } return render(); }
   if (d.link) {   // LINKERS の 契約
     const r = await busy(b, () => act("link.sign", { co: d.link }), "契約して います…");
     if (!r.ok) return toast(r.why || "できませんでした");
@@ -316,10 +506,11 @@ const gate = gateHtml(ME, esc);
 if (gate) { main.innerHTML = gate; window.ready = true; }
 else {
   S.V = await act("arena.view");
+  if (S.V.ok && S.mode === "mon") { const m = await act("arena.mview"); if (m.ok) { S.M = m; if (S.tab === "self") await needList(); } else S.mode = "pet"; }
   if (!S.V.ok) main.innerHTML = `<section class="panel"><p class="why">${esc(S.V.why || "いまは Orbit Arena に つながらない")}</p></section>`;
   else render();
   linkTabs(main);
-  setInterval(() => { if (S.tab === "tour" && !S.fight) { const c = document.getElementById("clock"); if (c && S.V.tour) c.firstChild.textContent = left(S.V.tour.at - Date.now()); } }, 30000);
+  setInterval(() => { if (S.tab === "tour" && !S.fight) { const c = document.getElementById("clock"), T = S.mode === "mon" ? S.M && S.M.tour : S.V.tour; if (c && T) c.firstChild.textContent = left(T.at - Date.now()); } }, 30000);
   window.ready = true;
 }
 </script>

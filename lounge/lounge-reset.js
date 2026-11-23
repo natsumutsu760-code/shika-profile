@@ -8,7 +8,7 @@ export const RESET_GEN = 1;   // 2026-11-03 build 112 で 1（鹿さんの OK・
 //   商人の 好感度と タスク・闘技場の 記録・会った 敵の 記録。アメジストは オーバーレイの 帳簿の 側（overlay-obs.html）
 // 残す 物：名前・ログイン・玉と アメジストの 帳簿の やりとり（ledger・ops）・部屋と 家具（room・own.furniture）・数の 番号（uidN）
 const WIPE = ["pets", "tamed", "party", "trips", "loop", "explore", "seen", "met", "items", "snacks", "tools", "autoSell",
-  "hideout", "lab", "mine", "smelt", "farm", "farmv", "seeds", "arena", "enc", "traders", "perks", "recipes", "tally", "au"];   // farmv・seeds：新しい 農園と 種
+  "hideout", "lab", "mine", "smelt", "farm", "farmv", "seeds", "arena", "arenaM", "enc", "traders", "perks", "recipes", "tally", "au"];   // farmv・seeds：新しい 農園と 種・arenaM：モンスターの 闘技場（2026-11-23）
 const WIPE_OWN = ["equip", "att", "cores", "mats", "box"];
 
 // まだ 消して いない 記録か（Viewer は 消す 前に 写しを とる）

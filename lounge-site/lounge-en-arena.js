@@ -14,6 +14,13 @@ export const WORDS = {
   "前の 大会": "Last tournament", "試合中…": "Match in progress…", "守った": "Defended", "やられた": "Lost", "派遣先": "Expedition", "留守の あいだ": "While you were away", "まだ 記録が ない": "No records yet",
   "さがして います…": "Searching…", "相手を よんで います…": "Calling the opponent…", "よんで います…": "Calling…", "申しこんで います…": "Entering…", "とりけして います…": "Withdrawing…",
   "参加を やめました": "Withdrew", "いまは Orbit Arena に つながらない": "Can't reach the Orbit Arena right now", "その 戦いは もう ない": "That battle is gone",
+  // モンスターの 闘技場（2026-11-23）
+  "モンスター": "Monsters", "大会": "Tournament", "試す": "Try out", "代表を えらぶ": "Choose a champion", "代表に しました": "Set as your champion",
+  "代表の 子を えらぶと デュエルと 大会に 出られる": "Choose a champion to enter duels and tournaments", "なかまが まだ いない（捕まえると 出られる）": "No monsters yet (catch some to join)",
+  "強さ順": "By power", "＋値順": "By +value", "格下": "Weaker", "同じくらい": "Even", "格上": "Stronger", "始める": "Start", "戦って います…": "Battling…", "えらびなおす": "Choose again", "えらんで います…": "Choosing…",
+  "決勝": "Final", "準決勝": "Semifinal", "準々決勝": "Quarterfinal", "まだ 相手が いない（代表を えらんだ 人が 相手に なる）": "No opponents yet (players who choose a champion become opponents)",
+  "さきに 代表の 子を えらんで": "Choose a champion first", "その 子は なかまに いない": "That monster isn't in your team", "その 子は 復活待ち": "That monster is waiting to be revived",
+  "なかまに いない 子が いる": "Some of them aren't in your team", "復活待ちの 子が いる": "Some of them are waiting to be revived", "戦う 子": "Fighters",
   // 格付け・LINKERS の 契約（2026-11-11）
   "格付け": "Rank", "LINKERS の 格付け": "LINKERS rank", "まだ だれも 戦って いない": "Nobody has fought yet", "#点": "# pts", "毎週 月曜に 点が 1 割 へる": "Points shrink by 10% every Monday",
   "契約中": "Under contract", "1 勝ごと": "Per win", "これまで": "So far", "ファイトマネー": "Fight money", "会社からの 申しこみ": "Company offers", "契約する": "Sign", "LINKERS の 契約": "LINKERS contract",
@@ -47,6 +54,10 @@ export const RULES = [
   [/^([\d,]+) 勝・([\d,]+) クレジット$/, (m) => `${m[1]} wins · ${n1(m[2], "credit", "credits")}`],
   [/^(\d+) 社だけ・(\d+) 日$/, (m) => `One company · ${n1(m[2], "day", "days")}`], [/^(SVA|ハルモニア|TCU)・1 勝 ([\d,]+) クレジット$/, (m) => `${m[1] === "ハルモニア" ? "Harmonia" : m[1]} · ${n1(m[2], "credit", "credits")} per win`],
   [/^契約しました（(\d+) 日）$/, (m) => `Signed (${n1(m[1], "day", "days")})`],
+  [/^(Lv)?(\d+) で 戦う$/, (m) => `${m[1] ? "Lv" : ""}${m[2]} in battle`], [/^(.+) の 代表$/, (m) => `${m[1]}'s champion`], [/^\/ (\d+) 体$/, (m) => `/ ${m[1]}`], [/^優勝！ (.+)$/, (m) => `Champion! ${m[1]}`],   // モンスター（2026-11-23）
+  [/^なかまが (\d+) 体 いると 試せる（いま (\d+) 体）$/, (m) => `You need ${m[1]} monsters to try this (you have ${m[2]})`], [/^(\d+) 体まで（外すか 数を かえる）$/, (m) => `Up to ${m[1]} (remove one or change the size)`],
+  [/^([\d・]+) 体 えらんで$/, (m) => `Choose ${m[1].replace(/・/g, ", ")} monsters`], [/^(.+)は 出かけて いる（帰ってから 戦える）$/, (m) => `${m[1]} is out (can fight after returning)`],
+
   [/^契約 ＋([\d,]+)・格付け ([SABCD])（([\d,]+) 点）$/, (m) => `Contract +${m[1]} · Rank ${m[2]} (${m[3]} pts)`], [/^契約 ＋([\d,]+)$/, (m) => `Contract +${m[1]}`], [/^格付け ([SABCD])（([\d,]+) 点）$/, (m) => `Rank ${m[1]} (${m[2]} pts)`],
   [/^(\d+) 勝 (\d+) 敗$/, (m) => `${m[1]}W ${m[2]}L`], [/^(.+) → (.+) の 勝ち$/, (m, p) => `${P(p, m[1])} → ${P(p, m[2])} wins`], [/^参加しました（きょう (\d+):00）$/, (m) => `Entered (today ${m[1]}:00 JST)`],
   // 戦いの 絵

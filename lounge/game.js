@@ -9,7 +9,7 @@ export { EFFECTS } from "./effects.js";
 export { runDungeon, tripInit, tripStep, tripResult, startFloor, floorsOpen, newProgress, diaryOf, dungeonRatio, floorRatio, tamedOf, rankOf, invaderFighter } from "./dungeon-sim.js";
 export { rng, COND_TEXT, simulate, fighterPower } from "./battle-sim.js";
 export { REC_MODES, REC_SCOPES, recommend } from "./recommend.js";   // おすすめ装備
-export { DUEL, duelPay, pickFoes, TOUR, TOUR_PAY, tourDay, tourAt, bracketOf, bandMatches, matchSeed, ENC, RATE, RATE_RANKS, rateWeek, rateRank, LINK } from "./arena.js";   // 闘技場・派遣先の 戦い
+export { DUEL, duelPay, pickFoes, TOUR, TOUR_PAY, tourDay, tourAt, tourAtH, bracketOf, bandMatches, matchSeed, ENC, RATE, RATE_RANKS, rateWeek, rateRank, LINK, MON, MTOUR, MTOUR_PAY, mtourDay, SELF_SIZES } from "./arena.js";   // 闘技場・派遣先の 戦い
 export { floorMap, FLOORS } from "./floors.js";
 export { DUNGEONS, DUNGEONS_ALL, ISLAND_OPEN, canGo, tripCost, RUNS, TICK, TOOLS, TOOL_MAX, PURPOSES, SNACK_NEED, SNACK_PRICE, RESEARCH, MAP_STAIRS } from "./dungeons.js";
 export { FACILITIES, STORAGE_CAP, EQUIP_CAP, SNACK_RECIPES, snackMats, snackOpen, SNACK_CRAFT_MAX, mapExtra, furnExtra, facCap, facOf, facMax, facLv, hasKnob, band, BAND_AT, upkeep, storageCap, equipCapOf,

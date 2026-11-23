@@ -36,8 +36,10 @@ export const TOUR_PAY = { 1: { credits: 7000, res: 3 }, 2: { credits: 3500, res:
 const JST = 9 * 3600e3;
 const ymd = (ms) => new Date(ms + JST).toISOString().slice(0, 10);
 // 参加が 入る 大会の 日（日本時間で 22:00 より 前なら きょう、あとなら あした）
-export const tourDay = (now) => { const d = new Date(now + JST); return d.getUTCHours() < TOUR.hour ? ymd(now) : ymd(now + 864e5); };
-export const tourAt = (day) => Date.parse(day + "T00:00:00Z") - JST + TOUR.hour * 3600e3;   // その 日の 22:00（日本時間）
+export const tourDayH = (now, hour) => { const d = new Date(now + JST); return d.getUTCHours() < hour ? ymd(now) : ymd(now + 864e5); };
+export const tourAtH = (day, hour) => Date.parse(day + "T00:00:00Z") - JST + hour * 3600e3;   // その 日の hour 時（日本時間）
+export const tourDay = (now) => tourDayH(now, TOUR.hour);
+export const tourAt = (day) => tourAtH(day, TOUR.hour);   // その 日の 22:00（日本時間）
 // 組み合わせ：くじで ならべ、2 の 累乗に なるまで 不戦勝（null）を 入れる。不戦勝は 上の 方に かたよらない ように 1 つおき
 export function bracketOf(ids, seed) {
   const R = rng(seed), a = [...ids];
@@ -63,6 +65,18 @@ export function bandMatches(rounds) {
 }
 // 試合の 種（大会の 日・回戦・番号から 決まる。あとから 見る ときも 同じ 戦いに なる）
 export const matchSeed = (day, r, m) => { let h = 2166136261; for (const ch of `${day}:${r}:${m}`) { h ^= ch.charCodeAt(0); h = Math.imul(h, 16777619); } return h >>> 0; };
+
+// ---------- モンスターの 闘技場（2026-11-23 鹿さんの 頼み「モンスター限定かつ自分のモンスターでトーナメントを行いシュミレーションできるもの、プレイヤーモンスター同士で戦えるトーナメントとデュエルをオービットアリーナに追加してください。」）----------
+// 〔決〕カード（2026-11-23）：Lv「Lv50 にそろえる」（戦いの 中だけ。育てた Lv は 減らない）・自分の なかまの トーナメント「ごほうびなし・何回でも」・出す 子「1。いずれ2も」（いまは 代表 1 体で 1 対 1。3 体の 勝ち抜きは あとで）・ごほうび「ペットと同じ表」・並べ方「案 A ペット｜モンスター」
+// 〔問いの 文の 案〕大会は 毎日 21:00（ペットの 22:00 と かさならない）・6 人から 32 人まで
+// 〔C〕LINKERS の 格付けの 点・契約の 払い・ファイトマネーの 上乗せは ペットの 闘技場だけ（モンスターの 勝ちは 数えない）。配信の 帯は オーバーレイが モンスターを 描けるように なってから
+export const MON = { lv: 50 };
+export const MTOUR = { ...TOUR, hour: 21 };
+export const MTOUR_PAY = TOUR_PAY;   // ペットと 同じ 表
+export const mtourDay = (now) => tourDayH(now, MTOUR.hour);
+export const mtourAt = (day) => tourAtH(day, MTOUR.hour);
+// 自分の なかまの トーナメント：えらべる 数
+export const SELF_SIZES = [4, 8, 16];
 
 // ---------- 派遣先の 戦い（⑤。鹿さんの頼み、2026-10-25） ----------
 // 同じ 行き先に 出かけて いる ほかの 人の ペットと、出発の ときに たまに 出会って 戦う（ペット どうしの 1 対 1）
