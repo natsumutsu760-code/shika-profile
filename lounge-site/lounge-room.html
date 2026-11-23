@@ -25,6 +25,13 @@
   .bar { display:flex; align-items:center; gap:10px; margin-bottom:10px; min-height:40px; }
   .bar h1 { font:900 20px/1.2 var(--jp); margin:0 auto 0 0; }
   .res, .sw, .edit { white-space:nowrap; } a.sw { text-decoration:none; }
+  /* 集合住宅の 入口の パネル（2026-11-23 鹿さんの カード「部屋の 上に パネル」：わかりやすい 所に） */
+  .tdp { display:grid; grid-template-columns:auto minmax(0, 1fr) auto auto; align-items:center; gap:12px; margin:0 0 10px; padding:6px 16px 6px 6px; border:1.5px solid var(--line); border-radius:18px; background:linear-gradient(135deg, #fff, #EEF6FF); color:var(--ink); text-decoration:none; box-shadow:0 6px 16px rgba(27,35,64,.08); }
+  .tdp img { width:76px; height:54px; object-fit:cover; border-radius:12px; background:#E9EDF5; }
+  .tdp b { display:block; font:900 16px/1.2 var(--jp); } .tdp small { display:block; margin-top:2px; font:700 12px/1.3 var(--jp); color:var(--soft); }
+  .tdp em { font-style:normal; min-width:24px; height:24px; padding:0 7px; border-radius:999px; background:var(--coral); color:#fff; font:800 13px/24px var(--num); text-align:center; }
+  .tdp i { font-style:normal; color:var(--sky); font:900 15px/1 var(--jp); }
+  @media (max-height:520px) { .tdp { padding:3px 12px 3px 3px; gap:10px; margin-bottom:8px; } .tdp img { width:58px; height:40px; border-radius:10px; } .tdp b { font-size:15px; } }   /* 本番の 小さな 枠（約 358×380） */
   .res { font:600 15px/1 var(--num); padding:8px 12px; border-radius:999px; background:#fff; border:1.5px solid var(--line); color:var(--ink); }
   .res i { display:inline-block; width:9px; height:9px; border-radius:50%; background:var(--leaf); margin-right:6px; }
   .sw, .edit { padding:9px 16px; border-radius:999px; border:1.5px solid var(--line); background:#fff; font:900 13px/1 var(--jp); color:var(--ink); }
@@ -91,7 +98,7 @@
     .panel h2 { display:none; }
     .done { padding:11px; font-size:14px; }
     .bar { flex-wrap:wrap; } .bar h1 { font-size:17px; flex:1 0 100%; }
-    .bar { gap:8px; } .bar .sw, .bar .edit { padding:9px 12px; }   /* 集合住宅の 入口で ボタンが 4 つ。スマホで 1 行に おさめる（2026-11-14） */
+    .bar { gap:8px; } .bar .sw, .bar .edit { padding:9px 12px; }
   }
 </style>
 </head>
@@ -99,7 +106,8 @@
 <header class="top"><a href="/" style="color:inherit;text-decoration:none" aria-label="MONO LINK の サイトへ"><b>MONO LINK<i>://</i></b></a><small>プライベートラウンジ</small></header>
 <main id="app">
   <section aria-label="部屋">
-    <div class="bar"><h1 id="title">部屋</h1><a class="sw" href="lounge-shop.html">家具の お店</a><a class="sw" id="tdGo" href="td.html" hidden>集合住宅</a><button class="sw" id="light" aria-pressed="false">☀ 昼</button><button class="edit" id="edit">もようがえ</button></div>
+    <div class="bar"><h1 id="title">部屋</h1><a class="sw" href="lounge-shop.html">家具の お店</a><button class="sw" id="light" aria-pressed="false">☀ 昼</button><button class="edit" id="edit">もようがえ</button></div>
+    <a class="tdp" id="tdPanel" href="td.html" hidden><img src="img/td-panel.webp" alt="" width="138" height="99"><span><b>集合住宅</b><small id="tdSub">住人を むかえて 襲撃から 守る</small></span><em id="tdN" hidden></em><i aria-hidden="true">▶</i></a>
     <div class="view" id="view" aria-label="6×6 マスの 部屋。ペットを 押すと なでる"><p class="toast" id="toast" role="status"></p></div>
   </section>
   <aside class="panel" id="panel" aria-label="もようがえ" hidden></aside>
@@ -151,7 +159,10 @@ if (ME.order && ME.order.ready && (!ME.order.signed || !orderHeard)) {
 }
 const GDN = !ME.lock && !!ME.farmv;   // 庭への扉（新しい 農園）：農園が 開いて いて、ロックで とめられて いない 人だけ（いまは 鹿さんと おたこまるさん）
 const MP = ME.pets && ME.pets[0];   // 1 匹目（まだ いなければ 部屋には いない。ふだは「ペットを むかえる」）
-document.getElementById("tdGo").hidden = !MP;   // 集合住宅の 入口（研究ノートの 15 回目「ラウンジの部屋から」・2026-11-14 鹿さんの カード「ペットを むかえてから」。最後に 戦う MONO ペットが いる 人だけ）
+{ const P = document.getElementById("tdPanel"), T = ME.td || {}, n = (T.notes || []).filter((x) => !x.stale).length, k = Object.keys(T.res || {}).length;   // 集合住宅の 入口（2026-11-23 鹿さんの カード「部屋の 上に パネル」。前は 上の 帯の 小さな ボタン）
+  P.hidden = !MP;
+  if (T.open) document.getElementById("tdSub").textContent = n ? `襲撃の 通知 ${n}・住人 ${k}` : `住人 ${k}`;
+  const N = document.getElementById("tdN"); N.hidden = !n; N.textContent = n; }   // 集合住宅の 入口（研究ノートの 15 回目「ラウンジの部屋から」・2026-11-14 鹿さんの カード「ペットを むかえてから」。最後に 戦う MONO ペットが いる 人だけ）
 let OWN = (ME.own && ME.own.furniture) || {};   // お店（lounge-shop.html）で 買うと ふえる
 let uidN = 0;
 const withUid = (list) => list.map((it) => ({ uid: ++uidN, ...it }));

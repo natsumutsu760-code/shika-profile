@@ -2,7 +2,7 @@
 // 数は ぜんぶ lounge-proto/td-numbers.js（鹿さんの カードで 決まった 〔決〕）・建物の 形と 増築の 候補は lounge-proto/td-core.js（2 代目の 見本 td.html から 写した）
 // 記録 rec.td = { order:[建てた 候補], res:{ 部屋の 鍵: 住人 }, day:家賃を 払った 日（日本時間）, board:{ h, n, taken }, sig:シグナル, notes:{ at, list }, def:防衛中, dead:[殺された 持って いる 子の uid], mods:モジュールの 数（持ち物）, modInv:[{id, star}], modAt:{ "cell:マス"|"blk:箱"|"room:鍵": {id, star} }, modOffer:{ id, list }, log }
 //   住人 { id（絵＝敵の ツリー）, name, lv, sat（満足度）, type（型）, uid?（持って いる 子なら なかまの uid）, at }
-// 受付：td.build {slot}・td.rent・td.movein {i, key}・td.out {key}・td.furn {key, id}・td.gear {key, id}・td.price {key, step}・td.scout {key}・td.def.start {i}・td.def.end {id, turns}（turns：ターンごとの 指示の 記録。門番が 回し直して 勝ち負けを 決める）
+// 受付：td.build {slot}・td.rent・td.movein {i, key}・td.out {key}・td.furn {key, id}・td.furn.off {key, i}・td.gear {key, id}・td.price {key, step}・td.scout {key}・td.def.start {i}・td.def.end {id, turns}（turns：ターンごとの 指示の 記録。門番が 回し直して 勝ち負けを 決める）
 //       アメジスト（計画）：td.revive {uid}・td.board（掲示板を すぐ かえる）
 // 〔決〕の 決め：家賃（（15 ＋ Lv）× 満足度の 倍率・1 日 1 回）・増築の 値段（パーツ 1 つずつ）・経験値は 戦いと 仕事（持って いる 子だけ）・素材は 本編と 共有（倉庫）・
 //   防衛の 報酬（強さ 1〜5）と 負け・アメジストの 復活（ランク）と 掲示板・敵の 数と Lv・入口は ペットを むかえてから
@@ -36,7 +36,7 @@ import { planOf, stateAt, slotTimes, pairsOf, bondKeyOf, kidOf, jstMin, kidInher
 import { roomDoors, resSnap, defReplay } from "./td-def.js";   // 防衛の 準備と 門番で もう 一度 回す（2026-11-21 鹿さんの カード「門番でもう一度回す」・M-054）
 import { fighterOf } from "./lounge-pet.js";   // 最後に 戦う MONO ペットの 強さ（me の pets[0].build と 同じ）   // 住人の 暮らし（2026-11-18 2 代目。画面と 同じ 式）
 
-export const TD_C = { rentKeep: 3, board: 3, ownP: 0.3, satIn: 60, noteRooms: 16, notesMax: 4, noteEvery: 3 * 3600000, defMin: 3 * 60000, killsMax: 16, logMax: 20 };
+export const TD_C = { rentKeep: 3, board: 3, ownP: 0.3, satIn: 60, noteRooms: 16, notesMax: 4, noteEvery: 3 * 3600000, defMin: 0, killsMax: 16, logMax: 20 };   // defMin：防衛を 始めてから 結果を 受けとるまでの 最短（前は 3 分。2026-11-23 鹿さんの カード「待ちを なくす」：門番が 戦いを 回し直して 決める〈11-21〉ので 待ちは いらない）
 const HOUR = 3600000;
 const hash = (s) => { let h = 2166136261; for (const c of String(s)) h = Math.imul(h ^ c.charCodeAt(0), 16777619); return h >>> 0; };
 const rngOf = (seed) => { let s = seed >>> 0; return () => { s = (s + 0x6D2B79F5) >>> 0; let t = s; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; };
@@ -168,6 +168,7 @@ export function tdAct(rec, b, now = Date.now()) {
   if (a === "td.movein") return moveIn(rec, T, b, now);
   if (a === "td.out") return moveOut(T, b, now);
   if (a === "td.furn") return buyFurn(rec, T, b, now);
+  if (a === "td.furn.off") return offFurn(rec, T, b, now);   // 家具を 外す（持ち物へ。2026-11-23 鹿さんの カード）
   if (a === "td.gear") return buyGear(rec, T, b, now);
   if (a === "td.price") return setPrice(T, b, now);
   if (a === "td.scout") return scout(rec, T, b, now);
@@ -357,6 +358,14 @@ function buyFurn(rec, T, b, now) {
   if ((rec.credits || 0) < cost) return { ok: false, why: `クレジットが 足りない：あと ${(cost - (rec.credits || 0)).toLocaleString("ja-JP")}` };
   settle(T, key, now); rec.credits -= cost; if (inv) T.inv[b.id]--; R.furn.push(b.id); log(T, `${F.name}（${inv ? "持ち物から" : `${cost.toLocaleString("ja-JP")} cr`}）`, now);
   return { ok: true, cost, sat: T.res[key] ? satNow(T, key, now) : null };
+}
+// 家具を 外す（2026-11-23 鹿さんの カード「外すと 持ち物へ」）：外した 家具は 持ち物（T.inv）に もどり、どの 部屋にも ただで 置ける。クレジットは もどらない
+function offFurn(rec, T, b, now) {
+  const key = b && b.key, R = roomKeys(T).includes(key) ? T.rooms[key] : null, i = Number.isInteger(b && b.i) ? b.i : -1;
+  const id = R && Array.isArray(R.furn) ? R.furn[i] : null;
+  if (!id || !Object.hasOwn(TD_FURN, id)) return { ok: false, why: "外す 家具を えらんで" };
+  settle(T, key, now); R.furn.splice(i, 1); T.inv[id] = (T.inv[id] || 0) + 1; log(T, `${TD_FURN[id].name}を 外した（持ち物へ）`, now);
+  return { ok: true, id, sat: T.res[key] ? satNow(T, key, now) : null };
 }
 function buyGear(rec, T, b, now) {
   const key = b && b.key, G = Object.hasOwn(GEAR, b?.id) ? GEAR[b.id] : null;

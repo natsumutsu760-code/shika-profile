@@ -78,7 +78,7 @@ export const WORDS = {
   "相場より 安い。": "Below market.", "不満が 毎日 # もどる。": "Discontent eases by # a day.", "いまの 不満 #（満足度 −#）。": "Discontent now # (Satisfaction −#).",
   "家具は まだ ない": "No furniture yet", "家具は 1 部屋 3 つまで": "Up to 3 pieces of furniture per room", "好き": "Fav", "汚れ止め": "No dirt", "ある": "Installed", "これを 買う": "Buy this",
   "空き部屋の 家賃が 高すぎる": "Vacant rooms are overpriced", "家賃を かえた": "Rent changed", "家具を 置いた": "Furniture placed", "設備を 付けた": "Equipment installed",
-  "家具を 置いた（見本）": "Furniture placed (sample)", "設備を 付けた（見本）": "Equipment installed (sample)",
+  "家具を 置いた（見本）": "Furniture placed (sample)", "家具は 1 部屋 3 つまで（外すと 持ち物に もどり、入れ替えられる）": "Up to 3 pieces per room (remove one to return it to your inventory and swap)", "設備を 付けた（見本）": "Equipment installed (sample)",
   "せんべいぶとん": "Thin futon", "ちゃぶ台": "Low table", "カラーボックス": "Cube shelf", "ふかふかクッション": "Fluffy cushion", "小さな 冷蔵庫": "Mini fridge", "木の 本だな": "Wooden bookshelf",
   "ソファ": "Sofa", "大きな 水槽": "Big aquarium", "ゲーム機と テレビ": "Game console & TV", "革の ひじかけいす": "Leather armchair", "天蓋つきベッド": "Canopy bed", "星空の プロジェクター": "Starry sky projector",
   "満足度 # で スカウトできる（シグナル #）": "Can scout at # Satisfaction (# Signal)", "スカウト・シグナル #": "Scout · # Signal", "もう 1 回 押すと なかまに": "Tap again to recruit",
@@ -123,6 +123,7 @@ export const WORDS = {
 // 部屋の 番号（頭の 字は 棟：南・西・東・北）
 const WG = { 南: "S", 西: "W", 東: "E", 北: "N" };
 export const RULES = [
+  [/^(.+)を 外した（(持ち物へ|見本)）$/, (m, p) => `Removed ${p(m[1]) || m[1]} (${m[2] === "見本" ? "sample" : "back to inventory"})`], [/^(.+)を 外す$/, (m, p) => `Remove ${p(m[1]) || m[1]}`],   // 家具を 外す（2026-11-23）
   [/^Lv(\d+)$/, (m) => `Lv${m[1]}`],
   [/^Lv(\d+) で$/, (m) => `At Lv${m[1]}`],
   [/^1 つ目の 建物に (\d+) 階$/, (m) => `First building gets floor ${m[1]}`], [/^区画を (\d+) つ 建てられる$/, (m) => `Build ${m[1]} block${m[1] === "1" ? "" : "s"}`],

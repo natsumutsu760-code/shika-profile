@@ -158,7 +158,7 @@ function round(S, B, ev) {
     const stats = U.block ? { ...U.c.stats, def: Math.round((U.c.stats.def || 0) * FIGHT.blockDef) } : U.c.stats;
     return { ...U.c, stats, startHp: U.hp ?? undefined, startMp: U.mp ?? undefined, startFx: fx, cont: !U.fresh };
   };
-  const evs = simulateTeams(R.map(cfg), F.map(cfg), (S.seed * 7919 + S.turn * 131 + B.id) >>> 0, { until: 1, pve: true, keepPerm: true });
+  const evs = simulateTeams(R.map(cfg), F.map(cfg), (S.seed * 7919 + S.turn * 131 + B.id) >>> 0, { until: 1, pve: true, keepPerm: true, turn0: (B.n = (B.n || 0) + 1) });   // 〔2026-11-23〕戦いごとに ターンを 数える（前は 毎回 1 ターン目 あつかいで、1 ターン目の 構えなどを くり返して 何ラウンドも 攻撃しなかった・N ターンごとの 技が 出なかった）
   const st = evs[0], end = evs[evs.length - 1], all = [...R, ...F];
   all.forEach((U, i) => { U.hp = end.final[i].hp; U.mp = end.final[i].mp; U.fx = end.carry[i] || {}; U.maxHp = st.fighters[i].maxHp; U.fresh = false; U.charge = false; });
   ev.push({ t: "round", b: B.id, acts: evs.filter((e) => e.type === "act"), fighters: st.fighters, now: end.final, res: [...B.res], foe: [...B.foe] });

@@ -610,7 +610,8 @@ export function simulateTeams(SA, SB, seed, opts = {}) {
   });   // 「戦いのはじめに相手を〇〇」（相手全員）
 
   let lastTurn = 0, simFrom = -1;
-  for (let turn = 1; turn <= (opts.until ?? SIM_TURN) && alive(0).length && alive(1).length; turn++) {
+  const t0 = Math.max(1, opts.turn0 | 0 || 1), tEnd = opts.turn0 ? t0 + (opts.until ?? SIM_TURN) - 1 : (opts.until ?? SIM_TURN);   // turn0：何ターン目から 回すか（集合住宅の 防衛は 1 ターンずつ 続きを 回す。2026-11-23：毎回 1 ターン目 あつかいで 構えを くり返し 攻撃しなかった）
+  for (let turn = t0; turn <= tEnd && alive(0).length && alive(1).length; turn++) {
     lastTurn = turn; curTurn = turn; if (turn === MAX_TURN + 1) simFrom = ev.length;
     F.forEach((f) => (f.turnNow = turn));
     const plan = F.map((f, i) => {

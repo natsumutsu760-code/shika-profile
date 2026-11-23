@@ -25,7 +25,7 @@ export const WORDS = {
   "冒険の 画面で えらべます": "You can choose it on the Adventure screen", "職業を えらぶ": "Choose a job",
   "ラウンジ": "Lounge", "プライベートラウンジ": "Private Lounge", "MONO LINK の サイトへ": "To the MONO LINK site",
   // ---- 部屋（lounge-room.html） ----
-  "部屋": "Room", "6×6 マスの 部屋。ペットを 押すと なでる": "A 6×6 room. Tap your pet to pet it", "もようがえ": "Redecorate", "家具の お店": "Furniture Shop", "集合住宅": "Apartments",
+  "部屋": "Room", "6×6 マスの 部屋。ペットを 押すと なでる": "A 6×6 room. Tap your pet to pet it", "もようがえ": "Redecorate", "住人を むかえて 襲撃から 守る": "Take in residents and defend against raids", "襲撃の 通知 #・住人 #": "Raid alerts # · Residents #", "住人 #": "Residents #", "家具の お店": "Furniture Shop", "集合住宅": "Apartments",
   "☀ 昼": "☀ Day", "☾ 夜": "☾ Night", "昼": "Day", "夜": "Night", "照明：昼": "Lighting: Day", "照明：夜": "Lighting: Night",
   "地下へ": "Down", "庭へ": "Garden", "ペットを むかえる": "Welcome a pet",
   "ここは ほかの 物と かさなる": "That overlaps something else", "ここには 置けない": "Can't place it here", "回すと ほかの 物に ぶつかる": "Rotating would bump into something",
