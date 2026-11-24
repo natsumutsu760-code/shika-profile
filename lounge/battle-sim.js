@@ -593,7 +593,7 @@ export function simulateTeams(SA, SB, seed, opts = {}) {
     return true;
   }
 
-  if (!quiet) ev.push({ type: "start", ganbari: gIdx, gap, fighters: F.map((f) => ({ name: f.name, owner: f.c.owner, lv: f.c.lv, type: f.c.type, maxHp: f.maxHp, maxMp: f.maxMp, ...(duel ? {} : { side: f.side }) })) });
+  if (!quiet) ev.push({ type: "start", ganbari: gIdx, gap, fighters: F.map((f) => ({ name: f.name, owner: f.c.owner, lv: f.c.lv, type: f.c.type, maxHp: f.maxHp, maxMp: f.maxMp, hp: f.hp, mp: f.mp, ...(duel ? {} : { side: f.side }) })) });   // hp・mp：はじめの 数（3 体の 勝ち抜きで 減った HP の まま 次へ。2026-11-24）
   // はじめの バリアは 1 つまで。パッシブ・装備・OP で 2 つ 以上に なったら、こえた 分は 装甲 +20 ずつ（複数バリアの 廃止、鹿さんの 決め 2026-11-07）
   const startList = (f) => { const L = f.P.startFx || [], nb = L.filter(([id]) => id === "barrier").reduce((a, [, n]) => a + (n ?? 1), 0); if (nb <= 1) return L; return [...L.filter(([id]) => id !== "barrier"), ["barrier", 1], ["armor", 20 * (nb - 1)]]; };
   // c.cont：前の ターンから 続く 戦いの 子（集合住宅の 戦い。1 ターンずつ 区切って 持ちこす。2026-11-14）は「戦いのはじめに」を もう かけない

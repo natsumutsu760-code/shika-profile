@@ -11808,13 +11808,23 @@ function pskClean(o) {
     if (!on) return;
     var A = e.A, B = e.B, who = function (f) { return "<b>" + esc(f.owner || "") + "</b> の " + esc(f.name || ""); }, pay = e.pay || {};
     if (!res) {
-      if (e.kind === "inv") { $("pvp-h").innerHTML = "侵入者だ！<small>" + esc((PVP_PLACE[e.did] || "派遣先") + "に 高レベルの " + (B.name || "") + "（Lv" + (+B.lv || 0) + "）") + "</small>"; $("pvp-sub").innerHTML = who(A) + "　VS　<b>" + esc(B.name || "") + "</b>"; return; }   // 探索中の 侵入（鹿さんの決め、2026-10-28）
-      $("pvp-h").innerHTML = (e.kind === "final" ? "Orbit Arena の 大会・決勝！" : e.kind === "tour" ? "Orbit Arena の 大会・" + esc(e.label) + "！" : "派遣先で ばったり！") + "<small>" + (e.kind === "final" ? "きょうの 優勝が 決まる" : e.kind === "tour" ? (e.no ? "第 " + (+e.no) + " 試合" : "") : esc((PVP_PLACE[e.did] || "派遣先") + "で 出会った")) + "</small>";
+      if (e.kind === "inv") { $("pvp-h").innerHTML = "侵入者だ！<small>" + esc((PVP_PLACE[e.did] || "派遣先") + "に 高レベルの " + (B.name || "") + "（Lv" + (+B.lv || 0) + "）") + "</small>"; $("pvp-sub").innerHTML = who(A) + "　VS　<b>" + esc(B.name || "") + "</b>"; return; }
+      if (e.kind === "bz") { $("pvp-h").innerHTML = "ボーダーゾーンで ばったり！<small>" + esc((e.zone || "ボーダーゾーン") + "で 出会った") + "</small>"; $("pvp-sub").innerHTML = who(A) + "　VS　" + who(B); return; }   // ほかの プレイヤーと（2026-11-16 鹿さんの カード「派遣と同じく見せる」）   // 探索中の 侵入（鹿さんの決め、2026-10-28）
+      if (e.team) { $("pvp-h").innerHTML = "モンスター 3 体の 大会・決勝！<small>第 " + (+e.no || 1) + " 戦（勝ち抜き）</small>"; $("pvp-sub").innerHTML = who(A) + "　VS　" + who(B); return; }   // 3 体の 勝ち抜きの 決勝（2026-11-24 鹿さんの カード「3体も決勝だけ流す」）
+      var TN = e.cat === "mon" ? "モンスターの 大会・" : "Orbit Arena の 大会・";   // モンスターの 大会（2026-11-24 鹿さんの カード「オーバーレイも直す」）
+      $("pvp-h").innerHTML = (e.kind === "final" ? TN + "決勝！" : e.kind === "tour" ? TN + esc(e.label) + "！" : "派遣先で ばったり！") + "<small>" + (e.kind === "final" ? "きょうの 優勝が 決まる" : e.kind === "tour" ? (e.no ? "第 " + (+e.no) + " 試合" : "") : esc((PVP_PLACE[e.did] || "派遣先") + "で 出会った")) + "</small>";
       $("pvp-sub").innerHTML = who(A) + "　VS　" + who(B);
       return;
     }
     var w = res.winner === 0 ? A : B;
     if (e.kind === "inv") { var beat = res.winner === 0; $("pvp-h").innerHTML = esc(w.name || "") + " の 勝ち！<small>" + (beat ? "撃退" : "力つきた") + "</small>"; $("pvp-sub").innerHTML = beat ? who(A) + " が 侵入者を たおした！" + (e.caught ? "　<em>捕まえた！</em>" : "") : who(A) + " は 力つきた……（派遣は ここまで）"; return; }
+    if (e.kind === "bz") {   // ボーダーゾーンの ばったり：勝った 側が 負けた 側の 持ち物の 2 割を 奪う・負けた 側は HP 3 割で 続ける
+      var lo = res.winner === 0 ? B : A, t = e.took || {}, got = [t.s ? "サンプル " + (+t.s) : "", t.m ? "素材 " + (+t.m) : ""].filter(Boolean).join("・");
+      $("pvp-h").innerHTML = esc(w.name || "") + " の 勝ち！<small>" + (res.upset ? "下克上" : "勝負あり") + "</small>";
+      $("pvp-sub").innerHTML = who(w) + " が <b>" + esc(lo.owner || "") + "</b> から " + (got ? "<em>" + esc(got) + "</em> を 奪った" : "何も 奪えなかった") + "（探索は そのまま）";
+      return;
+    }
+    if (e.team) { $("pvp-h").innerHTML = esc(w.name || "") + " の 勝ち！<small>" + (e.last ? "優勝" : "第 " + (+e.no || 1) + " 戦") + "</small>"; $("pvp-sub").innerHTML = e.last ? "<b>" + esc(w.owner || "") + "</b> の チームが 優勝！" : who(w) + " が のこって 次の 戦へ"; return; }
     $("pvp-h").innerHTML = esc(w.name || "") + " の 勝ち！<small>" + (res.upset ? "下克上" : e.kind === "final" ? "優勝" : "勝負あり") + "</small>";
     $("pvp-sub").innerHTML = e.kind === "final" ? who(w) + " が 優勝！" : e.kind === "tour" ? who(w) + " が " + esc(e.next) + "へ！" : who(w) + " に <em>+" + (+pay.credits || 0) + " クレジット</em>・ふたりに <em>アメジスト +" + (+pay.res || 0) + "</em>（探索は そのまま）";
   }
@@ -11823,22 +11833,37 @@ function pskClean(o) {
   function pvpTour(m) {
     var fs = m.fs || {};
     (m.list || []).forEach(function (x) {
-      if (x && fs[x.a] && fs[x.b] && isFinite(+x.seed)) pvpTourQ.push({ tour: true, kind: x.final ? "final" : "tour", A: fs[x.a], B: fs[x.b], seed: +x.seed, day: m.day, label: String(x.label || ""), no: +x.no || 0, next: String(x.next || "") });
+      if (x && Array.isArray(fs[x.a]) && Array.isArray(fs[x.b]) && fs[x.a].length && fs[x.b].length && isFinite(+x.seed)) { pvpTourQ.push({ tour: true, team: true, kind: "final", TA: fs[x.a], TB: fs[x.b], A: fs[x.a][0], B: fs[x.b][0], seed: +x.seed, day: m.day, no: 1, cat: "t3" }); return; }   // 3 体の 勝ち抜き（決勝だけ 来る）
+      if (x && fs[x.a] && fs[x.b] && !Array.isArray(fs[x.a]) && !Array.isArray(fs[x.b]) && isFinite(+x.seed)) pvpTourQ.push({ tour: true, kind: x.final ? "final" : "tour", A: fs[x.a], B: fs[x.b], seed: +x.seed, day: m.day, label: String(x.label || ""), no: +x.no || 0, next: String(x.next || ""), cat: m.cat === "mon" ? "mon" : "" });   // cat：モンスターの 大会（2026-11-24）
     });
     if (!pvpTourOn && pvpTourQ.length) { pvpTourOn = true; alertShow("pvp", pvpTourQ.shift()); }
   }
   function pvpTourNext() { var x = pvpTourQ.shift(); if (x) alertQ.push({ kind: "pvp", e: x }); else pvpTourOn = false; }
+  var pvpAr = null;   // 3 体の 勝ち抜きの 計算（門番の /lounge/arena.js）
   function pvpShow(e, done) {
     var url = siteUrl(), fin = false, host = null, view = null;
-    var guard = setTimeout(end, 150000);   // 何が あっても 2 分半で つぎへ
+    var guard = setTimeout(end, 150000);   // 何が あっても 2 分半で つぎへ（3 体の 勝ち抜きは 1 戦ごとに 数えなおす）
     function end() { if (fin) return; fin = true; clearTimeout(guard); try { if (view) view.destroy(); } catch (x) {} if (host) host.remove(); pvpBand(null); done(); }
     if (!url) { end(); return; }
     (pvpLib || (pvpLib = import(url + "/lounge/battle-view.js"))).then(function (m) {
       host = document.createElement("div"); host.className = "pvp-stage"; $("stage").appendChild(host);
       $("rotator").style.visibility = "";   // 前の 通知が 帯を かくして いても 出す
       pvpBand(e, null); Sound.play("follow");
-      view = m.mountBattle(host, { A: e.A, B: e.B, seed: +e.seed }, { W: 1500, H: 500, ground: 478, S: 150, home: [540, 900], turnY: 426, winY: 220, fit: false,
-        onEnd: function (r) { pvpBand(e, r); setTimeout(end, 5000); } });
+      var geo = function (onEnd) { return { W: 1500, H: 500, ground: 478, S: 150, home: [540, 900], turnY: 426, winY: 220, fit: false, onEnd: onEnd }; };
+      if (e.team) return (pvpAr || (pvpAr = import(url + "/lounge/arena.js"))).then(function (ar) {   // 勝った 子は 減った HP の まま 次の 相手と
+        var k = ar.kachinuki(e.TA, e.TB, +e.seed).bouts, i = 0;
+        (function bout() {
+          if (fin) return;
+          var x = k[i], P = ar.boutPair(e.TA, e.TB, x);
+          e.A = P[0]; e.B = P[1]; e.no = i + 1; e.last = i === k.length - 1;
+          clearTimeout(guard); guard = setTimeout(end, 150000);
+          try { if (view) view.destroy(); } catch (z) {}
+          host.innerHTML = ""; pvpBand(e, null);
+          view = m.mountBattle(host, { A: e.A, B: e.B, seed: x.seed }, geo(function (r) { pvpBand(e, r); if (e.last) setTimeout(end, 5000); else { i++; setTimeout(bout, 3000); } }));
+          view.play();
+        })();
+      }).catch(function () { pvpAr = null; end(); });
+      view = m.mountBattle(host, { A: e.A, B: e.B, seed: +e.seed }, geo(function (r) { pvpBand(e, r); setTimeout(end, 5000); }));
       view.play();
     }).catch(function () { pvpLib = null; end(); });
   }

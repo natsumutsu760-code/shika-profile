@@ -34,7 +34,7 @@ import { nutCraft, nutFeed, nutDetox, nutBreak } from "./lounge-nutrition.js";  
 import { statPut } from "./lounge-stats.js";   // 記録の まとめ（OBS の コスメの 条件。かわった ときだけ Lounge へ）
 import { ensure, give, insDue, FURN_MAX, petFirst, petJob, petUnlockPlan, petSwitch, tripStart, tripCalc, tripDone, invadeRelay, tripCollect, payWaiting, tripView, craftPlan, synthPlan, boxTake, dropOld, stashCap, tameFeedPlan, tameJoin, tameBack, researchPlan, extractPlan, snackCraft, autoSellSet, equipCap, loopNew, loopSet, loopSeen, loopAfter, loopStep, equipScrap } from "./lounge-game.js";
 import { DUEL } from "./game.js";   // モンスターの 闘技場の 残り 回数（ペットと 同じ 表。2026-11-23）
-import { arenaFighter, ensureArena, duelCheck, duelDone, arenaMine, encReady, encPick, encDone, arenaMon, ensureArenaM, monRep, monList, mDuelCheck, selfTour } from "./lounge-arena.js";   // 闘技場・派遣先の 戦い
+import { arenaFighter, ensureArena, duelCheck, duelDone, arenaMine, encReady, encPick, encDone, arenaMon, ensureArenaM, monRep, monList, mDuelCheck, selfTour, ensureArenaT, arenaTeam, monTeam, tDuelCheck, tDuelDone, selfTeamTour } from "./lounge-arena.js";   // 闘技場・派遣先の 戦い
 import { hidden } from "./lounge-gate.js";
 import { bzStart, bzRecall, bzCollect, bzAppraise, bzSell, bzDone, bzMe, bzRosterEntry, bzMeetReady, bzMeetAsk, bzMeetIn, bzMeetDone } from "./lounge-border.js";   // ボーダーゾーン（2026-11-05 作りはじめ）
 import { bzStep, BZ_MEET, BZ_AREAS } from "./border.js";   // BZ_MEET：ばったりの 見回り（2026-11-16）
@@ -50,7 +50,7 @@ const BZ_BUSY = "ほかの プレイヤーと 出会って いる ところ：�
 const LABEL = { balls: "玉", res: "アメジスト" };
 // オーバーレイが 景品の コスメを 渡せなかった わけ（obs-ledger.js の canGive の why）
 const GIVE_WHY = { gone: "お店の 品物が 入れ替わりました", price: "値段が 合いませんでした", own: "その コスメは もう 持って いる", max: "その コスメは もう Ⅲ まで 進化して いる", give: "配信の 画面が 景品を 渡せませんでした" };
-export const MONEY = /^(shop\.|hideout\.up$|bench\.|trip\.collect$|trip\.start$|tame\.feed$|tame\.research$|tame\.extract$|trader\.|task\.|req\.|pet\.respec$|pet\.rejob$|pet\.unlock$|td\.revive$|td\.board$|money\.|arena\.duel$|arena\.mduel$|prize\.)/;   // 玉か アメジストが うごく やること（答えに いまの 数を つける）
+export const MONEY = /^(shop\.|hideout\.up$|bench\.|trip\.collect$|trip\.start$|tame\.feed$|tame\.research$|tame\.extract$|trader\.|task\.|req\.|pet\.respec$|pet\.rejob$|pet\.unlock$|td\.revive$|td\.board$|money\.|arena\.duel$|arena\.mduel$|arena\.tduel$|prize\.)/;   // 玉か アメジストが うごく やること（答えに いまの 数を つける）
 // 画面へ 送る 持ち物：鑑定して いない スフィアは 中身（OP・★）を 送らない（ガラクの 鑑定で 見える）
 const ownView = (own) => (own && Array.isArray(own.spheres) && own.spheres.some((x) => !x.known) ? { ...own, spheres: own.spheres.map((x) => (x.known ? x : { uid: x.uid, did: x.did, known: false })) } : own);
 const PLANS = {
@@ -381,6 +381,36 @@ export class Viewer {
     return r;
   }
 
+  // ---------- 3 体の 勝ち抜き（2026-11-24 鹿さんの カード）：Market の 道は /tarena/（箱は「a:t3:」）。相手の チームは 相手の Viewer の /tfighter ----------
+  async tarenaAsk(path, body) { try { return await (await this.market().fetch("https://market/tarena/" + path, { method: "POST", body: JSON.stringify(body) })).json(); } catch (e) { return null; } }
+  async tarena(rec, b, now) {
+    const A = ensureArenaT(rec, jstDay(now)), NC = { ok: false, why: "いまは Orbit Arena に つながらない" };
+    if (b.a === "arena.tteam") return monTeam(rec, A, b);
+    if (b.a === "arena.tself") return selfTeamTour(rec, b, rand);   // 試す（3 体。ごほうび なし・何回でも）
+    const me = arenaTeam(rec);
+    if (b.a === "arena.tview" || b.a === "arena.tfoes") {
+      const mine = { w: A.w, l: A.l, left: { duels: DUEL.perDay - A.n, paid: DUEL.paidPerDay - A.paid }, beat: A.beat, log: A.log, team: A.team };
+      if (!me) return { ok: true, me: null, foes: [], ...mine, def: [], hold: { w: 0, l: 0 }, tour: null, last: null, n: (rec.tamed || []).length };
+      const pick = b.a === "arena.tfoes" || !A.foes.length, m = await this.tarenaAsk("view", { id: rec.id, card: me.card, pick });
+      if (!m || !m.ok) return NC;
+      if (m.foes) A.foes = m.foes;
+      return { ok: true, me: { ...me.card, w: A.w, l: A.l }, ...mine, foes: A.foes, def: m.def, hold: { w: m.card.hw, l: m.card.hl }, tour: m.tour, last: m.last, n: (rec.tamed || []).length };
+    }
+    if (b.a === "arena.tmatch") {
+      try { return await (await this.market().fetch(`https://market/tarena/match?day=${encodeURIComponent(String(b.day || ""))}&r=${+b.r || 0}&m=${+b.m || 0}`)).json(); } catch (e) { return NC; }
+    }
+    if (!me) return { ok: false, why: "さきに 3 体を えらんで" };
+    if (b.a === "arena.tentry") return (await this.tarenaAsk("entry", { id: rec.id, on: !!b.on, card: me.card })) || NC;
+    const c = tDuelCheck(rec, A, b); if (c.why) return { ok: false, why: c.why };
+    if (hidden(await this.env.DB.get("gate", "json"), c.foe.id)) return { ok: false, why: "その 相手とは 戦えない（入れかえて べつの 相手に）" };
+    let theirs = null;
+    try { theirs = await (await this.env.VIEWER.get(this.env.VIEWER.idFromName("v:" + c.foe.id)).fetch("https://viewer/tfighter")).json(); } catch (e) {}
+    if (!theirs || !Array.isArray(theirs.f) || theirs.f.length !== 3) return { ok: false, why: "相手に つながらない（入れかえて べつの 相手に）" };
+    const r = tDuelDone(rec, A, c.me, theirs, rand, now);
+    await this.tarenaAsk("log", { id: rec.id, a: c.me.card, b: c.foe.id, win: r.win });
+    return r;
+  }
+
   // やること（POST /act { body: { op, a, … }, wallet }）。op は ブラウザが 作る 1 回ごとの 番号。wallet は 門番が KV から 作った 物
   async act(body, wallet) {
     const rec = await this.load(); if (!rec) return { ok: false, why: "記録が ない" };
@@ -521,6 +551,7 @@ export class Viewer {
     else if (body.a === "equip.auto") r = autoSellSet(rec, body);   // 派遣で 拾った ★N 以下の 装備を 自動で 売る 設定
     else if (/^arena\.(view|foes|duel|entry|match|enc)$/.test(String(body.a))) r = await this.arena(rec, body, now);
     else if (/^arena\.(mview|mfoes|mduel|mentry|mmatch|mrep|mlist|mself)$/.test(String(body.a))) r = await this.marena(rec, body, now);   // モンスターの 闘技場（2026-11-23）
+    else if (/^arena\.(tview|tfoes|tduel|tentry|tmatch|tteam|tself)$/.test(String(body.a))) r = await this.tarena(rec, body, now);   // 3 体の 勝ち抜き（2026-11-24）
     else if (/^stock\.(view|buy|sell)$/.test(String(body.a))) {   // 株（トークン）
       r = stockLocked(rec, this.env) ? { ok: false, lock: true, why: STOCK_WHY } : await stockAct(this, rec, body, op);
       if (r.ok && r.ev) { for (const e of r.ev) bump(rec, e, jstDay(now)); delete r.ev; }   // 主タスク（買う・売る・もうけて 売る・ニュースの 会社）
@@ -569,6 +600,7 @@ export class Viewer {
       if (url.pathname === "/public") { const rec = await this.load(); return rec ? res(this.view(rec)) : res({ error: "none" }, 404); }
       // 闘技場から：いまの ペットの 戦う 形（読むだけ。順番待ちを 通らない ので、デュエルの 相手どうしで 待ちあわない）
       if (url.pathname === "/fighter") { const rec = await this.load(), f = rec && !locked(rec, this.env) && arenaFighter(rec); return f ? res({ ...f, rk: fxOf(rec, "rank") }) : res({ error: "none" }, 404); }   // rk：大会の 格付けの 点の 上乗せ（家具）
+      if (url.pathname === "/tfighter") { const rec = await this.load(), f = rec && !locked(rec, this.env) && arenaTeam(rec); return f ? res(f) : res({ error: "none" }, 404); }   // 3 体の チーム（Lv50。2026-11-24）
       if (url.pathname === "/mfighter") { const rec = await this.load(), f = rec && !locked(rec, this.env) && arenaMon(rec); return f ? res(f) : res({ error: "none" }, 404); }   // モンスターの 代表（Lv50。2026-11-23）
       // ほかの Viewer から：ボーダーゾーンの ばったり（見つかった 側。lounge-border.js の bzMeetIn）。ほかの Viewer は 呼ばない ので 鍵の 中で 決める
       if (url.pathname === "/bzmeet" && req.method === "POST") {

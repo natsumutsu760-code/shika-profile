@@ -21,6 +21,12 @@ export const WORDS = {
   "決勝": "Final", "準決勝": "Semifinal", "準々決勝": "Quarterfinal", "まだ 相手が いない（代表を えらんだ 人が 相手に なる）": "No opponents yet (players who choose a champion become opponents)",
   "さきに 代表の 子を えらんで": "Choose a champion first", "その 子は なかまに いない": "That monster isn't in your team", "その 子は 復活待ち": "That monster is waiting to be revived",
   "なかまに いない 子が いる": "Some of them aren't in your team", "復活待ちの 子が いる": "Some of them are waiting to be revived", "戦う 子": "Fighters",
+  // 3 体の 勝ち抜き（2026-11-24）
+  "# 体を えらぶと 勝ち抜きの デュエルと 大会に 出られる": "Choose # monsters to enter gauntlet duels and tournaments", "なかまが # 体 いると 出られる": "You need # monsters to enter",
+  "# 体を えらぶ": "Choose # monsters", "押した 順に 出る": "They fight in the order you tap", "決める": "Set", "# 体を 決めました": "Team of # set", "# 体まで（外してから えらぶ）": "Up to # (remove one first)",
+  "この 戦を とばす": "Skip this bout", "第 # 戦": "Bout #", "# 戦の 勝ち抜き": "Gauntlet of # bouts", "（押した 順に # 体ずつ チーム）": "(teams of # in the order you tap)", "# チーム": "# teams", "チーム #": "Team #",
+  "まだ 相手が いない（# 体を えらんだ 人が 相手に なる）": "No opponents yet (players who choose # monsters become opponents)", "さきに # 体を えらんで": "Choose # monsters first",
+  "出す 数（# 体｜# 体）": "Team size (#1 or #2)", "チーム": "team", "#:# から": "from #1:#2",
   // 格付け・LINKERS の 契約（2026-11-11）
   "格付け": "Rank", "LINKERS の 格付け": "LINKERS rank", "まだ だれも 戦って いない": "Nobody has fought yet", "#点": "# pts", "毎週 月曜に 点が 1 割 へる": "Points shrink by 10% every Monday",
   "契約中": "Under contract", "1 勝ごと": "Per win", "これまで": "So far", "ファイトマネー": "Fight money", "会社からの 申しこみ": "Company offers", "契約する": "Sign", "LINKERS の 契約": "LINKERS contract",
@@ -54,12 +60,14 @@ export const RULES = [
   [/^([\d,]+) 勝・([\d,]+) クレジット$/, (m) => `${m[1]} wins · ${n1(m[2], "credit", "credits")}`],
   [/^(\d+) 社だけ・(\d+) 日$/, (m) => `One company · ${n1(m[2], "day", "days")}`], [/^(SVA|ハルモニア|TCU)・1 勝 ([\d,]+) クレジット$/, (m) => `${m[1] === "ハルモニア" ? "Harmonia" : m[1]} · ${n1(m[2], "credit", "credits")} per win`],
   [/^契約しました（(\d+) 日）$/, (m) => `Signed (${n1(m[1], "day", "days")})`],
-  [/^(Lv)?(\d+) で 戦う$/, (m) => `${m[1] ? "Lv" : ""}${m[2]} in battle`], [/^(.+) の 代表$/, (m) => `${m[1]}'s champion`], [/^\/ (\d+) 体$/, (m) => `/ ${m[1]}`], [/^優勝！ (.+)$/, (m) => `Champion! ${m[1]}`],   // モンスター（2026-11-23）
+  [/^(Lv)?(\d+) で 勝ち抜き$/, (m) => `${m[1] ? "Lv" : ""}${m[2]} gauntlet`], [/^(.+) の チーム$/, (m, p) => `${P(p, m[1])}'s team`],   // 3 体の 勝ち抜き（2026-11-24）
+  [/^(.+?)：(.+) VS (.+) → (.+?) ?の 勝ち（(\d+) 戦）$/, (m, p) => `${P(p, m[1])}: ${P(p, m[2])} vs ${P(p, m[3])} → ${P(p, m[4])} wins (${n1(m[5], "bout", "bouts")})`],
+  [/^(Lv)?(\d+) で 戦う$/, (m) => `${m[1] ? "Lv" : ""}${m[2]} in battle`], [/^(.+) の 代表$/, (m) => `${m[1]}'s champion`], [/^\/ (\d+) 体$/, (m) => `/ ${m[1]}`], [/^優勝！ (.+)$/, (m, p) => `Champion! ${P(p, m[1])}`],   // モンスター（2026-11-23）
   [/^なかまが (\d+) 体 いると 試せる（いま (\d+) 体）$/, (m) => `You need ${m[1]} monsters to try this (you have ${m[2]})`], [/^(\d+) 体まで（外すか 数を かえる）$/, (m) => `Up to ${m[1]} (remove one or change the size)`],
   [/^([\d・]+) 体 えらんで$/, (m) => `Choose ${m[1].replace(/・/g, ", ")} monsters`], [/^(.+)は 出かけて いる（帰ってから 戦える）$/, (m) => `${m[1]} is out (can fight after returning)`],
 
   [/^契約 ＋([\d,]+)・格付け ([SABCD])（([\d,]+) 点）$/, (m) => `Contract +${m[1]} · Rank ${m[2]} (${m[3]} pts)`], [/^契約 ＋([\d,]+)$/, (m) => `Contract +${m[1]}`], [/^格付け ([SABCD])（([\d,]+) 点）$/, (m) => `Rank ${m[1]} (${m[2]} pts)`],
-  [/^(\d+) 勝 (\d+) 敗$/, (m) => `${m[1]}W ${m[2]}L`], [/^(.+) → (.+) の 勝ち$/, (m, p) => `${P(p, m[1])} → ${P(p, m[2])} wins`], [/^参加しました（きょう (\d+):00）$/, (m) => `Entered (today ${m[1]}:00 JST)`],
+  [/^(\d+) 勝 (\d+) 敗$/, (m) => `${m[1]}W ${m[2]}L`], [/^(.+) → (.+) の 勝ち$/, (m, p) => `${P(p, m[1])} → ${P(p, m[2])} wins`], [/^参加しました（きょう (\d+):(\d\d)）$/, (m) => `Entered (today ${m[1]}:${m[2]} JST)`],
   // 戦いの 絵
   [/^デバフ (\d+) つ はじけた！$/, (m) => `${m[1]} debuffs popped!`], [/^ターン (\d+) は計算で進めた$/, (m) => `Turn ${m[1]} was simulated`],
   [/^(.+) の勝ち(.*)$/, (m, p) => `${P(p, m[1])} wins${m[2] ? " " + P(p, m[2]) : ""}`], [/^（(\d+) ターン目で決着）$/, (m) => `(decided on turn ${m[1]})`],

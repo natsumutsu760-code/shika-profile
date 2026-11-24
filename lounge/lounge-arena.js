@@ -4,7 +4,7 @@
 //   受付中の 大会の 日 "a:open"・進めて いる 大会の 日 "a:runq"・さいごに 終わった 大会の 日 "a:last"。22:00 の アラームで 大会を 少しずつ 進める（CPU の 上限が あるので 1 回に 数試合）
 // ごほうび：デュエルは その場で（クレジットは 記録・アメジストは 帳簿）。大会は Market の 送る 箱（"o:"）から Viewer の /inbox へ
 // LINKERS の 格付け（2026-11-11）：名簿の 札に 点（pt）・点の 週（pw）・格付けで 戦った 数（f）。段の 線は "a:rk"（1 日 1 回）。決まりは lounge-proto/arena.js の RATE
-import { DUEL, duelPay, pickFoes, TOUR, TOUR_PAY, tourDay, tourAt, tourAtH, bracketOf, bandMatches, matchSeed, simulate, fighterPower, ENC, RATE, RATE_RANKS, rateWeek, rateRank, MON, MTOUR, MTOUR_PAY, mtourDay, SELF_SIZES } from "./game.js";
+import { DUEL, duelPay, pickFoes, TOUR, TOUR_PAY, tourDay, tourAt, tourAtH, bracketOf, bandMatches, matchSeed, simulate, fighterPower, ENC, RATE, RATE_RANKS, rateWeek, rateRank, MON, MTOUR, MTOUR_PAY, mtourDay, SELF_SIZES, tourDayH, TEAM, TTOUR, TTOUR_PAY, SELF_TEAMS, kachinuki } from "./game.js";
 import { fighterOf } from "./lounge-game.js";
 import { mateOf } from "./lounge-pet.js";   // モンスターの 戦う 形（なかまと 同じ。装備・栄養の 詳細）
 import { hidden } from "./lounge-gate.js";   // 入れない 人は 相手に えらばない・大会から はずす・名前を 出さない
@@ -52,7 +52,7 @@ export function duelDone(rec, A, me, theirs, R, now, bonus = 0) {   // bonus：�
 }
 // ---------- モンスターの 闘技場（Viewer。2026-11-23 鹿さんの カード「Lv50 にそろえる」「代表 1 体で 1 対 1」「ペットと同じ表」）----------
 // 戦う 形：なかまと 同じ（tamedOf ＋ 装備 ＋ 栄養の 詳細）で Lv だけ 50 に そろえる（戦いの 中だけ。育てた Lv は そのまま）
-export const monOf = (c, rec) => ({ ...mateOf({ ...c, lv: MON.lv }, rec), owner: rec.name });
+export const monOf = (c, rec) => ({ ...mateOf({ ...c, lv: MON.lv }, rec), owner: rec.name, mon: true });   // mon：3D は ドット絵の 板（battle-view.js。帯も 同じ）
 const monPub = (c) => ({ uid: c.uid, name: c.name, tree: c.tree, type: c.type, lv: c.lv, plus: c.plus || 0, ...(c.tdMix ? { tdMix: c.tdMix } : {}) });
 const tdDead = (rec, uid) => !!(rec.td && Array.isArray(rec.td.dead) && rec.td.dead.includes(uid));   // 集合住宅で 殺されて 復活待ちの 子
 // 代表の 子の 戦う 形と 名簿の 札（代表が いない・手放した ときは null）
@@ -107,6 +107,70 @@ export function selfTour(rec, b, R) {
   const fin = rounds.at(-1)[0];
   return { ok: true, fs, cards, rounds, champ: fin.w === 0 ? fin.a : fin.b };
 }
+// ---------- 3 体の 勝ち抜き（Viewer。2026-11-24 鹿さんの カード「デュエルと大会の両方」「減った HP のまま次へ」「毎日 21:30」「1 体と同じ表」「1 体と別々に数える」）----------
+// rec.arenaT：3 体の 部の 1 日の 数（1 体の 部とは 別）と チーム（出る 順の uid 3 つ）
+export function ensureArenaT(rec, day) {
+  const A = (rec.arenaT ||= { day: -1, n: 0, paid: 0, beat: [], w: 0, l: 0, foes: [], log: [], team: [] });
+  if (A.day !== day) Object.assign(A, { day, n: 0, paid: 0, beat: [], foes: [] });
+  return A;
+}
+// チームの 戦う 形（3 つ）と 名簿の 札（強さは 3 体の 合計・pet.team に 3 体の 絵）
+export function arenaTeam(rec) {
+  const T = rec.arenaT, cs = T && Array.isArray(T.team) && T.team.length === TEAM ? T.team.map((u) => (rec.tamed || []).find((x) => x && x.uid === u)) : null;
+  if (!cs || cs.some((c) => !c || !c.tree || tdDead(rec, c.uid))) return null;
+  const f = cs.map((c) => monOf(c, rec)), team = cs.map(monPub);
+  return { card: { id: rec.id, name: rec.name, pet: { name: team.map((c) => c.name).join("・"), team, tree: team[0].tree, type: team[0].type }, power: f.reduce((a, x) => a + fighterPower(x), 0) }, f };
+}
+export function monTeam(rec, A, b) {
+  const uids = [...new Set((Array.isArray(b.uids) ? b.uids : []).map(String))];
+  if (uids.length !== TEAM) return { ok: false, why: `${TEAM} 体 えらんで` };
+  for (const u of uids) { const c = (rec.tamed || []).find((x) => x && x.uid === u); if (!c) return { ok: false, why: "その 子は なかまに いない" }; if (tdDead(rec, u)) return { ok: false, why: "その 子は 復活待ち" }; }
+  A.team = uids; A.foes = [];
+  return { ok: true };
+}
+export function tDuelCheck(rec, A, b) {
+  const me = arenaTeam(rec);
+  if (!me) return { why: `さきに ${TEAM} 体を えらんで` };
+  const away = me.card.pet.team.find((c) => onTrip(rec, c.uid)); if (away) return { why: `${away.name}は 出かけて いる（帰ってから 戦える）` };
+  if (A.n >= DUEL.perDay) return { why: `きょうは もう ${DUEL.perDay} 回 戦った（あした また）` };
+  const foe = A.foes.find((c) => c.id === String(b.foe));
+  if (!foe) return { why: "相手を えらんで" };
+  return { me, foe };
+}
+// 勝ち抜きの デュエル（ごほうびは 1 体と 同じ 表・回数は 別。〔C〕ファイトマネーの 上乗せ・LINKERS は ペットだけ）
+export function tDuelDone(rec, A, me, theirs, R, now) {
+  const seed = Math.floor(R() * 2 ** 31), k = kachinuki(me.f, theirs.f, seed), win = k.w === 0;
+  A.n++; if (win) A.w++; else A.l++;
+  let pay = null;
+  if (win && A.paid < DUEL.paidPerDay && !A.beat.includes(theirs.card.id)) {
+    const p = duelPay(me.card.power, theirs.card.power);
+    pay = { credits: p.credits, res: p.res, label: p.label };
+    A.paid++; A.beat.push(theirs.card.id); rec.credits += pay.credits;
+  }
+  A.log = [{ at: now, name: theirs.card.name, pet: theirs.card.pet.name, win, pay }, ...A.log].slice(0, 10);
+  return { ok: true, A: me.f, B: theirs.f, seed, win, bouts: k.bouts, pay, me: me.card, foe: theirs.card, left: { duels: DUEL.perDay - A.n, paid: DUEL.paidPerDay - A.paid },
+    ...(pay && pay.res ? { earn: [{ kind: "res", d: pay.res }] } : {}) };
+}
+// 試す（3 体）：えらんだ 順に 3 体ずつで 4・8 チーム。組み合わせと 勝ち抜きを 門番で 計算（ごほうび なし・何回でも）
+export function selfTeamTour(rec, b, R) {
+  const uids = [...new Set((Array.isArray(b.uids) ? b.uids : []).map(String))], nT = uids.length / TEAM;
+  if (!SELF_TEAMS.includes(nT)) return { ok: false, why: `${SELF_TEAMS.map((n) => n * TEAM).join("・")} 体 えらんで` };
+  const cs = uids.map((u) => (rec.tamed || []).find((x) => x && x.uid === u));
+  if (cs.some((c) => !c || !c.tree)) return { ok: false, why: "なかまに いない 子が いる" };
+  if (cs.some((c) => tdDead(rec, c.uid))) return { ok: false, why: "復活待ちの 子が いる" };
+  const fs = Object.fromEntries(cs.map((c) => [c.uid, monOf(c, rec)])), cards = Object.fromEntries(cs.map((c) => [c.uid, { ...monPub(c), power: fighterPower(fs[c.uid]) }]));
+  const teams = Object.fromEntries(Array.from({ length: nT }, (_, i) => ["T" + (i + 1), uids.slice(i * TEAM, i * TEAM + TEAM)])), tf = (t) => teams[t].map((u) => fs[u]);
+  const base = Math.floor(R() * 2 ** 31) >>> 0, rounds = [bracketOf(Object.keys(teams), base).map((m) => ({ a: m.a, b: m.b }))];
+  for (let r = 0; ; r++) {
+    const Rd = rounds[r];
+    Rd.forEach((m, i) => { m.seed = (base + r * 97 + i * 7919) >>> 0; m.w = m.b == null ? 0 : m.a == null ? 1 : kachinuki(tf(m.a), tf(m.b), m.seed).w; });
+    const win = Rd.map((m) => (m.w === 0 ? m.a : m.b));
+    if (win.length === 1) break;
+    const nx = []; for (let i = 0; i < win.length; i += 2) nx.push({ a: win[i], b: win[i + 1] }); rounds.push(nx);
+  }
+  const fin = rounds.at(-1)[0];
+  return { ok: true, fs, cards, teams, rounds, champ: fin.w === 0 ? fin.a : fin.b };
+}
 // 画面に 出す 自分の 分
 export const arenaMine = (A) => ({ left: { duels: DUEL.perDay - A.n, paid: DUEL.paidPerDay - A.paid }, beat: A.beat, foes: A.foes, w: A.w, l: A.l, log: A.log });
 
@@ -130,8 +194,9 @@ export function encDone(rec, me, foe, R) {
 // 2 つの 闘技場（2026-11-23）：ペット（前からの 形）と モンスター。箱の 名前の 頭・大会の 時刻・格付け・配信の 帯・ごほうびの 名前・相手の 戦う 形の 道が ちがう
 //   モンスターの 箱は「a:m:」で 始める（全体の リセットが「a:」を まとめて 消す ので いっしょに 消える）
 export const KP = { pre: "a:", path: "/arena/", T: TOUR, pay: TOUR_PAY, rate: true, band: true, why: "arena:", fighter: "/fighter" };
-export const KM = { pre: "a:m:", path: "/marena/", T: MTOUR, pay: MTOUR_PAY, rate: false, band: false, why: "marena:", fighter: "/mfighter" };
-const dayOf = (K, now) => (K === KM ? mtourDay(now) : tourDay(now));
+export const KT = { pre: "a:t3:", path: "/tarena/", T: TTOUR, pay: TTOUR_PAY, rate: false, band: "final", cat: "t3", why: "tarena:", fighter: "/tfighter", team: true };   // 3 体の 勝ち抜き（21:30）。帯は 決勝だけ（2026-11-24 鹿さんの カード「3体も決勝だけ流す」。1 試合が 最大 5 戦で 長い）
+export const KM = { pre: "a:m:", path: "/marena/", T: MTOUR, pay: MTOUR_PAY, rate: false, band: true, cat: "mon", why: "marena:", fighter: "/mfighter" };   // 帯：2026-11-24 カード「オーバーレイも直す」「ベスト 8 から」
+const dayOf = (K, now) => tourDayH(now, K.T.hour);
 const atOf = (K, day) => tourAtH(day, K.T.hour);
 async function cardsOf(mk, K = KP) {
   const C = (mk.cardsK ||= {});
@@ -181,7 +246,7 @@ const newTour = (day) => ({ day, ents: [], cards: {}, state: "open", got: [], dr
 
 // Market の fetch で：const ar = await arenaFetch(this, url, b, now); if (ar) return ar;
 export async function arenaFetch(mk, url, b, now) {
-  const K = url.pathname.startsWith("/arena/") ? KP : url.pathname.startsWith("/marena/") ? KM : null;
+  const K = url.pathname.startsWith("/arena/") ? KP : url.pathname.startsWith("/marena/") ? KM : url.pathname.startsWith("/tarena/") ? KT : null;
   if (!K) return null;
   const P = K.pre, sub = url.pathname.slice(K.path.length - 1);   // sub：「/view」など
   const st = mk.state.storage, id = String((b && b.id) || url.searchParams.get("id") || "");
@@ -258,8 +323,8 @@ export async function arenaFetch(mk, url, b, now) {
 // Market の アラームで：大会を 少しずつ 進める。つぎに 起きる 時刻を 返す（なければ Infinity）
 //   22:00 を すぎた 大会：6 人 いなければ 中止。いれば ペットを 8 人ずつ よぶ → 組み合わせ → 1 回に 6 試合ずつ → ごほうびを 送る 箱へ
 export async function arenaAlarm(mk, now) {
-  const a = await kAlarm(mk, now, KP), b = await kAlarm(mk, now, KM);   // ペットの 22:00 と モンスターの 21:00
-  return Math.min(a, b);
+  const a = await kAlarm(mk, now, KP), b = await kAlarm(mk, now, KM), c = await kAlarm(mk, now, KT);   // ペットの 22:00・モンスターの 21:00・3 体の 21:30
+  return Math.min(a, b, c);
 }
 async function kAlarm(mk, now, K) {
   const st = mk.state.storage, P = K.pre;
@@ -307,8 +372,8 @@ async function tourStep(mk, day, now, K = KP) {
   for (const m of R) {
     if (m.w != null || budget <= 0) continue;
     const [fa, fb] = await Promise.all([st.get(`${P}f:${day}:${m.a}`), st.get(`${P}f:${day}:${m.b}`)]);
-    const end = simulate(fa.f, fb.f, m.seed, { quiet: true }).at(-1);
-    m.w = end.winner; m.upset = !!end.upset; budget--;
+    if (K.team) { m.w = kachinuki(fa.f, fb.f, m.seed).w; budget -= 2; }   // 3 体の 勝ち抜き（1 試合が 最大 5 戦なので 重さを 2 試合ぶんに）
+    else { const end = simulate(fa.f, fb.f, m.seed, { quiet: true }).at(-1); m.w = end.winner; m.upset = !!end.upset; budget--; }
     if (K.rate) {   // 格付けの 点（大会の 1 試合ごと。ペットだけ）
       const C = await cardsOf(mk, K), [wi, li] = m.w === 0 ? [m.a, m.b] : [m.b, m.a], wf = m.w === 0 ? fa : fb;
       if (C[wi]) await putCard(mk, C[wi], now, { pt: winPt(wf.rk) }, C[wi].at, K);
@@ -335,10 +400,10 @@ async function tourStep(mk, day, now, K = KP) {
       await st.put(P + "t:" + day, t); await st.put(P + "last", day);
       // 配信中なら ベスト 8 からの 試合を オーバーレイの 帯へ（1 回で 送る。ペットは Twitch の id で なく 番号で）
       if (K.band) try {
-        const L = bandMatches(t.rounds), ids = [...new Set(L.flatMap((x) => [x.a, x.b]))], got = await Promise.all(ids.map((id) => st.get(`${P}f:${day}:${id}`))), fs = {}, k = {};
+        const L = bandMatches(t.rounds).filter((x) => K.band !== "final" || x.final), ids = [...new Set(L.flatMap((x) => [x.a, x.b]))], got = await Promise.all(ids.map((id) => st.get(`${P}f:${day}:${id}`))), fs = {}, k = {};
         ids.forEach((id, i) => { if (got[i]) { k[id] = String(i); fs[i] = got[i].f; } });
         const list = L.filter((x) => k[x.a] && k[x.b]).map((x) => ({ ...x, a: k[x.a], b: k[x.b] }));
-        if (list.length && mk.env.LOUNGE) await mk.env.LOUNGE.get(mk.env.LOUNGE.idFromName("lounge")).fetch("https://lounge/relay-pvp", { method: "POST", body: JSON.stringify({ kind: "tour", day, fs, list }) });
+        if (list.length && mk.env.LOUNGE) await mk.env.LOUNGE.get(mk.env.LOUNGE.idFromName("lounge")).fetch("https://lounge/relay-pvp", { method: "POST", body: JSON.stringify({ kind: "tour", day, fs, list, ...(K.cat ? { cat: K.cat } : {}) }) });
       } catch (e) {}
       return true;
     }

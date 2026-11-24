@@ -10,6 +10,20 @@ import { simulate } from "./battle-sim.js";
 import { TYPES } from "./skills.js";
 import { EFFECTS } from "./effects.js";
 
+// モンスター（f.mon：Orbit Arena の モンスターの 部・配信の 帯。2026-11-24 鹿さんの カード「オーバーレイも直す」）：ドット絵の 板
+//   絵（sprites.js）は 大きいので 使う ときだけ 読む。板は カメラへ 向け直す（右の 子は 左へ 向けられる ため）・左の 子は 右を 向く
+let SPR = null;
+function monBoard(f, i) {
+  const g = new THREE.Group(), inner = new THREE.Group(); inner.rotation.y = i ? 0.9 : -0.9; inner.rotation.x = -0.12; g.add(inner);
+  const tex = new THREE.Texture(); tex.colorSpace = THREE.SRGBColorSpace; tex.magFilter = THREE.NearestFilter; tex.minFilter = THREE.NearestFilter;
+  if (i === 0) { tex.wrapS = THREE.RepeatWrapping; tex.repeat.x = -1; }
+  (SPR || (SPR = import("./sprites.js"))).then((m) => { const img = new Image(); img.onload = () => { tex.image = img; tex.needsUpdate = true; }; img.src = m.spriteURL(f.tdMix || f.tree || "e_hare"); }).catch(() => {});
+  const S2 = 1.35, plane = new THREE.Mesh(new THREE.PlaneGeometry(S2, S2), new THREE.MeshBasicMaterial({ map: tex, transparent: true, alphaTest: 0.1, side: THREE.DoubleSide }));
+  plane.position.y = S2 / 2 + 0.02; inner.add(plane);
+  const sh = new THREE.Mesh(new THREE.CircleGeometry(0.42, 32), new THREE.MeshBasicMaterial({ color: "#000000", transparent: true, opacity: 0.22 })); sh.rotation.x = -Math.PI / 2; sh.position.y = 0.01; g.add(sh);
+  return g;
+}
+
 const CSS = `
 .bv { position:relative; overflow:hidden; transform-origin:0 0; color:#14164A; --ink:#14164A; --pop:"Dela Gothic One", "Zen Maru Gothic", sans-serif; --body:"M PLUS Rounded 1c", "Zen Maru Gothic", sans-serif; }
 .bv canvas { position:absolute; left:0; top:0; }
@@ -111,7 +125,7 @@ export function mountBattle(host, { A, B, seed }, o = {}) {
   if (!REF) REF = heightOf(makePet3("shika"));
   const pets = [A, B].map((f, i) => {
     const holder = new THREE.Group(); holder.position.x = HOME[i]; scene.add(holder);
-    const pet = o.make && o.make[i] ? o.make[i](f) : makePet3(f.species); pet.rotation.y = FACE[i]; pet.rotation.x = 0.12; holder.add(pet);
+    const pet = o.make && o.make[i] ? o.make[i](f) : f.mon ? monBoard(f, i) : makePet3(f.species); pet.rotation.y = FACE[i]; pet.rotation.x = 0.12; holder.add(pet);
     pet.scale.setScalar(Math.min(1.5, Math.max(0.75, REF / Math.max(0.1, heightOf(pet)))));
     const box = new THREE.Box3().setFromObject(pet), mats = [];
     pet.traverse((m) => { if (m.material && m.material.emissive) mats.push([m.material, m.material.emissive.clone()]); });
@@ -139,7 +153,7 @@ export function mountBattle(host, { A, B, seed }, o = {}) {
   };
   const gauge = (lab, v, max, cls = "") => `<div class="gauge ${cls}"><span>${lab}</span><div><i class="${lab === "HP" && v / max < 0.35 ? "low" : ""}" style="width:${(v / max) * 100}%"></i></div><s>${Math.round(v)}/${max}</s></div>`;
   function stateAt(t) {
-    let snap = START.fighters.map((f) => ({ hp: f.maxHp, mp: f.maxMp, fx: [], up: false, down: false, ph: 0, pl: 0 }));
+    let snap = START.fighters.map((f) => ({ hp: f.hp ?? f.maxHp, mp: f.mp ?? f.maxMp, fx: [], up: false, down: false, ph: 0, pl: 0 }));   // はじめの HP（勝ち抜きの 持ちこし）
     for (const sg of SEGS) {
       if (t < sg.t0) break;
       const u = t - sg.t0, nx = sg.e.after;

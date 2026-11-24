@@ -2,7 +2,7 @@
 // デュエル：いない 相手の「いまの 強さ」と 戦う（相手の ペットの 記録から その場で 組み立てる）。負けても 何も へらない
 // トーナメント：毎日 22:00（日本時間）。その日の 22:00 まで 参加を 受けつけ、6 人 そろえば ひらく（32 人まで）
 // 戦いは ペット 1 匹 どうしの 1 対 1（配信の バトルと 同じ。battle-sim.js の simulate・弱い 方に「がんばり」）
-import { rng } from "./battle-sim.js";
+import { rng, simulate } from "./battle-sim.js";
 
 // ---------- デュエル ----------
 export const DUEL = { perDay: 20, paidPerDay: 5 };   // 1 日に 挑める 数・ごほうびが もらえる 勝ちの 数（同じ 相手からは 1 日 1 回）
@@ -36,7 +36,7 @@ export const TOUR_PAY = { 1: { credits: 7000, res: 3 }, 2: { credits: 3500, res:
 const JST = 9 * 3600e3;
 const ymd = (ms) => new Date(ms + JST).toISOString().slice(0, 10);
 // 参加が 入る 大会の 日（日本時間で 22:00 より 前なら きょう、あとなら あした）
-export const tourDayH = (now, hour) => { const d = new Date(now + JST); return d.getUTCHours() < hour ? ymd(now) : ymd(now + 864e5); };
+export const tourDayH = (now, hour) => { const d = new Date(now + JST); return d.getUTCHours() + d.getUTCMinutes() / 60 < hour ? ymd(now) : ymd(now + 864e5); };   // hour は 21.5（21:30）も
 export const tourAtH = (day, hour) => Date.parse(day + "T00:00:00Z") - JST + hour * 3600e3;   // その 日の hour 時（日本時間）
 export const tourDay = (now) => tourDayH(now, TOUR.hour);
 export const tourAt = (day) => tourAtH(day, TOUR.hour);   // その 日の 22:00（日本時間）
@@ -77,6 +77,31 @@ export const mtourDay = (now) => tourDayH(now, MTOUR.hour);
 export const mtourAt = (day) => tourAtH(day, MTOUR.hour);
 // 自分の なかまの トーナメント：えらべる 数
 export const SELF_SIZES = [4, 8, 16];
+// 時刻の 字（21.5 → 「21:30」）
+export const hhmm = (h) => `${Math.floor(h)}:${String(Math.round((h % 1) * 60)).padStart(2, "0")}`;
+
+// ---------- 3 体の 勝ち抜き（2026-11-24 鹿さんの カード：使う 所「デュエルと大会の両方」・HP「減った HP のまま次へ」・大会「毎日 21:30」・ごほうび「1 体と同じ表」・回数「1 体と別々に数える」・画面「案 A 札で切りかえ」）----------
+// 3 体を 出る 順に 並べる。先に 相手の 3 体を 倒した 方の 勝ち。勝った 子は HP・MP が 減った まま 次の 相手と 戦う（バフ・デバフは 消える）。どの 子も Lv50
+export const TEAM = 3;
+export const TTOUR = { ...TOUR, hour: 21.5 };
+export const TTOUR_PAY = TOUR_PAY;
+export const ttourDay = (now) => tourDayH(now, TTOUR.hour);
+export const ttourAt = (day) => tourAtH(day, TTOUR.hour);
+export const SELF_TEAMS = [4, 8];   // 試す（3 体）：4・8 チーム（12・24 体）
+// 勝ち抜きの 計算：TA・TB は 戦う 形 3 つずつ。返す 物：w（0：TA の 勝ち）・bouts（1 戦ずつ：a・b は 何番目・seed・hpA／mpA・hpB／mpB は 持ちこした 始めの HP と MP〈null ＝ 満タン〉・w）
+export function kachinuki(TA, TB, seed) {
+  let i = 0, j = 0, sA = null, sB = null; const bouts = [];
+  while (i < TA.length && j < TB.length && bouts.length < TA.length + TB.length) {
+    const s0 = (seed + bouts.length * 7919) >>> 0, x = { a: i, b: j, seed: s0, hpA: sA ? sA.hp : null, mpA: sA ? sA.mp : null, hpB: sB ? sB.hp : null, mpB: sB ? sB.mp : null };
+    const [A, B] = boutPair(TA, TB, x), end = simulate(A, B, s0, { quiet: true }).at(-1);
+    x.w = end.winner; x.upset = !!end.upset; bouts.push(x);
+    const left = end.final[end.winner], st = { hp: Math.max(1, Math.round(left.hp)), mp: Math.max(0, Math.round(left.mp)) };
+    if (end.winner === 0) { j++; sA = st; sB = null; } else { i++; sB = st; sA = null; }
+  }
+  return { w: i < TA.length ? 0 : 1, bouts };
+}
+// 1 戦の 2 体（持ちこした HP・MP を 始めに）
+export const boutPair = (TA, TB, x) => [x.hpA != null ? { ...TA[x.a], startHp: x.hpA, startMp: x.mpA } : TA[x.a], x.hpB != null ? { ...TB[x.b], startHp: x.hpB, startMp: x.mpB } : TB[x.b]];
 
 // ---------- 派遣先の 戦い（⑤。鹿さんの頼み、2026-10-25） ----------
 // 同じ 行き先に 出かけて いる ほかの 人の ペットと、出発の ときに たまに 出会って 戦う（ペット どうしの 1 対 1）

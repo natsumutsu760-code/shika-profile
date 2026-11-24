@@ -51,7 +51,7 @@ export async function relayFetch(lounge, url, req) {
       const str = (v) => String(v || "").slice(0, 20), list = b.list.slice(0, 15).filter((x) => x && b.fs[x.a] && b.fs[x.b] && Number.isFinite(+x.seed))
         .map((x) => ({ a: str(x.a), b: str(x.b), seed: +x.seed, label: str(x.label), no: Math.max(0, Math.floor(+x.no || 0)), next: str(x.next), final: !!x.final }));
       if (!list.length) return J({ error: "pvp" }, 400);
-      m = JSON.stringify({ t: "pvp", kind: "tour", day: str(b.day), fs: b.fs, list });
+      m = JSON.stringify({ t: "pvp", kind: "tour", day: str(b.day), fs: b.fs, list, ...(b.cat === "mon" || b.cat === "t3" ? { cat: b.cat } : {}) });   // cat："mon" ＝ モンスターの 大会・"t3" ＝ 3 体の 勝ち抜きの 決勝（fs が 3 体の 配列。見出しが かわる。2026-11-24）
     } else {
       if (!b || !b.A || !b.B || !Number.isFinite(+b.seed)) return J({ error: "pvp" }, 400);
       const pay = b.pay && typeof b.pay === "object" ? { credits: Math.max(0, Math.floor(+b.pay.credits || 0)), res: Math.max(0, Math.floor(+b.pay.res || 0)) } : null;   // 帯に 出す ごほうびの 数
