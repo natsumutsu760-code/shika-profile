@@ -2,7 +2,7 @@
 // 数は ぜんぶ lounge-proto/td-numbers.js（鹿さんの カードで 決まった 〔決〕）・建物の 形と 増築の 候補は lounge-proto/td-core.js（2 代目の 見本 td.html から 写した）
 // 記録 rec.td = { order:[建てた 候補], res:{ 部屋の 鍵: 住人 }, day:家賃を 払った 日（日本時間）, board:{ h, n, taken }, sig:シグナル, notes:{ at, list }, def:防衛中, dead:[殺された 持って いる 子の uid], mods:モジュールの 数（持ち物）, modInv:[{id, star}], modAt:{ "cell:マス"|"blk:箱"|"room:鍵": {id, star} }, modOffer:{ id, list }, log }
 //   住人 { id（絵＝敵の ツリー）, name, lv, sat（満足度）, type（型）, uid?（持って いる 子なら なかまの uid）, at }
-// 受付：td.build {slot}・td.rent・td.movein {i, key}・td.out {key}・td.furn {key, id}・td.furn.off {key, i}・td.gear {key, id}・td.price {key, step}・td.scout {key}・td.def.start {i}・td.def.end {id, turns}（turns：ターンごとの 指示の 記録。門番が 回し直して 勝ち負けを 決める）
+// 受付：td.build {slot}・td.rent・td.movein {i, key}・td.out {key}・td.buy {k:f|g, id}・td.furn {key, id}・td.furn.off {key, i}・td.gear.off {key, id}・td.gear {key, id}・td.price {key, step}・td.scout {key}・td.def.start {i}・td.def.end {id, turns}（turns：ターンごとの 指示の 記録。門番が 回し直して 勝ち負けを 決める）
 //       アメジスト（計画）：td.revive {uid}・td.board（掲示板を すぐ かえる）
 // 〔決〕の 決め：家賃（（15 ＋ Lv）× 満足度の 倍率・1 日 1 回）・増築の 値段（パーツ 1 つずつ）・経験値は 戦いと 仕事（持って いる 子だけ）・素材は 本編と 共有（倉庫）・
 //   防衛の 報酬（強さ 1〜5）と 負け・アメジストの 復活（ランク）と 掲示板・敵の 数と Lv・入口は ペットを むかえてから
@@ -21,7 +21,7 @@
 //   T.prop { lv（下がらない）, wins（守りきった 強さの 合計）, rent（集めた 家賃の 合計）}・T.fl（1 つ目の 建物の 階）・T.bp（持って いる 設計図の ★）・T.bpAt（建てた 区画の 箱 → ★）・T.inv（ドロップした 家具）
 //   td.build {slot:"A+"} で 1 つ目の 建物に 階・箱の 候補は 設計図 {bp:持ち物の 番号} が いる（区画の 数は Lv で）・td.bp.scrap {i} で 設計図を スクラップに・td.furn {key, id, inv:true} で ドロップの 家具を 置く
 //   住人の sickTo（治る 日・日本時間）。病気の くじは 家賃を 受けとる ときに 1 日ずつ ひく
-import { rentOf, rewardOf, battleExp, workExp, foeCount, foeLv, REVIVE, BOARD_REFRESH, FIGHT, TD_FURN, GEAR, FURN_MAX, SAT, satOf, SCOUT_SIG, RENT_STEP, GRUDGE, gradeOf, marketOf, stepOf, grudgeRate,
+import { rentOf, rewardOf, battleExp, workExp, foeCount, foeLv, foeTopLv, REVIVE, BOARD_REFRESH, FIGHT, TD_FURN, GEAR, FURN_MAX, SAT, satOf, SCOUT_SIG, RENT_STEP, GRUDGE, gradeOf, marketOf, stepOf, grudgeRate,
   MODULES, MOD_OFFER, PROP, propNeed, propLvOf, FIRST_FLOORS, firstFloorsOf, BLOCK_LV, blockSlotsOf, FURN_LV, BLUEPRINT, BP_DROP, BP_SCRAP, bpStar, FURN_DROP, furnDropPool, SICK, sickOdds, partPrice, WORK, WORK_OF, SKILL, skillOf, SKILL_IN, PAY, payOf , LIFE } from "./td-numbers.js";
 import { FULL_BLOCKS, availOf, slotCost, shapeOf, roomsOf, roomsPer, hallOk } from "./td-core.js";   // 置き場所は 動く 候補（2026-11-16 案 1。2 代目）
 import { ENEMY_TREES } from "./enemy-trees.js";
@@ -64,7 +64,8 @@ export function ensureTd(rec) {
   if (!Number.isFinite(T.fl)) T.fl = FIRST_FLOORS.start;        // 1 つ目の 建物の 階
   if (!Array.isArray(T.bp)) T.bp = [];                          // 持って いる 設計図（★）
   if (!T.bpAt || typeof T.bpAt !== "object") T.bpAt = {};       // 建てた 区画（箱の id → ★）
-  if (!T.inv || typeof T.inv !== "object") T.inv = {};          // ドロップした 家具 { id: 数 }
+  if (!T.inv || typeof T.inv !== "object") T.inv = {};          // 持ち物の 家具 { id: 数 }（ドロップ・お店で 買った 物・外した 物）
+  if (!T.ginv || typeof T.ginv !== "object") T.ginv = {};       // 持ち物の 設備 { id: 数 }（お店で 買った 物・外した 物。2026-11-23 鹿さんの カード「お店」）
   if (!T.prop || typeof T.prop !== "object") T.prop = { lv: 1, wins: 0, rent: 0 };
   if (!T.bond || typeof T.bond !== "object") T.bond = {};       // となりどうしの なかよし { "鍵@入居|鍵@入居": 0〜100 }（暮らし。2026-11-18）
   return T;
@@ -81,7 +82,6 @@ export const grudgeNow = (T, key, now) => { const r = T.res[key]; if (!r) return
   return Math.max(0, Math.min(GRUDGE.max, (r.ug || 0) + (grudgeRate(stepOf(R), marketAt(R)) * Math.max(0, now - t0)) / DAY)); };
 const settle = (T, key, now) => { const r = T.res[key]; if (r) { r.ug = grudgeNow(T, key, now); r.ut = now; } };   // 段か 格を かえる 前に 数えて しまう
 export const satNow = (T, key, now) => { const r = T.res[key], R = T.rooms[key] || {}; if (!r) return 0; return satOf({ furn: R.furn || [], gear: R.gear || [], size: R.size || null, dirtDays: Math.floor((now - (r.at || now)) / DAY), fam: famOf(r.id) || null, over: stepOf(R) > marketAt(R), grudge: grudgeNow(T, key, now) }); };
-const lvsOf = (T) => Object.values(T.res).map((r) => r.lv);
 // 不動産価値の 点（〔決〕部屋 × 10 ＋ 家具 × 5 ＋ 設備 × 8 ＋ 満足度の 合計 ÷ 10 ＋ 家賃の 合計 ÷ 10,000 ＋ 勝ち × 強さ × 20）と Lv（上限なし・下がらない）
 export function propPts(T, now) {
   const keys = roomKeys(T); let furn = 0, gear = 0;
@@ -105,19 +105,18 @@ const dueOf = (rec, T, key, r, sat, day, days) => { let cr = 0; for (let d = day
 // 設計図の 区画の 部屋の 広さ（★3・4 広い・★5 とても 広い）を 部屋に しまう（満足度・部屋の 格が 読む）
 const sizeRooms = (T) => { for (const r of roomList(T)) { const st = T.bpAt[r.blk], sz = st && BLUEPRINT[st]?.size; if (sz) (T.rooms[r.key] ||= {}).size ||= sz; } };
 
-const baseLv = (rec, T) => { const l = lvsOf(T); return l.length ? Math.round(l.reduce((a, v) => a + v, 0) / l.length) : Math.max(5, (rec.pets?.[0]?.lv | 0) || 10); };
 
 // ---- 入居希望の 掲示板（1 時間ごと・アメジストで すぐ かえると n が ふえる）----
 export function boardOf(rec, T, now) {
   const h = Math.floor(now / HOUR), B = T.board && T.board.h === h ? T.board : { h, n: 0, taken: [] };
-  const R = rngOf(hash(`tdb:${h}:${B.n}:${rec.id ?? ""}`)), lv0 = baseLv(rec, T), out = [];
+  const R = rngOf(hash(`tdb:${h}:${B.n}:${rec.id ?? ""}`)), top = foeTopLv(plvOf(T, now)), out = [];
   const inRes = new Set(Object.values(T.res).map((r) => r.uid).filter(Boolean));
   const mine = (rec.tamed || []).filter((c) => c && c.uid && c.tree && !inRes.has(c.uid) && !T.dead.includes(c.uid));
   for (let i = 0; i < TD_C.board; i++) {
     const own = i === 0 && mine.length && R() < TD_C.ownP ? pick(R, mine) : null;
     const J = (id, skilled) => jobMake(id, rngOf(hash(`tdj:${h}:${B.n}:${i}:${rec.id ?? ""}`)), skilled);   // 仕事の くじは べつの 種（前の 掲示板の 並びを かえない）
     if (own) { out.push({ i, uid: own.uid, id: own.tree, name: own.name || nameOf(own.tree), lv: own.lv | 0, type: typeOf(own.tree, R), mine: true, ...J(own.tree, false) }); continue; }
-    const id = pick(R, LIVE), lv = Math.max(3, Math.round(lv0 * (0.7 + R() * 0.5)));
+    const id = pick(R, LIVE), lv = Math.max(1, Math.round(top * (0.5 + R() * 0.5)));   // 〔決〕2026-11-24 鹿さんの カード「1を軸に電波塔のレベルが影響」：襲撃と 同じ 上の Lv（10 ＋ 電波塔の Lv × 5。電波塔の Lv ＝ 不動産価値の Lv）の 5〜10 割（前は 住人の 平均か ペットの Lv の 0.7〜1.2 倍で、最初から 高すぎた）
     out.push({ i, id, name: nameOf(id), lv, type: typeOf(id, R), ...J(id, true) });
   }
   return { h, n: B.n, list: out.map((w) => ({ ...w, skill: skillOf(w.wd0), rent: rentOf(w.lv, TD_C.satIn), taken: B.taken.includes(w.i) })) };
@@ -150,7 +149,7 @@ export function tdView(rec, now = Date.now()) {
     avail: availOf(T.order, null, T.fl, T.bpAt).map((s) => ({ id: s.id, part: s.part, cost: slotCost(T.order, s.id, T.fl, T.bpAt) })), full: false,   // 区画の 数も 高さも 上限なし
     prop: { lv: L, pts, cur: propNeed(L), next: propNeed(L + 1), rent: T.prop.rent || 0, wins: T.prop.wins || 0 },   // rent・wins：画面の 点の 内わけ（2 代目）
     first: { fl: T.fl, max: flMax, cost: partPrice("addFloor", roomsPer(FULL_BLOCKS[0]), T.fl + 1), nextLv: FIRST_FLOORS.at.find((x) => x > L) ?? null },
-    blocks: { used, max: blockSlotsOf(L), nextLv: BLOCK_LV.from + BLOCK_LV.every * (blockSlotsOf(L) + 1) }, bp: T.bp, bpAt: T.bpAt, inv: T.inv,
+    blocks: { used, max: blockSlotsOf(L), nextLv: BLOCK_LV.from + BLOCK_LV.every * (blockSlotsOf(L) + 1) }, bp: T.bp, bpAt: T.bpAt, inv: T.inv, ginv: T.ginv,
     rent: { days, cr: Object.entries(res).reduce((a, [k, r]) => a + (r.sick || !days ? 0 : dueOf(rec, T, k, T.res[k], r.sat, day, days)), 0) }, board: boardOf(rec, T, now), notes: notesOf(rec, T, now).list, help: T.help || null, lent: T.lent || {}, def: T.def ? { id: T.def.id, strength: T.def.strength, foes: T.def.foes, at: T.def.at, mods: T.def.mods || {} } : null, log: T.log };
 }
 
@@ -167,9 +166,11 @@ export function tdAct(rec, b, now = Date.now()) {
   if (a === "td.rent") return rent(rec, T, now);
   if (a === "td.movein") return moveIn(rec, T, b, now);
   if (a === "td.out") return moveOut(T, b, now);
+  if (a === "td.buy") return shopBuy(rec, T, b, now);   // 家具と 設備の お店（買うと 持ち物へ。2026-11-24 鹿さんの カード「下の ボタンに お店」）
   if (a === "td.furn") return buyFurn(rec, T, b, now);
   if (a === "td.furn.off") return offFurn(rec, T, b, now);   // 家具を 外す（持ち物へ。2026-11-23 鹿さんの カード）
   if (a === "td.gear") return buyGear(rec, T, b, now);
+  if (a === "td.gear.off") return offGear(rec, T, b, now);   // 設備を 外す（持ち物へ）
   if (a === "td.price") return setPrice(T, b, now);
   if (a === "td.scout") return scout(rec, T, b, now);
   if (a === "td.bp.scrap") return bpScrap(rec, T, b, now);
@@ -367,15 +368,35 @@ function offFurn(rec, T, b, now) {
   settle(T, key, now); R.furn.splice(i, 1); T.inv[id] = (T.inv[id] || 0) + 1; log(T, `${TD_FURN[id].name}を 外した（持ち物へ）`, now);
   return { ok: true, id, sat: T.res[key] ? satNow(T, key, now) : null };
 }
-function buyGear(rec, T, b, now) {
-  const key = b && b.key, G = Object.hasOwn(GEAR, b?.id) ? GEAR[b.id] : null;
+function buyGear(rec, T, b, now) {   // inv：持ち物の 設備を 付ける（ただ・Lv の 確かめは 買った ときに すんで いる）
+  const key = b && b.key, G = Object.hasOwn(GEAR, b?.id) ? GEAR[b.id] : null, inv = !!(b && b.inv);
   if (!roomKeys(T).includes(key) || !G) return { ok: false, why: "部屋と 設備を えらんで" };
   const R = (T.rooms[key] ||= {}); R.gear ||= [];
   if (R.gear.includes(b.id)) return { ok: false, why: "その 設備は もう ある" };
-  if ((G.lv || 1) > T.prop.lv) return { ok: false, why: `${G.name}は 不動産価値 Lv${G.lv} で 買える` };   // 〔決〕設備の Lv
-  if ((rec.credits || 0) < G.price) return { ok: false, why: `クレジットが 足りない：あと ${(G.price - (rec.credits || 0)).toLocaleString("ja-JP")}` };
-  settle(T, key, now); rec.credits -= G.price; R.gear.push(b.id); log(T, `設備（${G.price.toLocaleString("ja-JP")} cr）`, now);
-  return { ok: true, cost: G.price, sat: T.res[key] ? satNow(T, key, now) : null };
+  if (inv && !(T.ginv[b.id] > 0)) return { ok: false, why: "その 設備は 持って いない" };
+  if (!inv && (G.lv || 1) > T.prop.lv) return { ok: false, why: `${G.name}は 不動産価値 Lv${G.lv} で 買える` };   // 〔決〕設備の Lv
+  const cost = inv ? 0 : G.price;
+  if ((rec.credits || 0) < cost) return { ok: false, why: `クレジットが 足りない：あと ${(cost - (rec.credits || 0)).toLocaleString("ja-JP")}` };
+  settle(T, key, now); rec.credits -= cost; if (inv) T.ginv[b.id]--; R.gear.push(b.id); log(T, inv ? `${G.name}（持ち物から）` : `設備（${G.price.toLocaleString("ja-JP")} cr）`, now);
+  return { ok: true, cost, sat: T.res[key] ? satNow(T, key, now) : null };
+}
+// 設備を 外す（持ち物へ。クレジットは もどらない）
+function offGear(rec, T, b, now) {
+  const key = b && b.key, R = roomKeys(T).includes(key) ? T.rooms[key] : null, id = b && b.id;
+  if (!R || !Array.isArray(R.gear) || !Object.hasOwn(GEAR, id) || !R.gear.includes(id)) return { ok: false, why: "外す 設備を えらんで" };
+  settle(T, key, now); R.gear = R.gear.filter((x) => x !== id); T.ginv[id] = (T.ginv[id] || 0) + 1; log(T, `${GEAR[id].name}を 外した（持ち物へ）`, now);
+  return { ok: true, id, sat: T.res[key] ? satNow(T, key, now) : null };
+}
+// 家具と 設備の お店（2026-11-24 鹿さんの カード）：買うと 持ち物へ。部屋の 窓で 持ち物から 置く。値段と 開く Lv は 前と 同じ
+function shopBuy(rec, T, b, now) {
+  const k = b && b.k === "g" ? "g" : "f", id = b && b.id, F = k === "f" ? (Object.hasOwn(TD_FURN, id) ? TD_FURN[id] : null) : (Object.hasOwn(GEAR, id) ? GEAR[id] : null);
+  if (!F) return { ok: false, why: "買う 物を えらんで" };
+  const need = k === "f" ? FURN_LV[id] || 1 : F.lv || 1;
+  if (need > T.prop.lv) return { ok: false, why: `${F.name}は 不動産価値 Lv${need} で 買える` };   // 〔決〕家具・設備の Lv
+  if ((rec.credits || 0) < F.price) return { ok: false, why: `クレジットが 足りない：あと ${(F.price - (rec.credits || 0)).toLocaleString("ja-JP")}` };
+  const inv = k === "f" ? T.inv : T.ginv;
+  rec.credits -= F.price; inv[id] = (inv[id] || 0) + 1; log(T, `${F.name}を 買った（${F.price.toLocaleString("ja-JP")} cr・持ち物へ）`, now);
+  return { ok: true, cost: F.price, k, id, n: inv[id] };
 }
 // 家賃の 高さ〔決〕：部屋ごとに 0 安い・1 ふつう・2 高い・3 とても高い・4 強気。部屋に のこる（住人が かわっても）
 function setPrice(T, b, now) {

@@ -78,7 +78,7 @@ export const WORDS = {
   "相場より 安い。": "Below market.", "不満が 毎日 # もどる。": "Discontent eases by # a day.", "いまの 不満 #（満足度 −#）。": "Discontent now # (Satisfaction −#).",
   "家具は まだ ない": "No furniture yet", "家具は 1 部屋 3 つまで": "Up to 3 pieces of furniture per room", "好き": "Fav", "汚れ止め": "No dirt", "ある": "Installed", "これを 買う": "Buy this",
   "空き部屋の 家賃が 高すぎる": "Vacant rooms are overpriced", "家賃を かえた": "Rent changed", "家具を 置いた": "Furniture placed", "設備を 付けた": "Equipment installed",
-  "家具を 置いた（見本）": "Furniture placed (sample)", "家具は 1 部屋 3 つまで（外すと 持ち物に もどり、入れ替えられる）": "Up to 3 pieces per room (remove one to return it to your inventory and swap)", "設備を 付けた（見本）": "Equipment installed (sample)",
+  "家具を 置いた（見本）": "Furniture placed (sample)", "お店": "Shop", "その 設備は 持って いない": "You don't have that equipment", "外す 設備を えらんで": "Choose equipment to remove", "買う 物を えらんで": "Choose something to buy", "持ち物から": "From inventory", "買うと 持ち物へ。部屋を 押して 置く": "Buys go to your inventory. Tap a room to place them", "持ち物から 置く": "Place from inventory", "持ち物から 付ける": "Install from inventory", "持ち物に 家具が ない": "No furniture in your inventory", "持ち物に 設備が ない": "No equipment in your inventory", "お店で 買う": "Buy at the shop", "付ける": "Install", "寄る": "Zoom in", "引く": "Zoom out", "持って いる 子も ときどき 来る（1 枚目。1 時間ごとの くじ）": "Your own monsters sometimes apply too (first slot, drawn every hour)", "設備を 付けた（見本）": "Equipment installed (sample)", "家具は 1 部屋 3 つまで（外すと 持ち物に もどり、入れ替えられる）": "Up to 3 pieces per room (remove one to return it to your inventory and swap)", "設備を 付けた（見本）": "Equipment installed (sample)",
   "せんべいぶとん": "Thin futon", "ちゃぶ台": "Low table", "カラーボックス": "Cube shelf", "ふかふかクッション": "Fluffy cushion", "小さな 冷蔵庫": "Mini fridge", "木の 本だな": "Wooden bookshelf",
   "ソファ": "Sofa", "大きな 水槽": "Big aquarium", "ゲーム機と テレビ": "Game console & TV", "革の ひじかけいす": "Leather armchair", "天蓋つきベッド": "Canopy bed", "星空の プロジェクター": "Starry sky projector",
   "満足度 # で スカウトできる（シグナル #）": "Can scout at # Satisfaction (# Signal)", "スカウト・シグナル #": "Scout · # Signal", "もう 1 回 押すと なかまに": "Tap again to recruit",
@@ -123,6 +123,8 @@ export const WORDS = {
 // 部屋の 番号（頭の 字は 棟：南・西・東・北）
 const WG = { 南: "S", 西: "W", 東: "E", 北: "N" };
 export const RULES = [
+  [/^(.+)を 買った（([\d,]+) cr・持ち物へ）$/, (m, p) => `Bought ${p(m[1]) || m[1]} (${m[2]} cr · added to inventory)`], [/^(.+)（持ち物から）$/, (m, p) => `${p(m[1]) || m[1]} (from inventory)`],   // 集合住宅の 記録（2026-11-24）
+  [/^(.+)を 買った（(持ち物へ|見本・持ち物へ)）$/, (m, p) => `Bought ${p(m[1]) || m[1]} (${m[2] === "持ち物へ" ? "added to inventory" : "sample · added to inventory"})`],   // お店（2026-11-24）
   [/^(.+)を 外した（(持ち物へ|見本)）$/, (m, p) => `Removed ${p(m[1]) || m[1]} (${m[2] === "見本" ? "sample" : "back to inventory"})`], [/^(.+)を 外す$/, (m, p) => `Remove ${p(m[1]) || m[1]}`],   // 家具を 外す（2026-11-23）
   [/^Lv(\d+)$/, (m) => `Lv${m[1]}`],
   [/^Lv(\d+) で$/, (m) => `At Lv${m[1]}`],

@@ -123,6 +123,10 @@
   .rnote { padding:10px 12px; border-radius:12px; background:#E3F8EF; font:700 12px/1.45 var(--jp); color:#0E7A4E; }
   .rnote.warn { background:#FFEDEE; color:#C02631; }
   .shop { display:grid; gap:6px; }
+  .shopnote, .wnote { margin:4px 0 8px; font:700 12px/1.5 var(--jp); color:var(--soft); }   /* お店・掲示板の 1 行（2026-11-24） */
+  .toshop { margin-top:10px; display:flex; justify-content:flex-end; } .toshop button { display:inline-flex; align-items:center; gap:6px; } .toshop svg { width:16px; height:16px; }
+  .zoom { position:absolute; left:16px; top:62px; z-index:4; display:grid; gap:6px; } .zoom button { width:40px; height:40px; border-radius:12px; border:1.5px solid var(--line); background:#fff; font:900 20px/1 var(--num); color:var(--ink); box-shadow:0 4px 10px rgba(27,35,64,.1); }   /* ズーム（2026-11-24 鹿さん「ズームインアウトができないので不便」） */
+  body.def .zoom { top:12px; }
   .shop .row { display:flex; align-items:center; gap:6px; padding:6px 6px 6px 12px; border-radius:12px; border:1.5px solid var(--line); }
   .shop .row b { font:900 13px/1.25 var(--jp); flex:1; min-width:0; }
   .shop .row .p { font:600 13px/1 var(--num); color:#0E9A62; white-space:nowrap; }
@@ -321,6 +325,7 @@
     </div>
     <div class="view" id="view">
       <div class="floors" id="floors"></div>
+      <div class="zoom" id="zoom"><button data-z="in" aria-label="寄る">＋</button><button data-z="out" aria-label="引く">−</button></div>
       <div class="clock" id="clock" hidden></div>
       <div class="result gate" id="gate" hidden></div>
       <div class="mini" id="mini" hidden></div>
@@ -1132,14 +1137,18 @@ function fit() {
   const s = (S.mode === "def" ? Math.max(6, 6.8 / asp) : phone ? Math.max(9.6, 6.8 / asp) : Math.max(12.8, 14 / asp)) * zoom, off = S.mode === "def" ? (phone ? 0.34 : 0.2) : S.place ? (asp < 1.3 ? 0.3 : 0.15) : 0.1;   // 置き場所えらびは 下の 帯の ぶん 絵を 上へ
   Object.assign(cam, { left: -s * asp, right: s * asp, top: s * (1 - off), bottom: -s * (1 + off) });
   // 携帯・本番の 小さな 枠（2026-11-23 鹿さん「携帯だと集合住宅の画面が小さすぎるので縁も要らないです」）：建物の 四すみが ちょうど 入る ところまで 寄る（防衛中・置き場所えらび・動かした ときは いままで どおり）
-  if (S.mode !== "def" && !S.place && !S.pan.x && !S.pan.z && (w < 760 || h < 520) && BLOCKS.length) {
-    cam.updateMatrixWorld(); const inv = cam.matrixWorldInverse, v = new THREE.Vector3(), top = Math.max(...BLOCKS.map((b) => b.f0 + b.h), TOWER ? TOWER.f0 + 4 : 0) * FH + 1.2;
+  if (S.mode !== "def" && !S.place && (w < 760 || h < 520) && BLOCKS.length) {   // 建物の 四すみは ずらす 前の 目で はかる（ずらしても 大きさが かわらない。2026-11-24）
+    cam.position.set(tgt.x - S.pan.x + 20, tgt.y + 17, tgt.z - S.pan.z + 20); cam.lookAt(tgt.x - S.pan.x, tgt.y, tgt.z - S.pan.z); cam.updateMatrixWorld();
+    const inv = cam.matrixWorldInverse, v = new THREE.Vector3(), top = Math.max(...BLOCKS.map((b) => b.f0 + b.h), TOWER ? TOWER.f0 + 4 : 0) * FH + 1.2;
     let x0 = Infinity, x1 = -Infinity, y0 = Infinity, y1 = -Infinity;
     const boxes = [...BLOCKS.map((b) => [b.x0, b.z0, b.w, b.d]), ...EXST.map((e) => [e.x - 2, e.z - 2, 5, 5])];   // 外階段（区画の 外に 出る）も 入れる
     for (const [bx, bz, bw, bd] of boxes) for (const X of [bx, bx + bw]) for (const Z of [bz, bz + bd]) for (const Y of [0, top]) { v.set(X, Y, Z).applyMatrix4(inv); x0 = Math.min(x0, v.x); x1 = Math.max(x1, v.x); y0 = Math.min(y0, v.y); y1 = Math.max(y1, v.y); }
     const pad = 1.1, hh = Math.max((y1 - y0) / 2, (x1 - x0) / 2 / asp) * pad, cx = (x0 + x1) / 2, cy = (y0 + y1) / 2;
     if (hh < s * (1 + off) * 1.15) Object.assign(cam, { left: cx - hh * asp, right: cx + hh * asp, top: cy + hh, bottom: cy - hh });   // 建物を まん中に まるごと（引くのは 少しだけ）
+    cam.position.set(tgt.x + 20, tgt.y + 17, tgt.z + 20); cam.lookAt(tgt);
   }
+  { const z = S.zoom || 1, mx = (cam.left + cam.right) / 2, my = (cam.top + cam.bottom) / 2, hw = (cam.right - cam.left) / 2 / z, hh2 = (cam.top - cam.bottom) / 2 / z;   // ズーム：まんなかを 中心に
+    Object.assign(cam, { left: mx - hw, right: mx + hw, top: my + hh2, bottom: my - hh2 }); }
   cam.updateProjectionMatrix(); cam.updateMatrixWorld();
   renderer.setSize(w, h, false);
 }
@@ -1162,13 +1171,28 @@ renderer.setAnimationLoop(() => {
 // 押す・ひっぱって 動かす（大きな 建物なので 見る 所を ずらせる）
 const ray = new THREE.Raycaster();
 let drag = null;
-view.addEventListener("pointerdown", (e) => { if (e.target === renderer.domElement) drag = { x: e.clientX, y: e.clientY, px: S.pan.x, pz: S.pan.z, moved: false }; });
+// ズーム（2026-11-24 鹿さん「ズームインアウトができないので不便」）：＋−の ボタン・ホイール・2 本指。2 本指の あとは 押した ことに しない
+const touches = new Map(); let pinch = null, pinched = false;
+const zoomTo = (z) => { S.zoom = Math.max(0.5, Math.min(3, z)); fit(); };
+document.getElementById("zoom").addEventListener("click", (e) => { const b = e.target.closest("[data-z]"); if (b) zoomTo((S.zoom || 1) * (b.dataset.z === "in" ? 1.25 : 0.8)); });
+view.addEventListener("wheel", (e) => { if (e.target !== renderer.domElement) return; e.preventDefault(); zoomTo((S.zoom || 1) * (e.deltaY < 0 ? 1.12 : 1 / 1.12)); }, { passive: false });
+view.addEventListener("pointercancel", (e) => { touches.delete(e.pointerId); if (touches.size < 2) pinch = null; if (!touches.size) pinched = false; drag = null; });
+view.addEventListener("pointerdown", (e) => {
+  if (e.target !== renderer.domElement) return;
+  touches.set(e.pointerId, [e.clientX, e.clientY]);
+  if (touches.size === 2) { const [a, b] = [...touches.values()]; pinch = { d: Math.hypot(a[0] - b[0], a[1] - b[1]) || 1, z: S.zoom || 1 }; drag = null; pinched = true; return; }
+  drag = { x: e.clientX, y: e.clientY, px: S.pan.x, pz: S.pan.z, moved: false };
+});
 view.addEventListener("pointermove", (e) => {
+  if (touches.has(e.pointerId)) touches.set(e.pointerId, [e.clientX, e.clientY]);
+  if (pinch && touches.size === 2) { const [a, b] = [...touches.values()]; zoomTo(pinch.z * Math.hypot(a[0] - b[0], a[1] - b[1]) / pinch.d); return; }
   if (!drag) return; const dx = e.clientX - drag.x, dy = e.clientY - drag.y; if (Math.hypot(dx, dy) > 6) drag.moved = true; if (!drag.moved) return;
   const k = (cam.right - cam.left) / view.clientWidth;   // 画面の 1 px ＝ 世界の k
   S.pan.x = drag.px - (dx * 0.707 + dy * 0.82) * k; S.pan.z = drag.pz - (-dx * 0.707 + dy * 0.82) * k; fit();
 });
 view.addEventListener("pointerup", (e) => {
+  touches.delete(e.pointerId); if (touches.size < 2) pinch = null;
+  if (pinched) { if (!touches.size) pinched = false; drag = null; return; }
   const d = drag; drag = null;
   if (e.target !== renderer.domElement || (d && d.moved)) return;
   const r = renderer.domElement.getBoundingClientRect(), p = new THREE.Vector2(((e.clientX - r.left) / r.width) * 2 - 1, -((e.clientY - r.top) / r.height) * 2 + 1);
@@ -1187,6 +1211,7 @@ view.addEventListener("pointerup", (e) => {
 // ---------- 画面 ----------
 const $ = (id) => document.getElementById(id);
 const IC = {
+  shop: `<svg viewBox="0 0 20 20" aria-hidden="true"><path d="M4 7h12l-1.1 10.2H5.1Z" fill="currentColor"/><path d="M7 7.5V6a3 3 0 0 1 6 0v1.5" fill="none" stroke="currentColor" stroke-width="1.8"/></svg>`,   // お店（2026-11-24）
   res: `<svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="7" r="3.6" fill="currentColor"/><path d="M3.5 17.5c.8-3.6 3.4-5.4 6.5-5.4s5.7 1.8 6.5 5.4Z" fill="currentColor"/></svg>`,
   build: `<svg viewBox="0 0 20 20" aria-hidden="true"><path d="M3 17V8l7-5 7 5v9h-5v-5H8v5Z" fill="currentColor"/></svg>`,
   tower: `<svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 7 6.5 18h1.8l.8-2.6h1.8l.8 2.6h1.8Zm-.4 6.6.4-1.4.4 1.4Z" fill="currentColor"/><circle cx="10" cy="5.4" r="1.6" fill="currentColor"/><path d="M5.6 2.6a6.4 6.4 0 0 0 0 5.6M14.4 2.6a6.4 6.4 0 0 1 0 5.6" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>`,
@@ -1392,9 +1417,11 @@ function roomHTML(close) {
   };
   const inv = Object.entries(TDX().inv || {}).filter(([id, n]) => n > 0 && TD_FURN[id]);   // ドロップした 家具（ただ・Lv が 足りなくても 置ける）
   let body;
-  if (S.rsub === "furn") body = `${inv.length && furn.length < FURN_MAX ? `<div class="sec2">持ち物（ただで 置ける）</div><div class="shop">${inv.map(([id, n]) => `<div class="row have"><b>${TD_FURN[id].name}<small>持って いる 数 ${n}</small></b><span class="p">＋${TD_FURN[id].sat}</span><button class="go" data-inv="${id}">置く</button></div>`).join("")}</div>` : ""}<div class="owned">${furn.length ? furn.map((id, i) => `<span>${TD_FURN[id].name}<button class="off" data-foff="${i}" aria-label="${TD_FURN[id].name}を 外す">外す</button></span>`).join("") : `<span>家具は まだ ない</span>`}</div>
-    ${furn.length >= FURN_MAX ? `<p class="full">家具は 1 部屋 3 つまで（外すと 持ち物に もどり、入れ替えられる）</p>` : `<div class="shop">${Object.entries(TD_FURN).map(([id, F]) => row("f", id, F.name, F.sat, F.price, false, like.has(id) ? `<span class="tag">好き</span>` : "")).join("")}</div>`}`;
-  else if (S.rsub === "gear") body = `<div class="shop">${Object.entries(GEAR).map(([id, G]) => row("g", id, G.name, SAT.gear[id], G.price, gear.includes(id), SAT.clean.includes(id) ? `<span class="tag c">汚れ止め</span>` : "")).join("")}</div>`;
+  const ginv = Object.entries(TDX().ginv || {}).filter(([id, n]) => n > 0 && GEAR[id]), toShop = (k) => `<div class="toshop"><button class="sm" data-openshop="${k}">${IC.shop}お店で 買う</button></div>`;   // 家具・設備は お店で 買って 持ち物から 置く（2026-11-24 鹿さんの カード）
+  if (S.rsub === "furn") body = `<div class="owned">${furn.length ? furn.map((id, i) => `<span>${TD_FURN[id].name}<button class="off" data-foff="${i}" aria-label="${TD_FURN[id].name}を 外す">外す</button></span>`).join("") : `<span>家具は まだ ない</span>`}</div>
+    ${furn.length >= FURN_MAX ? `<p class="full">家具は 1 部屋 3 つまで（外すと 持ち物に もどり、入れ替えられる）</p>` : inv.length ? `<div class="sec2">持ち物から 置く</div><div class="shop">${inv.map(([id, n]) => `<div class="row have"><b>${TD_FURN[id].name}<small>持って いる 数 ${n}</small></b>${like.has(id) ? `<span class="tag">好き</span>` : ""}<span class="p">＋${TD_FURN[id].sat}</span><button class="go" data-inv="${id}">置く</button></div>`).join("")}</div>` : `<p class="full">持ち物に 家具が ない</p>`}${toShop("f")}`;
+  else if (S.rsub === "gear") body = `<div class="owned">${gear.length ? gear.map((id) => `<span>${GEAR[id].name}<button class="off" data-goff="${id}" aria-label="${GEAR[id].name}を 外す">外す</button></span>`).join("") : `<span>設備は まだ ない</span>`}</div>
+    ${ginv.length ? `<div class="sec2">持ち物から 付ける</div><div class="shop">${ginv.map(([id, n]) => `<div class="row have"><b>${GEAR[id].name}<small>持って いる 数 ${n}</small></b>${SAT.clean.includes(id) ? `<span class="tag c">汚れ止め</span>` : ""}<span class="p">＋${SAT.gear[id]}</span><button class="go" data-ginv="${id}" ${gear.includes(id) ? "disabled" : ""}>${gear.includes(id) ? "ある" : "付ける"}</button></div>`).join("")}</div>` : `<p class="full">持ち物に 設備が ない</p>`}${toShop("g")}`;
   else {
     const note = o > 0 ? `相場より ${o} 段 高い。満足度が 毎日 ${GRUDGE.perStep * o} 下がり、家具と 設備の ＋が 効かない。${R ? "" : "この 家賃では だれも 入らない。"}`
       : o === 0 ? `部屋に 見合った 家賃。${R && R.grudge > 0 ? "相場より 安く すると 不満が もどる。" : ""}` : `相場より 安い。${R && R.grudge > 0 ? `不満が 毎日 ${GRUDGE.perStep * -o} もどる。` : ""}`;
@@ -1416,6 +1443,16 @@ function payHTML(R, st) {   // 住人の 腕と 払える 段（払える 段 �
 function setStep(i) {   // 家賃の 高さを かえる（つなぐ ときは 門番の td.price）
   if (LIVE) { doAct("td.price", { key: S.roomKey, step: i }, () => "家賃を かえた"); return; }
   roomIn(S.roomKey).step = i; sampleSat(S.roomKey); toast("家賃を かえた"); renderPanel();
+}
+// 家具と 設備の お店（2026-11-24 鹿さんの カード「下の ボタンに お店」）：買うと 持ち物へ・部屋を 押して 置く。値段と 開く Lv は 前と 同じ
+function shopHTML(close) {
+  const k = S.shopK === "g" ? "g" : "f", inv = TDX().inv || {}, ginv = TDX().ginv || {}, cr = LIVE ? ((LASTME && LASTME.credits) || 0) : Infinity;
+  const list = k === "f" ? Object.entries(TD_FURN).map(([id, F]) => ({ id, name: F.name, sat: F.sat, price: F.price, need: FURN_LV[id] || 1, have: inv[id] || 0 }))
+    : Object.entries(GEAR).map(([id, G]) => ({ id, name: G.name, sat: SAT.gear[id], price: G.price, need: G.lv || 1, have: ginv[id] || 0, clean: SAT.clean.includes(id) }));
+  const row = (x) => { const lock = x.need > plv(), v = `${k}:${x.id}`, ask = S.shopAsk === v, short = cr < x.price;
+    return `<div class="row"><b>${x.name}${x.have ? `<small>持って いる 数 ${x.have}</small>` : ""}</b>${x.clean ? `<span class="tag c">汚れ止め</span>` : ""}<span class="p">＋${x.sat}</span><button class="${ask ? "go" : "sm"}" data-shop="${v}" ${lock || short ? "disabled" : ""}>${lock ? `Lv${x.need} で` : ask ? "これを 買う" : `${fmt(x.price)} cr`}</button></div>`; };
+  return `<h2>お店${close}</h2><div class="seg"><button class="${k === "f" ? "on" : ""}" data-shopk="f">家具</button><button class="${k === "g" ? "on" : ""}" data-shopk="g">設備</button></div>
+    <p class="shopnote">買うと 持ち物へ。部屋を 押して 置く</p><div class="shop">${list.map(row).join("")}</div>`;
 }
 function buyFor(v) {   // 家具・設備を 買う（2 回 押す。つなぐ ときは td.furn・td.gear）
   const [k, id] = v.split(":"), key = S.roomKey;
@@ -1446,14 +1483,14 @@ $("floors").addEventListener("click", (e) => { const b = e.target.closest("[data
 function renderDock() {
   const def = S.mode === "def"; $("dock").hidden = def || !!S.place || !!S.mp;
   if (def || S.place || S.mp) return;
-  const items = [["res", "住人", IC.res, WANT.length + (LIVE && TD && TD.rent.days ? 1 : 0)], ["build", "増築", IC.build, TDX().modOffer ? 1 : 0], ["tower", "電波塔", IC.tower, NOTES.length]];   // 増築の 丸：えらんで いない モジュール（M-047）
+  const items = [["res", "住人", IC.res, WANT.length + (LIVE && TD && TD.rent.days ? 1 : 0)], ["build", "増築", IC.build, TDX().modOffer ? 1 : 0], ["shop", "お店", IC.shop, 0], ["tower", "電波塔", IC.tower, NOTES.length]];   // お店：家具と 設備（2026-11-24 鹿さんの カード「下の ボタンに お店」）   // 増築の 丸：えらんで いない モジュール（M-047）
   $("dock").innerHTML = items.map(([k, n, ic, c]) => `<button data-tab="${k}" class="${S.tab === k ? "on" : ""}" aria-expanded="${S.tab === k}">${ic}${n}${c ? `<span class="dot">${c}</span>` : ""}</button>`).join("");
 }
 $("dock").addEventListener("click", (e) => { const b = e.target.closest("[data-tab]"); if (!b) return; S.tab = S.tab === b.dataset.tab ? null : b.dataset.tab; if (S.tab === "res") S.sub = "res"; if (S.tab === "tower") loadHelp(); hidePop(); renderDock(); renderPanel(); });
 
 function renderPanel() {
   const el = $("panel"), on = S.mode === "home" && !!S.tab;
-  el.hidden = !on; $("main").classList.toggle("side", on && innerWidth > 760); document.body.classList.toggle("td-room", on && (S.tab === "room" || S.tab === "tower" || S.tab === "build"));   // 本番の 枠：部屋と 家賃・電波塔は 下の 帯を かくして 広く
+  el.hidden = !on; $("main").classList.toggle("side", on && innerWidth > 760); document.body.classList.toggle("td-room", on && (S.tab === "room" || S.tab === "tower" || S.tab === "build" || S.tab === "shop"));   // 本番の 枠：部屋と 家賃・電波塔は 下の 帯を かくして 広く
   if (!on) { fit(); return; }
   const close = `<button class="x" data-close aria-label="閉じる">×</button>`;
   if (S.tab === "res") {
@@ -1471,12 +1508,14 @@ function renderPanel() {
       const free = freeRoom(), why = anyEmpty() ? "空き部屋の 家賃が 高すぎる" : "空き部屋が ない";
       el.innerHTML = head + `<div class="list">${WANT.map((w, i) => `<div class="card"><div class="t"><img src="${spriteURL(w.id)}" alt="" style="width:40px;height:40px;image-rendering:pixelated"><div><b>${w.name}</b><div class="from">Lv${w.lv}・${w.job ? `${SKILL[w.skill ?? 0].name} ${w.job}` : jobTxt(wkWant(w))}${w.mine ? `<span class="st mine">自分の 子</span>` : ""}</div></div></div>
         <div class="cost">希望の 家賃 <b>${w.rent}／日</b></div><button class="go" data-in="${i}" ${free ? "" : "disabled"}>${free ? `${free.no}号室に 入れる` : why}</button></div>`).join("")}</div>
-        <button class="sm" data-reroll>掲示板を かえる・アメジスト 1</button>`;
+        <p class="wnote">持って いる 子も ときどき 来る（1 枚目。1 時間ごとの くじ）</p><button class="sm" data-reroll>掲示板を かえる・アメジスト 1</button>`;   // 2026-11-24 鹿さんの カード「くじの まま・説明を 出す」
     }
   } else if (S.tab === "build") {   // 増築（M-032）＋ 不動産価値と 設計図（M-043）：タブで 建てる／不動産価値／設計図
     el.innerHTML = buildHTML(close);
   } else if (S.tab === "room") {
     el.innerHTML = roomHTML(close);
+  } else if (S.tab === "shop") {
+    el.innerHTML = shopHTML(close);
   } else {
     el.innerHTML = towerHTML(close);
   }
@@ -1519,6 +1558,25 @@ $("panel").addEventListener("click", (e) => {
   if (b.dataset.rsub) { S.rsub = b.dataset.rsub; S.buyAsk = null; renderPanel(); return; }
   if (b.dataset.step) { setStep(+b.dataset.step); return; }
   if (b.dataset.buy) { buyFor(b.dataset.buy); return; }
+  if (b.dataset.shopk) { S.shopK = b.dataset.shopk; S.shopAsk = null; renderPanel(); return; }
+  if (b.dataset.shop) {   // お店で 買う（2 回 押す・持ち物へ）
+    const v = b.dataset.shop, [k, id] = v.split(":"), nm = k === "g" ? GEAR[id].name : TD_FURN[id].name;
+    if (S.shopAsk !== v) { S.shopAsk = v; renderPanel(); return; }
+    S.shopAsk = null;
+    if (!LIVE) { const inv = k === "g" ? (SAMPLE_TD.ginv ||= {}) : (SAMPLE_TD.inv ||= {}); inv[id] = (inv[id] || 0) + 1; toast(`${nm}を 買った（見本・持ち物へ）`); renderPanel(); return; }
+    doAct("td.buy", { k, id }, () => `${nm}を 買った（持ち物へ）`); return;
+  }
+  if (b.dataset.openshop) { S.tab = "shop"; S.shopK = b.dataset.openshop; S.shopAsk = null; renderDock(); renderPanel(); return; }
+  if (b.dataset.ginv) {   // 持ち物の 設備を 付ける
+    const id = b.dataset.ginv, key = S.roomKey;
+    if (!LIVE) { (roomIn(key).gear ||= []).push(id); SAMPLE_TD.ginv[id]--; sampleSat(key); toast("設備を 付けた（見本）"); renderPanel(); return; }
+    doAct("td.gear", { key, id, inv: true }, () => "設備を 付けた"); return;
+  }
+  if (b.dataset.goff) {   // 設備を 外す（持ち物へ）
+    const id = b.dataset.goff, key = S.roomKey;
+    if (!LIVE) { roomIn(key).gear = (roomIn(key).gear || []).filter((x) => x !== id); (SAMPLE_TD.ginv ||= {})[id] = (SAMPLE_TD.ginv[id] || 0) + 1; sampleSat(key); toast(`${GEAR[id].name}を 外した（見本）`); renderPanel(); return; }
+    doAct("td.gear.off", { key, id }, () => `${GEAR[id].name}を 外した（持ち物へ）`); return;
+  }
   if (b.dataset.foff) {   // 家具を 外す（持ち物へ。2026-11-23 鹿さんの カード）
     const i = +b.dataset.foff, key = S.roomKey, id = (roomIn(key).furn || [])[i]; if (!id) return;
     if (!LIVE) { roomIn(key).furn.splice(i, 1); SAMPLE_TD.inv[id] = (SAMPLE_TD.inv[id] || 0) + 1; sampleSat(key); toast(`${TD_FURN[id].name}を 外した（見本）`); renderPanel(); return; }
