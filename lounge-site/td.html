@@ -133,8 +133,15 @@
   .shop .row .tag { padding:3px 6px; border-radius:999px; background:#FFE9F1; font:900 12px/1 var(--jp); color:#D63A72; white-space:nowrap; } .shop .row .tag.c { background:#E6F2FF; color:#2A6FD0; }
   .shop .row button { flex:none; min-width:92px; min-height:36px; padding:0 8px; }
   .shop .row.have { background:var(--space); }
+  /* 買う 数と 家具の オート（2026-11-25 鹿さんの カード「家具と設備の両方」「満足度を先に」「ぜんぶ置きなおす」「ボタンを押したときだけ」） */
+  .shop .row.ask { border-color:var(--ink); border-radius:12px 12px 0 0; }
+  .qty { display:flex; align-items:center; gap:6px; flex-wrap:wrap; margin-top:-6px; padding:8px 6px 8px 12px; border:1.5px solid var(--ink); border-top:0; border-radius:0 0 12px 12px; background:var(--space); }
+  .qty .q { min-width:40px; min-height:36px; justify-self:auto; } .qty > b { min-width:40px; text-align:center; font:600 18px/1 var(--num); color:var(--ink); }
+  .qty .go { margin-left:auto; padding:0 14px; min-height:40px; }
+  .autob { display:flex; align-items:center; gap:10px; margin:2px 0 10px; padding:8px 8px 8px 12px; border-radius:12px; background:#EEF7F1; }
+  .autob p { flex:1; min-width:0; margin:0; font:700 12px/1.45 var(--jp); color:var(--soft); } .autob .go { flex:none; padding:0 14px; }
   .owned { display:flex; flex-wrap:wrap; gap:6px; } .owned span { display:inline-flex; align-items:center; gap:6px; padding:4px 4px 4px 10px; min-height:32px; border-radius:999px; background:var(--space); font:700 12px/1 var(--jp); }
-  .owned .off { border:1.5px solid var(--line); background:#fff; border-radius:999px; min-height:26px; padding:4px 9px; font:700 12px/1 var(--jp); color:var(--ink); }   /* 家具を 外す（持ち物へ。2026-11-23） */
+  .owned .off { border:1.5px solid var(--line); background:#fff; border-radius:999px; min-height:32px; padding:4px 10px; font:700 12px/1 var(--jp); color:var(--ink); }   /* 家具を 外す（持ち物へ。2026-11-23） */
   .full { font:700 12px/1.4 var(--jp); color:var(--soft); }
   .st.job { background:#EEF0FF; color:#4B4FC4; }
   .plv { display:flex; align-items:baseline; gap:10px; } .plv span { font:900 13px/1 var(--jp); color:var(--soft); } .plv b { font:600 30px/1 var(--num); color:var(--ink); }
@@ -349,7 +356,7 @@ import { kit, F } from "./lounge-furniture.js";
 import { makePet3 } from "./pets.js";
 import { spriteURL } from "./sprites.js";
 import { mountWallet } from "./wallet-bar.js"; mountWallet();
-import { rentOf, rewardOf, retreatOdds, RENT_STEP, RENT_MID, GRUDGE, gradeOf, marketOf, stepOf, TD_FURN, TD_LIKES, GEAR, FURN_MAX, SAT, satOf, SCOUT_SIG, WORK, WORK_OF, WORK_HOURS, SKILL, skillOf, PAY, PROP, FIRST_FLOORS, BLOCK_LV, blockSlotsOf, FURN_LV, BLUEPRINT, BP_SCRAP, AUTO, MODULES, modAmt, LIFE } from "./td-numbers.js";
+import { rentOf, rewardOf, retreatOdds, RENT_STEP, RENT_MID, GRUDGE, gradeOf, marketOf, stepOf, TD_FURN, TD_LIKES, GEAR, FURN_MAX, SAT, satOf, SCOUT_SIG, WORK, WORK_OF, WORK_HOURS, SKILL, skillOf, PAY, PROP, FIRST_FLOORS, BLOCK_LV, blockSlotsOf, FURN_LV, BLUEPRINT, BP_SCRAP, AUTO, MODULES, modAmt, LIFE, autoFurn, BUY_MAX } from "./td-numbers.js";
 import { speciesOf, RANKS, famOf } from "./fusion.js";   // スカウトの 値段（ランク）。見本の とき だけ 使う（つなぐ ときは 門番の td.res の scout）
 import { tdInit, tdOrder, tdTurn, tdAuto, distOf } from "./td-battle.js";
 import { defMap, defSetup, defInit, resSnap } from "./td-def.js";   // 防衛の 準備（門番と 同じ 式。門番は 指示の 記録で 回し直して 勝ち負けを 決める。2026-11-21 カード「門番でもう一度回す」）
@@ -1419,7 +1426,7 @@ function roomHTML(close) {
   let body;
   const ginv = Object.entries(TDX().ginv || {}).filter(([id, n]) => n > 0 && GEAR[id]), toShop = (k) => `<div class="toshop"><button class="sm" data-openshop="${k}">${IC.shop}お店で 買う</button></div>`;   // 家具・設備は お店で 買って 持ち物から 置く（2026-11-24 鹿さんの カード）
   if (S.rsub === "furn") body = `<div class="owned">${furn.length ? furn.map((id, i) => `<span>${TD_FURN[id].name}<button class="off" data-foff="${i}" aria-label="${TD_FURN[id].name}を 外す">外す</button></span>`).join("") : `<span>家具は まだ ない</span>`}</div>
-    ${furn.length >= FURN_MAX ? `<p class="full">家具は 1 部屋 3 つまで（外すと 持ち物に もどり、入れ替えられる）</p>` : inv.length ? `<div class="sec2">持ち物から 置く</div><div class="shop">${inv.map(([id, n]) => `<div class="row have"><b>${TD_FURN[id].name}<small>持って いる 数 ${n}</small></b>${like.has(id) ? `<span class="tag">好き</span>` : ""}<span class="p">＋${TD_FURN[id].sat}</span><button class="go" data-inv="${id}">置く</button></div>`).join("")}</div>` : `<p class="full">持ち物に 家具が ない</p>`}${toShop("f")}`;
+    ${autoHTML()}${furn.length >= FURN_MAX ? `<p class="full">家具は 1 部屋 3 つまで（外すと 持ち物に もどり、入れ替えられる）</p>` : inv.length ? `<div class="sec2">持ち物から 置く</div><div class="shop">${inv.map(([id, n]) => `<div class="row have"><b>${TD_FURN[id].name}<small>持って いる 数 ${n}</small></b>${like.has(id) ? `<span class="tag">好き</span>` : ""}<span class="p">＋${TD_FURN[id].sat}</span><button class="go" data-inv="${id}">置く</button></div>`).join("")}</div>` : `<p class="full">持ち物に 家具が ない</p>`}${toShop("f")}`;
   else if (S.rsub === "gear") body = `<div class="owned">${gear.length ? gear.map((id) => `<span>${GEAR[id].name}<button class="off" data-goff="${id}" aria-label="${GEAR[id].name}を 外す">外す</button></span>`).join("") : `<span>設備は まだ ない</span>`}</div>
     ${ginv.length ? `<div class="sec2">持ち物から 付ける</div><div class="shop">${ginv.map(([id, n]) => `<div class="row have"><b>${GEAR[id].name}<small>持って いる 数 ${n}</small></b>${SAT.clean.includes(id) ? `<span class="tag c">汚れ止め</span>` : ""}<span class="p">＋${SAT.gear[id]}</span><button class="go" data-ginv="${id}" ${gear.includes(id) ? "disabled" : ""}>${gear.includes(id) ? "ある" : "付ける"}</button></div>`).join("")}</div>` : `<p class="full">持ち物に 設備が ない</p>`}${toShop("g")}`;
   else {
@@ -1450,9 +1457,25 @@ function shopHTML(close) {
   const list = k === "f" ? Object.entries(TD_FURN).map(([id, F]) => ({ id, name: F.name, sat: F.sat, price: F.price, need: FURN_LV[id] || 1, have: inv[id] || 0 }))
     : Object.entries(GEAR).map(([id, G]) => ({ id, name: G.name, sat: SAT.gear[id], price: G.price, need: G.lv || 1, have: ginv[id] || 0, clean: SAT.clean.includes(id) }));
   const row = (x) => { const lock = x.need > plv(), v = `${k}:${x.id}`, ask = S.shopAsk === v, short = cr < x.price;
-    return `<div class="row"><b>${x.name}${x.have ? `<small>持って いる 数 ${x.have}</small>` : ""}</b>${x.clean ? `<span class="tag c">汚れ止め</span>` : ""}<span class="p">＋${x.sat}</span><button class="${ask ? "go" : "sm"}" data-shop="${v}" ${lock || short ? "disabled" : ""}>${lock ? `Lv${x.need} で` : ask ? "これを 買う" : `${fmt(x.price)} cr`}</button></div>`; };
+    const r = `<div class="row ${ask ? "ask" : ""}"><b>${x.name}${x.have ? `<small>持って いる 数 ${x.have}</small>` : ""}</b>${x.clean ? `<span class="tag c">汚れ止め</span>` : ""}<span class="p">＋${x.sat}</span><button class="sm" data-shop="${v}" aria-expanded="${ask}" ${lock || short ? "disabled" : ""}>${lock ? `Lv${x.need} で` : ask ? "とじる" : `${fmt(x.price)} cr`}</button></div>`;
+    if (!ask) return r;
+    const max = buyMax(x.price), n = Math.min(Math.max(1, S.shopN || 1), max);   // 買う 数：− ＋ と 10 ずつ（上は 持って いる クレジットで 買える 数）
+    return r + `<div class="qty"><button class="sm q" data-qty="-10" ${n <= 1 ? "disabled" : ""}>−10</button><button class="sm q" data-qty="-1" ${n <= 1 ? "disabled" : ""} aria-label="1 こ へらす">−</button><b>${n}</b><button class="sm q" data-qty="1" ${n >= max ? "disabled" : ""} aria-label="1 こ ふやす">＋</button><button class="sm q" data-qty="10" ${n >= max ? "disabled" : ""}>＋10</button><button class="go" data-shopgo="${v}">${n} こ ${fmt(n * x.price)} cr で 買う</button></div>`; };
   return `<h2>お店${close}</h2><div class="seg"><button class="${k === "f" ? "on" : ""}" data-shopk="f">家具</button><button class="${k === "g" ? "on" : ""}" data-shopk="g">設備</button></div>
-    <p class="shopnote">買うと 持ち物へ。部屋を 押して 置く</p><div class="shop">${list.map(row).join("")}</div>`;
+    <p class="shopnote">買うと 持ち物へ。部屋を 押して 置く</p>${k === "f" ? autoHTML() : ""}<div class="shop">${list.map(row).join("")}</div>`;
+}
+const buyMax = (price) => Math.max(1, Math.min(BUY_MAX, LIVE ? Math.floor(((LASTME && LASTME.credits) || 0) / price) : BUY_MAX));
+const autoHTML = () => `<div class="autob"><p>持ち物と 置いた 家具を 合わせて、住人の 満足度が 上がる ように 配りなおす</p><button class="go" data-fauto>オートで 置く</button></div>`;
+// 家具の オート（見本）：門番と 同じ autoFurn。見本の 住人は 汚れ・不満を 数えない ので、もとの 満足度の 低さを 不満と みなす
+function sampleAuto() {
+  const keys = ROOMS.filter((r) => !r.lounge).map((r) => r.key), pool = { ...(SAMPLE_TD.inv || {}) };
+  for (const k of keys) for (const id of roomIn(k).furn || []) pool[id] = (pool[id] || 0) + 1;
+  if (!Object.values(pool).some((n) => n > 0)) { toast("家具を 持って いない（お店で 買う）"); return; }
+  const rooms = keys.map((key) => { const r = ROOMS.find((x) => x.key === key), R = r.who && RES[r.who], I = roomIn(key);
+    return { key, gear: I.gear || [], size: I.size || null, step: I.step, res: R ? { fam: R.fam || null, grudge: Math.max(0, SAT.base - (R.sat0 ?? R.sat)) } : null }; });
+  const A = autoFurn(rooms, pool);
+  for (const k of keys) { roomIn(k).furn = A.furn[k]; sampleSat(k); }
+  SAMPLE_TD.inv = A.left; toast("家具を オートで 置いた（見本）"); renderPanel();
 }
 function buyFor(v) {   // 家具・設備を 買う（2 回 押す。つなぐ ときは td.furn・td.gear）
   const [k, id] = v.split(":"), key = S.roomKey;
@@ -1465,7 +1488,7 @@ function buyFor(v) {   // 家具・設備を 買う（2 回 押す。つなぐ �
 function sampleSat(key) {   // 見本：満足度を 部屋から 数えなおす（もとの 満足度 ＋ 家具と 設備。相場を 超えたら ＋なし。時間で たまる 不満は 門番だけ）
   const r = ROOMS.find((x) => x.key === key), R = r && r.who && RES[r.who]; if (!R) return;
   R.sat0 ??= R.sat; const I = roomIn(key), over = stepOf(I) > marketOf(gradeOf(I));
-  R.sat = Math.max(0, Math.min(100, R.sat0 + (over ? 0 : satOf({ furn: I.furn, gear: I.gear }) - SAT.base)));
+  R.sat = Math.max(0, Math.min(100, R.sat0 + (over ? 0 : satOf({ furn: I.furn, gear: I.gear, fam: R.fam || null }) - SAT.base)));
 }
 
 function renderTop() {
@@ -1559,12 +1582,19 @@ $("panel").addEventListener("click", (e) => {
   if (b.dataset.step) { setStep(+b.dataset.step); return; }
   if (b.dataset.buy) { buyFor(b.dataset.buy); return; }
   if (b.dataset.shopk) { S.shopK = b.dataset.shopk; S.shopAsk = null; renderPanel(); return; }
-  if (b.dataset.shop) {   // お店で 買う（2 回 押す・持ち物へ）
-    const v = b.dataset.shop, [k, id] = v.split(":"), nm = k === "g" ? GEAR[id].name : TD_FURN[id].name;
-    if (S.shopAsk !== v) { S.shopAsk = v; renderPanel(); return; }
-    S.shopAsk = null;
-    if (!LIVE) { const inv = k === "g" ? (SAMPLE_TD.ginv ||= {}) : (SAMPLE_TD.inv ||= {}); inv[id] = (inv[id] || 0) + 1; toast(`${nm}を 買った（見本・持ち物へ）`); renderPanel(); return; }
-    doAct("td.buy", { k, id }, () => `${nm}を 買った（持ち物へ）`); return;
+  if (b.dataset.shop) {   // お店で 買う：1 回目で 数を えらぶ 行を ひらく・「○ こ ○○ cr で 買う」で 買う（2 回 押す・持ち物へ）
+    const v = b.dataset.shop; S.shopAsk = S.shopAsk === v ? null : v; S.shopN = 1; renderPanel(); return;
+  }
+  if (b.dataset.qty) { const [k, id] = (S.shopAsk || ":").split(":"), F = k === "g" ? GEAR[id] : TD_FURN[id]; if (!F) return; S.shopN = Math.min(buyMax(F.price), Math.max(1, (S.shopN || 1) + +b.dataset.qty)); renderPanel(); return; }
+  if (b.dataset.shopgo) {
+    const v = b.dataset.shopgo, [k, id] = v.split(":"), F = k === "g" ? GEAR[id] : TD_FURN[id], n = Math.min(buyMax(F.price), Math.max(1, S.shopN || 1)), nm = F.name, cnt = n > 1 ? `${n} こ ` : "";
+    S.shopAsk = null; S.shopN = 1;
+    if (!LIVE) { const inv = k === "g" ? (SAMPLE_TD.ginv ||= {}) : (SAMPLE_TD.inv ||= {}); inv[id] = (inv[id] || 0) + n; toast(`${nm}を ${cnt}買った（見本・持ち物へ）`); renderPanel(); return; }
+    doAct("td.buy", { k, id, n }, () => `${nm}を ${cnt}買った（持ち物へ）`); return;
+  }
+  if (b.dataset.fauto != null) {   // 家具の オート（ボタンを 押した ときだけ）
+    if (!LIVE) { sampleAuto(); return; }
+    doAct("td.furn.auto", {}, (r) => (r.changed ? `家具を オートで 置いた（${r.changed} 部屋・持ち物に ${r.left}）` : "いまの 置き方の まま（かえる 所が ない）")); return;
   }
   if (b.dataset.openshop) { S.tab = "shop"; S.shopK = b.dataset.openshop; S.shopAsk = null; renderDock(); renderPanel(); return; }
   if (b.dataset.ginv) {   // 持ち物の 設備を 付ける

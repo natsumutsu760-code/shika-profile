@@ -92,6 +92,35 @@ export function satOf({ furn = [], gear = [], size = null, dirtDays = 0, fam = n
 // 部屋の 格〔C〕：家具（好みは 数えない。部屋の 物なので）＋ 設備 ＋ 広さの 満足度の 合計（0〜66）。格で 相場（見合う 家賃の 段）が 決まる：10 で 高い・25 で とても高い・45 で 強気
 export const gradeOf = ({ furn = [], gear = [], size = null } = {}) =>
   furn.slice(0, FURN_MAX).reduce((a, id) => a + (TD_FURN[id]?.sat || 0), 0) + [...new Set(gear)].reduce((a, id) => a + (SAT.gear[id] || 0), 0) + (SAT.size[size] || 0);
+// 家具の オート（2026-11-25 鹿さんの カード「満足度を先に」「ぜんぶ置きなおす」「ボタンを押したときだけ」）：持ち物と 置いて ある 家具を 合わせて 配りなおす
+//   1. 住人の 満足度：好きな 家具は 1.5 倍。満足度の 低い 住人ほど 先（〔C〕重み：15 未満 4 倍・40 未満 2 倍）。同じ くらいなら 相場が 上がる 部屋へ
+//   2. のこりは 住人の いない 部屋へ（〔C〕格の 低い 部屋から・＋の 大きい 家具から）3. まだ のこれば 住人の いる 部屋の 空いた 枠へ（相場が 上がる 部屋から）
+//   rooms：[{ key, gear, size, step, res: null | { fam, dirtDays, grudge } }]・pool：{ id: 数 } → { furn: { key: [id…] }, left: { id: 数 } }
+export function autoFurn(rooms, pool) {
+  const left = {}, furn = Object.fromEntries(rooms.map((r) => [r.key, []]));
+  for (const [id, n] of Object.entries(pool || {})) if (Object.hasOwn(TD_FURN, id) && n >= 1) left[id] = Math.floor(n);
+  const ids = () => Object.keys(TD_FURN).filter((id) => left[id] > 0).sort((a, b) => TD_FURN[b].sat - TD_FURN[a].sat);
+  const gr = (r, f) => gradeOf({ furn: f, gear: r.gear || [], size: r.size || null }), mk = (r, f) => marketOf(gr(r, f));
+  const sat = (r, f) => satOf({ furn: f, gear: r.gear || [], size: r.size || null, dirtDays: r.res.dirtDays || 0, fam: r.res.fam || null, over: stepOf(r) > mk(r, f), grudge: r.res.grudge || 0 });
+  const w = (v) => v + 2 * Math.min(v, 15) + Math.min(v, 40);
+  const put = (key, id) => { furn[key].push(id); if (!--left[id]) delete left[id]; };
+  for (;;) {   // 1. 満足度
+    let best = null; const L = ids();
+    for (const r of rooms) {
+      if (!r.res || furn[r.key].length >= FURN_MAX) continue;
+      const f = furn[r.key], s0 = w(sat(r, f)), m0 = mk(r, f);
+      for (const id of L) { const f1 = [...f, id], g = w(sat(r, f1)) - s0, dm = mk(r, f1) - m0; if (g > 0 && (!best || g > best.g || (g === best.g && dm > best.dm))) best = { key: r.key, id, g, dm }; }
+    }
+    if (!best) break; put(best.key, best.id);
+  }
+  for (const occ of [false, true]) for (;;) {   // 2. 住人の いない 部屋 → 3. 住人の いる 部屋の 空いた 枠
+    const L = ids(), open = rooms.filter((r) => !r.res === !occ && furn[r.key].length < FURN_MAX); if (!L.length || !open.length) break;
+    const id = L[0], dm = (r) => mk(r, [...furn[r.key], id]) - mk(r, furn[r.key]);
+    put(open.reduce((a, b) => (dm(b) > dm(a) || (dm(b) === dm(a) && gr(b, furn[b.key]) < gr(a, furn[a.key])) ? b : a)).key, id);
+  }
+  return { furn, left };
+}
+export const BUY_MAX = 999;   // お店で 1 回に 買える 数〔C〕（2026-11-25 鹿さんの カード「家具と設備の両方」。打ちまちがいの 止め。持って いる 数の 上限では ない）
 export const marketOf = (grade) => RENT_STEP.reduce((m, s, i) => (i > RENT_MID && grade >= s.grade ? i : m), RENT_MID);
 export const stepOf = (room) => (room && Number.isInteger(room.step) && RENT_STEP[room.step] ? room.step : RENT_MID);
 export const grudgeRate = (step, market) => GRUDGE.perStep * (step - market);   // 1 日に ＋ たまる／− もどる

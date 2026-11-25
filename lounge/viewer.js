@@ -506,7 +506,7 @@ export class Viewer {
     else if (body.a === "order.sign") r = orderSign(rec, now);   // 島 3 の 夜の 招待の 誓約書に サイン
     else if (body.a === "crawl.save") r = crawlSave(rec, body, now);   // クローラーの 進み（どの 機械でも 同じ に）
     else if (/^td\.(help\.(post|list|send|view)|def\.start|def\.end)$/.test(body.a)) r = await tdhAct(this, rec, body, now);   // 集合住宅：助けを よぶ 掲示板と 防衛の 始め・終わり（募集を 締める・結果を 板へ）
-    else if (/^td\.(build|rent|movein|out|buy|furn|furn\.off|gear|gear\.off|price|scout|life|bp\.scrap|mod\.pick|mod\.set|mod\.off|mod\.scrap|def\.start|def\.end)$/.test(body.a)) r = tdAct(rec, body, now);   // 集合住宅（増築・家賃・入居・防衛）
+    else if (/^td\.(build|rent|movein|out|buy|furn|furn\.off|furn\.auto|gear|gear\.off|price|scout|life|bp\.scrap|mod\.pick|mod\.set|mod\.off|mod\.scrap|def\.start|def\.end)$/.test(body.a)) r = tdAct(rec, body, now);   // 集合住宅（増築・家賃・入居・防衛）
     else if (body.a === "fac.knob") r = facKnob(rec, body, now);
     else if (body.a === "ws.att") r = wsAtt(rec, body, rand, now);
     else if (body.a === "ws.proc") r = wsProc(rec, body, now);           // 加工：作物 → 布・建材
