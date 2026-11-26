@@ -3137,7 +3137,7 @@ for (const [id, t] of Object.entries(ENEMY_TREES)) {
   if (t.evo || t.foeOf) continue;
   const list = t.list.map((s) => {
     if (s.kind === "passive") return { ...s, id: s.id + EVO };
-    const fx = s.fx.map((x) => (x.t === "dmg" ? { ...x, pow: Math.round(x.pow * EVO_POW) } : x));
+    const fx = s.fx.map((x) => (x.t === "dmg" || x.t === "bloom" ? { ...x, pow: Math.round(x.pow * EVO_POW) } : x));   // bloom：リュードスの スピナ・レドゥクス（確かめ役の 指摘。2026-11-25）
     return { ...s, id: s.id + EVO, name: s.name + "＋", fx, text: describe(fx) };
   });
   ENEMY_TREES[id + EVO] = { ...t, name: t.name + "＋", dungeon: null, evo: id, list, plan: t.plan.map((g) => ({ ...g, do: g.do + EVO })), ...(t.petPlan ? { petPlan: t.petPlan.map((g) => ({ ...g, do: g.do + EVO })) } : {}) };

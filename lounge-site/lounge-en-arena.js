@@ -87,7 +87,7 @@ export const RULES = [
   [/^(.+) は輪廻で踏みとどまった！$/, (m, p) => `${P(p, m[1])} hung on thanks to Rebirth!`], [/^(.+) は輪廻で復活した！$/, (m, p) => `${P(p, m[1])} revived thanks to Rebirth!`], [/^(.+) が (.+) の 身代わりに なった$/, (m, p) => `${P(p, m[1])} took the hit for ${P(p, m[2])}`], [/^(.+) はあきらめない！ 立ち上がった$/, (m, p) => `${P(p, m[1])} never gives up! Got back up`],
   [/^腐敗で (\d+) のダメージに変わった$/, (m) => `Rot turned it into ${m[1]} damage`], [/^(.+) は幻影でかわした$/, (m, p) => `${P(p, m[1])} dodged with Mirage`], [/^(.+) のバリアが防いだ$/, (m, p) => `${P(p, m[1])}'s Barrier blocked it`],
   [/^(.+) に ひびが 入った（会心の 分 (\d+) は あとから）$/, (m, p) => `${P(p, m[1])} cracked (${m[2]} crit damage comes later)`], [/^(.+) の凍結がとけて (\d+)$/, (m, p) => `${P(p, m[1])} thawed out: ${m[2]}`],
-  [/^(.+) は目をさました$/, (m, p) => `${P(p, m[1])} woke up`], [/^(.+) のカウンター！ (\d+) 返した$/, (m, p) => `${P(p, m[1])} countered! Returned ${m[2]}`],
+  [/^(.+) は目をさました$/, (m, p) => `${P(p, m[1])} woke up`], [/^(.+) のカウンター！ (\d+) 返した$/, (m, p) => `${P(p, m[1])} countered! Returned ${m[2]}`], [/^(.+) は 棘を (\d+) 回収した$/, (m, p) => `${P(p, m[1])} recovered ${m[2]} Thorns`],
   [/^(.+) は(.+)になった$/, (m, p) => FX(p, m[2]) && `${P(p, m[1])} → ${FX(p, m[2])}`], [/^(.+) は混乱して自分に使った$/, (m, p) => `${P(p, m[1])} is confused and used it on itself`],
   [/^(.+) はよけた$/, (m, p) => `${P(p, m[1])} dodged`], [/^デバフが (\d+) つ はじけた！$/, (m) => `${m[1]} debuffs popped!`], [/^(.+)がはじけた！$/, (m, p) => FX(p, m[1]) && `${FX(p, m[1])} popped!`],
   [/^残りの(.+)が一度に回って (\d+)$/, (m, p) => FX(p, m[1]) && `The remaining ${FX(p, m[1])} hit all at once: ${m[2]}`], [/^(.+) はくやしがって (\d+) のダメージ$/, (m, p) => `${P(p, m[1])} got jealous and took ${m[2]} damage`],

@@ -423,4 +423,26 @@ export const TREES = {
       P(7, "f_am_amakakeruseijuu", "天翔ける聖獣", "戦いのはじめに祝福（3 ターン）と再生 +10・INT +5%", { startFx: [["blessing", null, 3], ["regen", 10]], intMul: 1.05 }),
     ],
     plan: [G("hpBelow", 40, "f_am_kinnowanomegumi"), G("debuffed", undefined, "f_am_kinnowanomegumi"), G("every", 4, "f_am_amakakeruinori"), G("mpAtLeast", 13, "f_am_amakakeruhikarinomichi"), G("every", 2, "f_am_tenkunokakeashi"), G("always", undefined, "f_am_seinaruhizume")] },
+
+  // リュードス（2026-11-23 鹿さんの カード 5 回。資料 mono-link-haigou.md「新しい EX リュードス」）：暗黒を 固めた ような 実体の ない 棘の 塊。
+  // 棘を はって 打たれ、回復した 量を カウンターに 乗せて 返し、棘を はじけさせては 回収する
+  f_ryudos: { name: "固まった闇の棘", enemy: "リュードス", dungeon: null, rank: "配合", type: "defender", main: "def", sub: "hp", theme: "thorns",
+    list: [
+      S(1, "f_rd_yamitogenotsuki", "闇棘の突き", "waza", 2, [D(14, { stat: "def" })]),
+      S(2, "f_rd_yamigakatamaru", "闇が固まる", "waza", 4, [M("thorns", 40), M("armor", 15)]),
+      S(3, "f_rd_kagenosoritoge", "影の反り棘", "waza", 5, [M("counter", 1, { amt: 80 }), M("regen", 10)]),
+      S(4, "f_rd_togenokagenui", "棘の影ぬい", "waza", 5, [D(18, { stat: "def" }), M("thorns", 20)]),
+      S(5, "f_rd_katachiwonakusu", "形をなくす", "waza", 6, [CURE, H(0.15), M("regen", 15)]),
+      S(6, "f_rd_yaminoibaragaki", "闇のいばら垣", "waza", 7, [M("guard"), M("counter", 2, { amt: 60 }), M("thorns", 30)]),
+      S(7, "f_rd_spinaredux", "スピナ・レドゥクス", "waza", 8, [{ t: "bloom", pow: 10, stat: "def", perThorns: 0.3, regain: 2 }]),
+      S(8, "f_rd_noxspina", "ノクス・スピナ", "waza", 12, [D(34, { stat: "def" }), M("regen", 20), M("thorns", 40)]),
+      P(1, "f_rd_jittainonaikarada", "実体のない体", "受けるダメージ −5%", { dmgCut: 5 }),
+      P(2, "f_rd_yamiwosuu", "闇をすう", "受ける回復 +15%", { healRecv: 15 }),
+      P(3, "f_rd_katamaruyami", "固まる闇", "棘で返すダメージに DEF の 15% を足す", { thornsDef: 0.15 }),
+      P(4, "f_rd_kuroishin", "黒い芯", "DEF +10%", { defMul: 1.1 }),
+      P(5, "f_rd_michitayaminokaeshi", "満ちた闇の返し", "カウンターで返すダメージに直前 1 ターンの回復量の 50% を足す", { counterHeal: 0.5 }),
+      P(6, "f_rd_sokonashinokage", "底なしの影", "HP +10%", { hpMul: 1.1 }),
+      P(7, "f_rd_tenebraspinosa", "テネブラ・スピノサ", "戦いのはじめに棘 +30 と再生 +10・DEF +5%", { startFx: [["thorns", 30], ["regen", 10]], defMul: 1.05 }),
+    ],
+    plan: [G("first", undefined, "f_rd_yamigakatamaru"), G("hpBelow", 45, "f_rd_katachiwonakusu"), G("selfNotHas", "thorns", "f_rd_yamigakatamaru"), G("every", 4, "f_rd_spinaredux"), G("mpAtLeast", 12, "f_rd_noxspina"), G("every", 3, "f_rd_yaminoibaragaki"), G("selfNotHas", "regen", "f_rd_kagenosoritoge"), G("mpAtLeast", 5, "f_rd_togenokagenui"), G("always", undefined, "f_rd_yamitogenotsuki")] },
 };

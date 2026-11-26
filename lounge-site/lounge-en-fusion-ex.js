@@ -22,6 +22,7 @@ export const TREE_EN = {
   f_furuichinokemono: ["Beast of Old Blood", "Blood That Wakes on Moonlit Nights"],
   f_ougonnokyozou: ["Aurelio", "Colossus of the Treasure Mound"],
   f_amakakeruseijuu: ["Hidden Holy Beast", "Holy Wings Across the Heavens"],
+  f_ryudos: ["Ryudos", "Thorns of Hardened Dark"],
 };
 
 export const SKILL_EN = {
@@ -345,4 +346,20 @@ export const SKILL_EN = {
   f_am_kiyoraka: "Pure Blood",
   f_am_hayaitsubasa: "Swift Wings",
   f_am_amakakeruseijuu: "Soaring Holy Beast",
+  // リュードス
+  f_rd_yamitogenotsuki: "Dark Thorn Thrust",
+  f_rd_yamigakatamaru: "Darkness Hardens",
+  f_rd_kagenosoritoge: "Barbed Shadow",
+  f_rd_togenokagenui: "Thorn Shadowstitch",
+  f_rd_katachiwonakusu: "Lose Form",
+  f_rd_yaminoibaragaki: "Hedge of Dark Briars",
+  f_rd_spinaredux: "Spina Redux",
+  f_rd_noxspina: "Nox Spina",
+  f_rd_jittainonaikarada: "Bodiless Form",
+  f_rd_yamiwosuu: "Drink the Dark",
+  f_rd_katamaruyami: "Hardening Dark",
+  f_rd_kuroishin: "Black Core",
+  f_rd_michitayaminokaeshi: "Brimming Dark Riposte",
+  f_rd_sokonashinokage: "Bottomless Shadow",
+  f_rd_tenebraspinosa: "Tenebra Spinosa",
 };

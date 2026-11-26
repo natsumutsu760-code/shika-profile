@@ -25,6 +25,12 @@ export const RULES = [
   [/^受けた ダメージ（継続ダメージも）の (\d+)% を 貫通に ためる$/, (m) => `Store ${m[1]}% of damage taken (incl. damage over time) as Pierce`],   // 守りの サブツリー（2026-11-07）
   [/^回復した 量の (\d+)% が 相手への ダメージに なる$/, (m) => `Healing also deals ${m[1]}% of the amount as damage to the foe`],   // 回復の サブツリー（2026-11-07）
   [/^自分にバリアを付けるたびに(.+)$/, (m, p) => { const b = both(p, m[1]); return b && `Each time you gain a Barrier: ${b}`; }],   // 重なる光 など（複数バリアの 廃止、2026-11-07）
+  // リュードス（2026-11-23）：棘に DEF・回復の 乗る カウンター・棘を 使う 爆発と 回収
+  [/^棘で返すダメージに DEF の (\d+)% を足す$/, (m) => `Thorns damage also adds ${m[1]}% of your DEF`],
+  [/^カウンターで返すダメージに直前 1 ターンの回復量の (\d+)% を足す$/, (m) => `Counter damage also adds ${m[1]}% of the healing you received over the last turn`],
+  [/^自分の棘をぜんぶ使って爆発$/, () => "Burst all your Thorns"],
+  [/^威力 (\d+)（([A-Z]+)）、棘 10 につき威力 \+(\d+)$/, (m) => `Power ${m[1]} (${m[2]}), +${m[3]} per 10 Thorns`],
+  [/^与えたダメージが相手の最大 HP の 1% につき棘 \+(\d+) を回収（使った棘まで）$/, (m) => `Recover Thorns +${m[1]} per 1% of the foe's max HP dealt (up to the Thorns used)`],
   // 付ける 量・ターン
   [/^付ける(.+?) \+(\d+) ターン$/, (m, p) => p(m[1]) && `${p(m[1])} you inflict +${m[2]} turn${m[2] === "1" ? "" : "s"}`],
   [/^付ける(.+?) \+(\d+)$/, (m, p) => p(m[1]) && `${p(m[1])} you inflict +${m[2]}`],

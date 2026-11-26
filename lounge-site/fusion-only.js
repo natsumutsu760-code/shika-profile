@@ -320,6 +320,17 @@ ROSTER.push(...INFERNO.map(([tree, code, name, en, fam, rank, type, theme, how, 
   return { tree, code, name, en, fam, rank: r, type, theme, how, note, grp: "inferno", lv: LO[r] + Math.floor(((i + 0.5) * WIDTH[r]) / CNTI[r]) };
 }));
 
+// 別枠の 追加（grp: "extra"）：鹿さんの カードで あとから 足す 配合限定。240 種（どの ランクも 30・2026-10-28 の 決め）の 数は 崩さない
+const EXTRA = [
+  // リュードス（2026-11-23 鹿さんの カード：棘に DEF・回復の 乗る カウンター・棘を 回収する 爆発。名前と 姿は 鹿さん「リュードス(異形)」「暗黒を固めたような実態のない棘の塊」）
+  ["f_ryudos", "rd", "リュードス", "Ryudos", "aberration", "EX", "defender", "thorns", "特殊", "暗黒を 固めた ような、実体の ない 棘の 塊。はじけた 棘は また 闇に もどって くる"],
+];
+const nthX = {}, CNTX = RANKS.map((r) => EXTRA.filter((x) => x[5] === r).length);
+ROSTER.push(...EXTRA.map(([tree, code, name, en, fam, rank, type, theme, how, note]) => {
+  const r = RANKS.indexOf(rank), i = (nthX[r] = (nthX[r] ?? -1) + 1);
+  return { tree, code, name, en, fam, rank: r, type, theme, how, note, grp: "extra", lv: LO[r] + Math.floor(((i + 0.5) * WIDTH[r]) / CNTX[r]) };
+}));
+
 // 特殊配合：{ a, b, child }（a・b は 種族の ツリー id か「fam:系統」。親の 順は どちらでも）
 export const SPECIAL = [
   { a: "e_firechick", b: "fam:divine", child: "f_phoenix" },           // 火の鳥のひな × 神聖系
@@ -355,6 +366,7 @@ export const SPECIAL = [
   { a: "f_moonfang", b: "f_vampire", child: "f_furuichinokemono" },         // ムーンファング × ヴァンパイア（月の 夜の 獣と 古い 血）
   { a: "f_livingmail", b: "e_goldcrab", child: "f_ougonnokyozou" },         // リビングメイル × 金貨ガニ（動く よろいと 黄金）
   { a: "f_pegasus", b: "f_griffon", child: "f_amakakeruseijuu" },           // ペガサス × グリフォン（天を かける 二つの 血）
+  { a: "f_doppelganger", b: "f_haganedori", child: "f_ryudos" },            // リュードス＝ドッペルゲンガー × ステュンファロス（2026-11-23 鹿さんの カード。受けた 技を 返す 異形と 棘の 鳥）
   // インフェルノの 悪魔（2026-11-07。鹿さんの 決め：ぜんぶ 特殊な レシピ。伝承の 姿や 力に ちなんだ 組み合わせ）
   { a: "f_beelzebufo", b: "f_kuwaru", child: "f_bael" },                    // バアル＝ベルゼブフォ × クワール（ひきがえるの 頭と、すがたを くらます 猫の 獣）
   { a: "e_bard", b: "f_demonlord", child: "f_paimon" },                     // パイモン＝迷子の吟遊詩人 × デーモンロード（楽隊を つれた 王）

@@ -445,6 +445,7 @@ export function simulateTeams(SA, SB, seed, opts = {}) {
   function heal(f, n, notes) {
     n = Math.round(n * (1 + (f.P.healRecv || 0) / 100)); if (n <= 0) return 0;   // 受ける回復（新しい OP）
     if (f.fx.rot) { hurt(f, n, notes); notes.push(`腐敗で ${n} のダメージに変わった`); return -n; }
+    f.healWin = (f.healWin || 0) + n;   // 直前の 1 ターンに 回復した 量（あふれた 分も。リュードスの 満ちた闇の返し。2026-11-23 鹿さんの カード）
     if (f.pool != null) f.poolHeal += n;   // ネビュラ：回復は 回転数に（量は 元の 最大 HP から。鹿さん「回復の参照は回転数ではなく元のHP」）
     const a = Math.min(f.maxHp - f.hp, n); f.hp += a;
     if (n > a && f.fx.overheal) f.fx.overheal.amt = Math.min(f.maxHp, f.fx.overheal.amt + n - a);
@@ -482,7 +483,8 @@ export function simulateTeams(SA, SB, seed, opts = {}) {
       if (foe.P.dodgeBite && foe.biteTurn !== curTurn && me.hp > 0) { foe.biteTurn = curTurn; const b = Math.max(1, Math.round(foe.P.dodgeBite * (st(foe, "agi") + 10) / (st(me, "def") + 10) * (0.8 + R() * 0.4))); hurt(me, b, e.notes); e.back = (e.back || 0) + b; e.notes.push(`${foe.name} は かわして カチッ！ ${b}`); }
     };
     // カウンター：守り（バリア・防御・装甲・障壁・オーバーヒール・シールド）で 減る 前の ダメージの 量% を 返す（鹿さんの 決め 2026-11-16）
-    const counterBack = (base) => { if (!(foe.hp > 0 && foe.fx.counter && base > 0)) return; const back = Math.round((base * (foe.fx.counter.amt ?? 50) / 100 + st(foe, "def") * (foe.P.counterDef || 0)) * (foe.fx.paralysis && me.P.paraCounterCut ? 1 - me.P.paraCounterCut : 1) * charge2(foe)); hurt(me, back, e.notes); e.back = (e.back || 0) + back; e.notes.push(`${foe.name} のカウンター！ ${back} 返した`); };
+    // 回復の 分（リュードスの 満ちた闇の返し）は 1 回の 攻撃に 1 度だけ（多段の 技でも。2026-11-26 鹿さんの カード）
+    const counterBack = (base) => { if (!(foe.hp > 0 && foe.fx.counter && base > 0)) return; const back = Math.round((base * (foe.fx.counter.amt ?? 50) / 100 + st(foe, "def") * (foe.P.counterDef || 0) + (foe.P.counterHeal && foe.chAct !== e ? ((foe.chAct = e), (foe.healWin || 0) * foe.P.counterHeal) : 0)) * (foe.fx.paralysis && me.P.paraCounterCut ? 1 - me.P.paraCounterCut : 1) * charge2(foe)); hurt(me, back, e.notes); e.back = (e.back || 0) + back; e.notes.push(`${foe.name} のカウンター！ ${back} 返した`); };
     if (R() > acc) { if (x.graze) graze = x.graze; else if (me.P.grazeAll && R() < me.P.grazeAll) graze = 0.5; else { e.hits.push({ miss: true, dmg: 0 }); dodged(); return false; } }
     const ev = Math.max(0, Math.min(0.75, amt(foe, "mirage") / 100 + (foe.P.evade || 0) + pAdd(foe, "evade", me, sk.id) + (foe.P.lowHpEvade && foe.hp <= foe.maxHp * 0.3 ? foe.P.lowHpEvade : 0)) - (me.P.foeEvadeCut || 0));   // foeEvadeCut：ティダのレンズ
     if (graze === 1 && R() < ev) { if (foe.fx.mirage) { halve(foe, "mirage"); e.notes.push(`${foe.name} は幻影でかわした`); } if (x.graze) graze = x.graze; else { e.hits.push({ miss: true, dmg: 0 }); dodged(); return false; } }
@@ -631,7 +633,7 @@ export function simulateTeams(SA, SB, seed, opts = {}) {
       if (me.hp <= 0 || !plan[i]) continue;   // !plan：この ターンの 途中で 起こされた 子は 次の ターンから
       let foe = plan[i].tgt.hp > 0 ? plan[i].tgt : targetOf(me);                                    // ねらっていた相手が倒れていたら、ねらいなおす
       // 手番のはじめ：再生・毎ターンのパッシブ・毒・炎上・体調不良・凍傷・疲労・おさえこみ
-      me.dot = 0;
+      me.dot = 0; me.healWin = 0;   // 回復の 量は 自分の 手番ごとに 数え直す（直前の 1 ターン分）
       const tick = { type: "tick", turn, who: i, items: [] }, tn = [];
       me.brace = 0;
       if (me.fx.regen) {
@@ -850,11 +852,16 @@ export function simulateTeams(SA, SB, seed, opts = {}) {
           else if (x.t === "pairDone") { const pd = me.P.pairDmg; if (pd) me.pairBuff = { turns: pd.turns + 1, v: (me.cnt[x.ref] || 0) >= pd.at ? pd.high : pd.v }; }   // 相性 ばつぐん
           else if (x.t === "refill") { if (me.P.refill) for (const c of ["veg", "meat", "fish"]) cntAdd(me, c, me.P.refill); }   // おかわり 自由
           else if (x.t === "bloom") {                                                             // 開花：棘と 成長を ぜんぶ 使う
-            const th = me.fx.thorns?.amt || 0, gr = me.cnt.growth || 0; delete me.fx.thorns; me.cnt.growth = 0;
-            const xx = { t: "dmg", pow: x.pow, stat: x.stat };
+            const th = me.fx.thorns?.amt || 0, gr = x.perGrowth ? me.cnt.growth || 0 : 0; delete me.fx.thorns; if (x.perGrowth) me.cnt.growth = 0;   // 成長は 使う 技（スパイキーの 開花）だけ
+            const xx = { t: "dmg", pow: x.pow, stat: x.stat }, h0 = e.hits.length;
             dealt = strike(i, me, tgt, sk, xx, x.pow + th * (x.perThorns || 0), e, charged) || dealt;
+            if (x.regain && th > 0 && dealt && tgt.maxHp > 0) {   // 棘の 回収：与えた ダメージが 相手の 最大 HP の 1% に つき 棘 +N（使った 棘まで。リュードス。2026-11-23 鹿さんの カード）
+              const d = e.hits.slice(h0).reduce((a, h) => a + (h.dmg || 0), 0), back = Math.min(th, Math.floor((d * 100) / tgt.maxHp) * x.regain);
+              const t0 = me.fx.thorns?.amt || 0;
+              if (back > 0 && me.hp > 0 && addFx(me, "thorns", { amt: back }, e.notes, me)) { if (me.fx.thorns && me.fx.thorns.amt > t0 + back) me.fx.thorns.amt = t0 + back; e.notes.push(`${me.name} は 棘を ${back} 回収した`); }   // 棘を ふやす 倍率（fxAmtMul）でも 使った 棘まで
+            }
             if (gr > 0 && tgt.hp > 0) { const td = gr * x.perGrowth; hurt(tgt, td, e.notes); e.hits.push({ dmg: td }); e.notes.push(`成長 ${gr} の 貫通ダメージ ${td}`); }
-            if (me.P.bloomRegen) addFx(me, "regen", { amt: me.P.bloomRegen.base + me.P.bloomRegen.per * gr }, e.notes, me);
+            if (me.P.bloomRegen && x.perGrowth) addFx(me, "regen", { amt: me.P.bloomRegen.base + me.P.bloomRegen.per * gr }, e.notes, me);
             landed = dealt;
           }
         }

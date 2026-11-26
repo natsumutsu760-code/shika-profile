@@ -49,6 +49,7 @@ export function describe(fx) {
     else if (x.t === "dispel") out.push(x.n >= 99 ? "相手のバフを全部消す" : `相手のバフを ${NUM[x.n]} つ消す`);
     else if (x.t === "mpDrain") out.push(`相手の MP −${x.n}`);
     else if (x.t === "shield") out.push(`シールド（最大 HP の ${Math.round(x.pct * 100)}%）`);
+    else if (x.t === "bloom") out.push(`自分の棘をぜんぶ使って爆発。威力 ${x.pow}${x.stat ? `（${SL[x.stat]}）` : ""}、棘 10 につき威力 +${Math.round(x.perThorns * 10)}` + (x.regain ? `。与えたダメージが相手の最大 HP の 1% につき棘 +${x.regain} を回収（使った棘まで）` : ""));   // 棘を 使う 爆発（リュードス）
   }
   return out.join("。");
 }
