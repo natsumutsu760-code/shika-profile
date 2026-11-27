@@ -15,7 +15,11 @@ export const RESET_PRICE = (lv) => lv * 100;   // 2 回目からの 振り直し
 export const STYLES = ["attack", "defense", "balance", "mp"];   // オートの 作戦：こうげき重視・防御重視・バランス・MP を大事に
 const SP_OF = Object.fromEntries(SHAPE.map((n) => [n.id, n.sp]));
 const SLOT_KEYS = Object.keys(SLOTS);   // 9 枠
-const NUM_COND = new Set(["hpBelow", "hpAbove", "mpAtLeast", "mpBelow", "foeHpBelow", "foeHpAbove", "foeMpBelow", "foeDebuffs", "every", "after"]);
+const NUM_COND = new Set(["hpBelow", "hpAbove", "mpAtLeast", "mpBelow", "foeHpBelow", "foeHpAbove", "foeMpBelow", "foeDebuffs", "every", "after", "selfBuffs", "selfBuffsBelow", "selfDebuffs", "selfDebuffsBelow", "foeBuffs", "foeBuffsBelow", "foeDebuffsBelow"]);
+// [何か, 数] の 条件（カウント・効果の 量・効果の 残りターン。2026-11-27 鹿さんの カード）。数は 1〜100 万（PAIR_MAX）
+// 数の 上は 100 万（上限は 作らない。へんな 値だけ はじく。2026-11-27 鹿さんの カード「上を なくし ±10 も」）
+const PAIR_MAX = 1e6;
+const PAIR_COND = { cntAtLeast: "count", cntBelow: "count", foeCntAtLeast: "count", foeCntBelow: "count", selfAmtAtLeast: "amt", selfAmtBelow: "amt", foeAmtAtLeast: "amt", foeAmtBelow: "amt", selfTurnsAtLeast: "turn", selfTurnsBelow: "turn", foeTurnsAtLeast: "turn", foeTurnsBelow: "turn" };
 const FX_COND = new Set(["foeHas", "foeNotHas", "selfHas", "selfNotHas"]);
 const has = (m, k) => typeof k === "string" && Object.prototype.hasOwnProperty.call(m, k);
 
@@ -162,8 +166,8 @@ export function petGambits(rec, b) {
   for (const g of b.list) {
     const c = g && Array.isArray(g.if) ? g.if[0] : "", v = g && Array.isArray(g.if) ? g.if[1] : undefined;
     if (!has(COND_TEXT, c)) return { ok: false, why: "知らない 条件" };
-    const cntOk = (x) => Array.isArray(x) && x.length === 2 && has(COUNTS, x[0]) && Number.isInteger(x[1]) && x[1] >= 1 && x[1] <= 100;   // カウント：[名前, 1〜100]
-    if (c === "cntAtLeast" ? !cntOk(v) : NUM_COND.has(c) ? !(Number.isInteger(v) && v >= 1 && v <= 100) : FX_COND.has(c) ? !has(EFFECTS, v) : v !== undefined) return { ok: false, why: "条件の 数が ちがう" };
+    const pairOk = (k, x) => Array.isArray(x) && x.length === 2 && Number.isInteger(x[1]) && x[1] >= 1 && x[1] <= PAIR_MAX && (PAIR_COND[k] === "count" ? has(COUNTS, x[0]) : has(EFFECTS, x[0]) && !EFFECTS[x[0]].unused && (PAIR_COND[k] === "amt" ? ["stack", "value"].includes(EFFECTS[x[0]].dur) : EFFECTS[x[0]].dur === "turn" || EFFECTS[x[0]].base != null || !!EFFECTS[x[0]].stat));   // 残りターン：ターンで 効く・持続の ある 量の 効果・能力の 上下   // [カウントか 効果, 1〜100 万]
+    if (PAIR_COND[c] ? !pairOk(c, v) : NUM_COND.has(c) ? !(Number.isInteger(v) && v >= 1 && v <= 100) : FX_COND.has(c) ? !has(EFFECTS, v) : v !== undefined) return { ok: false, why: "条件の 数が ちがう" };
     if (!(skills.has(g.do) || g.do === "kogeki" || g.do === "bougyo" || isBItem(g.do))) return { ok: false, why: "覚えて いない 技" };   // 戦いの アイテムも（2026-10-31）
     const opts = SKILL[g.do]?.choose;   // 技の 中で えらぶ 物（肥料を もらう など）：その 技に ある 物だけ
     if (g.opt !== undefined && !(opts && typeof g.opt === "string" && opts.some((o) => o.key === g.opt))) return { ok: false, why: "えらぶ 物が ちがう" };

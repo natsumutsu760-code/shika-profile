@@ -7,7 +7,7 @@ import { SKILL } from "./skills.js";
 import { itemStats, itemPower, baseOf, hasFx } from "./equip.js";
 import { HIT_AMT } from "./equip-dev.js";   // 追撃の OP の 量（装備開発の「当てると 状態異常」と 同じ）
 import { EFFECTS, PAIR, isBuff } from "./effects.js";
-import { COUNTS } from "./main-trees.js";
+import { COUNTS, countLabel } from "./main-trees.js";
 
 export function rng(seed) { let s = seed >>> 0; return () => { s = (s + 0x6D2B79F5) >>> 0; let t = s; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
 // 続きから 使える 乱数（いまの 位置を o[k] に しまう。rng と 同じ 並び。派遣を 少しずつ 計算する ときに 使う）
@@ -88,7 +88,7 @@ export function makeFighter(c, side) {
   const maxHp = Math.round(s.hp * (P.hpMul || 1));
   // startHp・startMp・startFx：ダンジョンで続けて戦うとき、前の戦いの残りから始める
   return { c, name: c.name, P, base, maxHp, hp: Math.min(maxHp, c.startHp ?? maxHp), maxMp: s.mp, mp: Math.min(s.mp, c.startMp ?? s.mp), power: powerOf(c.stats) + bonus,
-    side, fx: structuredClone(c.startFx || {}), boss: !!c.boss, pool: c.pool ?? null, poolHurt: 0, poolHeal: 0, slow: false, pinned: 0, pinning: 0, pinPct: 0, revived: false, hitLast: false, lastKind: null, dot: 0, cnt: {}, onceUsed: {}, actedTurn: 0 };   // cnt：カウント（1 戦ごとに 0 から。鹿さんの 決め、2026-10-31）
+    side, fx: structuredClone(c.startFx || {}), boss: !!c.boss, pool: c.pool ?? null, poolHurt: 0, poolHeal: 0, slow: false, pinned: 0, pinning: 0, pinPct: 0, revived: false, hitLast: false, lastKind: null, dot: 0, cnt: { ...(c.startCnt || {}) }, onceUsed: {}, actedTurn: 0 };   // cnt：カウント（1 戦ごとに 0 から。鹿さんの 決め、2026-10-31）
 }
 
 // ---------- 状態 ----------
@@ -116,6 +116,8 @@ export const STAT_EXP = 1;
 const soften = (d, guard) => d * Math.pow(10 / (guard + 10), 0.6);
 
 // ---------- 技えらび：ガンビット → オート ----------
+// 効果の 残りターン：ない 効果は 0・ずっと 続く 効果（turns が null）は いくらでも（確かめ役の 指摘。〔C〕）
+const turnsLeft = (f, id) => { const x = f.fx[id]; return !x ? 0 : x.turns == null ? Infinity : x.turns; };
 const COND = {
   hpBelow: (me, foe, v) => hpPct(me) < v, hpAbove: (me, foe, v) => hpPct(me) > v,
   mpAtLeast: (me, foe, v) => me.mp >= v, mpBelow: (me, foe, v) => me.mp < v,
@@ -125,6 +127,15 @@ const COND = {
   foeHas: (me, foe, v) => !!foe.fx[v], foeNotHas: (me, foe, v) => !foe.fx[v], selfHas: (me, foe, v) => !!me.fx[v], selfNotHas: (me, foe, v) => !me.fx[v],
   foeUsedPrank: (me, foe) => foe.lastKind === "itazura", foeStronger: (me, foe) => foe.power > me.power,
   cntAtLeast: (me, foe, v) => Array.isArray(v) && (me.cnt?.[v[0]] || 0) >= v[1],   // カウント（帯電・コイン など）が n 以上（形が ちがえば 当てはまらない）
+  // 詳しい 条件（2026-11-27 鹿さんの カード：効果の 量・残りターン・バフデバフの 数・カウントの 未満・各カウントの 数。以上と 未満の 両方）。v は [効果か カウント, 数] か 数
+  cntBelow: (me, foe, v) => Array.isArray(v) && (me.cnt?.[v[0]] || 0) < v[1],
+  foeCntAtLeast: (me, foe, v) => !!foe && Array.isArray(v) && (foe.cnt?.[v[0]] || 0) >= v[1], foeCntBelow: (me, foe, v) => !!foe && Array.isArray(v) && (foe.cnt?.[v[0]] || 0) < v[1],   // 相手の カウント（2026-11-27 鹿さんの カード「足す」）
+  selfAmtAtLeast: (me, foe, v) => Array.isArray(v) && amt(me, v[0]) >= v[1], selfAmtBelow: (me, foe, v) => Array.isArray(v) && amt(me, v[0]) < v[1],
+  foeAmtAtLeast: (me, foe, v) => !!foe && Array.isArray(v) && amt(foe, v[0]) >= v[1], foeAmtBelow: (me, foe, v) => !!foe && Array.isArray(v) && amt(foe, v[0]) < v[1],
+  selfTurnsAtLeast: (me, foe, v) => Array.isArray(v) && turnsLeft(me, v[0]) >= v[1], selfTurnsBelow: (me, foe, v) => Array.isArray(v) && turnsLeft(me, v[0]) < v[1],
+  foeTurnsAtLeast: (me, foe, v) => !!foe && Array.isArray(v) && turnsLeft(foe, v[0]) >= v[1], foeTurnsBelow: (me, foe, v) => !!foe && Array.isArray(v) && turnsLeft(foe, v[0]) < v[1],
+  selfBuffs: (me, foe, v) => buffs(me).length >= v, selfBuffsBelow: (me, foe, v) => buffs(me).length < v, selfDebuffs: (me, foe, v) => debuffs(me).length >= v, selfDebuffsBelow: (me, foe, v) => debuffs(me).length < v,
+  foeBuffs: (me, foe, v) => !!foe && buffs(foe).length >= v, foeBuffsBelow: (me, foe, v) => !!foe && buffs(foe).length < v, foeDebuffsBelow: (me, foe, v) => !!foe && debuffs(foe).length < v,
   first: (me, foe, v, turn) => turn === 1, every: (me, foe, v, turn) => turn % v === 0, after: (me, foe, v, turn) => turn > v, always: () => true,
 };
 // 精鋭の 解析ツリーの 条件（powIf・pIf・onlyIf で 使う。ガンビットの COND とは 分けた。2026-11-04）
@@ -139,11 +150,18 @@ const XCOND = {
   lastTag: (me, foe, v) => !!me.lastTags?.includes(v),                     // 前の 技で 起きた こと（dispel・payHp など）
 };
 const chk = (c, v, me, foe, turn, id) => !!(XCOND[c] ?? COND[c])?.(me, foe, v, turn, id);
+const pairText = (who, v, what, tail) => (Array.isArray(v) ? `${who}の ${EFFECTS[v[0]]?.label || "状態"}の ${what} ${v[1]} ${tail}` : `${who}の 状態`);   // 詳しい 条件の 文
 export const COND_TEXT = {
   hpBelow: (v) => `自分の HP が ${v}% より少ない`, hpAbove: (v) => `自分の HP が ${v}% より多い`, mpAtLeast: (v) => `自分の MP が ${v} 以上`, mpBelow: (v) => `自分の MP が ${v} より少ない`,
   debuffed: () => "自分にデバフがある", notBuffed: () => "自分にバフがない", foeHpBelow: (v) => `相手の HP が ${v}% より少ない`, foeHpAbove: (v) => `相手の HP が ${v}% より多い`,
   foeBuffed: () => "相手にバフがある", foeMpBelow: (v) => `相手の MP が ${v} より少ない`, foeDebuffs: (v) => `相手のデバフが ${v} つ以上`, foeHas: (v) => `相手が${EFFECTS[v].label}`, foeNotHas: (v) => `相手が${EFFECTS[v].label}でない`, selfHas: (v) => `自分が${EFFECTS[v].label}`, selfNotHas: (v) => `自分が${EFFECTS[v].label}でない`, foeUsedPrank: () => "相手が前の番にイタズラをした", foeStronger: () => "相手の方が強い",
-  cntAtLeast: (v) => (Array.isArray(v) ? `自分の ${COUNTS[v[0]] || "カウント"}が ${v[1]} 以上` : "自分の カウント"),
+  cntAtLeast: (v) => (Array.isArray(v) ? `自分の ${COUNTS[v[0]] ? countLabel(v[0]) : "カウント"}が ${v[1]} 以上` : "自分の カウント"),
+  cntBelow: (v) => (Array.isArray(v) ? `自分の ${COUNTS[v[0]] ? countLabel(v[0]) : "カウント"}が ${v[1]} より少ない` : "自分の カウント"),
+  foeCntAtLeast: (v) => (Array.isArray(v) ? `相手の ${COUNTS[v[0]] ? countLabel(v[0]) : "カウント"}が ${v[1]} 以上` : "相手の カウント"), foeCntBelow: (v) => (Array.isArray(v) ? `相手の ${COUNTS[v[0]] ? countLabel(v[0]) : "カウント"}が ${v[1]} より少ない` : "相手の カウント"),
+  selfAmtAtLeast: (v) => pairText("自分", v, "量が", "以上"), selfAmtBelow: (v) => pairText("自分", v, "量が", "より少ない"), foeAmtAtLeast: (v) => pairText("相手", v, "量が", "以上"), foeAmtBelow: (v) => pairText("相手", v, "量が", "より少ない"),
+  selfTurnsAtLeast: (v) => pairText("自分", v, "残りが", "ターン 以上"), selfTurnsBelow: (v) => pairText("自分", v, "残りが", "ターン より少ない"), foeTurnsAtLeast: (v) => pairText("相手", v, "残りが", "ターン 以上"), foeTurnsBelow: (v) => pairText("相手", v, "残りが", "ターン より少ない"),
+  selfBuffs: (v) => `自分の バフが ${v} つ以上`, selfBuffsBelow: (v) => `自分の バフが ${v} つより少ない`, selfDebuffs: (v) => `自分の デバフが ${v} つ以上`, selfDebuffsBelow: (v) => `自分の デバフが ${v} つより少ない`,
+  foeBuffs: (v) => `相手の バフが ${v} つ以上`, foeBuffsBelow: (v) => `相手の バフが ${v} つより少ない`, foeDebuffsBelow: (v) => `相手の デバフが ${v} つより少ない`,
   first: () => "最初のターン", every: (v) => `${v} ターンごと`, after: (v) => `${v} ターン目より後`, always: () => "いつでも",
 };
 export const mpCost = (me, id) => { let m = SKILL[id].mp; if (me.fx.activation) m = Math.ceil(m / 2); if (me.P?.foeBuffBoost === id && me.boostOn) m = Math.ceil(m / 2); return m; };   // あて先ちがい：相手が バフを かけた つぎの 番は MP 半分

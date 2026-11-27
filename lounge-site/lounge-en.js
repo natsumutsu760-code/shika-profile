@@ -36,7 +36,7 @@ function node(n) {
 }
 // <b> などで 分かれた 文（「振れる ポイントが <b>3</b> ある」）：字と 数字だけの 入れ物（<b>3</b>）が つづく 所を まとめて 引く。入れ物は # に して、英語の 中で そのまま 使う
 const INLINE = /^(B|STRONG|EM|I|SPAN|SMALL|MARK|CODE)$/;
-const numBox = (k) => k.nodeType === 1 && INLINE.test(k.tagName) && !k.children.length && !JA.test(k.textContent) && /\d/.test(k.textContent);
+const numBox = (k) => k.nodeType === 1 && INLINE.test(k.tagName) && !k.children.length && !JA.test(k.textContent) && /\d|◯/.test(k.textContent);   // ◯（ガンビットの まだ えらぶ 前の 数・状態）も 数と 同じに 文ごと 訳す（2026-11-27）
 function mixed(n) {
   const el = n.parentElement; if (!el || skip(el)) return false;
   const ok = (k) => k.nodeType === 3 || numBox(k);

@@ -167,6 +167,7 @@ import { mountWallet } from "./wallet-bar.js"; mountWallet();   // 上の 通貨
 import { petInfo, linkTabs, gateHtml, addGateCss, toast } from "./pet-head.js";
 import { SKILL, TYPES } from "./skills.js";
 import { EFFECTS } from "./effects.js";
+import { COUNTS, COUNT_INFO, countLabel } from "./main-trees.js";   // カウントの 条件（帯電・コイン など）
 import { learned, PASSIVE_SLOTS } from "./trees.js";
 import { ENEMY_TREES } from "./enemy-trees.js";
 import { gambitSlots, petAt } from "./builds.js";
@@ -182,10 +183,29 @@ const CD = {
   foeHpBelow: ["foe", (v) => `HP が <b>${v}%</b> より少ない`, 25, 5], foeHpAbove: ["foe", (v) => `HP が <b>${v}%</b> より多い`, 70, 5], foeBuffed: ["foe", () => "バフがある"], foeMpBelow: ["foe", (v) => `MP が <b>${v}</b> より少ない`, 5, 1],
   foeDebuffs: ["foe", (v) => `デバフが <b>${v}</b> つ以上`, 2, 1], foeHas: ["foe", (v) => `<b>${EF(v)}</b> になっている`, "paralysis"], foeNotHas: ["foe", (v) => `<b>${EF(v)}</b> になっていない`, "paralysis"],
   foeUsedPrank: ["foe", () => "前の番にイタズラをした"], foeStronger: ["foe", () => "自分より強い"],
+  // 詳しい 条件（2026-11-27 鹿さんの カード：効果の 量・残りターン・バフデバフの 数・カウントの 未満・各カウントの 数。以上と 未満の 両方）
+  cntAtLeast: ["me2", (v) => `<b>${PL(v, "count")}</b> が <b>${PN(v)}</b> 以上`, ["static", 3], 1, "count"], cntBelow: ["me2", (v) => `<b>${PL(v, "count")}</b> が <b>${PN(v)}</b> より少ない`, ["static", 3], 1, "count"],
+  selfAmtAtLeast: ["me2", (v) => `<b>${PL(v)}</b> の 量が <b>${PN(v)}</b> 以上`, ["thorns", 20], 1, "amt"], selfAmtBelow: ["me2", (v) => `<b>${PL(v)}</b> の 量が <b>${PN(v)}</b> より少ない`, ["thorns", 20], 1, "amt"],
+  selfTurnsAtLeast: ["me2", (v) => `<b>${PL(v)}</b> の 残りが <b>${PN(v)}</b> ターン 以上`, ["focus", 1], 1, "turn"], selfTurnsBelow: ["me2", (v) => `<b>${PL(v)}</b> の 残りが <b>${PN(v)}</b> ターン より少ない`, ["focus", 2], 1, "turn"],
+  selfBuffs: ["me2", (v) => `バフが <b>${v}</b> つ以上`, 2, 1], selfBuffsBelow: ["me2", (v) => `バフが <b>${v}</b> つより少ない`, 2, 1], selfDebuffs: ["me2", (v) => `デバフが <b>${v}</b> つ以上`, 2, 1], selfDebuffsBelow: ["me2", (v) => `デバフが <b>${v}</b> つより少ない`, 1, 1],
+  foeAmtAtLeast: ["foe2", (v) => `<b>${PL(v)}</b> の 量が <b>${PN(v)}</b> 以上`, ["poison", 10], 1, "amt"], foeAmtBelow: ["foe2", (v) => `<b>${PL(v)}</b> の 量が <b>${PN(v)}</b> より少ない`, ["poison", 10], 1, "amt"],
+  foeTurnsAtLeast: ["foe2", (v) => `<b>${PL(v)}</b> の 残りが <b>${PN(v)}</b> ターン 以上`, ["frenzy", 1], 1, "turn"], foeTurnsBelow: ["foe2", (v) => `<b>${PL(v)}</b> の 残りが <b>${PN(v)}</b> ターン より少ない`, ["frenzy", 2], 1, "turn"],
+  foeCntAtLeast: ["foe2", (v) => `<b>${PL(v, "count")}</b> が <b>${PN(v)}</b> 以上`, ["static", 3], 1, "countAll"], foeCntBelow: ["foe2", (v) => `<b>${PL(v, "count")}</b> が <b>${PN(v)}</b> より少ない`, ["static", 3], 1, "countAll"],
+  foeBuffs: ["foe2", (v) => `バフが <b>${v}</b> つ以上`, 2, 1], foeBuffsBelow: ["foe2", (v) => `バフが <b>${v}</b> つより少ない`, 1, 1], foeDebuffsBelow: ["foe2", (v) => `デバフが <b>${v}</b> つより少ない`, 2, 1],
   first: ["turn", () => "最初のターン"], every: ["turn", (v) => `<b>${v}</b> ターンごと`, 2, 1], after: ["turn", (v) => `<b>${v}</b> ターン目より後`, 3, 1], always: ["etc", () => "いつでも"],
 };
-const WHO = { me: ["自分", ""], foe: ["相手", "foe"], turn: ["ターン", "turn"], etc: ["そのほか", ""] };
-const isNum = (k) => typeof CD[k][2] === "number", isFx = (k) => typeof CD[k][2] === "string";
+const WHO = { me: ["自分", ""], foe: ["相手", "foe"], me2: ["自分", ""], foe2: ["相手", "foe"], turn: ["ターン", "turn"], etc: ["そのほか", ""] };
+const GH = { me2: "自分の 量・残り・数", foe2: "相手の 量・残り・数" };   // 引き出しの 見出し（詳しい 条件）
+// 詳しい 条件の 中身：PL＝えらんだ 効果か カウントの 名前（まだ なら ◯◯）・PN＝数（まだ なら ◯）・PICK＝えらべる 物
+const PL = (v, kind) => { const x = Array.isArray(v) ? v[0] : null; return kind === "count" || kind === "countAll" ? (COUNTS[x] ? countLabel(x) : "◯◯") : EFFECTS[x] ? EFFECTS[x].label : "◯◯"; };
+const PN = (v) => (Array.isArray(v) ? v[1] : "◯");
+// countAll：相手の カウント。相手の ツリーは わからないので 9 つ ぜんぶ
+const PICK = { count: () => myCounts().map((x) => [x, countLabel(x)]), countAll: () => Object.keys(COUNTS).map((x) => [x, countLabel(x)]), amt: () => Object.keys(EFFECTS).filter((x) => !EFFECTS[x].unused && (EFFECTS[x].dur === "stack" || EFFECTS[x].dur === "value")).map((x) => [x, EFFECTS[x].label]), turn: () => Object.keys(EFFECTS).filter((x) => !EFFECTS[x].unused && turnable(EFFECTS[x])).map((x) => [x, EFFECTS[x].label]) };
+// 残りターンを 持つ 効果：ターンで 効く 効果・持続の ある 量の 効果（毒・麻痺 など）・能力の 上昇と 減少（確かめ役の 指摘。カードの 例「相手の 麻痺が あと 2 ターン 以上」）
+function turnable(E) { return E.dur === "turn" || E.base != null || !!E.stat; }
+// カウントの 条件は、その 子の ツリーが 使う カウントだけ（カードの 札の 説明「カウントを 持つ ツリーの 子は この 条件を えらべる」）
+const myCounts = () => Object.keys(COUNT_INFO).filter((id) => COUNT_INFO[id].tree === (TYPES[MP && MP.type] || {}).label);
+const isNum = (k) => typeof CD[k][2] === "number", isFx = (k) => typeof CD[k][2] === "string", isPair = (k) => Array.isArray(CD[k][2]);
 const condHtml = (g) => { const [k, v] = g.if, c = CD[k] || CD.always; return `${c[0] === "etc" ? "" : `<span class="who ${WHO[c[0]][1]}">${WHO[c[0]][0]}</span>`}${c[1](v)}`; };
 const STYLES = [["attack", "こうげき重視"], ["defense", "防御重視"], ["balance", "バランス"], ["mp", "MP を大事に"]];
 const kindOf = (id) => (SKILL[id].item ? ["アイテム", "plain"] : SKILL[id].type === null ? ["通常", "plain"] : SKILL[id].kind === "itazura" ? ["イタズラ", "magic"] : ["技", "skill"]);
@@ -281,11 +301,12 @@ function sheetHtml() {
     return `<h3>${i + 1} 番で する ことを えらぶ</h3><p>覚えて いる 技と、こうげき・ぼうぎょ</p><div class="opts acts">${list.map((id) => card(id, `${kindOf(id)[0]}・MP ${SKILL[id].mp}`)).join("")}</div>
       ${bag.length ? `<h4 style="--c:var(--leaf)"><i></i>戦いの アイテム（派遣で 使う）</h4><div class="opts acts">${bag.map((id) => card(id, `のこり ${bagHave(id)}`)).join("")}</div>` : ""}`;
   }
-  const k = W.pick || g.if[0], v = W.val, groups = [["me", "--soft"], ["foe", "--coral"], ["turn", "--sky"], ["etc", "--leaf"]];
-  const val = isNum(k) ? `<div class="opts" style="margin-top:12px;align-items:center"><span style="font:700 13px/1 var(--jp)">数</span><button data-val="-1">−</button><b style="font:600 22px/1 var(--num);min-width:48px;text-align:center">${v}</b><button data-val="1">＋</button></div>`
-    : isFx(k) ? `<div class="opts" style="margin-top:12px;align-items:center"><span style="font:700 13px/1 var(--jp)">状態</span><select id="fxsel" style="font:700 14px/1.2 var(--jp);padding:8px;border-radius:10px;border:1.5px solid var(--line)">${Object.keys(EFFECTS).filter((x) => (k.startsWith("self") ? EFFECTS[x].buff : !EFFECTS[x].buff)).map((x) => `<option value="${x}" ${x === v ? "selected" : ""}>${esc(EFFECTS[x].label)}</option>`).join("")}</select></div>` : "";
+  const k = W.pick || g.if[0], v = W.val, groups = [["me", "--soft"], ["me2", "--soft"], ["foe", "--coral"], ["foe2", "--coral"], ["turn", "--sky"], ["etc", "--leaf"]];
+  const pairUI = () => `<div class="opts" style="margin-top:12px;align-items:center"><span style="font:700 13px/1 var(--jp)">${/^count/.test(CD[k][4]) ? "カウント" : "状態"}</span><select id="pairsel" style="font:700 14px/1.2 var(--jp);padding:8px;border-radius:10px;border:1.5px solid var(--line)">${[...PICK[CD[k][4]](), ...(v && v[0] && !PICK[CD[k][4]]().some(([x]) => x === v[0]) ? [[v[0], /^count/.test(CD[k][4]) ? (COUNTS[v[0]] ? countLabel(v[0]) : v[0]) : (EFFECTS[v[0]] ? EFFECTS[v[0]].label : v[0])]] : [])].map(([x, l]) => `<option value="${x}" ${x === v[0] ? "selected" : ""}>${esc(l)}</option>`).join("")}</select><span style="font:700 13px/1 var(--jp)">数</span><button data-val="-10">−10</button><button data-val="-1">−</button><b style="font:600 22px/1 var(--num);min-width:48px;text-align:center">${v[1]}</b><button data-val="1">＋</button><button data-val="10">＋10</button></div>`;
+  const val = isPair(k) ? pairUI() : isNum(k) ? `<div class="opts" style="margin-top:12px;align-items:center"><span style="font:700 13px/1 var(--jp)">数</span><button data-val="-1">−</button><b style="font:600 22px/1 var(--num);min-width:48px;text-align:center">${v}</b><button data-val="1">＋</button></div>`
+    : isFx(k) ? `<div class="opts" style="margin-top:12px;align-items:center"><span style="font:700 13px/1 var(--jp)">状態</span><select id="fxsel" style="font:700 14px/1.2 var(--jp);padding:8px;border-radius:10px;border:1.5px solid var(--line)">${[["── バフ ──", true], ["── デバフ ──", false]].map(([lab, bf]) => `<option disabled>${lab}</option>${Object.keys(EFFECTS).filter((x) => !!EFFECTS[x].buff === bf && (!EFFECTS[x].unused || x === v)).map((x) => `<option value="${x}" ${x === v ? "selected" : ""}>${esc(EFFECTS[x].label)}</option>`).join("")}`).join("")}</select></div>` : "";
   return `<h3>${i + 1} 番の条件をえらぶ</h3><p>◯ の数字と ◯◯ の状態は、えらんだあとに変えられます</p>
-    ${groups.map(([w, c]) => `<h4 style="--c:var(${c})"><i></i>${WHO[w][0]}</h4><div class="opts">${Object.keys(CD).filter((x) => CD[x][0] === w).map((x) => `<button data-pickcond="${x}" aria-pressed="${x === k}">${CD[x][1](x === k && v != null ? v : isNum(x) ? "◯" : isFx(x) ? "◯◯" : undefined).replace(/<b>◯%<\/b>/, "<b>◯%</b>")}</button>`).join("")}</div>`).join("")}
+    ${groups.map(([w, c]) => `<h4 style="--c:var(${c})"><i></i>${GH[w] || WHO[w][0]}</h4><div class="opts">${Object.keys(CD).filter((x) => CD[x][0] === w && (CD[x][4] !== "count" || myCounts().length || x === k)).map((x) => `<button data-pickcond="${x}" aria-pressed="${x === k}">${CD[x][1](x === k && v != null ? v : isNum(x) ? "◯" : isFx(x) ? "◯◯" : undefined).replace(/<b>◯%<\/b>/, "<b>◯%</b>")}</button>`).join("")}</div>`).join("")}
     ${val}<div class="row-btns"><button class="jelly light small" data-do="close">やめる</button><button class="jelly sky small" data-do="setcond">決める</button></div>`;
 }
 const openSheet = (kind, i) => { W.row = i; W.sheet = kind; W.pick = W.list[i].if[0]; W.val = W.list[i].if[1] ?? (CD[W.pick][2] ?? null); paint(); document.body.classList.add("sheet-on"); };
@@ -305,8 +326,8 @@ document.body.addEventListener("click", async (e) => {
   if (d.cond) return openSheet("cond", +d.cond);
   if (d.act) return openSheet("act", +d.act);
   if (d.pickact) { W.list[W.row].do = d.pickact; touch(); return closeSheet(); }
-  if (d.pickcond) { W.pick = d.pickcond; W.val = CD[W.pick][2] ?? null; return paint(); }
-  if (d.val) { W.val = Math.max(1, Math.min(100, W.val + (+d.val) * CD[W.pick][3])); return paint(); }
+  if (d.pickcond) { W.pick = d.pickcond; const d0 = CD[W.pick][2]; W.val = Array.isArray(d0) ? (CD[W.pick][4] === "count" && myCounts().length && !myCounts().includes(d0[0]) ? [myCounts()[0], d0[1]] : [...d0]) : d0 ?? null; return paint(); }
+  if (d.val) { if (isPair(W.pick)) { const sel = document.getElementById("pairsel"); W.val = [sel ? sel.value : W.val[0], Math.max(1, Math.min(1e6, W.val[1] + (+d.val) * CD[W.pick][3]))]; } else W.val = Math.max(1, Math.min(100, W.val + (+d.val) * CD[W.pick][3])); return paint(); }
   if (d.style) { const was = W.style; W.style = d.style; paint(); const r = await act("pet.style", { style: d.style }); if (!r.ok) { W.style = was; paint(); return toast(r.why || "かえられませんでした"); } ME = await me(); MP = ME.pets[0]; return toast(`作戦：${STYLES.find(([k]) => k === d.style)[1]}`); }
   if (d.pas) { const i = P.list.indexOf(d.pas); P.focus = d.pas; if (i < 0 && P.list.length >= PASSIVE_SLOTS) return paint();   // いっぱいの ときは 効果の 文だけ 見せる（入れかえない）
     if (i >= 0) P.list.splice(i, 1); else P.list.push(d.pas); P.dirty = true; P.reset = false; return paint(); }
@@ -318,7 +339,7 @@ document.body.addEventListener("click", async (e) => {
   }
   if (x === "pauto") { P.reset = true; return paint(); }
   if (x === "close") return closeSheet();
-  if (x === "setcond") { const k = W.pick; let v = W.val; if (isFx(k)) v = document.getElementById("fxsel").value; W.list[W.row].if = isNum(k) || isFx(k) ? [k, v] : [k]; touch(); return closeSheet(); }
+  if (x === "setcond") { const k = W.pick; let v = W.val; if (isFx(k)) v = document.getElementById("fxsel").value; if (isPair(k)) v = [document.getElementById("pairsel").value, W.val[1]]; W.list[W.row].if = isNum(k) || isFx(k) || isPair(k) ? [k, v] : [k]; touch(); return closeSheet(); }
   if (x === "up" || x === "down") { const j = W.row + (x === "up" ? -1 : 1); [W.list[W.row], W.list[j]] = [W.list[j], W.list[W.row]]; W.row = j; touch(); return paint(); }
   if (x === "del") { W.list.splice(W.row, 1); W.row = -1; touch(); return paint(); }
   if (x === "add") { W.list.push({ if: ["always"], do: "kogeki" }); W.row = W.list.length - 1; touch(); return paint(); }

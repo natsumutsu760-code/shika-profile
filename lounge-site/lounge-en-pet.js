@@ -113,6 +113,12 @@ export const WORDS = {
   // ---- ガンビット（gambit.html） ----
   "えらぶ": "Choose", "HP が # より少ない": "HP below #", "HP が # より多い": "HP above #", "MP が # 以上": "MP # or more", "MP が # より少ない": "MP below #",
   "デバフがある": "Has a debuff", "バフがない": "Has no buffs", "になっている": "is active", "になっていない": "is not active", "バフがある": "Has a buff", "デバフが # つ以上": "# or more debuffs",
+  // 詳しい 条件（2026-11-27）：文ごと（太字の 数と ◯ を # に）。かけらの 訳は 置かない（かけらが あると 文ごとの 訳より 先に 使われ、語順が くずれる）
+  "── バフ ──": "── Buffs ──", "── デバフ ──": "── Debuffs ──",
+  "自分の 量・残り・数": "Self: amounts, turns left, counts", "相手の 量・残り・数": "Foe: amounts, turns left, counts",
+  "の 量が # 以上": "amount # or more", "の 量が # より少ない": "amount below #", "の 残りが # ターン 以上": "# or more turns left", "の 残りが # ターン より少ない": "fewer than # turns left",
+  "が # 以上": "# or more", "が # より少ない": "below #", "バフが # つ以上": "# or more buffs", "バフが # つより少ない": "fewer than # buffs", "デバフが # つより少ない": "fewer than # debuffs",
+  "# の 量が # 以上": "#1 amount #2 or more", "# の 量が # より少ない": "#1 amount below #2", "# の 残りが # ターン 以上": "#1: #2 or more turns left", "# の 残りが # ターン より少ない": "#1: fewer than #2 turns left", "# が # 以上": "#1 #2 or more", "# が # より少ない": "#1 below #2",
   "前の番にイタズラをした": "Used a prank last turn", "自分より強い": "Stronger than me", "最初のターン": "First turn", "# ターンごと": "Every # turns", "# ターン目より後": "After turn #", "いつでも": "Always",
   "自分": "Self", "相手": "Foe", "ターン": "Turn", "そのほか": "Other", "こうげき重視": "Offense first", "防御重視": "Defense first", "バランス": "Balanced", "MP を大事に": "Save MP", "イタズラ": "Prank",
   "# 番を えらぶ（並べかえ・けす）": "Select #. (reorder · delete)", "# をつかう": "Use #", "持ちこし": "Kept", "練習用のかかし": "Training Dummy", "他": "Else", "ためしに戦う": "Test battle", "もう一度": "Again",
