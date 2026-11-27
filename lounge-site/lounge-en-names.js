@@ -22,8 +22,8 @@ import { DUNGEON_I3_EN, MYTHIC_I3_EN, TREE_I3_EN, SKILL_I3_EN, MAT_I3_EN } from 
 import { DEV_EN } from "./lounge-en-dev.js";   // 装備開発の 装備（島 1〜3）
 import { DEV_IDS, devBase } from "./equip-dev.js";
 import { UNIQUES } from "./unique-equip.js";
-import { MAIN_TYPE_EN, MAIN_SKILL_EN, MAIN_TEXT_EN, COUNT_EN, OPT_EN } from "./lounge-en-trees.js";   // メインの ツリー 12 本
-import { COUNTS } from "./main-trees.js";
+import { MAIN_TYPE_EN, MAIN_SKILL_EN, MAIN_TEXT_EN, COUNT_EN, COUNT_RULE_EN, COUNT_INFO_EN, OPT_EN } from "./lounge-en-trees.js";   // メインの ツリー 12 本
+import { COUNTS, COUNT_RULE, COUNT_INFO, countLabel } from "./main-trees.js";
 
 const SL = { hp: "HP", mp: "MP", atk: "ATK", def: "DEF", int: "INT", res: "RES", agi: "AGI", dex: "DEX", luk: "LUK" };
 
@@ -567,7 +567,8 @@ export function nameWords() {
   // 職業の 技
   for (const [id, s] of Object.entries(COMMON)) { put(s.name, SKILL_EN[id]); put(s.text, SKILL_TEXT_EN[id]); }
   for (const list of Object.values(TREES)) for (const s of list) { put(s.name, SKILL_EN[s.id]); put(s.text, SKILL_TEXT_EN[s.id]); for (const o of s.choose || []) put(o.name, OPT_EN[o.name]); }
-  for (const [id, j] of Object.entries(COUNTS)) put(j, COUNT_EN[id]);   // カウント
+  for (const [id, j] of Object.entries(COUNTS)) { put(j, COUNT_EN[id]); put(countLabel(id), COUNT_EN[id]); }   // カウント（印つきは 札と ガイドの 名前）
+  put(COUNT_RULE, COUNT_RULE_EN); for (const [id, x] of Object.entries(COUNT_INFO)) { const e = COUNT_INFO_EN[id]; if (e) { put(x.gain, e.gain); put(x.use, e.use); } }   // カウントの 説明（ガイド）
   for (const [id, t] of Object.entries(TYPES)) { const e = TYPE_EN[id]; if (e) { put(t.label, e[0]); put(t.role, e[1]); } }
   // 状態
   for (const [id, x] of Object.entries(EFFECTS)) { const e = FX_EN[id]; if (e) { put(x.label, e[0]); put(x.text, e[1]); } }

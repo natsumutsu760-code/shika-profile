@@ -273,6 +273,7 @@
   .fxs i.g { color: #C3E27A; background: #1C2414D8; border-color: #B5D66A77; }
   .fxs i.r { color: #FF9A80; background: #301A14D8; border-color: #FF8C7377; }
   .fxs i.up { color: #6FE7AE; background: #12261CD8; border-color: #5EE0A077; }
+  .fxs i.ct { color: #FFFFFF; font-weight: 700; background: #0B0C0BE6; border: 1px dashed #FFFFFFCC; }   /* カウント（帯電・コイン など。2026-11-27 鹿さんの カード：バフの 札の 横に 数で） */
   .foe .fxs { min-height: 22px; flex-shrink: 0; }
   #foes.n3 .foe .fxs, #foes.n4 .foe .fxs { flex-wrap: nowrap; }   /* 札が なくても 1 行ぶん 取って おく（札が 付いた ターンに 絵が 跳ねない） */
   #fight .mates .m .fxs { justify-content: flex-start; }
@@ -514,7 +515,7 @@ import { spriteURL } from "./sprites.js";
 import { makePOM, makeElitePOM, ELITES } from "./pom3d.js";
 const ELITE_ID = Object.fromEntries(Object.entries(ELITES).map(([id, e]) => [e.name, id]));   // 精鋭の 名前 → 塗り分けの id（モデリングの M-014。2026-11-05 に つないだ：前は ふつうの POM の 色の まま だった）
 import { makePet3, SPECIES3 } from "./pets.js";
-import { MAIN_TREES } from "./main-trees.js";
+import { MAIN_TREES, COUNTS, countLabel } from "./main-trees.js";
 import { newRun, act, endBattle, useItem, visibleFrom, DIRV } from "./crawler-game.js";
 import { playTurnFx, preloadFx } from "./crawler-fx.js";   // 戦いの エフェクト（pixelfx の ドット絵。2026-11-05 鹿さん「エフェクトは必要です」）
 import { newBattle, look as lookBattle, commit, playerPet, linkerPet, commandsOf, retreatChance, skillName, CRAWL_ITEMS, BRING_MAX } from "./crawler-battle.js";
@@ -932,7 +933,9 @@ function pomShot(pet, co, eid) {
 // 色は battle.html の 名札と 同じ 分け方（止まる 黄・毒 紫・冷え 青・盲目 緑・火 赤・ほか 白、バフは 緑）。押すと 説明（title）
 const FX_CLS = { paralysis: "y", stun: "y", poison: "p", venom: "p", sickness: "p", rot: "p", frostbite: "b", freeze: "b", sleep: "b", blind: "g", burn: "r", scald: "r", silence: "w", confusion: "w", daze: "w", fatigue: "w", curse: "p" };
 function fxChips(s, nd = 4, nb = 3) {
-  if (!s || s.hp <= 0 || !s.fx?.length) return `<span class="fxs"></span>`;
+  const ct = Object.entries(s?.cnt || {}).filter(([k, v]) => v > 0 && COUNTS[k]).map(([k, v]) => `<i class="ct" title="カウント">${countLabel(k)} ${v}</i>`).join("");   // カウントは バフの 札の 横に（数を はぶかない）
+  if (!s || s.hp <= 0 || (!s.fx?.length && !ct)) return `<span class="fxs"></span>`;
+  s = { ...s, fx: s.fx || [] };
   const db = s.fx.filter((x) => EFFECTS[x.id] && !EFFECTS[x.id].buff), up = s.fx.filter((x) => EFFECTS[x.id]?.buff);
   const chip = (x) => {
     const e = EFFECTS[x.id], nm = e.stat ? `${e.stat.toUpperCase()}${e.buff ? "↑" : "↓"}` : e.label;
@@ -940,7 +943,7 @@ function fxChips(s, nd = 4, nb = 3) {
     return `<i class="${e.buff ? "up" : FX_CLS[x.id] || ""}" title="${e.label}：${e.text}">${nm}${n}</i>`;
   };
   const more = Math.max(0, db.length - nd) + Math.max(0, up.length - nb);
-  return `<span class="fxs">${[...db.slice(0, nd), ...up.slice(0, nb)].map(chip).join("")}${more ? `<i title="ほかに ${more} こ">+${more}</i>` : ""}</span>`;
+  return `<span class="fxs">${[...db.slice(0, nd), ...up.slice(0, nb)].map(chip).join("")}${more ? `<i title="ほかに ${more} こ">+${more}</i>` : ""}${ct}</span>`;
 }
 function drawFight() {
   const n = B.party.length, bf = S.battle?.foe, nv = Math.max(1, Math.min(4, B.foes.filter((_, j) => !B.now[n + j].hide).length));
@@ -954,7 +957,7 @@ function drawFight() {
   }).join("")}</div>`;
   document.querySelectorAll(".foe").forEach((el) => (el.onclick = () => { const i = +el.dataset.i; if (B.now[i].hp > 0) { tgt = i; drawFight(); } }));
   // 味方：上に 細く（名前と HP の 数・HP と MP の 棒・状態の 札）。HP の 数は 先頭（エフェクトが 書きかえる）
-  $("bMates").innerHTML = B.party.map((c, i) => { const s = B.now[i], f = B.fighters[i]; return `<div class="m" data-i="${i}"><div class="hd"><b>${c.name}</b><span class="st mono">${Math.max(0, s.hp)} / ${f.maxHp}</span></div><div class="bar"><i style="width:${(100 * Math.max(0, s.hp)) / f.maxHp}%"></i></div><div class="bar mp"><i style="width:${(100 * s.mp) / f.maxMp}%"></i></div>${s.hp > 0 && s.fx?.length ? fxChips(s, 2, 1) : ""}</div>`; }).join("");
+  $("bMates").innerHTML = B.party.map((c, i) => { const s = B.now[i], f = B.fighters[i]; return `<div class="m" data-i="${i}"><div class="hd"><b>${c.name}</b><span class="st mono">${Math.max(0, s.hp)} / ${f.maxHp}</span></div><div class="bar"><i style="width:${(100 * Math.max(0, s.hp)) / f.maxHp}%"></i></div><div class="bar mp"><i style="width:${(100 * s.mp) / f.maxMp}%"></i></div>${s.hp > 0 && (s.fx?.length || s.cnt) ? fxChips(s, 2, 1) : ""}</div>`; }).join("");
   const C = commandsOf(B, 0), box = $("cmds"), sub = $("sub");
   if (B.over) { menu = null; sub.hidden = true; box.innerHTML = `<button id="bEnd">${B.over === "win" ? "勝った — 進む" : "力つきた — 進む"}</button>`; $("bEnd").onclick = closeFight; return; }
   const me = B.now[0].hp > 0;

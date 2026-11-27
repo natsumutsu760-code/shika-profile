@@ -6,6 +6,19 @@ export const MAIN_TYPE_EN = {
   spooky: ["Spooky", "Weakness, daze, and criticals"], sharp: ["Sharp", "Shields, lasers, and wearing foes down"], flexible: ["Flexible", "An all-rounder that changes with its buffs"],
 };
 export const COUNT_EN = { static: "Static", glow: "Glow", water: "Water", nutrient: "Nutrients", growth: "Growth", coin: "Coins", veg: "Veggies", meat: "Meat", fish: "Seafood" };
+// カウントの 説明（main-trees.js の COUNT_RULE・COUNT_INFO。ツリーの 名前は 画面の 辞書に もう ある）
+export const COUNT_RULE_EN = "Counts build up from skills and passives. They start at 0 each battle, have no cap, and stay if you are revived by Reincarnation";
+export const COUNT_INFO_EN = {
+  static: { gain: "Landing skills and talking. A branch passive also adds it each time you land a prank or take a direct hit", use: "Longer Paralysis, higher Confusion odds, stronger Discharge and Off the Air, or spend it all on a big hit (may Stun)" },
+  glow: { gain: "Basking skills, end of your turn (passive), hitting a Blinded foe (passive)", use: "Spend it all on Blessing (healing), a blinding strike, or Paralysis with See-Through Sting. While you have it, heal at the start of your turn (passive)" },
+  water: { gain: "Drink Water, each time Regen heals (passive)", use: "Spit Water to boost Regen or heal over turns. Merges 3 with Nutrients into Growth (passive)" },
+  nutrient: { gain: "Sunbathe, end of your turn while you have a Ward (passive)", use: "Fertilizer gives Overheal or more Thorns. Merges 3 with Water into Growth (passive)" },
+  growth: { gain: "Water and Nutrients merge 3 each when both are 3 or more (passive)", use: "Thorns damage +10% each. Full Bloom releases it all as piercing damage. Regen after Full Bloom (passive)" },
+  coin: { gain: "Landing Heavy Tackle, Eat Coins, removing a buff, each direct hit taken and each buff the foe gains (passive)", use: "Spend all for one strike, spend 3 to raise ATK and LUK, spend 1 at the start of your turn for ATK up (passive), or power up damage by how many you hold" },
+  veg: { gain: "Skills that add Veggies", use: "Spent on dishes (stir-fry etc.), or held to extend turns and effects by how many you have (reference). Combining 2 or 3 kinds gives bigger effects (full course). Heal each time you use them (Taste Test, passive)" },
+  meat: { gain: "Skills that add Meat, each time you inflict Burn (passive)", use: "Spent on dishes (stir-fry etc.), or held to extend turns and effects by how many you have (reference). Combining 2 or 3 kinds gives bigger effects (full course). Heal each time you use them (Taste Test, passive)" },
+  fish: { gain: "Skills that add Seafood", use: "Spent on dishes (stir-fry etc.), or held to extend turns and effects by how many you have (reference). Combining 2 or 3 kinds gives bigger effects (full course). Heal each time you use them (Taste Test, passive)" },
+};
 export const OPT_EN = {
   "オーバーヒール": "Overheal", "棘を ふやす": "More Spines", "回復量を 上げる": "Stronger Healing", "続けて 回復": "Steady Healing",
   "野菜炒め": "Veggie Stir-Fry", "ステーキ": "Steak", "海鮮焼き": "Grilled Seafood", "野菜＋肉": "Veggies + Meat", "肉＋魚介": "Meat + Seafood", "魚介＋野菜": "Seafood + Veggies",

@@ -9,6 +9,7 @@ import { makePet3 } from "./pets.js";
 import { simulate } from "./battle-sim.js";
 import { TYPES } from "./skills.js";
 import { EFFECTS } from "./effects.js";
+import { COUNTS, countLabel } from "./main-trees.js";   // カウント（帯電・コイン など）の 名前
 
 // モンスター（f.mon：Orbit Arena の モンスターの 部・配信の 帯。2026-11-24 鹿さんの カード「オーバーレイも直す」）：ドット絵の 板
 //   絵（sprites.js）は 大きいので 使う ときだけ 読む。板は カメラへ 向け直す（右の 子は 左へ 向けられる ため）・左の 子は 右を 向く
@@ -55,7 +56,7 @@ const CSS = `
 .bv .fxs { display:flex; flex-wrap:wrap; gap:3px; margin-top:6px; }
 .bv .fxs i { font-style:normal; padding:2px 6px; border-radius:7px; border:2px solid var(--ink); font:800 11px/1.15 var(--body); background:#fff; white-space:nowrap; }
 .bv .fxs i u { text-decoration:none; margin-left:3px; font:400 10px/1 var(--pop); }
-.bv .fxs i.bf { background:#B8F5D8; } .bv .fxs i.bf.st { background:#E3D4FF; } .bv .fxs i.bf.gold { background:#FFE45C; }
+.bv .fxs i.bf { background:#B8F5D8; } .bv .fxs i.bf.st { background:#E3D4FF; } .bv .fxs i.bf.gold { background:#FFE45C; } .bv .fxs i.ct { background:#fff; outline:1.5px dashed #8E6CFF; outline-offset:-2px; }
 .bv .fxs i.db { background:#FFC9C2; } .bv .fxs i.db.y { background:#FFE45C; } .bv .fxs i.db.p { background:#D9C2FF; } .bv .fxs i.db.b { background:#BFE3FF; } .bv .fxs i.db.g { background:#D8F0A0; } .bv .fxs i.db.r { background:#FFB3A0; } .bv .fxs i.db.w { background:#E4E6EE; }
 .bv .fxs i.more { background:#E4E6EE; }
 .bv .bubble { z-index:23; transform:translateX(-50%); background:#FF2E9A; color:#fff; border:4px solid var(--ink); border-radius:16px; padding:7px 15px; font:400 22px/1 var(--pop); box-shadow:4px 4px 0 var(--ink); white-space:nowrap; }
@@ -144,12 +145,13 @@ export function mountBattle(host, { A, B, seed }, o = {}) {
     return `<div class="gauge hp${bar ? " barrier" : ""}"><span>HP</span><div class="hpbar"><i class="${s.hp / max < 0.35 ? "low" : ""}" style="width:${w(s.hp)}%"></i>${oh ? `<i class="oh" style="left:${w(max)}%;width:${w(oh)}%"></i>` : ""}${sh ? `<i class="sh" style="left:${w(max + oh)}%;width:${w(sh)}%"></i>` : ""}</div><s>${Math.round(s.hp)}/${max}${sh + oh ? `<em>+${sh + oh}</em>` : ""}</s></div>`;
   };
   const fxName = (id) => { const m = id.match(/^(up|down)_(\w+)$/); return m ? m[2].toUpperCase() + (m[1] === "up" ? "▲" : "▼") : EFFECTS[id].label; };
-  const fxChips = (fx) => {
+  const cntChips = (cnt) => Object.entries(cnt || {}).filter(([k, v]) => v > 0 && COUNTS[k]).map(([k, v]) => `<i class="ct">${countLabel(k)}<u>${v}</u></i>`).join("");   // カウントは バフの 札の 横に 数で（2026-11-27 鹿さんの カード）
+  const fxChips = (fx, cnt) => {
     const L = fx.filter((z) => EFFECTS[z.id] && z.id !== "shield" && z.id !== "overheal"), all = [...L.filter((z) => !EFFECTS[z.id].buff), ...L.filter((z) => EFFECTS[z.id].buff)];
     const MAX = 8, show = all.length > MAX ? all.slice(0, MAX - 1) : all;
     const num = (z) => { const E = EFFECTS[z.id]; return E.dur === "turn" && z.turns != null ? `<u>${z.turns}T</u>` : E.dur === "stack" && z.amt != null ? `<u>${Math.round(z.amt)}</u>` : ""; };
     const cls = (z) => { const E = EFFECTS[z.id]; return !E.buff ? `db ${FX_CLS[z.id] || ""}` : z.id === "barrier" ? "bf gold" : E.stance ? "bf st" : "bf"; };
-    return show.map((z) => `<i class="${cls(z)}">${fxName(z.id)}${num(z)}</i>`).join("") + (all.length > show.length ? `<i class="more">+${all.length - show.length}</i>` : "");
+    return show.map((z) => `<i class="${cls(z)}">${fxName(z.id)}${num(z)}</i>`).join("") + (all.length > show.length ? `<i class="more">+${all.length - show.length}</i>` : "") + cntChips(cnt);
   };
   const gauge = (lab, v, max, cls = "") => `<div class="gauge ${cls}"><span>${lab}</span><div><i class="${lab === "HP" && v / max < 0.35 ? "low" : ""}" style="width:${(v / max) * 100}%"></i></div><s>${Math.round(v)}/${max}</s></div>`;
   function stateAt(t) {
@@ -160,7 +162,7 @@ export function mountBattle(host, { A, B, seed }, o = {}) {
       if (u >= sg.d) { snap = nx.map((x) => ({ ...x })); continue; }
       const hitEnd = sg.e.type === "act" && sg.e.hits?.length ? impact(sg.e.hits.length - 1) + 0.3 : 0.6;
       const f = sg.e.type === "sim" ? ease(seg(u, 0.5, 2.3)) : sg.e.type === "tick" ? ease(u / 0.5) : ease((u - 0.55) / Math.max(0.3, hitEnd - 0.55)), g = sg.e.type === "sim" ? f : ease((u - 0.1) / 0.3);
-      snap = snap.map((x, i) => ({ hp: x.hp + (nx[i].hp - x.hp) * f, mp: x.mp + (nx[i].mp - x.mp) * g, fx: u > 0.7 ? nx[i].fx : x.fx, up: u > 0.7 ? nx[i].up : x.up, down: u > 0.7 ? nx[i].down : x.down,
+      snap = snap.map((x, i) => ({ hp: x.hp + (nx[i].hp - x.hp) * f, mp: x.mp + (nx[i].mp - x.mp) * g, fx: u > 0.7 ? nx[i].fx : x.fx, cnt: u > 0.7 ? nx[i].cnt : x.cnt, up: u > 0.7 ? nx[i].up : x.up, down: u > 0.7 ? nx[i].down : x.down,
         ph: (x.ph || 0) + ((nx[i].ph || 0) - (x.ph || 0)) * f, pl: (x.pl || 0) + ((nx[i].pl || 0) - (x.pl || 0)) * f }));
     }
     return snap;
@@ -235,7 +237,7 @@ export function mountBattle(host, { A, B, seed }, o = {}) {
     const st = stateAt(t);   // 名札（キャラクターの 外がわ）
     pets.forEach((p, i) => {
       const f = START.fighters[i], ty = TYPES[f.type] || { color: "#888", label: "" }, x = TOP ? W * (i ? 0.75 : 0.25) : px(HOME[i]) + (i === 0 ? -1 : 1) * (p.half * S + 24 + 115), s = st[i];
-      const chips = fxChips(s.fx);   // バフ・デバフは 名前と 数で（前は「▲バフ」と デバフ 3 つだけ）
+      const chips = fxChips(s.fx, s.cnt);   // バフ・デバフは 名前と 数で（前は「▲バフ」と デバフ 3 つだけ）
       const pv = o.poolView && o.poolView[i] ? o.poolView[i](s) : null;   // ネビュラ：HP の かわりに 回転数・盤面の ボスの 体力
       html += el("plate", `<div class="nm"><b${String(f.name).length > 8 ? ' style="font-size:17px"' : ""}>${esc(f.name)}</b><span>${esc(f.owner)}</span><em>Lv${f.lv}</em></div><div style="margin-top:4px"><span class="ty" style="background:${ty.color}">${ty.label}</span></div>${pv ? gauge(pv.lab, Math.max(0, pv.v), Math.max(1, Math.round(pv.max || pv.v)), "pool") : hpBar(s, f.maxHp)}${gauge("MP", s.mp, f.maxMp, "mp")}${chips ? `<div class="fxs">${chips}</div>` : ""}${START.ganbari === i ? `<span class="chip">がんばり</span>` : ""}`, x, TOP ? 46 : GROUND - 16, `opacity:${seg(t, 0.9 + i * 0.25, 1.2 + i * 0.25)};${TOP ? "" : "transform:translate(-50%, -100%);"}`);   // 横の 名札は 下を そろえて 上へ のびる（札が ふえても キャラに かからない）
     });

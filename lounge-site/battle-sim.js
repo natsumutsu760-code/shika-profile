@@ -233,8 +233,9 @@ export function simulateTeams(SA, SB, seed, opts = {}) {
   // 隠蔽して いる 子は ねらわれない（相手が みんな 隠れて いたら ふつうに ねらう）
   const targetOf = (me) => { const c = F.filter((f) => f.side !== me.side && f.hp > 0), open = c.filter((f) => !f.fx.conceal), pool = open.length ? open : c; let t = null; for (const f of pool) if (!t || f.hp < t.hp) t = f; return t; };
   const fxList = (f) => Object.entries(f.fx).map(([id, x]) => ({ id, amt: typeof x.amt === "number" ? x.amt : null, turns: x.turns ?? null }));
+  const cntOf = (f) => { const o = {}; for (const [k, v] of Object.entries(f.cnt || {})) if (v > 0) o[k] = v; return Object.keys(o).length ? o : null; };   // カウント（帯電・コイン など。0 は 出さない。戦いの 画面の 札。2026-11-27 鹿さんの カード）
   const snap = () => F.map((f) => ({ hp: f.hp, mp: f.mp, fx: fxList(f), up: buffs(f).some((id) => !EFFECTS[id].stance), down: debuffs(f).length > 0,
-    ...(f.bomPart ? { part: { name: f.bomPart.name, hp: f.bomPart.hp, max: f.bomPart.max } } : {}), ...(f.bomWarn ? { warn: f.c.bom.warn.name } : {}), ...(f.dormant ? { hide: true } : {}), ...(f.pool != null ? { ph: f.poolHurt, pl: f.poolHeal } : {}) }));   // 大型ボスの 部位・予告・まだ 出て いない 取り巻き
+    ...(f.bomPart ? { part: { name: f.bomPart.name, hp: f.bomPart.hp, max: f.bomPart.max } } : {}), ...(f.bomWarn ? { warn: f.c.bom.warn.name } : {}), ...(f.dormant ? { hide: true } : {}), ...(f.pool != null ? { ph: f.poolHurt, pl: f.poolHeal } : {}), ...(cntOf(f) ? { cnt: cntOf(f) } : {}) }));   // 大型ボスの 部位・予告・まだ 出て いない 取り巻き
 
   // 状態を付ける：抵抗率（装備の 状態異常に強い ＋ 免疫 − 衰弱 ＋ ボスの 抵抗。原案）・相殺と上書き・量とターンの足し方
   function addFx(t, id, o, notes, from) {

@@ -46,7 +46,7 @@
   .vtabs [aria-selected="true"] { background:var(--ink); border-color:var(--ink); color:#fff; box-shadow:0 4px 0 rgba(27,35,64,.2); }
   @media (max-width:480px) { .vtabs { display:grid; grid-template-columns:1fr 1fr; } .vtabs > * { justify-content:center; padding:7px 8px; } }   /* タブ 4 つ（覚えたツリーを 足した。2026-11-18）は スマホで 2 × 2 */
   /* バフ・デバフの タブ */
-  .ktabs { display:grid; grid-template-columns:1fr 1fr; gap:6px; margin:10px 0 8px; }
+  .ktabs { display:grid; grid-template-columns:repeat(3, 1fr); gap:6px; margin:10px 0 8px; }   /* バフ｜デバフ｜カウント（2026-11-27 鹿さんの カード「カウントの タブを 足す」） */
   .ktabs button { min-height:40px; border:1.5px solid var(--line); background:#fff; border-radius:12px; padding:8px 10px; font:700 14px/1 var(--jp); color:var(--ink); white-space:nowrap; }
   .ktabs button[aria-selected="true"] { background:var(--ink); border-color:var(--ink); color:#fff; box-shadow:0 4px 0 rgba(27,35,64,.2); }
   .find { display:flex; margin:0 0 8px; }
@@ -68,6 +68,8 @@
   .card .facts { margin:6px 0 0; padding:0; list-style:none; display:flex; flex-wrap:wrap; gap:4px 6px; }
   .card .facts li { font:700 12px/1.4 var(--jp); color:var(--soft); background:var(--space); border-radius:8px; padding:3px 7px; }
   .card .facts li b { font:900 12px/1.4 var(--jp); color:var(--ink); }
+  .card .lab { font:900 12px/1 var(--jp); color:var(--c); margin-right:6px; }
+  h3.grp { display:flex; align-items:center; gap:8px; margin:12px 0 6px; font:900 14px/1.2 var(--jp); color:var(--violet); } h3.grp:first-of-type { margin-top:4px; } h3.grp::after { content:""; flex:1; height:1.5px; background:var(--line); }
   .lead { margin:8px 0; color:var(--soft); font:700 13px/1.6 var(--jp); }
 
   @media (max-width:820px) {
@@ -86,11 +88,14 @@ import { mountWallet } from "./wallet-bar.js"; mountWallet();
 import { petInfo, linkTabs, addGateCss } from "./pet-head.js";
 import { TYPES } from "./skills.js";
 import { EFFECTS, PAIR } from "./effects.js";
+import { COUNTS, COUNT_INFO, COUNT_RULE, countLabel } from "./main-trees.js";   // カウント（帯電・コイン など。技で ためて 使う 数）
 
 const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
 let ME = null; try { ME = await me(); } catch (e) {}
 const MP = ME && ME.pets && ME.pets[0];
-const UI = { side: new URLSearchParams(location.search).get("d") ? "debuff" : "buff", kind: "all", q: "", sort: "game" };
+const QS = new URLSearchParams(location.search);
+const UI = { side: QS.get("c") ? "count" : QS.get("d") ? "debuff" : "buff", kind: "all", q: "", sort: "game" };
+const CNT = Object.keys(COUNTS).map((id, i) => ({ id, label: countLabel(id), i, ...COUNT_INFO[id] }));
 
 // 効き方（しぼりこみの チップ）。能力の 上昇・減少は まとめて「能力」
 const KIND = [["stack", "量で 効く"], ["turn", "ターンの あいだ"], ["value", "ダメージを 吸収"], ["once", "1 回だけ"], ["stat", "能力の 上下"]];
@@ -110,6 +115,17 @@ function facts(E, id) {
   const p = PAIR[id];
   if (p && EFFECTS[p]) f.push(`${E.dur === "stack" ? "打ち消し合う：" : "後から 付けた 方が 残る："}<b>${esc(EFFECTS[p].label)}</b>`);
   return f;
+}
+
+// カウントの タブ：さがす・決まりの 1 行・1 つ 1 まい（どの ツリーの 物か・たまる・使う）
+function countBody(q) {
+  const shown = CNT.filter((x) => !q || [x.label, x.tree, x.gain, x.use].some((t) => t.includes(q)));
+  const card = (x) => `<li class="card" style="--c:var(--violet)"><div class="t"><b>${esc(x.label)}</b></div>
+      <p><span class="lab">たまる</span>${esc(x.gain)}</p><p><span class="lab">使う</span>${esc(x.use)}</p></li>`;
+  const trees = [...new Set(shown.map((x) => x.tree))];   // ツリーの 順（カウントの 表の 順）
+  return `<div class="find"><input id="q" type="search" placeholder="名前や 効果で さがす" aria-label="名前や 効果で さがす" value="${esc(UI.q)}"></div>
+    <p class="note">${esc(COUNT_RULE)}</p>
+    ${shown.length ? trees.map((t) => `<h3 class="grp">${esc(t)}</h3><ul class="cards">${shown.filter((x) => x.tree === t).map(card).join("")}</ul>`).join("") : `<p class="lead">当てはまる 物が ない</p>`}`;
 }
 
 function render() {
@@ -132,12 +148,13 @@ function render() {
   <nav class="tabs" role="tablist"><button role="tab" aria-selected="false">ステータス</button><button role="tab" aria-selected="true">スキルツリー</button><button role="tab" aria-selected="false">ガンビット</button><button role="tab" aria-selected="false">装備</button><button role="tab" aria-selected="false">冒険</button><button role="tab" aria-selected="false">なかま</button></nav>
   <section class="panel" aria-label="バフ・デバフ">
     <div class="vtabs" role="tablist" aria-label="スキルツリーの 見かた"><a role="tab" aria-selected="false" href="skilltree.html">ツリー</a><a role="tab" aria-selected="false" href="skilltree.html?view=mine">覚えたツリー</a><a role="tab" aria-selected="false" href="learned.html">覚えたスキル</a><button role="tab" aria-selected="true">バフ・デバフ</button></div>
-    <div class="ktabs" role="tablist" aria-label="バフ と デバフ"><button role="tab" data-side="buff" aria-selected="${UI.side === "buff"}">バフ ${ALL.filter((x) => x.side === "buff").length}</button><button role="tab" data-side="debuff" aria-selected="${UI.side === "debuff"}">デバフ ${ALL.filter((x) => x.side === "debuff").length}</button></div>
+    <div class="ktabs" role="tablist" aria-label="バフ・デバフ・カウント"><button role="tab" data-side="buff" aria-selected="${UI.side === "buff"}">バフ ${ALL.filter((x) => x.side === "buff").length}</button><button role="tab" data-side="debuff" aria-selected="${UI.side === "debuff"}">デバフ ${ALL.filter((x) => x.side === "debuff").length}</button><button role="tab" data-side="count" aria-selected="${UI.side === "count"}">カウント ${CNT.length}</button></div>
+    ${UI.side === "count" ? countBody(q) : `
     <div class="find"><input id="q" type="search" placeholder="名前や 効果で さがす" aria-label="名前や 効果で さがす" value="${esc(UI.q)}"></div>
     <div class="fline" role="group" aria-label="しぼりこみと ならべかた">${chip("all", "すべて")}${kinds.map(([k, l]) => chip(k, l)).join("")}<span class="gap"></span>
       <button class="chip" data-do="sort" aria-label="ならべかた：${UI.sort === "game" ? "ふつうの 順（押すと 効き方で まとめる）" : "効き方で まとめる（押すと ふつうの 順）"}">⇅ ${UI.sort === "game" ? "ふつうの 順" : "効き方で まとめる"}</button></div>
     <p class="note">量：重ねるほど 強く なる 数（効くと 半分に なる 物が 多い）。ターン：技で 決めて いない ときの 長さ</p>
-    ${shown.length ? `<ul class="cards">${shown.map(card).join("")}</ul>` : `<p class="lead">当てはまる 物が ない</p>`}
+    ${shown.length ? `<ul class="cards">${shown.map(card).join("")}</ul>` : `<p class="lead">当てはまる 物が ない</p>`}`}
   </section>`;
 }
 addGateCss();

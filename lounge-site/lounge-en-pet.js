@@ -101,6 +101,7 @@ export const WORDS = {
   "セットは # つまで。どれかを はずすと 入れられる": "Up to # can be set. Remove one to add this.",
   // ---- バフ・デバフの 一覧（effects.html。2026-11-16） ----
   "バフ・デバフ": "Buffs & Debuffs", "バフ と デバフ": "Buffs and debuffs", "バフ #": "Buffs #", "デバフ #": "Debuffs #",
+  "カウント #": "Counts #", "カウント": "Count", "バフ・デバフ・カウント": "Buffs, debuffs and counts", "たまる": "Gain", "使う": "Use",   // カウントの タブ・クローラーの 札（2026-11-27）
   "名前や 効果で さがす": "Search by name or effect", "量で 効く": "By amount", "ターンの あいだ": "For turns", "ダメージを 吸収": "Absorbs damage", "1 回だけ": "Once", "能力の 上下": "Stat changes",
   "⇅ ふつうの 順": "⇅ Default", "⇅ 効き方で まとめる": "⇅ By type", "ふつうの 順": "Default", "効き方で まとめる": "By type",
   "ふつうの 順（押すと 効き方で まとめる）": "Default (tap: by type)", "効き方で まとめる（押すと ふつうの 順）": "By type (tap: default)",
