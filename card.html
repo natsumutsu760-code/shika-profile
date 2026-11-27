@@ -11840,17 +11840,33 @@ function pskClean(o) {
   }
   function pvpTourNext() { var x = pvpTourQ.shift(); if (x) alertQ.push({ kind: "pvp", e: x }); else pvpTourOn = false; }
   var pvpAr = null;   // 3 体の 勝ち抜きの 計算（門番の /lounge/arena.js）
+  // 本番の 計算（/lounge/*.js）を 次の 戦いから 新しく する（2026-11-27 鹿さんの カード「次の 戦いから 新しい 計算」）。
+  // 前は 開いた ときに 1 回 読んで 使いつづけ、ラウンジを 本番に 出しても 古い まま（新しい ガンビットの 条件で 止まる ことも あった）。
+  // 3 分ごとに 門番の いまの 版（/api/ver）を 聞き、変わって いたら 読んだ 部品を 捨てて、次の 戦いで /lounge/x.js?v=版 を 読む（ページは 読み直さない・戦いの 途中は 古い まま）
+  // 新しい 版を 知ったら 1 分 待って 切りかえる：門番の 箱（isolate）は 版を 20 秒 ためる（GitHub の 答えも 20 秒）ので、出した 直後に ?v=新しい版 を 頼むと、
+  // まだ 古い 版しか 知らない 箱が 古い 中身を 返し、それを 次の 版まで 使いつづける ことが ある（確かめ役の 指摘）
+  var lgVer = "", lgNext = "";
+  function lgUrl(url, n) { return url + "/lounge/" + n + ".js" + (lgVer ? "?v=" + lgVer : ""); }
+  function lgCheck() {
+    var u = siteUrl(); if (!u) return;
+    fetch(u + "/api/ver", { cache: "no-store" }).then(function (r) { return r.json(); }).then(function (j) {
+      var v = j && j.v; if (!/^[0-9a-f]{40}$/.test(v || "") || v === lgVer || v === lgNext) return;
+      lgNext = v;
+      setTimeout(function () { if (lgNext !== v) return; pvpLib = null; pvpAr = null; lgVer = v; lgNext = ""; }, 60000);   // 版なしで 読んだ 部品も 捨てる（はじめの 1 回も）
+    }).catch(function () {});
+  }
+  setTimeout(lgCheck, 5000); setInterval(lgCheck, 180000);
   function pvpShow(e, done) {
     var url = siteUrl(), fin = false, host = null, view = null;
     var guard = setTimeout(end, 150000);   // 何が あっても 2 分半で つぎへ（3 体の 勝ち抜きは 1 戦ごとに 数えなおす）
     function end() { if (fin) return; fin = true; clearTimeout(guard); try { if (view) view.destroy(); } catch (x) {} if (host) host.remove(); pvpBand(null); done(); }
     if (!url) { end(); return; }
-    (pvpLib || (pvpLib = import(url + "/lounge/battle-view.js"))).then(function (m) {
+    (pvpLib || (pvpLib = import(lgUrl(url, "battle-view")))).then(function (m) {
       host = document.createElement("div"); host.className = "pvp-stage"; $("stage").appendChild(host);
       $("rotator").style.visibility = "";   // 前の 通知が 帯を かくして いても 出す
       pvpBand(e, null); Sound.play("follow");
       var geo = function (onEnd) { return { W: 1500, H: 500, ground: 478, S: 150, home: [540, 900], turnY: 426, winY: 220, fit: false, onEnd: onEnd }; };
-      if (e.team) return (pvpAr || (pvpAr = import(url + "/lounge/arena.js"))).then(function (ar) {   // 勝った 子は 減った HP の まま 次の 相手と
+      if (e.team) return (pvpAr || (pvpAr = import(lgUrl(url, "arena")))).then(function (ar) {   // 勝った 子は 減った HP の まま 次の 相手と
         var k = ar.kachinuki(e.TA, e.TB, +e.seed).bouts, i = 0;
         (function bout() {
           if (fin) return;

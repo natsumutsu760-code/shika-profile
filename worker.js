@@ -515,6 +515,8 @@ async function route(req, env) {
       if ((req.headers.get("Upgrade") || "").toLowerCase() !== "websocket") return json({ error: "upgrade" }, 426, UP_CORS);
       return lounge(env).fetch(new Request("https://lounge/mirror", req));
     }
+    // いまの 版（OBS の 鹿物語・帯が 本番の 計算を 次の 戦いから 新しく する ため。だれでも 読める・中身は 公開の コミットの 番号だけ。2026-11-27）
+    if (url.pathname === "/api/ver" && req.method === "GET") return json({ v: await headSha() }, 200, { "Access-Control-Allow-Origin": "*", "Cache-Control": "no-store" });
     if (url.pathname === "/api/ping" && req.method === "GET") return ping(req, env);
     if (url.pathname === "/api/bye" && req.method === "POST") return bye(req, env);
     if (url.pathname === "/api/config" && req.method === "GET") return config(env);

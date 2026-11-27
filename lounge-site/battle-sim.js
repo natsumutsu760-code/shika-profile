@@ -198,7 +198,7 @@ function choose(me, foe, turn, R, noAgain) {
   }
   for (let i = 0; i < (me.c.gambits || []).length; i++) {
     const g = me.c.gambits[i]; if (g.on === false) continue;
-    const [k, v] = g.if; if (!COND[k](me, foe, v, turn)) continue;
+    const [k, v] = g.if; if (!COND[k] || !COND[k](me, foe, v, turn)) continue;   // 知らない 条件（新しい 版で 足した 物）の 行は とばす（2026-11-27 鹿さんの カード「そなえる」）
     if (!(me.c.set.includes(g.do) || SKILL[g.do].type === null) || !usable(me, g.do)) continue;   // 使えないときは次の行へ
     if (noAgain && hasT(g.do, "again")) continue;
     return { id: g.do, by: i + 1, opt: g.opt };
