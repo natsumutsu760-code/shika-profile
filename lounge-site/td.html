@@ -188,6 +188,9 @@
   .mkind { display:flex; flex-wrap:wrap; gap:6px; }
   .mkind button { min-height:36px; padding:6px 12px; border-radius:999px; border:1.5px solid var(--line); background:#fff; font:900 13px/1 var(--jp); color:var(--ink); }
   .mkind button b { font:600 13px/1 var(--num); margin-left:4px; } .mkind button.on { background:var(--ink); border-color:var(--ink); color:#fff; } .mkind button:disabled { opacity:.4; }
+  .sph { display:grid; gap:2px; margin:14px 0 6px; } .sph b { font:900 14px/1.3 var(--jp); } .sph small, .sptx { font:700 12px/1.4 var(--jp); color:var(--soft); }   /* 防衛に 効く 区画（2026-11-27） */
+  .mmode { display:flex; gap:6px; margin-bottom:8px; } .mmode button { flex:1; min-height:36px; border-radius:12px; border:1.5px solid var(--line); background:#fff; font:900 13px/1 var(--jp); color:var(--ink); } .mmode button.on { background:var(--ink); border-color:var(--ink); color:#fff; }   /* 持ち物｜作る（2026-11-27） */
+  .cmats { display:flex; flex-wrap:wrap; gap:4px 10px; margin-top:4px; font:700 12px/1.4 var(--jp); color:var(--soft); } .cmats .ok { color:#0E8F5A; } .cmats .ng { color:#C2410C; }
   .mfx { display:flex; flex-wrap:wrap; align-items:baseline; gap:0 4px; margin-top:2px; font:700 12px/1.35 var(--jp); color:var(--soft); }
   .shop .row .mfx b { flex:none; font:900 12px/1.35 var(--jp); color:#5B3FD0; } .mfx em { font:600 12px/1.35 var(--num); font-style:normal; color:var(--ink); }
   .shop .row .mbtn { display:flex; flex-direction:column; gap:4px; flex:none; } .shop .row .mbtn button { min-width:96px; }
@@ -356,7 +359,8 @@ import { kit, F } from "./lounge-furniture.js";
 import { makePet3 } from "./pets.js";
 import { spriteURL } from "./sprites.js";
 import { mountWallet } from "./wallet-bar.js"; mountWallet();
-import { rentOf, rewardOf, retreatOdds, RENT_STEP, RENT_MID, GRUDGE, gradeOf, marketOf, stepOf, TD_FURN, TD_LIKES, GEAR, FURN_MAX, SAT, satOf, SCOUT_SIG, WORK, WORK_OF, WORK_HOURS, SKILL, skillOf, PAY, PROP, FIRST_FLOORS, BLOCK_LV, blockSlotsOf, FURN_LV, BLUEPRINT, BP_SCRAP, AUTO, MODULES, modAmt, LIFE, autoFurn, BUY_MAX } from "./td-numbers.js";
+import { rentOf, rewardOf, retreatOdds, RENT_STEP, RENT_MID, GRUDGE, gradeOf, marketOf, stepOf, TD_FURN, TD_LIKES, GEAR, FURN_MAX, SAT, satOf, SCOUT_SIG, WORK, WORK_OF, WORK_HOURS, SKILL, skillOf, PAY, PROP, FIRST_FLOORS, BLOCK_LV, blockSlotsOf, FURN_LV, BLUEPRINT, BP_SCRAP, AUTO, MODULES, modAmt, LIFE, autoFurn, BUY_MAX, MOD_CRAFT, MOD_MATS, modCraftMats, BP_ODDS, SP_BLOCKS, SP_COST, spMats } from "./td-numbers.js";
+import { MAT_NAME } from "./materials.js";   // モジュールを 作る 素材の 名前（2026-11-27）
 import { speciesOf, RANKS, famOf } from "./fusion.js";   // スカウトの 値段（ランク）。見本の とき だけ 使う（つなぐ ときは 門番の td.res の scout）
 import { tdInit, tdOrder, tdTurn, tdAuto, distOf } from "./td-battle.js";
 import { defMap, defSetup, defInit, resSnap } from "./td-def.js";   // 防衛の 準備（門番と 同じ 式。門番は 指示の 記録で 回し直して 勝ち負けを 決める。2026-11-21 カード「門番でもう一度回す」）
@@ -1108,6 +1112,7 @@ function buildWorld() {
   K.box(world, 1.2, 0.04, 1.2, K.glow("#FFB547", 0.6), -9.6, -0.22, 4.5);   // 入口の しるし
   for (const b of BLOCKS) buildBlock(b, world);
   buildTower(world);
+  buildSp(world);   // 防衛に 効く 区画（2026-11-27）
   if (def) buildDef(world);
   if (S.place) buildSlots(world);
   if (S.mode === "home") buildMods(world);
@@ -1119,6 +1124,31 @@ function buildWorld() {
   fit();
 }
 let flashFx = null;
+// 防衛に 効く 区画の 3D（2026-11-27）：その 階の いちばん 右の 区画の 右の 面に 張り出す 床と、塀・監視塔・弾薬庫
+function buildSp(g) {
+  const at = TDX().spAt || {};
+  for (const [k, id] of Object.entries(at)) {
+    const f = +k, on = BLOCKS.filter((b) => f >= b.f0 && f < b.f0 + b.h); if (!on.length || !SP_BLOCKS[id]) continue;
+    const b = on.reduce((a, c) => (c.x0 + c.w > a.x0 + a.w ? c : a)), x = b.x0 + b.w + 0.05, z = b.z0 + b.d / 2, y = f * FH, P = new THREE.Group(); P.position.set(x, y, z); g.add(P);
+    K.box(P, 1.5, 0.14, 2.2, K.mat("#8A93A8"), 0.75, -0.14, 0); K.box(P, 0.12, 0.5, 0.12, K.mat("#6A7288"), 0.12, -0.62, -0.9); K.box(P, 0.12, 0.5, 0.12, K.mat("#6A7288"), 0.12, -0.62, 0.9);   // 張り出しの 床と 支え
+    if (id === "wire") {   // 有刺鉄線の 塀：低い コンクリの 壁・くい・ぐるぐるの 有刺線
+      K.box(P, 0.22, 0.42, 2.0, K.mat("#B9BCC4"), 1.32, 0, 0);
+      for (const zz of [-0.9, -0.3, 0.3, 0.9]) K.box(P, 0.06, 0.95, 0.06, K.mat("#5A4636"), 1.32, 0.3, zz);
+      for (let i = 0; i < 9; i++) { const r = new THREE.Mesh(new THREE.TorusGeometry(0.16, 0.02, 4, 10), K.mat("#9AA0AE")); r.position.set(1.32, 0.98, -0.9 + i * 0.225); r.rotation.y = Math.PI / 2; P.add(r); }
+      for (const zz of [-0.95, 0.95]) K.box(P, 0.03, 0.03, 0.6, K.mat("#C8B45A"), 0.9, 0.3, zz * 0.6);
+    } else if (id === "tower") {   // 監視塔：やぐらの 足・小屋・回る 探照灯
+      for (const [dx, dz] of [[0.35, -0.55], [1.15, -0.55], [0.35, 0.55], [1.15, 0.55]]) K.box(P, 0.08, 1.55, 0.08, K.mat("#6B7385"), dx, 0, dz);
+      K.box(P, 0.95, 0.06, 1.25, K.mat("#7A8296"), 0.75, 0.75, 0); K.box(P, 1.05, 0.5, 1.35, K.mat("#5E6680"), 0.75, 1.5, 0); K.box(P, 1.08, 0.28, 1.38, K.mat("#2B3448"), 0.75, 1.62, 0.0);   // 小屋と 窓の 帯
+      K.box(P, 1.2, 0.08, 1.5, K.mat("#3A4256"), 0.75, 2.0, 0);
+      const L = K.cyl(P, 0.12, 0.16, 0.22, K.glow("#FFF2B0", 1.6), 1.35, 2.08, 0.35, 10); L.rotation.z = -Math.PI / 2.6;
+    } else if (id === "ammo") {   // 弾薬庫：しまの ある 鉄の 箱・砲弾の 箱
+      K.box(P, 1.2, 0.95, 1.7, K.mat("#5C6B4A"), 0.75, 0, 0);
+      for (let i = 0; i < 6; i++) K.box(P, 1.22, 0.1, 0.18, K.mat(i % 2 ? "#1E2230" : "#E8B23A"), 0.75, 0.82, -0.75 + i * 0.3);
+      K.box(P, 0.05, 0.5, 0.6, K.mat("#3E4A32"), 1.36, 0.15, 0);
+      for (const [dz, dy] of [[-0.5, 0.95], [-0.25, 0.95], [0.0, 0.95]]) K.cyl(P, 0.07, 0.07, 0.36, K.mat("#C9A04A"), 0.5, dy, dz, 8);
+    }
+  }
+}
 function buildSlots(g) {   // 置ける 所：緑の 箱。えらんで いる 所は 黄色で 濃く。押せる
   avail(S.place.part).forEach((x, i) => {
     const b = slotBox(x), on = i === S.place.i, H = Math.max(0.24, b.h * FH), y = b.f * FH + H / 2 - (b.h ? 0 : 0.2);
@@ -1319,7 +1349,7 @@ function towerHTML(close) {
 }
 // 増築の 窓（M-043。鹿さんの カード「不動産価値の画面」2026-11-16・システム担当の お願い 1）：タブで 建てる・不動産価値・設計図
 const SAMPLE_TD = { prop: { lv: 7, pts: 2430, cur: 2100, next: 2800, rent: 410000, wins: 9 }, first: { fl: 2, max: 3, cost: 30000, nextLv: 8 }, blocks: { used: 0, max: 0, nextLv: 15 }, bp: [2, 4], bpAt: {}, inv: { canopy: 1 },
-  modInv: [{ id: "pipe", star: 3 }, { id: "slip", star: 1 }, { id: "camera", star: 4 }, { id: "capsule", star: 2 }], modAt: {}, modOffer: null };   // モジュールの 見本（M-047）
+  modInv: [{ id: "pipe", star: 3 }, { id: "slip", star: 1 }, { id: "camera", star: 4 }, { id: "capsule", star: 2 }], modAt: {}, modOffer: null, spAt: {} };   // モジュールの 見本（M-047）
 const TDX = () => (LIVE ? TD || {} : { ...SAMPLE_TD, first: { fl: S.fl || 2, max: A_FULL, cost: 35000, nextLv: null }, bpAt: starsNow(), blocks: { used: BLOCKS.filter((b) => b.id[0] === "K").length, max: 99, nextLv: 0 } });
 const plv = () => (TDX().prop && TDX().prop.lv) || 1;
 const bpDesc = (st) => { const B = BLUEPRINT[st] || BLUEPRINT[1]; return `${B.floors} 階・${B.size === "huge" ? "とても 広い 部屋" : B.size === "big" ? "広い 部屋" : "ふつうの 部屋"}・廊下 ${B.hall} マス`; };
@@ -1373,7 +1403,22 @@ function modWhere(k) {
   const r = ROOMS.find((q) => q.key === v); return r ? `${r.no}号室` : "部屋";
 }
 const modName = (m) => `<span class="mstar">★${m.star}</span><span>${MODULES[m.id]?.name || m.id}</span>`;
+// 作る（2026-11-27 鹿さんの カード「素材 3 しゅるい × 5 こ」）：ボーダーゾーンの 素材 15 こ ＋ 3,000 クレジット。★は くじ
+const ownMats = () => ((LASTME && LASTME.own && LASTME.own.mats) || []);
+const haveMat = (m) => (LIVE ? ownMats().filter((x) => x.id === m).reduce((t, x) => t + x.n, 0) : 99);   // 見本は 足りる つもり
+function modCraftHTML() {
+  const kf = S.ckind || "cell", cr = LIVE ? (LASTME && LASTME.credits) || 0 : 99999;
+  const ids = Object.keys(MOD_MATS).filter((id) => MODULES[id] && MODULES[id].place === kf);
+  return `<p class="rnext">ボーダーゾーンの 素材 3 しゅるい × ${MOD_CRAFT.n} こ ＋ ${MOD_CRAFT.credits.toLocaleString("ja-JP")} クレジットで 1 つ（★は くじ：${BP_ODDS[MOD_CRAFT.strength].map((w, i) => `★${i + 1} ${w}%`).join("・")}）</p>
+    <div class="mkind" aria-label="置き場所">${["cell", "block", "room"].map((k) => `<button class="${k === kf ? "on" : ""}" data-ckind="${k}">${MPLACE[k]}</button>`).join("")}</div>
+    <div class="shop">${ids.map((id) => { const M = MODULES[id], need = modCraftMats(id), can = need.every(([m, n]) => haveMat(m) >= n) && cr >= MOD_CRAFT.credits;
+      return `<div class="row"><b><span>${M.name}</span><span class="mfx"><span>${modWho(M)}</span>${M.fx.map(([e]) => `<b>${EFFECTS[e]?.label || e}</b>`).join("")}</span><span class="cmats">${need.map(([m, n]) => { const h = haveMat(m); return `<span class="${h >= n ? "ok" : "ng"}">${MAT_NAME[m] || m} ${Math.min(h, 999)}/${n}</span>`; }).join("")}</span></b><button class="go" data-mcraft="${id}" ${can ? "" : "disabled"}>作る</button></div>`; }).join("")}</div>`;
+}
 function modHTML() {
+  const mode = S.mmode === "craft" ? "craft" : "inv", seg = `<div class="mmode" role="group" aria-label="モジュール"><button class="${mode === "inv" ? "on" : ""}" data-mmode="inv">持ち物</button><button class="${mode === "craft" ? "on" : ""}" data-mmode="craft">作る</button></div>`;
+  return seg + (mode === "craft" ? modCraftHTML() : modInvHTML());
+}
+function modInvHTML() {
   const X = TDX(), inv = X.modInv || [], at = X.modAt || {}, off = Array.isArray(X.modOffer) ? X.modOffer : null, n = (k) => inv.filter((m) => MODULES[m.id]?.place === k).length;   // 門番の me は えらぶ 3 つの 一覧
   let kf = S.mkind; if (!kf || !n(kf)) kf = ["cell", "block", "room"].find((k) => n(k)) || "cell";
   const offer = off && off.length ? `<div class="card"><div class="t"><b>モジュールを 1 つ えらぶ</b></div><div class="shop">${off.map((m, i) => `<div class="row"><b>${modName(m)}${mfxHTML(m)}</b><button class="go" data-mpick="${i}">えらぶ</button></div>`).join("")}</div></div>` : "";
@@ -1410,8 +1455,17 @@ function buildHTML(close) {
     return `<div class="card"><div class="t"><span class="mk">${IC[ic]}</span><b>${n}</b>${c ? `<span class="n">置ける 所 ${c}</span>` : ""}</div>${c ? `<button class="go" data-part="${k}">置く 場所を えらぶ</button>` : `<div class="why">${why}</div>`}</div>`;
   };
   return `<h2>増築${close}</h2>${seg}<div class="bsum">${TOP + 1}階建て・部屋 ${rooms}</div>${isFull() ? `<p class="done">九龍城塞の 形に なった</p>` : `
-    <div class="list">${first}${PARTS.filter(([k]) => k !== "tower").map(card).join("")}</div>`}
+    <div class="list">${first}${PARTS.filter(([k]) => k !== "tower").map(card).join("")}</div>`}${spHTML()}
     ${S.built.size && !LIVE ? `<button class="sm" data-reset>最初の アパートに もどす（見本）</button>` : ""}`;
+}
+// 防衛に 効く 区画（2026-11-27 鹿さんの カード「この案」）：住めない・素材 3 しゅるい × 10 こ ＋ 20,000 クレジット・1 つの 階に 1 つまで。いま 見て いる 階に 建てる
+function spHTML() {
+  const at = TDX().spAt || {}, f = S.floor, here = at[f], cr = LIVE ? (LASTME && LASTME.credits) || 0 : 99999;
+  const built = Object.entries(at).sort((a, b) => a[0] - b[0]).map(([k, id]) => `${+k + 1}F ${SP_BLOCKS[id]?.name || id}`).join("・");
+  return `<div class="sph"><b>防衛に 効く 区画</b><small>住めない・1 つの 階に 1 つまで・いま 見て いる 階（${f + 1}F）に 建てる</small>${built ? `<small>建てた：${built}</small>` : ""}</div>
+    <div class="list">${Object.entries(SP_BLOCKS).map(([id, P]) => { const need = spMats(id), has = need.every(([m, n]) => haveMat(m) >= n), why = here ? `${f + 1}F には もう ${SP_BLOCKS[here].name} が ある` : !has ? "素材が 足りない" : cr < SP_COST.credits ? "クレジットが 足りない" : "";
+      return `<div class="card"><div class="t"><b>${P.name}</b></div><small class="sptx">${P.text}</small><span class="cmats">${need.map(([m, n]) => { const h = haveMat(m); return `<span class="${h >= n ? "ok" : "ng"}">${MAT_NAME[m] || m} ${Math.min(h, 999)}/${n}</span>`; }).join("")}</span>
+        <div class="cost">クレジット <b>${fmt(SP_COST.credits)}</b></div>${why ? `<div class="why">${why}</div>` : `<button class="go" data-spb="${id}">${f + 1}F に 建てる</button>`}</div>`; }).join("")}</div>`;
 }
 // 部屋と 家賃の 窓（M-039）：上に 部屋の 格と 相場、下は タブで 家賃・家具・設備（1 画面 1 つの 仕事）
 function roomHTML(close) {
@@ -1554,6 +1608,14 @@ $("panel").addEventListener("click", (e) => {
     doAct("td.build", { slot: "A+" }, (r) => `${r.fl} 階に した・部屋 ${r.rooms}`); return;
   }
   if (b.dataset.mkind) { S.mkind = b.dataset.mkind; S.mAsk = null; renderPanel(); return; }
+  if (b.dataset.spb) { const id = b.dataset.spb, f = S.floor; busyOn(b);   // 防衛に 効く 区画を いまの 階に 建てる
+    if (!LIVE) { SAMPLE_TD.spAt[f] = id; toast(`${f + 1}F に ${SP_BLOCKS[id].name} を 建てた（見本）`); render(); return; }
+    act("td.sp.build", { id, f }).then(async (r) => { if (!r || !r.ok) { toast((r && r.why) || "できませんでした"); renderPanel(); return; } await refresh(); toast(`${r.f + 1}F に ${SP_BLOCKS[r.id].name} を 建てた`); render(); }); return; }
+  if (b.dataset.mmode) { S.mmode = b.dataset.mmode; S.mAsk = null; renderPanel(); return; }   // 持ち物｜作る
+  if (b.dataset.ckind) { S.ckind = b.dataset.ckind; renderPanel(); return; }
+  if (b.dataset.mcraft) { const id = b.dataset.mcraft; busyOn(b);   // ボーダーゾーンの 素材で 作る
+    if (!LIVE) { SAMPLE_TD.modInv.push({ id, star: 2 }); toast(`「${MODULES[id].name}」★2 を 作った（見本）`); renderPanel(); return; }
+    act("td.mod.craft", { id }).then(async (r) => { if (!r || !r.ok) { toast((r && r.why) || "できませんでした"); renderPanel(); return; } await refresh(); toast(`「${MODULES[r.id].name}」★${r.star} を 作った・持ち物へ`); renderPanel(); }); return; }
   if (b.dataset.mset) { startModPlace(+b.dataset.mset); return; }
   if (b.dataset.mscrap) {   // モジュールを 分解（2 回 押す）
     const i = +b.dataset.mscrap; if (S.mAsk !== i) { S.mAsk = i; renderPanel(); return; }

@@ -22,7 +22,7 @@
 //   td.build {slot:"A+"} で 1 つ目の 建物に 階・箱の 候補は 設計図 {bp:持ち物の 番号} が いる（区画の 数は Lv で）・td.bp.scrap {i} で 設計図を スクラップに・td.furn {key, id, inv:true} で ドロップの 家具を 置く
 //   住人の sickTo（治る 日・日本時間）。病気の くじは 家賃を 受けとる ときに 1 日ずつ ひく
 import { rentOf, rewardOf, battleExp, workExp, foeCount, foeLv, foeTopLv, REVIVE, BOARD_REFRESH, FIGHT, TD_FURN, GEAR, FURN_MAX, SAT, satOf, SCOUT_SIG, RENT_STEP, GRUDGE, gradeOf, marketOf, stepOf, grudgeRate, autoFurn, BUY_MAX,
-  MODULES, MOD_OFFER, PROP, propNeed, propLvOf, FIRST_FLOORS, firstFloorsOf, BLOCK_LV, blockSlotsOf, FURN_LV, BLUEPRINT, BP_DROP, BP_SCRAP, bpStar, FURN_DROP, furnDropPool, SICK, sickOdds, partPrice, WORK, WORK_OF, SKILL, skillOf, SKILL_IN, PAY, payOf , LIFE } from "./td-numbers.js";
+  MODULES, MOD_OFFER, MOD_CRAFT, modCraftMats, SP_BLOCKS, SP_COST, spMats, PROP, propNeed, propLvOf, FIRST_FLOORS, firstFloorsOf, BLOCK_LV, blockSlotsOf, FURN_LV, BLUEPRINT, BP_DROP, BP_SCRAP, bpStar, FURN_DROP, furnDropPool, SICK, sickOdds, partPrice, WORK, WORK_OF, SKILL, skillOf, SKILL_IN, PAY, payOf , LIFE } from "./td-numbers.js";
 import { FULL_BLOCKS, availOf, slotCost, shapeOf, roomsOf, roomsPer, hallOk } from "./td-core.js";   // 置き場所は 動く 候補（2026-11-16 案 1。2 代目）
 import { ENEMY_TREES } from "./enemy-trees.js";
 import { ENEMY_MAT, SCRAP } from "./materials.js";
@@ -56,6 +56,7 @@ export function ensureTd(rec) {
   if (!Array.isArray(T.dead)) T.dead = [];
   if (!Number.isFinite(T.sig)) T.sig = 0;
   if (!Number.isFinite(T.mods)) T.mods = 0;
+  if (!T.spAt || typeof T.spAt !== "object") T.spAt = {};   // 防衛に 効く 区画 { 階: "wire"|"tower"|"ammo" }（2026-11-27）
   if (!Array.isArray(T.modInv)) T.modInv = [];                  // モジュールの 持ち物 [{ id, star }]
   if (!T.modAt || typeof T.modAt !== "object") T.modAt = {};   // 置いた モジュール
   if (!Array.isArray(T.log)) T.log = [];
@@ -145,7 +146,7 @@ export function tdView(rec, now = Date.now()) {
   const days = T.day == null ? 0 : Math.min(TD_C.rentKeep, Math.max(0, day - T.day));
   const res = Object.fromEntries(Object.entries(T.res).map(([k, r]) => [k, { ...r, sat: satNow(T, k, now), fam: famOf(r.id) || null, step: stepOf(T.rooms[k]), market: marketAt(T.rooms[k]), grudge: Math.round(grudgeNow(T, k, now)), sick: sickNow(r, day), scout: r.uid ? null : (SCOUT_SIG[rankLetter(r.id)] ?? SCOUT_SIG.F), wdays: workDays(r, now), skill: skillOf(workDays(r, now)), cap: capAt(r, day) }]));   // scout：スカウトの シグナル（NPC だけ）
   const L = plvOf(T, now), pts = propPts(T, now), used = Object.keys(T.bpAt).length, flMax = firstFloorsOf(L);
-  return { open: true, order: T.order, rooms: keys.length, empty: keys.filter((k) => !T.res[k]), res, bonds: Object.fromEntries(pairsOf(Object.keys(T.res)).map(([x, y]) => [[x, y].sort().join("|"), bondOf(T, x, y)])), lifeAt: T.life ? T.life.at : null, roomsIn: T.rooms, dead: T.dead, sig: T.sig, mods: T.modInv.length, modInv: T.modInv, modAt: T.modAt, modOffer: T.modOffer ? T.modOffer.list : null,
+  return { open: true, order: T.order, rooms: keys.length, empty: keys.filter((k) => !T.res[k]), res, bonds: Object.fromEntries(pairsOf(Object.keys(T.res)).map(([x, y]) => [[x, y].sort().join("|"), bondOf(T, x, y)])), lifeAt: T.life ? T.life.at : null, roomsIn: T.rooms, dead: T.dead, sig: T.sig, mods: T.modInv.length, modInv: T.modInv, modAt: T.modAt, spAt: T.spAt || {}, modOffer: T.modOffer ? T.modOffer.list : null,
     avail: availOf(T.order, null, T.fl, T.bpAt).map((s) => ({ id: s.id, part: s.part, cost: slotCost(T.order, s.id, T.fl, T.bpAt) })), full: false,   // 区画の 数も 高さも 上限なし
     prop: { lv: L, pts, cur: propNeed(L), next: propNeed(L + 1), rent: T.prop.rent || 0, wins: T.prop.wins || 0 },   // rent・wins：画面の 点の 内わけ（2 代目）
     first: { fl: T.fl, max: flMax, cost: partPrice("addFloor", roomsPer(FULL_BLOCKS[0]), T.fl + 1), nextLv: FIRST_FLOORS.at.find((x) => x > L) ?? null },
@@ -179,6 +180,8 @@ export function tdAct(rec, b, now = Date.now()) {
   if (a === "td.mod.set") return modSet(T, b, now);
   if (a === "td.mod.off") return modOff(T, b, now);
   if (a === "td.mod.scrap") return modScrap(rec, T, b, now);
+  if (a === "td.mod.craft") return modCraft(rec, T, b, now);
+  if (a === "td.sp.build") return spBuild(rec, T, b, now);   // 防衛に 効く 区画（2026-11-27）   // ボーダーゾーンの 素材で 作る（2026-11-27）
   if (a === "td.def.start") return defStart(rec, T, b, now);
   if (a === "td.def.end") return defEnd(rec, T, b, now);
   return { ok: false, why: "知らない 受付" };
@@ -254,6 +257,36 @@ function modOff(T, b, now) {
   if (typeof k !== "string" || !Object.hasOwn(T.modAt, k)) return { ok: false, why: "そこには 置いて いない" };
   T.modInv.push(T.modAt[k]); delete T.modAt[k]; T.mods = T.modInv.length;
   return { ok: true };
+}
+// 防衛に 効く 区画を 建てる（鹿さんの カード「この案」：住めない・素材 3 しゅるい × 10 こ ＋ 20,000 クレジット・1 つの 階に 1 つまで）
+function spBuild(rec, T, b, now) {
+  if (T.def) return { ok: false, why: "防衛中は 建てられない" };
+  const id = b && b.id, P = typeof id === "string" && Object.hasOwn(SP_BLOCKS, id) ? SP_BLOCKS[id] : null, f = b && b.f;
+  if (!P) return { ok: false, why: "建てる 区画を えらんで" };
+  const sh = shapeOf(T.order, T.fl, T.bpAt), floors = Math.max(0, ...sh.blocks.map((x) => x.f0 + x.h));
+  if (!Number.isInteger(f) || f < 0 || f >= floors) return { ok: false, why: "その 階は まだ ない" };
+  if (T.spAt[f]) return { ok: false, why: `${f + 1} 階には もう ${SP_BLOCKS[T.spAt[f]].name} が ある（1 つの 階に 1 つまで）` };
+  if ((rec.credits || 0) < SP_COST.credits) return { ok: false, why: `クレジットが 足りない：あと ${(SP_COST.credits - (rec.credits || 0)).toLocaleString("ja-JP")}` };
+  const need = spMats(id), own = (rec.own && rec.own.mats) || [], have = (m) => own.filter((x) => x.id === m).reduce((t, x) => t + x.n, 0), short = need.filter(([m, n]) => have(m) < n);
+  if (short.length) return { ok: false, why: `素材が 足りない（${short.length} しゅるい）` };
+  for (const [m, n] of need) { let left = n; for (const x of own.filter((y) => y.id === m).sort((p, q) => (p.q || 0) - (q.q || 0))) { const k = Math.min(left, x.n); x.n -= k; left -= k; if (!left) break; } }
+  rec.own.mats = own.filter((x) => x.n > 0); rec.credits -= SP_COST.credits; T.spAt[f] = id;
+  log(T, `${f + 1} 階に ${P.name}（${SP_COST.credits.toLocaleString("ja-JP")} cr）`, now);
+  return { ok: true, id, f, cost: SP_COST.credits };
+}
+// 作る（鹿さんの カード「素材 3 しゅるい × 5 こ」：えらんだ モジュールを 1 つ。素材 15 こ ＋ 3,000 クレジット）〔C〕★は 防衛の 強さ 3 の 表
+function modCraft(rec, T, b, now) {
+  const id = b && b.id, M = typeof id === "string" && Object.hasOwn(MODULES, id) ? MODULES[id] : null, need = M ? modCraftMats(id) : [];
+  if (!M || !need.length) return { ok: false, why: "作る モジュールを えらんで" };
+  if ((rec.credits || 0) < MOD_CRAFT.credits) return { ok: false, why: `クレジットが 足りない：あと ${(MOD_CRAFT.credits - (rec.credits || 0)).toLocaleString("ja-JP")}` };
+  const own = (rec.own && rec.own.mats) || [], have = (m) => own.filter((x) => x.id === m).reduce((t, x) => t + x.n, 0), short = need.filter(([m, n]) => have(m) < n);
+  if (short.length) return { ok: false, why: `素材が 足りない（${short.length} しゅるい）` };
+  for (const [m, n] of need) { let left = n; for (const x of own.filter((y) => y.id === m).sort((p, q) => (p.q || 0) - (q.q || 0))) { const k = Math.min(left, x.n); x.n -= k; left -= k; if (!left) break; } }
+  rec.own.mats = own.filter((x) => x.n > 0); rec.credits -= MOD_CRAFT.credits;
+  const star = bpStar(MOD_CRAFT.strength, rngOf(hash(`tdmc:${rec.id ?? ""}:${now}:${id}:${T.modInv.length}`))());
+  T.modInv.push({ id, star }); T.mods = T.modInv.length;
+  log(T, `モジュール「${M.name}」★${star} を 作った（${MOD_CRAFT.credits.toLocaleString("ja-JP")} cr）`, now);
+  return { ok: true, id, star, cost: MOD_CRAFT.credits };
 }
 function modScrap(rec, T, b, now) {   // 〔C〕分解は 設計図と 同じ スクラップ（★1 3〜★5 48）
   const i = b && b.i, m = Number.isInteger(i) ? T.modInv[i] : null;
@@ -461,7 +494,7 @@ function defStart(rec, T, b, now) {
   const shape = { order: [...T.order], fl: T.fl, stars: { ...T.bpAt } }, m = jstMin(now);
   const res = roomDoors(shapeOf(shape.order, shape.fl, shape.stars)).filter((r) => !r.lounge && T.res[r.key]).filter((r) => { const v = T.res[r.key]; return v.sick || stateAt(planOf("r:" + r.key, v.wk), m) !== "仕事中"; }).map((r) => resSnap(r.key, T.res[r.key]));
   const P = (rec.pets || [])[0], pet = P && P.type ? JSON.parse(JSON.stringify(fighterOf(P, rec))) : null;   // JSON に して おく（画面に わたる 形と そろえる）
-  T.def = { id: `d${now.toString(36)}${note.k}`, strength: note.strength, foes: note.foes, at: now, mods: { ...T.modAt }, shape, res: JSON.parse(JSON.stringify(res)), pet };   // 画面は この 写しで td-battle を 回す
+  T.def = { id: `d${now.toString(36)}${note.k}`, strength: note.strength, foes: note.foes, at: now, mods: { ...T.modAt }, sp: { ...T.spAt }, shape, res: JSON.parse(JSON.stringify(res)), pet };   // 画面は この 写しで td-battle を 回す
   return { ok: true, def: T.def };
 }
 function defEnd(rec, T, b, now) {

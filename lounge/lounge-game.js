@@ -4,6 +4,7 @@
 //   take：いま 取る 物（素材・クレジット・装備）。払えた とき・返事を 待つ ときに 取る（待つ あいだに ほかで 使われない ように）
 //   grant：払えたら 渡す 物。refund：返事を 待った すえに 払えなかったら もどす 物（どちらも しまえる 形の データ）
 // 数は すべて 案（鹿さんと これから 決める）
+import { applyMove } from "./lounge-move.js";   // 引越し（give の room）
 import { PETS, QUIZ, insPrice, INS_PLAN, INTEL, intelPrice, shipPrice, fastPrice, FAST, SHIP, score, unlockCost, PLANS, ENEMY_TREES, petAt, tripInit, tripStep, tripResult, floorsOpen, newProgress, diaryOf, dungeonRatio, tamedOf, rankOf, rng, DUNGEONS, canGo, tripCost, RUNS, TICK, TOOLS, TOOL_MAX, PURPOSES, SNACK_NEED, SNACK_PRICE, RESEARCH, researchLeaf, detailOpen, nutAway, mysteryRoll, bagOf, MAP_STAIRS,
   FACILITIES, STORAGE_CAP, EQUIP_CAP, SNACK_RECIPES, snackMats, snackOpen, SNACK_CRAFT_MAX, furnExtra, facCap, facLv, upkeep, storageCap, equipCapOf, labOff, labMs, snackMore, snackSave, gymMul, SYNTH_LV, toStash, stashHave, BOX_DAYS, MAT_NAME, MAT_FROM, CRAFT, SYNTH, craftOpen, synthOpen, synthCredits, rollCraft, rollSynth, sexOf, sexByUid, OPS, BOSS_CORE, SPHERE_MAX, baseOf, comboOf, opCount, recycleOf, AUTO_SELL_STARS, AUTO_SELL_HOW, autoSellOf, GATHER, mapExtra, invaderFighter } from "./game.js";
 import { jstDay } from "./lounge-rules.js";
@@ -138,6 +139,7 @@ export function give(rec, g, now) {
   giveAu(rec, g, now);                           // 競り・フリマ
   givePet(rec, g);                               // 振り直し・職業を かえる
   if (g.pet) addPet(rec, g.pet);                 // アメジストで むかえた 子（払えたと わかった とき）
+  if (g.room) applyMove(rec, g.room);            // 引越し（アメジストが 払えたと わかった とき。2026-11-27）
   if (g.ev) for (const e of [].concat(g.ev)) bump(rec, e, jstDay(now || Date.now()));   // タスクに 数える（作る・合成・おやつ・買う。物を 渡せた ときだけ）
 }
 
@@ -303,7 +305,7 @@ export function insLose(rec, t, mats, now) {
   let keep = Math.ceil(mats.reduce((a, m) => a + m.n, 0) * P.back - 1e-9);   // 切り上げ：素材を 1 こでも 失えば 支払いが 出る（2026-11-07 鹿さんの カード「ぜんぶ 直す」。前は 切り捨てで 1 こだと 0）
   for (const m of mats) { if (keep <= 0) break; const n = Math.min(m.n, keep); back.push({ id: m.id, q: m.q || 0, n }); keep -= n; }
   if (!back.length) return null;
-  const at = now + (rec.perks && rec.perks.insFast ? 0 : Math.round(P.wait * (1 - fxOf(rec, "insWait"))));   // 家具（救急箱）で 早く
+  const base = Math.round(P.wait * (1 - fxOf(rec, "insWait"))), at = now + (rec.perks && rec.perks.insFast ? 0 : typeof t.wait === "function" ? t.wait(base) : base);   // 家具（救急箱）の 割引の あとに ボーダーゾーンの サンプル保管庫（下は 15 分。確かめ役の 指摘）
   (rec.ins ||= []).push({ at, did: t.did, mats: back });
   sale(rec, "AMB", -back.reduce((a, m) => a + (VALUE[m.id] || 0) * m.n, 0));   // 保険の 支払いは アンバーの 売り上げから 引く（素材の 相場で。鹿さんの 構想「保険屋は 保険料 − 支払い」）
   return { n: back.reduce((a, m) => a + m.n, 0), at };

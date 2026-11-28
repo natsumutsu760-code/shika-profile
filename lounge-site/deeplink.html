@@ -190,6 +190,9 @@
   .sdet .go { display:flex; gap:10px; } .sdet .go .btn { flex:1; padding:6px 0; text-align:center; font-size:16px; }
   .btn.ghost { border-color:var(--line2); color:var(--dim); } .btn.ghost:hover:not(:disabled) { background:var(--line2); color:var(--text); }
   .sdet .why { font-size:12px; color:var(--warn, #FF8A7A); }
+  .sreq { display:grid; gap:4px; padding:8px 10px; border:1px dashed var(--line2); font-size:13px; } .sreq .lb { font-size:12px; color:var(--dim); } .sreq b { font-weight:400; color:var(--text); } .sreq small { font-size:12px; color:var(--dim); line-height:1.5; }
+  .sreq .btn { padding:6px 0; text-align:center; font-size:14px; } .sreq .ok { color:var(--ok); } .sreq .no { font-size:12px; color:var(--dim); }
+  .rqn { margin-top:6px; font-size:12px; color:var(--cyan); }   /* サンプルの 依頼（2026-11-27） */
   .sum { margin-top:12px; display:flex; align-items:baseline; gap:10px; color:var(--dim); font-size:13px; } .sum b { font-weight:400; font-size:22px; color:var(--text); }
   .news { margin-top:10px; } .news li { display:grid; grid-template-columns:86px 44px minmax(0, 1fr); gap:8px; align-items:baseline; padding:8px 2px; border-bottom:1px dashed var(--line); font-size:14px; } .news time { font-size:12px; color:var(--dim); } .news li:not(.fresh) { opacity:.65; }
   .note .c { color:var(--cyan); }
@@ -558,7 +561,7 @@ function render() {
   document.getElementById("dir").innerHTML = dirHtml();
   { const cur = document.querySelector('#dir [aria-current="true"]'), n = [...document.querySelectorAll("#dir .new")].reduce((a, e) => a + (parseInt(e.textContent.replace(/\D/g, ""), 10) || 0), 0);   // 引き出しの 帯：いまの 商人と 丸の 合計
     DRAW.label(`${cur ? (cur.querySelector(".mk") || {}).outerHTML || "" : ""}<span>${esc(cur ? cur.querySelector(".nm").textContent : "")}</span>${n ? `<span class="new">●${n}</span>` : ""}`); }
-  document.getElementById("pane").innerHTML = S.go === "desk" ? deskHtml() : S.go === "board" ? boardHtml() : S.go === "stock" ? stockPane(K, { ...S, credits: credits() }) : traderHtml(META[S.go] || META.junk);
+  document.getElementById("pane").innerHTML = S.go === "desk" ? deskHtml() : S.go === "board" ? boardHtml() : S.go === "stock" ? stockPane(K, { ...S, credits: credits(), bzq: ME && ME.bz && ME.bz.req }) : traderHtml(META[S.go] || META.junk);
 }
 let tid;
 const toast = (s) => { const el = document.getElementById("toast"); el.textContent = s; el.classList.add("on"); clearTimeout(tid); tid = setTimeout(() => el.classList.remove("on"), 3200); };
@@ -616,6 +619,7 @@ document.getElementById("term").addEventListener("click", async (e) => {
     const r = await ask(b, buy ? "stock.buy" : "stock.sell", { co, n }, (r) => `${buy ? "買った" : "売った"}：${co} ${fmt(r.n)} トークン（1 トークン ${r.price}・${buy ? "払った" : "もらった"} ${fmt(Math.abs(r.paid))}）${!buy && r.gain != null ? `　損益 ${r.gain >= 0 ? "＋" : "−"}${fmt(Math.abs(r.gain))}` : ""}`);
     if (r.ok && r.stock) { K = cleanK(r.stock); render(); } else if (r.wait) { await loadStock(); render(); }
     return; }
+  if (d.creq) return ask(b, "bz.req", { key: d.creq, uid: d.ruid }, (r) => `${(STOCK_CO[r.key.slice(2)] || { name: r.key.slice(2) }).name} の 依頼に 納めた：${fmt(r.paid)} クレジット・好感度 ＋${r.aff}`);   // 会社の サンプルの 依頼（2026-11-27）
   if (d.tab) { S.tab = d.tab; S.open = null; render(); return document.querySelector(`[data-tab="${d.tab}"]`)?.focus(); }
   // 会社の 窓口：預金・鉱石
   if (d.dtab) { S.dtab = d.dtab; render(); return document.querySelector(`[data-dtab="${d.dtab}"]`)?.focus(); }

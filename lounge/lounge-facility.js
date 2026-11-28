@@ -1,6 +1,6 @@
 // 隠れ家の 施設の 建設と つまみ（施設の 作り直し。鹿さんの 決め、2026-10-29 の 11〜14 回目の カード・2026-11-03「施設から」。数は docs/mono-link-numbers.md の 4 章）
 // 決まりの 中身は lounge-proto/facilities.js。記録：
-//   rec.hideout[id]：上げた Lv（0〜100。無線機は 0〜1）
+//   rec.hideout[id]：上げた Lv（0〜100。無線機は 0〜1・サンプル保管庫は 上限 なし）
 //   rec.knob[id]：えらんだ Lv（つまみ。上げた Lv までの どこでも。ない ときは 上げた Lv）。効果と 維持費は この Lv
 //   rec.build[id]：建てて いる 途中 { to, at, ms, skip, mats: [[id, n]], put: { id: n } }。クレジットは 始める ときに 払う
 //   rec.labQ：研究の 途中 [{ tree, at }]（研究所。時間が 来たら rec.lab へ）
@@ -56,7 +56,7 @@ export function facStart(rec, b, now) {
   if (rec.build[f.id]) return { ok: false, why: "いま 建てて いる" };
   const lv = rec.hideout[f.id] || 0, cap = facCap(f, rec.hideout);
   if (lv >= facMax(f)) return { ok: false, why: "もう いちばん 上" };
-  if (lv >= cap) return { ok: false, why: f.isle > 1 ? "まだ ない" : `Lv${lv + 1} は 無線機を 作って から（ビサイ諸島の 素材が いる）` };
+  if (lv >= cap) return { ok: false, why: f.bz && !cap ? "ボーダーゾーンが 開いて から（無線機 Lv2）" : f.isle > 1 ? "まだ ない" : `Lv${lv + 1} は 無線機を 作って から（ビサイ諸島の 素材が いる）` };
   const L = lv + 1, need = buildNeed(f.id, L), ms = Math.round(need.ms * (1 - buildOff(rec.perks)));   // ボルトの 店の 割引
   if (need.credits > (rec.credits || 0)) return { ok: false, why: `クレジットが 足りない：あと ${fmt(need.credits - (rec.credits || 0))}` };
   rec.credits -= need.credits; sale(rec, "GRN", need.credits);   // 建設の 代金は グラナート建設の 売り上げ（株）
@@ -145,7 +145,8 @@ export function facView(rec, now) {
   return FACILITIES.map((f) => {
     const lv = rec.hideout[f.id] || 0, k = facLv(rec, f.id), B = rec.build[f.id], cap = facCap(f, rec.hideout);
     const nx = !B && lv < Math.min(cap, facMax(f)) ? buildNeed(f.id, lv + 1) : null, off = buildOff(rec.perks);
-    return { id: f.id, lv, knob: k, cap, max: facMax(f), fee: upkeep(f.id, k), fx: facFx(f.id, k),
+    const fin = (x) => (Number.isFinite(x) ? x : null);   // 上限の ない 施設（サンプル保管庫）は null（JSON に Infinity は ない）
+    return { id: f.id, lv, knob: k, cap: fin(cap), max: fin(facMax(f)), fee: upkeep(f.id, k), fx: facFx(f.id, k),
       ...(B ? { build: { to: B.to, ms: B.ms, mats: B.mats, put: B.put, prog: buildProg(B, now), mr: buildMatRatio(B), tr: buildTimeRatio(B, now), left: buildLeftMs(B, now), rush: buildLeftMs(B, now) ? rushPrice(B, now) : 0 } } : {}),
       ...(nx ? { next: { to: lv + 1, credits: nx.credits, ms: Math.round(nx.ms * (1 - off)), mats: nx.mats, fx: facFx(f.id, lv + 1) } } : {}) };
   });

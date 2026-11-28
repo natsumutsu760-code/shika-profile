@@ -132,7 +132,8 @@ export const WORDS = {
   "★# まで": "Up to ★#", "高い ★ ＋#%": "Higher ★ +#%", "素材が # こ #%": "# materials #%", "アタッチメント ★# まで": "Attachments up to ★#", "道具 ＋# こ #%": "+# tool #%",
   "素材 −#%": "Materials −#%", "研究の アメジストと 時間 −#%": "Research Amethyst & time −#%", "採取と 敵の 素材 ＋#%": "Gathering & enemy materials +#%",
   "着いた 階の 階段が 見える": "Shows the stairs on each floor you reach", "休憩の 回復 ×#": "Rest recovery ×#", "倒れた 子が HP #% で 起きる": "Fallen members get up with #% HP",
-  "派遣の 経験値 ＋#%": "Expedition XP +#%", "# しゅるい # こ まで": "Up to #2 per type", "装備 # こ まで": "Up to # gear", "# 体": "# diggers",
+  "派遣の 経験値 ＋#%": "Expedition XP +#%", "サンプル # こ": "# samples", "鑑定 #": "Appraisal #", "運び屋 素材 #／サンプル #": "Courier #1 mats / #2 samples", "保険 # 時間 # 分": "Insurance #1 h #2 min", "保険 # 時間": "Insurance # h", "保険 # 分": "Insurance # min",
+  "サンプルを 見る": "View samples", "ボーダーゾーンが 開いて から（無線機 Lv2）": "After the Border Zone opens (Radio Lv2)", "# しゅるい # こ まで": "Up to #2 per type", "装備 # こ まで": "Up to # gear", "# 体": "# diggers",
   "# 時間に # こ": "#2 per #1 h", "# 時間 # こ": "#2 per #1 h", "ビサイ諸島へ 行ける": "Travel to the Bisai Isles", "ほかの 施設を Lv# から 上げられる": "Other facilities can be raised from Lv#",
   "自動で リサイクル": "Auto-recycle", "自動で リサイクルするのを やめた": "Auto-recycle turned off", "派遣で 拾った 物だけ・ミシックなどは リサイクルしない": "Expedition drops only · Mythics etc. aren't recycled",
 };

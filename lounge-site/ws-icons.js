@@ -50,4 +50,17 @@ Object.assign(ICONS, {
   pot_atk: W(bottle("#FFB04A", "#B86A12")), pot_def: W(bottle("#9AA8BE", "#4A5468")), pot_agi: W(bottle("#7FE0D0", "#1E8A7A")),
 });
 ICONS.scaffold_board = ICONS.scaffold;   // 板の 足場（2026-11-11）は 足場と 同じ 物
+Object.assign(ICONS, {
+  // ボーダーゾーンの 素材で 作る アタッチメント（2026-11-27）
+  amp: W(`<rect x="8" y="23" width="16" height="5" rx="1.5" fill="#6A7088" stroke="#2B3040" stroke-width="1.5"/><path d="M11 23V12a5 5 0 0 1 10 0v11z" fill="#E7F3FF" stroke="#4A5468" stroke-width="1.6"/><path d="M14 22v-7l2 3 2-3v7" fill="none" stroke="#FF922B" stroke-width="1.6"/><path d="M13 11a3 3 0 0 1 2-2" fill="none" stroke="#fff" stroke-width="1.5"/>`),
+  capsule: W(`<g transform="rotate(-40 16 16)"><rect x="5" y="11" width="22" height="10" rx="5" fill="#E7F3FF" stroke="#2C8A5A" stroke-width="1.6"/><path d="M16 11h6a5 5 0 0 1 0 10h-6z" fill="#7FE0B0" stroke="#2C8A5A" stroke-width="1.6"/><circle cx="10" cy="16" r="1.4" fill="#A6D86A"/><circle cx="12.5" cy="14" r="1" fill="#A6D86A"/></g>`),
+  shellring: W(`<circle cx="16" cy="18" r="8" fill="none" stroke="#B88A00" stroke-width="3.2"/><path d="M13 4h6v6l-3 3-3-3z" fill="#C9D1DE" stroke="#3E4658" stroke-width="1.4"/><path d="M13 4a3 3 0 0 1 6 0" fill="#E0A21C" stroke="#9A6A12" stroke-width="1.3"/>`),
+  vial: W(bottle("#C3A6FF", "#6A3FB0")),
+  laser: W(`<rect x="5" y="12" width="13" height="8" rx="2" fill="#3E4658" stroke="#1B2340" stroke-width="1.5"/><circle cx="16" cy="16" r="2.2" fill="#FF6B6B" stroke="#A8352B" stroke-width="1"/><path d="M19 16h10" stroke="#FF6B6B" stroke-width="2"/><rect x="8" y="20" width="4" height="4" fill="#6A7088" stroke="#1B2340" stroke-width="1.2"/>`),
+  kevlar: W(`<rect x="11" y="3" width="10" height="26" rx="4" fill="#E0C46A" stroke="#7A6420" stroke-width="1.5"/><path d="M11 8l10 4M11 12l10-4M11 16l10 4M11 20l10-4M11 24l10 4M11 28l10-4" stroke="#9A7E2A" stroke-width="1.3"/>`),
+  syncgrip: W(`<rect x="11" y="3" width="10" height="26" rx="4" fill="#2F6B4F" stroke="#173D2A" stroke-width="1.5"/><path d="M14 6v6h4v5M18 20v-3M14 22v5" fill="none" stroke="#7FE0B0" stroke-width="1.4"/><circle cx="14" cy="6" r="1.3" fill="#FFD43B"/><circle cx="18" cy="20" r="1.3" fill="#FFD43B"/><circle cx="14" cy="22" r="1.3" fill="#FFD43B"/>`),
+  coil: W(`<rect x="13.5" y="3" width="5" height="26" rx="2" fill="#8F9AAA" stroke="#3E4658" stroke-width="1.3"/><path d="M10 8h12M10 11.5h12M10 15h12M10 18.5h12M10 22h12M10 25.5h12" stroke="#D9822B" stroke-width="2.4"/><path d="M10 8h12M10 15h12M10 22h12" stroke="#F3B26B" stroke-width="1" />`),
+  canvas: W(`<path d="M10 4h12l2 3v18l-2 3H10l-2-3V7z" fill="#C9B48A" stroke="#6E5A33" stroke-width="1.6"/><path d="M12 7v18M20 7v18" stroke="#6E5A33" stroke-width="1.1" stroke-dasharray="2 1.6"/><path d="M14 12h4M14 16h4M14 20h4" stroke="#E8D9B8" stroke-width="1.5"/>`),
+  foregrip: W(`<rect x="5" y="5" width="22" height="5" rx="1.5" fill="#6A7088" stroke="#2B3040" stroke-width="1.5"/><path d="M12 10h8l-1 16a2 2 0 0 1-2 2h-2a2 2 0 0 1-2-2z" fill="#3E4658" stroke="#1B2340" stroke-width="1.5"/><path d="M13 14h6M13 18h6M13 22h6" stroke="#8F9AAA" stroke-width="1.3"/>`),
+});
 export const wsIcon = (id) => ICONS[id] || W(`<circle cx="16" cy="16" r="10" fill="#DCE3F0"/>`);

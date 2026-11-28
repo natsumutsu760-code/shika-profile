@@ -34,6 +34,14 @@
   @media (max-height:520px) { .tdp { padding:3px 12px 3px 3px; gap:10px; margin-bottom:8px; } .tdp img { width:58px; height:40px; border-radius:10px; } .tdp b { font-size:15px; } }   /* 本番の 小さな 枠（約 358×380） */
   .res { font:600 15px/1 var(--num); padding:8px 12px; border-radius:999px; background:#fff; border:1.5px solid var(--line); color:var(--ink); }
   .res i { display:inline-block; width:9px; height:9px; border-radius:50%; background:var(--leaf); margin-right:6px; }
+  #mvDlg { position:fixed; inset:0; z-index:40; display:grid; place-items:center; padding:16px; background:rgba(27,35,64,.35); } #mvDlg[hidden] { display:none; }   /* 引越し（2026-11-27） */
+  .mvbox { width:min(560px, 100%); max-height:88vh; overflow:auto; display:grid; gap:10px; padding:16px; border-radius:22px; background:#fff; box-shadow:0 18px 48px -12px rgba(27,35,64,.45); }
+  .mvhd { display:flex; align-items:center; } .mvhd b { font:900 18px/1.2 var(--jp); } .mvx { margin-left:auto; width:36px; height:36px; border-radius:999px; border:1.5px solid var(--line); background:#fff; font:900 16px/1 var(--jp); }
+  .mvnow, .mvnote { font:700 13px/1.5 var(--jp); color:var(--soft); } .mvrow { display:grid; gap:6px; } .mvrow > span { font:900 13px/1 var(--jp); } .mvrow > div { display:flex; flex-wrap:wrap; gap:6px; }
+  .mvrow .chip { display:inline-grid; gap:2px; min-height:36px; padding:6px 12px; border-radius:14px; border:1.5px solid var(--line); background:#fff; font:900 13px/1.2 var(--jp); color:var(--ink); text-align:left; } .mvrow .chip small { font:700 12px/1.2 var(--jp); color:var(--soft); }
+  .mvrow .chip:disabled { opacity:.5; cursor:default; }
+  .mvrow .chip[aria-pressed="true"] { background:var(--ink); border-color:var(--ink); color:#fff; } .mvrow .chip[aria-pressed="true"] small { color:rgba(255,255,255,.75); }
+  .mvgo { display:grid; gap:6px; } .mvpay { min-height:44px; border-radius:999px; border:0; background:var(--sky); color:#fff; font:900 14px/1 var(--jp); } .mvpay.ask { background:#E0533C; } .mvpay:disabled { opacity:.45; } .mvwhy { font:700 12px/1.3 var(--jp); color:#C2410C; }
   .sw, .edit { padding:9px 16px; border-radius:999px; border:1.5px solid var(--line); background:#fff; font:900 13px/1 var(--jp); color:var(--ink); }
   .edit { background:var(--ink); border-color:var(--ink); color:#fff; }
   main.editing .edit { display:none; }
@@ -89,6 +97,8 @@
   .drawer { display:grid; gap:8px; } .drawer[hidden] { display:none; } .drawer .list { max-height:38vh; overflow:auto; }
   .sorts { display:flex; gap:6px; }
   .done { padding:13px; border-radius:16px; border:0; background:var(--ink); color:#fff; font:900 15px/1 var(--jp); }
+  @media (max-width:520px) { #moveBtn { display:none; } }   /* せまい 画面（本番の 枠 358 × 380）は バーに 置かず「もようがえ」の 窓の 中に（ボタンが 2 行に ならない。2026-11-27） */
+  .mvin { width:100%; margin-top:8px; min-height:40px; border-radius:999px; border:1.5px solid var(--line); background:#fff; font:900 13px/1 var(--jp); color:var(--ink); }
   @media (max-width:860px) {
     main.editing { grid-template-columns:minmax(0, 1fr); }
     .view { height:auto; aspect-ratio:1 / 1; }
@@ -106,7 +116,7 @@
 <header class="top"><a href="/" style="color:inherit;text-decoration:none" aria-label="MONO LINK の サイトへ"><b>MONO LINK<i>://</i></b></a><small>プライベートラウンジ</small></header>
 <main id="app">
   <section aria-label="部屋">
-    <div class="bar"><h1 id="title">部屋</h1><a class="sw" href="lounge-shop.html">家具の お店</a><button class="sw" id="light" aria-pressed="false">☀ 昼</button><button class="edit" id="edit">もようがえ</button></div>
+    <div class="bar"><h1 id="title">部屋</h1><a class="sw" href="lounge-shop.html">家具の お店</a><button class="sw" id="light" aria-pressed="false">☀ 昼</button><button class="sw" id="moveBtn">引越し</button><button class="edit" id="edit">もようがえ</button></div>
     <a class="tdp" id="tdPanel" href="td.html" hidden><img src="img/td-panel.webp" alt="" width="138" height="99"><span><b>集合住宅</b><small id="tdSub">住人を むかえて 襲撃から 守る</small></span><em id="tdN" hidden></em><i aria-hidden="true">▶</i></a>
     <div class="view" id="view" aria-label="6×6 マスの 部屋。ペットを 押すと なでる"><p class="toast" id="toast" role="status"></p></div>
   </section>
@@ -116,15 +126,24 @@
 <script type="module">
 import "./lounge-en.js";   // 英語の 画面（MONO LINK の サイトの EN／日本語 と 同じ 決まり。英語の ときだけ 辞書を 読む）
 import * as THREE from "three";
-import { N, FURN, F, kit, buildHatch, HATCH, buildGardenDoor, GARDEN, dims, cellsOf, fits } from "./lounge-furniture.js";
-import { me, act, busy } from "./lounge-client.js";   // 部屋の 置き方・昼と夜は 門番に しまう（見本では ブラウザの 中の ためしの 門番）
+import { N as N0, FURN, F, kit, buildHatch, HATCH, buildGardenDoor, GARDEN, dims, cellsOf, fits, cellLevel } from "./lounge-furniture.js";
+import { MOVE_TYPES, MOVE_TYPE_TEXT, rankOfSize, ROOM_RANK, layoutCells, roomSize, roomPrice } from "./move.js";   // 引越し（2026-11-27 鹿さんの カード）
+import { me, act, busy, waitText, demoMode } from "./lounge-client.js";   // 部屋の 置き方・昼と夜は 門番に しまう（見本では ブラウザの 中の ためしの 門番）
 import { mountWallet } from "./wallet-bar.js"; mountWallet();   // 上の 通貨の 札（玉・アメジスト・クレジット）と 両替
 import { makePet3, SPECIES3 } from "./pets.js";
+import { LUX, luxTick, luxScene, luxOnBg } from "./room-lux.js";   // 高い ティアの 部屋（見本。2026-11-27 鹿さんの 部屋の 注文）
 
 const q = new URLSearchParams(location.search);
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
 // 持ち物（数）と、いま 置いて いる 物は 門番から。床は x・z（左上の マス）と rot（90 度 × n）、かべは wall（back・left）と i（はしの マス）
 const ME = await me();
+// 部屋の 広さと 種類（引越し。2026-11-27）：門番の room.size・room.type。はじめは 6×6 の いまの 部屋
+const N = Number.isInteger(ME.room && ME.room.size) && ME.room.size >= N0 ? ME.room.size : N0, RTYPE = (ME.room && MOVE_TYPES[ME.room.type] && ME.room.type) || "room", RRANK = Number.isInteger(ME.room && ME.room.rank) ? ME.room.rank : rankOfSize(N);
+const SHELL = demoMode && LUX[q.get("shell")] ? q.get("shell") : null;   // 見本だけ：高い ティアの 部屋を 写す（?shell=vip など。しまう 置き方は 本当の 部屋の 種類の まま）
+const RT = SHELL || RTYPE, LT = LUX[RT] ? RT : null, EXTRA = layoutCells(RT, N);   // 部屋の 種類・高い ティアの 形・床の 外の 置ける マス（間取り。2026-11-27 鹿さんの カード「置ける」）
+const DOOR = LT && LUX[LT].door ? LUX[LT].door(N) : [N / 2 + GARDEN.x, -N / 2 + GARDEN.z];   // 庭への扉：高い ティアの 部屋は 右の 間取り（通路・草地・ロフト）の 外へ（家具と かさならない ように。確かめ役の 指摘 2026-11-28）
+const BOUNDS = [...EXTRA.keys()].reduce((b, k) => { const [x, z] = k.split(",").map(Number); return { x1: Math.max(b.x1, x + 1), z1: Math.max(b.z1, z + 1) }; }, { x1: N, z1: N });
+document.getElementById("view")?.setAttribute("aria-label", `${N}×${N} マスの 部屋。ペットを 押すと なでる`);   // 広さは 引越しで かわる
 // 入れない 人（ログインが 切れた・フォローして いない など）：理由と、ログインの 道だけ 出して ここで とめる
 if (ME.denied || ME.ok === false) {
   document.querySelector("main").innerHTML = `<section class="panel" style="max-width:520px;margin:24px auto;text-align:center;padding:28px 24px"><h2 style="margin:0 0 8px">入れません</h2><p>${String(ME.why || "もう 1 回 開いて ください").replace(/[&<>"]/g, "")}</p>${ME.login ? `<p><a href="/">MONO LINK で ログイン</a></p>` : ""}</section>`;
@@ -172,7 +191,7 @@ document.getElementById("title").textContent = `${ME.name || ""} の 部屋`;
 
 // ---------- 置き場所の 計算 ----------
 // 置けるか：決まりは lounge-rules.js（門番と 同じ）
-const fitsHere = (it, skip) => fits(S.items, it, skip);
+const fitsHere = (it, skip) => fits(S.items, it, skip, N, EXTRA);   // 間取りの マス（ロフト・テラスなど）にも 置ける
 // のこりの 数（動かして いる 途中の 物は 置いた ことに する）
 const left = (id) => OWN[id] - S.items.filter((o) => o.id === id).length - (S.hold?.from && S.hold.id === id ? 1 : 0);
 
@@ -189,7 +208,7 @@ const groups = new Map();   // uid → 家具の 3D
 function place3d(g, it) {
   if (it.wall === "back") { g.position.set(it.i + F(it.id).size / 2 - N / 2, 0, -N / 2 + 0.06); g.rotation.y = 0; }
   else if (it.wall === "left") { g.position.set(-N / 2 + 0.06, 0, it.i + F(it.id).size / 2 - N / 2); g.rotation.y = Math.PI / 2; }
-  else { const [w, d] = dims(it); g.position.set(it.x + w / 2 - N / 2, 0, it.z + d / 2 - N / 2); g.rotation.y = it.rot * Math.PI / 2; }
+  else { const [w, d] = dims(it); g.position.set(it.x + w / 2 - N / 2, cellLevel(it.x, it.z, N, EXTRA) ?? 0, it.z + d / 2 - N / 2); g.rotation.y = it.rot * Math.PI / 2; }   // ロフトは 床の 高さに
 }
 function make(it, see) {
   const g = new THREE.Group(); F(it.id).build(K, g); place3d(g, it);
@@ -202,7 +221,7 @@ function footprint(it, color, op) {
   if (it.wall) { const w = F(it.id).size, p = new THREE.Mesh(new THREE.PlaneGeometry(w - 0.06, 3.2), m);
     if (it.wall === "back") p.position.set(it.i + w / 2 - N / 2, 1.7, -N / 2 + 0.02); else { p.position.set(-N / 2 + 0.02, 1.7, it.i + w / 2 - N / 2); p.rotation.y = Math.PI / 2; }
     g.add(p); }
-  else for (const [x, z] of cellsOf(it)) { const p = new THREE.Mesh(new THREE.PlaneGeometry(0.94, 0.94), m); p.rotation.x = -Math.PI / 2; p.position.set(x - N / 2 + 0.5, 0.045, z - N / 2 + 0.5); g.add(p); }
+  else for (const [x, z] of cellsOf(it)) { const p = new THREE.Mesh(new THREE.PlaneGeometry(0.94, 0.94), m); p.rotation.x = -Math.PI / 2; p.position.set(x - N / 2 + 0.5, (cellLevel(x, z, N, EXTRA) ?? 0) + 0.045, z - N / 2 + 0.5); g.add(p); }
   return g;
 }
 
@@ -213,18 +232,63 @@ function buildRoom() {
   renderer.toneMapping = S.night ? THREE.ACESFilmicToneMapping : THREE.NoToneMapping;
   scene.add(new THREE.HemisphereLight(S.night ? "#6C7BD9" : "#FFFFFF", S.night ? "#1B2340" : "#C9D3EA", S.night ? 0.6 : 1.6));
   const sun = new THREE.DirectionalLight(S.night ? "#8EA0FF" : "#FFF4E0", S.night ? 0.5 : 1.3); sun.position.set(6, 12, 4); sun.castShadow = true;
-  sun.shadow.mapSize.set(2048, 2048); Object.assign(sun.shadow.camera, { left: -8, right: 8, top: 8, bottom: -8 }); sun.shadow.bias = -0.0005; scene.add(sun);
+  sun.shadow.mapSize.set(2048, 2048); const sh = Math.max(8, N * 0.8); Object.assign(sun.shadow.camera, { left: -sh, right: sh, top: sh, bottom: -sh }); sun.shadow.bias = -0.0005; scene.add(sun);
+  if (RTYPE === "roof") scene.background = new THREE.Color(S.night ? "#0E1530" : "#BFE3FF");   // 屋上は 空
   room = new THREE.Group(); scene.add(room);
-  for (let i = 0; i < N; i++) for (let j = 0; j < N; j++) K.box(room, 1, 0.2, 1, K.mat((i + j) % 2 ? (S.night ? "#2A3157" : "#E4E9F4") : (S.night ? "#252B4E" : "#EDF1F8")), i - N / 2 + 0.5, -0.2, j - N / 2 + 0.5);
-  const wallM = S.night ? K.mat("#20274A") : K.mat("#FFFFFF", { emissive: "#DCE3F0", emissiveIntensity: 0.3 });
-  K.box(room, N + 0.3, 4, 0.3, wallM, -0.15, -0.2, -N / 2 - 0.15); K.box(room, 0.3, 4, N, wallM, -N / 2 - 0.15, -0.2, 0);
-  K.box(room, N, 0.08, 0.04, K.glow("#2EA8FF"), 0, 0.02, -N / 2 + 0.02); K.box(room, 0.04, 0.08, N, K.glow("#8E6CFF"), -N / 2 + 0.02, 0.02, 0);
+  buildShell(room);   // 床と かべ（部屋の 種類で かわる。引越し 2026-11-27）
+  luxScene(LT, scene, renderer, S.night); setBg();
   const h = new THREE.Group(); buildHatch(K, h); h.position.set(HATCH.x - N / 2 + 0.5, 0, HATCH.z - N / 2 + 0.5); room.add(h);
-  if (GDN) { const gd = new THREE.Group(); buildGardenDoor(K, gd); gd.position.set(N / 2 + GARDEN.x, 0, -N / 2 + GARDEN.z); gd.traverse((m) => { m.userData.garden = true; }); room.add(gd); }
+  if (GDN) { const gd = new THREE.Group(); buildGardenDoor(K, gd); gd.position.set(DOOR[0], 0, DOOR[1]); gd.traverse((m) => { m.userData.garden = true; }); room.add(gd); }
   if (S.night) { const p1 = new THREE.PointLight("#8E6CFF", 5, 6); p1.position.set(1, 2, -1.5); scene.add(p1); }
   for (const it of S.items) { const g = make(it); groups.set(it.uid, g); scene.add(g); }
   if (PET_SP) { pet.g = makePet3(PET_SP); pet.g.traverse((m) => { if (m.isMesh) m.castShadow = true; }); pet.g.visible = !S.edit; pet.g.rotation.y = pet.face; scene.add(pet.g); }
   marks();
+}
+// 床と かべ：種類ごと（いまの 部屋・屋上・倉庫・和室・前線基地）。飾りは マスの 外か かべの 上の ほう（家具を 置く マスを ふさがない）
+function buildShell(g) {
+  if (LT) { LUX[LT].build({ g, K, N, night: S.night, scene, renderer }); return; }
+  const n = S.night, H = -N / 2, tile = (a, b) => { for (let i = 0; i < N; i++) for (let j = 0; j < N; j++) K.box(g, 1, 0.2, 1, K.mat((i + j) % 2 ? a : b), i + H + 0.5, -0.2, j + H + 0.5); };
+  const walls = (m, h = 4) => { K.box(g, N + 0.3, h, 0.3, m, -0.15, -0.2, H - 0.15); K.box(g, 0.3, h, N, m, H - 0.15, -0.2, 0); };
+  if (RTYPE === "roof") {   // 屋上：コンクリの 床・低い 立ち上がり・金網の フェンス・室外機
+    tile(n ? "#3A4060" : "#C4C9D3", n ? "#363C5A" : "#CDD2DB");
+    const par = K.mat(n ? "#4A5070" : "#B5BBC6"); K.box(g, N + 0.3, 0.45, 0.3, par, -0.15, -0.2, H - 0.15); K.box(g, 0.3, 0.45, N, par, H - 0.15, -0.2, 0);
+    const post = K.mat(n ? "#8A92B0" : "#7A8294"), net = new THREE.MeshStandardMaterial({ color: n ? "#9AA6D0" : "#8A93A8", transparent: true, opacity: 0.28, side: THREE.DoubleSide });
+    for (let k = 0; k <= N; k += 1) { K.box(g, 0.06, 2.0, 0.06, post, k + H, 0.25, H - 0.15); K.box(g, 0.06, 2.0, 0.06, post, H - 0.15, 0.25, k + H); }
+    K.box(g, N, 1.8, 0.02, net, 0, 0.35, H - 0.15); K.box(g, 0.02, 1.8, N, net, H - 0.15, 0.35, 0); K.box(g, N, 0.05, 0.05, post, 0, 2.2, H - 0.15); K.box(g, 0.05, 0.05, N, post, H - 0.15, 2.2, 0);
+    for (const z of [H + 1.2, H + 2.6]) { K.box(g, 0.9, 0.7, 0.6, K.mat("#E4E7EE"), H - 0.9, -0.2, z); K.cyl(g, 0.24, 0.24, 0.04, K.mat("#5A6070"), H - 0.58, 0.05, z, 12).rotation.z = Math.PI / 2; }   // 室外機（フェンスの 外）
+    return;
+  }
+  if (RTYPE === "warehouse") {   // 倉庫：コンクリの 床・波板の かべ・鉄骨の 柱と はり・外に コンテナ
+    tile(n ? "#3B3F52" : "#A9AEB8", n ? "#373B4D" : "#B1B6BF");
+    const wm = K.mat(n ? "#3E4660" : "#8C96A4"); walls(wm);
+    for (let k = 0; k < N; k += 0.5) { K.box(g, 0.08, 4, 0.06, K.mat(n ? "#4A5270" : "#7E8896"), k + H + 0.25, -0.2, H + 0.0); K.box(g, 0.06, 4, 0.08, K.mat(n ? "#4A5270" : "#7E8896"), H + 0.0, -0.2, k + H + 0.25); }   // 波板の すじ
+    const st = K.mat(n ? "#C2563A" : "#D0663E"); for (const k of [0, N / 2, N]) { K.box(g, 0.22, 3.8, 0.22, st, k + H, -0.2, H + 0.12); K.box(g, 0.22, 3.8, 0.22, st, H + 0.12, -0.2, k + H); }
+    K.box(g, N, 0.24, 0.2, st, 0, 3.3, H + 0.12); K.box(g, 0.2, 0.24, N, st, H + 0.12, 3.3, 0);
+    K.box(g, 0.8, 0.14, 0.6, K.glow("#FFE3A3", 1.2), 0, 3.0, H + 0.6);   // つり下げの 灯り
+    return;
+  }
+  if (RTYPE === "washitsu") {   // 和室：畳（1 × 2 マス）・障子の かべ・木の 柱
+    for (let i = 0; i < N; i++) for (let j = 0; j < N; j += 2) { const rot = (i + j / 2) % 2; K.box(g, 0.98, 0.2, Math.min(2, N - j) - 0.02, K.mat(rot ? (n ? "#5A5A3A" : "#D6CC8E") : (n ? "#55553A" : "#CFC585")), i + H + 0.5, -0.2, j + H + Math.min(2, N - j) / 2); }
+    const sj = new THREE.MeshStandardMaterial({ color: n ? "#E8E2CC" : "#FBF7EA", emissive: n ? "#FFE9B0" : "#000000", emissiveIntensity: n ? 0.25 : 0 }), wd = K.mat(n ? "#5A4230" : "#8B6A45");
+    walls(sj, 3.2);
+    for (let k = 0; k <= N; k += 1) { K.box(g, 0.08, 3.2, 0.34, wd, k + H, -0.2, H - 0.15); K.box(g, 0.34, 3.2, 0.08, wd, H - 0.15, -0.2, k + H); }
+    for (const y of [0.9, 1.6, 2.3]) { K.box(g, N, 0.04, 0.33, wd, 0, y, H - 0.15); K.box(g, 0.33, 0.04, N, wd, H - 0.15, y, 0); }
+    K.box(g, N + 0.3, 0.12, 0.36, wd, -0.15, 3.0, H - 0.15); K.box(g, 0.36, 0.12, N, wd, H - 0.15, 3.0, 0);
+    return;
+  }
+  if (RTYPE === "base") {   // 前線基地：板の 床・土のうの かべ・有刺線・作戦の 地図
+    tile(n ? "#4A3F36" : "#9C8A68", n ? "#463B32" : "#A69472");
+    const bag = K.mat(n ? "#6E6448" : "#C2AF80");
+    for (let r = 0; r < 3; r++) for (let k = 0; k < N; k += 0.75) { const o = r % 2 ? 0.37 : 0; if (k + o + 0.7 > N + 0.01) continue; K.box(g, 0.72, 0.36, 0.42, bag, k + o + H + 0.36, -0.2 + r * 0.36, H - 0.2); K.box(g, 0.42, 0.36, 0.72, bag, H - 0.2, -0.2 + r * 0.36, k + o + H + 0.36); }
+    const pl = K.mat(n ? "#3E3428" : "#7A6446"); K.box(g, N + 0.3, 2.6, 0.12, pl, -0.15, 0.88, H - 0.36); K.box(g, 0.12, 2.6, N, pl, H - 0.36, 0.88, 0);
+    for (let k = 0; k < N; k += 0.5) { const r1 = new THREE.Mesh(new THREE.TorusGeometry(0.14, 0.015, 4, 10), K.mat("#9AA0AE")); r1.position.set(k + H + 0.25, 3.62, H - 0.3); g.add(r1); const r2 = r1.clone(); r2.position.set(H - 0.3, 3.62, k + H + 0.25); r2.rotation.y = Math.PI / 2; g.add(r2); }
+    const mp = new THREE.Group(); mp.position.set(N / 2 - 1.6, 2.4, H - 0.28); g.add(mp); K.box(mp, 1.6, 1.0, 0.04, K.mat("#E8DDBA")); K.box(mp, 1.7, 0.06, 0.06, pl, 0, -0.03, 0); K.box(mp, 1.7, 0.06, 0.06, pl, 0, 1.0, 0);
+    for (const [x, y, c] of [[-0.4, 0.3, "#E0533C"], [0.2, 0.6, "#2E7AB8"], [0.5, 0.25, "#E0533C"], [-0.1, 0.75, "#22AA66"]]) K.box(mp, 0.06, 0.06, 0.06, K.mat(c), x, y, 0.03);
+    return;
+  }
+  tile(n ? "#2A3157" : "#E4E9F4", n ? "#252B4E" : "#EDF1F8");   // いまの 部屋
+  walls(n ? K.mat("#20274A") : K.mat("#FFFFFF", { emissive: "#DCE3F0", emissiveIntensity: 0.3 }));
+  K.box(g, N, 0.08, 0.04, K.glow("#2EA8FF"), 0, 0.02, H + 0.02); K.box(g, 0.04, 0.08, N, K.glow("#8E6CFF"), H + 0.02, 0.02, 0);
 }
 // えらんだ 物の 黄色い わく・もって いる 物の 半とうめいと 緑（置ける）／赤（置けない）
 function marks() {
@@ -235,20 +299,25 @@ function marks() {
 
 function size() {
   // 庭への扉が ある ときは、右に 出た 扉まで 入る ように 少し 広く・右へ ずらして 写す（PC は もともと 入る）
-  const w = view.clientWidth, h = view.clientHeight, asp = w / h, s = Math.max(4.4, (GDN ? 4.85 : 4.65) / asp), cx = GDN ? 0.32 : 0;
+  const L = LT && LUX[LT], w = view.clientWidth, h = view.clientHeight, asp = w / h, s = Math.max(4.4, (GDN ? 4.85 : 4.65) / asp) * ((N + (L ? L.pad : 0)) / N0), cx = GDN ? 0.32 : 0;   // 広い 部屋（引越し）は 広さに 合わせて 引く・高い ティアの 部屋は 間取りの 分も
+  if (L) { cam.position.set(14 + L.cx, 12, 14 + L.cz); cam.lookAt(L.cx, 1.15, L.cz); setBg(); }
   Object.assign(cam, { left: cx - s * asp, right: cx + s * asp, top: s, bottom: -s }); cam.updateProjectionMatrix(); cam.updateMatrixWorld(); renderer.setSize(w, h, false);
   tags();
 }
 // ふだ（ふつうの とき）：PC → DEEP LINK/:、はしご → 地下の 隠れ家、ペット → ペットの 画面（冒険。まだ いなければ 性格診断）。部屋が まんなか（鹿さんの決め、2026-10-24）
 // 庭への扉 → 新しい 農園（鹿さんの 決め、2026-11-03）
 const tagEls = [["pc", "deeplink.html", "DEEP LINK/:"], ["hatch", "hideout-room.html", "地下へ"], ...(GDN ? [["garden", "garden.html", "庭へ"]] : []), ["pet", MP ? "dungeon.html" : "quiz.html", MP ? "ペット" : "ペットを むかえる"]].map(([k, href, txt]) => { const a = document.createElement("a"); a.className = "tag"; a.href = href; a.textContent = txt; view.appendChild(a); return { k, a }; });
+// 高い ティアの 部屋の 背景（画面の 大きさに 合わせて 描く）
+let BG = null;
+luxOnBg(() => setBg());   // 背景の 写真が 読めたら 描き直す
+function setBg() { if (!LT) return; const k = Math.min(2, devicePixelRatio); BG?.dispose(); BG = LUX[LT].bg(view.clientWidth * k, view.clientHeight * k, S.night); scene.background = BG; }
 function tags() {
   const w = view.clientWidth, h = view.clientHeight;
   for (const t of tagEls) {
     if (t.k === "pet") { petTag(); continue; }
     let p;
     if (t.k === "hatch") p = new THREE.Vector3(HATCH.x - N / 2 + 0.5, 0.75, HATCH.z - N / 2 + 0.5);
-    else if (t.k === "garden") p = new THREE.Vector3(N / 2 + GARDEN.x, 2.6, -N / 2 + GARDEN.z);
+    else if (t.k === "garden") p = new THREE.Vector3(DOOR[0], 2.6, DOOR[1]);
     else { const it = S.items.find((o) => o.id === "pc"); t.a.hidden = !it; if (!it) continue; const g = groups.get(it.uid); p = g.position.clone().setY(1.6); }
     const v = p.project(cam), hw = t.a.offsetWidth / 2 + 4;   // 札は 画面の 中に おさめる（スマホで 右はしの 庭への扉の 札が 切れない ように）
     t.a.style.left = `${Math.min(w - hw, Math.max(hw, ((v.x + 1) / 2) * w))}px`; t.a.style.top = `${((1 - v.y) / 2) * h}px`;
@@ -269,9 +338,12 @@ function spot() {
       if (!best || d < best.d) best = { d, wall, i: Math.max(0, Math.min(N - f.size, Math.round(c + N / 2 - f.size / 2))) }; }
     return best && { wall: best.wall, i: best.i };
   }
-  const p = ray.ray.intersectPlane(PL.floor, new THREE.Vector3()); if (!p) return null;
   const rot = S.hold.rot, [w, d] = rot % 2 ? [f.size[1], f.size[0]] : f.size;
-  return { x: Math.max(0, Math.min(N - w, Math.round(p.x + N / 2 - w / 2))), z: Math.max(0, Math.min(N - d, Math.round(p.z + N / 2 - d / 2))), rot };
+  for (const y of [...new Set(EXTRA.values())].filter((v) => v > 0).sort((a, b) => b - a)) {   // 高い 床（ロフト）を 先に 見る
+    const q2 = ray.ray.intersectPlane(new THREE.Plane(new THREE.Vector3(0, 1, 0), -y), new THREE.Vector3()); if (!q2) continue;
+    const x = Math.round(q2.x + N / 2 - w / 2), z = Math.round(q2.z + N / 2 - d / 2); if (cellLevel(x, z, N, EXTRA) === y) return { x, z, rot }; }
+  const p = ray.ray.intersectPlane(PL.floor, new THREE.Vector3()); if (!p) return null;
+  return { x: Math.max(0, Math.min(BOUNDS.x1 - w, Math.round(p.x + N / 2 - w / 2))), z: Math.max(0, Math.min(BOUNDS.z1 - d, Math.round(p.z + N / 2 - d / 2))), rot };   // 床の 外の 間取り（テラスなど）まで
 }
 view.addEventListener("pointermove", (e) => {
   if (!S.edit || !S.hold) return; aim(e); const at = spot(); if (!at) return;
@@ -338,7 +410,7 @@ function panel() {
     P.innerHTML = `${selHtml()}
       <div class="tabs" role="tablist" aria-label="しゅるい">${KINDS.map(([k, t]) => `<button class="tab" role="tab" data-tab="${k}" aria-selected="${S.kind === k}" aria-expanded="${S.kind === k && S.open}" ${has(k) ? "" : "disabled"}>${t}<small>${n(k)}</small></button>`).join("")}</div>
       <div class="drawer" ${S.open ? "" : "hidden"}><div class="sorts">${sorts}</div><ul class="list" aria-label="持ち物">${rows}</ul></div>
-      <button class="done" data-act="done">できた</button>`;
+      <button class="done" data-act="done">できた</button><button class="mvin" data-act="mvopen">引越し</button>`;
     return;
   }
   P.innerHTML = `<h2>もようがえ<small>置いた ${placed} こ</small></h2>${selHtml()}
@@ -346,7 +418,7 @@ function panel() {
       <div class="frow"><span>しゅるい</span><div>${KINDS.map(([k, t]) => `<button class="chip" data-kind="${k}" aria-pressed="${S.kind === k}" ${has(k) ? "" : "disabled"}>${t}<small>${n(k)}</small></button>`).join("")}</div></div>
       <div class="frow"><span>ならべる</span><div><button class="chip" data-sort="star" aria-pressed="${S.sort === "star"}">★の 高い順</button><button class="chip" data-sort="name" aria-pressed="${S.sort === "name"}">名前順</button></div></div></div>
     <ul class="list" aria-label="持ち物">${rows}</ul>
-    <button class="done" data-act="done">できた</button>`;
+    <button class="done" data-act="done">できた</button><button class="mvin" data-act="mvopen">引越し</button>`;
 }
 P.addEventListener("click", (e) => {
   const b = e.target.closest("button"); if (!b || b.disabled) return;
@@ -357,6 +429,7 @@ P.addEventListener("click", (e) => {
   const a = b.dataset.act;
   if (a === "rot") rotate(); else if (a === "move") pickUp(); else if (a === "store") store(); else if (a === "cancel") cancel();
   else if (a === "done") { if (S.hold) cancel(); saveRoom(b); }
+  else if (a === "mvopen") openMove();   // 引越し（せまい 画面は ここから。2026-11-27。「動かす」は move）
 });
 addEventListener("keydown", (e) => {
   if (!S.edit) return;
@@ -380,6 +453,37 @@ async function saveRoom(btn) {
   }
   S.edit = false; S.sel = null; petFree(); pet.until = 0; redraw();
 }
+// ---------- 引越し（2026-11-27 鹿さんの カード「引っ越しはスキンと同じ考え方。購入したら自由に変更できる。」「部屋ごとの 広さ」「どれでも 買える」）----------
+// 部屋を 1 つずつ 買う（値段は その 部屋の ランクの 値段・アメジストか エコポイント）・買った 部屋は いつでも ただで 切りかえ・広さは その 部屋の ランク
+const OWNED = new Set(["room", ...((ME.room && Array.isArray(ME.room.owned)) ? ME.room.owned : []), RTYPE]);
+const MV = { type: RTYPE, ask: null };
+const fmtN = (x) => Math.round(x).toLocaleString("ja-JP");
+function moveHtml() {
+  const t = MV.type, own = OWNED.has(t), sz = roomSize(t), cr = roomPrice(t, "res"), ce = roomPrice(t, "eco");
+  const res = ME.wallet && ME.wallet.known ? ME.wallet.res : null, eco = ME.bz && ME.bz.eco ? ME.bz.eco.pts : null;
+  const btn = (pay, c, have) => { const lack = have != null && c > have, key = pay + ":" + t; return `<button class="mvpay ${MV.ask === key ? "ask" : ""}" data-mvpay="${pay}" ${lack ? "disabled" : ""}>${MV.ask === key ? "もう 1 回 押すと 買って 引っ越す" : `${pay === "res" ? "アメジスト" : "エコポイント"}で 買う（${fmtN(c)}）`}</button>${lack ? `<small class="mvwhy">${pay === "res" ? "アメジスト" : "エコポイント"}が 足りない：あと ${fmtN(c - have)}</small>` : ""}`; };
+  const tag = (k) => (k === RTYPE ? "いまの 部屋" : OWNED.has(k) ? `${roomSize(k)}×${roomSize(k)}・持って いる` : `${roomSize(k)}×${roomSize(k)}・アメジスト ${fmtN(roomPrice(k, "res"))}`);
+  return `<div class="mvbox" role="dialog" aria-modal="true" aria-label="引越し"><div class="mvhd"><b>引越し</b><button class="mvx" data-mvclose aria-label="とじる">×</button></div>
+    <p class="mvnow">いま：${N}×${N}・${MOVE_TYPES[RTYPE]}</p>
+    <div class="mvrow"><span>部屋</span><div>${Object.keys(MOVE_TYPES).map((k) => `<button class="chip ${OWNED.has(k) ? "own" : ""}" data-mvtype="${k}" aria-pressed="${t === k}">${MOVE_TYPES[k]}<small>${tag(k)}</small></button>`).join("")}</div></div>
+    <p class="mvnote">${t === RTYPE ? "いまと 同じ 部屋" : `${sz}×${sz}・${MOVE_TYPE_TEXT[t]}`}</p>
+    ${t === RTYPE ? "" : `<p class="mvnote">${own ? "買って ある 部屋：ただで 切りかえ・入りきらない 家具は しまう" : "買うと いつでも ただで 切りかえ できる・入りきらない 家具は しまう"}</p>`}
+    <div class="mvgo">${t === RTYPE ? "" : own ? `<button class="mvpay" data-mvpay="free">この 部屋に 切りかえる（ただ）</button>` : `${btn("res", cr, res)}${eco != null ? btn("eco", ce, eco) : ""}`}</div></div>`;
+}
+function openMove() { let d = document.getElementById("mvDlg"); if (!d) { d = document.createElement("div"); d.id = "mvDlg"; document.body.appendChild(d); } d.innerHTML = moveHtml(); d.hidden = false; }
+document.getElementById("moveBtn").addEventListener("click", openMove);
+document.body.addEventListener("click", async (e) => {
+  const b = e.target.closest("#mvDlg button"); if (!b || b.disabled) { if (e.target.id === "mvDlg") { e.target.hidden = true; MV.ask = null; } return; }
+  const d = b.dataset;
+  if ("mvclose" in d) { document.getElementById("mvDlg").hidden = true; MV.ask = null; return; }
+  if (d.mvtype) { MV.type = d.mvtype; MV.ask = null; return openMove(); }
+  if (d.mvpay) {
+    if (d.mvpay !== "free") { const key = d.mvpay + ":" + MV.type; if (MV.ask !== key) { MV.ask = key; return openMove(); } }   // 買う ときは 2 回 押す（アメジスト・エコポイントを 使う ため）
+    MV.ask = null; const r = await busy(b, () => act("room.move", { type: MV.type, pay: d.mvpay === "eco" ? "eco" : "res" }), "引っ越して います…");
+    if (!r.ok) { toast(r.wait ? waitText : r.why || "引っ越せませんでした"); return openMove(); }
+    toast(`引っ越した：${r.size}×${r.size}・${MOVE_TYPES[r.type]}`); setTimeout(() => location.reload(), 700);
+  }
+});
 let tid; function toast(t) { const el = document.getElementById("toast"); el.textContent = t; el.classList.add("on"); clearTimeout(tid); tid = setTimeout(() => el.classList.remove("on"), 1800); }
 
 // ---------- 住人（ペット） ----------
@@ -454,7 +558,7 @@ function tick(t) {
     if (o.userData.spin) o.rotation.y = t / 1600;                                                                                                   // ホログラム
   });
   const sec = t / 1000, dt = Math.min(0.05, sec - (tick.last ?? sec)); tick.last = sec;
-  petStep(sec, dt); petLabel(sec);
+  petStep(sec, dt); petLabel(sec); if (LT && !calm) luxTick(sec);
   renderer.render(scene, cam); requestAnimationFrame(tick);
 }
 new ResizeObserver(() => size()).observe(view);

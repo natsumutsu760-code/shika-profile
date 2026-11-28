@@ -445,6 +445,7 @@ export const FAC_EN = {   // 名前・説明（効果の 1 行は Lv で かわ�
   mine: ["Mine", "Companions not in your party dig ore and junk"],
   radio: ["Radio", "Pick up island signals and send a boat to other islands"],
   sawmill: ["Sawmill", "Turn logs from trees grown on the farm into boards"],   // 2026-11-11
+  bzvault: ["Sample Vault", "Store Border Zone samples. Improves capacity, appraisal, courier and insurance"],   // 2026-11-27
 };
 export const SNACK_EN = { snack: "Taming Treat", snack3: "Special Treat" };
 export const PC_EN = ["PC", "Enter DEEP LINK/:. Just place it (no levels)"];
@@ -467,7 +468,8 @@ export const WS_EN = {
   scaffold: ["Scaffold", "Facility: use it while building to advance construction by 2 hours"], scaffold_board: ["Board Scaffold", "Facility: use it while building to advance construction by 2 hours (same as Scaffold)"], pickaxe: ["Pickaxe", "Mine: for 12 hours, dig ×1.3"], lamp: ["Lamp", "Mine: for 12 hours, silver and gold ore are twice as likely"],
 };
 export const ATTK_EN = { tip: "Tip", grip: "Grip" };
-export const ATT_EN = { spike: "Spike Cap", lens: "Magnifier", bulb: "Tiny Bulb", rubber: "Rubber Cap", tape: "Grip Tape", strap: "Strap", weight: "Weight", bell: "Bell" };
+export const ATT_EN = { spike: "Spike Cap", lens: "Magnifier", bulb: "Tiny Bulb", rubber: "Rubber Cap", tape: "Grip Tape", strap: "Strap", weight: "Weight", bell: "Bell",
+  amp: "Vacuum Tube Amp", capsule: "Culture Capsule", shellring: "Shell Ring", vial: "Serum Vial", laser: "Laser Sight", kevlar: "Kevlar Wrap", syncgrip: "Sync Grip", coil: "Motor Coil", canvas: "Canvas Cover", foregrip: "Foregrip" };   // ボーダーゾーンの 素材の 10 こ（2026-11-27）
 export const FURN_EN = {
   plant: "Houseplant", cushion: "Cushion", rug: "Rug", mat: "Mat", window: "Window", sofa: "Sofa", lowtable: "Coffee Table", shelf: "Bookshelf", lamp: "Floor Lamp",
   desk: "Gaming Desk", chair: "Gaming Chair", bed: "Bed", tank: "Aquarium", neon: "Neon Sign", arcade: "Arcade Cabinet", bigmon: "Big Wall Monitor",

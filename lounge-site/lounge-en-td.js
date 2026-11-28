@@ -1,6 +1,9 @@
 // 英語の 辞書：タワーディフェンス（集合住宅）の 画面の 見本（td.html。2026-11-12・M-026）
 // 住人の 名前の うち、TD の まざった 子（246 体）の 英語は まだ ない。見本に 出る 2 体だけ ここに 置く
 export const WORDS = {
+  "防衛に 効く 区画": "Defense annexes", "有刺鉄線の 塀": "Barbed-wire fence", "監視塔": "Watchtower", "弾薬庫": "Ammo depot",   // 2026-11-27
+  "その 階を 通る 敵の すばやさ −20%": "Enemies on that floor: AGI −20%", "その 階の 住人が 戦いの はじめに 先手": "Residents of that floor strike first in each fight", "その 階の 住人の こうげき ＋15%": "Residents of that floor: ATK +15%",
+  "その 階は まだ ない": "That floor doesn't exist yet", "素材が 足りない": "Not enough materials", "防衛中は 建てられない": "Can't build during a defense", "建てる 区画を えらんで": "Choose an annex to build",
   "集合住宅": "Apartments", "防衛中": "Defending", "ターン": "Turn", "敵": "Enemies", "ターン #・敵 #": "Turn # · Enemies #",
   "東棟": "East Wing", "西棟": "West Wing", "南棟": "South Wing", "北棟": "North Wing", "上の 階": "Floor up", "下の 階": "Floor down", "住人": "Residents", "増築": "Expand", "電波塔": "Radio Tower", "入居希望": "Applicants",
   "住人 #": "Residents #", "入居希望 #": "Applicants #", "棟": "Wing", "状態": "Status", "満足度が 低い": "Least satisfied", "満足度": "Satisfaction", "家賃": "Rent", "#／日": "#/day",
@@ -124,6 +127,20 @@ export const WORDS = {
 // 部屋の 番号（頭の 字は 棟：南・西・東・北）
 const WG = { 南: "S", 西: "W", 東: "E", 北: "N" };
 export const RULES = [
+  // 防衛に 効く 区画（2026-11-27）
+  [/^住めない・1 つの 階に 1 つまで・いま 見て いる 階（(\d+)F）に 建てる$/, (m) => `Not habitable · 1 per floor · builds on the floor you're viewing (${m[1]}F)`],
+  [/^建てた：(.+)$/, (m, p) => `Built: ${m[1].split("・").map((x) => { const q = x.match(/^(\d+)F (.+)$/); return q ? `${q[1]}F ${p(q[2]) || q[2]}` : x; }).join(" · ")}`],
+  [/^(\d+)F に 建てる$/, (m) => `Build on ${m[1]}F`],
+  [/^(\d+)F には もう (.+) が ある$/, (m, p) => `${m[1]}F already has a ${p(m[2]) || m[2]}`],
+  [/^(\d+) 階には もう (.+) が ある（1 つの 階に 1 つまで）$/, (m, p) => `Floor ${m[1]} already has a ${p(m[2]) || m[2]} (1 per floor)`],
+  [/^(\d+)F に (.+) を 建てた(（見本）)?$/, (m, p) => `Built a ${p(m[2]) || m[2]} on ${m[1]}F${m[3] ? " (sample)" : ""}`],
+  [/^(\d+) 階に (.+)（([\d,]+) cr）$/, (m, p) => `Floor ${m[1]}: ${p(m[2]) || m[2]} (${m[3]} cr)`],
+  // モジュールを 作る（2026-11-27）
+  [/^ボーダーゾーンの 素材 3 しゅるい × (\d+) こ ＋ ([\d,]+) クレジットで 1 つ（★は くじ：(.+)）$/, (m) => `One module for 3 kinds × ${m[1]} Border Zone materials + ${m[2]} credits (★ is random: ${m[3].replace(/・/g, " · ")})`],
+  [/^(.+) (\d+)\/(\d+)$/, (m, p) => { const a = p(m[1]); return a ? `${a} ${m[2]}/${m[3]}` : null; }],
+  [/^「(.+)」★(\d) を 作った・持ち物へ$/, (m, p) => `Made "${p(m[1]) || m[1]}" ★${m[2]} · added to inventory`],
+  [/^「(.+)」★(\d) を 作った（見本）$/, (m, p) => `Made "${p(m[1]) || m[1]}" ★${m[2]} (sample)`],
+  [/^素材が 足りない（(\d+) しゅるい）$/, (m) => `Not enough materials (${m[1]} kinds)`],
   [/^(.+)を 買った（([\d,]+) cr・持ち物へ）$/, (m, p) => `Bought ${p(m[1]) || m[1]} (${m[2]} cr · added to inventory)`], [/^(.+)（持ち物から）$/, (m, p) => `${p(m[1]) || m[1]} (from inventory)`],   // 集合住宅の 記録（2026-11-24）
   [/^(\d+) こ ([\d,]+) cr で 買う$/, (m) => `Buy ${m[1]} for ${m[2]} cr`], [/^(.+)を (\d+) こ 買った（(持ち物へ|見本・持ち物へ)）$/, (m, p) => `Bought ${m[2]} × ${p(m[1]) || m[1]} (${m[3] === "持ち物へ" ? "added to inventory" : "sample · added to inventory"})`],   // 買う 数（2026-11-25）
   [/^(.+)を (\d+) こ 買った（([\d,]+) cr・持ち物へ）$/, (m, p) => `Bought ${m[2]} × ${p(m[1]) || m[1]} (${m[3]} cr · added to inventory)`], [/^家具を オートで 置いた（(\d+) 部屋・持ち物に (\d+)）$/, (m) => `Furniture auto-placed (${m[1]} room${m[1] === "1" ? "" : "s"} · ${m[2]} left in inventory)`],

@@ -2,16 +2,25 @@
 // 記録：rec.bz = { run：いま 出て いる 出撃（か null）, log：帰った 出撃（新しい 順に 5 つ。記録の タブ）, samples：持って いる 貴重サンプル [{ uid, id, star, known }] }
 // 計算は viewer.js が アラームで 1 歩ずつ（storage の bzsim。帰還の ために うけとるまで 残す）。終わったら bzDone で got と 本当の 帰る 時間を 決める
 // ばったり（ほかの プレイヤーと 出会う）：下の「ばったり」と viewer.js の bzTick・/bzmeet（2026-11-16 鹿さんの カード）
-// まだ ない 物：運び屋（CRV）
-import { BZ_AREAS, BZ_RUNS, BZ_STEP_S, PRIORITY, RETURN, KEY_MAX, SAMPLES, APPRAISE_FEE, GROUP_NAME, samplePrice, capLv, bzInit, bzRecall as bzRecallSim, bzResult, matValue, bzInsPrice, bzLow, bzLowWhy, bzIsleOk, BZ_ISLE_WHY, BZ_MEET, bzAt, bzDuelist, bzDuel, bzLoot, bzMeetApply } from "./border.js";
+// 運び屋（CRV）・クレートの 装備・サンプル保管庫は 2026-11-27（M-063）
+import { BZ_AREAS, BZ_RUNS, BZ_SHIP, bzShipPrice, BZ_STEP_S, PRIORITY, RETURN, KEY_MAX, SAMPLES, APPRAISE_FEE, GROUP_NAME, samplePrice, capLv, bzInit, bzRecall as bzRecallSim, bzResult, matValue, bzInsPrice, bzLow, bzLowWhy, bzIsleOk, BZ_ISLE_WHY, BZ_MEET, bzAt, bzDuelist, bzDuel, bzLoot, bzMeetApply } from "./border.js";
 import { growthStats } from "./trees.js";
 import { orderSigned, ORDER_SIGN_WHY } from "./lounge-order.js";   // 島 3 の 夜の 招待（2026-11-11）
-import { fighterOf, mateOf, putMats, insLose, levelUp } from "./lounge-game.js";
+import { fighterOf, putMats, putEquip, insLose, levelUp } from "./lounge-game.js";
+import { coMult, priced } from "./lounge-faction.js";   // 運び屋の 値段（TCU の 好感度）
 import { autoFill } from "./lounge-pet.js";
 import { sale } from "./lounge-stock.js";
+import { SIGNAL } from "./td-numbers.js";   // 〔決〕精鋭 POM を 呼ぶ シグナル（集合住宅の 数の 表）
+import { CODE_NEED } from "./game.js";
+import { BZ_ELITES } from "./border-elites.js";
+import { VAULT_BASE, vaultSamples, vaultAppraise, vaultShip, vaultIns } from "./border-vault.js";   // サンプル保管庫（隠れ家の 施設。2026-11-27）
 
 export const BZ_LOG = 5;          // 記録に 残す 出撃（Claude の 案）
-export const SAMPLE_MAX = 60;     // 持てる 貴重サンプル（Claude の 案）
+export const SAMPLE_MAX = VAULT_BASE.samples;     // 持てる 貴重サンプル（2026-11-27 カード「このまま」。サンプル保管庫の Lv で ふえる：sampleMax）
+export const vaultLv = (rec) => Math.max(0, Math.floor(((rec && rec.hideout) || {}).bzvault || 0));   // サンプル保管庫の Lv（つまみ なし）
+export const sampleMax = (rec) => vaultSamples(vaultLv(rec));
+export const shipCapOf = (rec) => vaultShip(vaultLv(rec));   // 運び屋の 1 回の 数
+export const appraiseFee = (rec) => vaultAppraise(vaultLv(rec));   // 鑑定 1 こ
 const STEP_MS = BZ_STEP_S * 1000;
 const has = (m, k) => typeof k === "string" && Object.prototype.hasOwnProperty.call(m, k);
 const newUid = (rec, p) => p + (++rec.uidN).toString(36);
@@ -28,7 +37,7 @@ export function clampTo(f, cap) {
   return { ...f, stats, lvCap: cap };
 }
 
-// 出撃する（b：{ area, run, pri, ret: { k, n }, keys, crate, meet, ins }）
+// 出撃する（b：{ area, run, pri, ret: { k, n }, keys, crate, meet, ins, call }）。call：シグナル 30 で 精鋭を 敵として 1 人 呼ぶ（2026-11-16 鹿さんの カード）
 export function bzStart(rec, b, now, seed) {
   const pet = rec.pets[0];
   if (!pet) return { ok: false, why: "まだ ペットが いない" };
@@ -40,8 +49,8 @@ export function bzStart(rec, b, now, seed) {
   if (rec.trips.some((t) => !t.done)) return { ok: false, why: "派遣から 帰って から" };
   const area = has(BZ_AREAS, b.area) ? b.area : null, run = BZ_RUNS[b.run] ? +b.run : 0;
   if (!area || !run) return { ok: false, why: "エリアか 時間が ちがう" };
-  const low = bzLow([pet, ...rec.party.map((u) => rec.tamed.find((c) => c.uid === u)).filter(Boolean)], area);
-  if (low.length) return { ok: false, why: bzLowWhy(low, area) };   // 帯の 下限より 低い 子は 入れない（ペットと なかま 全員）
+  const low = bzLow([pet], area);
+  if (low.length) return { ok: false, why: bzLowWhy(low, area) };   // 帯の 下限より 低い ペットは 入れない
   const pri = PRIORITY.includes(b.pri) ? b.pri : "none";
   const rk = b.ret && RETURN.includes(b.ret.k) ? b.ret.k : "none", rn = rk === "samples" ? Math.max(1, Math.min(9, Math.floor(+b.ret.n) || 1)) : 0;
   const keys = Number.isInteger(b.keys) ? b.keys : 0;
@@ -51,16 +60,21 @@ export function bzStart(rec, b, now, seed) {
   const crate = b.crate ? Math.min(3, rec.items.key_crate || 0) : 0;   // クレートの カードキー：持って いれば 3 枚まで 持って いく
   const meet = b.meet === "fight" ? "fight" : "avoid";   // ほかの プレイヤーと 出会ったら（ばったりは 2 段めで つなぐ）
   const ins = b.ins === 2 ? 2 : b.ins === 1 ? 1 : 0, prem = ins ? bzInsPrice(run, ins, rec.perks || {}) : 0;
+  const ship = Number.isInteger(b.ship) && b.ship >= 1 && b.ship <= BZ_SHIP.max ? b.ship : 0, shipFee = priced(bzShipPrice(ship), coMult(rec, "CRV"));   // 運び屋（2026-11-27 鹿さんの カード「サンプルも」）：TCU の 好感度で 割引・割増
   if (ins === 2 && !(rec.perks && rec.perks.ins2)) return { ok: false, why: "手厚い 保険は ミネルバの 店で 開く" };
-  if (prem > (rec.credits || 0)) return { ok: false, why: `クレジットが 足りない：あと ${(prem - (rec.credits || 0)).toLocaleString("ja-JP")}（保険料）` };
-  const cap = capLv(area), mates = rec.party.map((u) => rec.tamed.find((c) => c.uid === u)).filter(Boolean);
-  const team = [clampTo({ ...fighterOf(pet, rec), owner: rec.name || "" }, cap), ...mates.map((c) => clampTo(mateOf(c, rec), cap))];
-  const cfg = { area, run, pri, ret: { k: rk, n: rn }, keys, crate, meet, aff: groupAff(rec, BZ_AREAS[area].group) };
+  if (prem + shipFee > (rec.credits || 0)) return { ok: false, why: `クレジットが 足りない：あと ${(prem + shipFee - (rec.credits || 0)).toLocaleString("ja-JP")}（${[prem && "保険料", shipFee && "運び屋"].filter(Boolean).join("・")}）` };
+  const call = !!b.call, sig = (rec.td && rec.td.sig) || 0;
+  if (call && sig < SIGNAL.pomCall) return { ok: false, why: `シグナルが 足りない：あと ${SIGNAL.pomCall - sig}（精鋭を 呼ぶ）` };
+  // ペットだけで 入る（2026-11-16 鹿さんの カード「ボーダーゾーンはペットのみで入場する設定にしましょう」。なかまは 連れて いけない。つりあいは「力つきやすいまま」）
+  const cap = capLv(area), team = [clampTo({ ...fighterOf(pet, rec), owner: rec.name || "" }, cap)];
+  const cfg = { area, run, pri, ret: { k: rk, n: rn }, keys, crate, meet, aff: groupAff(rec, BZ_AREAS[area].group), ...(call ? { call: true } : {}), ...(ship ? { ship, shipCap: shipCapOf(rec) } : {}) };
   const S = bzInit(cfg, team, seed);
   rec.items.key_bz = (rec.items.key_bz || 0) - keys;   // 鍵は 持って いく ときに あずかる（使わなかった 分は 帰りに もどす）
   if (crate) rec.items.key_crate -= crate;
   if (ins) { rec.credits -= prem; sale(rec, "AMB", prem); }   // 保険料は アンバー相互保証の 売り上げ（株）
-  const r = { uid: newUid(rec, "z"), area, run, cfg, party: [pet.uid, ...mates.map((c) => c.uid)], start: now, end: now + BZ_RUNS[run].steps * STEP_MS, calc: true, ...(ins ? { ins: { plan: ins, prem } } : {}) };
+  if (shipFee) { rec.credits -= shipFee; sale(rec, "CRV", shipFee); }   // 運び屋は キャラバン運送の 売り上げ
+  if (call) rec.td.sig -= SIGNAL.pomCall;   // 〔決〕負けても もどらない
+  const r = { uid: newUid(rec, "z"), area, run, cfg, party: [pet.uid], start: now, end: now + BZ_RUNS[run].steps * STEP_MS, calc: true, ...(ins ? { ins: { plan: ins, prem } } : {}), ...(ship ? { ship: { n: ship, fee: shipFee } } : {}) };
   Z.run = r;
   return { ok: true, bz: bzView(r, now), sim: { uid: r.uid, S }, ...(prem ? { prem } : {}) };
 }
@@ -101,16 +115,25 @@ export function bzCollect(rec, now) {
   rec.items.key_bz = (rec.items.key_bz || 0) + Math.max(0, r.cfg.keys - g.keys);   // 使わなかった 鍵を もどす
   if (r.cfg.crate) rec.items.key_crate = (rec.items.key_crate || 0) + Math.max(0, r.cfg.crate - g.crate);
   let lost = null, got = { mats: 0, samples: 0 };
-  if (wipe) {   // 力つきたら 集めた 物を ぜんぶ 失う（鹿さんの 決め）。保険が あれば 素材の 一部が あとで 届く（派遣と 同じ）
-    const n = g.mats.reduce((a, m) => a + m.n, 0), back = n ? insLose(rec, { ins: r.ins, did: "bz:" + r.area }, g.mats, now) : null;
-    lost = { mats: n, samples: g.samples.length, ...(back ? { back } : {}) };
+  const sent = g.sent || { n: 0, mats: [], samples: [] }, sentN = sent.mats.reduce((a, m) => a + m.n, 0);
+  const takeSamples = (L) => { const room = Math.max(0, sampleMax(rec) - Z.samples.length), add = L.slice(0, room).map((s) => ({ uid: newUid(rec, "x"), id: s.id, star: s.star, known: false })); Z.samples.push(...add); return { add, over: Math.max(0, L.length - room) }; };
+  if (sentN) putMats(rec, sent.mats, now);   // 運び屋が 先に 送った 分は 力つきても 残る（2026-11-27 鹿さんの カード）
+  const sentS = takeSamples(sent.samples);
+  if (wipe) {   // 力つきたら 集めた 物を ぜんぶ 失う（鹿さんの 決め）。保険が あれば 素材の 一部が あとで 届く（派遣と 同じ）。拾った 装備も 失う
+    const n = g.mats.reduce((a, m) => a + m.n, 0), back = n ? insLose(rec, { ins: r.ins, did: "bz:" + r.area, wait: (w) => vaultIns(vaultLv(rec), w) }, g.mats, now) : null;   // サンプル保管庫で 早く 届く
+    lost = { mats: n, samples: g.samples.length, ...((g.gear || []).length ? { gear: g.gear.length } : {}), ...(back ? { back } : {}) };
+    got = { mats: sentN, samples: sentS.add.length, ...(sent.n ? { sent: { mats: sentN, samples: sentS.add.length } } : {}) };
   } else {
     putMats(rec, g.mats, now);
-    const room = Math.max(0, SAMPLE_MAX - Z.samples.length), add = g.samples.slice(0, room).map((s) => ({ uid: newUid(rec, "x"), id: s.id, star: s.star, known: false }));
+    if ((g.gear || []).length) putEquip(rec, g.gear, now);   // クレート・倉庫の ★3 以上の 装備
+    const room = Math.max(0, sampleMax(rec) - Z.samples.length), add = g.samples.slice(0, room).map((s) => ({ uid: newUid(rec, "x"), id: s.id, star: s.star, known: false }));
     Z.samples.push(...add);
-    got = { mats: g.mats.reduce((a, m) => a + m.n, 0), samples: add.length, ...(g.samples.length > room ? { over: g.samples.length - room } : {}) };
+    // 〔決〕精鋭の 解析コード（ボーダーゾーンは 1 回 2 こ）：門番の 数（rec.crawl.cc。クローラーと 同じ 入れ物）へ。10 こ（100%）まで
+    const codes = {}; rec.crawl ||= {}; rec.crawl.cc ||= {};
+    for (const [k, v] of Object.entries(g.codes || {})) { if (!has(BZ_ELITES, k)) continue; const before = rec.crawl.cc[k] || 0, now2 = Math.min(CODE_NEED, before + Math.max(0, Math.floor(+v || 0))); if (now2 > before) { rec.crawl.cc[k] = now2; codes[k] = now2 - before; } }
+    got = { mats: g.mats.reduce((a, m) => a + m.n, 0) + sentN, samples: add.length + sentS.add.length, ...(g.samples.length > room || sentS.over ? { over: Math.max(0, g.samples.length - room) + sentS.over } : {}), ...(Object.keys(codes).length ? { codes } : {}), ...((g.gear || []).length ? { gear: g.gear.length } : {}), ...(sent.n ? { sent: { mats: sentN, samples: sentS.add.length } } : {}) };
   }
-  const sum = { uid: r.uid, area: r.area, run: r.run, start: r.start, end: r.end, reason: g.reason, wipe, exp: g.exp, mats: g.mats, samples: g.samples.map((s) => s.id), value: matValue(g.mats), ...(lost ? { lost } : {}), sealed: g.sealed, ev: g.ev, pos: g.pos, ...(r.recall != null ? { recall: r.recall } : {}) };
+  const sum = { uid: r.uid, area: r.area, run: r.run, start: r.start, end: r.end, reason: g.reason, wipe, exp: g.exp, mats: wipe ? sent.mats : [...g.mats, ...sent.mats], samples: (wipe ? sent.samples : [...g.samples, ...sent.samples]).map((s) => s.id), value: matValue(wipe ? sent.mats : [...g.mats, ...sent.mats]), ...(lost ? { lost } : {}), ...(!wipe && got.codes ? { codes: got.codes } : {}), ...(got.sent ? { sent: got.sent } : {}), ...(!wipe && (g.gear || []).length ? { gear: g.gear.map((x) => ({ base: x.base, star: x.star })) } : {}), sealed: g.sealed, ev: g.ev, pos: g.pos, ...(r.recall != null ? { recall: r.recall } : {}) };
   Z.log = [sum, ...Z.log].slice(0, BZ_LOG);
   Z.run = null;
   return { ok: true, wipe, ups, got, ...(lost ? { lost } : {}), exp: g.exp };
@@ -167,12 +190,12 @@ export function bzMeetDone(rec, sim, ready, ask, res, now) {
   return true;
 }
 
-// 鑑定（ガラク。1 こ 20）：★が わかる
+// 鑑定（ガラク。1 こ 20。サンプル保管庫の Lv ごとに −1・下は 5）：★が わかる
 export function bzAppraise(rec, b) {
   const Z = ensureBz(rec), uids = Array.isArray(b.uids) ? [...new Set(b.uids)] : [];
   const list = uids.map((u) => Z.samples.find((s) => s.uid === u)).filter((s) => s && !s.known);
   if (!list.length) return { ok: false, why: "鑑定する サンプルを えらんで" };
-  const fee = APPRAISE_FEE * list.length;
+  const fee = appraiseFee(rec) * list.length;   // サンプル保管庫で 安く なる
   if (fee > (rec.credits || 0)) return { ok: false, why: `クレジットが 足りない：あと ${fee - (rec.credits || 0)}` };
   rec.credits -= fee; sale(rec, "GLK", fee); for (const s of list) s.known = true;   // 鑑定料は ガラク・サルベージの 売り上げ（株）
   return { ok: true, fee, stars: list.map((s) => ({ uid: s.uid, star: s.star })) };
@@ -207,7 +230,8 @@ export function bzView(r, now) {
   const going = !done && !(turn && turn.i < el) && !(dead && dead.i < el);
   return { ...base, done, ev, pos, canRecall: going, ...(done ? { reason: r.got.reason, wipe: r.got.wipe } : {}) };
 }
+// shipFee：運び屋の 値段（TCU の 好感度。画面と そろえる。確かめ役の 指摘 2026-11-27）
 export function bzMe(rec, now) {
   const Z = rec.bz || { run: null, log: [], samples: [] };
-  return { run: bzView(Z.run, now), log: Z.log, samples: Z.samples, isle: bzIsleOk(rec.hideout), signed: orderSigned(rec), keys: (rec.items && rec.items.key_bz) || 0, crateKeys: (rec.items && rec.items.key_crate) || 0, aff: Object.fromEntries(Object.keys(GROUP_NAME).map((g) => [g, groupAff(rec, g)])) };
+  return { run: bzView(Z.run, now), log: Z.log, samples: Z.samples, vault: { lv: vaultLv(rec), max: sampleMax(rec), fee: appraiseFee(rec), ship: shipCapOf(rec) }, shipFee: Array.from({ length: BZ_SHIP.max + 1 }, (_, k) => k).map((k) => priced(bzShipPrice(k), coMult(rec, "CRV"))), isle: bzIsleOk(rec.hideout), signed: orderSigned(rec), keys: (rec.items && rec.items.key_bz) || 0, crateKeys: (rec.items && rec.items.key_crate) || 0, aff: Object.fromEntries(Object.keys(GROUP_NAME).map((g) => [g, groupAff(rec, g)])) };
 }

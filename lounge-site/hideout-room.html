@@ -60,7 +60,8 @@ const ME = all !== null && /^[0-3]$/.test(all) ? null : await me();
 const RAW = ME ? Object.fromEntries(Object.keys(SPOTS).map((k) => [k, ((ME.hideout || {})[k]) || 0])) : null;
 const LV = RAW ? Object.fromEntries(Object.keys(SPOTS).map((k) => [k, band(RAW[k])])) : Object.fromEntries(Object.keys(SPOTS).map((k) => [k, +all]));
 LV.dig = Math.max(0, ...Object.values(SPOTS).map((sp) => sp.dig || 0));   // 区画は はじめから ぜんぶ（まだ ない 施設は 空き地）
-const AREA = areaOf(LV.dig), HERE = Object.keys(SPOTS).filter((id) => (SPOTS[id].dig || 0) <= (LV.dig || 0));   // 掘った 区画の 施設だけ
+LV.off = ME ? FACILITIES.filter((f) => f.bz && !RAW[f.id] && (((ME.hideout || {}).radio) || 0) < 2).map((f) => f.id) : [];   // ボーダーゾーン専用（サンプル保管庫）は 無線機 Lv2 まで 置かない
+const AREA = areaOf(LV.dig), HERE = Object.keys(SPOTS).filter((id) => (SPOTS[id].dig || 0) <= (LV.dig || 0) && !LV.off.includes(id));   // 掘った 区画の 施設だけ
 const view = document.getElementById("view");
 const r = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true }); r.setPixelRatio(Math.min(2, devicePixelRatio)); r.outputColorSpace = THREE.SRGBColorSpace; view.appendChild(r.domElement);
 const scene = new THREE.Scene(); scene.background = new THREE.Color("#141022");

@@ -16,7 +16,7 @@ export { lvOfPts as repLv } from "./primary.js";
 const ISLE1 = DUNGEONS.filter((d) => (d.isle || 1) === 1);   // 店の 素材は はじめの 島の 分だけ（ビサイ諸島の 素材は 島で 集める）
 const FOE_MATS = ISLE1.flatMap((d) => d.foes.map((f) => ENEMY_MAT[f.tree][0]));   // ふつうの 敵の素材
 const ARMOR = BASES.filter((b) => b.slot !== "weapon").map((b) => b.id), WEAPON = BASES.filter((b) => b.slot === "weapon").map((b) => b.id);   // ピーコは あたま・くび、アンビルは 武器（鹿さんの 決め、2026-11-03）
-const ATT_MATS = [...new Set(ATT_BASES.flatMap((b) => b.mats.filter(([, n]) => n === 1).map(([id]) => id)))];   // アタッチメントに 1 こ いる 敵の 素材
+const ATT_MATS = [...new Set(ATT_BASES.filter((b) => !b.bz).flatMap((b) => b.mats.filter(([, n]) => n === 1).map(([id]) => id)))];   // ボーダーゾーンの 素材で 作る 物（bz）は 店で 売らない（2026-11-27）   // アタッチメントに 1 こ いる 敵の 素材
 // ショップ：lv は その 友好度 Lv から 買える（Claude の 案：前の Lv2・3・4 を Lv10・20・30 に）。プライマリータスクで 開く 品（primary.js の UNLOCK_BY）は その タスクを 終えると 買える
 // cur は クレジット か アメジスト（MONO LINK の 通貨は クレジットと アメジストだけ。鹿さんの 決め、2026-10-28。前は 玉で、同じ 数の クレジットに した）
 // stock は 1 日に 買える数（毎日 もどる。week は 1 週ごと）、left は 見本の きょうの のこり。once は 1 回だけ。tool は 派遣に 持っていく 道具（dungeons.js の TOOLS）

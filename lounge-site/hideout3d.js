@@ -187,6 +187,41 @@ ST.radio = function radio(g, lv, fx) {
   lamp(g, "#BFF2C8", [0, 0.6][lv], 0, 2.1, 0.8);
 };
 
+// サンプル保管庫（ボーダーゾーン専用の 設備。2026-11-27）：金ぞくの 保管棚の ガラス戸に 光る サンプルの びん（鉱物は だいだい・生体は みどり・遺物は 青）
+// 段 1：棚 1 つ（びん 2 段）・段 2：びん 3 段と 横の 冷凍庫・段 3：冷凍庫の 上に 鑑定の 灯りと ルーペ・段 4：光る ふだ
+ST.bzvault = function bzvault(g, lv, fx) {
+  if (!lv) return empty(g, 1.8, 0.9);
+  const C = new THREE.Group(); C.position.set(-0.3, 0, 0); g.add(C);
+  box(C, 1.1, 1.95, 0.04, "#3A4054", 0, 0, -0.26); [-0.53, 0.53].forEach((x) => box(C, 0.04, 1.95, 0.56, "#4E566E", x, 0, 0));   // 中が 見える ように 板で 組む（せなか・よこ）
+  box(C, 1.1, 0.08, 0.56, "#4E566E"); box(C, 1.14, 0.08, 0.6, "#3A4054", 0, 1.95, 0); box(C, 1.02, 0.02, 0.5, glow("#DDF2FF", 0.8), 0, 1.86, 0);   // 下・天板・中の 明かり
+  for (let i = 0; i < 7; i++) box(C, 0.14, 0.06, 0.02, i % 2 ? "#1E2230" : "#E8B23A", -0.42 + i * 0.14, 1.84, 0.285);   // 黄と 黒の しま（危ない 物の 印）
+  box(C, 1.0, 1.62, 0.02, mat("#CDE8FF", { transparent: true, opacity: 0.22, roughness: 0.1 }), 0, 0.14, 0.29);   // ガラス戸
+  box(C, 0.03, 0.3, 0.04, "#C9CED8", 0.42, 0.8, 0.31);   // 取っ手
+  const COL = ["#FF9A3C", "#7CFF8A", "#6AC8FF", "#C69CFF"], rows = lv >= 2 ? 3 : 2;
+  for (let r = 0; r < 3; r++) {
+    const y = 0.2 + r * 0.55; box(C, 1.0, 0.04, 0.5, "#6A7290", 0, y, 0);   // たな
+    if (r >= rows) continue;
+    for (let k = 0; k < 4; k++) { const c = COL[(r + k) % COL.length], x = -0.36 + k * 0.24;
+      cyl(C, 0.07, 0.07, 0.26, mat("#E8F4FF", { transparent: true, opacity: 0.35, roughness: 0.1 }), x, y + 0.04, 0.02, 10);   // びん
+      const liq = cyl(C, 0.055, 0.055, 0.17, glow(c, 1.3), x, y + 0.05, 0.02, 10); cyl(C, 0.075, 0.075, 0.04, "#2B3040", x, y + 0.3, 0.02, 10);   // 中身と ふた
+      if (lv >= 3 && (r + k) % 3 === 0) fx.push({ flicker: liq }); }
+  }
+  if (lv >= 2) {   // 冷凍庫：白い 箱・青く 光る 線・霜
+    const F = new THREE.Group(); F.position.set(0.68, 0, 0.02); g.add(F);
+    box(F, 0.62, 0.78, 0.54, "#C9CED8"); box(F, 0.64, 0.06, 0.56, "#AEB5C2", 0, 0.78, 0);
+    box(F, 0.5, 0.05, 0.02, glow("#8EE8FF", 2), 0, 0.62, 0.28); box(F, 0.12, 0.08, 0.02, "#3A4054", 0.18, 0.45, 0.28);
+    [[-0.18, 0.12], [0.05, -0.1], [0.2, 0.16]].forEach(([x, z]) => box(F, 0.12, 0.02, 0.1, mat("#EAF6FF", { emissive: "#BFE8FF", emissiveIntensity: 0.4 }), x, 0.84, z));
+    if (lv >= 3) {   // 鑑定の 灯り（うでの ついた ランプ）と ルーペ
+      cyl(F, 0.08, 0.1, 0.04, "#2B3040", -0.15, 0.84, -0.1, 10); const arm = box(F, 0.03, 0.42, 0.03, "#2B3040", -0.15, 0.88, -0.1); arm.rotation.z = -0.35;
+      const head = cyl(F, 0.06, 0.11, 0.1, "#2B3040", -0.02, 1.22, -0.1, 10); head.rotation.z = 0.6; ball(F, 0.05, glow("#FFE6B0", 2.2), 0.0, 1.17, -0.1, 8);
+      const ring = new THREE.Mesh(new THREE.TorusGeometry(0.07, 0.014, 6, 16), mat("#C9A06A")); ring.position.set(0.16, 0.86, 0.1); ring.rotation.x = -Math.PI / 2; F.add(ring);
+      rod(F, 0.012, 0.12, "#5B4636", 0.27, 0.86, 0.12, "x", 6);
+    }
+  }
+  if (lv >= 4) box(C, 0.56, 0.08, 0.02, glow("#FFC21A", 1.8), 0, 2.08, 0.2);   // 光る ふだ
+  lamp(g, "#BFE8FF", [0, 0.6, 0.9, 1.1, 1.3][lv], 0, 2.3, 0.9);
+};
+
 // 置き場所：左の かべ（作業台・おやつ工房）、奥の かべ（研究所・地図室・救護室）、右（トレーニング室・倉庫）。はしごは 手前
 const PLACE = {
   bench: { x: 0.9, z: 3.2, r: Math.PI / 2 }, snack: { x: 0.9, z: 7.2, r: Math.PI / 2 },
@@ -196,6 +231,7 @@ const PLACE = {
   mine: { x: 6, z: -10.4, r: 0, dig: 2 },
   sawmill: { x: 9.2, z: -4.6, r: 0, dig: 1 },   // 製材所（2026-11-11）：掘った 区画①の 右奥   // 坑道（③。畑は 2026-11-03 に 消した）
   radio: { x: 0.75, z: 5.2, r: Math.PI / 2 },   // 無線機：左の かべ（作業台と おやつ工房の あいだ）
+  bzvault: { x: 10.9, z: 6.4, r: 0 },   // サンプル保管庫（2026-11-27）：右の はし（トレーニング室と 倉庫の あいだ。手前向き）。ボーダーゾーンが 開くまで 置かない（lv.off）
 };
 // ゲームに 出て いる 施設だけ 置く（ビサイ諸島が 出る まで〈ISLAND_OPEN = 1〉は 無線機が FACILITIES に ないので 置かない・ふだも 出ない）
 export const SPOTS = Object.fromEntries(Object.entries(PLACE).filter(([id]) => FACILITIES.some((f) => f.id === id)));
@@ -234,7 +270,8 @@ export function makeHideout(lv) {
   cyl(g, 0.7, 0.9, 2.8, mat("#FFE6B0", { transparent: true, opacity: 0.08, emissive: "#FFE6B0", emissiveIntensity: 0.6, depthWrite: false }), 6.6, 0.2, 8.9, 16);
   lamp(g, "#FFE6B0", 1.4, 6.6, 3, 8.9, 5);
   // 施設
-  for (const [id, sp] of Object.entries(SPOTS)) { if (!FACILITIES.some((f) => f.id === id) || (sp.dig || 0) > dig) continue; const S = new THREE.Group(); S.position.set(sp.x + (sp.r ? 0.15 : 0), 0, sp.z + (sp.r ? 0 : 0.15)); S.rotation.y = sp.r; S.userData.id = id; g.add(S); ST[id](S, lv[id] || 0, fx); }
+  const off = new Set(lv.off || []);   // まだ 開いて いない 施設（ボーダーゾーン専用 など）は 置かない
+  for (const [id, sp] of Object.entries(SPOTS)) { if (!FACILITIES.some((f) => f.id === id) || (sp.dig || 0) > dig || off.has(id)) continue; const S = new THREE.Group(); S.position.set(sp.x + (sp.r ? 0.15 : 0), 0, sp.z + (sp.r ? 0 : 0.15)); S.rotation.y = sp.r; S.userData.id = id; g.add(S); ST[id](S, lv[id] || 0, fx); }
   g.userData.tick = (t) => fx.forEach((f) => {
     if (f.spin) f.spin.rotation.y = t * 0.8;
     if (f.gear) f.gear.rotation.y = t * 0.9 * f.s;

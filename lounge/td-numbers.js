@@ -245,3 +245,28 @@ export const MODULES = {
 // 〔C〕スタックの デバフの ターン：効果の 決まりの いちばん 長い ターン（毒などは 3）。炎上・体調不良・凍傷の 強さ（付けた人の ATK・INT・DEX）は 住人の いちばん 高い 値
 // 〔決〕落ちる：防衛の 報酬（REWARD の module。強さ 1 で 4%〜5 で 20%）。3 つから 1 つ えらぶ。★は 設計図と 同じ（BP_ODDS）〔C〕3 つは 同じ ★・ちがう モジュール。分解は 設計図と 同じ スクラップ
 export const MOD_OFFER = 3;
+// モジュールの クラフト（2026-11-27 鹿さんの カード「素材 3 しゅるい × 5 こ」：えらんだ モジュールを 1 つ。ボーダーゾーンの 素材 15 こ ＋ 3,000 クレジット）
+// 素材は モジュールに 合う 物（鹿さんの 例：もれる 配管＝黒い 油・液化ガス、古い 配電盤＝小さな 回路基盤・真空管、太い 鉄骨＝古い 鉄骨・防壁の 石材）。のこりの 組み合わせは Claude の 案〔C〕
+// 〔C〕★は 防衛の 強さ 3 と 同じ 表（BP_ODDS[3]：★1 32.5・★2 37.5・★3 25・★4 4.5・★5 0.5%）。★5 だけの 非常用カプセルは 作れない。境界の 6 しゅるい（CPUチップ など）は 使わない
+export const MOD_CRAFT = { credits: 3000, n: 5, strength: 3 };
+export const MOD_MATS = {
+  pipe: ["black_oil", "liquefied_gas", "rubber_scrap"], panel: ["small_circuit", "vacuum_tube", "chip_shard"], cold: ["liquefied_gas", "extinguisher", "acrylic_sheet"],
+  mold: ["culture_medium", "waste_root", "feral_grain"], static: ["broken_motor", "small_circuit", "barbed_wire"], slip: ["black_oil", "plastic_scrap", "polymer_chip"],
+  board: ["weathered_canvas", "rampart_plaster", "scorched_soil"], neon: ["vacuum_tube", "acrylic_sheet", "chip_shard"], firedoor: ["extinguisher", "rampart_plaster", "old_girder"],
+  exitlight: ["small_circuit", "acrylic_sheet", "extinguisher"], beam: ["old_girder", "rampart_stone", "slag"], soundpanel: ["kevlar_fiber", "weathered_canvas", "polymer_chip"],
+  boiler: ["liquefied_gas", "broken_motor", "rubber_scrap"], notice: ["plastic_scrap", "weathered_canvas", "chip_shard"], maze: ["rampart_stone", "barbed_wire", "rampart_plaster"],
+  camera: ["chip_shard", "small_circuit", "acrylic_sheet"], duct: ["slag", "broken_motor", "rubber_scrap"], capsule: ["polymer_chip", "culture_medium", "kevlar_fiber"],
+  gym: ["shell_fragment", "old_girder", "rubber_scrap"], books: ["weathered_canvas", "feral_grain", "waste_root"], plant: ["waste_root", "feral_grain", "culture_medium"],
+  cactus: ["barbed_wire", "scorched_soil", "waste_root"], mirror: ["acrylic_sheet", "slag", "polymer_chip"], lockdoor: ["carapace_shard", "old_girder", "kevlar_fiber"],
+};
+// 防衛に 効く 区画（2026-11-27 鹿さんの カード「新しい形の区画」→「防衛に効く区画」→「この案」）：住めない・素材 3 しゅるい × 10 こ ＋ 20,000 クレジット・1 つの 階に 1 つまで
+// 建物の 横に 張り出す 小さな 区画（部屋・廊下・道は かえない）。〔C〕素材の 組み合わせ・こわす 決まりは まだ ない（建てたら そのまま）
+export const SP_BLOCKS = {
+  wire: { name: "有刺鉄線の 塀", text: "その 階を 通る 敵の すばやさ −20%", mats: ["barbed_wire", "rampart_stone", "scorched_soil"] },
+  tower: { name: "監視塔", text: "その 階の 住人が 戦いの はじめに 先手", mats: ["old_girder", "small_circuit", "weathered_canvas"] },
+  ammo: { name: "弾薬庫", text: "その 階の 住人の こうげき ＋15%", mats: ["shell_fragment", "kevlar_fiber", "extinguisher"] },
+};
+export const SP_COST = { credits: 20000, n: 10 };
+export const SP_FX = { wireAgi: 0.8, ammoAtk: 1.15 };   // すばやさ −20%・こうげき ＋15%（監視塔は 先手：battle-sim の firstStrike）
+export const spMats = (id) => (SP_BLOCKS[id] ? SP_BLOCKS[id].mats.map((m) => [m, SP_COST.n]) : []);
+export const modCraftMats = (id) => (MOD_MATS[id] || []).map((m) => [m, MOD_CRAFT.n]);

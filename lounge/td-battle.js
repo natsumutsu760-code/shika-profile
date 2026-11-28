@@ -15,7 +15,7 @@
 //   tdOrder(S, uid, { do: "go" | "wait" | "move" | "ambush" | "skill" | "retreat", to?, tgt? });
 //   const ev = tdTurn(S);                                    // その ターンの 出来事。S.over：win・lose・null
 import { simulateTeams } from "./battle-sim.js";
-import { FIGHT, FOE, retreatOdds, MODULES, modAmt, HELP, AUTO } from "./td-numbers.js";
+import { FIGHT, FOE, retreatOdds, MODULES, modAmt, HELP, AUTO, SP_FX } from "./td-numbers.js";
 import { EFFECTS, PAIR } from "./effects.js";
 
 const rng = (seed) => { let a = seed >>> 0 || 1; return () => { a = (a + 0x6d2b79f5) >>> 0; let t = a; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; };
@@ -49,8 +49,8 @@ function helpSpots(S, n) {
   if (out.length < n) { const d = bfs(map, map.entrance); for (const y of Object.keys(d).sort((a, b) => d[a] - d[b])) if (out.length < n && y !== map.entrance && y !== map.lounge && !map.cells[y].room && !out.includes(y) && !at(S, y)) out.push(y); }
   return out;
 }
-export function tdInit({ map, residents = [], foes = [], pet = null, seed = 1, mods = {}, helpers = [] }) {
-  const S = { map, seed, turn: 0, units: {}, queue: [], battles: [], nextB: 1, over: null, dead: [], beaten: [], R: rng(seed), toLounge: bfs(map, map.lounge), mods: mods || {} };
+export function tdInit({ map, residents = [], foes = [], pet = null, seed = 1, mods = {}, helpers = [], sp = {} }) {
+  const S = { map, seed, turn: 0, units: {}, queue: [], battles: [], nextB: 1, over: null, dead: [], beaten: [], R: rng(seed), toLounge: bfs(map, map.lounge), mods: mods || {}, sp: sp && typeof sp === "object" ? sp : {} };   // sp：防衛に 効く 区画 { 階: "wire"|"tower"|"ammo" }
   for (const r of residents) S.units[r.uid] = unit(r.sick ? { ...r, c: sickC(r.c) } : r, "res");   // 〔決〕病気の 住人は 全ステータス 半分（8 回目の カード）
   if (pet) S.units[pet.uid] = { ...unit({ ...pet, cell: map.lounge }, "pet") };
   const spots = helpSpots(S, helpers.length);
@@ -88,9 +88,17 @@ function modGive(S, U, M, ev, why) {
     if (modFx(S, U, id, a, turnsOf(id, kind, M.star), src)) ev.push({ t: "mod", uid: U.uid, mod: M.id, fx: id, amt: kind === "turn" || kind === "once" ? undefined : a, why });
   }
 }
-// 防衛の はじめ：区画の 住人の バフ・非常用カプセル（★5・防衛 1 回に 1 度 輪廻）
+// 階：廊下の マス「階:x:z」・部屋「room:区画-階-番目」（プライベートラウンジ・入口は なし）
+export const floorOf = (cell) => { if (typeof cell !== "string") return null; if (cell.startsWith("room:")) { const f = +cell.slice(5).split("-")[1]; return Number.isInteger(f) ? f : null; } const f = +cell.split(":")[0]; return Number.isInteger(f) ? f : null; };
+const spAt = (S, cell) => { const f = floorOf(cell); return f == null ? null : S.sp[f] || null; };
+// 防衛の はじめ：区画の 住人の バフ・非常用カプセル（★5・防衛 1 回に 1 度 輪廻）・防衛に 効く 区画（その 階の 住人：監視塔＝先手・弾薬庫＝こうげき ＋15%）
 function modInit(S) {
   const ev = (S.modEv = []);
+  for (const U of Object.values(S.units).filter((x) => x.side === "res" && !x.helper)) {
+    const sp = spAt(S, U.home);
+    if (sp === "tower") U.c = { ...U.c, extraP: { ...(U.c.extraP || {}), firstStrike: 1 } };   // 戦いごとの 1 ターン目に 先に 動く（battle-sim の firstStrike）
+    if (sp === "ammo" && U.c.stats) U.c = { ...U.c, stats: { ...U.c.stats, atk: Math.round((U.c.stats.atk || 0) * SP_FX.ammoAtk) } };
+  }
   for (const U of Object.values(S.units).filter((x) => x.side === "res")) {
     const key = keyOfRoom(U.home), B = modAt(S, `blk:${blkOfKey(key)}`), Rm = modAt(S, `room:${key}`);
     if (B && B.to === "res") modGive(S, U, B, ev, "block");
@@ -155,7 +163,8 @@ function round(S, B, ev) {
     const fx = { ...U.fx };
     if (U.charge) fx.charge = { amt: 1, turns: null };
     if (U.side === "foe" && U.slow > 0) fx.fatigue = { turns: U.slow, fresh: false };
-    const stats = U.block ? { ...U.c.stats, def: Math.round((U.c.stats.def || 0) * FIGHT.blockDef) } : U.c.stats;
+    let stats = U.block ? { ...U.c.stats, def: Math.round((U.c.stats.def || 0) * FIGHT.blockDef) } : U.c.stats;
+    if (U.side === "foe" && spAt(S, U.cell) === "wire") stats = { ...stats, agi: Math.round((stats.agi || 0) * SP_FX.wireAgi) };   // 有刺鉄線の 塀：その 階に いる 敵の すばやさ −20%
     return { ...U.c, stats, startHp: U.hp ?? undefined, startMp: U.mp ?? undefined, startFx: fx, cont: !U.fresh };
   };
   const evs = simulateTeams(R.map(cfg), F.map(cfg), (S.seed * 7919 + S.turn * 131 + B.id) >>> 0, { until: 1, pve: true, keepPerm: true, turn0: (B.n = (B.n || 0) + 1) });   // 〔2026-11-23〕戦いごとに ターンを 数える（前は 毎回 1 ターン目 あつかいで、1 ターン目の 構えなどを くり返して 何ラウンドも 攻撃しなかった・N ターンごとの 技が 出なかった）

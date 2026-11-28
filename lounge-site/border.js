@@ -12,6 +12,10 @@ import { MAIN_TREES } from "./main-trees.js";
 import { ROSTER } from "./fusion-only.js";
 import { EXP_PER_LV } from "./dungeons.js";
 import { INS_PLAN } from "./deeplink.js";
+import { BZ_ELITES, bzElitePool, BZ_ELITE } from "./border-elites.js";
+import { VAULT_BASE } from "./border-vault.js";   // サンプル保管庫（2026-11-27）：もとの 数は border-vault.js
+import { eliteUnit } from "./crawler-elite-units.js";
+import { rollCombo, opCount, comboOf, OPS } from "./equip.js";   // クレート・倉庫の ★3 以上の 装備（2026-11-27 鹿さんの カード「2 回に 1 回」）
 
 export const BZ_STEP_S = 10;   // 1 歩 10 秒（Claude の 案）
 // 時間（分）：1 分は 外縁だけ、3 分で 中、10 分なら 奥まで（鹿さんの 決め）
@@ -74,7 +78,7 @@ export const LINE_NAME = { mineral: "鉱物", bio: "生体", relic: "遺物" };
 export const LINE_BUYER = { mineral: "sva", bio: "harmonia", relic: "tcu" };
 export const SAMPLE_PRICE = [40, 70, 125, 225, 400];   // 納める 値段 ★1〜5（鹿さんの 決め）
 export const SAMPLE_STAR = [[50, 30, 15, 5, 0], [40, 30, 18, 9, 3], [25, 30, 25, 14, 6]];   // 深さごとの ★の 出方（鹿さんの 決め）
-export const APPRAISE_FEE = 20;   // 鑑定（ガラク）1 こ 20（鹿さんの 決め）
+export const APPRAISE_FEE = VAULT_BASE.appraise;   // 鑑定（ガラク）1 こ 20（鹿さんの 決め）。サンプル保管庫の Lv で 安く なる（vaultAppraise）
 export const OFF_LINE = 0.5;      // 好みで ない 会社に 納める ときの 値（Claude の 案）
 // 納める 値段：鑑定して いない 物は ★1 の 値段（鹿さんの 決め）・好感度が 盟友（75 から）なら ＋20%（mono-link-numbers.md）
 export function samplePrice(s, group, aff = 0) {
@@ -110,13 +114,17 @@ const pick = (S, list) => list[Math.floor(rnd(S) * list.length)];
 export function bzInit(cfg, team, seed) {
   const R = BZ_RUNS[cfg.run], maxDepth = R.depth, explore = Math.max(1, R.steps - exitSteps(maxDepth));
   const S = { cfg, team, R: seed >>> 0, i: 0, explore, maxDepth, depth: 0, hp: team.map(() => 1), mp: team.map(() => 1), mode: "go", left: 0, keys: cfg.keys || 0, crate: cfg.crate || 0,
-    haul: { mats: {}, samples: [] }, exp: 0, ev: [], pos: [], snaps: [], sealed: null, safe: false, fin: false, reason: null, inv: null };
+    haul: { mats: {}, samples: [], codes: {} }, sent: { n: 0, mats: {}, samples: [] }, gear: [], exp: 0, ev: [], pos: [], snaps: [], sealed: null, safe: false, fin: false, reason: null, inv: null };   // sent：運び屋が 送った 分・gear：拾った 装備
   // 入る 所と 出る 所：外縁の どこか（ランダム。鹿さんの 決め）。地図は 中心が 奥の 輪（半径 0〜8）
   const ang = rnd(S) * Math.PI * 2, out = rnd(S) * Math.PI * 2;
   S.at = [Math.cos(ang) * 8, Math.sin(ang) * 8]; S.exit = [Math.cos(out) * 8, Math.sin(out) * 8]; S.pos.push(S.at.map((v) => +v.toFixed(2)));
   if (rnd(S) < BZ_INVADE[maxDepth] && INVADERS.length) {   // 侵入：出撃の はじめに 決める（いつ・だれ）
     const s = pick(S, INVADERS), lv = BZ_AREAS[cfg.area].lv[maxDepth] + 30 + Math.floor(rnd(S) * 30);   // 帯 ＋30〜59（Claude の 案）
     S.inv = { at: Math.floor(explore * (0.3 + 0.6 * rnd(S))), tree: s.tree, name: s.name, type: s.type, lv };
+  }
+  if (cfg.call) {   // 〔決〕シグナルで 精鋭を 呼んだ：探索の どこかで かならず 1 回（侵入と 同じ 歩なら 次の 歩）
+    let at = Math.floor(explore * (0.2 + 0.6 * rnd(S))); if (S.inv && S.inv.at === at) at = Math.min(explore - 1, at + 1);
+    S.call = { at };
   }
   return S;
 }
@@ -126,7 +134,10 @@ const alive = (S) => S.hp.map((h, k) => k).filter((k) => S.hp[k] > 0);
 
 // ---------- 1 歩 ----------
 // 戦いを max 回 したら 止める。終わったら true
+// 前の 版で 始めた 出撃の 記録に、あとから 足した 欄（拾った 装備・解析コード・運び屋の 送った 分）を 足す（本番に 出した とき 出撃中の 人の 計算が こわれない ように。確かめ役の 指摘 2026-11-28）
+export function bzFill(S) { S.haul.codes ||= {}; S.gear ||= []; S.sent ||= { n: 0, mats: {}, samples: [] }; return S; }
 export function bzStep(S, max = 1) {
+  bzFill(S);
   let n = 0;
   while (!S.fin && n < max) {
     snap(S);
@@ -136,8 +147,10 @@ export function bzStep(S, max = 1) {
 }
 function snap(S) {
   S.snaps.push({ i: S.i, R: S.R, hp: [...S.hp], mp: [...S.mp], mode: S.mode, left: S.left, depth: S.depth, keys: S.keys, crate: S.crate, sealed: S.sealed, safe: S.safe, exp: S.exp,
-    haul: { mats: { ...S.haul.mats }, samples: S.haul.samples.map((x) => ({ ...x })) }, ev: S.ev.length, pos: S.pos.length });
+    haul: { mats: { ...S.haul.mats }, samples: S.haul.samples.map((x) => ({ ...x })), codes: { ...(S.haul.codes || {}) } }, sent: cloneSent(S.sent), gear: (S.gear || []).map((x) => ({ ...x, ops: [...x.ops] })), ev: S.ev.length, pos: S.pos.length });
 }
+const cloneSent = (x) => ({ n: (x && x.n) || 0, mats: { ...((x && x.mats) || {}) }, samples: ((x && x.samples) || []).map((y) => ({ ...y })) });
+const back = (s) => ({ sent: cloneSent(s.sent), gear: (s.gear || []).map((x) => ({ ...x, ops: [...x.ops] })) });   // 控えに もどす ときの 運び屋と 装備
 function move(S) {   // 地図の 上の 点：行きは 深さの 輪へ、帰りは 出口へ（1 歩 1.2 マス）
   const [x, y] = S.pos[S.pos.length - 1];
   let tx, ty;
@@ -153,6 +166,7 @@ function oneStep(S) {
   if (S.mode === "go") {
     S.depth = depthAt(S); move(S);
     if (S.inv && S.inv.at === S.i) fought = invade(S);
+    else if (S.call && S.call.at === S.i) fought = battle(S, "elite");   // 呼んだ 精鋭
     else {
       const r = rnd(S), b = BZ_RATE;
       if (r < b.elite) fought = battle(S, "elite");
@@ -161,7 +175,7 @@ function oneStep(S) {
       if (!S.fin) finds(S, A);
     }
     if (!S.fin) {
-      regen(S); S.i++;
+      regen(S); S.i++; ship(S);
       if (wantBack(S) || S.i >= S.explore) toExit(S, S.i >= S.explore ? "time" : "cond");
     }
   } else if (S.mode === "exit") {
@@ -172,13 +186,36 @@ function oneStep(S) {
   }
   return fought;
 }
+// 運び屋：探索の k/(回数+1) の 歩に 来たら、持ち物から 素材と サンプルを 先に 送る（値の 高い 物から）
+function ship(S) {
+  const n = S.cfg.ship || 0, T = S.sent || (S.sent = { n: 0, mats: {}, samples: [] });
+  if (!n || T.n >= n || S.i < Math.floor((S.explore * (T.n + 1)) / (n + 1))) return;
+  const cap = { mats: BZ_SHIP.mats, samples: BZ_SHIP.samples, ...(S.cfg.shipCap || {}) };
+  T.n++;
+  const sm = [...S.haul.samples].sort((a, b) => b.star - a.star).slice(0, Math.max(0, cap.samples));
+  for (const x of sm) { const j = S.haul.samples.indexOf(x); S.haul.samples.splice(j, 1); T.samples.push({ ...x }); }
+  let room = Math.max(0, cap.mats), m = 0;
+  for (const key of Object.keys(S.haul.mats).sort((a, b) => (VALUE[b.split("@")[0]] || 0) - (VALUE[a.split("@")[0]] || 0))) {
+    if (room <= 0) break; const k = Math.min(room, S.haul.mats[key]); if (k <= 0) continue;
+    S.haul.mats[key] -= k; if (!S.haul.mats[key]) delete S.haul.mats[key]; T.mats[key] = (T.mats[key] || 0) + k; room -= k; m += k;
+  }
+  S.ev.push({ i: S.i, k: "ship", m, s: sm.length });
+}
+// ★3 以上の 装備を 1 つ（形 × 素材 × 色・OP は ★ × 枠の 重み。派遣の 宝箱と 同じ 作り）
+export function rollGear(S) {   // 試験からも 呼ぶ（S は { R: 種 } だけで よい）
+  const R = () => rnd(S), star = +pickW(S, Object.keys(BZ_GEAR.star), (k) => BZ_GEAR.star[k]), base = rollCombo(R, BZ_GEAR.tier), n = opCount(comboOf(base).slot, star);
+  const pool = Object.keys(OPS).filter((k) => (OPS[k].from || 1) <= star), ops = [];
+  while (ops.length < n && pool.length) ops.push(pool.splice(Math.floor(R() * pool.length), 1)[0]);
+  return { base, star, ops };
+}
+function gearDrop(S, how) { if (rnd(S) >= BZ_GEAR.chance) return; const g = rollGear(S); S.gear.push(g); S.ev.push({ i: S.i, k: "gear", how, star: g.star, base: g.base }); }
 function toExit(S, why) {
   S.mode = "exit"; S.left = S.safe ? 0 : exitSteps(S.depth);
   S.ev.push({ i: S.i, k: "turn", why, safe: S.safe || undefined });
 }
 function wantBack(S) {
   const ret = S.cfg.ret || {};
-  if (ret.k === "samples") return S.haul.samples.length >= (ret.n || 1);
+  if (ret.k === "samples") return S.haul.samples.length + ((S.sent && S.sent.samples.length) || 0) >= (ret.n || 1);   // 運び屋に 送った 分も 数える
   if (ret.k === "hp") { const a = alive(S); return a.length > 0 && a.reduce((t, k) => t + S.hp[k], 0) / a.length < 0.5; }
   return false;
 }
@@ -198,11 +235,12 @@ function finds(S, A) {
     S.crate--; S.ev.push({ i: S.i, k: "crate" });
     addSample(S, A, Math.min(2, S.depth + 1), 2, "crate");
     for (let j = 0; j < 2; j++) { const id = pick(S, [...BORDER.any, ...BORDER[A.mats]]).at(0), key = id + "@1"; S.haul.mats[key] = (S.haul.mats[key] || 0) + 1; }
+    gearDrop(S, "crate");
   }
   if (S.keys > 0 && !S.sealed && S.depth >= 1 && rnd(S) < b.sealed) {   // 封鎖された 所：鍵を 1 枚 使う（1 回の 出撃で 1 か所まで）
     const kind = pickW(S, Object.keys(SEALED), (x) => (x === "exit" ? 1 : 2));
     S.keys--; S.sealed = kind; S.ev.push({ i: S.i, k: "sealed", kind });
-    if (kind === "store") for (let j = 0; j < 3; j++) { const id = pick(S, BORDER[A.mats])[0], key = id + "@2"; S.haul.mats[key] = (S.haul.mats[key] || 0) + 1; }
+    if (kind === "store") { for (let j = 0; j < 3; j++) { const id = pick(S, BORDER[A.mats])[0], key = id + "@2"; S.haul.mats[key] = (S.haul.mats[key] || 0) + 1; } gearDrop(S, "store"); }
     else if (kind === "lab") { addSample(S, A, 2, 2, "lab"); addSample(S, A, 2, 2, "lab"); }
     else if (kind === "old") { addSample(S, A, S.depth, null, "old", "relic"); addSample(S, A, S.depth, null, "old", "relic"); }
     else S.safe = true;   // 必ず 開く 脱出口：帰り道で 襲われない・すぐ 出られる
@@ -222,13 +260,20 @@ function addSample(S, A, depth, minStar, how, line) {
 function foesOf(S, kind) {
   const A = BZ_AREAS[S.cfg.area], lv = A.lv[S.depth];
   if (kind === "unit") { const n = 1 + (rnd(S) < 0.4 ? 1 : 0); return { foes: Array.from({ length: n }, () => { const t = pick(S, UNIT_TREES); return foeOf({ tree: t, type: ENEMY_TREES[t].type, lv, name: ENEMY_TREES[t].enemy }); }), lv }; }
+  if (kind === "elite") {   // 〔決〕名の ある 精鋭 LINKER（領地は その 会社・境界は 全員）。強さは 帯の Lv ＋5・技は 迷宮と 同じ
+    const pool = bzElitePool(A.group || null);
+    if (pool.length) { const name = pick(S, pool), E = BZ_ELITES[name], L = lv + 5;
+      const f = eliteUnit(name, { ...petAt(typeOfPet(E.pet), L, { species: E.pet }), name, lv: L, species: E.pet, owner: name, ...(E.co ? { co: E.co } : {}) }, { foe: true });
+      return { foes: [f], lv, group: E.co && GROUP_NAME[E.co] ? E.co : null, elite: name }; }
+  }
   const group = A.group || pick(S, Object.keys(GROUP_NAME));
   const n = kind === "pom" && rnd(S) < 0.3 ? 2 : 1, sp = () => pick(S, POM_PETS);
   const foes = Array.from({ length: n }, () => { const s = sp(); return { ...petAt(typeOfPet(s), lv + (kind === "elite" ? 5 : 0), { species: s }), name: `${GROUP_NAME[group]} POM`, lv, species: s, owner: GROUP_NAME[group], co: group }; });
   return { foes, lv, group };
 }
 function battle(S, kind) {
-  const { foes, lv, group } = foesOf(S, kind);
+  const { foes, lv, group, elite } = foesOf(S, kind);
+  if (elite) return fight(S, kind, foes, lv, group, elite);
   if (kind === "pom" && group && group === BZ_AREAS[S.cfg.area].group && rnd(S) < affSkip(S.cfg.aff || 0)) { S.ev.push({ i: S.i, k: "pass", group }); return false; }   // 好感度で 見逃して くれた
   return fight(S, kind, foes, lv, group);
 }
@@ -236,7 +281,7 @@ function invade(S) {
   const v = S.inv, f = { ...foeOf({ tree: v.tree, name: v.name, type: v.type, lv: v.lv }), owner: "侵入者" };
   return fight(S, "inv", [f], v.lv, null);
 }
-function fight(S, kind, foes, lv, group) {
+function fight(S, kind, foes, lv, group, elite = null) {
   const idx = alive(S); if (!idx.length) { end(S, "wipe"); return false; }
   const party = idx.map((k) => { const c = S.team[k], v = vitalsOf(c); return { ...c, startHp: Math.max(1, Math.round(S.hp[k] * v.maxHp)), startMp: Math.round(S.mp[k] * v.maxMp) }; });
   const seed = Math.floor(rnd(S) * 2 ** 31), ev = simulateTeams(party, foes, seed, { pve: true, quiet: true }), last = ev[ev.length - 1], win = last.winner === 0;
@@ -244,6 +289,10 @@ function fight(S, kind, foes, lv, group) {
   if (win) S.exp += Math.round(foes.reduce((a, f) => a + (f.lv || lv), 0) * EXP_PER_LV);
   const drawn = !win && alive(S).length > 0;   // 時間切れで 勝ち負けが つかなかった（全滅は して いない）：引いて 先へ
   S.ev.push({ i: S.i, k: "fight", kind, win, ...(drawn ? { draw: true } : {}), lv, n: foes.length, ...(group ? { group } : {}), names: foes.map((f) => f.name), seed });
+  if (elite && win) {   // 〔決〕精鋭を 倒すと 解析コード 2 こ（ボーダーゾーンは 2 倍）と 貴重サンプル 1 こ
+    S.haul.codes[elite] = (S.haul.codes[elite] || 0) + BZ_ELITE.codes; S.ev.push({ i: S.i, k: "code", name: elite, n: BZ_ELITE.codes });
+    addSample(S, BZ_AREAS[S.cfg.area], S.depth, null, "elite");
+  }
   if (!alive(S).length) end(S, "wipe");
   return true;
 }
@@ -256,7 +305,7 @@ export function bzRecall(S, i) {
   const s = S.snaps[k];
   if (s.mode !== "go") return false;   // もう 帰り道
   Object.assign(S, { i: s.i, R: s.R, hp: [...s.hp], mp: [...s.mp], mode: s.mode, left: s.left, depth: s.depth, keys: s.keys, crate: s.crate, sealed: s.sealed, safe: s.safe, exp: s.exp,
-    haul: { mats: { ...s.haul.mats }, samples: s.haul.samples.map((x) => ({ ...x })) }, fin: false, reason: null, recall: i });
+    haul: { mats: { ...s.haul.mats }, samples: s.haul.samples.map((x) => ({ ...x })), codes: { ...(s.haul.codes || {}) } }, ...back(s), fin: false, reason: null, recall: i });
   S.ev.length = s.ev; S.pos.length = s.pos; S.snaps.length = k;
   toExit(S, "recall");
   return true;
@@ -268,6 +317,14 @@ export function bzRecall(S, i) {
 //   戦いは 先頭の 生きて いる 子どうしの 1 対 1（それぞれ 自分の ゾーンの 帯に そろえた 形・いまの HP から）。配信の 帯は 同じ 種で 同じ 戦いを 再生する（派遣の ばったりと 同じ）
 //   奪われた 物は 保険の 外（保険は 力つきた ときだけ）。奪った 物は 自分の 持ち物に 入る（あとで 力つきれば いっしょに 失う）。精鋭の 解析コードは 奪わない（ツリーの 進み）
 export const BZ_MEET = { every: 60, chance: 0.25, loseHp: 0.3, take: 0.2 };
+// 運び屋（TCU の CRV。2026-11-27 鹿さんの カード「サンプルも」）：派遣の 先送りと 同じ 形。探索の とちゅうで 1 回か 2 回、それまでに 拾った 物を 先に 送る（送った 分は 力つきても 残る・ばったりでも 奪われない）
+//   〔決〕1 回 90 クレジット（島 3 の 派遣と 同じ。TCU の 好感度で 割引・割増は 門番）・素材 30 こ ＋ 貴重サンプル 2 こまで（サンプル保管庫の Lv で ふえる：cfg.shipCap）
+//   〔C〕送る 順は 値の 高い 物から（サンプルは ★の 高い 順）
+export const BZ_SHIP = { base: 90, max: 2, mats: VAULT_BASE.mats, samples: VAULT_BASE.ship };   // 1 回の 数は サンプル保管庫の Lv で ふえる（vaultShip）
+export const bzShipPrice = (n) => (n > 0 ? BZ_SHIP.base * Math.min(n, BZ_SHIP.max) : 0);
+// 〔決〕クレートと 封鎖された 所の「会社の 倉庫」：開けると 2 回に 1 回 装備 1 つ（★3 55%・★4 40%・★5 5%。派遣の ボスの 宝箱と 同じ ★の 表）。力つきたら 失う・ばったりでは 奪われない
+//   〔C〕素材の 段は いちばん 上（tier 3。島 3 と 同じ 帯）
+export const BZ_GEAR = { chance: 0.5, star: { 3: 55, 4: 40, 5: 5 }, tier: 3 };
 // i 歩め（いま）の はじめの 状態：戦う 子（生きて いる 先頭）と その HP・持ち物の 数。まだ 計算して いない・もう 出口を 出た・全滅なら null
 export function bzAt(S, i) {
   const s = S.snaps.find((x) => x.i === i); if (!s) return null;
@@ -306,7 +363,7 @@ export function bzMeetApply(S, i, fx) {
   const k = S.snaps.findIndex((x) => x.i === i); if (k < 0) return false;
   const s = S.snaps[k];
   Object.assign(S, { i: s.i, R: s.R, hp: [...s.hp], mp: [...s.mp], mode: s.mode, left: s.left, depth: s.depth, keys: s.keys, crate: s.crate, sealed: s.sealed, safe: s.safe, exp: s.exp,
-    haul: { mats: { ...s.haul.mats }, samples: s.haul.samples.map((x) => ({ ...x })), codes: { ...(s.haul.codes || {}) } }, fin: false, reason: null });   // codes：精鋭の 解析コード（奪わない）
+    haul: { mats: { ...s.haul.mats }, samples: s.haul.samples.map((x) => ({ ...x })), codes: { ...(s.haul.codes || {}) } }, ...back(s), fin: false, reason: null });   // codes：精鋭の 解析コード（奪わない）・運び屋に 送った 分と 装備も 控えから
   S.ev.length = s.ev; S.pos.length = s.pos; S.snaps.length = k;
   if (fx.k != null && fx.hp != null) { S.hp[fx.k] = Math.max(0, Math.min(1, fx.hp)); if (fx.mp != null) S.mp[fx.k] = Math.max(0, Math.min(1, fx.mp)); }
   const L = fx.lose, G = fx.gain;
@@ -324,8 +381,10 @@ export function bzMeetApply(S, i, fx) {
 
 // 結果（帰り または 力つきた）
 export function bzResult(S) {
+  bzFill(S);
   const mats = Object.entries(S.haul.mats).map(([key, n]) => { const [id, q] = key.split("@"); return { id, q: +(q || 0), n }; });
-  return { reason: S.reason, wipe: S.reason === "wipe", steps: S.i, mats, samples: S.haul.samples, exp: S.exp, keys: (S.cfg.keys || 0) - S.keys, crate: (S.cfg.crate || 0) - S.crate, sealed: S.sealed, ev: S.ev, pos: S.pos, inv: S.inv };
+  const sentMats = Object.entries((S.sent && S.sent.mats) || {}).map(([key, n]) => { const [id, q] = key.split("@"); return { id, q: +(q || 0), n }; });
+  return { reason: S.reason, wipe: S.reason === "wipe", steps: S.i, mats, samples: S.haul.samples, sent: { n: (S.sent && S.sent.n) || 0, mats: sentMats, samples: (S.sent && S.sent.samples) || [] }, gear: S.gear || [], codes: { ...(S.haul.codes || {}) }, exp: S.exp, keys: (S.cfg.keys || 0) - S.keys, crate: (S.cfg.crate || 0) - S.crate, sealed: S.sealed, ev: S.ev, pos: S.pos, inv: S.inv };
 }
 // 保険料（Claude の 案）：生きて 帰った ときの 稼ぎの 目安（10 分 620）× 15%。手厚いは 2 倍（派遣と 同じ INS_PLAN）
 export const bzInsPrice = (run, plan, perks = {}) => (INS_PLAN[plan] ? Math.max(1, Math.round(620 * (run / 10) * 0.15 * INS_PLAN[plan].mult * (perks.insCheap ? 0.8 : 1))) : 0);

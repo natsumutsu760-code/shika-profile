@@ -120,6 +120,19 @@
   .sell button { display:flex; justify-content:space-between; align-items:center; }
   .sell button b { font:600 16px/1 var(--num); }
   .empty { color:var(--soft); font:700 14px/1.6 var(--jp); padding:16px 4px; }
+  /* リサイクル（2026-11-27） */
+  .eco-top { display:flex; align-items:baseline; gap:10px; flex-wrap:wrap; } .eco-top b { font:600 28px/1 var(--num); color:var(--ink); } .eco-top small { font:700 12px/1.4 var(--jp); color:var(--soft); }
+  .rcl { display:grid; gap:6px; margin-top:10px; } .rcl .it { display:grid; grid-template-columns:28px minmax(0, 1fr) auto auto; gap:8px; align-items:center; padding:6px 10px 6px 6px; border-radius:12px; border:1.5px solid var(--line); background:#fff; font:700 13px/1.3 var(--jp); }
+  .rcl img { width:28px; height:28px; image-rendering:pixelated; } .rcl .v { font:600 13px/1 var(--num); color:var(--soft); white-space:nowrap; } .rcl button { min-height:34px; padding:6px 12px; }
+  .ecotabs { display:flex; gap:6px; flex-wrap:wrap; margin-top:12px; }
+  /* グループの 依頼（2026-11-27）：3 つの グループが 2 つずつ */
+  .reqs { margin-bottom:12px; } .reqs h2 { display:flex; align-items:baseline; gap:8px; font:900 16px/1.3 var(--jp); } .reqs h2 small { font:700 12px/1 var(--jp); color:var(--soft); }
+  .rq { display:grid; grid-template-columns:repeat(3, minmax(0, 1fr)); gap:8px; margin-top:10px; } .reqs .note { margin-top:4px; font:700 12px/1.5 var(--jp); color:var(--soft); }
+  @media (max-width:620px) { .rq { grid-template-columns:repeat(2, minmax(0, 1fr)); } .rqc { padding:9px 10px; } }
+  .rqc { display:grid; gap:4px; align-content:start; padding:10px 12px; border-radius:14px; border:1.5px solid var(--line); background:#fff; }
+  .rqc .gn { justify-self:start; padding:2px 8px; border-radius:99px; background:var(--space, #F2F5FB); font:800 12px/1.4 var(--jp); color:var(--soft); }
+  .rqc b { font:900 14px/1.3 var(--jp); } .rqc small { font:700 12px/1.4 var(--jp); color:var(--soft); }
+  .rqc button { margin-top:4px; min-height:36px; } .rqc .pay { font:700 12px/1.3 var(--jp); color:var(--soft); } .rqc .pay b { font:600 16px/1 var(--num); color:var(--ink); } .rqc.done { opacity:.6; } .rqc .ok { font:900 13px/1.3 var(--jp); color:#0E8F5A; margin-top:4px; }
   .lock { text-align:center; padding:40px 16px; }
   .toast { position:fixed; left:50%; bottom:22px; transform:translateX(-50%); background:var(--ink); color:#fff; border-radius:16px; padding:12px 18px; font:900 14px/1.3 var(--jp); box-shadow:var(--lift); z-index:30; }
   @media (max-width:820px) {
@@ -154,8 +167,10 @@ import { me, act, busy, waitText } from "./lounge-client.js";   // 記録は 門
 import { mountWallet } from "./wallet-bar.js"; mountWallet();
 import { petInfo, linkTabs, gateHtml, addGateCss, toast } from "./pet-head.js";
 import { TYPES } from "./skills.js";
-import { BZ_AREAS, BZ_RUNS, BZ_DEPTH, BZ_STEP_S, SAMPLES, LINE_NAME, LINE_BUYER, GROUP_NAME, SAMPLE_PRICE, APPRAISE_FEE, KEY_MAX, SEALED, samplePrice, bzInsPrice, capLv, SIDE_NAME, BZ_MAP_SIZE, bzBox, bzCrop, bzLow, bzLowWhy } from "./border.js";
-import { MAT_NAME } from "./materials.js";
+import { BZ_AREAS, BZ_RUNS, BZ_DEPTH, BZ_STEP_S, SAMPLES, LINE_NAME, LINE_BUYER, GROUP_NAME, SAMPLE_PRICE, APPRAISE_FEE, KEY_MAX, SEALED, samplePrice, bzInsPrice, bzShipPrice, BZ_SHIP, capLv, SIDE_NAME, BZ_MAP_SIZE, bzBox, bzCrop, bzLow, bzLowWhy } from "./border.js";
+import { MAT_NAME, VALUE } from "./materials.js";
+import { ECO, recyclable, ecoOf, ECO_KEYS, ECO_ISLES, ecoBuyPrice } from "./eco.js";   // リサイクルと エコポイント（2026-11-27）
+import { SIGNAL } from "./td-numbers.js";   // 精鋭を 呼ぶ シグナル（2026-11-16 鹿さんの カード）
 import { matPic } from "./mat-icons.js";
 
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
@@ -164,15 +179,17 @@ const ZID = (id) => (BZ_AREAS[id] ? id : AREA_IDS[0]), ZC = (id) => COLOR[BZ_ARE
 const PRI = [["none", "バランス"], ["sample", "サンプル"], ["mat", "素材"], ["crate", "クレート"]];
 const RET = [["none", "なし"], ["samples", "サンプル"], ["hp", "HP が 半分"]];
 const INS = [[0, "なし"], [1, "ふつう"], [2, "手厚い"]];
+const SHIPS = Array.from({ length: BZ_SHIP.max + 1 }, (_, k) => [k, k ? `${k} 回` : "頼まない"]);   // 運び屋（2026-11-27 鹿さんの カード「サンプルも」）
 const MEET = [["avoid", "避ける"], ["fight", "戦う"]];   // ほかの プレイヤーと 出会ったら（ばったり。2026-11-16 鹿さんの カード：両方が 戦う ときだけ 戦い）
 const stars = (n) => `<span class="stars r${n}">${"★".repeat(n)}</span>`;
 const mmss = (ms) => { const s = Math.max(0, Math.ceil(ms / 1000)); return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`; };
 
 let ME = await me(), MP = ME.pets && ME.pets[0], Z = ME.bz || {};
-const U = { tab: "go", area: AREA_IDS[0], run: 3, pri: "none", ret: "none", retN: 3, keys: 0, crate: false, ins: 0, meet: "avoid", log: 0, mark: null, sel: new Set(), filt: "all", sort: "star", drawer: false };
-try { const s = JSON.parse(localStorage.getItem("bz-ui") || "{}"); for (const k of ["area", "run", "pri", "ret", "retN", "ins", "meet"]) if (s[k] != null) U[k] = s[k]; } catch (e) {}
+const U = { tab: "go", area: AREA_IDS[0], run: 3, pri: "none", ret: "none", retN: 3, keys: 0, crate: false, ins: 0, ship: 0, call: false, meet: "avoid", log: 0, mark: null, sel: new Set(), filt: "all", sort: "star", drawer: false };
+try { const s = JSON.parse(localStorage.getItem("bz-ui") || "{}"); for (const k of ["area", "run", "pri", "ret", "retN", "ins", "ship", "meet"]) if (s[k] != null) U[k] = s[k]; } catch (e) {}
 U.area = ZID(U.area);
-const keepUi = () => { try { localStorage.setItem("bz-ui", JSON.stringify({ area: U.area, run: U.run, pri: U.pri, ret: U.ret, retN: U.retN, ins: U.ins, meet: U.meet })); } catch (e) {} };
+{ const t = new URLSearchParams(location.search).get("tab"); if (["go", "log", "smp", "eco"].includes(t)) U.tab = t; }   // 隠れ家の サンプル保管庫から ?tab=smp で 開く
+const keepUi = () => { try { localStorage.setItem("bz-ui", JSON.stringify({ area: U.area, run: U.run, pri: U.pri, ret: U.ret, retN: U.retN, ins: U.ins, ship: U.ship, meet: U.meet })); } catch (e) {} };
 
 // ---------- 地図 ----------
 // 衛星写真の 戦略マップ（鹿さんの 構想 2026-10-29「衛星写真の戦略マップのような平面地図で、タルコフのマップ選択のように自分で選べます」。
@@ -238,6 +255,8 @@ const FIGHT = { unit: "ユニット", pom: "POM", elite: "精鋭の LINKER", inv
 function evText(e) {
   if (e.k === "mat") return `${MAT_NAME[e.id] || e.id} を 拾った`;
   if (e.k === "sample") return `${SAMPLES[e.id] ? SAMPLES[e.id].name : "サンプル"} を 見つけた${e.how === "crate" ? "（クレート）" : e.how === "lab" ? "（研究棟）" : e.how === "old" ? "（古い 区画）" : ""}`;
+  if (e.k === "fight" && e.kind === "elite" && e.names && e.names[0] && !/ POM$/.test(e.names[0])) return `${e.names[0]}（精鋭の LINKER）と 戦って ${e.win ? "勝った" : e.draw ? "引いた（長引いた）" : "負けた"}`;
+  if (e.k === "code") return `${e.name} の 解析コード ×${e.n}`;
   if (e.k === "fight") return `${e.group && e.kind !== "inv" ? GROUP_NAME[e.group] + " の " : ""}${FIGHT[e.kind] || "敵"}${e.n > 1 ? ` ×${e.n}` : ""} と 戦って ${e.win ? "勝った" : e.draw ? "引いた（長引いた）" : "負けた"}`;
   if (e.k === "pass") return `${GROUP_NAME[e.group]} の POM が 見逃して くれた`;
   if (e.k === "meet") {   // ばったり（ほかの プレイヤー。2026-11-16）
@@ -245,6 +264,8 @@ function evText(e) {
     if (!e.fight) return `${who} と すれちがった（${e.avoid === "me" ? "避けた" : "相手が 避けた"}）`;
     return e.win ? `${who} と ばったり → 勝った${things ? `（${things} を 奪った）` : ""}` : `${who} と ばったり → 負けた（${things ? `${things} を 奪われた・` : ""}HP 3 割で 続ける）`;
   }
+  if (e.k === "ship") return e.m || e.s ? `運び屋に 先に 送った（${[e.m && `素材 ${e.m}`, e.s && `サンプル ${e.s}`].filter(Boolean).join("・")}）` : "運び屋が 来たが、送る 物が なかった";
+  if (e.k === "gear") return `★${e.star} の 装備を 見つけた（${e.how === "store" ? "会社の 倉庫" : "クレート"}）`;
   if (e.k === "crate") return "施錠された クレートを 開けた";
   if (e.k === "sealed") return `${SEALED[e.kind]} を 開けた（キーカード）`;
   if (e.k === "turn") return e.why === "recall" ? "帰還：脱出口へ 向かう" : e.why === "cond" ? "帰る 条件を 満たした：脱出口へ" : "時間：脱出口へ 向かう";
@@ -259,14 +280,16 @@ const haulOf = (ev) => {   // 持って いる 物：拾った 数 ＋ ばった
 
 // ---------- 出撃の タブ ----------
 function goSide() {
-  const a = BZ_AREAS[U.area], lvOver = MP.lv > capLv(U.area), prem = U.ins ? bzInsPrice(U.run, U.ins, ME.perks || {}) : 0;
-  const low = bzLow([MP, ...(ME.party || []).map((u) => (ME.tamed || []).find((c) => c.uid === u)).filter(Boolean)], U.area);   // 帯の 下限より 低い 子は 入れない（門番と 同じ）
-  const why = !Z.open ? "準備中" : low.length ? bzLowWhy(low, U.area) : (ME.trips || []).some((t) => !t.done) ? "派遣から 帰って から" : prem > (ME.credits || 0) ? `クレジットが 足りない（保険料 ${prem}）` : "";
+  const a = BZ_AREAS[U.area], lvOver = MP.lv > capLv(U.area), shipFee = (Z.shipFee && Z.shipFee[U.ship]) ?? bzShipPrice(U.ship), prem = (U.ins ? bzInsPrice(U.run, U.ins, ME.perks || {}) : 0) + shipFee;   // 保険料 ＋ 運び屋（運び屋は TCU の 好感度で 門番が 割引・割増）
+  const low = bzLow([MP], U.area);   // 帯の 下限より 低い ペットは 入れない（門番と 同じ。ペットだけで 入る）
+  const sig = (ME.td && ME.td.open && ME.td.sig) || 0, sigShort = U.call && sig < SIGNAL.pomCall, shipCap = (Z.vault && Z.vault.ship) || BZ_SHIP;   // 運び屋の 1 回の 数（サンプル保管庫で ふえる）
+  const why = !Z.open ? "準備中" : low.length ? bzLowWhy(low, U.area) : (ME.trips || []).some((t) => !t.done) ? "派遣から 帰って から" : prem > (ME.credits || 0) ? `クレジットが 足りない（${U.ship ? "保険料と 運び屋" : "保険料"} ${prem}）` : sigShort ? `シグナルが 足りない：あと ${SIGNAL.pomCall - sig}（精鋭を 呼ぶ）` : "";
   const sum = `${esc(a.name)}・${U.run} 分`;
   return `<section class="panel side ${innerWidth <= 820 ? "drawer" : ""} ${U.drawer ? "open" : ""}" aria-label="出撃の 準備">
     <button class="grab" data-do="drawer" aria-expanded="${U.drawer}"><b style="font:900 15px/1.3 var(--jp)">${sum}</b><span style="font:700 12px/1 var(--jp);color:var(--soft)">${U.drawer ? "しまう" : "変える"}</span></button>
     <div class="more">
       <p class="sd" style="--c:${ZC(U.area)}">${SIDE_NAME[a.side]}</p><h2>${esc(a.name)}</h2><p class="band">Lv${a.lv[0]}・${a.lv[1]}・${a.lv[2]}（${BZ_DEPTH.join("・")}）</p>
+      <p class="hint" style="margin-top:6px">ペットだけで 入る（なかまは 連れて いけない）</p>
       ${lvOver ? `<p class="hint" style="margin-top:6px">${esc(MP.name)}は Lv${capLv(U.area)} の 強さに そろう</p>` : ""}
       <div class="row"><span>時間</span><div class="seg" role="group" aria-label="時間">${Object.keys(BZ_RUNS).map((r) => `<button data-run="${r}" aria-pressed="${+r === U.run}">${r} 分・${BZ_DEPTH[BZ_RUNS[r].depth]}まで</button>`).join("")}</div></div>
       <div class="row"><span>探す 物</span><div class="seg" role="group" aria-label="探す 物">${PRI.map(([k, n]) => `<button data-pri="${k}" aria-pressed="${U.pri === k}">${n}</button>`).join("")}</div></div>
@@ -274,9 +297,12 @@ function goSide() {
         ${U.ret === "samples" ? `<div class="step" style="margin-top:8px"><button data-retn="-1" aria-label="へらす">−</button><b>${U.retN}</b><button data-retn="1" aria-label="ふやす">＋</button><span style="font:700 13px/1 var(--jp)">こ 見つけたら 帰る</span></div>` : ""}</div>
       ${Z.keys ? `<div class="row"><span>封鎖された 所の キーカード（のこり ${Z.keys}）</span><div class="step"><button data-key="-1" aria-label="へらす">−</button><b>${U.keys}</b><button data-key="1" aria-label="ふやす">＋</button><span style="font:700 13px/1 var(--jp)">枚 持って いく</span></div></div>` : ""}
       ${Z.crateKeys ? `<div class="row"><span>クレートの カードキー（のこり ${Z.crateKeys}）</span><div class="seg" role="group"><button data-crate="0" aria-pressed="${!U.crate}">持って いかない</button><button data-crate="1" aria-pressed="${U.crate}">持って いく</button></div></div>` : ""}
+      ${ME.td && ME.td.open ? `<div class="row"><span>精鋭を 呼ぶ（シグナル ${sig}）</span><div class="seg" role="group" aria-label="精鋭を 呼ぶ"><button data-call="0" aria-pressed="${!U.call}">呼ばない</button><button data-call="1" aria-pressed="${U.call}" ${sig < SIGNAL.pomCall && !U.call ? "disabled" : ""}>呼ぶ（シグナル ${SIGNAL.pomCall}）</button></div></div>` : ""}
       <div class="row"><span>ほかの プレイヤーと 出会ったら</span><div class="seg" role="group" aria-label="ほかの プレイヤーと 出会ったら">${MEET.map(([k, n]) => `<button data-meet="${k}" aria-pressed="${U.meet === k}">${n}</button>`).join("")}</div>
         <p class="hint" style="margin-top:6px">${U.meet === "fight" ? "相手も 戦う なら 戦う。勝つと 相手の 持ち物の 2 割を 奪う／負けると 2 割を 奪われ、HP 3 割で 続ける" : "すれちがう だけ（相手が 戦う でも 戦わない）"}</p></div>
-      <div class="row"><span>保険${U.ins ? `（${prem} クレジット）` : ""}</span><div class="seg" role="group" aria-label="保険">${INS.map(([k, n]) => `<button data-ins="${k}" aria-pressed="${U.ins === k}" ${k === 2 && !(ME.perks && ME.perks.ins2) ? "disabled" : ""}>${n}</button>`).join("")}</div></div>
+      <div class="row"><span>運び屋${U.ship ? `（${shipFee} クレジット）` : ""}</span><div class="seg" role="group" aria-label="運び屋">${SHIPS.map(([k, n]) => `<button data-ship="${k}" aria-pressed="${U.ship === k}">${n}</button>`).join("")}</div>
+        <p class="hint" style="margin-top:6px">${U.ship ? `とちゅうで 素材 ${shipCap.mats} こと サンプル ${shipCap.samples} こまでを 先に 送る。送った 分は 力つきても 残る。早く 帰ると 送らない ことも ある（値段は TCU の 好感度で かわる）` : "キャラバン運送が とちゅうで 拾った 物を 先に 送る"}</p></div>
+      <div class="row"><span>保険${U.ins ? `（${bzInsPrice(U.run, U.ins, ME.perks || {})} クレジット）` : ""}</span><div class="seg" role="group" aria-label="保険">${INS.map(([k, n]) => `<button data-ins="${k}" aria-pressed="${U.ins === k}" ${k === 2 && !(ME.perks && ME.perks.ins2) ? "disabled" : ""}>${n}</button>`).join("")}</div></div>
     </div>
     <button class="jelly sky big go" data-do="start" ${why ? "disabled" : ""}>出撃する</button>
     ${why ? `<p class="why">${esc(why)}</p>` : ""}
@@ -309,8 +335,11 @@ function logView() {
     <div class="map">${runMap(r.area, r.pos, r.ev, false)}</div>
     <section class="panel side" aria-label="出撃の 記録">
       <div class="logs">${L.map((x, j) => `<button data-log="${j}" aria-pressed="${j === Math.min(U.log, L.length - 1)}">${esc(BZ_AREAS[ZID(x.area)].name)}<small>${x.run} 分・${x.wipe ? "力つきた" : "帰った"}</small></button>`).join("")}</div>
-      <p class="res ${r.wipe ? "bad" : ""}">${r.wipe ? "力つきた：集めた 物は 失った" : "生きて 帰った"}</p>
+      <p class="res ${r.wipe ? "bad" : ""}">${r.wipe ? (r.sent && (r.sent.mats || r.sent.samples) ? "力つきた：運び屋が 送った 物 だけ 残った" : "力つきた：集めた 物は 失った") + (r.lost && r.lost.gear ? `（装備 ${r.lost.gear} こ も）` : "") : "生きて 帰った"}</p>
+      ${r.sent && (r.sent.mats || r.sent.samples) ? `<p class="hint" style="margin-top:6px">運び屋が 送った 分：${[r.sent.mats && `素材 ${r.sent.mats}`, r.sent.samples && `サンプル ${r.sent.samples}`].filter(Boolean).join("・")}</p>` : ""}
+      ${r.gear && r.gear.length ? `<div class="row"><span>装備 ${r.gear.length}</span><div class="mats">${r.gear.map((x) => `<span>★${x.star} の 装備</span>`).join("")}</div></div>` : ""}
       ${mk ? `<p style="margin-top:8px;font:700 14px/1.5 var(--jp)"><i style="font:600 12px var(--num);color:var(--soft);font-style:normal">${tOf(mk)}</i>　${esc(evText(mk))}</p>` : `<p class="hint" style="margin-top:6px">地図の 印を 押すと 中身</p>`}
+      ${r.codes && Object.keys(r.codes).length ? `<div class="row"><span>解析コード</span><div class="mats">${Object.entries(r.codes).map(([k, n]) => `<span>${esc(k)}<b>×${n}</b></span>`).join("")}</div></div>` : ""}
       ${r.samples && r.samples.length ? `<div class="row"><span>サンプル ${r.samples.length}</span><div class="mats">${r.samples.map((id) => `<span>${esc(SAMPLES[id] ? SAMPLES[id].name : id)}</span>`).join("")}</div></div>` : ""}
       ${Object.keys(mats).length ? `<div class="row"><span>素材</span><div class="mats">${Object.entries(mats).map(([id, n]) => `<span data-mat="${id}" tabindex="0"><img src="${matPic(id)}" alt="">${esc(MAT_NAME[id] || id)}<b>×${n}</b></span>`).join("")}</div></div>` : ""}
       ${r.lost && r.lost.back ? `<p class="hint" style="margin-top:10px">保険で 素材 ${r.lost.back.n} こが あとで 届く</p>` : ""}
@@ -321,11 +350,37 @@ function logView() {
 // ---------- サンプルの タブ ----------
 const FILTS = [["all", "すべて"], ["new", "鑑定まだ"], ["mineral", "鉱物"], ["bio", "生体"], ["relic", "遺物"], ["local", "名物"]];
 const fit = (s, f) => f === "all" || (f === "new" ? !s.known : f === "local" ? !!SAMPLES[s.id].local : SAMPLES[s.id].line === f && !SAMPLES[s.id].local);
+// リサイクル（2026-11-27 鹿さんの カード）：ボーダーゾーンの 素材と クローラーの スクラップ → エコポイント（1 こ ＝ 素材の 値段）。交換：キーカード 1,000・他の 島の 素材 ＝ 値段の 2 倍
+function ecoViewHtml() {
+  const pts = Z.eco.pts || 0, own = (ME.own && ME.own.mats) || [], cnt = {};
+  for (const m of own) if (recyclable(m.id)) cnt[m.id] = (cnt[m.id] || 0) + m.n;
+  const list = Object.entries(cnt).sort((a, b) => ecoOf(b[0]) * b[1] - ecoOf(a[0]) * a[1]), all = list.reduce((t, [id, k]) => t + ecoOf(id) * k, 0), sub = U.eco || "rcl", isle = U.ecoIsle || 1;
+  const head = `<section class="panel"><div class="eco-top"><span style="font:900 14px/1 var(--jp)">エコポイント</span><b>${pts.toLocaleString("ja-JP")}</b><small>プライベートラウンジの 引越しにも 使える</small></div>
+    <div class="ecotabs" role="group" aria-label="リサイクル"><button class="chip" data-eco="rcl" aria-pressed="${sub === "rcl"}">リサイクル</button><button class="chip" data-eco="buy" aria-pressed="${sub === "buy"}">交換</button></div></section>`;
+  if (sub === "rcl") return head + `<section class="panel" style="margin-top:12px"><h2>リサイクル <small style="font:700 12px/1 var(--jp);color:var(--soft)">ボーダーゾーンの 素材と クローラーの スクラップ・1 こ ＝ 値段の ポイント</small></h2>
+    ${list.length ? `<button class="jelly ${U.rclAsk ? "coral" : "sky"}" data-rcl="all" style="margin-top:10px">${U.rclAsk ? "もう 1 回 押すと ぜんぶ リサイクル" : `ぜんぶ リサイクル（＋${all.toLocaleString("ja-JP")}）`}</button><div class="rcl">${list.map(([id, k]) => `<div class="it"><img src="${matPic(id)}" alt=""><span>${esc(MAT_NAME[id] || id)} ×${k}</span><span class="v">＋${(ecoOf(id) * k).toLocaleString("ja-JP")}</span><button class="jelly light" data-rcl="${id}">リサイクル</button></div>`).join("")}</div>` : `<p class="empty">リサイクルできる 素材が ない（ボーダーゾーンの 素材・クローラーの スクラップ）</p>`}</section>`;
+  const keys = Object.entries(ECO_KEYS).map(([k, name]) => `<div class="it"><span></span><span>${name}<small style="display:block;font:700 12px/1.3 var(--jp);color:var(--soft)">持って いる ${((k === "key_bz" ? Z.keys : Z.crateKeys) || 0)} 枚</small></span><span class="v">${ECO.key.toLocaleString("ja-JP")}</span><button class="jelly light" data-ecobuy="${k}" ${pts >= ECO.key ? "" : "disabled"}>交換</button></div>`).join("");
+  const isles = Object.keys(ECO_ISLES).map(Number), mats = ECO_ISLES[isle] || [];
+  return head + `<section class="panel" style="margin-top:12px"><h2>キーカード</h2><div class="rcl">${keys}</div></section>
+    <section class="panel" style="margin-top:12px"><h2>他の 島の 素材 <small style="font:700 12px/1 var(--jp);color:var(--soft)">1 こ ＝ 値段の 2 倍の ポイント</small></h2>
+    <div class="ecotabs" role="group" aria-label="島">${isles.map((i) => `<button class="chip" data-ecoisle="${i}" aria-pressed="${isle === i}">島 ${i}</button>`).join("")}</div>
+    <div class="rcl">${mats.map((id) => { const p = ecoBuyPrice(id); return `<div class="it"><img src="${matPic(id)}" alt=""><span>${esc(MAT_NAME[id] || id)}</span><span class="v">${p}</span><button class="jelly light" data-ecomat="${id}" data-n="1" ${pts >= p ? "" : "disabled"}>1 こ</button></div>`; }).join("")}</div></section>`;
+}
+// グループの 依頼（門番の bzReqView。いちばん 高く なる サンプルで 納める）
+function reqHtml() {
+  const L = (Z.req || []).filter((q) => q.kind === "g").sort((a, b) => +a.key.split(":")[2] - +b.key.split(":")[2]); if (!L.length) return "";   // 1 段目に 各グループの 1 つめ（列が グループに そろう）
+  const left = L.filter((q) => !q.done).length;
+  return `<section class="panel reqs" aria-label="グループの 依頼"><h2>グループの 依頼 <small>のこり ${left}・毎日 入れかわる</small></h2><p class="note">ごほうび：納める 値段の 1.5 倍の クレジットと その グループの 好感度 ＋2（名物は ＋4。ほかの 2 つの グループは その 半分ずつ 下がる）</p><div class="rq">${L.map((q) => { const c = q.cand[0];
+    return `<div class="rqc ${q.done ? "done" : ""}"><span class="gn">${GROUP_NAME[q.g]}</span><b>${esc(q.name)}${q.star ? ` ★${q.star} 以上` : ""}</b><small>${q.line}${q.star ? "・鑑定した 物" : "・★は 問わない"}</small>${!q.done && c ? `<span class="pay"><b>${c.pay}</b> クレジット</span>` : ""}${q.done ? `<span class="ok">納めた</span>` : c ? `<button class="jelly sky" data-req="${q.key}" data-ruid="${c.uid}">納める</button>` : `<button class="jelly light" disabled>持って いない</button>`}</div>`; }).join("")}</div></section>`;
+}
 function smpView() {
+  return reqHtml() + smpList();
+}
+function smpList() {
   const all = Z.samples || [];
   if (!all.length) return `<section class="panel empty">貴重サンプルは まだ ない。ボーダーゾーンで 見つけて、生きて 帰ると 手に 入る</section>`;
   const list = all.filter((s) => fit(s, U.filt)).sort((a, b) => (U.sort === "star" ? (b.known ? b.star : 0) - (a.known ? a.star : 0) : 0) || (a.id < b.id ? -1 : 1));
-  const sel = all.filter((s) => U.sel.has(s.uid)), unk = sel.filter((s) => !s.known), aff = Z.aff || {};
+  const sel = all.filter((s) => U.sel.has(s.uid)), unk = sel.filter((s) => !s.known), aff = Z.aff || {}, fee1 = (Z.vault && Z.vault.fee) || APPRAISE_FEE;   // 鑑定 1 こ（サンプル保管庫で 安く なる）
   const offer = Object.keys(GROUP_NAME).map((g) => [g, sel.reduce((t, s) => t + samplePrice(s, g, aff[g] || 0), 0)]), best = Math.max(0, ...offer.map(([, v]) => v));
   return `<div class="cols">
     <div>
@@ -335,8 +390,9 @@ function smpView() {
     </div>
     <section class="panel side" aria-label="鑑定と 納める">
       <h2>えらんだ ${sel.length} こ</h2>
+      <p class="hint" style="margin-top:2px">持って いる ${all.length} / ${(Z.vault && Z.vault.max) || 60} こ（隠れ家の サンプル保管庫で ふえる）</p>
       <p class="hint" style="margin-top:4px">${sel.length ? "" : "サンプルを 押して えらぶ"}</p>
-      <button class="jelly light big" data-do="appraise" ${unk.length ? "" : "disabled"} style="margin-top:8px">鑑定する（${unk.length} こ・${unk.length * APPRAISE_FEE} クレジット）</button>
+      <button class="jelly light big" data-do="appraise" ${unk.length ? "" : "disabled"} style="margin-top:8px">鑑定する（${unk.length} こ・${unk.length * fee1} クレジット）</button>
       <div class="sell">${offer.map(([g, v]) => `<button class="jelly ${v === best && v > 0 ? "sky" : "light"}" data-sell="${g}" ${sel.length ? "" : "disabled"}><span>${GROUP_NAME[g]} に 納める</span><b>${v}</b></button>`).join("")}</div>
       ${unk.length ? `<p class="hint" style="margin-top:10px">鑑定して いない 物は ★1 の 値段</p>` : ""}
     </section>
@@ -349,10 +405,11 @@ function render() {
   const info = petInfo(MP), ty = TYPES[MP.type], n = (Z.samples || []).length;
   const head = `<section class="panel pet" aria-label="ペット"><div class="pic"><img src="${info.img}" alt=""></div><div><h1>${esc(MP.name)}<small>${esc(info.label)}</small></h1><div class="meta"><span class="badge" style="--c:${ty.color}">${ty.label}</span><span class="lv"><small>Lv</small>${MP.lv}</span></div></div></section>
     <nav class="tabs" role="tablist"><button role="tab" aria-selected="false">ステータス</button><button role="tab" aria-selected="false">スキルツリー</button><button role="tab" aria-selected="false">装備</button><button role="tab" aria-selected="false">ガンビット</button><button role="tab" aria-selected="false">冒険</button><button role="tab" aria-selected="false">Orbit Arena</button><button role="tab" aria-selected="true">ボーダーゾーン</button><button role="tab" aria-selected="false">なかま</button></nav>
-    <nav class="tabs btabs" aria-label="ボーダーゾーン"><button data-tab="go" aria-selected="${U.tab === "go"}">出撃</button><button data-tab="log" aria-selected="${U.tab === "log"}">記録</button><button data-tab="smp" aria-selected="${U.tab === "smp"}">サンプル${n ? `<span class="n">${n}</span>` : ""}</button></nav>`;
+    <nav class="tabs btabs" aria-label="ボーダーゾーン"><button data-tab="go" aria-selected="${U.tab === "go"}">出撃</button><button data-tab="log" aria-selected="${U.tab === "log"}">記録</button><button data-tab="smp" aria-selected="${U.tab === "smp"}">サンプル${n ? `<span class="n">${n}</span>` : ""}</button>${Z.eco ? `<button data-tab="eco" aria-selected="${U.tab === "eco"}">リサイクル</button>` : ""}</nav>`;
   if (!Z.open && !Z.run) return head + `<section class="panel lock"><h2>準備中</h2><p style="margin-top:8px;color:var(--soft)">ボーダーゾーンは、公開まで もう 少し お待ちください</p></section>`;
   if (U.tab === "log") return head + logView();
   if (U.tab === "smp") return head + smpView();
+  if (U.tab === "eco" && Z.eco) return head + ecoViewHtml();
   if (Z.run) return head + runView(Z.run);
   if (Z.isle === false) return head + `<section class="panel lock"><h2>ミカネル島から</h2><p style="margin-top:8px;color:var(--soft)">ボーダーゾーンは、ミカネル島へ 行けるように なると 開きます（隠れ家の 無線機 Lv2）</p><a class="jelly sky" href="hideout.html" style="display:inline-block;margin-top:16px;text-decoration:none">隠れ家へ</a></section>`;   // 2026-11-06 鹿さん「ボーダーゾーンは島3解放までクローズにしてください。」
   if (Z.signed === false) return head + `<section class="panel lock"><h2>招待が 届いて いる</h2><p style="margin-top:8px;color:var(--soft)">知らない 周波数から 通信が 入って います。誓約書に サインすると、ボーダーゾーンと クローラーが 開きます</p><a class="jelly sky" href="crawler.html" style="display:inline-block;margin-top:16px;text-decoration:none">通信を 聞く</a></section>`;   // 島 3 の 夜の 招待（2026-11-11。サインは クローラーの はじまり）
@@ -385,7 +442,9 @@ document.body.addEventListener("click", async (e) => {
   if (d.retn) { U.retN = Math.max(1, Math.min(9, U.retN + +d.retn)); keepUi(); return paint(); }
   if (d.key) { U.keys = Math.max(0, Math.min(KEY_MAX, Z.keys || 0, U.keys + +d.key)); return paint(); }
   if (d.crate) { U.crate = d.crate === "1"; return paint(); }
+  if (d.call) { U.call = d.call === "1"; return paint(); }
   if (d.ins) { U.ins = +d.ins; keepUi(); return paint(); }
+  if (d.ship != null) { U.ship = +d.ship; keepUi(); return paint(); }
   if (d.log) { U.log = +d.log; U.mark = null; return paint(); }
   if (d.filt) { U.filt = d.filt; return paint(); }
   if (d.sort) { U.sort = d.sort; return paint(); }
@@ -393,20 +452,37 @@ document.body.addEventListener("click", async (e) => {
   const x = d.do;
   if (x === "drawer") { U.drawer = !U.drawer; return paint(); }
   if (x === "start") {
-    const r = await busy(b, () => act("bz.start", { area: U.area, run: U.run, pri: U.pri, ret: { k: U.ret, n: U.retN }, keys: U.keys, crate: U.crate, ins: U.ins, meet: U.meet }));
+    const r = await busy(b, () => act("bz.start", { area: U.area, run: U.run, pri: U.pri, ret: { k: U.ret, n: U.retN }, keys: U.keys, crate: U.crate, ins: U.ins, ship: U.ship, call: U.call, meet: U.meet }));
     if (!r.ok) return toast(r.wait ? waitText : r.why || "出撃できませんでした");
-    U.drawer = false; U.keys = 0; await reload(); return toast("出撃した");
+    U.drawer = false; U.keys = 0; U.call = false; await reload(); return toast("出撃した");
   }
   if (x === "recall") { const r = await busy(b, () => act("bz.recall", {})); if (!r.ok) return toast(r.why || "帰還できませんでした"); await reload(); return toast("帰還：脱出口へ 向かう"); }
   if (x === "collect") {
     const r = await busy(b, () => act("bz.collect", {})); if (!r.ok) return toast(r.why || "うけとれませんでした");
     U.tab = "log"; U.log = 0; await reload();
-    return toast(r.wipe ? "力つきた：集めた 物を 失った" : `うけとった：サンプル ${r.got.samples}・素材 ${r.got.mats}`);
+    return toast(r.wipe ? (r.got && r.got.sent && (r.got.sent.mats || r.got.sent.samples) ? "力つきた：運び屋が 送った 物 だけ 残った" : "力つきた：集めた 物を 失った") + (r.lost && r.lost.gear ? `（装備 ${r.lost.gear} こ も）` : "") : `うけとった：サンプル ${r.got.samples}・素材 ${r.got.mats}`);
   }
   if (x === "appraise") {
     const uids = (Z.samples || []).filter((s) => U.sel.has(s.uid) && !s.known).map((s) => s.uid);
     const r = await busy(b, () => act("bz.appraise", { uids })); if (!r.ok) return toast(r.why || "鑑定できませんでした");
     await reload(); return toast(`鑑定した：${r.stars.map((s) => "★" + s.star).join(" ")}`);
+  }
+  if (d.eco) { U.eco = d.eco; U.rclAsk = false; return paint(); }
+  if (d.ecoisle) { U.ecoIsle = +d.ecoisle; return paint(); }
+  if (d.rcl) {   // リサイクル（1 しゅるい か ぜんぶ。ぜんぶは 2 回 押す：もどせない ため）
+    if (d.rcl === "all" && !U.rclAsk) { U.rclAsk = true; return paint(); }
+    U.rclAsk = false;
+    const own = (ME.own && ME.own.mats) || [], ids = d.rcl === "all" ? [...new Set(own.filter((m) => recyclable(m.id)).map((m) => m.id))] : [d.rcl];
+    const r = await busy(b, () => act("bz.recycle", { items: ids.map((id) => ({ id })) })); if (!r.ok) return toast(r.why || "リサイクルできませんでした");
+    await reload(); return toast(`リサイクルした：${r.n} こ・エコポイント ＋${r.pts.toLocaleString("ja-JP")}`);
+  }
+  if (d.ecobuy || d.ecomat) {   // エコポイントで 交換
+    const r = await busy(b, () => act("bz.eco", d.ecobuy ? { what: d.ecobuy, n: 1 } : { what: "mat", id: d.ecomat, n: +d.n || 1 })); if (!r.ok) return toast(r.why || "交換できませんでした");
+    await reload(); return toast(`交換した：${r.what === "mat" ? `${MAT_NAME[r.id] || r.id} ×${r.n}` : `${ECO_KEYS[r.what]} ×${r.n}`}（${r.cost.toLocaleString("ja-JP")} ポイント）`);
+  }
+  if (d.req) {   // グループの 依頼に 納める
+    const r = await busy(b, () => act("bz.req", { key: d.req, uid: d.ruid })); if (!r.ok) return toast(r.why || "納められませんでした");
+    U.sel.delete(d.ruid); await reload(); return toast(`${GROUP_NAME[r.g]} の 依頼に 納めた：${r.paid} クレジット・好感度 ＋${r.aff}`);
   }
   if (d.sell) {
     const uids = [...U.sel], r = await busy(b, () => act("bz.sell", { group: d.sell, uids })); if (!r.ok) return toast(r.why || "納められませんでした");

@@ -37,6 +37,10 @@ import { DUEL } from "./game.js";   // モンスターの 闘技場の 残り �
 import { arenaFighter, ensureArena, duelCheck, duelDone, arenaMine, encReady, encPick, encDone, arenaMon, ensureArenaM, monRep, monList, mDuelCheck, selfTour, ensureArenaT, arenaTeam, monTeam, tDuelCheck, tDuelDone, selfTeamTour } from "./lounge-arena.js";   // 闘技場・派遣先の 戦い
 import { hidden } from "./lounge-gate.js";
 import { bzStart, bzRecall, bzCollect, bzAppraise, bzSell, bzDone, bzMe, bzRosterEntry, bzMeetReady, bzMeetAsk, bzMeetIn, bzMeetDone } from "./lounge-border.js";   // ボーダーゾーン（2026-11-05 作りはじめ）
+import { bzReqView, bzReqDo, bzReqOpen } from "./lounge-bzreq.js";   // サンプルの 依頼（グループと 会社。2026-11-27）
+import { ecoView, ecoRecycle, ecoBuy } from "./lounge-eco.js";   // リサイクルと エコポイント（2026-11-27）
+import { movePlan, roomType } from "./lounge-move.js";   // 引越し（2026-11-27）
+import { layoutCells } from "./move.js";   // 部屋ごとの 間取りの 置ける マス（2026-11-27）
 import { bzStep, BZ_MEET, BZ_AREAS } from "./border.js";   // BZ_MEET：ばったりの 見回り（2026-11-16）
 import { stockAct, stockFlush, sale, refundSale } from "./lounge-stock.js";
 import { auAct, auSettle } from "./lounge-auction.js";   // 競り（ガラク）・フリマ（アンビル・ピーコ）：Market の 競り場へ   // 株（トークン）：売り買い・売り上げを 取引所（Market）へ
@@ -50,7 +54,7 @@ const BZ_BUSY = "ほかの プレイヤーと 出会って いる ところ：�
 const LABEL = { balls: "玉", res: "アメジスト" };
 // オーバーレイが 景品の コスメを 渡せなかった わけ（obs-ledger.js の canGive の why）
 const GIVE_WHY = { gone: "お店の 品物が 入れ替わりました", price: "値段が 合いませんでした", own: "その コスメは もう 持って いる", max: "その コスメは もう Ⅲ まで 進化して いる", give: "配信の 画面が 景品を 渡せませんでした" };
-export const MONEY = /^(shop\.|hideout\.up$|bench\.|trip\.collect$|trip\.start$|tame\.feed$|tame\.research$|tame\.extract$|trader\.|task\.|req\.|pet\.respec$|pet\.rejob$|pet\.unlock$|td\.revive$|td\.board$|money\.|arena\.duel$|arena\.mduel$|arena\.tduel$|prize\.)/;   // 玉か アメジストが うごく やること（答えに いまの 数を つける）
+export const MONEY = /^(room\.move$|shop\.|hideout\.up$|bench\.|trip\.collect$|trip\.start$|tame\.feed$|tame\.research$|tame\.extract$|trader\.|task\.|req\.|pet\.respec$|pet\.rejob$|pet\.unlock$|td\.revive$|td\.board$|money\.|arena\.duel$|arena\.mduel$|arena\.tduel$|prize\.)/;   // 玉か アメジストが うごく やること（答えに いまの 数を つける）
 // 画面へ 送る 持ち物：鑑定して いない スフィアは 中身（OP・★）を 送らない（ガラクの 鑑定で 見える）
 const ownView = (own) => (own && Array.isArray(own.spheres) && own.spheres.some((x) => !x.known) ? { ...own, spheres: own.spheres.map((x) => (x.known ? x : { uid: x.uid, did: x.did, known: false })) } : own);
 const PLANS = {
@@ -68,6 +72,7 @@ const PLANS = {
   "pet.respec": (rec, b) => respecPlan(rec, b, jstDay()),
   "pet.rejob": (rec, b) => respecPlan(rec, b, jstDay()),
   "pet.unlock": (rec, b) => petUnlockPlan(rec, b, rec.ledger.unknown, rand),   // 2 匹目は 無料（計画を 作らずに その場で むかえる）、3 匹目から アメジスト
+  "room.move": (rec, b) => movePlan(rec, b),   // プライベートラウンジの 引越し（アメジストは 帳簿・エコポイントは その場で。2026-11-27）
   "req.post": (rec, b, env) => reqPostPlan(rec, b, String((env && env.NG_WORDS) || "").split(",").map((w) => w.trim()).filter(Boolean)),   // 門番だけが 持つ NG ことば
 };
 const res = (o, status = 200) => new Response(JSON.stringify(o), { status, headers: { "Content-Type": "application/json" } });
@@ -151,6 +156,7 @@ export class Viewer {
     if (!r || r.uid !== bz.uid || now >= r.end) { bz.tick = false; await this.state.storage.put("bzsim", bz); return; }
     await this.state.storage.setAlarm(Math.min(r.end, now + BZ_MEET.every * 1000));
     if (bz.meeting > now) return;   // 前の 呼び出しが まだ 終わって いない
+    if (locked(rec, this.env) || bzLocked(rec, this.env)) return;   // 工事中の 鍵（見つかる 側の /bzmeet と そろえる。返事を 入れる 段では 断らない：相手は もう 入れて いる）
     const ready = bzMeetReady(rec, bz, now); if (!ready || !this.env.LOUNGE) return;
     const gate = await this.env.DB.get("gate", "json"); if (hidden(gate, rec.id)) return;
     let foe = null;
@@ -425,7 +431,7 @@ export class Viewer {
     facMigrate(rec); facDue(rec, now);   // 前の 施設の Lv を うつす（1 回だけ）・時間が 来た 建設と 研究を 終える
     let r;
     if (body.a === "room.save") {
-      const clean = cleanRoom(body.items, rec.own.furniture, rec.room.size);   // しまうのは たしかめた 形だけ（送られた 物を そのまま しまわない）
+      const clean = cleanRoom(body.items, rec.own.furniture, rec.room.size, layoutCells(roomType(rec), rec.room.size || N));   // しまうのは たしかめた 形だけ（送られた 物を そのまま しまわない）・部屋ごとの 間取り（ロフト・テラスなど）にも 置ける
       r = typeof clean === "string" ? { ok: false, why: clean } : { ok: true };
       if (r.ok) rec.room.items = clean;
     } else if (body.a === "room.light") {
@@ -500,13 +506,16 @@ export class Viewer {
     else if (body.a === "bz.collect") { const ru = rec.bz && rec.bz.run && rec.bz.run.uid, sim = await this.state.storage.get("bzsim"); r = sim && sim.meeting > now ? { ok: false, why: BZ_BUSY } : bzCollect(rec, now); if (r.ok) { await this.state.storage.delete("bzsim"); if (ru) await this.bzRoster("del", { id: rec.id, uid: ru }); } }
     else if (body.a === "bz.appraise") r = bzAppraise(rec, body);   // 鑑定（ガラク）
     else if (body.a === "bz.sell") r = bzSell(rec, body);           // 会社に 納める
+    else if (body.a === "bz.req") r = bzReqDo(rec, body, now, bzReqOpen(rec, bzLocked(rec, this.env)));
+    else if (body.a === "bz.recycle") r = ecoRecycle(rec, body, bzReqOpen(rec, bzLocked(rec, this.env)));   // リサイクル（エコポイント）
+    else if (body.a === "bz.eco") r = ecoBuy(rec, body, bzReqOpen(rec, bzLocked(rec, this.env)), now);      // エコポイントで 交換   // グループ・会社の 依頼に 納める
     else if (body.a === "ess.extract") r = essExtract(rec, body, (rec.ledger && rec.ledger.unknown) || []);   // あまった 子から エッセンス
     else if (body.a === "ess.make") r = essMake(rec, body, (rec.ledger && rec.ledger.unknown) || []);   // エッセンスで サブツリー・上位・特殊
     else if (body.a === "ess.sell") r = essSell(rec, body);   // エッセンスを クレジットで 売る
     else if (body.a === "order.sign") r = orderSign(rec, now);   // 島 3 の 夜の 招待の 誓約書に サイン
     else if (body.a === "crawl.save") r = crawlSave(rec, body, now);   // クローラーの 進み（どの 機械でも 同じ に）
     else if (/^td\.(help\.(post|list|send|view)|def\.start|def\.end)$/.test(body.a)) r = await tdhAct(this, rec, body, now);   // 集合住宅：助けを よぶ 掲示板と 防衛の 始め・終わり（募集を 締める・結果を 板へ）
-    else if (/^td\.(build|rent|movein|out|buy|furn|furn\.off|furn\.auto|gear|gear\.off|price|scout|life|bp\.scrap|mod\.pick|mod\.set|mod\.off|mod\.scrap|def\.start|def\.end)$/.test(body.a)) r = tdAct(rec, body, now);   // 集合住宅（増築・家賃・入居・防衛）
+    else if (/^td\.(build|rent|movein|out|buy|furn|furn\.off|furn\.auto|gear|gear\.off|price|scout|life|bp\.scrap|mod\.pick|mod\.set|mod\.off|mod\.scrap|mod\.craft|sp\.build|def\.start|def\.end)$/.test(body.a)) r = tdAct(rec, body, now);   // 集合住宅（増築・家賃・入居・防衛）
     else if (body.a === "fac.knob") r = facKnob(rec, body, now);
     else if (body.a === "ws.att") r = wsAtt(rec, body, rand, now);
     else if (body.a === "ws.proc") r = wsProc(rec, body, now);           // 加工：作物 → 布・建材
@@ -589,7 +598,7 @@ export class Viewer {
     return { id: rec.id, lock: locked(rec, this.env), lockKind: lockKind(), login: rec.login, name: rec.name, nameAt: rec.nameAt, names: rec.names, room: rec.room, own: ownView(rec.own), wallet: this.purse(rec, w), waiting: rec.ledger.unknown.length,
       pets: rec.pets.map((p, i) => { if (!p.type) return { ...p }; const build = fighterOf(p, rec);   // band：クローラーの 帯の 形（先頭の ペットだけ。M-031 ①）
         return { ...p, sp: { all: spTotal(p.lv), left: spTotal(p.lv) - spUsed(p) }, freeLeft: freeIsAuto(p) ? 0 : freeTotal(p.lv) - Object.values(p.free || {}).reduce((a, v) => a + v, 0), build, band: i ? null : bandOf(build), resetPrice: RESET_PRICE(p.lv) }; }),
-      tamed: rec.tamed, party: rec.party, mine: mineView(rec, now), farmv: farmvView(rec, now), crawl: crawlView(rec), td: tdView(rec, now), eliteSubs: eliteSubs(rec), order: orderView(rec), ess: essView(rec), bz: { ...bzMe(rec, now), open: !bzLocked(rec, this.env) }, stock: { open: !stockLocked(rec, this.env), h: (rec.stock && rec.stock.h) || {} }, smelt: rec.smelt || [], saw: rec.saw || [], loop: rec.loop || null, lab: rec.lab, labQ: rec.labQ || [], hideout: rec.hideout, knob: rec.knob || {}, fac: facView(rec, now), credits: rec.credits, snacks: rec.snacks, tools: rec.tools, explore: rec.explore, seen: rec.seen, met: rec.met,
+      tamed: rec.tamed, party: rec.party, mine: mineView(rec, now), farmv: farmvView(rec, now), crawl: crawlView(rec), td: tdView(rec, now), eliteSubs: eliteSubs(rec), order: orderView(rec), ess: essView(rec), bz: { ...bzMe(rec, now), open: !bzLocked(rec, this.env), req: bzReqView(rec, now, bzReqOpen(rec, bzLocked(rec, this.env))), eco: ecoView(rec, bzReqOpen(rec, bzLocked(rec, this.env))) }, stock: { open: !stockLocked(rec, this.env), h: (rec.stock && rec.stock.h) || {} }, smelt: rec.smelt || [], saw: rec.saw || [], loop: rec.loop || null, lab: rec.lab, labQ: rec.labQ || [], hideout: rec.hideout, knob: rec.knob || {}, fac: facView(rec, now), credits: rec.credits, snacks: rec.snacks, tools: rec.tools, explore: rec.explore, seen: rec.seen, met: rec.met,
       stash: { cap: stashCap(rec) }, equipCap: equipCap(rec), autoSell: rec.autoSell || null, trips: rec.trips.map((t) => tripView(t, now)), deeplink: deeplinkView(rec, jstDay(now)), desk: deskView(rec, now), req: { mine: rec.req.mine, sending: rec.req.out.length } };
   }
 

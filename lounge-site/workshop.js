@@ -108,6 +108,18 @@ export const ATT_BASES = [
   { id: "strap", kind: "grip", name: "ストラップ", pool: ["agi", "evade", "luk"], mats: [["straw", 15], ["berry", 10], ["kobold_fur", 1]], credits: 250 },
   { id: "weight", kind: "grip", name: "おもり", pool: ["atk", "def", "critDmg", "drain"], mats: [["ironore", 12], ["brick", 12], ["golem_stone", 1]], credits: 400 },
   { id: "bell", kind: "grip", name: "鈴", pool: ["mp", "mpRegen", "focusStart", "healUp"], mats: [["stardust", 12], ["candle", 8], ["old_score", 1]], credits: 400 },
+  // ボーダーゾーンの 素材で 作る 10 こ（2026-11-27 鹿さんの カード「もっと増やす」「レーザーサイト、フォアグリップも追加」「この中身」。どれも 素材 12 ＋ 12 ＋ 1 ＋ 800 クレジット）
+  //   〔C〕カードに 素材を 書かなかった 4 つ（砲弾リング・薬液ボトル・モーターコイル・帆布カバー）の 素材は Claude が その 名前に 合う 物から
+  { id: "amp", kind: "tip", name: "真空管アンプ", pool: ["int", "wazaDmg", "mpRegen"], mats: [["vacuum_tube", 12], ["small_circuit", 12], ["cpu_chip", 1]], credits: 800, bz: true },
+  { id: "capsule", kind: "tip", name: "培地カプセル", pool: ["healUp", "hp", "mpRegen"], mats: [["culture_medium", 12], ["acrylic_sheet", 12], ["leftover_serum", 1]], credits: 800, bz: true },
+  { id: "shellring", kind: "tip", name: "砲弾リング", pool: ["atk", "crit", "critDmg"], mats: [["shell_fragment", 12], ["slag", 12], ["molten_marker", 1]], credits: 800, bz: true },
+  { id: "vial", kind: "tip", name: "薬液ボトル", pool: ["itazuraDmg", "luk", "drain"], mats: [["leftover_serum", 12], ["plastic_scrap", 12], ["polymer_chip", 1]], credits: 800, bz: true },
+  { id: "laser", kind: "tip", name: "レーザーサイト", pool: ["dex", "crit", "firstStrike"], mats: [["chip_shard", 12], ["small_circuit", 12], ["solder_resist", 1]], credits: 800, bz: true },
+  { id: "kevlar", kind: "grip", name: "ケブラー巻き", pool: ["def", "dmgCut", "hp"], mats: [["kevlar_fiber", 12], ["rubber_scrap", 12], ["rampart_stone", 1]], credits: 800, bz: true },
+  { id: "syncgrip", kind: "grip", name: "同期グリップ", pool: ["dex", "firstStrike", "agi"], mats: [["sync_board", 12], ["mixed_alloy", 12], ["solder_resist", 1]], credits: 800, bz: true },
+  { id: "coil", kind: "grip", name: "モーターコイル", pool: ["agi", "evade", "focusStart"], mats: [["broken_motor", 12], ["black_oil", 12], ["liquefied_gas", 1]], credits: 800, bz: true },
+  { id: "canvas", kind: "grip", name: "帆布カバー", pool: ["res", "statusRes", "endure"], mats: [["weathered_canvas", 12], ["torn_flag", 12], ["extinguisher", 1]], credits: 800, bz: true },
+  { id: "foregrip", kind: "grip", name: "フォアグリップ", pool: ["atk", "dex", "critDmg"], mats: [["old_girder", 12], ["rubber_scrap", 12], ["mixed_alloy", 1]], credits: 800, bz: true },
 ];
 export const attBase = (id) => ATT_BASES.find((b) => b.id === id) || null;
 // ★の くじ（工房の Lv ごと）。★4 だけ OP が 2 つ

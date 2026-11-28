@@ -4,7 +4,7 @@
 // クローラーで 拾った 物（クレジット・素材・貴重サンプル）は 本編へ 渡す（2026-11-13 鹿さんの カード。下の lootIn。前は クローラーの 中だけ だった）
 // 受付：crawl.save {save, replace?}。記録：rec.crawl = { at, save, paid〈本編の ペットに 入れた 経験値の 合計〉, bucket〈ふえ方の 上限の ため〉 }。me の 返事の crawl
 import { levelUp, putMats } from "./lounge-game.js";
-import { clampTo, ensureBz, SAMPLE_MAX } from "./lounge-border.js";
+import { clampTo, ensureBz, sampleMax } from "./lounge-border.js";
 import { matValue, SCRAP, ENEMY_MAT } from "./materials.js";
 import { SAMPLES as BZ_SAMPLES, SAMPLE_STAR, SAMPLE_PRICE } from "./border.js";
 import { ELITE_TREES, CODE_NEED } from "./game.js";
@@ -102,10 +102,10 @@ function lootIn(rec, prev, save, now, replace) {
   if (!Number.isFinite(n)) n = 0;   // 数で ない 値に こわれて いたら 0 から
   if (!rec.own) return { gv, vb: { n, at: now }, got: null };
   const got = { cr: 0, mats: 0, smp: 0 }, put = [];
-  const Z = ensureBz(rec);   // 貴重サンプル（めずらしい 物から 先に）。持てる 数（SAMPLE_MAX）を こえる 分は 待つ
+  const Z = ensureBz(rec);   // 貴重サンプル（めずらしい 物から 先に）。持てる 数（sampleMax。サンプル保管庫で ふえる）を こえる 分は 待つ
   for (let i = gv.smp; i < smp.length; i++) {
     if (!smp[i]) { gv.smp = i + 1; continue; }   // 表に ない 名前は とばす
-    if (Z.samples.length >= SAMPLE_MAX) break;
+    if (Z.samples.length >= sampleMax(rec)) break;   // サンプル保管庫で ふえる
     const star = rollStar(), price = SAMPLE_PRICE[star - 1];   // ★を 先に 決めて、その ★の 値段で 数える
     if (n < price) break;
     rec.uidN = (rec.uidN || 0) + 1;

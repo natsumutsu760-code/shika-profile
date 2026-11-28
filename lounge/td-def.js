@@ -49,9 +49,9 @@ export function defSetup(D) {
   const helpers = (D.help || []).map((h, k) => { const type = TYPE_EN[h.c.type] || (TY.includes(h.c.type) ? h.c.type : TYPE_EN[ENEMY_TREES[h.c.tree]?.type] || "attacker");   // 手伝いの 子（送られた 写しから。自動で 動く）
     return { uid: "h" + k, type, c: { ...foeOf({ tree: h.c.tree, type, lv: h.c.lv, name: h.c.name || foeName(h.c.tree) }), owner: h.name } }; });
   const pet = { uid: "pet", type: "defender", c: D.pet ? { ...D.pet, name: "MONO ペット", owner: "あなた" } : { ...foeOf({ tree: "e_watch", type: "defender", lv: 40, name: "MONO ペット" }), owner: "あなた" } };
-  return { sh, map, residents, foes, helpers, pet, seed: defSeed(D.id), mods: D.mods || {} };
+  return { sh, map, residents, foes, helpers, pet, seed: defSeed(D.id), mods: D.mods || {}, sp: D.sp || {} };   // sp：防衛に 効く 区画（2026-11-27）
 }
-export const defInit = (setup) => tdInit({ map: setup.map, residents: setup.residents, foes: setup.foes, pet: setup.pet, seed: setup.seed, helpers: setup.helpers, mods: setup.mods });
+export const defInit = (setup) => tdInit({ map: setup.map, residents: setup.residents, foes: setup.foes, pet: setup.pet, seed: setup.seed, helpers: setup.helpers, mods: setup.mods, sp: setup.sp });
 // 指示の 記録（1 ターン ぶん）：「a」＝ 自動（tdAuto）・配列 ＝ マニュアルの 指示 [住人の uid, { do, to?, tgt? }]
 const DOS = new Set(["go", "wait", "move", "ambush", "skill", "retreat"]);
 export function cleanOrder(o) {

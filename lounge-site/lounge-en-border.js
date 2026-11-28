@@ -1,13 +1,24 @@
 // 英語の 辞書：ボーダーゾーン（border.html・門番の 返事。2026-11-05）
 export const WORDS = {
   "招待が 届いて いる": "An invitation has arrived", "知らない 周波数から 通信が 入って います。誓約書に サインすると、ボーダーゾーンと クローラーが 開きます": "A transmission is coming in on an unknown frequency. Sign the pledge to open the Border Zone and Crawler",
-  "ボーダーゾーン": "Border Zone", "出撃": "Deploy", "記録": "Log", "サンプル": "Samples", "出撃する": "Deploy", "出撃の 準備": "Prepare", "出撃中": "Deployed",
+  "引越し": "Move", "広さ": "Size", "種類": "Type", "いまの 部屋": "Current room", "屋上": "Rooftop", "和室": "Japanese room", "前線基地": "Forward base",   // 引越し（2026-11-27）
+  "ボーダーゾーンが 開いて から": "Once the Border Zone opens", "その 依頼は ない（日が かわった かも）": "That request is gone (the day may have changed)", "もう 納めた": "Already delivered", "サンプルを えらんで": "Choose samples", "鑑定して から（★を 決めた 依頼）": "Appraise first (this request asks for a set ★)", "依頼に 合わない サンプル": "Those samples don't match the request",   // サンプルの 依頼の 断り（lounge-bzreq.js）
+  "引っ越せませんでした": "Couldn't move", "リサイクルできませんでした": "Couldn't recycle", "納められませんでした": "Couldn't deliver", "交換できませんでした": "Couldn't exchange", "作る モジュールを えらんで": "Choose a module to craft",   // 確かめ役の 指摘（2026-11-28）
+  "部屋を えらんで": "Choose a room", "もう 1 回 押すと 買って 引っ越す": "Press again to buy and move", "この 部屋に 切りかえる（ただ）": "Switch to this room (free)", "買って ある 部屋：ただで 切りかえ・入りきらない 家具は しまう": "You own this room: switch for free. Furniture that doesn't fit is stored", "買うと いつでも ただで 切りかえ できる・入りきらない 家具は しまう": "Once bought, you can switch to it anytime for free. Furniture that doesn't fit is stored",   // 引越しは スキンと 同じ（2026-11-27）
+  "緑の 廃墟": "Overgrown ruin", "夜景の 高層": "High-rise night view", "海の 見える 部屋": "Ocean-view room", "VIP ラウンジ": "VIP lounge",   // 高い ティアの 部屋（2026-11-27）
+  "コンクリートと つる・手前と 右に 草地": "Concrete and vines · grass in front and to the right", "ガラスの かべと 夜の 街・ロフト": "Glass walls and the city at night · loft", "ガラスの かべと 海・テラス": "Glass walls and the ocean · terrace", "水の 帯と 泡の 柱・プール・通路": "Water band and bubble pillars · pool · walkway",
+  "いまの 部屋の まま": "Keep the current look", "空と フェンス": "Sky and fence", "コンテナと 鉄骨": "Containers and steel", "畳と 障子": "Tatami and shoji", "土のう・有刺線・地図": "Sandbags · barbed wire · map",
+  "いまと 同じ 部屋": "Same as your current room", "家具は そのまま 持って いく・入りきらない 物は しまう": "Your furniture comes along; anything that doesn't fit is stored",
+  "前の 引越しの 支払いを 待って います": "Waiting for your previous move's payment", "引越し先を えらんで": "Choose where to move", "引っ越して います…": "Moving…", "とじる": "Close",
+  "リサイクル": "Recycle", "エコポイント": "Eco points", "もう 1 回 押すと ぜんぶ リサイクル": "Press again to recycle everything", "プライベートラウンジの 引越しにも 使える": "Also usable for moving your Private Lounge", "キーカード": "Keycards", "他の 島の 素材": "Materials from other islands", "1 こ ＝ 値段の 2 倍の ポイント": "1 = 2× its value in points", "ボーダーゾーンの 素材と クローラーの スクラップ・1 こ ＝ 値段の ポイント": "Border Zone materials and Crawler scrap · 1 = its value in points",
+  "リサイクルできる 素材が ない（ボーダーゾーンの 素材・クローラーの スクラップ）": "Nothing to recycle (Border Zone materials · Crawler scrap)", "封鎖された 所の キーカード": "Sealed-area keycard", "クレートの カードキー": "Crate keycard", "リサイクルする 素材を えらんで": "Choose materials to recycle", "交換できない 素材": "That material can't be exchanged", "交換する 物を えらんで": "Choose what to exchange", "数を えらんで": "Choose an amount",
+  "ボーダーゾーン": "Border Zone", "鑑定と 納める": "Appraise and hand in", "グループの 依頼": "Group requests", "納めた": "Delivered", "持って いない": "None held", "サンプルの 依頼（今日）": "Sample request (today)", "持って いない（ボーダーゾーンで 探す）": "None held (find one in the Border Zone)", "出撃": "Deploy", "記録": "Log", "サンプル": "Samples", "出撃する": "Deploy", "出撃の 準備": "Prepare", "出撃中": "Deployed",
   "ハルモニアの 領地": "Harmonia Territory", "SVA の 領地": "SVA Territory", "TCU の 領地": "TCU Territory", "境界": "The Border",
   "外縁": "Outer", "中": "Middle", "奥": "Deep", "ハルモニア": "Harmonia",
-  "ほかの プレイヤーと 出会ったら": "If you meet another player", "ほかの プレイヤーと 出会って いる ところ：少し 待って": "Meeting another player — wait a moment", "避ける": "Avoid", "戦う": "Fight",   // ばったり（2026-11-16）
+  "ペットだけで 入る（なかまは 連れて いけない）": "Your pet goes in alone (no companions)", "ほかの プレイヤーと 出会ったら": "If you meet another player", "ほかの プレイヤーと 出会って いる ところ：少し 待って": "Meeting another player — wait a moment", "避ける": "Avoid", "戦う": "Fight",   // ばったり（2026-11-16）
   "相手も 戦う なら 戦う。勝つと 相手の 持ち物の 2 割を 奪う／負けると 2 割を 奪われ、HP 3 割で 続ける": "You fight only if they choose Fight too. Win to take 20% of what they carry; lose and they take 20% of yours, and you go on at 30% HP",
   "すれちがう だけ（相手が 戦う でも 戦わない）": "You just pass each other (no fight, even if they choose Fight)",
-  "時間": "Time", "探す 物": "Search for", "帰る 条件": "Return when", "保険": "Insurance", "バランス": "Balanced", "素材": "Materials", "クレート": "Crates",
+  "呼ばない": "Don't call", "精鋭を 呼ぶ": "Call an elite", "解析コード": "Analysis codes", "時間": "Time", "探す 物": "Search for", "帰る 条件": "Return when", "保険": "Insurance", "運び屋": "Courier", "頼まない": "None", "キャラバン運送が とちゅうで 拾った 物を 先に 送る": "Caravan Freight ships what you've found ahead mid-run", "運び屋が 来たが、送る 物が なかった": "The courier came, but there was nothing to send", "力つきた：運び屋が 送った 物 だけ 残った": "Wiped out: only what the courier shipped was kept", "バランス": "Balanced", "素材": "Materials", "クレート": "Crates",
   "なし": "None", "HP が 半分": "HP at half", "ふつう": "Basic", "手厚い": "Full", "持って いかない": "Leave", "持って いく": "Bring",
   "枚 持って いく": "to bring", "こ 見つけたら 帰る": "found, then return", "変える": "Change", "しまう": "Close",
   "出撃の 準備中…": "Preparing…", "のこり": "Left", "力つきた": "Wiped out", "帰った": "Returned", "うけとる": "Collect", "帰還する": "Return now", "脱出口へ 向かって いる": "Heading to the exit", "出撃した": "Deployed",
@@ -48,7 +59,18 @@ export const RULES = [
   [/^(.+)は Lv(\d+) の 強さに そろう$/, (m) => `${m[1]} is scaled to Lv${m[2]}`],
   [/^封鎖された 所の キーカード（のこり (\d+)）$/, (m) => `Sealed-area keycards (${m[1]} left)`],
   [/^クレートの カードキー（のこり (\d+)）$/, (m) => `Crate keycards (${m[1]} left)`],
-  [/^保険（(\d+) クレジット）$/, (m) => `Insurance (${m[1]} credits)`],
+  [/^保険（(\d+) クレジット）$/, (m) => `Insurance (${m[1]} credits)`], [/^運び屋（(\d+) クレジット）$/, (m) => `Courier (${m[1]} credits)`],   // 運び屋（2026-11-27）
+  [/^(\d+) 回$/, (m) => (m[1] === "1" ? "Once" : m[1] === "2" ? "Twice" : `${m[1]} times`)],
+  [/^とちゅうで 素材 (\d+) こと サンプル (\d+) こまでを 先に 送る。送った 分は 力つきても 残る。早く 帰ると 送らない ことも ある（値段は TCU の 好感度で かわる）$/, (m) => `Ships up to ${m[1]} materials and ${m[2]} samples ahead mid-run. Shipped items are kept even if you wipe; returning early may mean nothing gets shipped (price depends on TCU standing)`],
+  [/^運び屋に 先に 送った（(.+)）$/, (m) => `Shipped ahead by courier (${m[1].replace(/素材 (\d+)/, "materials $1").replace(/サンプル (\d+)/, "samples $1").replace(/・/g, " · ")})`],
+  [/^運び屋が 送った 分：(.+)$/, (m) => `Shipped by courier: ${m[1].replace(/素材 (\d+)/, "materials $1").replace(/サンプル (\d+)/, "samples $1").replace(/・/g, " · ")}`],
+  [/^★(\d) の 装備を 見つけた（(会社の 倉庫|クレート)）$/, (m) => `Found ★${m[1]} gear (${m[2] === "クレート" ? "crate" : "company warehouse"})`], [/^★(\d) の 装備$/, (m) => `★${m[1]} gear`], [/^装備 (\d+)$/, (m) => `Gear ${m[1]}`],
+  [/^クレジットが 足りない（保険料と 運び屋 (\d+)）$/, (m) => `Not enough credits (premium and courier ${m[1]})`], [/^クレジットが 足りない：あと ([\d,]+)（(保険料・運び屋|運び屋)）$/, (m) => `Not enough credits: ${m[1]} more (${m[2] === "運び屋" ? "courier" : "premium and courier"})`],
+  [/^精鋭を 呼ぶ（シグナル (\d+)）$/, (m) => `Call an elite (Signal ${m[1]})`],
+  [/^呼ぶ（シグナル (\d+)）$/, (m) => `Call (${m[1]} Signal)`],
+  [/^シグナルが 足りない：あと (\d+)（精鋭を 呼ぶ）$/, (m) => `Not enough Signal: ${m[1]} more (to call an elite)`],
+  [/^(.+)（精鋭の LINKER）と 戦って (勝った|負けた|引いた（長引いた）)$/, (m) => `Fought ${m[1]} (elite LINKER): ${m[2] === "勝った" ? "won" : m[2] === "負けた" ? "lost" : "drew (ran long)"}`],
+  [/^(.+) の 解析コード ×(\d+)$/, (m) => `${m[1]} analysis code ×${m[2]}`],
   [/^クレジットが 足りない（保険料 (\d+)）$/, (m) => `Not enough credits (premium ${m[1]})`],
   [/^(\d+) 分・(.+)$/, (m, p) => { const a = p(m[2]); return a ? `${m[1]} min · ${a}` : null; }],
   [/^サンプル (\d+)$/, (m) => `Samples ${m[1]}`],
@@ -70,4 +92,34 @@ export const RULES = [
   [/^(.+) を 開けた（キーカード）$/, (m, p) => { const a = p(m[1]); return a ? `Opened the ${a} (keycard)` : null; }],
   [/^封鎖された 所の キーカードは (\d+) 枚まで$/, (m) => `Up to ${m[1]} sealed-area keycards`],
   [/^クレジットが 足りない：あと ([\d,]+)（保険料）$/, (m) => `Not enough credits: ${m[1]} more (premium)`],
+  // 引越し（2026-11-27）
+  [/^(\d+)×(\d+) マスの 部屋。ペットを 押すと なでる$/, (m) => `${/^(8\d*|(11|18)(\d{3})*)$/.test(m[1]) ? "An" : "A"} ${m[1]}×${m[2]} room. Tap your pet to pet it`],
+  [/^力つきた：(運び屋が 送った 物 だけ 残った|集めた 物は 失った|集めた 物を 失った)（装備 (\d+) こ も）$/, (m, p) => `${p("力つきた：" + m[1]) || "Wiped out"} (and ${m[2]} gear)`],
+  [/^モジュール「(.+)」★(\d+) を 作った（([\d,]+) cr）$/, (m, p) => `Crafted the module "${p(m[1]) || m[1]}" ★${m[2]} (${m[3]} cr)`],
+  [/^(\d+)×(\d+)・持って いる$/, (m) => `${m[1]}×${m[2]} · Owned`],
+  [/^(\d+)×(\d+)・アメジスト ([\d,]+)$/, (m) => `${m[1]}×${m[2]} · ${m[3]} amethyst`],
+  [/^(.+)で 買う（([\d,]+)）$/, (m, p) => `Buy with ${m[1] === "アメジスト" ? "amethyst" : m[1] === "エコポイント" ? "eco points" : p(m[1]) || m[1]} (${m[2]})`],
+  [/^(.+)が 足りない：あと ([\d,]+)$/, (m, p) => `Not enough ${m[1] === "アメジスト" ? "amethyst" : m[1] === "エコポイント" ? "eco points" : p(m[1]) || m[1]}: ${m[2]} more`],
+  [/^(\d+)×(\d+)・(.+)$/, (m, p) => { const t = p(m[3]); return t ? `${m[1]}×${m[2]} · ${t}` : null; }],
+  [/^いま：(\d+)×(\d+)・(.+)$/, (m, p) => `Now: ${m[1]}×${m[2]} · ${p(m[3]) || m[3]}`],
+  [/^(アメジスト|エコポイント)で 引っ越す（([\d,]+)）$/, (m) => `Move with ${m[1] === "アメジスト" ? "amethyst" : "eco points"} (${m[2]})`],
+  [/^(アメジスト|エコポイント)が 足りない：あと ([\d,]+)$/, (m) => `Not enough ${m[1] === "アメジスト" ? "amethyst" : "eco points"}: ${m[2]} more`],
+  [/^引っ越した：(\d+)×(\d+)・(.+)$/, (m, p) => `Moved: ${m[1]}×${m[2]} · ${p(m[3]) || m[3]}`],
+  // リサイクル（2026-11-27）
+  [/^ぜんぶ リサイクル（＋([\d,]+)）$/, (m) => `Recycle all (+${m[1]})`],
+  [/^持って いる (\d+) 枚$/, (m) => `${m[1]} held`],
+  [/^島 (\d+)$/, (m) => `Island ${m[1]}`],
+  [/^リサイクルした：(\d+) こ・エコポイント ＋([\d,]+)$/, (m) => `Recycled ${m[1]} · +${m[2]} eco points`],
+  [/^交換した：(.+) ×(\d+)（([\d,]+) ポイント）$/, (m, p) => `Exchanged: ${p(m[1]) || m[1]} ×${m[2]} (${m[3]} points)`],
+  [/^エコポイントが 足りない：あと ([\d,]+)$/, (m) => `Not enough eco points: ${m[1]} more`],
+  // サンプルの 依頼（グループ・会社。2026-11-27）
+  [/^のこり (\d+)・毎日 入れかわる$/, (m) => `${m[1]} left · new every day`],
+  [/^(.+) ★(\d) 以上$/, (m, p) => { const a = p(m[1]); return a ? `${a} ★${m[2]}+` : null; }],
+  [/^(鉱物|生体|遺物|名物)・(鑑定した 物|★は 問わない)$/, (m, p) => `${p(m[1]) || m[1]} · ${m[2] === "鑑定した 物" ? "appraised" : "any ★"}`],
+  [/^(鉱物|生体|遺物|名物)・(鑑定した 物|★は 問わない)　ごほうび：納める 値段の 2 倍・(SVA|ハルモニア|TCU)の 好感度 ＋(\d+)（ほかの 2 つは その 半分ずつ 下がる）$/, (m, p) => `${p(m[1]) || m[1]} · ${m[2] === "鑑定した 物" ? "appraised" : "any ★"}　Reward: 2× hand-in price · ${p(m[3]) || m[3]} standing +${m[4]} (the other two drop by half that amount)`],
+  [/^ごほうび：納める 値段の 1\.5 倍の クレジットと その グループの 好感度 ＋(\d+)（名物は ＋(\d+)。ほかの 2 つの グループは その 半分ずつ 下がる）$/, (m) => `Reward: credits at 1.5× the hand-in price and +${m[1]} standing with that group (+${m[2]} for local specialties; the other two groups drop by half that)`],
+  [/^納める（([\d,]+) クレジット）$/, (m) => `Deliver (${m[1]} credits)`],
+  [/^(.+?) の 依頼に 納めた：([\d,]+) クレジット・好感度 ＋([\d.]+)$/, (m, p) => `Delivered to ${p(m[1]) || m[1]}'s request: ${m[2]} credits · standing +${m[3]}`],
+  [/^サンプルの 依頼：のこり (\d+) 社（会社を えらぶと 右に 出る）$/, (m) => `Sample requests: ${m[1]} companies left (pick one to see it)`],
+  [/^持って いる (\d+) \/ (\d+) こ（隠れ家の サンプル保管庫で ふえる）$/, (m) => `Holding ${m[1]} / ${m[2]} (more with the Sample Vault in the Hideout)`],   // 2026-11-27
 ];

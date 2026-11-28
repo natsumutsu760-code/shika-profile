@@ -1,5 +1,5 @@
 // ラウンジの 施設（大工事で 作り直し。鹿さんの 決め、2026-10-29 の 11〜14 回目の カード・2026-11-03「施設から」。数は docs/mono-link-numbers.md の 4 章の 案）
-// - 12 こ（地下の 拡張は なくした。製材所は 2026-11-11 に 足した）。Lv1〜100 で なめらかに のびる（無線機だけ 島ごとに 1 段）
+// - 13 こ（地下の 拡張は なくした。製材所は 2026-11-11・サンプル保管庫は 2026-11-27 に 足した）。Lv1〜100 で なめらかに のびる（無線機だけ 島ごとに 1 段・サンプル保管庫は 上限 なし）
 // - つまみ：上げた Lv までの どこでも えらべる（rec.knob）。効果と 維持費は えらんだ Lv。倉庫・武器庫・無線機は つまみ なし
 // - 建設：クレジットを 払って 始め、素材を 分けて 入れる。進み ＝「入れた 素材の 割合」と「経った 時間 ÷ 工期」の 小さい 方
 //   グラナート建設（残りの 時間を 半分・残りの 分 × 1 クレジット、最低 50）・ヘリクス電力の 燃料（60 クレジットで 30 分）で 早く なる
@@ -8,11 +8,12 @@
 // - Lv41 から 島 2 の 素材が いる ので、無線機を 作るまで Lv40 まで（Claude の 案）
 // - 払いは クレジットだけ（玉と アメジストは 使わない。経済の 決め）
 // 画面は hideout.html。門番は lounge-facility.js
-import { GATHER, ENEMY_MAT, ORE_MAT } from "./materials.js";
+import { GATHER, ENEMY_MAT, ORE_MAT, BORDER } from "./materials.js";
 import { DUNGEONS, DUNGEONS_ALL, ISLAND_OPEN } from "./dungeons.js";
 import { FARM_OPEN } from "./crops.js";
 import { MINE_ADD } from "./mine.js";
 import { saws, sawOff, sawMore } from "./sawmill.js";   // 製材所（2026-11-11）
+import { vaultSamples, vaultAppraise, vaultShip, vaultIns } from "./border-vault.js";   // サンプル保管庫（2026-11-27）
 
 export const FAC_MAX = 100;
 export const BAND_AT = [1, 20, 50, 80];
@@ -33,6 +34,8 @@ const ALL = [
   { id: "mine", kind: "mine", name: "坑道", text: "パーティに いない なかまが 鉱石と ガラクタを 掘る" },
   { id: "sawmill", kind: "tool", name: "製材所", text: "畑で 育てた 木の 原木を 板に する" },   // 2026-11-11 鹿さん「施設に製材所と畑で植林できるようにしてからこれらを実装したいです。」（sawmill.js）
   { id: "radio", kind: "radio", name: "無線機", isle: 2, max: 1, text: "島の 電波を ひろって、ほかの 島へ 船を 出す" },   // 段 ＝ 行ける 島。Lv2 で ミカネル島（鹿さんの 決め、2026-11-03。島 3 が 出るまでは 1 段）
+  // サンプル保管庫（2026-11-27 鹿さんの カード「隠れ家の施設」「サンプル保管庫」）：ボーダーゾーン専用の 設備。Lv の 上限は なし（max: Infinity）。ボーダーゾーンに 行ける（無線機 Lv2）まで 出さない（bz）
+  { id: "bzvault", kind: "keep", name: "サンプル保管庫", bz: true, max: Infinity, text: "ボーダーゾーンの サンプルを しまう。持てる 数・鑑定・運び屋・保険が よく なる" },
 ];
 export const FACILITIES_ALL = ALL;
 export const FACILITIES = ALL.filter((f) => (f.isle || 1) <= ISLAND_OPEN);
@@ -40,7 +43,8 @@ export const facOf = (id) => FACILITIES.find((f) => f.id === id) || null;
 export const facMax = (f, open = ISLAND_OPEN) => (f && f.id === "radio" ? Math.max(1, open - 1) : (f && f.max) || FAC_MAX);   // 無線機は 出て いる 島の 数 − 1 段
 // その人が 行ける 島の 数（無線機が あれば 2）と、その人が 上げられる Lv の 上限（hide：rec.hideout）
 export const isleOf = (hide, open = ISLAND_OPEN) => Math.max(1, Math.min(open, 1 + (((hide || {}).radio) || 0)));   // 無線機 Lv1 で 島 2・Lv2 で 島 3
-export const facCap = (f, hide, open = ISLAND_OPEN) => (!f || (f.isle || 1) > open ? 0 : f.max ? facMax(f, open) : isleOf(hide, open) >= 2 ? FAC_MAX : NO_RADIO_MAX);
+export const BZ_FAC_RADIO = 2;   // ボーダーゾーン専用の 施設は 無線機 Lv2 から（border.js の BZ_RADIO と 同じ。ミカネル島へ 行けると ボーダーゾーンが 開く）
+export const facCap = (f, hide, open = ISLAND_OPEN) => (!f || (f.isle || 1) > open ? 0 : f.bz && (((hide || {}).radio) || 0) < BZ_FAC_RADIO ? 0 : f.max ? facMax(f, open) : isleOf(hide, open) >= 2 ? FAC_MAX : NO_RADIO_MAX);
 export const hasKnob = (f) => !!f && (f.kind === "make" || f.kind === "trip" || f.kind === "mine");   // つまみは 維持費を へらす ための 物なので、維持費の ない 施設（tool・keep・radio）には ない（前に 下げて いた つまみも 効かない）
 // 効く Lv（つまみ）。knob が ない・上げた Lv より 上なら 上げた Lv
 export const facLv = (rec, id) => { const lv = ((rec && rec.hideout) || {})[id] || 0, k = ((rec && rec.knob) || {})[id]; return hasKnob(facOf(id)) && Number.isInteger(k) && k >= 0 && k < lv ? k : lv; };
@@ -80,10 +84,12 @@ export function facFx(id, lv) {
     case "armory": return `装備 ${equipCapOf(lv).toLocaleString("ja-JP")} こ まで`;
     case "mine": return lv ? `${mineSlotsOf(lv)} 体・1 時間に ${mineRateOf(lv).toFixed(1)} こ` : "まだ ない";
     case "sawmill": return lv ? `のこぎり台 ${saws(lv)} 台・時間 −${p(sawOff(lv))}・板 ＋1 枚 ${p(sawMore(lv))}` : "まだ ない";
+    case "bzvault": { const sh = vaultShip(lv); return `サンプル ${vaultSamples(lv)} こ・鑑定 ${vaultAppraise(lv)}・運び屋 素材 ${sh.mats}／サンプル ${sh.samples}・保険 ${durJa(vaultIns(lv, 2 * 3600e3))}`; }
     case "radio": return lv >= 2 ? "ビサイ諸島と ミカネル島へ 行ける・ほかの 施設を Lv41 から 上げられる" : lv ? "ビサイ諸島へ 行ける・ほかの 施設を Lv41 から 上げられる" : "まだ ない";
   }
   return "";
 }
+const durJa = (ms) => { const m = Math.round(ms / 60e3); return m >= 60 ? `${Math.floor(m / 60)} 時間${m % 60 ? ` ${m % 60} 分` : ""}` : `${m} 分`; };
 // 坑道：掘る 子の 数は 段（1〜4）・1 時間に 2 ＋ Lv / 25 こ
 export const mineSlotsOf = (lv) => band(lv);
 export const mineRateOf = (lv) => (lv ? 2 + lv / 25 : 0);
@@ -121,10 +127,16 @@ export const tierOf = (L) => TIERS.findIndex((t) => L <= t.to);
 const BAR_ORE = { copper_bar: "copperore", iron_bar: "ironore", silver_bar: "silverore", gold_bar: "goldore" };
 const ORE_AT = {}; for (const [at, add] of MINE_ADD) for (const k of Object.keys(add)) if (!(k in ORE_AT)) ORE_AT[k] = at;
 export const barMineLv = (id) => (BAR_ORE[id] ? ORE_AT[BAR_ORE[id]] || 0 : 0);
+// サンプル保管庫の 素材：どこでも・領地の 素材（25 しゅるい）を Lv で まわす。境界の 6 しゅるい（CPUチップ など）は 奥でしか 出ない ので 入れない〔Claude の 案〕
+export const BZ_VAULT_MATS = ["any", "sva", "harmonia", "tcu"].flatMap((k) => BORDER[k].map(([id]) => id));
 export function buildNeed(id, L) {
   const fi = Math.max(0, ALL.findIndex((f) => f.id === id)), T = TIERS[Math.max(0, tierOf(L))];
   if (id === "radio" && L >= 2) return { credits: 20000, ms: buildMs(50), mats: [["silver_bar", 8], ["thunderstone", 12], ["windorb", 2]] };   // 無線機 Lv2（ミカネル島へ。Claude の 案：ビサイ諸島の 雷の石と 風のオーブ・銀の延べ棒。金の延べ棒は 施設の Lv61〜 だけの 決まりなので 使わない）
   if (id === "radio") return { credits: 5000, ms: buildMs(10), mats: [["iron_bar", 4], ["crystalbit", 6]] };   // 無線機（島 2 へ。前の いる 物を 延べ棒に）
+  if (id === "bzvault") {   // サンプル保管庫：クレジットと 時間は ほかと 同じ 式・素材は ボーダーゾーンの 素材 2 しゅるいを 4 ＋ 0.4L こずつ（鹿さんの カード。Lv で 入れかえ）
+    const B = BZ_VAULT_MATS, a = B[L % B.length], b = B[(L + Math.floor(B.length / 2)) % B.length], gn = 4 + Math.floor(L * 0.4);
+    return { credits: buildCredits(L), ms: buildMs(L), mats: [[a, gn], [b, gn]] };
+  }
   const g1 = T.gather[(fi * 3 + L) % T.gather.length], g2 = T.gather[(fi * 3 + L + 1 + Math.floor(T.gather.length / 2)) % T.gather.length];
   const xs = id === "mine" ? T.extra.filter((x) => barMineLv(x) < L) : T.extra;   // 坑道は いまの Lv（L − 1）で 掘れる 鉱石の 延べ棒だけ
   const ex = xs[(fi + L) % xs.length], gn = 4 + Math.floor(L * 0.4);

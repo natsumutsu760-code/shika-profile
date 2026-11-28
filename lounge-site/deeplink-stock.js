@@ -54,7 +54,8 @@ function listTab(K, S) {
   let rows = "";
   if (S.ssort === "group") { for (const g of Object.keys(GROUPS)) { const xs = L.filter((x) => CO[x.co].g === g); if (xs.length) rows += `<li class="gh">${GROUPS[g].name}</li>` + xs.map((x) => row(x, K, S)).join(""); } }
   else rows = L.map((x) => row(x, K, S)).join("");
-  return `<div class="sgrid"><div class="slist">${chips}<ul class="srows">${rows}</ul></div>${detail(K, S)}</div>`;
+  const rl = S.bzq ? reqLeft(S.bzq) : 0;
+  return `<div class="sgrid"><div class="slist">${chips}${rl ? `<p class="rqn">サンプルの 依頼：のこり ${rl} 社（会社を えらぶと 右に 出る）</p>` : ""}<ul class="srows">${rows}</ul></div>${detail(K, S)}</div>`;
 }
 // 右：えらんだ 銘柄を 見て 決める
 function detail(K, S, credits = S.credits || 0) {
@@ -65,11 +66,19 @@ function detail(K, S, credits = S.credits || 0) {
     <div class="cw">${spark(x.hist, 300, 90, true)}<span class="lo">7 日の 値　${p1(Math.min(...(x.hist.length ? x.hist : [x.p])))}〜${p1(Math.max(...(x.hist.length ? x.hist : [x.p])))}</span></div>
     <ul class="kv">${n ? `<li><span>保有</span><b>${fmt(n)}</b></li><li><span>売ると</span><b>${fmt(n * x.p * (1 - ST.fee))}<em class="${gain > 0 ? "up" : gain < 0 ? "dn" : ""}">${sign(gain)}</em></b></li>` : ""}
       <li><span>1 トークンの 配当</span><b>${x.div ? `${x.div} クレジット` : "─"}${n && x.div ? `<em>保有分で ${divMine(n * x.div)}</em>` : ""}</b></li></ul>
+    ${reqBox(x.co, c, S.bzq)}
     <div class="trade"><label>数 <input id="sk-n" type="number" min="1" max="${ST.cap}" step="1" value="${k}" inputmode="numeric"></label><button class="chip" data-sset="${mn}">最小 ${fmt(mn)}</button>${[100, 500].filter((v) => v > mn).map((v) => `<button class="chip" data-sset="${v}">${v}</button>`).join("")}${n ? `<button class="chip" data-sset="${n}">ぜんぶ</button>` : ""}</div>
     <p class="est" id="sk-est">${est(x, n, k, credits)}</p>
     <div class="go"><button class="btn" data-sbuy="${x.co}" ${buyWhy(x, n, k, credits) ? "disabled" : ""}>買う</button><button class="btn ghost" data-ssell="${x.co}" ${n >= k ? "" : "disabled"}>売る</button></div>
     ${buyWhy(x, n, k, credits) ? `<p class="why">${buyWhy(x, n, k, credits)}</p>` : ""}</aside>`;
 }
+// サンプルの 依頼（2026-11-27 鹿さんの カード：会社 12 社が 1 つずつ。名物か ★3 以上を 1 こ・納める 値段の 2 倍・グループの 好感度）。bzq は 門番の bzReqView
+function reqBox(co, c, bzq) {
+  const q = (bzq || []).find((y) => y.kind === "c" && y.who === co); if (!q) return "";
+  const k = q.cand[0];
+  return `<div class="sreq"><span class="lb">サンプルの 依頼（今日）</span><b>${q.name}${q.star ? ` ★${q.star} 以上` : ""}</b><small>${q.line}${q.star ? "・鑑定した 物" : "・★は 問わない"}　ごほうび：納める 値段の 2 倍・${GROUPS[c.g].name}の 好感度 ＋${q.aff}（ほかの 2 つは その 半分ずつ 下がる）</small>${q.done ? `<span class="ok">納めた</span>` : k ? `<button class="btn" data-creq="${q.key}" data-ruid="${k.uid}">納める（${fmt(k.pay)} クレジット）</button>` : `<span class="no">持って いない（ボーダーゾーンで 探す）</span>`}</div>`;
+}
+const reqLeft = (bzq) => (bzq || []).filter((y) => y.kind === "c" && !y.done).length;
 const buyCost = (x, k) => Math.ceil(k * x.p * (1 + ST.fee));
 function buyWhy(x, n, k, credits) {
   if (n + k > ST.cap) return `1 社 ${fmt(ST.cap)} トークンまで（いま ${fmt(n)}）`;
