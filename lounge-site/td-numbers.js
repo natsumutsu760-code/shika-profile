@@ -247,8 +247,9 @@ export const MODULES = {
 export const MOD_OFFER = 3;
 // モジュールの クラフト（2026-11-27 鹿さんの カード「素材 3 しゅるい × 5 こ」：えらんだ モジュールを 1 つ。ボーダーゾーンの 素材 15 こ ＋ 3,000 クレジット）
 // 素材は モジュールに 合う 物（鹿さんの 例：もれる 配管＝黒い 油・液化ガス、古い 配電盤＝小さな 回路基盤・真空管、太い 鉄骨＝古い 鉄骨・防壁の 石材）。のこりの 組み合わせは Claude の 案〔C〕
-// 〔C〕★は 防衛の 強さ 3 と 同じ 表（BP_ODDS[3]：★1 32.5・★2 37.5・★3 25・★4 4.5・★5 0.5%）。★5 だけの 非常用カプセルは 作れない。境界の 6 しゅるい（CPUチップ など）は 使わない
-export const MOD_CRAFT = { credits: 3000, n: 5, strength: 3 };
+// ★は 防衛の 強さ 4 と 同じ 表（BP_ODDS[4]：★1 20.75・★2 35.75・★3 32・★4 9・★5 2.5%。2026-11-28 鹿さんの カード「強さ 4 の 表」。前は〔C〕強さ 3 の 表）
+// 〔C〕★5 だけの 非常用カプセルは 作れない。境界の 6 しゅるい（CPUチップ など）は 使わない
+export const MOD_CRAFT = { credits: 3000, n: 5, strength: 4 };
 export const MOD_MATS = {
   pipe: ["black_oil", "liquefied_gas", "rubber_scrap"], panel: ["small_circuit", "vacuum_tube", "chip_shard"], cold: ["liquefied_gas", "extinguisher", "acrylic_sheet"],
   mold: ["culture_medium", "waste_root", "feral_grain"], static: ["broken_motor", "small_circuit", "barbed_wire"], slip: ["black_oil", "plastic_scrap", "polymer_chip"],
@@ -260,13 +261,16 @@ export const MOD_MATS = {
   cactus: ["barbed_wire", "scorched_soil", "waste_root"], mirror: ["acrylic_sheet", "slag", "polymer_chip"], lockdoor: ["carapace_shard", "old_girder", "kevlar_fiber"],
 };
 // 防衛に 効く 区画（2026-11-27 鹿さんの カード「新しい形の区画」→「防衛に効く区画」→「この案」）：住めない・素材 3 しゅるい × 10 こ ＋ 20,000 クレジット・1 つの 階に 1 つまで
-// 建物の 横に 張り出す 小さな 区画（部屋・廊下・道は かえない）。〔C〕素材の 組み合わせ・こわす 決まりは まだ ない（建てたら そのまま）
+// 建物の 横に 張り出す 小さな 区画（部屋・廊下・道は かえない）。〔C〕素材の 組み合わせ
+// こわせる（2026-11-28 鹿さんの カード「② こわせる ように」→「素材の 半分が もどる」：素材 3 しゅるいが 5 こずつ もどる・クレジットは もどらない・その 階に また 建てられる）
 export const SP_BLOCKS = {
   wire: { name: "有刺鉄線の 塀", text: "その 階を 通る 敵の すばやさ −20%", mats: ["barbed_wire", "rampart_stone", "scorched_soil"] },
   tower: { name: "監視塔", text: "その 階の 住人が 戦いの はじめに 先手", mats: ["old_girder", "small_circuit", "weathered_canvas"] },
   ammo: { name: "弾薬庫", text: "その 階の 住人の こうげき ＋15%", mats: ["shell_fragment", "kevlar_fiber", "extinguisher"] },
 };
 export const SP_COST = { credits: 20000, n: 10 };
+export const SP_BACK = 0.5;   // こわした ときに もどる 素材の 割合（10 こ → 5 こ）
+export const spBack = (id) => spMats(id).map(([m, n]) => [m, Math.floor(n * SP_BACK)]);
 export const SP_FX = { wireAgi: 0.8, ammoAtk: 1.15 };   // すばやさ −20%・こうげき ＋15%（監視塔は 先手：battle-sim の firstStrike）
 export const spMats = (id) => (SP_BLOCKS[id] ? SP_BLOCKS[id].mats.map((m) => [m, SP_COST.n]) : []);
 export const modCraftMats = (id) => (MOD_MATS[id] || []).map((m) => [m, MOD_CRAFT.n]);

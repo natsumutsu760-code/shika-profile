@@ -188,6 +188,7 @@
   .mkind { display:flex; flex-wrap:wrap; gap:6px; }
   .mkind button { min-height:36px; padding:6px 12px; border-radius:999px; border:1.5px solid var(--line); background:#fff; font:900 13px/1 var(--jp); color:var(--ink); }
   .mkind button b { font:600 13px/1 var(--num); margin-left:4px; } .mkind button.on { background:var(--ink); border-color:var(--ink); color:#fff; } .mkind button:disabled { opacity:.4; }
+  .spnow { display:grid; grid-template-columns:1fr auto; align-items:center; gap:4px 10px; margin:0 0 8px; } .spnow .t, .spnow .sptx { grid-column:1; } .spnow button { grid-column:2; grid-row:1 / span 2; }   /* いまの 階の 区画（こわす。2026-11-28） */
   .sph { display:grid; gap:2px; margin:14px 0 6px; } .sph b { font:900 14px/1.3 var(--jp); } .sph small, .sptx { font:700 12px/1.4 var(--jp); color:var(--soft); }   /* 防衛に 効く 区画（2026-11-27） */
   .mmode { display:flex; gap:6px; margin-bottom:8px; } .mmode button { flex:1; min-height:36px; border-radius:12px; border:1.5px solid var(--line); background:#fff; font:900 13px/1 var(--jp); color:var(--ink); } .mmode button.on { background:var(--ink); border-color:var(--ink); color:#fff; }   /* 持ち物｜作る（2026-11-27） */
   .cmats { display:flex; flex-wrap:wrap; gap:4px 10px; margin-top:4px; font:700 12px/1.4 var(--jp); color:var(--soft); } .cmats .ok { color:#0E8F5A; } .cmats .ng { color:#C2410C; }
@@ -359,7 +360,7 @@ import { kit, F } from "./lounge-furniture.js";
 import { makePet3 } from "./pets.js";
 import { spriteURL } from "./sprites.js";
 import { mountWallet } from "./wallet-bar.js"; mountWallet();
-import { rentOf, rewardOf, retreatOdds, RENT_STEP, RENT_MID, GRUDGE, gradeOf, marketOf, stepOf, TD_FURN, TD_LIKES, GEAR, FURN_MAX, SAT, satOf, SCOUT_SIG, WORK, WORK_OF, WORK_HOURS, SKILL, skillOf, PAY, PROP, FIRST_FLOORS, BLOCK_LV, blockSlotsOf, FURN_LV, BLUEPRINT, BP_SCRAP, AUTO, MODULES, modAmt, LIFE, autoFurn, BUY_MAX, MOD_CRAFT, MOD_MATS, modCraftMats, BP_ODDS, SP_BLOCKS, SP_COST, spMats } from "./td-numbers.js";
+import { rentOf, rewardOf, retreatOdds, RENT_STEP, RENT_MID, GRUDGE, gradeOf, marketOf, stepOf, TD_FURN, TD_LIKES, GEAR, FURN_MAX, SAT, satOf, SCOUT_SIG, WORK, WORK_OF, WORK_HOURS, SKILL, skillOf, PAY, PROP, FIRST_FLOORS, BLOCK_LV, blockSlotsOf, FURN_LV, BLUEPRINT, BP_SCRAP, AUTO, MODULES, modAmt, LIFE, autoFurn, BUY_MAX, MOD_CRAFT, MOD_MATS, modCraftMats, BP_ODDS, SP_BLOCKS, SP_COST, spMats, spBack } from "./td-numbers.js";
 import { MAT_NAME } from "./materials.js";   // モジュールを 作る 素材の 名前（2026-11-27）
 import { speciesOf, RANKS, famOf } from "./fusion.js";   // スカウトの 値段（ランク）。見本の とき だけ 使う（つなぐ ときは 門番の td.res の scout）
 import { tdInit, tdOrder, tdTurn, tdAuto, distOf } from "./td-battle.js";
@@ -1462,7 +1463,8 @@ function buildHTML(close) {
 function spHTML() {
   const at = TDX().spAt || {}, f = S.floor, here = at[f], cr = LIVE ? (LASTME && LASTME.credits) || 0 : 99999;
   const built = Object.entries(at).sort((a, b) => a[0] - b[0]).map(([k, id]) => `${+k + 1}F ${SP_BLOCKS[id]?.name || id}`).join("・");
-  return `<div class="sph"><b>防衛に 効く 区画</b><small>住めない・1 つの 階に 1 つまで・いま 見て いる 階（${f + 1}F）に 建てる</small>${built ? `<small>建てた：${built}</small>` : ""}</div>
+  const now = here && SP_BLOCKS[here] ? `<div class="card spnow"><div class="t"><b>${f + 1}F：${SP_BLOCKS[here].name}</b></div><small class="sptx">こわすと 素材 3 しゅるいが ${spBack(here)[0][1]} こずつ もどる（クレジットは もどらない）</small><button class="sm" data-spoff="${f}">${S.spAsk === f ? "もう 1 回で こわす" : "こわす"}</button></div>` : "";   // こわす（2026-11-28 鹿さんの カード「素材の 半分が もどる」）
+  return `<div class="sph"><b>防衛に 効く 区画</b><small>住めない・1 つの 階に 1 つまで・いま 見て いる 階（${f + 1}F）に 建てる</small>${built ? `<small>建てた：${built}</small>` : ""}</div>${now}
     <div class="list">${Object.entries(SP_BLOCKS).map(([id, P]) => { const need = spMats(id), has = need.every(([m, n]) => haveMat(m) >= n), why = here ? `${f + 1}F には もう ${SP_BLOCKS[here].name} が ある` : !has ? "素材が 足りない" : cr < SP_COST.credits ? "クレジットが 足りない" : "";
       return `<div class="card"><div class="t"><b>${P.name}</b></div><small class="sptx">${P.text}</small><span class="cmats">${need.map(([m, n]) => { const h = haveMat(m); return `<span class="${h >= n ? "ok" : "ng"}">${MAT_NAME[m] || m} ${Math.min(h, 999)}/${n}</span>`; }).join("")}</span>
         <div class="cost">クレジット <b>${fmt(SP_COST.credits)}</b></div>${why ? `<div class="why">${why}</div>` : `<button class="go" data-spb="${id}">${f + 1}F に 建てる</button>`}</div>`; }).join("")}</div>`;
@@ -1555,7 +1557,7 @@ function renderTop() {
   $("floors").hidden = def || !!S.place;   // 階は 6 階まで あるので ▲ いまの 階 ▼
   $("floors").innerHTML = `<button data-f="${Math.min(TOP, S.floor + 1)}" ${S.floor >= TOP ? "disabled" : ""} aria-label="上の 階">▲</button><b>${S.floor + 1}F</b><button data-f="${Math.max(0, S.floor - 1)}" ${S.floor <= 0 ? "disabled" : ""} aria-label="下の 階">▼</button>`;
 }
-$("floors").addEventListener("click", (e) => { const b = e.target.closest("[data-f]"); if (!b || b.disabled) return; S.floor = +b.dataset.f; hidePop(); render(); });
+$("floors").addEventListener("click", (e) => { const b = e.target.closest("[data-f]"); if (!b || b.disabled) return; S.floor = +b.dataset.f; S.spAsk = null; hidePop(); render(); });
 
 function renderDock() {
   const def = S.mode === "def"; $("dock").hidden = def || !!S.place || !!S.mp;
@@ -1563,7 +1565,7 @@ function renderDock() {
   const items = [["res", "住人", IC.res, WANT.length + (LIVE && TD && TD.rent.days ? 1 : 0)], ["build", "増築", IC.build, TDX().modOffer ? 1 : 0], ["shop", "お店", IC.shop, 0], ["tower", "電波塔", IC.tower, NOTES.length]];   // お店：家具と 設備（2026-11-24 鹿さんの カード「下の ボタンに お店」）   // 増築の 丸：えらんで いない モジュール（M-047）
   $("dock").innerHTML = items.map(([k, n, ic, c]) => `<button data-tab="${k}" class="${S.tab === k ? "on" : ""}" aria-expanded="${S.tab === k}">${ic}${n}${c ? `<span class="dot">${c}</span>` : ""}</button>`).join("");
 }
-$("dock").addEventListener("click", (e) => { const b = e.target.closest("[data-tab]"); if (!b) return; S.tab = S.tab === b.dataset.tab ? null : b.dataset.tab; if (S.tab === "res") S.sub = "res"; if (S.tab === "tower") loadHelp(); hidePop(); renderDock(); renderPanel(); });
+$("dock").addEventListener("click", (e) => { const b = e.target.closest("[data-tab]"); if (!b) return; S.tab = S.tab === b.dataset.tab ? null : b.dataset.tab; S.spAsk = null; if (S.tab === "res") S.sub = "res"; if (S.tab === "tower") loadHelp(); hidePop(); renderDock(); renderPanel(); });
 
 function renderPanel() {
   const el = $("panel"), on = S.mode === "home" && !!S.tab;
@@ -1600,8 +1602,8 @@ function renderPanel() {
 }
 $("panel").addEventListener("click", (e) => {
   const b = e.target.closest("button"); if (!b) return;
-  if ("close" in b.dataset) { S.tab = null; renderDock(); renderPanel(); return; }
-  if (b.dataset.bsub) { S.bsub = b.dataset.bsub; S.aAsk = false; S.bpAsk = null; S.mAsk = null; renderPanel(); return; }
+  if ("close" in b.dataset) { S.tab = null; S.spAsk = null; renderDock(); renderPanel(); return; }
+  if (b.dataset.bsub) { S.bsub = b.dataset.bsub; S.aAsk = false; S.bpAsk = null; S.mAsk = null; S.spAsk = null; renderPanel(); return; }
   if ("afloor" in b.dataset) {   // 1 つ目の 建物に 階を 足す（2 回 押す）
     if (!S.aAsk) { S.aAsk = true; renderPanel(); return; }
     S.aAsk = false; if (!LIVE) { S.fl = Math.min(A_FULL, (S.fl || 2) + 1); composeShape(); S.floor = TOP; render(); toast(`${S.fl} 階に した（見本）`); return; }
@@ -1611,6 +1613,11 @@ $("panel").addEventListener("click", (e) => {
   if (b.dataset.spb) { const id = b.dataset.spb, f = S.floor; busyOn(b);   // 防衛に 効く 区画を いまの 階に 建てる
     if (!LIVE) { SAMPLE_TD.spAt[f] = id; toast(`${f + 1}F に ${SP_BLOCKS[id].name} を 建てた（見本）`); render(); return; }
     act("td.sp.build", { id, f }).then(async (r) => { if (!r || !r.ok) { toast((r && r.why) || "できませんでした"); renderPanel(); return; } await refresh(); toast(`${r.f + 1}F に ${SP_BLOCKS[r.id].name} を 建てた`); render(); }); return; }
+  if ("spoff" in b.dataset) { const f = +b.dataset.spoff;   // 防衛に 効く 区画を こわす（2 回 押す・素材の 半分が もどる）
+    if (S.spAsk !== f) { S.spAsk = f; renderPanel(); return; }
+    S.spAsk = null; busyOn(b); const id = (TDX().spAt || {})[f];
+    if (!LIVE) { delete SAMPLE_TD.spAt[f]; toast(`${f + 1}F の ${SP_BLOCKS[id]?.name || id} を こわした（見本）`); render(); return; }
+    act("td.sp.off", { f }).then(async (r) => { if (!r || !r.ok) { toast((r && r.why) || "できませんでした"); renderPanel(); return; } await refresh(); const n = r.back.reduce((t, x) => t + x[1], 0); toast(`${r.f + 1}F の ${SP_BLOCKS[r.id].name} を こわした・素材 ${n} こ もどる${r.box ? `（${r.box} こ あずかり箱へ）` : ""}`); render(); }); return; }
   if (b.dataset.mmode) { S.mmode = b.dataset.mmode; S.mAsk = null; renderPanel(); return; }   // 持ち物｜作る
   if (b.dataset.ckind) { S.ckind = b.dataset.ckind; renderPanel(); return; }
   if (b.dataset.mcraft) { const id = b.dataset.mcraft; busyOn(b);   // ボーダーゾーンの 素材で 作る
@@ -1705,7 +1712,7 @@ $("panel").addEventListener("click", (e) => {
 // 指示（研究ノート 21 回目）：出撃・待機・移動・待ち伏せは みんな できて、型ごとに 得意な 動きを 1 つ。戦いの 途中は 部屋へ 退避できる（AGI の くらべっこ）
 const SPECIAL = { アタッカー: ["突撃", "1 ターンに 2 マス 進む（見本）"], ディフェンダー: ["ふさぐ", "廊下を ふさいで 敵を 止める（見本）"], テクニシャン: ["足止め", "となりの マスの 敵に デバフ（見本）"],
   キャスター: ["遠くから", "2 マス 先の 敵とも 戦える（見本）"], ヒーラー: ["回復", "となりの 部屋の 住人を 回復（見本）"] };
-function startPlace(part) { S.place = { part, i: 0 }; S.tab = null; S.pan = { x: 0, z: 0 }; hidePop(); placeFloor(); render(); }
+function startPlace(part) { S.place = { part, i: 0 }; S.tab = null; S.spAsk = null; S.pan = { x: 0, z: 0 }; hidePop(); placeFloor(); render(); }
 function placeFloor() { const b = slotBox(avail(S.place.part)[S.place.i]); S.floor = b.f + Math.max(0, b.h - 1); }   // えらんだ 候補の 階で 切って 見せる
 const busyOn = (b) => { b.disabled = true; b.dataset.was = b.textContent; b.textContent = "たしかめて います…"; };
 const busyOff = (b) => { if (!b.isConnected) return; b.disabled = false; b.textContent = b.dataset.was || b.textContent; };

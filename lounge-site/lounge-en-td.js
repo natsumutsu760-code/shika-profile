@@ -3,7 +3,7 @@
 export const WORDS = {
   "防衛に 効く 区画": "Defense annexes", "有刺鉄線の 塀": "Barbed-wire fence", "監視塔": "Watchtower", "弾薬庫": "Ammo depot",   // 2026-11-27
   "その 階を 通る 敵の すばやさ −20%": "Enemies on that floor: AGI −20%", "その 階の 住人が 戦いの はじめに 先手": "Residents of that floor strike first in each fight", "その 階の 住人の こうげき ＋15%": "Residents of that floor: ATK +15%",
-  "その 階は まだ ない": "That floor doesn't exist yet", "素材が 足りない": "Not enough materials", "防衛中は 建てられない": "Can't build during a defense", "建てる 区画を えらんで": "Choose an annex to build",
+  "その 階は まだ ない": "That floor doesn't exist yet", "素材が 足りない": "Not enough materials", "防衛中は 建てられない": "Can't build during a defense", "防衛中は こわせない": "Can't demolish during a defense", "その 階には 区画が ない": "No annex on that floor", "こわす": "Demolish", "もう 1 回で こわす": "Tap again to demolish", "建てる 区画を えらんで": "Choose an annex to build",
   "集合住宅": "Apartments", "防衛中": "Defending", "ターン": "Turn", "敵": "Enemies", "ターン #・敵 #": "Turn # · Enemies #",
   "東棟": "East Wing", "西棟": "West Wing", "南棟": "South Wing", "北棟": "North Wing", "上の 階": "Floor up", "下の 階": "Floor down", "住人": "Residents", "増築": "Expand", "電波塔": "Radio Tower", "入居希望": "Applicants",
   "住人 #": "Residents #", "入居希望 #": "Applicants #", "棟": "Wing", "状態": "Status", "満足度が 低い": "Least satisfied", "満足度": "Satisfaction", "家賃": "Rent", "#／日": "#/day",
@@ -134,6 +134,12 @@ export const RULES = [
   [/^(\d+)F には もう (.+) が ある$/, (m, p) => `${m[1]}F already has a ${p(m[2]) || m[2]}`],
   [/^(\d+) 階には もう (.+) が ある（1 つの 階に 1 つまで）$/, (m, p) => `Floor ${m[1]} already has a ${p(m[2]) || m[2]} (1 per floor)`],
   [/^(\d+)F に (.+) を 建てた(（見本）)?$/, (m, p) => `Built a ${p(m[2]) || m[2]} on ${m[1]}F${m[3] ? " (sample)" : ""}`],
+  // こわす（2026-11-28）
+  [/^(\d+)F：(.+)$/, (m, p) => { const a = p(m[2]); return a ? `${m[1]}F: ${a}` : null; }],
+  [/^こわすと 素材 3 しゅるいが (\d+) こずつ もどる（クレジットは もどらない）$/, (m) => `Demolish to get back ${m[1]} of each of the 3 materials (credits are not refunded)`],
+  [/^(\d+)F の (.+) を こわした(（見本）)?$/, (m, p) => `Demolished the ${p(m[2]) || m[2]} on ${m[1]}F${m[3] ? " (sample)" : ""}`],
+  [/^(\d+)F の (.+) を こわした・素材 (\d+) こ もどる(?:（(\d+) こ あずかり箱へ）)?$/, (m, p) => `Demolished the ${p(m[2]) || m[2]} on ${m[1]}F · ${m[3]} materials back${m[4] ? ` (${m[4]} to the holding box)` : ""}`],
+  [/^(\d+) 階の (.+) を こわした（素材 (\d+) こ もどる）$/, (m, p) => `Floor ${m[1]}: demolished the ${p(m[2]) || m[2]} (${m[3]} materials back)`],
   [/^(\d+) 階に (.+)（([\d,]+) cr）$/, (m, p) => `Floor ${m[1]}: ${p(m[2]) || m[2]} (${m[3]} cr)`],
   // モジュールを 作る（2026-11-27）
   [/^ボーダーゾーンの 素材 3 しゅるい × (\d+) こ ＋ ([\d,]+) クレジットで 1 つ（★は くじ：(.+)）$/, (m) => `One module for 3 kinds × ${m[1]} Border Zone materials + ${m[2]} credits (★ is random: ${m[3].replace(/・/g, " · ")})`],

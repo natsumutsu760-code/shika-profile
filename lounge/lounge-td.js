@@ -22,7 +22,7 @@
 //   td.build {slot:"A+"} で 1 つ目の 建物に 階・箱の 候補は 設計図 {bp:持ち物の 番号} が いる（区画の 数は Lv で）・td.bp.scrap {i} で 設計図を スクラップに・td.furn {key, id, inv:true} で ドロップの 家具を 置く
 //   住人の sickTo（治る 日・日本時間）。病気の くじは 家賃を 受けとる ときに 1 日ずつ ひく
 import { rentOf, rewardOf, battleExp, workExp, foeCount, foeLv, foeTopLv, REVIVE, BOARD_REFRESH, FIGHT, TD_FURN, GEAR, FURN_MAX, SAT, satOf, SCOUT_SIG, RENT_STEP, GRUDGE, gradeOf, marketOf, stepOf, grudgeRate, autoFurn, BUY_MAX,
-  MODULES, MOD_OFFER, MOD_CRAFT, modCraftMats, SP_BLOCKS, SP_COST, spMats, PROP, propNeed, propLvOf, FIRST_FLOORS, firstFloorsOf, BLOCK_LV, blockSlotsOf, FURN_LV, BLUEPRINT, BP_DROP, BP_SCRAP, bpStar, FURN_DROP, furnDropPool, SICK, sickOdds, partPrice, WORK, WORK_OF, SKILL, skillOf, SKILL_IN, PAY, payOf , LIFE } from "./td-numbers.js";
+  MODULES, MOD_OFFER, MOD_CRAFT, modCraftMats, SP_BLOCKS, SP_COST, spMats, spBack, PROP, propNeed, propLvOf, FIRST_FLOORS, firstFloorsOf, BLOCK_LV, blockSlotsOf, FURN_LV, BLUEPRINT, BP_DROP, BP_SCRAP, bpStar, FURN_DROP, furnDropPool, SICK, sickOdds, partPrice, WORK, WORK_OF, SKILL, skillOf, SKILL_IN, PAY, payOf , LIFE } from "./td-numbers.js";
 import { FULL_BLOCKS, availOf, slotCost, shapeOf, roomsOf, roomsPer, hallOk } from "./td-core.js";   // 置き場所は 動く 候補（2026-11-16 案 1。2 代目）
 import { ENEMY_TREES } from "./enemy-trees.js";
 import { ENEMY_MAT, SCRAP } from "./materials.js";
@@ -181,6 +181,7 @@ export function tdAct(rec, b, now = Date.now()) {
   if (a === "td.mod.off") return modOff(T, b, now);
   if (a === "td.mod.scrap") return modScrap(rec, T, b, now);
   if (a === "td.mod.craft") return modCraft(rec, T, b, now);
+  if (a === "td.sp.off") return spOff(rec, T, b, now);   // こわす（2026-11-28 鹿さんの カード「素材の 半分が もどる」）
   if (a === "td.sp.build") return spBuild(rec, T, b, now);   // 防衛に 効く 区画（2026-11-27）   // ボーダーゾーンの 素材で 作る（2026-11-27）
   if (a === "td.def.start") return defStart(rec, T, b, now);
   if (a === "td.def.end") return defEnd(rec, T, b, now);
@@ -274,7 +275,18 @@ function spBuild(rec, T, b, now) {
   log(T, `${f + 1} 階に ${P.name}（${SP_COST.credits.toLocaleString("ja-JP")} cr）`, now);
   return { ok: true, id, f, cost: SP_COST.credits };
 }
-// 作る（鹿さんの カード「素材 3 しゅるい × 5 こ」：えらんだ モジュールを 1 つ。素材 15 こ ＋ 3,000 クレジット）〔C〕★は 防衛の 強さ 3 の 表
+// こわす（2026-11-28 鹿さんの カード「② こわせる ように」→「素材の 半分が もどる」：素材 3 しゅるいが 5 こずつ もどる・クレジットは もどらない。こわした 階には また 建てられる）
+// 〔C〕防衛中は こわせない・画面は いま 見て いる 階の 区画を こわす（2 回 押す）・もどる 素材は 品質 0・「買った 物」の 印（b。店で 買った 素材を 建てて こわすと「拾った 物」に かわる 抜け道を ふさぐ。拾った 素材で 建てても 買った 物で もどる）。倉庫に 入らない 分は あずかり箱へ
+function spOff(rec, T, b, now) {
+  if (T.def) return { ok: false, why: "防衛中は こわせない" };
+  const f = b && b.f, id = Number.isInteger(f) && Object.hasOwn(T.spAt, f) ? T.spAt[f] : null, P = typeof id === "string" && Object.hasOwn(SP_BLOCKS, id) ? SP_BLOCKS[id] : null;
+  if (!P) return { ok: false, why: "その 階には 区画が ない" };
+  delete T.spAt[f];
+  const back = spBack(id).filter(([, n]) => n > 0).map(([m, n]) => ({ id: m, q: 0, n, b: 1 })), put = putMats(rec, back, now), n = back.reduce((t, x) => t + x.n, 0);
+  log(T, `${f + 1} 階の ${P.name} を こわした（素材 ${n} こ もどる）`, now);
+  return { ok: true, id, f, back: back.map((x) => [x.id, x.n]), box: put.box.reduce((t, x) => t + x.n, 0) };
+}
+// 作る（鹿さんの カード「素材 3 しゅるい × 5 こ」：えらんだ モジュールを 1 つ。素材 15 こ ＋ 3,000 クレジット）★は 防衛の 強さ 4 の 表（2026-11-28 鹿さんの カード）
 function modCraft(rec, T, b, now) {
   const id = b && b.id, M = typeof id === "string" && Object.hasOwn(MODULES, id) ? MODULES[id] : null, need = M ? modCraftMats(id) : [];
   if (!M || !need.length) return { ok: false, why: "作る モジュールを えらんで" };
